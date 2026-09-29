@@ -4,7 +4,9 @@ import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import { PAGES as ALL } from '../../media-lab/tests/pages.js';
 
-const MIGRATED = ALL.filter(p => fs.existsSync(p.url.slice(1).replace(/#.*$/, '')));
+const exists = f => fs.existsSync(f);
+/* loop-editor.dc.html er bare en omdirigering til studio-editor.dc.html og sammenlignes når den er migrert */
+const MIGRATED = ALL.filter(p => exists(p.url.slice(1).replace(/#.*$/, '')) && (p.id !== 'loop-editor' || exists('studio-editor.dc.html')));
 
 for (const p of MIGRATED) {
   for (const theme of ['dark', 'light']) {
@@ -17,7 +19,8 @@ for (const p of MIGRATED) {
       await page.waitForTimeout(1500);
       expect(await page.screenshot({ fullPage: true, animations: 'disabled' })).toMatchSnapshot(`${p.id}-${theme}.png`);
       const base = JSON.parse(fs.readFileSync(`../media-lab/tests/__baseline__/${info.project.name}/${p.id}-${theme}.errors.json`, 'utf8'));
-      expect(errors.filter(e => !/api\/ml|Failed to load resource/.test(e))).toEqual(base);
+      // feil fra dc-runtime (nettleseren leser den rå malen med {{ … }} før den skjules) finnes ikke i React og tas ut av grunnlinjen
+      expect(errors.filter(e => !/api\/ml|Failed to load resource/.test(e))).toEqual(base.filter(e => !/\{\{.*\}\}/.test(e)));
     });
   }
 }

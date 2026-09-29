@@ -1,15 +1,26 @@
-// Bakgrunnsanimasjonen på forsiden: samme bilde på samme tidspunkt i original og React (låst klokke).
+// Bakgrunnsanimasjonen på forsiden: samme bilde på samme tidspunkt i original og React.
+// Tiden styres helt av testen (performance.now og requestAnimationFrame byttes ut), så begge får nøyaktig samme tidslinje.
 import { test, expect } from '@playwright/test';
 test.use({ reducedMotion: 'no-preference' });
 
+const CLOCK = () => {
+  let T = 1000; const q = [];
+  performance.now = () => T;
+  window.requestAnimationFrame = cb => { q.push(cb); return q.length; };
+  window.cancelAnimationFrame = () => {};
+  window.__step = ms => { const end = T + ms; while (T < end) { T = Math.min(end, T + 16); q.splice(0).forEach(f => f(T)); } };
+};
+const TIMES = [0, 500, 1000, 2500, 5000, 10000];
+
 async function frames(page, url, theme) {
   await page.addInitScript(t => { localStorage.setItem('medialab.theme', t); localStorage.setItem('medialab.lang', 'no'); }, theme);
-  await page.clock.install({ time: new Date('2026-09-29T12:00:00') });
+  await page.addInitScript(CLOCK);
   await page.goto(url, { waitUntil: 'networkidle' });
-  await page.clock.runFor(100);
-  const out = [];
-  for (const ms of [0, 500, 1000, 2500, 5000, 10000]) {
-    if (ms) await page.clock.runFor(ms - (out.length ? [0, 500, 1000, 2500, 5000, 10000][out.length - 1] : 0));
+  await page.waitForFunction(() => document.querySelector('canvas'));
+  await page.waitForTimeout(300);
+  const out = []; let prev = 0;
+  for (const ms of TIMES) {
+    await page.evaluate(d => window.__step(d), ms - prev); prev = ms;
     out.push(await page.evaluate(() => document.querySelector('canvas').toDataURL()));
   }
   return out;
@@ -18,8 +29,9 @@ for (const theme of ['dark', 'light']) {
   test(`animasjon lik over tid (${theme})`, async ({ browser }) => {
     const a = await browser.newPage(), b = await browser.newPage();
     const [fa, fb] = await Promise.all([frames(a, '/_original/media-lab.dc.html', theme), frames(b, '/media-lab.dc.html', theme)]);
-    expect(new Set(fa).size).toBeGreaterThan(3); // animasjonen beveger seg
-    fa.forEach((f, i) => expect(fb[i] === f, `bilde ${i}`).toBe(true));
+    console.log(theme, fa.map((f, i) => (f === fb[i] ? 'lik' : 'ULIK')).join(', '));
+    expect(new Set(fa).size, 'animasjonen beveger seg').toBeGreaterThan(3);
+    fa.forEach((f, i) => expect(fb[i] === f, `bilde ved ${TIMES[i]} ms`).toBe(true));
   });
 }
 test('hover-overgang lik', async ({ browser }) => {

@@ -18,6 +18,8 @@ const ML = path.resolve(ROOT, '../media-lab');
 export const PAGES = {
   'media-lab': { src: 'media-lab.dc.html' },
   'admin': { src: 'admin.dc.html' },
+  'mockups': { src: 'mockups.dc.html' },
+  'loop-studio': { src: 'loop-studio.dc.html' },
 };
 
 /* ---------- kopier av dc-runtime (support.js) ---------- */
@@ -224,6 +226,8 @@ function convertPage(id) {
   const template = src.slice(open.index + open[0].length, close);
   const script = /<script type="text\/x-dc" data-dc-script>([\s\S]*?)<\/script>/.exec(src)[1];
   const head = /<head>([\s\S]*?)<\/head>/.exec(src)[1];
+  /* innhold i <body> foran <x-dc> (f.eks. #boot-splash) beholdes foran #dc-root, som i originalen */
+  const bodyPre = src.slice(src.indexOf('<body>') + 6, open.index).trim();
 
   const { body, pseudo, helmet, used } = convertTemplate(template);
   const out = path.join(ROOT, 'src/pages', id); fs.mkdirSync(out, { recursive: true });
@@ -259,7 +263,7 @@ function convertPage(id) {
     return false;
   });
   const helmetHtml = helmetKeep.map(n => '  ' + serializeOuter(n)).join('\n');
-  fs.writeFileSync(path.join(ROOT, cfg.src), '<!DOCTYPE html>\n<!-- GENERERT av scripts/dc2jsx.mjs fra media-lab/' + cfg.src + ' -->\n<html>\n<head>' + headOut.trimEnd() + '\n' + helmetHtml + '\n</head>\n<body>\n<div id="dc-root"></div>\n<script type="module" src="/src/pages/' + id + '/main.jsx"></script>\n</body>\n</html>\n');
+  fs.writeFileSync(path.join(ROOT, cfg.src), '<!DOCTYPE html>\n<!-- GENERERT av scripts/dc2jsx.mjs fra media-lab/' + cfg.src + ' -->\n<html>\n<head>' + headOut.trimEnd() + '\n' + helmetHtml + '\n</head>\n<body>\n' + (bodyPre ? bodyPre + '\n' : '') + '<div id="dc-root"></div>\n<script type="module" src="/src/pages/' + id + '/main.jsx"></script>\n</body>\n</html>\n');
 
   const name = cfg.src.replace(/\.dc\.html$/, '');
   fs.writeFileSync(path.join(out, 'main.jsx'), GEN +
