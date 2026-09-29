@@ -9,3 +9,5 @@ uploads/
 screenshots/
 test-results/
 playwright-report/
+.cache/
+test-results-*.log

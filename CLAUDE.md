@@ -3,7 +3,14 @@
 Brukeren skriver norsk. Svar kort og direkte på norsk.
 
 ## Filer
-All kode ligger i `media-lab/` (eneste kopi, deployes til Vercel). Rotkopiene (`Mediaverktøy.dc.html` osv.), `MediaLab/` og `git-oppdatering/` er fjernet. Navnene under viser til filene i `media-lab/`.
+All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene under viser til sidene i `media-lab/`; felles skript/motorer ligger i `media-lab/src/legacy/`, bilder/mockups i `media-lab/public/`.
+
+**Struktur etter React-migreringen (se `docs/react-migrering/`):**
+- `*.dc.html` (samme filnavn som før) → `src/pages/<id>/main.jsx` + `logic.js` (klassen fra originalen, `extends DCLogic`) + `template.jsx` (JSX av `renderVals()`) + `pseudo.css` (hover/focus). **Rediger disse filene direkte** – de er nå kilden.
+- `src/shared/dc.jsx` (vert som erstatter dc-runtime), `src/shared/runtime-quirks.js` (etterligner synlige særheter fra runtimen: footer og lys modus).
+- `src/legacy/*.js`: i18n, theme, ml-*, *-engine – uendrede filer, importeres via `@ml/…`. `ukeloop-engine.js` lastes som klassisk skript (`?url`), fordi spiller-HTML bygges med `Function.toString()`.
+- `legacy-dc/`: originalsidene med dc-runtime, bare til sammenligning (`/_original/…` i dev/preview). Deployes ikke. `npm run convert` (scripts/dc2jsx.mjs) kan generere sidene på nytt fra dem – **ikke gjør det etter at React-sidene er endret for hånd**.
+- `npm run dev` / `npm run build` (mockup-index + vite build → `dist/`) / `npm test` (Playwright: skjermbilder, flyttester og utforskning i takt mot originalen, under samme CSP som Vercel). `tests-grunnlinje/` lager grunnlinjebilder av originalene.
 
 - `media-lab.dc.html` – forsiden (Media Lab). Kort: Loop Studio, Isolate Subject, Thumbnail Studio. Språkbytte NO/EN, mørk/lys-knapp nede til høyre (mørk er standard, lys = dempet off-white #e4e1da).
 - `loop-studio.dc.html` (+ `loop-editor.dc.html`) / `studio-editor.dc.html` (Ukeprogram Loop) + `ukeloop-engine.js` – loopende video av ukeprogram. Tilfeldig farge-knapp (bare trykkbar, ikke alltid aktiv) med 100+ klassiske fargepaletter, lydbibliotek.
@@ -15,16 +22,15 @@ All kode ligger i `media-lab/` (eneste kopi, deployes til Vercel). Rotkopiene (`
 - Photo Design trykk: formater A3/Visittkort (`mm`), `doc.bleed` (3 mm, `PD.bleedLayers` strekker kant-lag), tosidig `doc.back`/`doc.side` (bytter lag), CMYK-felt (`PD.toCMYK/fromCMYK`), «PDF trykk» = `PD.printPDF` (CMYK, 300 dpi, TrimBox/BleedBox, rendres i bånd).
 - Loop Studio: «Alle slides» i vignett-editoren fjerner slide-overstyringer for endrede nøkler. Effekt-endring per slide → `testSlide(id)` spiller bare den sliden; `setCfg` stopper testen.
 - `theme.js`: flytende lys/mørk-knapp nede til høyre på alle sider (hoppes over hvis `[data-ml-theme]`), og interne lenker får `data-ml-href` ved hover så URL ikke vises i statuslinjen.
-- Mockups: innebygde i `images/mockups/` + brukerens mappe `mockups/` (index.json skrives for hånd eller med `node scripts/mockup-index.mjs` lokalt; Vercel buildCommand er tom fordi byggesteg feilet) + egne opplastinger i IndexedDB `mockuplib`.
+- Mockups: innebygde i `public/images/mockups/` (index.json lages av `scripts/mockup-index.mjs` i `npm run build`) + brukerens mappe `public/mockups/` (index.json skrives for hånd) + egne opplastinger i IndexedDB `mockuplib`.
 - Forsiden: mapper SoMe (Motion design, Photo design) og Tools (Isolate Subject, Mockups – kommer). `#some` / `#tools` åpner mappen direkte.
 - `admin.dc.html` + `api/ml.js` (Vercel-funksjon, én fil, `?a=`-handlinger) + `package.json` (@vercel/blob ≥2.3). Krever PRIVAT Blob-butikk koblet til prosjektet + env `AUTH_SECRET` (≥32 tegn), valgfri `SETUP_CODE`. Roller: dev > admin > user. Menigheter (orgs). Kryptert db i `sys/db.json` (AES-GCM), scrypt-passord, HttpOnly-cookie `ml_s` (Path=/api, 12 t), POST krever header `x-ml: 1`. Filer: `global/{mappe}/…` og `org/{id}/{mappe}/…`, mapper: mockups, faste, logoer, bakgrunner, lyd; maks 4,4 MB, magiske bytes sjekkes. Skjul innebygde bilder per scope (`db.hidden`). Logg: `logs/{dato}/…` (client/server/audit). Admin-ikon nede til venstre på forsiden.
 - `ml-cloud.js` – klient: `MLCloud.files(mappe)` gir skyfiler + skjulte for innlogget bruker; sender JS-feil til loggen. Koblet inn i Mockups; faste bilder/logoer/lyd/bakgrunner i appene gjenstår.
 - `ml-bg.js` – felles bakgrunn for verktøysidene. Menyer/startskjermer: bevegelig linjefelt i samme palett som forsiden (men annerledes). Arbeidsflater: fast, jevn, mørk tone — merk elementet med `data-ml-bg="static"`. Rot-diven må ha `background:transparent`.
 - `ml-footer.js` – footer: innfading av statisk footer + valgfri lenke. Sett `FOOTER_URL` øverst i filen (må være https://) for å gjøre «Design by Kristen Utvikling» klikkbar.
 - `i18n.js` (NO→EN-ordbok, `var D = {…}`), `theme.js` (lys/mørk for alle sider, lagres i localStorage `medialab.theme`).
-- `vercel.json` med CSP og sikkerhetsheadere, `?v=`-cache-busting på scripts.
-- `media-lab-react/` (branch `react-migrering`) – React/Vite-versjon under migrering. `npm run convert` (scripts/dc2jsx.mjs) genererer `src/pages/<id>/` fra `media-lab/*.dc.html`; felles skript importeres fra `media-lab/` via `@ml`. Verifiser med `npm run build && npx playwright test` (skjermbilder mot `media-lab/tests/__baseline__`). Status i `docs/react-migrering/`. Migrert: alle verktøy (fase 4 ferdig). Neste: fase 5, se docs/react-migrering/09-plan-fase5.md.
+- `vercel.json`: `buildCommand: npm run build`, `outputDirectory: dist`, CSP (uten `unsafe-eval`/unpkg – bare den gamle runtimen trengte dem; `wasm-unsafe-eval` beholdes for onnxruntime), `assets/` hurtigbufres lenge (filnavn med hash).
 
 ## Regler
-- All ny tekst må ha engelsk oversettelse i `media-lab/i18n.js`.
+- All ny tekst må ha engelsk oversettelse i `media-lab/src/legacy/i18n.js`.
 - Sikkerhet: valider filtyper/størrelse, ingen hemmelige nøkler i klienten, oppdater CSP ved nye eksterne domener.
