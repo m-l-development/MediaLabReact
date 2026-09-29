@@ -1,0 +1,5 @@
+[
+ "Error: <path> attribute d: Expected moveto path command ('M' or 'm'), \"{{ curvePath }}\".",
+ "Error: <circle> attribute cx: Expected length, \"{{ p.x }}\".",
+ "Error: <circle> attribute cy: Expected length, \"{{ p.y }}\"."
+]
