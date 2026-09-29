@@ -23,6 +23,8 @@ Brukeren skriver norsk. Svar kort og direkte på norsk.
 - `i18n.js` (NO→EN-ordbok, `var D = {…}`), `theme.js` (lys/mørk for alle sider, lagres i localStorage `medialab.theme`).
 - `media-lab/` – deploy-kopi (Vercel) med små filnavn (`media-lab.dc.html`, `loop-studio.dc.html`, `isolate-subject.dc.html`, `studio-editor.dc.html`, `thumbnail-studio.dc.html` + `thumb-engine.js`, `motion-design.dc.html` + `motion-engine.js`), `vercel.json` med CSP og sikkerhetsheadere, `?v=`-cache-busting på scripts. Hold rot-filer og `media-lab/` synkronisert ved endringer.
 
+- `media-lab-react/` (branch `react-migrering`) – React/Vite-versjon under migrering. `npm run convert` (scripts/dc2jsx.mjs) genererer `src/pages/<id>/` fra `media-lab/*.dc.html`; felles skript importeres fra `media-lab/` via `@ml`. Verifiser med `npm run build && npx playwright test` (skjermbilder mot `media-lab/tests/__baseline__`). Status i `docs/react-migrering/`. Migrert: forsiden.
+
 ## Regler
 - All ny tekst må ha engelsk oversettelse i begge `i18n.js`.
 - Sikkerhet: valider filtyper/størrelse, ingen hemmelige nøkler i klienten, oppdater CSP ved nye eksterne domener.
