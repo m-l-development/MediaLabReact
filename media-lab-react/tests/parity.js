@@ -24,6 +24,8 @@ export async function pixelDiff(page, a, b) {
 export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init } = {}) {
   const ctx = await browser.newContext({ viewport, reducedMotion: 'reduce', timezoneId: 'Europe/Oslo', locale: 'nb-NO', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
   await ctx.addInitScript(() => { localStorage.setItem('medialab.theme', 'dark'); localStorage.setItem('medialab.lang', 'no'); });
+  /* samme «tilfeldige» tall i begge versjoner (tilfeldige id-er, farger osv.) */
+  await ctx.addInitScript(() => { let s = 20260929; Math.random = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; });
   if (init) await ctx.addInitScript(init);
   if (route) await ctx.route(route[0], route[1]());
   const page = await ctx.newPage(), errors = [], downloads = [];
@@ -40,7 +42,13 @@ export async function openSide(browser, url, { viewport = { width: 1440, height:
 /* Kjører stegene likt på begge og sammenligner. mask: selektor for elementer som tegnes etter klokken (f.eks. ml-bg-lerretet). */
 export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
   const A = await openSide(browser, origUrl, opts), B = await openSide(browser, reactUrl, opts);
-  const text = p => p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').trim());
+  /* synlig tekst + feltverdier + lenker + hele localStorage (lagringsformatet må være uendret) */
+  const text = p => p.evaluate(() => JSON.stringify({
+    text: document.body.innerText.replace(/\s+/g, ' ').trim(),
+    values: [...document.querySelectorAll('input:not([type=file]), textarea, select')].map(e => e.type === 'checkbox' || e.type === 'radio' ? e.checked : e.value),
+    links: [...document.querySelectorAll('a')].map(a => a.getAttribute('href') || a.getAttribute('data-ml-href')),
+    storage: Object.fromEntries(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)])),
+  }));
   const shot = P => P.screenshot({ fullPage: !opts.viewportOnly, animations: 'disabled', caret: 'hide', mask: [P.locator(opts.mask || ML_BG)], maskColor: '#000' });
   const report = [];
   for (const [step, run] of steps) {
@@ -51,9 +59,9 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
     const [ta, tb] = await Promise.all([text(A.page), text(B.page)]);
     const [sa, sb] = await Promise.all([shot(A.page), shot(B.page)]);
     const d = await pixelDiff(A.page, sa, sb);
-    if (d >= 0.002) { const dir = `test-results/${name}-diff`; fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(`${dir}/${step}-original.png`, sa); fs.writeFileSync(`${dir}/${step}-react.png`, sb); }
-    report.push(`${step}: tekst ${ta === tb ? 'lik' : 'ULIK'}, piksler ${(d * 100).toFixed(3)} % ulike`);
-    expect.soft(tb, `tekst etter «${step}»`).toBe(ta);
+    if (d >= Number(process.env.DIFFSAVE ?? 0.002) && d > 0) { const dir = `test-results/${name}-diff`; fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(`${dir}/${step}-original.png`, sa); fs.writeFileSync(`${dir}/${step}-react.png`, sb); }
+    report.push(`${step}: tekst/lenker/lagring ${ta === tb ? 'lik' : 'ULIK'}, piksler ${(d * 100).toFixed(3)} % ulike`);
+    expect.soft(JSON.parse(tb), `tekst, felt, lenker og localStorage etter «${step}»`).toEqual(JSON.parse(ta));
     expect.soft(d, `piksler etter «${step}»`).toBeLessThan(0.002);
   }
   console.log(`--- ${name}\n` + report.join('\n') + `\nnedlastinger: ${JSON.stringify(A.downloads)} / ${JSON.stringify(B.downloads)}`);

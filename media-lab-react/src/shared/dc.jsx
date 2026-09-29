@@ -45,6 +45,19 @@ export const chk = v => (v === undefined ? false : v);
 /* sc-for: ikke-lister blir tomme */
 export const list = v => (Array.isArray(v) ? v : []);
 
+/* I dc-runtime rakk ml-footer.js å koble innfading på footerne i den rå malen. Runtimen kompilerte
+   malen på nytt rett etter første visning, og da satte React stilen på footer-teksten tilbake til malens
+   stil (uten transition/opacity/transform). Resultat i originalen: footere som finnes ved oppstart vises
+   med en gang, og ml-footer skjuler/viser dem senere uten animasjon. Footere som kommer senere, fader inn.
+   Her gjøres det samme: stilen noteres før ml-footer kobler seg på, og settes tilbake etter at
+   IntersectionObserver har levert første melding (to animasjonsrammer). */
+function keepFooterLikeRuntime() {
+  const root = document.getElementById('dc-root'); if (!root) return;
+  const saved = [...root.querySelectorAll('footer')].map(f => { const s = f.querySelector('span') || f; return [s, s.style.cssText]; });
+  if (!saved.length) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => saved.forEach(([s, css]) => { if (s.isConnected) s.style.cssText = css; }), 0)));
+}
+
 function makeHost(name, Logic, template) {
   class DCHost extends React.Component {
     constructor(props) {
@@ -63,7 +76,10 @@ function makeHost(name, Logic, template) {
       this.logic.state = { ...prev, ...patch };
       this.setState(s => ({ __v: s.__v + 1 }), cb);
     }
-    componentDidMount() { try { this.logic.componentDidMount(); } catch (e) { console.error(e); } }
+    componentDidMount() {
+      keepFooterLikeRuntime();
+      try { this.logic.componentDidMount(); } catch (e) { console.error(e); }
+    }
     componentDidUpdate(prevProps) { this.logic.props = this.props; try { this.logic.componentDidUpdate(prevProps); } catch (e) { console.error(e); } }
     componentWillUnmount() { try { this.logic.componentWillUnmount(); } catch (e) { console.error(e); } }
     render() {
