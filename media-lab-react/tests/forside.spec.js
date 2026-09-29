@@ -2,8 +2,8 @@
 import { test, expect } from '@playwright/test';
 
 const VARIANTS = [
-  { name: 'original', url: '/media-lab.dc.html' },
-  { name: 'react', url: '/' },
+  { name: 'original', url: '/_original/media-lab.dc.html' },
+  { name: 'react', url: '/media-lab.dc.html' },
 ];
 const card = (page, title) => page.locator('a, button').filter({ hasText: title }).first();
 
@@ -72,7 +72,7 @@ for (const V of VARIANTS) {
       await expect.poll(() => loop.evaluate(e => getComputedStyle(e).borderColor)).not.toBe(before);
       await expect(page.locator('[aria-label="Admin"]')).toHaveCount(1);
       await loop.click();
-      await expect(page).toHaveURL(/\/loop-studio\.dc\.html$/);
+      await expect(page).toHaveURL(/loop-studio\.dc\.html$/);
     });
   });
 }

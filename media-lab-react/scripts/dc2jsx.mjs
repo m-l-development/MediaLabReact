@@ -14,8 +14,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ML = path.resolve(ROOT, '../media-lab');
 
 /* id → kilde i media-lab/ og html-fil i dette prosjektet */
+/* React-sidene får samme filnavn som originalene, så lenker og bokmerker virker uendret */
 export const PAGES = {
-  'media-lab': { src: 'media-lab.dc.html', html: 'index.html' },
+  'media-lab': { src: 'media-lab.dc.html' },
+  'admin': { src: 'admin.dc.html' },
 };
 
 /* ---------- kopier av dc-runtime (support.js) ---------- */
@@ -241,14 +243,23 @@ function convertPage(id) {
   const imports = [];
   let headOut = head.replace(/[ \t]*<script\b([^>]*)><\/script>\s*/g, (m, attrs) => {
     const s = /src="([^"]+)"/.exec(attrs); if (!s) return m;
-    const file = s[1].replace(/^\//, '').replace(/\?.*$/, '');
+    const file = s[1].replace(/^\.?\//, '').replace(/\?.*$/, '');
     if (/^https?:/.test(s[1])) return m;
     if (file !== 'support.js') imports.push(file);
     return '';
   });
   headOut = headOut.replace(/\n\s*\n/g, '\n');
-  const helmetHtml = helmet.map(n => '  ' + serializeOuter(n)).join('\n');
-  fs.writeFileSync(path.join(ROOT, cfg.html), '<!DOCTYPE html>\n<!-- GENERERT av scripts/dc2jsx.mjs fra media-lab/' + cfg.src + ' -->\n<html>\n<head>' + headOut.trimEnd() + '\n' + helmetHtml + '\n</head>\n<body>\n<div id="dc-root"></div>\n<script type="module" src="/src/pages/' + id + '/main.jsx"></script>\n</body>\n</html>\n');
+  /* skript i <helmet> med lokal src blir også import (etter head-skriptene); eksterne beholdes */
+  const helmetKeep = helmet.filter(n => {
+    if (n.tagName !== 'script') return true;
+    const src = (n.attrs.find(a => a.name === 'src') || {}).value || '';
+    if (!src || /^https?:/.test(src)) return true;
+    const file = src.replace(/^\.?\//, '').replace(/\?.*$/, '');
+    if (!imports.includes(file)) imports.push(file);
+    return false;
+  });
+  const helmetHtml = helmetKeep.map(n => '  ' + serializeOuter(n)).join('\n');
+  fs.writeFileSync(path.join(ROOT, cfg.src), '<!DOCTYPE html>\n<!-- GENERERT av scripts/dc2jsx.mjs fra media-lab/' + cfg.src + ' -->\n<html>\n<head>' + headOut.trimEnd() + '\n' + helmetHtml + '\n</head>\n<body>\n<div id="dc-root"></div>\n<script type="module" src="/src/pages/' + id + '/main.jsx"></script>\n</body>\n</html>\n');
 
   const name = cfg.src.replace(/\.dc\.html$/, '');
   fs.writeFileSync(path.join(out, 'main.jsx'), GEN +
