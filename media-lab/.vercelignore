@@ -1,0 +1,7 @@
+# Trengs ikke på Vercel (bygget bruker src/, public/, api/ og *.dc.html)
+tests/
+tests-grunnlinje/
+legacy-dc/
+.cache/
+test-results/
+playwright.config.js
