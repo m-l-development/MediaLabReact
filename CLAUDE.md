@@ -23,7 +23,7 @@ All kode ligger i `media-lab/` (eneste kopi, deployes til Vercel). Rotkopiene (`
 - `ml-footer.js` – footer: innfading av statisk footer + valgfri lenke. Sett `FOOTER_URL` øverst i filen (må være https://) for å gjøre «Design by Kristen Utvikling» klikkbar.
 - `i18n.js` (NO→EN-ordbok, `var D = {…}`), `theme.js` (lys/mørk for alle sider, lagres i localStorage `medialab.theme`).
 - `vercel.json` med CSP og sikkerhetsheadere, `?v=`-cache-busting på scripts.
-- `media-lab-react/` (branch `react-migrering`) – React/Vite-versjon under migrering. `npm run convert` (scripts/dc2jsx.mjs) genererer `src/pages/<id>/` fra `media-lab/*.dc.html`; felles skript importeres fra `media-lab/` via `@ml`. Verifiser med `npm run build && npx playwright test` (skjermbilder mot `media-lab/tests/__baseline__`). Status i `docs/react-migrering/`. Migrert: forsiden, Admin, Mockups, Loop Studio, Isolate Subject, Photo Design, Motion Design.
+- `media-lab-react/` (branch `react-migrering`) – React/Vite-versjon under migrering. `npm run convert` (scripts/dc2jsx.mjs) genererer `src/pages/<id>/` fra `media-lab/*.dc.html`; felles skript importeres fra `media-lab/` via `@ml`. Verifiser med `npm run build && npx playwright test` (skjermbilder mot `media-lab/tests/__baseline__`). Status i `docs/react-migrering/`. Migrert: alle verktøy (fase 4 ferdig). Neste: fase 5, se docs/react-migrering/09-plan-fase5.md.
 
 ## Regler
 - All ny tekst må ha engelsk oversettelse i `media-lab/i18n.js`.

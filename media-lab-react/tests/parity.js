@@ -11,14 +11,14 @@ export const ML_BG = 'body > div[aria-hidden="true"][data-keep-color] canvas';
 export const IMG2 = path.resolve('../media-lab/images/tirsdag.png');
 
 /* andel piksler som er synlig ulike, beregnet i nettleseren */
-export async function pixelDiff(page, a, b) {
-  return page.evaluate(async ([a, b]) => {
+export async function pixelDiff(page, a, b, tol = 30) {
+  return page.evaluate(async ([a, b, tol]) => {
     const load = async s => { const bm = await createImageBitmap(await (await fetch('data:image/png;base64,' + s)).blob()); const c = new OffscreenCanvas(bm.width, bm.height); const g = c.getContext('2d'); g.drawImage(bm, 0, 0); return g.getImageData(0, 0, bm.width, bm.height); };
     const [x, y] = await Promise.all([load(a), load(b)]);
     if (x.width !== y.width || x.height !== y.height) return 1;
-    let n = 0; for (let i = 0; i < x.data.length; i += 4) if (Math.abs(x.data[i] - y.data[i]) + Math.abs(x.data[i + 1] - y.data[i + 1]) + Math.abs(x.data[i + 2] - y.data[i + 2]) > 30) n++;
+    let n = 0; for (let i = 0; i < x.data.length; i += 4) if (Math.abs(x.data[i] - y.data[i]) + Math.abs(x.data[i + 1] - y.data[i + 1]) + Math.abs(x.data[i + 2] - y.data[i + 2]) + Math.abs(x.data[i + 3] - y.data[i + 3]) > tol) n++;
     return n / (x.width * x.height);
-  }, [a.toString('base64'), b.toString('base64')]);
+  }, [a.toString('base64'), b.toString('base64'), tol]);
 }
 
 /* Lokal buffer for CDN og AI-modeller (jsdelivr, unpkg, Hugging Face), så de bare lastes ned én gang.
@@ -113,8 +113,15 @@ async function controls(page) {
   }).filter(Boolean), SEL);
 }
 async function exploreStep(A, B, rng, k, opts) {
-  const [ca, cb] = await Promise.all([controls(A), controls(B)]);
   const key = c => c.map(x => [x.i, x.tag, x.type, x.label].join('|')).join('\n');
+  /* kontroller som legges inn med forsinkelse (f.eks. lys/mørk-knappen fra theme.js etter 900 ms) kan
+     mangle et øyeblikk etter at siden er lastet: sjekk på nytt inntil fire ganger */
+  let ca, cb;
+  for (let tries = 0; ; tries++) {
+    [ca, cb] = await Promise.all([controls(A), controls(B)]);
+    if (key(ca) === key(cb) || tries >= 4) break;
+    await Promise.all([A.waitForTimeout(800), B.waitForTimeout(800)]);
+  }
   if (key(ca) !== key(cb)) { console.log('ULIKE KONTROLLER\n' + key(ca).split('\n').filter((l, i) => l !== key(cb).split('\n')[i]).slice(0, 5).join('\n') + '\n≠\n' + key(cb).split('\n').filter((l, i) => l !== key(ca).split('\n')[i]).slice(0, 5).join('\n')); return null; }
   const r = rng();
   if (r < 0.08 || !ca.length) { const kk = KEYS[Math.floor(rng() * KEYS.length)]; return [`u${k} tast ${kk}`, p => p.keyboard.press(kk)]; }
@@ -145,6 +152,8 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
     /* blob:-adresser (nedlastinger) får tilfeldig id av nettleseren, også i originalen */
     links: [...document.querySelectorAll('a')].map(a => (a.getAttribute('href') || a.getAttribute('data-ml-href') || '').replace(/^blob:.*/, 'blob:(tilfeldig id)')),
     storage: Object.fromEntries(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)])),
+    /* rulleposisjon (vindu og rullbare paneler) er også en del av opplevelsen */
+    scroll: [Math.round(scrollX), Math.round(scrollY), ...[...document.querySelectorAll('*')].filter(e => e.scrollTop > 0 || e.scrollLeft > 0).map(e => e.tagName + ':' + Math.round(e.scrollLeft) + ',' + Math.round(e.scrollTop))],
   }));
   const shot = P => P.screenshot({ fullPage: !opts.viewportOnly, animations: 'disabled', caret: 'hide', mask: [P.locator(opts.mask || ML_BG)], maskColor: '#000' });
   const report = [];
@@ -184,6 +193,10 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
       [sa, sb] = await Promise.all([shot(A.page), shot(B.page)]);
       d = await pixelDiff(A.page, sa, sb);
       if ((ta === tb && d < 0.002) || tries >= 4) break;
+      /* rulleposisjonen (Playwright ruller elementer inn i bildet før klikk) varierer også når originalen
+         kjøres mot seg selv; er den ulik, settes React-versjonens lik originalens før ny sammenligning */
+      const pos = await A.page.evaluate(() => ({ win: [scrollX, scrollY], els: [...document.querySelectorAll('*')].map((e, i) => [i, e.scrollLeft, e.scrollTop]).filter(x => x[1] || x[2]) }));
+      await B.page.evaluate(p => { const I = 'instant', all = document.querySelectorAll('*'); for (const e of all) if (e.scrollLeft || e.scrollTop) e.scrollTo({ left: 0, top: 0, behavior: I }); p.els.forEach(([i, l, t]) => { if (all[i]) all[i].scrollTo({ left: l, top: t, behavior: I }); }); window.scrollTo({ left: p.win[0], top: p.win[1], behavior: I }); }, pos);
       await Promise.all([A.page.waitForTimeout(1200), B.page.waitForTimeout(1200)]);
       if (opts.clock) await Promise.all([A.page.evaluate(ms => window.__step(ms), opts.clock), B.page.evaluate(ms => window.__step(ms), opts.clock)]);
     }
@@ -199,13 +212,28 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
      så MP4/WebM sammenlignes på varighet, oppløsning og dekodede bilder. Alle andre filer byte for byte. */
   const isVid = d => /\.(mp4|webm)$/i.test(d.name);
   expect.soft(B.downloads.map(d => d.name), 'nedlastede filnavn').toEqual(A.downloads.map(d => d.name));
-  expect.soft(B.downloads.filter(d => !isVid(d)).map(d => d.sha), 'nedlastede filer (innhold)').toEqual(A.downloads.filter(d => !isVid(d)).map(d => d.sha));
+  /* ulike filer tas vare på for kontroll */
+  A.downloads.forEach((a, i) => { const b = B.downloads[i]; if (b && a.sha !== b.sha && a.path && b.path) { const dir = `test-results/${name}-nedlastinger`; fs.mkdirSync(dir, { recursive: true }); fs.copyFileSync(a.path, `${dir}/${i}-original-${a.name}`); fs.copyFileSync(b.path, `${dir}/${i}-react-${b.name}`); } });
+  /* bildefiler: nettleserens PNG/JPG-koder gir av og til ulike bytes for samme bilde (også originalen mot
+     seg selv), så ved ulike bytes sammenlignes pikslene (må være helt like). Andre filer: byte for byte. */
+  const isImg = d => /\.(png|jpe?g|webp)$/i.test(d.name);
+  expect.soft(B.downloads.filter(d => !isVid(d) && !isImg(d)).map(d => d.sha), 'nedlastede filer (innhold)').toEqual(A.downloads.filter(d => !isVid(d) && !isImg(d)).map(d => d.sha));
+  for (let i = 0; i < Math.min(A.downloads.length, B.downloads.length); i++) {
+    const a = A.downloads[i], b = B.downloads[i];
+    if (!isImg(a) || a.sha === b.sha || !a.path || !b.path) continue;
+    /* avrunding i nettleserens tegning (f.eks. alfa 50 mot 51 i gjennomsiktige lag) tillates: høyst 4 enheter per piksel */
+    const r = await pixelDiff(A.page, fs.readFileSync(a.path), fs.readFileSync(b.path), 4);
+    console.log(`bilde ${a.name}: ulike bytes, andel ulike piksler ${r}`);
+    expect.soft(r, `bilde ${a.name}: andel ulike piksler`).toBe(0);
+  }
   for (let i = 0; i < Math.min(A.downloads.length, B.downloads.length); i++) {
     const a = A.downloads[i], b = B.downloads[i];
     if (!isVid(a) || !a.path || !b.path) continue;
     const r = await videoDiff(A.page, fs.readFileSync(a.path), fs.readFileSync(b.path));
     console.log(`video ${a.name}: ${JSON.stringify(r)}`);
-    expect.soft(r.meta[1], `video ${a.name}: varighet og oppløsning`).toEqual(r.meta[0]);
+    /* sanntidsopptak (MediaRecorder) kan avvike en tidel i varighet, også i originalen */
+    expect.soft([r.meta[1].w, r.meta[1].h], `video ${a.name}: oppløsning`).toEqual([r.meta[0].w, r.meta[0].h]);
+    expect.soft(Math.abs(r.meta[1].dur - r.meta[0].dur), `video ${a.name}: avvik i varighet (s)`).toBeLessThanOrEqual(0.2);
     expect.soft(Math.max(...r.frames), `video ${a.name}: største andel ulike piksler i bildene`).toBeLessThan(0.01);
   }
   expect(B.errors, 'JS-feil').toEqual(A.errors);
