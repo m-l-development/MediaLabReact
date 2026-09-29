@@ -44,11 +44,24 @@ export async function cacheCdn(ctx) {
   });
 }
 
-export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init, cdn } = {}) {
+/* Styrt klokke: performance.now og requestAnimationFrame går bare fram når testen sier det (__step),
+   så animasjoner og videoforhåndsvisning står likt i begge versjonene. */
+export const CLOCK = () => {
+  let T = 1000; const q = [];
+  performance.now = () => T;
+  window.requestAnimationFrame = cb => { q.push(cb); return q.length; };
+  window.cancelAnimationFrame = () => {};
+  window.__step = ms => { const end = T + ms; while (T < end) { T = Math.min(end, T + 16); q.splice(0).forEach(f => { try { f(T); } catch (e) { console.error(e); } }); } };
+};
+
+export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init, cdn, clock, fixedNow } = {}) {
   const ctx = await browser.newContext({ viewport, reducedMotion: 'reduce', timezoneId: 'Europe/Oslo', locale: 'nb-NO', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
   await ctx.addInitScript(() => { localStorage.setItem('medialab.theme', 'dark'); localStorage.setItem('medialab.lang', 'no'); });
   /* samme «tilfeldige» tall i begge versjoner (tilfeldige id-er, farger osv.) */
   await ctx.addInitScript(() => { let s = 20260929; Math.random = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; });
+  if (clock) await ctx.addInitScript(CLOCK);
+  /* fast Date.now (id-er og tidsstempler i lagrede prosjekter/filer blir like i begge) */
+  if (fixedNow) await ctx.addInitScript(t => { Date.now = () => t; }, fixedNow);
   if (init) await ctx.addInitScript(init);
   if (route) await ctx.route(route[0], route[1]());
   if (cdn) await cacheCdn(ctx);
@@ -58,10 +71,32 @@ export async function openSide(browser, url, { viewport = { width: 1440, height:
   /* tidsstempler (f.eks. i advarsler fra onnxruntime) fjernes før sammenligning */
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|\{\{.*\}\}/.test(m.text())) errors.push(m.text().split('\n')[0].replace(/\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+/g, '(tid)')); });
   page.on('dialog', d => (dialogs ? dialogs(d) : d.accept()));
-  page.on('download', async d => { const p = await d.path().catch(() => null); downloads.push({ name: d.suggestedFilename(), sha: p ? crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex') : null }); });
+  page.on('download', async d => { const p = await d.path().catch(() => null); downloads.push({ name: d.suggestedFilename(), sha: p ? crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex') : null, path: p }); });
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
   return { ctx, page, errors, downloads };
+}
+
+/* dekoder to videoer i nettleseren og sammenligner bilder ved 10 %, 50 % og 90 % av varigheten */
+async function videoDiff(page, a, b) {
+  /* videoene hentes fra disk via en testrute (ikke som tekst), så store 4K-filer ikke bruker opp minnet */
+  const url = new URL('/__testvideo/', page.url()).href;
+  await page.route(url + '*', r => r.fulfill({ status: 200, contentType: 'video/mp4', body: r.request().url().endsWith('/a.mp4') ? a : b }));
+  try { return await page.evaluate(async base => {
+    const load = async s => { const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = base + s + '.mp4'; await new Promise((r, j) => { v.onloadeddata = r; v.onerror = j; }); return v; };
+    const seek = (v, t) => new Promise(r => { v.onseeked = r; v.currentTime = t; });
+    const grab = v => { const c = new OffscreenCanvas(v.videoWidth, v.videoHeight), g = c.getContext('2d'); g.drawImage(v, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
+    const [x, y] = await Promise.all([load('a'), load('b')]);
+    const meta = [x, y].map(v => ({ w: v.videoWidth, h: v.videoHeight, dur: Math.round(v.duration * 10) / 10 }));
+    const frames = [];
+    for (const f of [0.1, 0.5, 0.9]) {
+      await Promise.all([seek(x, x.duration * f), seek(y, x.duration * f)]);
+      const p = grab(x), q = grab(y); let n = 0;
+      for (let i = 0; i < p.length; i += 4) if (Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]) > 30) n++;
+      frames.push(Math.round(n / (p.length / 4) * 1e5) / 1e5);
+    }
+    return { meta, frames };
+  }, url); } finally { await page.unroute(url + '*'); }
 }
 
 /* ---------- utforskning i takt ----------
@@ -99,10 +134,13 @@ async function exploreStep(A, B, rng, k, opts) {
 /* Kjører stegene likt på begge og sammenligner. mask: selektor for elementer som tegnes etter klokken (f.eks. ml-bg-lerretet).
    opts.explore = { n, seed }: etter stegene gjøres n tilfeldige, like handlinger i begge (utforskning i takt). */
 export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
+  /* SELVTEST=1: originalen mot seg selv – viser hva som varierer mellom to kjøringer uansett */
+  if (process.env.SELVTEST) reactUrl = origUrl;
   const A = await openSide(browser, origUrl, opts), B = await openSide(browser, reactUrl, opts);
   /* synlig tekst + feltverdier + lenker + hele localStorage (lagringsformatet må være uendret) */
   const text = p => p.evaluate(() => JSON.stringify({
-    text: document.body.innerText.replace(/\s+/g, ' ').trim(),
+    /* filstørrelsen etter videoeksport avhenger av videokoderen (varierer også i originalen) */
+    text: document.body.innerText.replace(/\s+/g, ' ').trim().replace(/(Ferdig på \d+ s · )[\d.,]+ MB/g, '$1# MB'),
     values: [...document.querySelectorAll('input:not([type=file]), textarea, select')].map(e => e.type === 'checkbox' || e.type === 'radio' ? e.checked : e.value),
     /* blob:-adresser (nedlastinger) får tilfeldig id av nettleseren, også i originalen */
     links: [...document.querySelectorAll('a')].map(a => (a.getAttribute('href') || a.getAttribute('data-ml-href') || '').replace(/^blob:.*/, 'blob:(tilfeldig id)')),
@@ -123,7 +161,12 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
     if (opts.explore && si >= steps.length) {
       const [ra, rb] = await Promise.all([run(A.page).then(() => 'ok', e => 'feil'), run(B.page).then(() => 'ok', e => 'feil')]);
       expect.soft(rb, `utfall av «${step}»`).toBe(ra);
-      for (const P of [A.page, B.page]) if (new URL(P.url()).pathname !== new URL(P === A.page ? origUrl : reactUrl, 'http://x').pathname) await P.goto(new URL(P === A.page ? origUrl : reactUrl, P.url()).href, { waitUntil: 'networkidle' });
+      /* handlingen kan navigere til et annet verktøy (f.eks. «Send til …»): vent, og gå tilbake til siden i begge */
+      await Promise.all([A.page, B.page].map(P => P.waitForLoadState('networkidle').catch(() => {})));
+      await Promise.all([A.page.waitForTimeout(400), B.page.waitForTimeout(400)]);
+      const away = [A.page, B.page].map(P => new URL(P.url()).pathname !== new URL(P === A.page ? origUrl : reactUrl, 'http://x').pathname);
+      expect.soft(away[1], `navigerte bort etter «${step}»`).toBe(away[0]);
+      for (const P of [A.page, B.page]) if (away[P === A.page ? 0 : 1]) await P.goto(new URL(P === A.page ? origUrl : reactUrl, P.url()).href, { waitUntil: 'networkidle' });
       if (opts.idle) await Promise.all([opts.idle(A.page), opts.idle(B.page)]).catch(() => {});
     } else if (stepOpts && stepOpts.seq) {
       /* tunge steg (f.eks. store AI-modeller) kjøres etter hverandre for å spare minne */
@@ -132,16 +175,39 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
     } else await Promise.all([run(A.page), run(B.page)]).catch(e => { throw new Error(`steg «${step}» feilet: ${e.message.split('\n')[0]}`); });
     if (process.env.STEGLOGG) console.log(`  steg «${step}» ${Date.now() - t} ms`);
     await Promise.all([A.page.waitForTimeout(opts.settle ?? 700), B.page.waitForTimeout(opts.settle ?? 700)]);
-    const [ta, tb] = await Promise.all([text(A.page), text(B.page)]);
-    const [sa, sb] = await Promise.all([shot(A.page), shot(B.page)]);
-    const d = await pixelDiff(A.page, sa, sb);
+    if (opts.clock) await Promise.all([A.page.evaluate(ms => window.__step(ms), opts.clock), B.page.evaluate(ms => window.__step(ms), opts.clock)]);
+    let ta, tb, sa, sb, d;
+    /* asynkront arbeid (eksport, filstørrelse, sidelasting) kan være ulikt langt kommet: sjekk på nytt
+       inntil fire ganger. Lik oppførsel ender likt; en ekte forskjell består. */
+    for (let tries = 0; ; tries++) {
+      [ta, tb] = await Promise.all([text(A.page), text(B.page)]);
+      [sa, sb] = await Promise.all([shot(A.page), shot(B.page)]);
+      d = await pixelDiff(A.page, sa, sb);
+      if ((ta === tb && d < 0.002) || tries >= 4) break;
+      await Promise.all([A.page.waitForTimeout(1200), B.page.waitForTimeout(1200)]);
+      if (opts.clock) await Promise.all([A.page.evaluate(ms => window.__step(ms), opts.clock), B.page.evaluate(ms => window.__step(ms), opts.clock)]);
+    }
     if (d >= Number(process.env.DIFFSAVE ?? 0.002) && d > 0) { const dir = `test-results/${name}-diff`; fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(`${dir}/${step}-original.png`, sa); fs.writeFileSync(`${dir}/${step}-react.png`, sb); }
+    if (ta !== tb) { const dir = `test-results/${name}-diff`; fs.mkdirSync(dir, { recursive: true }); const f = s => s.replace(/[\/:*?"<>|]/g, '_'); fs.writeFileSync(`${dir}/${f(step)}-original.json`, JSON.stringify(JSON.parse(ta), null, 1)); fs.writeFileSync(`${dir}/${f(step)}-react.json`, JSON.stringify(JSON.parse(tb), null, 1)); }
     report.push(`${step}: tekst/lenker/lagring ${ta === tb ? 'lik' : 'ULIK'}, piksler ${(d * 100).toFixed(3)} % ulike`);
     expect.soft(JSON.parse(tb), `tekst, felt, lenker og localStorage etter «${step}»`).toEqual(JSON.parse(ta));
     expect.soft(d, `piksler etter «${step}»`).toBeLessThan(0.002);
   }
-  console.log(`--- ${name}\n` + report.join('\n') + `\nnedlastinger: ${JSON.stringify(A.downloads)} / ${JSON.stringify(B.downloads)}`);
-  expect.soft(B.downloads, 'nedlastede filer (navn + innhold)').toEqual(A.downloads);
+  const dl = D => JSON.stringify(D.map(d => [d.name, d.sha]));
+  console.log(`--- ${name}\n` + report.join('\n') + `\nnedlastinger: ${dl(A.downloads)} / ${dl(B.downloads)}`);
+  /* Video fra WebCodecs er ikke byte-deterministisk (originalen mot seg selv gir også ulike filer),
+     så MP4/WebM sammenlignes på varighet, oppløsning og dekodede bilder. Alle andre filer byte for byte. */
+  const isVid = d => /\.(mp4|webm)$/i.test(d.name);
+  expect.soft(B.downloads.map(d => d.name), 'nedlastede filnavn').toEqual(A.downloads.map(d => d.name));
+  expect.soft(B.downloads.filter(d => !isVid(d)).map(d => d.sha), 'nedlastede filer (innhold)').toEqual(A.downloads.filter(d => !isVid(d)).map(d => d.sha));
+  for (let i = 0; i < Math.min(A.downloads.length, B.downloads.length); i++) {
+    const a = A.downloads[i], b = B.downloads[i];
+    if (!isVid(a) || !a.path || !b.path) continue;
+    const r = await videoDiff(A.page, fs.readFileSync(a.path), fs.readFileSync(b.path));
+    console.log(`video ${a.name}: ${JSON.stringify(r)}`);
+    expect.soft(r.meta[1], `video ${a.name}: varighet og oppløsning`).toEqual(r.meta[0]);
+    expect.soft(Math.max(...r.frames), `video ${a.name}: største andel ulike piksler i bildene`).toBeLessThan(0.01);
+  }
   expect(B.errors, 'JS-feil').toEqual(A.errors);
   await A.ctx.close(); await B.ctx.close();
 }

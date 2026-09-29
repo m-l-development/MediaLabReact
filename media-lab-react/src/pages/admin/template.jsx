@@ -90,7 +90,7 @@ export default function template(v) {
                   </span>
                 </> : null}
                 {"\n            "}
-                <button type="submit" disabled={v.busy} style={css(`height:46px; margin-top:4px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:13px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; opacity:${v.busyOp ?? ""};`)} className="scp2">
+                <button type="submit" disabled={v.busy} style={css(`height:46px; margin-top:4px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:13px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; opacity:${v.busyOp ?? ""};`, "height:46px; margin-top:4px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:13px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; opacity:{{ busyOp }};")} className="scp2">
                   {I(v.submitLabel)}
                 </button>
                 {"\n          "}
@@ -139,7 +139,7 @@ export default function template(v) {
                 {I(v.meName)}
               </span>
               {"\n          "}
-              <span style={css(`height:22px; padding:0 9px; display:inline-flex; align-items:center; border-radius:999px; background:${v.roleBg ?? ""}; color:#000000; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;`)}>
+              <span style={css(`height:22px; padding:0 9px; display:inline-flex; align-items:center; border-radius:999px; background:${v.roleBg ?? ""}; color:#000000; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;`, "height:22px; padding:0 9px; display:inline-flex; align-items:center; border-radius:999px; background:{{ roleBg }}; color:#000000; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;")}>
                 {I(v.meRole)}
               </span>
               {"\n          "}
@@ -163,7 +163,7 @@ export default function template(v) {
               const v1 = { ...v, "t": $it1, $index: $i1 };
               return <React.Fragment key={$i1}>
                 {"\n          "}
-                <button onClick={v1.t?.click} style={css(`flex:0 0 auto; height:34px; padding:0 16px; border:1px solid ${v1.t?.border ?? ""}; border-radius:999px; background:${v1.t?.bg ?? ""}; color:${v1.t?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                <button onClick={v1.t?.click} style={css(`flex:0 0 auto; height:34px; padding:0 16px; border:1px solid ${v1.t?.border ?? ""}; border-radius:999px; background:${v1.t?.bg ?? ""}; color:${v1.t?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "flex:0 0 auto; height:34px; padding:0 16px; border:1px solid {{ t.border }}; border-radius:999px; background:{{ t.bg }}; color:{{ t.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                   {I(v1.t?.l)}
                 </button>
                 {"\n        "}
@@ -203,7 +203,7 @@ export default function template(v) {
                       const v1 = { ...v, "f": $it1, $index: $i1 };
                       return <React.Fragment key={$i1}>
                         {"\n                  "}
-                        <button onClick={v1.f?.click} style={css(`height:34px; padding:0 14px; border:1px solid ${v1.f?.border ?? ""}; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                        <button onClick={v1.f?.click} style={css(`height:34px; padding:0 14px; border:1px solid ${v1.f?.border ?? ""}; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "height:34px; padding:0 14px; border:1px solid {{ f.border }}; border-radius:999px; background:{{ f.bg }}; color:{{ f.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                           {I(v1.f?.l)}
                         </button>
                         {"\n                "}
@@ -214,7 +214,7 @@ export default function template(v) {
                   {"\n              "}
                   <span style={{"flex":"1"}} />
                   {"\n              "}
-                  <button onClick={v.pickFiles} disabled={v.busy} style={css(`height:38px; padding:0 18px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; opacity:${v.busyOp ?? ""};`)} className="scp2">
+                  <button onClick={v.pickFiles} disabled={v.busy} style={css(`height:38px; padding:0 18px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; opacity:${v.busyOp ?? ""};`, "height:38px; padding:0 18px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; opacity:{{ busyOp }};")} className="scp2">
                     {I(v.uploadLabel)}
                   </button>
                   {"\n            "}
@@ -224,7 +224,7 @@ export default function template(v) {
                   {I(v.folderHint)}
                 </span>
                 {"\n            "}
-                <div style={css(`position:relative; display:flex; flex-direction:column; gap:10px; padding:16px; border:1px ${v.dropStyle ?? ""} ${v.dropBorder ?? ""}; border-radius:16px; background:#0b0b0b;`)}>
+                <div style={css(`position:relative; display:flex; flex-direction:column; gap:10px; padding:16px; border:1px ${v.dropStyle ?? ""} ${v.dropBorder ?? ""}; border-radius:16px; background:#0b0b0b;`, "position:relative; display:flex; flex-direction:column; gap:10px; padding:16px; border:1px {{ dropStyle }} {{ dropBorder }}; border-radius:16px; background:#0b0b0b;")}>
                   {"\n              "}
                   <div style={{"display":"flex","alignItems":"baseline","justifyContent":"space-between","gap":"10px"}}>
                     <span style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"0.18em","textTransform":"uppercase","color":"#6f6b64"}}>
@@ -309,7 +309,7 @@ export default function template(v) {
                         const v1 = { ...v, "b": $it1, $index: $i1 };
                         return <React.Fragment key={$i1}>
                           {"\n                    "}
-                          <div style={css(`display:flex; flex-direction:column; gap:6px; opacity:${v1.b?.op ?? ""};`)}>
+                          <div style={css(`display:flex; flex-direction:column; gap:6px; opacity:${v1.b?.op ?? ""};`, "display:flex; flex-direction:column; gap:6px; opacity:{{ b.op }};")}>
                             {"\n                      "}
                             <div style={{"aspectRatio":"4 / 3","border":"1px solid #232323","borderRadius":"10px","background":"#141414","overflow":"hidden"}}>
                               <img src={v1.b?.src} alt="" loading="lazy" style={{"width":"100%","height":"100%","objectFit":"contain"}} />
@@ -401,7 +401,7 @@ export default function template(v) {
                   {"\n            "}
                 </> : null}
                 {"\n            "}
-                <button type="submit" disabled={v.busy} style={css(`height:40px; padding:0 20px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; opacity:${v.busyOp ?? ""};`)} className="scp2">
+                <button type="submit" disabled={v.busy} style={css(`height:40px; padding:0 20px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; opacity:${v.busyOp ?? ""};`, "height:40px; padding:0 20px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; opacity:{{ busyOp }};")} className="scp2">
                   Legg til bruker
                 </button>
                 {"\n          "}
@@ -467,7 +467,7 @@ export default function template(v) {
                       </> : null}
                       {"\n                "}
                       {v1.u?.fixed ? <>
-                        <span style={css(`height:24px; padding:0 10px; display:inline-flex; align-items:center; border-radius:999px; background:${v1.u?.roleBg ?? ""}; color:#000000; font-size:11px; font-weight:700; text-transform:uppercase;`)}>
+                        <span style={css(`height:24px; padding:0 10px; display:inline-flex; align-items:center; border-radius:999px; background:${v1.u?.roleBg ?? ""}; color:#000000; font-size:11px; font-weight:700; text-transform:uppercase;`, "height:24px; padding:0 10px; display:inline-flex; align-items:center; border-radius:999px; background:{{ u.roleBg }}; color:#000000; font-size:11px; font-weight:700; text-transform:uppercase;")}>
                           {I(v1.u?.roleL)}
                         </span>
                       </> : null}
@@ -554,7 +554,7 @@ export default function template(v) {
                 {list(v.logFilters).map(($it1, $i1) => {
                   const v1 = { ...v, "f": $it1, $index: $i1 };
                   return <React.Fragment key={$i1}>
-                    <button onClick={v1.f?.click} style={css(`height:32px; padding:0 14px; border:1px solid ${v1.f?.border ?? ""}; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12px; font-weight:600; cursor:pointer;`)}>
+                    <button onClick={v1.f?.click} style={css(`height:32px; padding:0 14px; border:1px solid ${v1.f?.border ?? ""}; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12px; font-weight:600; cursor:pointer;`, "height:32px; padding:0 14px; border:1px solid {{ f.border }}; border-radius:999px; background:{{ f.bg }}; color:{{ f.fg }}; font:inherit; font-size:12px; font-weight:600; cursor:pointer;")}>
                       {I(v1.f?.l)}
                     </button>
                   </React.Fragment>;
@@ -592,7 +592,7 @@ export default function template(v) {
                       {"\n                "}
                       <summary style={{"display":"flex","flexWrap":"wrap","alignItems":"center","gap":"10px","cursor":"pointer","listStyle":"none"}}>
                         {"\n                  "}
-                        <span style={css(`flex:0 0 auto; height:20px; padding:0 8px; display:inline-flex; align-items:center; border-radius:999px; background:${v1.l?.col ?? ""}; color:#000000; font-size:10.5px; font-weight:700; text-transform:uppercase;`)}>
+                        <span style={css(`flex:0 0 auto; height:20px; padding:0 8px; display:inline-flex; align-items:center; border-radius:999px; background:${v1.l?.col ?? ""}; color:#000000; font-size:10.5px; font-weight:700; text-transform:uppercase;`, "flex:0 0 auto; height:20px; padding:0 8px; display:inline-flex; align-items:center; border-radius:999px; background:{{ l.col }}; color:#000000; font-size:10.5px; font-weight:700; text-transform:uppercase;")}>
                           {I(v1.l?.type)}
                         </span>
                         {"\n                  "}
@@ -640,7 +640,7 @@ export default function template(v) {
                         <span>
                           {I(v1.c?.l)}
                         </span>
-                        <span style={css(`font-weight:700; color:${v1.c?.col ?? ""};`)}>
+                        <span style={css(`font-weight:700; color:${v1.c?.col ?? ""};`, "font-weight:700; color:{{ c.col }};")}>
                           {I(v1.c?.v)}
                         </span>
                       </div>

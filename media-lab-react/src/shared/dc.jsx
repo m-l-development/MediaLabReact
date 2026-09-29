@@ -4,6 +4,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './dc-base.css';
+import { keepFooterLikeRuntime, replayThemeTamper, RAW } from './runtime-quirks.js';
 
 export class DCLogic {
   constructor(props) { this.props = props || {}; this.state = {}; this.__host = undefined; }
@@ -24,8 +25,9 @@ export function I(v) {
 
 /* style="…" med {{ }} blir en streng først og gjøres om til objekt, akkurat som i runtimen */
 const kebabToCamel = s => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-export function css(str) {
+export function css(str, raw) {
   const o = {};
+  if (raw !== undefined) RAW.set(o, raw);
   for (const decl of String(str).split(';')) {
     const i = decl.indexOf(':'); if (i < 0) continue;
     const prop = decl.slice(0, i).trim();
@@ -35,7 +37,12 @@ export function css(str) {
 }
 
 /* style="{{ x }}": streng → objekt, objekt som det er */
-export const sty = v => (typeof v === 'string' ? css(v) : v);
+export const sty = v => {
+  /* den rå stilen var «{{ x }}», som theme.js ikke kunne lese – se runtime-quirks.js */
+  const o = typeof v === 'string' ? css(v) : v;
+  if (o && typeof o === 'object') RAW.set(o, '');
+  return o;
+};
 /* class="{{ x }}" + style-hover-klasser */
 export const cx = (a, b) => [a, b].filter(Boolean).join(' ');
 
@@ -44,19 +51,6 @@ export const val = v => (v === undefined ? '' : v);
 export const chk = v => (v === undefined ? false : v);
 /* sc-for: ikke-lister blir tomme */
 export const list = v => (Array.isArray(v) ? v : []);
-
-/* I dc-runtime rakk ml-footer.js å koble innfading på footerne i den rå malen. Runtimen kompilerte
-   malen på nytt rett etter første visning, og da satte React stilen på footer-teksten tilbake til malens
-   stil (uten transition/opacity/transform). Resultat i originalen: footere som finnes ved oppstart vises
-   med en gang, og ml-footer skjuler/viser dem senere uten animasjon. Footere som kommer senere, fader inn.
-   Her gjøres det samme: stilen noteres før ml-footer kobler seg på, og settes tilbake etter at
-   IntersectionObserver har levert første melding (to animasjonsrammer). */
-function keepFooterLikeRuntime() {
-  const root = document.getElementById('dc-root'); if (!root) return;
-  const saved = [...root.querySelectorAll('footer')].map(f => { const s = f.querySelector('span') || f; return [s, s.style.cssText]; });
-  if (!saved.length) return;
-  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => saved.forEach(([s, css]) => { if (s.isConnected) s.style.cssText = css; }), 0)));
-}
 
 function makeHost(name, Logic, template) {
   class DCHost extends React.Component {
@@ -77,7 +71,9 @@ function makeHost(name, Logic, template) {
       this.setState(s => ({ __v: s.__v + 1 }), cb);
     }
     componentDidMount() {
-      keepFooterLikeRuntime();
+      /* særheter fra dc-runtime som er synlige i originalen, se runtime-quirks.js */
+      const root = document.getElementById('dc-root');
+      if (root) { keepFooterLikeRuntime(root); setTimeout(() => replayThemeTamper(root), 0); }
       try { this.logic.componentDidMount(); } catch (e) { console.error(e); }
     }
     componentDidUpdate(prevProps) { this.logic.props = this.props; try { this.logic.componentDidUpdate(prevProps); } catch (e) { console.error(e); } }
@@ -101,6 +97,14 @@ function makeHost(name, Logic, template) {
   }
   DCHost.displayName = name;
   return DCHost;
+}
+
+/* Laster uendrede, klassiske skript (?url-import) etter hverandre */
+export function loadClassic(urls) {
+  return urls.reduce((p, src) => p.then(() => new Promise(res => {
+    const s = document.createElement('script'); s.src = src; s.async = false;
+    s.onload = s.onerror = () => res(); document.head.appendChild(s);
+  })), Promise.resolve());
 }
 
 /* Monterer siden i <div id="dc-root"> slik runtimen gjorde */

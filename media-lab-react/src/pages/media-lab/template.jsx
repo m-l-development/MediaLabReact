@@ -25,11 +25,11 @@ export default function template(v) {
       {"\n\n  "}
       <div data-no-i18n="1" role="group" aria-label="Språk / Language" style={{"position":"fixed","top":"calc(16px + env(safe-area-inset-top))","right":"18px","zIndex":"60","display":"flex","gap":"2px","padding":"3px","border":"1px solid var(--ml-line-soft, rgba(255,255,255,0.1))","borderRadius":"999px","background":"var(--ml-chip, rgba(0,0,0,0.3))","backdropFilter":"blur(10px)"}}>
         {"\n    "}
-        <button onClick={v.setNo} aria-pressed={v.isNo} title="Norsk" style={css(`height:24px; min-width:32px; padding:0 9px; border:0; border-radius:999px; background:${v.noBg ?? ""}; color:${v.noFg ?? ""}; font:inherit; font-size:10.5px; font-weight:600; letter-spacing:0.16em; cursor:pointer;`)} className="scp0">
+        <button onClick={v.setNo} aria-pressed={v.isNo} title="Norsk" style={css(`height:24px; min-width:32px; padding:0 9px; border:0; border-radius:999px; background:${v.noBg ?? ""}; color:${v.noFg ?? ""}; font:inherit; font-size:10.5px; font-weight:600; letter-spacing:0.16em; cursor:pointer;`, "height:24px; min-width:32px; padding:0 9px; border:0; border-radius:999px; background:{{ noBg }}; color:{{ noFg }}; font:inherit; font-size:10.5px; font-weight:600; letter-spacing:0.16em; cursor:pointer;")} className="scp0">
           NO
         </button>
         {"\n    "}
-        <button onClick={v.setEn} aria-pressed={v.isEn} title="English" style={css(`height:24px; min-width:32px; padding:0 9px; border:0; border-radius:999px; background:${v.enBg ?? ""}; color:${v.enFg ?? ""}; font:inherit; font-size:10.5px; font-weight:600; letter-spacing:0.16em; cursor:pointer;`)} className="scp0">
+        <button onClick={v.setEn} aria-pressed={v.isEn} title="English" style={css(`height:24px; min-width:32px; padding:0 9px; border:0; border-radius:999px; background:${v.enBg ?? ""}; color:${v.enFg ?? ""}; font:inherit; font-size:10.5px; font-weight:600; letter-spacing:0.16em; cursor:pointer;`, "height:24px; min-width:32px; padding:0 9px; border:0; border-radius:999px; background:{{ enBg }}; color:{{ enFg }}; font:inherit; font-size:10.5px; font-weight:600; letter-spacing:0.16em; cursor:pointer;")} className="scp0">
           EN
         </button>
         {"\n  "}

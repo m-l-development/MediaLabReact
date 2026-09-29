@@ -24,7 +24,14 @@ export const PAGES = {
   'photo-design': { src: 'photo-design.dc.html' },
   'thumbnail-studio': { src: 'thumbnail-studio.dc.html' },
   'motion-design': { src: 'motion-design.dc.html' },
+  'studio-editor': { src: 'studio-editor.dc.html' },
 };
+
+/* Skript som må lastes uendret som klassisk <script> i stedet for ES-modul:
+   ukeloop-engine.js bygger den eksporterte spiller-HTML-en med Function.prototype.toString(), og en
+   minifisert modul ville gitt en annen fil. De lastes i samme rekkefølge, før siden monteres. */
+const CLASSIC = new Set(['ukeloop-engine.js']);
+const classicOf = imports => imports.filter(f => CLASSIC.has(f));
 
 /* ---------- kopier av dc-runtime (support.js) ---------- */
 const CAMEL_ATTR = 'sc-camel-';
@@ -195,7 +202,8 @@ function convertTemplate(html) {
       if (key === 'style') {
         if (!a.dyn) code = JSON.stringify(cssToObj(a.str));
         else if (a.whole) { used.add('sty'); code = 'sty(' + a.code + ')'; }
-        else { used.add('css'); code = 'css(' + a.code + ')'; }
+        /* den rå stilteksten (med {{ }}) følger med, så dc.jsx kan etterligne runtimens andre kompilering i lys modus */
+        else { used.add('css'); code = 'css(' + a.code + ', ' + JSON.stringify(value) + ')'; }
       } else if ((key === 'value' || key === 'checked') && a.dyn) { const f = key === 'value' ? 'val' : 'chk'; used.add(f); code = f + '(' + a.code + ')'; }
       else code = a.code;
       if (key === 'className') { cls = { code, dyn: a.dyn }; continue; }
@@ -271,8 +279,12 @@ function convertPage(id) {
 
   const name = cfg.src.replace(/\.dc\.html$/, '');
   fs.writeFileSync(path.join(out, 'main.jsx'), GEN +
-    imports.map(f => "import '@ml/" + f + "';\n").join('') +
-    "import { mountPage } from '../../shared/dc.jsx';\nimport Logic from './logic.js';\nimport template from './template.jsx';\nimport './pseudo.css';\n\nmountPage(" + JSON.stringify(name) + ', Logic, template);\n');
+    imports.filter(f => !CLASSIC.has(f)).map(f => "import '@ml/" + f + "';\n").join('') +
+    imports.filter(f => CLASSIC.has(f)).map((f, i) => "import classic" + i + " from '@ml/" + f + "?url';\n").join('') +
+    "import { mountPage" + (classicOf(imports).length ? ', loadClassic' : '') + " } from '../../shared/dc.jsx';\nimport Logic from './logic.js';\nimport template from './template.jsx';\nimport './pseudo.css';\n\n" +
+    (classicOf(imports).length
+      ? '/* ' + classicOf(imports).join(', ') + ' lastes uendret som klassisk skript (se CLASSIC i dc2jsx.mjs) før siden monteres */\nloadClassic([' + classicOf(imports).map((f, i) => 'classic' + i).join(', ') + ']).then(() => mountPage(' + JSON.stringify(name) + ', Logic, template));\n'
+      : 'mountPage(' + JSON.stringify(name) + ', Logic, template);\n'));
   console.log(id + ': ' + body.length + ' toppnoder, ' + pseudo.length + ' pseudo-regler, ' + helmet.length + ' helmet-elementer, legacy: ' + imports.join(', '));
 }
 

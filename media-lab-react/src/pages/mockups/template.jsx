@@ -54,7 +54,7 @@ export default function template(v) {
               {"\n          "}
               <div style={{"display":"flex","alignItems":"center","gap":"10px","padding":"6px 8px 6px 6px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"rgba(12,12,12,0.7)"}}>
                 {"\n            "}
-                <span style={css(`width:34px; height:34px; border-radius:50%; background-color:#1a1a1a; background-image:${v.designCss ?? ""}; background-size:cover; background-position:center;`)} />
+                <span style={css(`width:34px; height:34px; border-radius:50%; background-color:#1a1a1a; background-image:${v.designCss ?? ""}; background-size:cover; background-position:center;`, "width:34px; height:34px; border-radius:50%; background-color:#1a1a1a; background-image:{{ designCss }}; background-size:cover; background-position:center;")} />
                 {"\n            "}
                 <span data-no-i18n="1" style={{"maxWidth":"240px","fontSize":"12.5px","fontWeight":"600","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}}>
                   {I(v.designName)}
@@ -80,7 +80,7 @@ export default function template(v) {
               const v1 = { ...v, "c": $it1, $index: $i1 };
               return <React.Fragment key={$i1}>
                 {"\n          "}
-                <button onClick={v1.c?.click} style={css(`height:34px; padding:0 14px; display:flex; align-items:center; gap:7px; border:1px solid ${v1.c?.border ?? ""}; border-radius:999px; background:${v1.c?.bg ?? ""}; color:${v1.c?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                <button onClick={v1.c?.click} style={css(`height:34px; padding:0 14px; display:flex; align-items:center; gap:7px; border:1px solid ${v1.c?.border ?? ""}; border-radius:999px; background:${v1.c?.bg ?? ""}; color:${v1.c?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "height:34px; padding:0 14px; display:flex; align-items:center; gap:7px; border:1px solid {{ c.border }}; border-radius:999px; background:{{ c.bg }}; color:{{ c.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                   <span>
                     {I(v1.c?.l)}
                   </span>
@@ -124,7 +124,7 @@ export default function template(v) {
                   {"\n          "}
                   <button onClick={v1.m?.open} style={{"display":"flex","width":"100%","flexDirection":"column","gap":"0","padding":"0","border":"1px solid rgba(255,255,255,0.12)","borderRadius":"16px","background":"rgba(12,12,12,0.6)","backdropFilter":"blur(12px)","overflow":"hidden","color":"#f3f1ec","font":"inherit","textAlign":"left","cursor":"pointer"}} className="scp5">
                     {"\n            "}
-                    <canvas ref={v1.m?.ref} width="480" height="320" style={css(`display:block; width:100%; height:auto; aspect-ratio:${v1.m?.ar ?? ""}; background:#141414;`)} />
+                    <canvas ref={v1.m?.ref} width="480" height="320" style={css(`display:block; width:100%; height:auto; aspect-ratio:${v1.m?.ar ?? ""}; background:#141414;`, "display:block; width:100%; height:auto; aspect-ratio:{{ m.ar }}; background:#141414;")} />
                     {"\n            "}
                     <div style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"8px","padding":"11px 14px 13px"}}>
                       {"\n              "}
@@ -200,11 +200,11 @@ export default function template(v) {
             {"\n      "}
           </header>
           {"\n      "}
-          <div style={css(`flex:1; min-height:0; display:grid; grid-template-columns:${v.cols ?? ""};`)}>
+          <div style={css(`flex:1; min-height:0; display:grid; grid-template-columns:${v.cols ?? ""};`, "flex:1; min-height:0; display:grid; grid-template-columns:{{ cols }};")}>
             {"\n        "}
-            <section ref={v.stageRef} style={css(`position:relative; min-width:0; min-height:${v.stageMinH ?? ""}; display:flex; align-items:center; justify-content:center; padding:24px; overflow:hidden;`)}>
+            <section ref={v.stageRef} style={css(`position:relative; min-width:0; min-height:${v.stageMinH ?? ""}; display:flex; align-items:center; justify-content:center; padding:24px; overflow:hidden;`, "position:relative; min-width:0; min-height:{{ stageMinH }}; display:flex; align-items:center; justify-content:center; padding:24px; overflow:hidden;")}>
               {"\n          "}
-              <div ref={v.wrapRef} style={css(`position:relative; width:${v.cvW ?? ""}; height:${v.cvH ?? ""}; line-height:0; touch-action:none;`)}>
+              <div ref={v.wrapRef} style={css(`position:relative; width:${v.cvW ?? ""}; height:${v.cvH ?? ""}; line-height:0; touch-action:none;`, "position:relative; width:{{ cvW }}; height:{{ cvH }}; line-height:0; touch-action:none;")}>
                 {"\n            "}
                 <canvas ref={v.canvasRef} width="16" height="16" style={{"width":"100%","height":"100%","borderRadius":"6px","boxShadow":"0 18px 60px rgba(0,0,0,0.55)"}} />
                 {"\n            "}
@@ -218,7 +218,7 @@ export default function template(v) {
                     const v1 = { ...v, "h": $it1, $index: $i1 };
                     return <React.Fragment key={$i1}>
                       {"\n                "}
-                      <button onPointerDown={v1.h?.down} aria-label={v1.h?.label} title={v1.h?.label} style={css(`position:absolute; left:${v1.h?.left ?? ""}; top:${v1.h?.top ?? ""}; width:22px; height:22px; margin:-11px 0 0 -11px; padding:0; border:2px solid #000000; border-radius:50%; background:#f5b82c; box-shadow:0 0 0 3px rgba(245,184,44,0.35); cursor:grab; touch-action:none;`)} />
+                      <button onPointerDown={v1.h?.down} aria-label={v1.h?.label} title={v1.h?.label} style={css(`position:absolute; left:${v1.h?.left ?? ""}; top:${v1.h?.top ?? ""}; width:22px; height:22px; margin:-11px 0 0 -11px; padding:0; border:2px solid #000000; border-radius:50%; background:#f5b82c; box-shadow:0 0 0 3px rgba(245,184,44,0.35); cursor:grab; touch-action:none;`, "position:absolute; left:{{ h.left }}; top:{{ h.top }}; width:22px; height:22px; margin:-11px 0 0 -11px; padding:0; border:2px solid #000000; border-radius:50%; background:#f5b82c; box-shadow:0 0 0 3px rgba(245,184,44,0.35); cursor:grab; touch-action:none;")} />
                       {"\n              "}
                     </React.Fragment>;
                   })}
@@ -237,7 +237,7 @@ export default function template(v) {
               {"\n        "}
             </section>
             {"\n        "}
-            <aside style={css(`min-width:0; border-left:1px solid #1c1c1c; background:#0b0b0b; overflow-y:auto; max-height:${v.panelMaxH ?? ""};`)}>
+            <aside style={css(`min-width:0; border-left:1px solid #1c1c1c; background:#0b0b0b; overflow-y:auto; max-height:${v.panelMaxH ?? ""};`, "min-width:0; border-left:1px solid #1c1c1c; background:#0b0b0b; overflow-y:auto; max-height:{{ panelMaxH }};")}>
               {"\n          "}
               <div style={{"display":"flex","flexDirection":"column","gap":"14px","padding":"16px"}}>
                 {"\n            "}
@@ -247,7 +247,7 @@ export default function template(v) {
                 {"\n            "}
                 <div style={{"display":"flex","alignItems":"center","gap":"10px"}}>
                   {"\n              "}
-                  <div style={css(`width:64px; height:44px; flex:0 0 auto; border:1px solid #2b2b2b; border-radius:8px; background-color:#1a1a1a; background-image:${v.designCss ?? ""}; background-size:contain; background-repeat:no-repeat; background-position:center;`)} />
+                  <div style={css(`width:64px; height:44px; flex:0 0 auto; border:1px solid #2b2b2b; border-radius:8px; background-color:#1a1a1a; background-image:${v.designCss ?? ""}; background-size:contain; background-repeat:no-repeat; background-position:center;`, "width:64px; height:44px; flex:0 0 auto; border:1px solid #2b2b2b; border-radius:8px; background-color:#1a1a1a; background-image:{{ designCss }}; background-size:contain; background-repeat:no-repeat; background-position:center;")} />
                   {"\n              "}
                   <span data-no-i18n="1" style={{"flex":"1","minWidth":"0","fontSize":"12.5px","color":"#c9c5bc","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}}>
                     {I(v.designLabel)}
@@ -276,7 +276,7 @@ export default function template(v) {
                   {list(v.fits).map(($it1, $i1) => {
                     const v1 = { ...v, "f": $it1, $index: $i1 };
                     return <React.Fragment key={$i1}>
-                      <button onClick={v1.f?.click} style={css(`flex:1; height:30px; border:0; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                      <button onClick={v1.f?.click} style={css(`flex:1; height:30px; border:0; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "flex:1; height:30px; border:0; border-radius:999px; background:{{ f.bg }}; color:{{ f.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                         {I(v1.f?.l)}
                       </button>
                     </React.Fragment>;
@@ -339,8 +339,8 @@ export default function template(v) {
                     <span>
                       Behold fingre og ting foran skjermen
                     </span>
-                    <span style={css(`position:relative; flex:0 0 auto; width:34px; height:18px; border-radius:999px; background:${v.occlTrack ?? ""};`)}>
-                      <span style={css(`position:absolute; top:2px; left:${v.occlKnob ?? ""}; width:14px; height:14px; border-radius:50%; background:${v.occlKnobBg ?? ""}; transition:left .16s ease;`)} />
+                    <span style={css(`position:relative; flex:0 0 auto; width:34px; height:18px; border-radius:999px; background:${v.occlTrack ?? ""};`, "position:relative; flex:0 0 auto; width:34px; height:18px; border-radius:999px; background:{{ occlTrack }};")}>
+                      <span style={css(`position:absolute; top:2px; left:${v.occlKnob ?? ""}; width:14px; height:14px; border-radius:50%; background:${v.occlKnobBg ?? ""}; transition:left .16s ease;`, "position:absolute; top:2px; left:{{ occlKnob }}; width:14px; height:14px; border-radius:50%; background:{{ occlKnobBg }}; transition:left .16s ease;")} />
                     </span>
                   </button>
                   {"\n            "}
@@ -350,7 +350,7 @@ export default function template(v) {
                   Skjerm
                 </span>
                 {"\n            "}
-                <button onClick={v.toggleAdj} style={css(`height:34px; border:1px solid ${v.adjBorder ?? ""}; border-radius:999px; background:${v.adjBg ?? ""}; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                <button onClick={v.toggleAdj} style={css(`height:34px; border:1px solid ${v.adjBorder ?? ""}; border-radius:999px; background:${v.adjBg ?? ""}; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "height:34px; border:1px solid {{ adjBorder }}; border-radius:999px; background:{{ adjBg }}; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                   {I(v.adjLabel)}
                 </button>
                 {"\n            "}
@@ -381,7 +381,7 @@ export default function template(v) {
                   {list(v.fmts).map(($it1, $i1) => {
                     const v1 = { ...v, "f": $it1, $index: $i1 };
                     return <React.Fragment key={$i1}>
-                      <button onClick={v1.f?.click} style={css(`flex:1; height:30px; border:0; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                      <button onClick={v1.f?.click} style={css(`flex:1; height:30px; border:0; border-radius:999px; background:${v1.f?.bg ?? ""}; color:${v1.f?.fg ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "flex:1; height:30px; border:0; border-radius:999px; background:{{ f.bg }}; color:{{ f.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                         {I(v1.f?.l)}
                       </button>
                     </React.Fragment>;

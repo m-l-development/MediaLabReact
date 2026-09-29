@@ -84,7 +84,7 @@ export default function template(v) {
           {"\n      "}
           <div style={{"width":"100%","maxWidth":"860px","display":"flex","alignItems":"stretch","gap":"12px","marginBottom":"-28px"}}>
             {"\n        "}
-            <button onClick={v.toggleDisk} aria-expanded={v.diskOpenStr} style={css(`flex:0 0 auto; display:flex; align-items:center; gap:10px; height:48px; padding:0 20px; border:1px solid ${v.diskBorder ?? ""}; border-radius:999px; background:${v.diskBg ?? ""}; color:${v.diskColor ?? ""}; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; backdrop-filter:blur(14px);`)} className="scp3">
+            <button onClick={v.toggleDisk} aria-expanded={v.diskOpenStr} style={css(`flex:0 0 auto; display:flex; align-items:center; gap:10px; height:48px; padding:0 20px; border:1px solid ${v.diskBorder ?? ""}; border-radius:999px; background:${v.diskBg ?? ""}; color:${v.diskColor ?? ""}; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; backdrop-filter:blur(14px);`, "flex:0 0 auto; display:flex; align-items:center; gap:10px; height:48px; padding:0 20px; border:1px solid {{ diskBorder }}; border-radius:999px; background:{{ diskBg }}; color:{{ diskColor }}; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; backdrop-filter:blur(14px);")} className="scp3">
               {"\n          "}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
@@ -96,15 +96,15 @@ export default function template(v) {
                 Disk
               </span>
               {"\n          "}
-              <span style={css(`min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:${v.diskCountBg ?? ""}; color:${v.diskCountColor ?? ""}; font-size:11px; letter-spacing:0; display:flex; align-items:center; justify-content:center;`)}>
+              <span style={css(`min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:${v.diskCountBg ?? ""}; color:${v.diskCountColor ?? ""}; font-size:11px; letter-spacing:0; display:flex; align-items:center; justify-content:center;`, "min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:{{ diskCountBg }}; color:{{ diskCountColor }}; font-size:11px; letter-spacing:0; display:flex; align-items:center; justify-content:center;")}>
                 {I(v.diskCount)}
               </span>
               {"\n        "}
             </button>
             {"\n        "}
-            <div style={css(`position:relative; flex:1 1 auto; min-width:0; max-width:${v.diskRowMax ?? ""}; opacity:${v.diskRowOpacity ?? ""}; overflow:hidden; transition:max-width 420ms cubic-bezier(.2,.8,.2,1), opacity 300ms ease;`)}>
+            <div style={css(`position:relative; flex:1 1 auto; min-width:0; max-width:${v.diskRowMax ?? ""}; opacity:${v.diskRowOpacity ?? ""}; overflow:hidden; transition:max-width 420ms cubic-bezier(.2,.8,.2,1), opacity 300ms ease;`, "position:relative; flex:1 1 auto; min-width:0; max-width:{{ diskRowMax }}; opacity:{{ diskRowOpacity }}; overflow:hidden; transition:max-width 420ms cubic-bezier(.2,.8,.2,1), opacity 300ms ease;")}>
               {"\n          "}
-              <div ref={v.diskScrollRef} onScroll={v.onDiskScroll} style={css(`display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:6px; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; visibility:${v.diskRowVis ?? ""};`)}>
+              <div ref={v.diskScrollRef} onScroll={v.onDiskScroll} style={css(`display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:6px; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; visibility:${v.diskRowVis ?? ""};`, "display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:6px; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; visibility:{{ diskRowVis }};")}>
                 {"\n            "}
                 {v.diskEmpty ? <>
                   {"\n              "}
@@ -120,7 +120,7 @@ export default function template(v) {
                     {"\n              "}
                     <div style={{"position":"relative","flex":"0 0 200px","display":"flex"}}>
                       {"\n                "}
-                      <a href={v1.d?.href} style={css(`flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; height:48px; padding:0 64px 0 16px; border:1px solid ${v1.d?.border ?? ""}; border-radius:14px; background:rgba(12,12,12,0.7); backdrop-filter:blur(14px); color:#f3f1ec;`)} className="scp0">
+                      <a href={v1.d?.href} style={css(`flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; height:48px; padding:0 64px 0 16px; border:1px solid ${v1.d?.border ?? ""}; border-radius:14px; background:rgba(12,12,12,0.7); backdrop-filter:blur(14px); color:#f3f1ec;`, "flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; height:48px; padding:0 64px 0 16px; border:1px solid {{ d.border }}; border-radius:14px; background:rgba(12,12,12,0.7); backdrop-filter:blur(14px); color:#f3f1ec;")} className="scp0">
                         {"\n                  "}
                         <span style={{"fontSize":"13px","fontWeight":"700","letterSpacing":"0.04em","textTransform":"uppercase","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}}>
                           {I(v1.d?.name)}
@@ -132,7 +132,7 @@ export default function template(v) {
                         {"\n                "}
                       </a>
                       {"\n                "}
-                      <button onClick={v1.d?.onFav} title={v1.d?.favTitle} aria-label={v1.d?.favTitle} aria-pressed={v1.d?.favAria} style={css(`position:absolute; right:34px; top:50%; transform:translateY(-50%); width:24px; height:24px; padding:0; border:0; border-radius:999px; background:transparent; color:${v1.d?.favColor ?? ""}; cursor:pointer; display:flex; align-items:center; justify-content:center;`)} className="scp4">
+                      <button onClick={v1.d?.onFav} title={v1.d?.favTitle} aria-label={v1.d?.favTitle} aria-pressed={v1.d?.favAria} style={css(`position:absolute; right:34px; top:50%; transform:translateY(-50%); width:24px; height:24px; padding:0; border:0; border-radius:999px; background:transparent; color:${v1.d?.favColor ?? ""}; cursor:pointer; display:flex; align-items:center; justify-content:center;`, "position:absolute; right:34px; top:50%; transform:translateY(-50%); width:24px; height:24px; padding:0; border:0; border-radius:999px; background:transparent; color:{{ d.favColor }}; cursor:pointer; display:flex; align-items:center; justify-content:center;")} className="scp4">
                         {"\n                  "}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill={v1.d?.favFill} stroke="currentColor" stroke-width="2" stroke-linejoin="round">
                           <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9Z" />
@@ -265,11 +265,11 @@ export default function template(v) {
                   {"\n            "}
                   <div style={{"display":"flex","alignItems":"center","gap":"6px","marginTop":"auto","paddingTop":"6px"}}>
                     {"\n              "}
-                    <button onClick={v1.c?.onUp} disabled={v1.c?.isFirst} title="Flytt til venstre" aria-label="Flytt til venstre" style={css(`width:34px; height:34px; padding:0; border:1px solid rgba(255,255,255,0.14); border-radius:999px; background:transparent; color:#b3afa6; font:inherit; font-size:14px; cursor:pointer; opacity:${v1.c?.upOp ?? ""};`)} className="scp7">
+                    <button onClick={v1.c?.onUp} disabled={v1.c?.isFirst} title="Flytt til venstre" aria-label="Flytt til venstre" style={css(`width:34px; height:34px; padding:0; border:1px solid rgba(255,255,255,0.14); border-radius:999px; background:transparent; color:#b3afa6; font:inherit; font-size:14px; cursor:pointer; opacity:${v1.c?.upOp ?? ""};`, "width:34px; height:34px; padding:0; border:1px solid rgba(255,255,255,0.14); border-radius:999px; background:transparent; color:#b3afa6; font:inherit; font-size:14px; cursor:pointer; opacity:{{ c.upOp }};")} className="scp7">
                       ‹
                     </button>
                     {"\n              "}
-                    <button onClick={v1.c?.onDown} disabled={v1.c?.isLast} title="Flytt til høyre" aria-label="Flytt til høyre" style={css(`width:34px; height:34px; padding:0; border:1px solid rgba(255,255,255,0.14); border-radius:999px; background:transparent; color:#b3afa6; font:inherit; font-size:14px; cursor:pointer; opacity:${v1.c?.downOp ?? ""};`)} className="scp7">
+                    <button onClick={v1.c?.onDown} disabled={v1.c?.isLast} title="Flytt til høyre" aria-label="Flytt til høyre" style={css(`width:34px; height:34px; padding:0; border:1px solid rgba(255,255,255,0.14); border-radius:999px; background:transparent; color:#b3afa6; font:inherit; font-size:14px; cursor:pointer; opacity:${v1.c?.downOp ?? ""};`, "width:34px; height:34px; padding:0; border:1px solid rgba(255,255,255,0.14); border-radius:999px; background:transparent; color:#b3afa6; font:inherit; font-size:14px; cursor:pointer; opacity:{{ c.downOp }};")} className="scp7">
                       ›
                     </button>
                     {"\n              "}

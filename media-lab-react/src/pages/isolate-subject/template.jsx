@@ -36,7 +36,7 @@ export default function template(v) {
             Isolate Subject
           </h1>
           {"\n      "}
-          <button onClick={v.pick} style={css(`width:100%; min-height:320px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:40px 28px; border:1px dashed ${v.dropBorder ?? ""}; border-radius:22px; background:${v.dropBg ?? ""}; color:#f3f1ec; font:inherit; cursor:pointer; backdrop-filter:blur(14px);`)} className="scp1">
+          <button onClick={v.pick} style={css(`width:100%; min-height:320px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:40px 28px; border:1px dashed ${v.dropBorder ?? ""}; border-radius:22px; background:${v.dropBg ?? ""}; color:#f3f1ec; font:inherit; cursor:pointer; backdrop-filter:blur(14px);`, "width:100%; min-height:320px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:40px 28px; border:1px dashed {{ dropBorder }}; border-radius:22px; background:{{ dropBg }}; color:#f3f1ec; font:inherit; cursor:pointer; backdrop-filter:blur(14px);")} className="scp1">
             {"\n        "}
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 16V4M7 9l5-5 5 5M4 20h16" />
@@ -96,7 +96,7 @@ export default function template(v) {
               {"\n          "}
               <canvas ref={v.cropRef} width="16" height="16" style={{"display":"block","maxWidth":"100%","maxHeight":"calc(100dvh - 340px)","width":"auto","height":"auto"}} />
               {"\n          "}
-              <div data-h="move" style={css(`position:absolute; left:${v.cL ?? ""}; top:${v.cT ?? ""}; width:${v.cW ?? ""}; height:${v.cH ?? ""}; box-shadow:0 0 0 9999px rgba(0,0,0,0.6); outline:1.5px solid #f3f1ec; cursor:move;`)}>
+              <div data-h="move" style={css(`position:absolute; left:${v.cL ?? ""}; top:${v.cT ?? ""}; width:${v.cW ?? ""}; height:${v.cH ?? ""}; box-shadow:0 0 0 9999px rgba(0,0,0,0.6); outline:1.5px solid #f3f1ec; cursor:move;`, "position:absolute; left:{{ cL }}; top:{{ cT }}; width:{{ cW }}; height:{{ cH }}; box-shadow:0 0 0 9999px rgba(0,0,0,0.6); outline:1.5px solid #f3f1ec; cursor:move;")}>
                 {"\n            "}
                 <span style={{"position":"absolute","left":"33.33%","top":"0","bottom":"0","width":"1px","background":"rgba(255,255,255,0.35)","pointerEvents":"none"}} />
                 {"\n            "}
@@ -134,7 +134,7 @@ export default function template(v) {
               const v1 = { ...v, "a": $it1, $index: $i1 };
               return <React.Fragment key={$i1}>
                 {"\n          "}
-                <button onClick={v1.a?.onClick} style={css(`height:34px; padding:0 14px; border:0; border-radius:999px; background:${v1.a?.bg ?? ""}; color:${v1.a?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                <button onClick={v1.a?.onClick} style={css(`height:34px; padding:0 14px; border:0; border-radius:999px; background:${v1.a?.bg ?? ""}; color:${v1.a?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "height:34px; padding:0 14px; border:0; border-radius:999px; background:{{ a.bg }}; color:{{ a.color }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                   {I(v1.a?.label)}
                 </button>
                 {"\n        "}
@@ -196,7 +196,7 @@ export default function template(v) {
                   {v.isModelLoad ? <>
                     {"\n                "}
                     <div style={{"width":"220px","height":"4px","borderRadius":"999px","background":"rgba(255,255,255,0.14)","overflow":"hidden"}}>
-                      <div style={css(`width:${v.barW ?? ""}; height:100%; background:#f3f1ec;`)} />
+                      <div style={css(`width:${v.barW ?? ""}; height:100%; background:#f3f1ec;`, "width:{{ barW }}; height:100%; background:#f3f1ec;")} />
                     </div>
                     {"\n              "}
                   </> : null}
@@ -213,7 +213,7 @@ export default function template(v) {
             {"\n        "}
             <div style={{"display":"flex","alignItems":"center","gap":"8px","flexWrap":"wrap","padding":"0 6px"}}>
               {"\n          "}
-              <button onClick={v.recrop} disabled={v.noRecrop} title="Gå tilbake og beskjær bildet" style={css(`display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:${v.recropOp ?? ""};`)} className="scp1">
+              <button onClick={v.recrop} disabled={v.noRecrop} title="Gå tilbake og beskjær bildet" style={css(`display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:${v.recropOp ?? ""};`, "display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:{{ recropOp }};")} className="scp1">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M6 2v14a2 2 0 0 0 2 2h14" />
                   <path d="M18 22V8a2 2 0 0 0-2-2H2" />
@@ -223,7 +223,7 @@ export default function template(v) {
                 </span>
               </button>
               {"\n          "}
-              <button onClick={v.undo} disabled={v.noUndo} title="Angre siste steg" style={css(`display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:${v.undoOp ?? ""};`)} className="scp1">
+              <button onClick={v.undo} disabled={v.noUndo} title="Angre siste steg" style={css(`display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:${v.undoOp ?? ""};`, "display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:{{ undoOp }};")} className="scp1">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 14 4 9l5-5" />
                   <path d="M4 9h11a5 5 0 0 1 0 10h-3" />
@@ -233,7 +233,7 @@ export default function template(v) {
                 </span>
               </button>
               {"\n          "}
-              <button onClick={v.restore} disabled={v.noRestore} title="Tilbake til originalbildet" style={css(`display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:${v.restoreOp ?? ""};`)} className="scp1">
+              <button onClick={v.restore} disabled={v.noRestore} title="Tilbake til originalbildet" style={css(`display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:${v.restoreOp ?? ""};`, "display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; opacity:{{ restoreOp }};")} className="scp1">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
                   <path d="M3 3v5h5" />
@@ -289,13 +289,13 @@ export default function template(v) {
                   const v1 = { ...v, "k": $it1, $index: $i1 };
                   return <React.Fragment key={$i1}>
                     {"\n              "}
-                    <button onClick={v1.k?.onClick} style={css(`display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-height:58px; padding:10px 14px; border:1px solid ${v1.k?.border ?? ""}; border-radius:14px; background:${v1.k?.bg ?? ""}; color:${v1.k?.color ?? ""}; font:inherit; text-align:left; cursor:pointer;`)} className="scp1">
+                    <button onClick={v1.k?.onClick} style={css(`display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-height:58px; padding:10px 14px; border:1px solid ${v1.k?.border ?? ""}; border-radius:14px; background:${v1.k?.bg ?? ""}; color:${v1.k?.color ?? ""}; font:inherit; text-align:left; cursor:pointer;`, "display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-height:58px; padding:10px 14px; border:1px solid {{ k.border }}; border-radius:14px; background:{{ k.bg }}; color:{{ k.color }}; font:inherit; text-align:left; cursor:pointer;")} className="scp1">
                       {"\n                "}
                       <span style={{"fontSize":"14px","fontWeight":"700"}}>
                         {I(v1.k?.label)}
                       </span>
                       {"\n                "}
-                      <span style={css(`font-size:11.5px; color:${v1.k?.sub ?? ""}; line-height:1.35;`)}>
+                      <span style={css(`font-size:11.5px; color:${v1.k?.sub ?? ""}; line-height:1.35;`, "font-size:11.5px; color:{{ k.sub }}; line-height:1.35;")}>
                         {I(v1.k?.desc)}
                       </span>
                       {"\n              "}
@@ -306,7 +306,7 @@ export default function template(v) {
                 {"\n          "}
               </div>
               {"\n          "}
-              <button onClick={v.pointOn} style={css(`display:flex; align-items:center; gap:12px; min-height:52px; padding:10px 14px; border:1px solid ${v.ptBorder ?? ""}; border-radius:14px; background:${v.ptBg ?? ""}; color:${v.ptColor ?? ""}; font:inherit; text-align:left; cursor:pointer;`)} className="scp1">
+              <button onClick={v.pointOn} style={css(`display:flex; align-items:center; gap:12px; min-height:52px; padding:10px 14px; border:1px solid ${v.ptBorder ?? ""}; border-radius:14px; background:${v.ptBg ?? ""}; color:${v.ptColor ?? ""}; font:inherit; text-align:left; cursor:pointer;`, "display:flex; align-items:center; gap:12px; min-height:52px; padding:10px 14px; border:1px solid {{ ptBorder }}; border-radius:14px; background:{{ ptBg }}; color:{{ ptColor }}; font:inherit; text-align:left; cursor:pointer;")} className="scp1">
                 {"\n            "}
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="3" />
@@ -317,7 +317,7 @@ export default function template(v) {
                   <span style={{"fontSize":"14px","fontWeight":"700"}}>
                     Merk i bildet
                   </span>
-                  <span style={css(`font-size:11.5px; color:${v.ptSub ?? ""};`)}>
+                  <span style={css(`font-size:11.5px; color:${v.ptSub ?? ""};`, "font-size:11.5px; color:{{ ptSub }};")}>
                     Trykk eller dra en firkant
                   </span>
                 </span>
@@ -334,8 +334,8 @@ export default function template(v) {
                       const v1 = { ...v, "p": $it1, $index: $i1 };
                       return <React.Fragment key={$i1}>
                         {"\n                  "}
-                        <button onClick={v1.p?.onClick} style={css(`display:flex; align-items:center; gap:7px; height:30px; padding:0 14px; border:0; border-radius:999px; background:${v1.p?.bg ?? ""}; color:${v1.p?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
-                          <span data-keep-color="1" style={css(`width:8px; height:8px; border-radius:999px; background:${v1.p?.dot ?? ""};`)} />
+                        <button onClick={v1.p?.onClick} style={css(`display:flex; align-items:center; gap:7px; height:30px; padding:0 14px; border:0; border-radius:999px; background:${v1.p?.bg ?? ""}; color:${v1.p?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "display:flex; align-items:center; gap:7px; height:30px; padding:0 14px; border:0; border-radius:999px; background:{{ p.bg }}; color:{{ p.color }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
+                          <span data-keep-color="1" style={css(`width:8px; height:8px; border-radius:999px; background:${v1.p?.dot ?? ""};`, "width:8px; height:8px; border-radius:999px; background:{{ p.dot }};")} />
                           <span>
                             {I(v1.p?.label)}
                           </span>
@@ -368,7 +368,7 @@ export default function template(v) {
                       const v1 = { ...v, "fm": $it1, $index: $i1 };
                       return <React.Fragment key={$i1}>
                         {"\n                  "}
-                        <button onClick={v1.fm?.onClick} style={css(`flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:${v1.fm?.bg ?? ""}; color:${v1.fm?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                        <button onClick={v1.fm?.onClick} style={css(`flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:${v1.fm?.bg ?? ""}; color:${v1.fm?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:{{ fm.bg }}; color:{{ fm.color }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                           {I(v1.fm?.label)}
                         </button>
                         {"\n                "}
@@ -383,7 +383,7 @@ export default function template(v) {
                   Dra en firkant over det som skal bort, f.eks. en logo eller en hånd. Bare objektet blir rødt, ikke bakgrunnen. Trykk på det røde for å fjerne markeringen. Trykk Fjern når du er klar.
                 </span>
                 {"\n            "}
-                <button onClick={v.apply} disabled={v.noApply} style={css(`height:44px; padding:0 22px; border:1px solid #f3f1ec; border-radius:999px; background:#f3f1ec; color:#000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; opacity:${v.applyOp ?? ""};`)}>
+                <button onClick={v.apply} disabled={v.noApply} style={css(`height:44px; padding:0 22px; border:1px solid #f3f1ec; border-radius:999px; background:#f3f1ec; color:#000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; opacity:${v.applyOp ?? ""};`, "height:44px; padding:0 22px; border:1px solid #f3f1ec; border-radius:999px; background:#f3f1ec; color:#000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; opacity:{{ applyOp }};")}>
                   Fjern
                 </button>
                 {"\n            "}
@@ -395,7 +395,7 @@ export default function template(v) {
                       const v1 = { ...v, "w": $it1, $index: $i1 };
                       return <React.Fragment key={$i1}>
                         {"\n                  "}
-                        <button onClick={v1.w?.onClick} style={css(`flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:${v1.w?.bg ?? ""}; color:${v1.w?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                        <button onClick={v1.w?.onClick} style={css(`flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:${v1.w?.bg ?? ""}; color:${v1.w?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:{{ w.bg }}; color:{{ w.color }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                           {I(v1.w?.label)}
                         </button>
                         {"\n                "}
@@ -430,7 +430,7 @@ export default function template(v) {
                   const v1 = { ...v, "b": $it1, $index: $i1 };
                   return <React.Fragment key={$i1}>
                     {"\n              "}
-                    <button onClick={v1.b?.onClick} style={css(`flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:${v1.b?.bg ?? ""}; color:${v1.b?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)}>
+                    <button onClick={v1.b?.onClick} style={css(`flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:${v1.b?.bg ?? ""}; color:${v1.b?.color ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`, "flex:1 1 0; height:32px; padding:0 10px; border:0; border-radius:999px; background:{{ b.bg }}; color:{{ b.color }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;")}>
                       {I(v1.b?.label)}
                     </button>
                     {"\n            "}
@@ -447,12 +447,12 @@ export default function template(v) {
                     const v1 = { ...v, "s": $it1, $index: $i1 };
                     return <React.Fragment key={$i1}>
                       {"\n                "}
-                      <button data-keep-color="1" onClick={v1.s?.onClick} title={v1.s?.title} aria-label={v1.s?.title} style={css(`width:30px; height:30px; padding:0; border:1px solid #3a3a3a; border-radius:999px; background:${v1.s?.bg ?? ""}; box-shadow:${v1.s?.ring ?? ""}; cursor:pointer;`)} />
+                      <button data-keep-color="1" onClick={v1.s?.onClick} title={v1.s?.title} aria-label={v1.s?.title} style={css(`width:30px; height:30px; padding:0; border:1px solid #3a3a3a; border-radius:999px; background:${v1.s?.bg ?? ""}; box-shadow:${v1.s?.ring ?? ""}; cursor:pointer;`, "width:30px; height:30px; padding:0; border:1px solid #3a3a3a; border-radius:999px; background:{{ s.bg }}; box-shadow:{{ s.ring }}; cursor:pointer;")} />
                       {"\n              "}
                     </React.Fragment>;
                   })}
                   {"\n              "}
-                  <label data-keep-color="1" title="Egen farge" style={css(`position:relative; width:30px; height:30px; border-radius:999px; border:1px solid #3a3a3a; background:conic-gradient(#e76f51, #e9c46a, #2a9d8f, #457b9d, #9b2c4a, #e76f51); box-shadow:${v.customRing ?? ""}; overflow:hidden; cursor:pointer;`)}>
+                  <label data-keep-color="1" title="Egen farge" style={css(`position:relative; width:30px; height:30px; border-radius:999px; border:1px solid #3a3a3a; background:conic-gradient(#e76f51, #e9c46a, #2a9d8f, #457b9d, #9b2c4a, #e76f51); box-shadow:${v.customRing ?? ""}; overflow:hidden; cursor:pointer;`, "position:relative; width:30px; height:30px; border-radius:999px; border:1px solid #3a3a3a; background:conic-gradient(#e76f51, #e9c46a, #2a9d8f, #457b9d, #9b2c4a, #e76f51); box-shadow:{{ customRing }}; overflow:hidden; cursor:pointer;")}>
                     <input type="color" value={val(v.bgHex)} onChange={v.onBgHex} aria-label="Egen farge" style={{"position":"absolute","inset":"0","width":"100%","height":"100%","opacity":"0","border":"0","padding":"0","cursor":"pointer"}} />
                   </label>
                   {"\n            "}
@@ -472,7 +472,7 @@ export default function template(v) {
                 3 · Finjuster
               </span>
               {"\n          "}
-              <button onClick={v.toggleCrop} aria-pressed={v.crop} style={css(`display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border:1px solid ${v.cropBorder ?? ""}; border-radius:16px; background:${v.cropBg ?? ""}; color:${v.cropColor ?? ""}; font:inherit; text-align:left; cursor:pointer;`)}>
+              <button onClick={v.toggleCrop} aria-pressed={v.crop} style={css(`display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border:1px solid ${v.cropBorder ?? ""}; border-radius:16px; background:${v.cropBg ?? ""}; color:${v.cropColor ?? ""}; font:inherit; text-align:left; cursor:pointer;`, "display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; border:1px solid {{ cropBorder }}; border-radius:16px; background:{{ cropBg }}; color:{{ cropColor }}; font:inherit; text-align:left; cursor:pointer;")}>
                 {"\n            "}
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style={{"flex":"none"}}>
                   <path d="M6 2v14a2 2 0 0 0 2 2h14" />
@@ -483,13 +483,13 @@ export default function template(v) {
                   <span style={{"fontSize":"14.5px","fontWeight":"700"}}>
                     Beskjær til motivet
                   </span>
-                  <span style={css(`font-size:11.5px; color:${v.cropSub ?? ""};`)}>
+                  <span style={css(`font-size:11.5px; color:${v.cropSub ?? ""};`, "font-size:11.5px; color:{{ cropSub }};")}>
                     Fjerner tomrom rundt motivet
                   </span>
                 </span>
                 {"\n            "}
-                <span style={css(`flex:none; display:flex; align-items:center; width:40px; height:24px; padding:3px; border-radius:999px; background:${v.cropTrack ?? ""}; justify-content:${v.cropJustify ?? ""};`)}>
-                  <span style={css(`width:18px; height:18px; border-radius:999px; background:${v.cropKnob ?? ""};`)} />
+                <span style={css(`flex:none; display:flex; align-items:center; width:40px; height:24px; padding:3px; border-radius:999px; background:${v.cropTrack ?? ""}; justify-content:${v.cropJustify ?? ""};`, "flex:none; display:flex; align-items:center; width:40px; height:24px; padding:3px; border-radius:999px; background:{{ cropTrack }}; justify-content:{{ cropJustify }};")}>
+                  <span style={css(`width:18px; height:18px; border-radius:999px; background:${v.cropKnob ?? ""};`, "width:18px; height:18px; border-radius:999px; background:{{ cropKnob }};")} />
                 </span>
                 {"\n          "}
               </button>
@@ -532,15 +532,15 @@ export default function template(v) {
                 4 · Last ned
               </span>
               {"\n          "}
-              <button onClick={v.download} disabled={v.notReady} style={css(`height:44px; padding:0 22px; border:1px solid #f3f1ec; border-radius:999px; background:#f3f1ec; color:#000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; opacity:${v.dlOpacity ?? ""};`)}>
+              <button onClick={v.download} disabled={v.notReady} style={css(`height:44px; padding:0 22px; border:1px solid #f3f1ec; border-radius:999px; background:#f3f1ec; color:#000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; opacity:${v.dlOpacity ?? ""};`, "height:44px; padding:0 22px; border:1px solid #f3f1ec; border-radius:999px; background:#f3f1ec; color:#000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; opacity:{{ dlOpacity }};")}>
                 Last ned PNG
               </button>
               {"\n            "}
-              <button onClick={v.copyOut} disabled={v.notReady} style={css(`height:44px; padding:0 18px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; opacity:${v.dlOpacity ?? ""};`)}>
+              <button onClick={v.copyOut} disabled={v.notReady} style={css(`height:44px; padding:0 18px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; opacity:${v.dlOpacity ?? ""};`, "height:44px; padding:0 18px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; opacity:{{ dlOpacity }};")}>
                 Kopier
               </button>
               {"\n            "}
-              <button onClick={v.sendOut} disabled={v.notReady} style={css(`height:44px; padding:0 18px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; opacity:${v.dlOpacity ?? ""};`)}>
+              <button onClick={v.sendOut} disabled={v.notReady} style={css(`height:44px; padding:0 18px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; opacity:${v.dlOpacity ?? ""};`, "height:44px; padding:0 18px; border:1px solid rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; opacity:{{ dlOpacity }};")}>
                 Send til …
               </button>
               {"\n          "}
