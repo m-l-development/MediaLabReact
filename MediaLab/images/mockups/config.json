@@ -1,0 +1,199 @@
+{
+ "_info": "Valgfritt oppsett per bilde. corners = skjermens hjørner [øverst venstre, øverst høyre, nederst høyre, nederst venstre] som andel av bildet (0–1). Uten corners finner siden skjermen selv. occl:false = ikke behold fingre/objekter foran skjermen. keepHoles:true = behold hull i skjermen (f.eks. kamerahull). aspect = skjermens bredde/høyde.",
+ "imac-desk.jpg": {
+  "name": "iMac på skrivebord",
+  "aspect": 1.7778
+ },
+ "imac-white.jpg": {
+  "name": "iMac hvit",
+  "aspect": 1.7778
+ },
+ "card-white-hand.jpg": {
+  "name": "Visittkort hvitt",
+  "corners": [
+   [
+    0.2935,
+    0.3908
+   ],
+   [
+    0.678,
+    0.3908
+   ],
+   [
+    0.678,
+    0.6097
+   ],
+   [
+    0.2935,
+    0.6097
+   ]
+  ],
+  "aspect": 1.75
+ },
+ "card-black-hand.jpg": {
+  "name": "Visittkort svart",
+  "corners": [
+   [
+    0.2962,
+    0.3265
+   ],
+   [
+    0.7556,
+    0.2309
+   ],
+   [
+    0.7862,
+    0.6173
+   ],
+   [
+    0.3268,
+    0.713
+   ]
+  ],
+  "aspect": 1.75
+ },
+ "iphone-angled.jpg": {
+  "name": "iPhone på skrå",
+  "corners": [
+   [
+    0.2925,
+    0.128
+   ],
+   [
+    0.703,
+    0.094
+   ],
+   [
+    0.703,
+    0.895
+   ],
+   [
+    0.2925,
+    0.846
+   ]
+  ],
+  "aspect": 0.4615,
+  "keepHoles": true
+ },
+ "iphone-hand.jpg": {
+  "name": "iPhone i hånden",
+  "corners": [
+   [
+    0.4133,
+    0.1497
+   ],
+   [
+    0.7749,
+    0.1403
+   ],
+   [
+    0.7634,
+    0.6837
+   ],
+   [
+    0.3903,
+    0.676
+   ]
+  ],
+  "aspect": 0.4615
+ },
+ "iphone-desk.jpg": {
+  "name": "iPhone på bordet",
+  "aspect": 2.1667
+ },
+ "macbook-air.jpg": {
+  "name": "MacBook Air",
+  "corners": [
+   [
+    0.2953,
+    0.2432
+   ],
+   [
+    0.7283,
+    0.2432
+   ],
+   [
+    0.7283,
+    0.4201
+   ],
+   [
+    0.2902,
+    0.4201
+   ]
+  ],
+  "aspect": 1.6,
+  "occl": false
+ },
+ "macbook-pro.jpg": {
+  "name": "MacBook Pro",
+  "corners": [
+   [
+    0.4515,
+    0.4285
+   ],
+   [
+    0.8996,
+    0.4596
+   ],
+   [
+    0.8201,
+    0.6964
+   ],
+   [
+    0.3724,
+    0.624
+   ]
+  ],
+  "aspect": 1.6,
+  "occl": false
+ },
+ "tv-wall.jpg": {
+  "name": "TV på veggen",
+  "aspect": 1.7778
+ },
+ "tv-livingroom.jpg": {
+  "name": "TV i stua",
+  "corners": [
+   [
+    0.3527,
+    0.3316
+   ],
+   [
+    0.6439,
+    0.3316
+   ],
+   [
+    0.6439,
+    0.5804
+   ],
+   [
+    0.3527,
+    0.5804
+   ]
+  ],
+  "aspect": 1.7778,
+  "occl": false
+ },
+ "paper-marble.jpg": {
+  "name": "Papir på marmor",
+  "corners": [
+   [
+    0.056,
+    0.289
+   ],
+   [
+    0.5606,
+    0.1953
+   ],
+   [
+    0.7384,
+    0.746
+   ],
+   [
+    0.254,
+    0.874
+   ]
+  ],
+  "aspect": 0.7071
+ }
+}

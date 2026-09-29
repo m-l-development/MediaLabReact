@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockups</title>
+  <link rel="icon" href="./favicon.ico" sizes="any">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+  <script src="./ml-pwa.js"></script>
+  <script src="./i18n.js"></script><script src="./ml-footer.js"></script>
+  <script src="./theme.js"></script>
+  <script src="./ml-cloud.js"></script>
+  <script src="./ml-bg.js"></script>
+  <script src="./mockup-engine.js"></script>
+  <script src="./ml-share.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; background: #000; }
+    * { box-sizing: border-box; }
+    a { color: #e9e7e2; text-decoration: none; }
+    a:hover { color: #ffffff; }
+    button { transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .12s ease, opacity .16s ease; }
+    button:active { transform: scale(0.97); }
+    input[type=range] { cursor: pointer; }
+    @keyframes mkIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  </style>
+</helmet>
+<div onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="position:relative; min-height:100dvh; display:flex; flex-direction:column; font-family:Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif; color:#f3f1ec; background:transparent; font-size:14px;">
+  <input ref="{{ fileRef }}" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange="{{ onFile }}" style="display:none;">
+  <input ref="{{ mockRef }}" type="file" multiple="{{ true }}" accept="image/png,image/jpeg,image/webp" onChange="{{ onMockFiles }}" style="display:none;">
+
+  <sc-if value="{{ isGallery }}" hint-placeholder-val="{{ true }}">
+    <div style="position:sticky; top:0; z-index:50; padding:28px 28px 10px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <a href="{{ backHref }}" style="display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 20px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:rgba(0,0,0,0.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#f3f1ec;" style-hover="border-color:rgba(255,255,255,0.55); color:#ffffff;"><span style="font-size:16px; letter-spacing:0;">←</span><span>Tools</span></a>
+    </div>
+    <main style="flex:1; width:100%; max-width:1320px; margin:0 auto; padding:5vh 28px 64px; display:flex; flex-direction:column; gap:34px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:18px; text-align:center;">
+        <h1 style="margin:0; font-size:clamp(34px, 7vw, 88px); font-weight:600; line-height:1; letter-spacing:0.08em; text-transform:uppercase; font-stretch:125%;">Mockups</h1>
+        <p style="margin:0; max-width:560px; font-size:15px; line-height:1.6; color:#b3afa6; text-wrap:pretty;">Legg designet ditt inn i ekte bilder av mobiler, skjermer og trykksaker. Last opp én gang, så ser du det i alle bildene.</p>
+        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px;">
+          <button onClick="{{ pickFile }}" style="height:46px; padding:0 26px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:13px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;" style-hover="background:#ffffff;">{{ uploadLabel }}</button>
+          <button onClick="{{ pickShared }}" style="height:46px; padding:0 22px; border:1px solid rgba(255,255,255,0.22); border-radius:999px; background:rgba(12,12,12,0.6); color:#f3f1ec; font:inherit; font-size:13px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;" style-hover="border-color:rgba(255,255,255,0.55);">Fra delt mappe</button>
+        </div>
+        <sc-if value="{{ hasDesign }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:10px; padding:6px 8px 6px 6px; border:1px solid #2b2b2b; border-radius:999px; background:rgba(12,12,12,0.7);">
+            <span style="width:34px; height:34px; border-radius:50%; background-color:#1a1a1a; background-image:{{ designCss }}; background-size:cover; background-position:center;"></span>
+            <span data-no-i18n="1" style="max-width:240px; font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ designName }}</span>
+            <button onClick="{{ clearDesign }}" title="Fjern design" aria-label="Fjern design" style="width:26px; height:26px; border:0; border-radius:999px; background:#1c1c1c; color:#f3f1ec; font:inherit; font-size:13px; cursor:pointer;" style-hover="background:#2b2b2b;">×</button>
+          </div>
+        </sc-if>
+        <span style="font-size:12px; color:#6f6b64;">Du kan også dra et bilde inn i vinduet eller lime inn med Ctrl/Cmd + V.</span>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px;">
+        <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5">
+          <button onClick="{{ c.click }}" style="height:34px; padding:0 14px; display:flex; align-items:center; gap:7px; border:1px solid {{ c.border }}; border-radius:999px; background:{{ c.bg }}; color:{{ c.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;"><span>{{ c.l }}</span><span data-no-i18n="1" style="font-size:11px; opacity:0.6;">{{ c.n }}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; margin-top:-14px;">
+        <button onClick="{{ pickMocks }}" style="height:36px; padding:0 16px; border:1px dashed rgba(255,255,255,0.3); border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;" style-hover="border-color:rgba(255,255,255,0.6);">+ Legg til egne mockup-bilder</button>
+        <span style="font-size:12px; color:#6f6b64; text-wrap:pretty;">Lagres i denne nettleseren. Skjermen i bildet finnes automatisk.</span>
+      </div>
+      <sc-if value="{{ libEmpty }}" hint-placeholder-val="{{ false }}">
+        <p style="margin:0; text-align:center; font-size:13px; line-height:1.6; color:#9d998f;">{{ libMsg }}</p>
+      </sc-if>
+      <div style="columns:260px; column-gap:18px;">
+        <sc-for list="{{ cards }}" as="m" hint-placeholder-count="8">
+          <div style="position:relative; margin:0 0 18px; break-inside:avoid;">
+          <button onClick="{{ m.open }}" style="display:flex; width:100%; flex-direction:column; gap:0; padding:0; border:1px solid rgba(255,255,255,0.12); border-radius:16px; background:rgba(12,12,12,0.6); backdrop-filter:blur(12px); overflow:hidden; color:#f3f1ec; font:inherit; text-align:left; cursor:pointer;" style-hover="border-color:rgba(255,255,255,0.45);">
+            <canvas ref="{{ m.ref }}" width="480" height="320" style="display:block; width:100%; height:auto; aspect-ratio:{{ m.ar }}; background:#141414;"></canvas>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:11px 14px 13px;">
+              <span data-no-i18n="1" style="font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.name }}</span>
+              <span style="flex:0 0 auto; font-size:11px; color:#8a867e;">{{ m.cat }}</span>
+            </div>
+          </button>
+          <sc-if value="{{ m.own }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.del }}" title="Slett mockup-bildet" aria-label="Slett mockup-bildet" style="position:absolute; top:10px; right:10px; width:28px; height:28px; padding:0; border:0; border-radius:999px; background:rgba(0,0,0,0.72); color:#f3f1ec; font:inherit; font-size:15px; line-height:1; cursor:pointer;" style-hover="background:#ff5a36;">×</button></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ false }}">
+    <div data-ml-bg="static" style="flex:1; min-height:100dvh; display:flex; flex-direction:column;">
+      <header style="position:sticky; top:0; z-index:50; background:rgba(7,7,7,0.92); backdrop-filter:blur(10px); display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #1c1c1c; flex-wrap:wrap;">
+        <button onClick="{{ back }}" style="display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px 0 10px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;" style-hover="border-color:#555;"><span style="font-size:15px;">←</span><span>Alle mockups</span></button>
+        <span data-no-i18n="1" style="font-size:14px; font-weight:600;">{{ selName }}</span>
+        <span style="font-size:12px; color:#6f6b64;">{{ selCat }}</span>
+        <span style="flex:1;"></span>
+        <div style="display:flex; gap:4px;">
+          <button onClick="{{ prev }}" title="Forrige (←)" aria-label="Forrige" style="width:36px; height:36px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font:inherit; cursor:pointer;" style-hover="border-color:#555;">‹</button>
+          <button onClick="{{ next }}" title="Neste (→)" aria-label="Neste" style="width:36px; height:36px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font:inherit; cursor:pointer;" style-hover="border-color:#555;">›</button>
+        </div>
+        <button onClick="{{ doDownload }}" style="height:36px; padding:0 18px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;" style-hover="background:#ffffff;">{{ dlLabel }}</button>
+      </header>
+      <div style="flex:1; min-height:0; display:grid; grid-template-columns:{{ cols }};">
+        <section ref="{{ stageRef }}" style="position:relative; min-width:0; min-height:{{ stageMinH }}; display:flex; align-items:center; justify-content:center; padding:24px; overflow:hidden;">
+          <div ref="{{ wrapRef }}" style="position:relative; width:{{ cvW }}; height:{{ cvH }}; line-height:0; touch-action:none;">
+            <canvas ref="{{ canvasRef }}" width="16" height="16" style="width:100%; height:100%; border-radius:6px; box-shadow:0 18px 60px rgba(0,0,0,0.55);"></canvas>
+            <sc-if value="{{ adj }}" hint-placeholder-val="{{ false }}">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible;"><polygon points="{{ quadPts }}" fill="rgba(245,184,44,0.12)" stroke="#f5b82c" stroke-width="0.35" vector-effect="non-scaling-stroke"></polygon></svg>
+              <sc-for list="{{ handles }}" as="h" hint-placeholder-count="4">
+                <button onPointerDown="{{ h.down }}" aria-label="{{ h.label }}" title="{{ h.label }}" style="position:absolute; left:{{ h.left }}; top:{{ h.top }}; width:22px; height:22px; margin:-11px 0 0 -11px; padding:0; border:2px solid #000000; border-radius:50%; background:#f5b82c; box-shadow:0 0 0 3px rgba(245,184,44,0.35); cursor:grab; touch-action:none;"></button>
+              </sc-for>
+            </sc-if>
+          </div>
+          <sc-if value="{{ dragOver }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:12px; border:2px dashed #e9e7e2; border-radius:14px; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600;">Slipp bildet for å bruke det som design</div>
+          </sc-if>
+        </section>
+        <aside style="min-width:0; border-left:1px solid #1c1c1c; background:#0b0b0b; overflow-y:auto; max-height:{{ panelMaxH }};">
+          <div style="display:flex; flex-direction:column; gap:14px; padding:16px;">
+            <span style="font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#6f6b64;">Design</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:64px; height:44px; flex:0 0 auto; border:1px solid #2b2b2b; border-radius:8px; background-color:#1a1a1a; background-image:{{ designCss }}; background-size:contain; background-repeat:no-repeat; background-position:center;"></div>
+              <span data-no-i18n="1" style="flex:1; min-width:0; font-size:12.5px; color:#c9c5bc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ designLabel }}</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button onClick="{{ pickFile }}" style="flex:1; height:34px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer;" style-hover="background:#ffffff;">{{ uploadLabel }}</button>
+              <button onClick="{{ pickShared }}" style="flex:1; height:34px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;" style-hover="border-color:#555;">Fra delt mappe</button>
+            </div>
+
+            <span style="font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#6f6b64; padding-top:8px; border-top:1px solid #1c1c1c;">Plassering</span>
+            <div style="display:flex; padding:3px; border:1px solid #2b2b2b; border-radius:999px; background:#121212;">
+              <sc-for list="{{ fits }}" as="f" hint-placeholder-count="2"><button onClick="{{ f.click }}" style="flex:1; height:30px; border:0; border-radius:999px; background:{{ f.bg }}; color:{{ f.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">{{ f.l }}</button></sc-for>
+            </div>
+            <sc-for list="{{ ranges1 }}" as="f" hint-placeholder-count="3">
+              <label style="display:flex; flex-direction:column; gap:6px;"><span style="display:flex; justify-content:space-between; font-size:12px; color:#9d998f;"><span style="font-weight:600;">{{ f.label }}</span><span data-no-i18n="1">{{ f.show }}</span></span><input type="range" min="{{ f.min }}" max="{{ f.max }}" step="{{ f.step }}" value="{{ f.val }}" onChange="{{ f.on }}" onDoubleClick="{{ f.reset }}" style="width:100%; accent-color:#e9e7e2;"></label>
+            </sc-for>
+            <label style="display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:#9d998f;"><span style="font-weight:600;">Bakgrunn</span><input type="color" value="{{ bgVal }}" onChange="{{ onBg }}" style="width:44px; height:28px; padding:0; border:1px solid #2b2b2b; border-radius:6px; background:transparent; cursor:pointer;"></label>
+
+            <span style="font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#6f6b64; padding-top:8px; border-top:1px solid #1c1c1c;">Realisme</span>
+            <sc-for list="{{ ranges2 }}" as="f" hint-placeholder-count="2">
+              <label style="display:flex; flex-direction:column; gap:6px;"><span style="display:flex; justify-content:space-between; font-size:12px; color:#9d998f;"><span style="font-weight:600;">{{ f.label }}</span><span data-no-i18n="1">{{ f.show }}</span></span><input type="range" min="{{ f.min }}" max="{{ f.max }}" step="{{ f.step }}" value="{{ f.val }}" onChange="{{ f.on }}" onDoubleClick="{{ f.reset }}" style="width:100%; accent-color:#e9e7e2;"></label>
+            </sc-for>
+            <sc-if value="{{ canOccl }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ toggleOccl }}" role="switch" aria-checked="{{ occl }}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:0; border:0; background:transparent; color:#9d998f; font:inherit; font-size:12px; font-weight:600; text-align:left; cursor:pointer;"><span>Behold fingre og ting foran skjermen</span><span style="position:relative; flex:0 0 auto; width:34px; height:18px; border-radius:999px; background:{{ occlTrack }};"><span style="position:absolute; top:2px; left:{{ occlKnob }}; width:14px; height:14px; border-radius:50%; background:{{ occlKnobBg }}; transition:left .16s ease;"></span></span></button>
+            </sc-if>
+
+            <span style="font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#6f6b64; padding-top:8px; border-top:1px solid #1c1c1c;">Skjerm</span>
+            <button onClick="{{ toggleAdj }}" style="height:34px; border:1px solid {{ adjBorder }}; border-radius:999px; background:{{ adjBg }}; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">{{ adjLabel }}</button>
+            <sc-if value="{{ adj }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; line-height:1.5; color:#8a867e; text-wrap:pretty;">Dra de fire gule punktene til hjørnene av skjermen. Endringen lagres for dette bildet.</span></sc-if>
+            <div style="display:flex; gap:6px;">
+              <button onClick="{{ autoDetect }}" style="flex:1; height:32px; border:1px solid #2b2b2b; border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12px; font-weight:600; cursor:pointer;" style-hover="border-color:#555;">Finn automatisk</button>
+              <button onClick="{{ resetCorners }}" style="flex:1; height:32px; border:1px solid #2b2b2b; border-radius:999px; background:transparent; color:#f3f1ec; font:inherit; font-size:12px; font-weight:600; cursor:pointer;" style-hover="border-color:#555;">Tilbakestill</button>
+            </div>
+
+            <span style="font-size:11px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:#6f6b64; padding-top:8px; border-top:1px solid #1c1c1c;">Eksporter</span>
+            <div style="display:flex; padding:3px; border:1px solid #2b2b2b; border-radius:999px; background:#121212;">
+              <sc-for list="{{ fmts }}" as="f" hint-placeholder-count="2"><button onClick="{{ f.click }}" style="flex:1; height:30px; border:0; border-radius:999px; background:{{ f.bg }}; color:{{ f.fg }}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;">{{ f.l }}</button></sc-for>
+            </div>
+            <span data-no-i18n="1" style="font-size:11.5px; color:#6f6b64;">{{ sizeLabel }}</span>
+            <button onClick="{{ doDownload }}" style="height:40px; border:0; border-radius:999px; background:#e9e7e2; color:#000000; font:inherit; font-size:13px; font-weight:700; cursor:pointer;" style-hover="background:#ffffff;">{{ dlLabel }}</button>
+            <div style="display:flex; gap:6px;">
+              <button onClick="{{ doCopy }}" style="flex:1; height:34px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;" style-hover="border-color:#555;">Kopier bilde</button>
+              <button onClick="{{ doSend }}" style="flex:1; height:34px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;" style-hover="border-color:#555;">Send til …</button>
+            </div>
+            <span style="font-size:11px; line-height:1.5; color:#6f6b64; text-wrap:pretty;">Piltastene bytter bilde. Dobbeltklikk på en glidebryter for å nullstille den.</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:90; max-width:min(560px, calc(100vw - 32px)); padding:10px 16px; border:1px solid #2b2b2b; border-radius:999px; background:#121212; color:#f3f1ec; font-size:13px; box-shadow:0 10px 30px rgba(0,0,0,0.5); animation:mkIn .2s ease both;">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const DEF = { fit: 'cover', zoom: 1, ox: 0, oy: 0, bg: '#ffffff', shade: 0.6, gloss: 0.35, occl: true, corners: null };
+const LS = 'mockups.settings';
+const css = u => u ? 'url("' + String(u).replace(/["\\\n]/g, '') + '")' : 'none';
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const CATN = { all: 'Alle', phone: 'Mobil', laptop: 'Laptop', screen: 'Skjerm og TV', print: 'Trykk', other: 'Annet' };
+
+class Component extends DCLogic {
+  state = { view: 'gallery', lib: null, cat: 'all', sel: null, design: null, designName: '', designUrl: '', set: {}, adj: false, fmt: 'png', toast: '', dragOver: false, box: { w: 600, h: 400 }, narrow: false, busy: false };
+  mockRef = React.createRef(); fileRef = React.createRef(); canvasRef = React.createRef(); stageRef = React.createRef(); wrapRef = React.createRef();
+  imgs = {}; auto = {}; cardEls = {}; cardRefs = {};
+
+  componentDidMount() {
+    this.alive = true;
+    try { const s = JSON.parse(localStorage.getItem(LS) || '{}'); if (s && typeof s === 'object') this.setState({ set: s }); } catch (e) {}
+    this.onResize = () => { const n = window.innerWidth < 860; if (n !== this.state.narrow) this.setState({ narrow: n }); this.measure(); };
+    window.addEventListener('resize', this.onResize); this.onResize();
+    this.onKey = e => {
+      if (this.state.view !== 'edit') return; const t = e.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && t.type !== 'range') return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); this.step(-1); } else if (e.key === 'ArrowRight') { e.preventDefault(); this.step(1); } else if (e.key === 'Escape') { if (this.state.adj) this.setState({ adj: false }); else this.back(); }
+    };
+    window.addEventListener('keydown', this.onKey);
+    this.boot();
+  }
+  componentWillUnmount() { (this._urls || []).forEach(u => URL.revokeObjectURL(u)); this.alive = false; window.removeEventListener('resize', this.onResize); window.removeEventListener('keydown', this.onKey); if (this.unrecv) this.unrecv(); if (this.ro) this.ro.disconnect(); clearTimeout(this._tt); }
+  componentDidUpdate() {
+    const el = this.stageRef.current; if (el && el !== this._roEl) { if (this.ro) this.ro.disconnect(); this._roEl = el; this.ro = new ResizeObserver(() => this.measure()); this.ro.observe(el); this.measure(); }
+    if (!el && this._roEl) { if (this.ro) this.ro.disconnect(); this._roEl = null; }
+    this.queueDraw();
+  }
+  async boot() {
+    for (let i = 0; i < 200 && !(window.MK && window.MLShare); i++) await new Promise(r => setTimeout(r, 40));
+    if (!window.MK) { this.setState({ lib: [] }); return; }
+    let lib = await window.MK.library('images/mockups/'); if (!this.alive) return;
+    const extra = await window.MK.library('mockups/'); if (!this.alive) return;
+    { const seen = new Set(lib.map(m => m.src.split('/').pop())); lib = lib.concat(extra.filter(m => !seen.has(m.src.split('/').pop())).map(m => ({ ...m, id: 'dir-' + m.id }))); }
+    lib = lib.concat(await this.ownMocks()); if (!this.alive) return;
+    if (window.MLCloud) { const c = await window.MLCloud.files('mockups'); if (!this.alive) return; lib = lib.filter(m => !c.hidden.has(m.src.split('/').pop())).concat(c.files.map(f => ({ id: 'cloud-' + f.path.replace(/[^a-z0-9]+/gi, '-').slice(-60), src: f.url, name: window.MK.nice(f.name), cat: window.MK.catOf(f.name), corners: null, aspect: null, keepHoles: false, occl: true }))); }
+    this.setState({ lib });
+    lib.forEach(m => { const im = new Image(); im.decoding = 'async'; im.onload = () => { this.imgs[m.id] = im; if (!m.corners) { try { this.auto[m.id] = window.MK.detect(im); } catch (e) {} } this.dirtyCards = true; this.measure(); this.forceUpdate(); }; im.src = m.src; });
+    if (window.MLShare) this.unrecv = window.MLShare.receive((b, n) => this.useBlob(b, n), { accept: ['image'] });
+  }
+  showToast(t) { this.setState({ toast: t }); clearTimeout(this._tt); this._tt = setTimeout(() => { if (this.alive) this.setState({ toast: '' }); }, 2600); }
+
+  useBlob(blob, name) {
+    if (!blob || !/^image\/(png|jpeg|webp|gif)$/.test(blob.type || '')) { this.showToast('Bruk PNG, JPG, WebP eller GIF.'); return; }
+    if (blob.size > 60e6) { this.showToast('Bildet er for stort (maks 60 MB).'); return; }
+    const url = URL.createObjectURL(blob), im = new Image();
+    im.onload = () => { if (this.state.designUrl) URL.revokeObjectURL(this.state.designUrl); this.dirtyCards = true; this.setState({ design: im, designUrl: url, designName: String(name || 'Design').slice(0, 80) }); this.showToast(this.state.view === 'edit' ? 'Designet er byttet i alle mockupene.' : 'Designet er lagt inn i alle mockupene. Velg den du vil bruke.'); };
+    im.onerror = () => { URL.revokeObjectURL(url); this.showToast('Bildet kunne ikke leses.'); }; im.src = url;
+  }
+  /* own mockup images, stored locally in IndexedDB */
+  mdb() { return this._mdb || (this._mdb = new Promise((res, rej) => { const r = indexedDB.open('mockuplib', 1); r.onupgradeneeded = () => r.result.createObjectStore('imgs', { keyPath: 'id' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); })); }
+  async mtx(mode, fn) { const d = await this.mdb(); return new Promise((res, rej) => { const t = d.transaction('imgs', mode), q = fn(t.objectStore('imgs')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); }
+  async ownMocks() {
+    try { const all = (await this.mtx('readonly', s => s.getAll())) || []; return all.filter(x => x && x.blob instanceof Blob).sort((a, b) => a.t - b.t).map(x => { const u = URL.createObjectURL(x.blob); this._urls = (this._urls || []).concat(u); return { id: x.id, own: true, src: u, name: x.name, cat: window.MK.catOf(x.file || x.name), corners: null, aspect: null, keepHoles: false, occl: true }; }); } catch (e) { return []; }
+  }
+  pickMocks = () => { const el = this.mockRef.current; if (el) el.click(); };
+  onMockFiles = async e => {
+    const fs = [...(e.target.files || [])]; e.target.value = ''; let n = 0, bad = 0;
+    for (const f of fs) {
+      if (!/^image\/(png|jpeg|webp)$/.test(f.type) || f.size > 25 * 1048576) { bad++; continue; }
+      const id = 'own-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), file = f.name.toLowerCase();
+      try { await this.mtx('readwrite', s => s.put({ id, name: window.MK.nice(f.name).slice(0, 60), file, blob: f, t: Date.now() })); } catch (err) { bad++; continue; }
+      const u = URL.createObjectURL(f); this._urls = (this._urls || []).concat(u);
+      const m = { id, own: true, src: u, name: window.MK.nice(f.name).slice(0, 60), cat: window.MK.catOf(file), corners: null, aspect: null, keepHoles: false, occl: true };
+      const im = new Image(); im.onload = () => { this.imgs[id] = im; try { this.auto[id] = window.MK.detect(im); } catch (x) {} this.dirtyCards = true; this.measure(); this.forceUpdate(); }; im.src = u;
+      this.setState(s => ({ lib: (s.lib || []).concat([m]) })); n++;
+    }
+    this.showToast(n ? (n === 1 ? 'Mockup-bildet er lagt til.' : n + ' mockup-bilder er lagt til.') + (bad ? ' Noen filer ble hoppet over (PNG, JPG eller WebP, maks 25 MB).' : '') : 'Bruk PNG, JPG eller WebP, maks 25 MB.');
+  };
+  delMock = async id => { if (!confirm('Slette dette mockup-bildet?')) return; try { await this.mtx('readwrite', s => s.delete(id)); } catch (e) {} this.setState(s => ({ lib: (s.lib || []).filter(m => m.id !== id) })); };
+  pickFile = () => { const el = this.fileRef.current; if (el) el.click(); };
+  onFile = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.useBlob(f, f.name); };
+  pickShared = () => { if (window.MLShare) window.MLShare.pick((b, n) => this.useBlob(b, n), { accept: ['image'] }); };
+  onDragOver = e => { if (!e.dataTransfer || ![...(e.dataTransfer.types || [])].includes('Files')) return; e.preventDefault(); if (!this.state.dragOver) this.setState({ dragOver: true }); };
+  onDragLeave = e => { if (e.currentTarget.contains(e.relatedTarget)) return; this.setState({ dragOver: false }); };
+  onDrop = e => { e.preventDefault(); this.setState({ dragOver: false }); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.useBlob(f, f.name); };
+
+  mk() { const l = this.state.lib || []; return l.find(m => m.id === this.state.sel) || null; }
+  stOf(m) { const s = { ...DEF, ...((this.state.set || {})[m.id] || {}) }; if (!s.corners) s.corners = m.corners || this.auto[m.id] || null; return s; }
+  patch(o) {
+    const m = this.mk(); if (!m) return; this.dirtyCards = true;
+    this.setState(s => { const set = { ...s.set, [m.id]: { ...((s.set || {})[m.id] || {}), ...o } }; try { localStorage.setItem(LS, JSON.stringify(set)); } catch (e) {} return { set }; });
+  }
+  open(id) { this.setState({ view: 'edit', sel: id, adj: false }); window.scrollTo(0, 0); }
+  back = () => { this.dirtyCards = true; this.setState({ view: 'gallery', adj: false }); };
+  list() { const l = this.state.lib || [], c = this.state.cat; return c === 'all' ? l : l.filter(m => m.cat === c); }
+  step(d) { const l = this.list(); if (!l.length) return; const i = l.findIndex(m => m.id === this.state.sel); this.setState({ sel: l[(i + d + l.length) % l.length].id, adj: false }); }
+
+  measure() {
+    const el = this.stageRef.current, m = this.mk(), im = m && this.imgs[m.id]; if (!el || !im) return;
+    const aw = Math.max(80, el.clientWidth - 48), ah = Math.max(80, el.clientHeight - 48), r = im.naturalWidth / im.naturalHeight;
+    let w = aw, h = aw / r; if (h > ah) { h = ah; w = ah * r; }
+    const b = this.state.box; if (Math.abs(b.w - w) > 0.5 || Math.abs(b.h - h) > 0.5) this.setState({ box: { w, h } });
+  }
+  queueDraw() { if (this._raf) return; this._raf = requestAnimationFrame(() => { this._raf = 0; this.drawAll(); }); }
+  drawAll() {
+    const MK = window.MK; if (!MK) return; const S = this.state;
+    if (S.view === 'edit') {
+      const m = this.mk(), im = m && this.imgs[m.id], c = this.canvasRef.current; if (!m || !im || !c) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.max(2, Math.round(Math.min(im.naturalWidth, S.box.w * dpr))), H = Math.max(2, Math.round(W * im.naturalHeight / im.naturalWidth));
+      if (c.width !== W || c.height !== H) { c.width = W; c.height = H; this._lastKey = ''; }
+      const key = [m.id, W, JSON.stringify(this.stOf(m)), S.designUrl, this._dragging ? 'd' : ''].join('|'); if (key === this._lastKey) return; this._lastKey = key;
+      try { MK.render(c.getContext('2d'), W, H, im, S.design, m, this.stOf(m), { N: this._dragging ? 10 : 20 }); } catch (e) {}
+      return;
+    }
+    if (!this.dirtyCards) return; this.dirtyCards = false;
+    const todo = this.list().filter(m => this.imgs[m.id] && this.cardEls[m.id]); let i = 0, gen = (this._gen = (this._gen || 0) + 1);
+    const run = () => { if (!this.alive || gen !== this._gen || i >= todo.length) return; const m = todo[i++], c = this.cardEls[m.id], im = this.imgs[m.id];
+      if (c && im) { const W = 480, H = Math.round(W * im.naturalHeight / im.naturalWidth); if (c.width !== W || c.height !== H) { c.width = W; c.height = H; } try { MK.render(c.getContext('2d'), W, H, im, S.design, m, this.stOf(m), { N: 8 }); } catch (e) { console.warn('mockup', m.id, e && e.message); } }
+      setTimeout(run, 0); };
+    run();
+  }
+  cardRef(id) { return this.cardRefs[id] || (this.cardRefs[id] = el => { if (el) { this.cardEls[id] = el; this.dirtyCards = true; this.queueDraw(); } else delete this.cardEls[id]; }); }
+
+  handleDown(e, i) {
+    e.preventDefault(); e.stopPropagation(); const wrap = this.wrapRef.current, m = this.mk(); if (!wrap || !m) return;
+    const r = wrap.getBoundingClientRect(), base = (this.stOf(m).corners || [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]]).map(p => [...p]); this._dragging = true;
+    const mv = ev => { const q = base.map(p => [...p]); q[i] = [clamp((ev.clientX - r.left) / r.width, 0, 1), clamp((ev.clientY - r.top) / r.height, 0, 1)]; this.patch({ corners: q }); };
+    const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); this._dragging = false; this._lastKey = ''; this.forceUpdate(); };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }
+
+  async outBlob() {
+    const MK = window.MK, m = this.mk(), im = m && this.imgs[m.id]; if (!m || !im) return null;
+    const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas'); c.width = W; c.height = H;
+    MK.render(c.getContext('2d'), W, H, im, this.state.design, m, this.stOf(m), { N: 28 });
+    const jpg = this.state.fmt === 'jpg'; return await new Promise(r => c.toBlob(r, jpg ? 'image/jpeg' : 'image/png', 0.92));
+  }
+  fname() { const m = this.mk(); return 'mockup-' + (m ? m.id : 'bilde') + (this.state.fmt === 'jpg' ? '.jpg' : '.png'); }
+  doDownload = async () => { if (this.state.busy) return; this.setState({ busy: true }); try { const b = await this.outBlob(); if (b) window.MLShare ? window.MLShare.download(b, this.fname()) : null; } finally { this.setState({ busy: false }); } };
+  doCopy = async () => { const b = await this.outBlob(); if (!b) return; const ok = window.MLShare && await window.MLShare.copy(b); this.showToast(ok ? 'Bildet er kopiert. Lim inn med Ctrl+V.' : 'Nettleseren tillot ikke kopiering.'); };
+  doSend = async () => { const b = await this.outBlob(); if (b && window.MLShare) window.MLShare.send(b, this.fname(), 'mockups'); };
+
+  renderVals() {
+    const S = this.state, lib = S.lib || [], m = this.mk(), st = m ? this.stOf(m) : { ...DEF }, deploy = /^[a-z0-9-]+\.dc\.html$/.test(decodeURIComponent(location.pathname.split('/').pop() || ''));
+    const count = k => k === 'all' ? lib.length : lib.filter(x => x.cat === k).length;
+    const cats = ['all', 'phone', 'laptop', 'screen', 'print', 'other'].filter(k => k === 'all' || count(k)).map(k => ({ l: CATN[k], n: String(count(k)), bg: S.cat === k ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: S.cat === k ? '#000000' : '#f3f1ec', border: S.cat === k ? '#e9e7e2' : 'rgba(255,255,255,0.18)', click: () => { this.dirtyCards = true; this.setState({ cat: k }); } }));
+    const P = o => this.patch(o), pc = v => Math.round(v * 100) + ' %';
+    const rg = (label, k, min, max, step, show, def) => ({ label, min, max, step, val: st[k], show, on: e => P({ [k]: +e.target.value }), reset: () => P({ [k]: def }) });
+    const q = st.corners || [];
+    const im = m && this.imgs[m.id];
+    return {
+      isGallery: S.view !== 'edit', isEdit: S.view === 'edit', backHref: (deploy ? 'media-lab.dc.html' : 'Mediaverktøy.dc.html') + '#tools',
+      mockRef: this.mockRef, onMockFiles: this.onMockFiles, pickMocks: this.pickMocks, fileRef: this.fileRef, onFile: this.onFile, pickFile: this.pickFile, pickShared: this.pickShared, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop, dragOver: S.dragOver && S.view === 'edit',
+      uploadLabel: S.design ? 'Bytt design' : 'Last opp design', hasDesign: !!S.design, designCss: css(S.designUrl), designName: S.designName, designLabel: S.design ? S.designName : 'Ingen design valgt ennå',
+      clearDesign: () => { if (S.designUrl) URL.revokeObjectURL(S.designUrl); this.dirtyCards = true; this.setState({ design: null, designUrl: '', designName: '' }); },
+      cats, libEmpty: !!S.lib && !lib.length, libMsg: 'Fant ingen mockup-bilder. Legg bilder i mappen «mockups» eller trykk «Legg til egne mockup-bilder».',
+      cards: this.list().map(x => { const i2 = this.imgs[x.id]; return { name: x.name, own: !!x.own, del: ev => { ev.stopPropagation(); this.delMock(x.id); }, cat: CATN[x.cat] || '', ref: this.cardRef(x.id), ar: i2 ? i2.naturalWidth + ' / ' + i2.naturalHeight : '3 / 2', open: () => this.open(x.id) }; }),
+      back: this.back, prev: () => this.step(-1), next: () => this.step(1), selName: m ? m.name : '', selCat: m ? CATN[m.cat] || '' : '',
+      cols: S.narrow ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 320px', stageMinH: S.narrow ? '56vh' : '0px', panelMaxH: S.narrow ? 'none' : 'calc(100dvh - 61px)',
+      stageRef: this.stageRef, wrapRef: this.wrapRef, canvasRef: this.canvasRef, cvW: S.box.w + 'px', cvH: S.box.h + 'px',
+      adj: S.adj, quadPts: q.map(p => (p[0] * 100).toFixed(2) + ',' + (p[1] * 100).toFixed(2)).join(' '),
+      handles: q.map((p, i) => ({ left: (p[0] * 100) + '%', top: (p[1] * 100) + '%', label: ['Øverst til venstre', 'Øverst til høyre', 'Nederst til høyre', 'Nederst til venstre'][i], down: e => this.handleDown(e, i) })),
+      toggleAdj: () => this.setState(s => ({ adj: !s.adj })), adjLabel: S.adj ? 'Ferdig med hjørnene' : 'Juster hjørnene', adjBorder: S.adj ? '#f5b82c' : '#2b2b2b', adjBg: S.adj ? 'rgba(245,184,44,0.12)' : 'transparent',
+      autoDetect: () => { if (!im) return; let d = null; try { d = window.MK.detect(im); } catch (e) {} if (d) { P({ corners: d }); this.showToast('Fant skjermen. Juster hjørnene om nødvendig.'); } else this.showToast('Fant ingen tydelig skjerm. Juster hjørnene selv.'); },
+      resetCorners: () => P({ corners: null }),
+      fits: [['cover', 'Fyll skjermen'], ['contain', 'Vis hele']].map(([k, l]) => ({ l, bg: st.fit === k ? '#e9e7e2' : 'transparent', fg: st.fit === k ? '#000000' : '#9d998f', click: () => P({ fit: k }) })),
+      ranges1: [rg('Zoom', 'zoom', 0.5, 3, 0.01, pc(st.zoom), 1), rg('Flytt vannrett', 'ox', -0.5, 0.5, 0.005, pc(st.ox), 0), rg('Flytt loddrett', 'oy', -0.5, 0.5, 0.005, pc(st.oy), 0)],
+      ranges2: [rg('Skygger og lys', 'shade', 0, 1, 0.01, pc(st.shade), 0.6), rg('Glans', 'gloss', 0, 1, 0.01, pc(st.gloss), 0.35)],
+      bgVal: st.bg, onBg: e => P({ bg: e.target.value }),
+      canOccl: !!m && m.occl !== false, occl: st.occl !== false, toggleOccl: () => P({ occl: st.occl === false }), occlTrack: st.occl !== false ? '#e9e7e2' : '#333333', occlKnob: st.occl !== false ? '18px' : '2px', occlKnobBg: st.occl !== false ? '#000000' : '#9d998f',
+      fmts: [['png', 'PNG'], ['jpg', 'JPG']].map(([k, l]) => ({ l, bg: S.fmt === k ? '#e9e7e2' : 'transparent', fg: S.fmt === k ? '#000000' : '#9d998f', click: () => this.setState({ fmt: k }) })),
+      sizeLabel: im ? im.naturalWidth + ' × ' + im.naturalHeight + ' px' : '', dlLabel: S.busy ? 'Lager …' : 'Last ned', doDownload: this.doDownload, doCopy: this.doCopy, doSend: this.doSend,
+      hasToast: !!S.toast, toast: S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

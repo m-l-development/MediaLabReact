@@ -1,0 +1,27 @@
+LEGG MOCKUP-BILDER HER
+======================
+
+Slik legger du til nye mockup-bilder:
+
+1. Legg bildene (JPG, PNG eller WebP) i denne mappen: mockups/
+2. Gi filene et navn som starter med typen, så havner de i riktig kategori:
+     iphone-…  phone-…  mobil-…            → Mobil
+     macbook-…  laptop-…                   → Laptop
+     imac-…  tv-…  skjerm-…  monitor-…     → Skjerm og TV
+     card-…  kort-…  paper-…  poster-…     → Trykk
+   Eksempel: iphone-hand-2.jpg, tv-stue.jpg, kort-hvitt-bord.jpg
+3. Commit og push til GitHub. Vercel lager listen (index.json) automatisk ved deploy.
+
+Skjermen/flaten i bildet finnes automatisk. Bildet bør ha en tydelig hvit, svart
+eller ensfarget skjerm. Anbefalt størrelse: ca. 2400 px på den lengste siden, maks 25 MB.
+
+Valgfritt: lag mockups/config.json for å gi bildet et eget navn eller faste hjørner:
+{
+  "iphone-hand-2.jpg": { "name": "iPhone i hånd", "corners": [[0.41,0.18],[0.62,0.19],[0.61,0.74],[0.40,0.73]] }
+}
+(hjørner = øverst venstre, øverst høyre, nederst høyre, nederst venstre, som andel 0–1 av bildet)
+
+Kjører du siden lokalt uten Vercel: kjør  node scripts/mockup-index.mjs  for å oppdatere listen.
+
+Du kan også laste opp mockup-bilder rett i Mockups-siden («Legg til egne mockup-bilder»).
+De lagres da bare i nettleseren på den maskinen.
