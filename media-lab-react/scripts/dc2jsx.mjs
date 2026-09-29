@@ -20,6 +20,10 @@ export const PAGES = {
   'admin': { src: 'admin.dc.html' },
   'mockups': { src: 'mockups.dc.html' },
   'loop-studio': { src: 'loop-studio.dc.html' },
+  'isolate-subject': { src: 'isolate-subject.dc.html' },
+  'photo-design': { src: 'photo-design.dc.html' },
+  'thumbnail-studio': { src: 'thumbnail-studio.dc.html' },
+  'motion-design': { src: 'motion-design.dc.html' },
 };
 
 /* ---------- kopier av dc-runtime (support.js) ---------- */

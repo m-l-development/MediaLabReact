@@ -21,17 +21,42 @@ export async function pixelDiff(page, a, b) {
   }, [a.toString('base64'), b.toString('base64')]);
 }
 
-export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init } = {}) {
+/* Lokal buffer for CDN og AI-modeller (jsdelivr, unpkg, Hugging Face), så de bare lastes ned én gang.
+   Innholdet leveres uendret; bare overføringskoding fjernes. */
+const CACHE = path.resolve('.cache/cdn'), inflight = new Map();
+const CDN = /^https:\/\/([a-z0-9-]+\.)*(cdn\.jsdelivr\.net|unpkg\.com|huggingface\.co|hf\.co)\//;
+export async function cacheCdn(ctx) {
+  fs.mkdirSync(CACHE, { recursive: true });
+  await ctx.route(u => CDN.test(u.href), async route => {
+    const req = route.request(); if (req.method() !== 'GET') return route.continue();
+    const key = crypto.createHash('sha1').update(req.url()).digest('hex'), f = path.join(CACHE, key);
+    if (!fs.existsSync(f + '.json')) {
+      if (!inflight.has(key)) inflight.set(key, (async () => {
+        const r = await route.fetch({ maxRedirects: 20, timeout: 600_000 });
+        const h = Object.fromEntries(Object.entries(r.headers()).filter(([k]) => !/^(content-encoding|content-length|transfer-encoding|set-cookie)$/i.test(k)));
+        h['access-control-allow-origin'] = '*';
+        fs.writeFileSync(f, await r.body()); fs.writeFileSync(f + '.json', JSON.stringify({ status: r.status(), headers: h }));
+      })().finally(() => inflight.delete(key)));
+      await inflight.get(key);
+    }
+    const meta = JSON.parse(fs.readFileSync(f + '.json', 'utf8'));
+    return route.fulfill({ status: meta.status, headers: meta.headers, body: fs.readFileSync(f) });
+  });
+}
+
+export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init, cdn } = {}) {
   const ctx = await browser.newContext({ viewport, reducedMotion: 'reduce', timezoneId: 'Europe/Oslo', locale: 'nb-NO', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
   await ctx.addInitScript(() => { localStorage.setItem('medialab.theme', 'dark'); localStorage.setItem('medialab.lang', 'no'); });
   /* samme «tilfeldige» tall i begge versjoner (tilfeldige id-er, farger osv.) */
   await ctx.addInitScript(() => { let s = 20260929; Math.random = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; });
   if (init) await ctx.addInitScript(init);
   if (route) await ctx.route(route[0], route[1]());
+  if (cdn) await cacheCdn(ctx);
   const page = await ctx.newPage(), errors = [], downloads = [];
   page.setDefaultTimeout(10_000);
   page.on('pageerror', e => errors.push(String(e).split('\n')[0]));
-  page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|\{\{.*\}\}/.test(m.text())) errors.push(m.text().split('\n')[0]); });
+  /* tidsstempler (f.eks. i advarsler fra onnxruntime) fjernes før sammenligning */
+  page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|\{\{.*\}\}/.test(m.text())) errors.push(m.text().split('\n')[0].replace(/\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+/g, '(tid)')); });
   page.on('dialog', d => (dialogs ? dialogs(d) : d.accept()));
   page.on('download', async d => { const p = await d.path().catch(() => null); downloads.push({ name: d.suggestedFilename(), sha: p ? crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex') : null }); });
   await page.goto(url, { waitUntil: 'networkidle' });
@@ -39,21 +64,72 @@ export async function openSide(browser, url, { viewport = { width: 1440, height:
   return { ctx, page, errors, downloads };
 }
 
-/* Kjører stegene likt på begge og sammenligner. mask: selektor for elementer som tegnes etter klokken (f.eks. ml-bg-lerretet). */
+/* ---------- utforskning i takt ----------
+   Velger en tilfeldig synlig kontroll (samme valg i begge, fast frø) og gjør samme handling i begge versjonene. */
+export function seeded(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const SEL = 'button, [role="button"], [role="tab"], [role="switch"], [role="slider"], input:not([type=file]):not([type=hidden]), select, textarea, canvas, [contenteditable="true"]';
+const KEYS = ['Control+z', 'Control+Shift+z', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'Escape', 'Enter', 'Control+d', 'Control+c', 'Control+v'];
+async function controls(page) {
+  return page.evaluate(sel => [...document.querySelectorAll(sel)].map((e, i) => {
+    const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+    const vis = r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.pointerEvents !== 'none' && !e.disabled && !e.closest('[aria-hidden="true"]') && e.checkVisibility({ opacityProperty: true });
+    const label = (e.getAttribute('aria-label') || e.getAttribute('title') || e.innerText || e.getAttribute('placeholder') || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    return vis ? { i, tag: e.tagName.toLowerCase(), type: e.type || '', label, min: e.min, max: e.max, step: e.step, n: e.options ? e.options.length : 0 } : null;
+  }).filter(Boolean), SEL);
+}
+async function exploreStep(A, B, rng, k, opts) {
+  const [ca, cb] = await Promise.all([controls(A), controls(B)]);
+  const key = c => c.map(x => [x.i, x.tag, x.type, x.label].join('|')).join('\n');
+  if (key(ca) !== key(cb)) { console.log('ULIKE KONTROLLER\n' + key(ca).split('\n').filter((l, i) => l !== key(cb).split('\n')[i]).slice(0, 5).join('\n') + '\n≠\n' + key(cb).split('\n').filter((l, i) => l !== key(ca).split('\n')[i]).slice(0, 5).join('\n')); return null; }
+  const r = rng();
+  if (r < 0.08 || !ca.length) { const kk = KEYS[Math.floor(rng() * KEYS.length)]; return [`u${k} tast ${kk}`, p => p.keyboard.press(kk)]; }
+  const c = ca[Math.floor(rng() * ca.length)], v = rng(), v2 = rng(), v3 = rng(), v4 = rng();
+  const loc = p => p.locator(SEL).nth(c.i), T = { timeout: 3000 };
+  const name = `u${k} ${c.tag}${c.type ? '[' + c.type + ']' : ''} «${c.label}»`;
+  if (c.tag === 'select') return [name + ' velg', p => loc(p).selectOption({ index: Math.floor(v * Math.max(1, c.n)) }, T)];
+  if (c.tag === 'canvas') return [name + ' dra', async p => { const b = await loc(p).boundingBox(); if (!b) throw 0; await p.mouse.move(b.x + b.width * (0.1 + 0.8 * v), b.y + b.height * (0.1 + 0.8 * v2)); await p.mouse.down(); await p.mouse.move(b.x + b.width * (0.1 + 0.8 * v3), b.y + b.height * (0.1 + 0.8 * v4), { steps: 6 }); await p.mouse.up(); }];
+  if (c.tag === 'input' && c.type === 'range') { const mn = +c.min || 0, mx = c.max === '' ? 100 : +c.max, st = +c.step || 1; const val = Math.min(mx, mn + Math.round(v * (mx - mn) / st) * st); return [name + ' = ' + +val.toFixed(4), p => loc(p).fill(String(+val.toFixed(4)), T)]; }
+  if (c.tag === 'input' && c.type === 'color') { const hex = '#' + Math.floor(v * 0xffffff).toString(16).padStart(6, '0'); return [name + ' = ' + hex, p => loc(p).fill(hex, T)]; }
+  if (c.tag === 'input' && c.type === 'number') { const val = String(Math.round(v * 100)); return [name + ' = ' + val, p => loc(p).fill(val, T)]; }
+  if (c.tag === 'input' && (c.type === 'checkbox' || c.type === 'radio')) return [name + ' klikk', p => loc(p).click(T)];
+  if (c.tag === 'textarea' || c.tag === 'input' || c.tag !== 'button' && c.type === '' && c.tag !== 'div') { const t = 'Test ' + k; return [name + ' = ' + t, p => loc(p).fill(t, T)]; }
+  return [name + ' klikk', p => loc(p).click(T)];
+}
+
+/* Kjører stegene likt på begge og sammenligner. mask: selektor for elementer som tegnes etter klokken (f.eks. ml-bg-lerretet).
+   opts.explore = { n, seed }: etter stegene gjøres n tilfeldige, like handlinger i begge (utforskning i takt). */
 export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
   const A = await openSide(browser, origUrl, opts), B = await openSide(browser, reactUrl, opts);
   /* synlig tekst + feltverdier + lenker + hele localStorage (lagringsformatet må være uendret) */
   const text = p => p.evaluate(() => JSON.stringify({
     text: document.body.innerText.replace(/\s+/g, ' ').trim(),
     values: [...document.querySelectorAll('input:not([type=file]), textarea, select')].map(e => e.type === 'checkbox' || e.type === 'radio' ? e.checked : e.value),
-    links: [...document.querySelectorAll('a')].map(a => a.getAttribute('href') || a.getAttribute('data-ml-href')),
+    /* blob:-adresser (nedlastinger) får tilfeldig id av nettleseren, også i originalen */
+    links: [...document.querySelectorAll('a')].map(a => (a.getAttribute('href') || a.getAttribute('data-ml-href') || '').replace(/^blob:.*/, 'blob:(tilfeldig id)')),
     storage: Object.fromEntries(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)])),
   }));
   const shot = P => P.screenshot({ fullPage: !opts.viewportOnly, animations: 'disabled', caret: 'hide', mask: [P.locator(opts.mask || ML_BG)], maskColor: '#000' });
   const report = [];
-  for (const [step, run] of steps) {
+  const all = [...steps];
+  const rng = seeded(opts.explore ? opts.explore.seed : 1);
+  for (let si = 0; si < all.length || (opts.explore && si < steps.length + opts.explore.n); si++) {
+    if (si >= all.length) {
+      const next = await exploreStep(A.page, B.page, rng, si - steps.length + 1, opts);
+      if (!next) { expect.soft(null, 'kontrollene på siden er ulike i original og React – utforskningen stoppet').toBe('like'); break; }
+      all.push(next);
+    }
+    const [step, run, stepOpts] = all[si];
     const t = Date.now();
-    await Promise.all([run(A.page), run(B.page)]).catch(e => { throw new Error(`steg «${step}» feilet: ${e.message.split('\n')[0]}`); });
+    if (opts.explore && si >= steps.length) {
+      const [ra, rb] = await Promise.all([run(A.page).then(() => 'ok', e => 'feil'), run(B.page).then(() => 'ok', e => 'feil')]);
+      expect.soft(rb, `utfall av «${step}»`).toBe(ra);
+      for (const P of [A.page, B.page]) if (new URL(P.url()).pathname !== new URL(P === A.page ? origUrl : reactUrl, 'http://x').pathname) await P.goto(new URL(P === A.page ? origUrl : reactUrl, P.url()).href, { waitUntil: 'networkidle' });
+      if (opts.idle) await Promise.all([opts.idle(A.page), opts.idle(B.page)]).catch(() => {});
+    } else if (stepOpts && stepOpts.seq) {
+      /* tunge steg (f.eks. store AI-modeller) kjøres etter hverandre for å spare minne */
+      await run(A.page).catch(e => { throw new Error(`steg «${step}» feilet i originalen: ${e.message.split('\n')[0]}`); });
+      await run(B.page).catch(e => { throw new Error(`steg «${step}» feilet i React: ${e.message.split('\n')[0]}`); });
+    } else await Promise.all([run(A.page), run(B.page)]).catch(e => { throw new Error(`steg «${step}» feilet: ${e.message.split('\n')[0]}`); });
     if (process.env.STEGLOGG) console.log(`  steg «${step}» ${Date.now() - t} ms`);
     await Promise.all([A.page.waitForTimeout(opts.settle ?? 700), B.page.waitForTimeout(opts.settle ?? 700)]);
     const [ta, tb] = await Promise.all([text(A.page), text(B.page)]);
