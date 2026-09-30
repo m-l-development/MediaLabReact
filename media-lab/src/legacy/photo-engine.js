@@ -82,13 +82,15 @@
       d.layers.push(pinText(textLayer({ name: 'Bunntekst', text: 'Velkommen!', x: mx, y: h * 0.94, size: Math.round(m * 0.03), weight: 700, color: '#111111', align: 'left' }), mx)); } },
     { k: 'weekday', l: 'Ukeprogram (lys)', make: function (d) { var w = d.w, h = d.h, m = Math.min(w, h), mx = w * 0.08; d.bg = '#f3f1ec';
       var rows = [['TIRSDAG', 'Kveldsmat i kafeen', 'Kafeen'], ['TORSDAG', 'Bønn', 'Samlingsrommet'], ['FREDAG', 'Ungdomsmøte', 'Salen'], ['SØNDAG', 'Gudstjeneste', 'Kirken']];
-      var top = h * 0.1 + m * 0.31, step = Math.min((h * 0.86 - top) / rows.length, m * 0.2), tx = mx + m * 0.2; /* listen starter rett under tittelen */
+      var top = h * 0.1 + m * 0.31, step = Math.min((h * 0.86 - m * 0.06 - top) / (rows.length - 1), m * 0.2); /* listen starter rett under tittelen og fyller ned mot bunnteksten */
+      var days = rows.map(function (r, i) { return textLayer({ name: 'Dag ' + (i + 1), text: r[0], x: mx, y: top + step * i + m * 0.02, size: Math.round(m * 0.05), font: 'Bebas Neue', weight: 400, ls: 1, color: '#111111', align: 'left' }); });
+      var dw = Math.max.apply(null, days.map(function (L) { return textBox(L).w; })), lx = mx + dw + m * 0.045, tx = lx + m * 0.045; /* tidslinjen står etter den bredeste ukedagen */
       d.layers.push(pinText(textLayer({ name: 'Dato', text: 'UKE 40', x: mx, y: h * 0.1, size: Math.round(m * 0.03), weight: 700, ls: 5, color: '#c0392b', align: 'left' }), mx));
       d.layers.push(pinText(textLayer({ name: 'Tittel', text: 'Ukens\nprogram', x: mx, y: h * 0.1 + m * 0.15, size: Math.round(m * 0.1), font: 'Montserrat', weight: 800, color: '#111111', align: 'left', lh: 1 }), mx));
-      d.layers.push(shapeLayer({ name: 'Tidslinje', x: mx + m * 0.155, y: top + (step * (rows.length - 1)) / 2 + m * 0.02, w: Math.max(3, m * 0.004), h: step * (rows.length - 1), fill: '#c0392b' }));
+      d.layers.push(shapeLayer({ name: 'Tidslinje', x: lx, y: top + (step * (rows.length - 1)) / 2 + m * 0.02, w: Math.max(3, m * 0.004), h: step * (rows.length - 1), fill: '#c0392b' }));
       rows.forEach(function (r, i) { var y = top + step * i, n = i + 1;
-        d.layers.push(pinText(textLayer({ name: 'Dag ' + n, text: r[0], x: mx, y: y + m * 0.02, size: Math.round(m * 0.055), font: 'Bebas Neue', weight: 400, ls: 1, color: '#111111', align: 'left' }), mx));
-        d.layers.push(shapeLayer({ name: 'Punkt ' + n, kind: 'ellipse', x: mx + m * 0.155, y: y + m * 0.02, w: m * 0.028, h: m * 0.028, fill: '#c0392b' }));
+        d.layers.push(pinText(days[i], mx));
+        d.layers.push(shapeLayer({ name: 'Punkt ' + n, kind: 'ellipse', x: lx, y: y + m * 0.02, w: m * 0.028, h: m * 0.028, fill: '#c0392b' }));
         d.layers.push(pinText(textLayer({ name: 'Møte ' + n, text: r[1], x: tx, y: y + m * 0.005, size: Math.round(m * 0.045), font: 'Montserrat', weight: 700, color: '#111111', align: 'left' }), tx));
         d.layers.push(pinText(textLayer({ name: 'Sted ' + n, text: r[2], x: tx, y: y + m * 0.05, size: Math.round(m * 0.028), weight: 500, color: '#6b675f', align: 'left' }), tx)); });
       d.layers.push(pinText(textLayer({ name: 'Bunntekst', text: 'Velkommen!', x: mx, y: h * 0.94, size: Math.round(m * 0.03), weight: 700, color: '#111111', align: 'left' }), mx)); } },
