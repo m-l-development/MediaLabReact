@@ -133,7 +133,19 @@ class Component extends DCLogic {
   /* ---------- lag ---------- */
   addLayer(L) { this.setDoc(d => ({ ...d, layers: d.layers.concat([L]) })); this.setState({ sel: L.id, tool: 'move', tab: 'layer' }); }
   addText = () => { const d = this.state.doc, m = Math.min(d.w, d.h); this.addLayer(window.PD.textLayer({ x: d.w / 2, y: d.h / 2, size: Math.round(m * 0.08), color: this.state.newCol || (d.bg && /^#(f|e|d)/i.test(d.bg) ? '#111111' : '#ffffff') })); };
-  addShape(kind) { const d = this.state.doc, m = Math.min(d.w, d.h), sq = kind !== 'rect' && kind !== 'line' && kind !== 'arrow', nm = (window.PD.SHAPES.find(x => x[0] === kind) || [0, 'Form'])[1]; this.addLayer(window.PD.shapeLayer({ kind, name: T(nm), x: d.w / 2, y: d.h / 2, w: m * 0.4, h: kind === 'line' ? Math.max(4, m * 0.012) : sq ? m * 0.4 : m * 0.25, ...(this.state.newCol ? { fill: this.state.newCol } : {}) })); }
+  SHAPE_AR = { rect: 0.625, rounded: 0.625, arrow: 0.625, parallelogram: 0.6, trapezoid: 0.65, bubble: 0.8, half: 0.5 };
+  addShape(kind) {
+    const d = this.state.doc, m = Math.min(d.w, d.h), rounded = kind === 'rounded', k = rounded ? 'rect' : kind, ar = this.SHAPE_AR[kind] || 1;
+    const nm = rounded ? 'Avrundet rektangel' : (window.PD.SHAPES.find(x => x[0] === kind) || [0, 'Form'])[1];
+    this.addLayer(window.PD.shapeLayer({ kind: k, name: T(nm), x: d.w / 2, y: d.h / 2, w: m * 0.4, h: kind === 'line' ? Math.max(4, m * 0.012) : m * 0.4 * ar, ...(rounded ? { radius: Math.round(m * 0.04) } : {}), ...(this.state.newCol ? { fill: this.state.newCol } : {}) }));
+  }
+  /* forhåndsvisning av formene i «Former»-panelet, tegnet med samme motor som lerretet */
+  shapeIcon(kind) {
+    this._shIco = this._shIco || {}; if (this._shIco[kind]) return this._shIco[kind];
+    const PD = window.PD, c = document.createElement('canvas'), S = 96; c.width = c.height = S; const g = c.getContext('2d'), ar = kind === 'line' ? 0.08 : this.SHAPE_AR[kind] || 1, w = S * 0.72, h = w * ar;
+    g.translate(S / 2, S / 2); PD.shapePath(g, kind === 'rounded' ? 'rect' : kind, w, h, kind === 'rounded' ? S * 0.12 : 0); g.fillStyle = '#e9e7e2'; g.fill(kind === 'ring' ? 'evenodd' : 'nonzero');
+    return (this._shIco[kind] = c.toDataURL('image/png'));
+  }
   addGrad = () => { const d = this.state.doc; this.addLayer(window.PD.shapeLayer({ name: T('Toning'), kind: 'rect', x: d.w / 2, y: d.h / 2, w: d.w, h: d.h, fill: 'rgba(0,0,0,0)', fill2: this.state.newCol || '#000000', gAng: 180 })); };
   addGlow = () => { const d = this.state.doc, m = Math.min(d.w, d.h); this.addLayer(window.PD.glowLayer({ name: T('Lys'), x: d.w / 2, y: d.h / 2, w: m * 0.9, h: m * 0.9, color: this.state.newCol || '#f5b82c' })); };
   setCol(L, key, v, hk) { if (!L) return; const old = String(L[key] || '').toLowerCase(); if (this.state.linkCol && /^#[0-9a-f]{6}$/.test(old)) { const K = ['color', 'fill', 'fill2', 'strokeC', 'barColor', 'tint']; this.setDoc(d => ({ ...d, bg: String(d.bg || '').toLowerCase() === old ? v : d.bg, bg2: String(d.bg2 || '').toLowerCase() === old ? v : d.bg2, layers: d.layers.map(q => { const o = {}; K.forEach(k => { if (String(q[k] || '').toLowerCase() === old) o[k] = v; }); return Object.keys(o).length ? { ...q, ...o } : q; }) }), hk); } else this.patchL(L.id, { [key]: v }, hk); }
@@ -578,8 +590,9 @@ class Component extends DCLogic {
       dlLabel: S.busy === 'exp' ? 'Lager …' : 'Last ned', doDownload: this.doDownload, doCopy: this.doCopy, doSend: this.doSend,
       rootMinH: S.narrow ? 'auto' : '0', rootMaxH: S.narrow ? 'none' : '100dvh', /* PC: editoren låses til skjermhøyden, ellers vokser arbeidsflaten med høye formater */
       cols: S.narrow ? 'minmax(0, 1fr)' : '230px minmax(0, 1fr) 290px', rows: S.narrow ? '60vh auto auto' : 'minmax(0, 1fr)', leftOrder: S.narrow ? 2 : 0, stageOrder: S.narrow ? 0 : 1, rightOrder: S.narrow ? 1 : 2,
-      addBtns: [['Bilde', () => this.fileRef.current && this.fileRef.current.click()], ['Tekst', this.addText], ['Form', () => this.addShape('rect')], ['Sirkel', () => this.addShape('ellipse')], ['Toning', this.addGrad], ['Lys', this.addGlow], ['Logo', () => this.setState({ logoOpen: !S.logoOpen }), S.logoOpen], ['Delt mappe', () => window.MLShare && window.MLShare.pick((b, n) => this.addBlob(b, n), { accept: ['image'] })], ['Bibliotek', () => { const o = !S.libOpen; this.setState({ libOpen: o }); if (o && !S.lib) this.loadLib(); }, S.libOpen]]
+      addBtns: [['Bilde', () => this.fileRef.current && this.fileRef.current.click()], ['Tekst', this.addText], ['Form', () => this.addShape('rect')], ['Sirkel', () => this.addShape('ellipse')], ['Former', () => this.setState({ shapesOpen: !S.shapesOpen }), S.shapesOpen],['Toning', this.addGrad], ['Lys', this.addGlow], ['Logo', () => this.setState({ logoOpen: !S.logoOpen }), S.logoOpen], ['Delt mappe', () => window.MLShare && window.MLShare.pick((b, n) => this.addBlob(b, n), { accept: ['image'] })], ['Bibliotek', () => { const o = !S.libOpen; this.setState({ libOpen: o }); if (o && !S.lib) this.loadLib(); }, S.libOpen]]
         .map(([l, click, on]) => ({ l, click, border: on ? '#e9e7e2' : '#2b2b2b', bg: on ? '#1c1c1c' : '#121212' })),
+      shapesOpen: !!S.shapesOpen, shapeItems: S.shapesOpen ? ['rect', 'rounded'].concat(PD.SHAPES.map(x => x[0]).filter(k => k !== 'rect')).map(k => ({ name: T(k === 'rounded' ? 'Avrundet rektangel' : (PD.SHAPES.find(x => x[0] === k) || [0, k])[1]), css: css(this.shapeIcon(k)), click: () => this.addShape(k) })) : [],
       logoOpen: S.logoOpen, logoItems: LOGOS.map(([src, name]) => ({ name, css: css(src), click: () => this.fromLib({ src, name }) })),
       lTabs: [['lag', 'Lag'], ['stil', 'Stil'], ['fx', 'Effekter']].map(([k, l]) => ({ l, ...chip((S.ltab || 'lag') === k), click: () => this.setState({ ltab: k }) })), ltLag: (S.ltab || 'lag') === 'lag', ltStil: S.ltab === 'stil', ltFx: S.ltab === 'fx',
       libOpen: S.libOpen, libEmpty: !!S.lib && !lib.length, libItems: lib.map(it => ({ name: it.name, css: css(it.src), click: () => this.fromLib(it) })),

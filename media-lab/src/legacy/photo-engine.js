@@ -222,7 +222,8 @@
   function rgba(c, a) { var m = /^#?([0-9a-f]{6})$/i.exec(c || ''); if (!m) return c || 'rgba(255,255,255,' + a + ')'; var n = parseInt(m[1], 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
   function drawVig(g, doc, bl) { var v = doc.vig, W = doc.w, H = doc.h, R = Math.hypot(W, H) / 2, sz = clamp(v.size == null ? 0.55 : v.size, 0, 1), rg = g.createRadialGradient(W / 2, H / 2, R * sz * 0.9, W / 2, H / 2, R * 1.02);
     rg.addColorStop(0, rgba(v.color || '#000000', 0)); rg.addColorStop(1, rgba(v.color || '#000000', clamp(v.amt == null ? 0.6 : v.amt, 0, 1))); g.save(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.fillStyle = rg; g.fillRect(-bl, -bl, W + 2 * bl, H + 2 * bl); g.restore(); }
-  var SHAPES = [['rect', 'Rektangel'], ['ellipse', 'Sirkel'], ['triangle', 'Trekant'], ['diamond', 'Rombe'], ['hexagon', 'Sekskant'], ['star', 'Stjerne'], ['arrow', 'Pil'], ['line', 'Linje'], ['ring', 'Ring']];
+  var SHAPES = [['rect', 'Rektangel'], ['ellipse', 'Sirkel'], ['triangle', 'Trekant'], ['diamond', 'Rombe'], ['hexagon', 'Sekskant'], ['star', 'Stjerne'], ['arrow', 'Pil'], ['line', 'Linje'], ['ring', 'Ring'],
+    ['pentagon', 'Femkant'], ['octagon', 'Åttekant'], ['heart', 'Hjerte'], ['plus', 'Pluss'], ['half', 'Halvsirkel'], ['parallelogram', 'Parallellogram'], ['trapezoid', 'Trapes'], ['chevron', 'Chevron'], ['bubble', 'Snakkeboble'], ['burst', 'Stjerneutbrudd']];
   function shapePath(g, kind, w, h, rad) {
     var x = -w / 2, y = -h / 2, aw = Math.abs(w) / 2, ah = Math.abs(h) / 2, i; g.beginPath();
     if (kind === 'ellipse') { g.ellipse(0, 0, aw, ah, 0, 0, Math.PI * 2); return; }
@@ -232,6 +233,20 @@
     if (kind === 'hexagon') { for (i = 0; i < 6; i++) { var a = Math.PI / 3 * i; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * aw, Math.sin(a) * ah); } g.closePath(); return; }
     if (kind === 'star') { for (i = 0; i < 10; i++) { var b = -Math.PI / 2 + Math.PI / 5 * i, q = i % 2 ? 0.45 : 1; g[i ? 'lineTo' : 'moveTo'](Math.cos(b) * aw * q, Math.sin(b) * ah * q); } g.closePath(); return; }
     if (kind === 'arrow') { var hx = aw * 0.2, sh = ah * 0.42; g.moveTo(-aw, -sh); g.lineTo(hx, -sh); g.lineTo(hx, -ah); g.lineTo(aw, 0); g.lineTo(hx, ah); g.lineTo(hx, sh); g.lineTo(-aw, sh); g.closePath(); return; }
+    var poly = function (pts) { pts.forEach(function (p, j) { g[j ? 'lineTo' : 'moveTo'](p[0] * aw, p[1] * ah); }); g.closePath(); };
+    var ngon = function (n, rot, inner) { var o = []; for (var j = 0; j < n * (inner ? 2 : 1); j++) { var an = rot + Math.PI * 2 / (n * (inner ? 2 : 1)) * j, q = inner && j % 2 ? inner : 1; o.push([Math.cos(an) * q, Math.sin(an) * q]); } poly(o); };
+    if (kind === 'pentagon') { ngon(5, -Math.PI / 2); return; }
+    if (kind === 'octagon') { ngon(8, Math.PI / 8); return; }
+    if (kind === 'burst') { ngon(12, -Math.PI / 2, 0.78); return; }
+    if (kind === 'plus') { var t = 0.34; poly([[-t, -1], [t, -1], [t, -t], [1, -t], [1, t], [t, t], [t, 1], [-t, 1], [-t, t], [-1, t], [-1, -t], [-t, -t]]); return; }
+    if (kind === 'parallelogram') { poly([[-0.5, -1], [1, -1], [0.5, 1], [-1, 1]]); return; }
+    if (kind === 'trapezoid') { poly([[-0.6, -1], [0.6, -1], [1, 1], [-1, 1]]); return; }
+    if (kind === 'chevron') { poly([[-1, -1], [0.3, -1], [1, 0], [0.3, 1], [-1, 1], [-0.3, 0]]); return; }
+    if (kind === 'half') { g.moveTo(-aw, ah); g.ellipse(0, ah, aw, ah * 2, 0, Math.PI, Math.PI * 2); g.closePath(); return; }
+    if (kind === 'heart') { g.moveTo(0, -ah * 0.4); g.bezierCurveTo(0, -ah * 0.95, -aw, -ah * 0.95, -aw, -ah * 0.3); g.bezierCurveTo(-aw, ah * 0.3, -aw * 0.15, ah * 0.6, 0, ah); g.bezierCurveTo(aw * 0.15, ah * 0.6, aw, ah * 0.3, aw, -ah * 0.3); g.bezierCurveTo(aw, -ah * 0.95, 0, -ah * 0.95, 0, -ah * 0.4); g.closePath(); return; }
+    if (kind === 'bubble') { var bt = -ah, bb = ah * 0.55, br = Math.min(rad || Math.min(aw, ah) * 0.35, aw, (bb - bt) / 2);
+      g.moveTo(-aw + br, bt); g.lineTo(aw - br, bt); g.arcTo(aw, bt, aw, bt + br, br); g.lineTo(aw, bb - br); g.arcTo(aw, bb, aw - br, bb, br);
+      g.lineTo(-aw * 0.15, bb); g.lineTo(-aw * 0.55, ah); g.lineTo(-aw * 0.45, bb); g.lineTo(-aw + br, bb); g.arcTo(-aw, bb, -aw, bb - br, br); g.lineTo(-aw, bt + br); g.arcTo(-aw, bt, -aw + br, bt, br); g.closePath(); return; }
     var rr = kind === 'line' ? Math.min(aw, ah) : Math.min(rad || 0, aw, ah); if (g.roundRect && rr) g.roundRect(x, y, w, h, rr); else g.rect(x, y, w, h);
   }
   /* bakgrunnsgradient (samme motor som Loop Studio) */
@@ -392,6 +407,6 @@
     push(x + 'trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
     return new Blob(parts, { type: 'application/pdf' });
   }
-  window.PD = { SHAPES: SHAPES, rgba: rgba, glowLayer: function (o) { return Object.assign({ id: uid('g'), type: 'glow', name: 'Lys', x: 540, y: 540, w: 800, h: 800, rot: 0, op: 0.6, blend: 'screen', hidden: false, locked: false, color: '#f5b82c', soft: 0.6 }, o || {}); }, DPI: DPI, BLEED: BLEED, BLEED_MM: BLEED_MM, mmOf: mmOf, bleedLayers: bleedLayers, toCMYK: toCMYK, fromCMYK: fromCMYK, printPDF: printPDF, FORMATS: FORMATS, FONTS: FONTS, ADJ: ADJ, LOOKS: LOOKS, BLENDS: BLENDS, TEMPLATES: TEMPLATES, uid: uid, mk: mk, clamp: clamp, imageLayer: imageLayer, textLayer: textLayer, shapeLayer: shapeLayer, newDoc: newDoc,
+  window.PD = { SHAPES: SHAPES, shapePath: shapePath, rgba: rgba, glowLayer: function (o) { return Object.assign({ id: uid('g'), type: 'glow', name: 'Lys', x: 540, y: 540, w: 800, h: 800, rot: 0, op: 0.6, blend: 'screen', hidden: false, locked: false, color: '#f5b82c', soft: 0.6 }, o || {}); }, DPI: DPI, BLEED: BLEED, BLEED_MM: BLEED_MM, mmOf: mmOf, bleedLayers: bleedLayers, toCMYK: toCMYK, fromCMYK: fromCMYK, printPDF: printPDF, FORMATS: FORMATS, FONTS: FONTS, ADJ: ADJ, LOOKS: LOOKS, BLENDS: BLENDS, TEMPLATES: TEMPLATES, uid: uid, mk: mk, clamp: clamp, imageLayer: imageLayer, textLayer: textLayer, shapeLayer: shapeLayer, newDoc: newDoc,
     render: render, hit: hit, dims: dims, toLocal: toLocal, cover: cover, baseOf: baseOf, cutout: cutout, curveFn: curveFn, store: store, mediaIds: mediaIds, loadImg: loadImg };
 })();

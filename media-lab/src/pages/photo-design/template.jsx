@@ -490,6 +490,9 @@ export default function template(v) {
                     {"\n            "}
                   </> : null}
                   {"\n            "}
+                  {v.shapesOpen ? <div style={{"display":"grid","gridTemplateColumns":"repeat(4, 1fr)","gap":"6px","padding":"10px","border":"1px solid #1c1c1c","borderRadius":"12px","background":"#0e0e0e"}}>
+                    {list(v.shapeItems).map((it, i) => <button key={i} onClick={it.click} title={it.name} aria-label={it.name} style={{"aspectRatio":"1","padding":"8px","border":"1px solid #232323","borderRadius":"8px","backgroundColor":"#1a1a1a","backgroundImage":it.css,"backgroundSize":"contain","backgroundOrigin":"content-box","backgroundRepeat":"no-repeat","backgroundPosition":"center","cursor":"pointer"}} className="scp8" />)}
+                  </div> : null}
                   {v.logoOpen ? <>
                     {"\n              "}
                     <div data-dc-tpl="158" style={{"display":"grid","gridTemplateColumns":"repeat(3, 1fr)","gap":"6px","padding":"10px","border":"1px solid #1c1c1c","borderRadius":"12px","background":"#0e0e0e"}}>
