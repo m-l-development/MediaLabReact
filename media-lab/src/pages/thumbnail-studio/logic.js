@@ -992,6 +992,7 @@ class Component extends DCLogic {
   }
   t(s) { return window.MLI18N ? MLI18N.t(s) : s; }
   lname(l) {
+    if (l.name) return l.name;
     if (l.type === 'text') return (String(l.text || '').split('\n').join(' ').trim().slice(0, 28)) || this.t('Tekst');
     if (l.type === 'image') { if (l.role === 'person') return this.t('Person'); const a = l.src && l.src.indexOf('asset:') === 0 && TS.ASSETS[l.src.slice(6)]; return this.t(a ? a.label : 'Bilde'); }
     return this.t(l.type === 'shape' ? (l.kind === 'line' ? 'Strek' : 'Form') : 'Lys');
@@ -1075,7 +1076,7 @@ class Component extends DCLogic {
             onDragOver: e => { const g = this._dnd; if (!g || g.id === l.id) return; e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch (x) {} if (this.state.dropOn !== l.id) this.setState({ dropOn: l.id }); },
             onDragLeave: e => { if (e.currentTarget.contains(e.relatedTarget)) return; if (this.state.dropOn === l.id) this.setState({ dropOn: null }); },
             onDrop: e => { e.preventDefault(); e.stopPropagation(); const g = this._dnd; this._dnd = null; this.setState({ dropOn: null }); if (!g) return; if (g.add) this.addLinked(g.add, l.id); else this.linkTo(g.id, l.id); },
-            isMain: true, isChild: false, label: this.lname(l), tag: logo ? 'Logo' : l.type === 'shape' && l.kind === 'line' ? 'Strek' : TAG[l.type], bg: act ? 'rgba(255,255,255,0.12)' : 'transparent', border: act ? 'rgba(255,255,255,0.4)' : 'transparent', op: l.hidden ? 0.45 : 1,
+            isMain: true, isChild: false, label: this.lname(l), onRename: v => this.setL(l.id, { name: v }), tag: logo ? 'Logo' : l.type === 'shape' && l.kind === 'line' ? 'Strek' : TAG[l.type], bg: act ? 'rgba(255,255,255,0.12)' : 'transparent', border: act ? 'rgba(255,255,255,0.4)' : 'transparent', op: l.hidden ? 0.45 : 1,
             onClick: e => { if (e.shiftKey) this.toggleMulti(l.id); else this.setState({ sel: l.id, multi: [], barSel: null }); },
             hasBase: !!this.baseFor(l), resetDis: !this.movedFromBase(l), resetColor: this.movedFromBase(l) ? '#f5b800' : '#5a5750', resetTitle: this.movedFromBase(l) ? 'Tilbake til grunnoppsettets plassering' : 'Står på grunnoppsettets plassering', onReset: e => { e.stopPropagation(); this.resetPos(l.id); },
             eyeTitle: l.hidden ? 'Vis laget' : 'Skjul laget', eyeColor: l.hidden ? '#5a5750' : '#b3afa6', onEye: e => { e.stopPropagation(); this.setL(l.id, { hidden: !l.hidden }); },

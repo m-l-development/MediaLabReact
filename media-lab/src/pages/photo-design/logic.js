@@ -147,7 +147,7 @@ class Component extends DCLogic {
   };
   showWhole = () => { const L = this.selL(), E = L && L.src && this.M.media[L.src]; if (!E) return; const k = Math.max(L.w, L.h) / Math.max(E.w, E.h); this.patchL(L.id, { w: E.w * k, h: E.h * k, cz: 1, cx: 0, cy: 0 }); };
   saveCats(c, fn) { try { localStorage.setItem('photodesign.cats', JSON.stringify(c)); localStorage.setItem('photodesign.tplcat', c[c.length - 1]); } catch (e) {} this.setState({ cats: c, tplCat: c[c.length - 1] }, fn); }
-  newCat = () => { const v = (prompt(T('Navn på kategorien')) || '').trim().slice(0, 40); if (!v) return; if (this.state.cats.includes(v)) { this.setState({ tplCat: v }); this.flash('Kategorien er allerede lagret.'); return; } this.saveCats(this.state.cats.concat([v]).slice(0, 20), () => { this.flash('Kategorien «' + v + '» er opprettet.'); }); };
+  newCat = () => { const v = (prompt(T('Navn på kategorien')) || '').trim().slice(0, 40); if (!v) return; if (this.state.cats.includes(v)) { this.setState({ tplCat: v }); this.flash('Kategorien er allerede lagret.'); return; } this.saveCats(this.state.cats.concat([v]).slice(0, 20), () => this.flash('Kategorien er opprettet.')); };
   saveTpl = async () => {
     const PD = window.PD, d = this.state.doc, S = this.state; if (!d) return; const cat = S.tplCat && S.cats.includes(S.tplCat) ? S.tplCat : S.cats[0];
     if (S.projects.filter(p => p.tpl && p.cat === cat).length >= 5) { this.flash('Maks 5 maler per kategori. Slett en mal først.'); return; }
@@ -231,9 +231,9 @@ class Component extends DCLogic {
   /* skalerer alle valgte lag likt ut fra motsatt hjørne, så forholdet mellom dem aldri endres */
   groupScale(e, sx, sy) {
     e.preventDefault(); e.stopPropagation(); const set = new Set(this.selIds()), Ls = this.state.doc.layers.filter(L => set.has(L.id) && !L.locked); if (!Ls.length) return; this.push();
-    const b = this.bounds(Ls), O = [sx < 0 ? b.x1 : b.x0, sy < 0 ? b.y1 : b.y0], bw = Math.max(1, b.x1 - b.x0), bh = Math.max(1, b.y1 - b.y0), orig = {}, K = ['size', 'w', 'h', 'strokeW', 'radius', 'ls', 'barH'];
+    const b = this.bounds(Ls), O = [sx < 0 ? b.x1 : sx > 0 ? b.x0 : (b.x0 + b.x1) / 2, sy < 0 ? b.y1 : sy > 0 ? b.y0 : (b.y0 + b.y1) / 2], bw = Math.max(1, b.x1 - b.x0), bh = Math.max(1, b.y1 - b.y0), orig = {}, K = ['size', 'w', 'h', 'strokeW', 'radius', 'ls', 'barH'];
     Ls.forEach(L => { orig[L.id] = L; });
-    this.track(e, ev => { const p = this.pt(ev), f = Math.max(0.02, (p[0] - O[0]) * sx / bw, (p[1] - O[1]) * sy / bh);
+    this.track(e, ev => { const p = this.pt(ev), f = Math.max(0.02, sx ? (p[0] - O[0]) * sx / bw : 0, sy ? (p[1] - O[1]) * sy / bh : 0);
       this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => { const L = orig[q.id]; if (!L) return q; const o = { x: O[0] + (L.x - O[0]) * f, y: O[1] + (L.y - O[1]) * f }; K.forEach(k => { if (typeof L[k] === 'number') o[k] = L[k] * f; }); return { ...q, ...o }; }) } })); },
       () => this.queueSave());
   }
@@ -368,7 +368,7 @@ class Component extends DCLogic {
         let nw = kind === 'edgeY' ? w0 : Math.max(8, lx * sx), nh = kind === 'edgeX' ? h0 : Math.max(8, ly * sy);
         if (kind === 'corner' && (L.type === 'text' || (L.type === 'image' ? !ev.shiftKey : ev.shiftKey))) { const f = Math.max(nw / w0, nh / h0); nw = w0 * f; nh = h0 * f; }
         const c2 = rot(kind === 'edgeY' ? 0 : sx * nw / 2, kind === 'edgeX' ? 0 : sy * nh / 2), C = [O[0] + c2[0], O[1] + c2[1]];
-        o = L.type === 'text' ? { size: Math.max(6, Math.round(size0 * nw / w0 * 10) / 10), x: C[0], y: C[1] } : { w: nw, h: nh, x: C[0], y: C[1] };
+        o = L.type === 'text' ? { size: Math.max(6, Math.round(size0 * (kind === 'edgeY' ? nh / h0 : nw / w0) * 10) / 10), x: C[0], y: C[1] } : { w: nw, h: nh, x: C[0], y: C[1] };
       }
       this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => q.id === L.id ? { ...q, ...o } : q) } }));
     }, () => this.queueSave());
@@ -470,7 +470,7 @@ class Component extends DCLogic {
         backupDl: this.backupDl, backupPick: this.backupPick, onBackupFile: this.onBackupFile, bkFileRef: this.bkFileRef,
         ...(() => { const cat = S.tplCat && S.cats.includes(S.tplCat) ? S.tplCat : S.cats[0], mine = S.projects.filter(p => p.tpl && p.cat === cat); return {
           tplCatChips: S.cats.map(c => { const on = c === cat, n = S.projects.filter(p => p.tpl && p.cat === c).length; return { l: c + (n ? ' · ' + n : ''), noI: '1', bg: on ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: on ? '#000000' : '#f3f1ec', border: on ? '#e9e7e2' : 'rgba(255,255,255,0.16)', click: () => { try { localStorage.setItem('photodesign.tplcat', c); } catch (e) {} this.setState({ tplCat: c }); } }; }),
-          noMyTpls: !mine.length, myTpls: mine.map(p => ({ name: p.name, thumb: css(p.thumb), meta: p.w + ' × ' + p.h, open: () => this.openTpl(p), del: () => this.delTpl(p) })) }; })(),
+          newCat: this.newCat, noMyTpls: !mine.length, myTpls: mine.map(p => ({ name: p.name, thumb: css(p.thumb), meta: p.w + ' × ' + p.h, open: () => this.openTpl(p), del: () => this.delTpl(p) })) }; })(),
         isCustom: S.fmt === 'custom', cw: S.cw, ch: S.ch, onCw: e => { this._tk = null; this.setState({ cw: e.target.value }); }, onCh: e => { this._tk = null; this.setState({ ch: e.target.value }); },
         tpls: PD.TEMPLATES.map(t => ({ l: t.l, ref: this.tplRef(t.k), click: () => this.create(t.k) })),
         hasProjects: S.projects.some(p => !p.tpl), projects: S.projects.filter(p => !p.tpl).map(p => ({ name: p.name, thumb: css(p.thumb), meta: p.w + ' × ' + p.h + ' · ' + new Date(p.updated).toLocaleDateString(), open: () => this.open(p), del: () => this.delProject(p) })) };
@@ -489,8 +489,8 @@ class Component extends DCLogic {
     const ids = this.selIds(), idSet = new Set(ids), isMulti = !L && ids.length > 1, mLs = isMulti ? d.layers.filter(q => idSet.has(q.id)) : [], mGrp = isMulti && !!mLs[0].grp && mLs.every(q => q.grp === mLs[0].grp);
     if (isMulti) { const b = this.bounds(mLs); Object.assign(box, { left: b.x0 * s + 'px', top: b.y0 * s + 'px', w: (b.x1 - b.x0) * s + 'px', h: (b.y1 - b.y0) * s + 'px', rot: '0deg', col: '#3d8bff', line: mGrp ? 'solid' : 'dashed' }); }
     const MH = (sx, sy, left, top, cur) => ({ left, top, size: '12px', margin: '-6px 0 0 -6px', radius: '2px', cursor: cur, label: 'Skaler alle', down: e => this.groupScale(e, sx, sy) });
-    const handles = isMulti ? [MH(-1, -1, '0%', '0%', 'nwse-resize'), MH(1, -1, '100%', '0%', 'nesw-resize'), MH(1, 1, '100%', '100%', 'nwse-resize'), MH(-1, 1, '0%', '100%', 'nesw-resize')] : !L || L.locked || S.tool === 'brush' ? [] : [H('corner', -1, -1, '0%', '0%', 'nwse-resize', 'Skaler'), H('corner', 1, -1, '100%', '0%', 'nesw-resize', 'Skaler'), H('corner', 1, 1, '100%', '100%', 'nwse-resize', 'Skaler'), H('corner', -1, 1, '0%', '100%', 'nesw-resize', 'Skaler')]
-      .concat(isText ? [] : [H('edgeX', -1, 0, '0%', '50%', 'ew-resize', 'Bredde'), H('edgeX', 1, 0, '100%', '50%', 'ew-resize', 'Bredde'), H('edgeY', 0, -1, '50%', '0%', 'ns-resize', 'Høyde'), H('edgeY', 0, 1, '50%', '100%', 'ns-resize', 'Høyde')])
+    const handles = isMulti ? [MH(-1, -1, '0%', '0%', 'nwse-resize'), MH(1, -1, '100%', '0%', 'nesw-resize'), MH(1, 1, '100%', '100%', 'nwse-resize'), MH(-1, 1, '0%', '100%', 'nesw-resize'), MH(0, -1, '50%', '0%', 'ns-resize'), MH(1, 0, '100%', '50%', 'ew-resize'), MH(0, 1, '50%', '100%', 'ns-resize'), MH(-1, 0, '0%', '50%', 'ew-resize')] : !L || L.locked || S.tool === 'brush' ? [] : [H('corner', -1, -1, '0%', '0%', 'nwse-resize', 'Skaler'), H('corner', 1, -1, '100%', '0%', 'nesw-resize', 'Skaler'), H('corner', 1, 1, '100%', '100%', 'nwse-resize', 'Skaler'), H('corner', -1, 1, '0%', '100%', 'nesw-resize', 'Skaler')]
+      .concat([H('edgeX', -1, 0, '0%', '50%', 'ew-resize', 'Bredde'), H('edgeX', 1, 0, '100%', '50%', 'ew-resize', 'Bredde'), H('edgeY', 0, -1, '50%', '0%', 'ns-resize', 'Høyde'), H('edgeY', 0, 1, '50%', '100%', 'ns-resize', 'Høyde')])
       .concat(S.tool === 'crop' ? [] : [{ ...H('rot', 0, 0, '50%', '-26px', 'grab', 'Roter', true) }]);
     const curve = adj.curve || [[0, 0], [1, 1]], cf = PD.curveFn(curve); let cp = ''; for (let i = 0; i <= 40; i++) { const x = i / 40, y = PD.clamp(cf(x), 0, 1); cp += (i ? 'L' : 'M') + (x * 100).toFixed(1) + ' ' + ((1 - y) * 100).toFixed(1); }
     const sw = (arr, cur, fn) => arr.map(v => ({ v, border: (cur || '').toLowerCase() === v ? '#e9e7e2' : '#2b2b2b', click: () => fn(v) }));
@@ -517,7 +517,7 @@ class Component extends DCLogic {
       fxPins: d.layers.filter(q => q.type === 'fx' && !q.hidden && !q.locked).map(q => { const on = q.id === S.sel; return { on, left: (q.x / d.w * 100) + '%', top: (q.y / d.h * 100) + '%', bg: on ? '#e9e7e2' : 'rgba(0,0,0,0.55)', fg: on ? '#000000' : '#ffffff',
         down: e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); if (q.id !== S.sel) this.setState({ sel: q.id, tool: 'move', tab: 'layer' }); this.dragMove(e, q, this.pt(e)); },
         del: e => { e.preventDefault(); e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); this.setState({ sel: null, multi: [], tool: 'move' }); } }; }),
-      layers: d.layers.slice().reverse().map(q => { const on = idSet.has(q.id); return { name: q.name, grp: !!q.grp, grpC: q.grp ? 'hsl(' + [...q.grp].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7) + ',70%,60%)' : 'transparent', icon: q.type === 'image' ? 'B' : q.type === 'text' ? 'T' : q.type === 'fx' ? '✦' : q.type === 'glow' ? '☼' : '◼', bg: on ? '#1c1c1c' : 'transparent', border: on ? '#3d8bff' : 'transparent', op: q.hidden ? 0.45 : 1,
+      layers: d.layers.slice().reverse().map(q => { const on = idSet.has(q.id); return { name: q.name, rename: v => { if (v) this.patchL(q.id, { name: v }); }, grp: !!q.grp, grpC: q.grp ? 'hsl(' + [...q.grp].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7) + ',70%,60%)' : 'transparent', icon: q.type === 'image' ? 'B' : q.type === 'text' ? 'T' : q.type === 'fx' ? '✦' : q.type === 'glow' ? '☼' : '◼', bg: on ? '#1c1c1c' : 'transparent', border: on ? '#3d8bff' : 'transparent', op: q.hidden ? 0.45 : 1,
         click: e => { if (e && (e.shiftKey || e.ctrlKey || e.metaKey)) { const cur = this.selIds(); this.setSel(cur.includes(q.id) ? cur.filter(i => i !== q.id) : cur.concat([q.id])); } else this.setSel([q.id]); },
         dragStart: e => { this._lagDrag = q.id; try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', q.id); } catch (x) {} },
         dragOver: e => { if (this._lagDrag) e.preventDefault(); },

@@ -111,7 +111,7 @@
 
   /* ---------- layers & templates ---------- */
   function L(type, p) {
-    var base = { id: uid(), type: type, x: 660, y: 340, w: 600, h: 400, rot: 0, flipX: false, flipY: false, op: 1, hidden: false, lock: false, shadow: 0, role: null };
+    var base = { id: uid(), type: type, x: 660, y: 340, w: 600, h: 400, rot: 0, flipX: false, flipY: false, op: 1, hidden: false, lock: false, shadow: 0, role: null, name: '' };
     var t = {
       text: { text: 'Tekst', list: '', font: 'Montserrat', weight: 700, size: 90, color: '#ffffff', align: 'left', valign: 'top', lh: 1.1, ls: 0, upper: false, fit: true, bar: false, barColor: '#f5b800', barH: 8, h: 160 },
       image: { src: null, orig: null, cT: 0, cB: 0, cL: 0, cR: 0, shape: 'rect', radius: 40, fit: 'cover', zoom: 1, px: 0.5, py: 0.5, flip: false, border: 0, borderColor: '#ffffff', tint: null },

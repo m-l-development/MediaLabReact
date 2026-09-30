@@ -26,10 +26,23 @@ export function I(v) {
 
 /* style="…" med {{ }} blir en streng først og gjøres om til objekt, akkurat som i runtimen */
 const kebabToCamel = s => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+/* deler på ; men ikke inne i url(…)/anførselstegn – data-URL-er har «;base64» */
+function splitDecls(s) {
+  const out = []; let cur = '', depth = 0, q = '';
+  for (const ch of s) {
+    if (q) { if (ch === q) q = ''; }
+    else if (ch === '"' || ch === "'") q = ch;
+    else if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    else if (ch === ';' && !depth) { out.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur); return out;
+}
 export function css(str, raw) {
   const o = {};
   if (raw !== undefined) RAW.set(o, raw);
-  for (const decl of String(str).split(';')) {
+  for (const decl of splitDecls(String(str))) {
     const i = decl.indexOf(':'); if (i < 0) continue;
     const prop = decl.slice(0, i).trim();
     o[prop.startsWith('--') ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
