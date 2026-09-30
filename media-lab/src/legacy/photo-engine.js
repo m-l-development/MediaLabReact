@@ -80,6 +80,18 @@
         d.layers.push(pinText(textLayer({ name: 'Punkt ' + n + ' tittel', text: r[1], x: tx, y: y + m * 0.005, size: Math.round(m * 0.045), font: 'Montserrat', weight: 700, color: '#111111', align: 'left' }), tx));
         d.layers.push(pinText(textLayer({ name: 'Punkt ' + n + ' sted', text: r[2], x: tx, y: y + m * 0.05, size: Math.round(m * 0.028), weight: 500, color: '#6b675f', align: 'left' }), tx)); });
       d.layers.push(pinText(textLayer({ name: 'Bunntekst', text: 'Velkommen!', x: mx, y: h * 0.94, size: Math.round(m * 0.03), weight: 700, color: '#111111', align: 'left' }), mx)); } },
+    { k: 'weekday', l: 'Ukeprogram (lys)', make: function (d) { var w = d.w, h = d.h, m = Math.min(w, h), mx = w * 0.08; d.bg = '#f3f1ec';
+      var rows = [['TIRSDAG', 'Kveldsmat i kafeen', 'Kafeen'], ['TORSDAG', 'Bønn', 'Samlingsrommet'], ['FREDAG', 'Ungdomsmøte', 'Salen'], ['SØNDAG', 'Gudstjeneste', 'Kirken']];
+      var top = h * 0.1 + m * 0.31, step = Math.min((h * 0.86 - top) / rows.length, m * 0.2), tx = mx + m * 0.2; /* listen starter rett under tittelen */
+      d.layers.push(pinText(textLayer({ name: 'Dato', text: 'UKE 40', x: mx, y: h * 0.1, size: Math.round(m * 0.03), weight: 700, ls: 5, color: '#c0392b', align: 'left' }), mx));
+      d.layers.push(pinText(textLayer({ name: 'Tittel', text: 'Ukens\nprogram', x: mx, y: h * 0.1 + m * 0.15, size: Math.round(m * 0.1), font: 'Montserrat', weight: 800, color: '#111111', align: 'left', lh: 1 }), mx));
+      d.layers.push(shapeLayer({ name: 'Tidslinje', x: mx + m * 0.155, y: top + (step * (rows.length - 1)) / 2 + m * 0.02, w: Math.max(3, m * 0.004), h: step * (rows.length - 1), fill: '#c0392b' }));
+      rows.forEach(function (r, i) { var y = top + step * i, n = i + 1;
+        d.layers.push(pinText(textLayer({ name: 'Dag ' + n, text: r[0], x: mx, y: y + m * 0.02, size: Math.round(m * 0.055), font: 'Bebas Neue', weight: 400, ls: 1, color: '#111111', align: 'left' }), mx));
+        d.layers.push(shapeLayer({ name: 'Punkt ' + n, kind: 'ellipse', x: mx + m * 0.155, y: y + m * 0.02, w: m * 0.028, h: m * 0.028, fill: '#c0392b' }));
+        d.layers.push(pinText(textLayer({ name: 'Møte ' + n, text: r[1], x: tx, y: y + m * 0.005, size: Math.round(m * 0.045), font: 'Montserrat', weight: 700, color: '#111111', align: 'left' }), tx));
+        d.layers.push(pinText(textLayer({ name: 'Sted ' + n, text: r[2], x: tx, y: y + m * 0.05, size: Math.round(m * 0.028), weight: 500, color: '#6b675f', align: 'left' }), tx)); });
+      d.layers.push(pinText(textLayer({ name: 'Bunntekst', text: 'Velkommen!', x: mx, y: h * 0.94, size: Math.round(m * 0.03), weight: 700, color: '#111111', align: 'left' }), mx)); } },
     { k: 'bold', l: 'Kunngjøring', make: function (d) { var w = d.w, h = d.h, m = Math.min(w, h); d.bg = '#f5b82c';
       d.layers.push(shapeLayer({ name: 'Ramme', x: w / 2, y: h / 2, w: w - m * 0.1, h: h - m * 0.1, fill: 'rgba(0,0,0,0)', strokeC: '#111111', strokeW: Math.max(4, m * 0.008) }));
       d.layers.push(textLayer({ name: 'Overskrift', text: 'VIKTIG\nBESKJED', x: w / 2, y: h * 0.45, size: Math.round(m * 0.16), font: 'Anton', weight: 400, color: '#111111', lh: 0.95 }));

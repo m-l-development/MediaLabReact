@@ -12,7 +12,7 @@ const LOGOS = [['images/logo-symbol.png', 'Livets Ord-symbol'], ['images/logo-kb
 
 class Component extends DCLogic {
   state = { view: 'home', projects: [], fmt: 'sq', cw: 1200, ch: 800, doc: null, sel: null, tool: 'move', tab: 'layer', brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false,
-    busy: '', pct: 0, toast: '', saved: '', autosave: (() => { try { return localStorage.getItem('photodesign.autosave') === '1'; } catch (e) { return false; } })(), guides: { x: false, y: false }, lib: null, libOpen: false, logoOpen: false, fillOpen: true, ltab: 'lag', linkCol: false, tplCat: null, cats: (() => { try { const c = JSON.parse(localStorage.getItem('photodesign.cats')); if (Array.isArray(c) && c.length) return c.filter(x => typeof x === 'string').slice(0, 20); } catch (e) {} return ['Søndagsmøte', 'Kveldsbibelskole', 'Ungdomsmøte']; })(), newCol: (() => { try { return localStorage.getItem('photodesign.newcol') || null; } catch (e) { return null; } })(), dragOver: false, brushXY: null, narrow: false, hist: 0 };
+    busy: '', pct: 0, toast: '', saved: '', autosave: (() => { try { return localStorage.getItem('photodesign.autosave') === '1'; } catch (e) { return false; } })(), guides: { x: false, y: false }, lib: null, libOpen: false, logoOpen: false, fillOpen: true, ltab: 'lag', linkCol: false, tplCat: (() => { try { const t = localStorage.getItem('photodesign.tplcat'); if (typeof t === 'string' && t.length) return t; } catch (e) {} return null; })(), cats: (() => { try { const c = JSON.parse(localStorage.getItem('photodesign.cats')); if (Array.isArray(c) && c.length) return c.filter(x => typeof x === 'string').slice(0, 20); } catch (e) {} return ['Søndagsmøte', 'Kveldsbibelskole', 'Ungdomsmøte']; })(), newCol: (() => { try { return localStorage.getItem('photodesign.newcol') || null; } catch (e) { return null; } })(), dragOver: false, brushXY: null, narrow: false, hist: 0 };
   fileRef = React.createRef(); stageRef = React.createRef(); wrapRef = React.createRef(); canvasRef = React.createRef(); curveRef = React.createRef(); textRef = React.createRef(); bkFileRef = React.createRef();
   M = { media: {}, masks: {} }; past = []; future = []; tplEls = {}; tplRefs = {};
 
@@ -146,8 +146,8 @@ class Component extends DCLogic {
     delete this.M.masks[L.id]; this.patchL(L.id, { src: key, mask: null, w: bw * s, h: bh * s, x: L.x + rx, y: L.y + ry, cz: 1, cx: 0, cy: 0 }); this.flash('Tomme kanter er fjernet.');
   };
   showWhole = () => { const L = this.selL(), E = L && L.src && this.M.media[L.src]; if (!E) return; const k = Math.max(L.w, L.h) / Math.max(E.w, E.h); this.patchL(L.id, { w: E.w * k, h: E.h * k, cz: 1, cx: 0, cy: 0 }); };
-  saveCats(c) { try { localStorage.setItem('photodesign.cats', JSON.stringify(c)); } catch (e) {} this.setState({ cats: c, tplCat: c[c.length - 1] }); }
-  newCat = () => { const v = (prompt(T('Navn på kategorien')) || '').trim().slice(0, 40); if (!v) return; if (this.state.cats.includes(v)) { this.setState({ tplCat: v }); return; } this.saveCats(this.state.cats.concat([v]).slice(0, 20)); };
+  saveCats(c, fn) { try { localStorage.setItem('photodesign.cats', JSON.stringify(c)); localStorage.setItem('photodesign.tplcat', c[c.length - 1]); } catch (e) {} this.setState({ cats: c, tplCat: c[c.length - 1] }, fn); }
+  newCat = () => { const v = (prompt(T('Navn på kategorien')) || '').trim().slice(0, 40); if (!v) return; if (this.state.cats.includes(v)) { this.setState({ tplCat: v }); this.flash('Kategorien er allerede lagret.'); return; } this.saveCats(this.state.cats.concat([v]).slice(0, 20), () => { this.flash('Kategorien «' + v + '» er opprettet.'); }); };
   saveTpl = async () => {
     const PD = window.PD, d = this.state.doc, S = this.state; if (!d) return; const cat = S.tplCat && S.cats.includes(S.tplCat) ? S.tplCat : S.cats[0];
     if (S.projects.filter(p => p.tpl && p.cat === cat).length >= 5) { this.flash('Maks 5 maler per kategori. Slett en mal først.'); return; }
@@ -260,7 +260,7 @@ class Component extends DCLogic {
       bgRanges: d.bg2 ? [R('Vinkel', d.bgAng == null ? 135 : d.bgAng, 0, 360, 1, Math.round(d.bgAng == null ? 135 : d.bgAng) + '°', x => this.setDoc(q => ({ ...q, bgAng: x }), 'bgang'))] : [],
       vigTogs: [T2('Vignett', !!v.on, () => this.setVig({ on: !v.on }))].concat(v.on ? [T2('Over tekst', !!v.top, () => this.setVig({ top: !v.top }))] : []), vigOn: !!v.on, vigHex: v.color, onVigC: e => this.setVig({ color: e.target.value }, 'vigc'),
       vigRanges: v.on ? [R('Styrke', v.amt, 0, 1, 0.01, Math.round(v.amt * 100) + ' %', x => this.setVig({ amt: x }, 'viga')), R('Størrelse', v.size, 0, 1, 0.01, Math.round(v.size * 100) + ' %', x => this.setVig({ size: x }, 'vigs'))] : [],
-      tplCatV: cat, tplCatOpts: S.cats.map(c => ({ v: c, l: c })), onTplCat: e => this.setState({ tplCat: e.target.value }), newCat: this.newCat, saveTpl: this.saveTpl
+      tplCatV: cat, tplCatOpts: S.cats.map(c => ({ v: c, l: c })), onTplCat: e => { try { localStorage.setItem('photodesign.tplcat', e.target.value); } catch (x) {} this.setState({ tplCat: e.target.value }); }, newCat: this.newCat, saveTpl: this.saveTpl
     };
   }
   async loadLib() {
@@ -418,7 +418,7 @@ class Component extends DCLogic {
         formats: fm.map(f => { const on = S.fmt === f.k, s = 18 / Math.max(f.w, f.h); return { l: f.l, dim: f.w + ' × ' + f.h, iw: Math.max(6, f.w * s) + 'px', ih: Math.max(6, f.h * s) + 'px', bg: on ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: on ? '#000000' : '#f3f1ec', border: on ? '#e9e7e2' : 'rgba(255,255,255,0.16)', click: () => { this._tk = null; this.setState({ fmt: f.k }); } }; }),
         backupDl: this.backupDl, backupPick: this.backupPick, onBackupFile: this.onBackupFile, bkFileRef: this.bkFileRef,
         ...(() => { const cat = S.tplCat && S.cats.includes(S.tplCat) ? S.tplCat : S.cats[0], mine = S.projects.filter(p => p.tpl && p.cat === cat); return {
-          tplCatChips: S.cats.map(c => { const on = c === cat, n = S.projects.filter(p => p.tpl && p.cat === c).length; return { l: c + (n ? ' · ' + n : ''), noI: '1', bg: on ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: on ? '#000000' : '#f3f1ec', border: on ? '#e9e7e2' : 'rgba(255,255,255,0.16)', click: () => this.setState({ tplCat: c }) }; }),
+          tplCatChips: S.cats.map(c => { const on = c === cat, n = S.projects.filter(p => p.tpl && p.cat === c).length; return { l: c + (n ? ' · ' + n : ''), noI: '1', bg: on ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: on ? '#000000' : '#f3f1ec', border: on ? '#e9e7e2' : 'rgba(255,255,255,0.16)', click: () => { try { localStorage.setItem('photodesign.tplcat', c); } catch (e) {} this.setState({ tplCat: c }); } }; }),
           noMyTpls: !mine.length, myTpls: mine.map(p => ({ name: p.name, thumb: css(p.thumb), meta: p.w + ' × ' + p.h, open: () => this.openTpl(p), del: () => this.delTpl(p) })) }; })(),
         isCustom: S.fmt === 'custom', cw: S.cw, ch: S.ch, onCw: e => { this._tk = null; this.setState({ cw: e.target.value }); }, onCh: e => { this._tk = null; this.setState({ ch: e.target.value }); },
         tpls: PD.TEMPLATES.map(t => ({ l: t.l, ref: this.tplRef(t.k), click: () => this.create(t.k) })),
