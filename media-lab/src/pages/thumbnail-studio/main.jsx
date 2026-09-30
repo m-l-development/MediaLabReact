@@ -9,7 +9,7 @@ import '@ml/ml-bg.js';
 import '@ml/thumb-engine.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("thumbnail-studio", Logic, template);
+mountPage("thumbnail-studio", Logic, template, inline);

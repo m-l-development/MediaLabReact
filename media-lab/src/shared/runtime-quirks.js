@@ -92,11 +92,26 @@ function setStyle(el, k, v) {
   const val = v == null || typeof v === 'boolean' || v === '' ? '' : String(v).trim();
   if (k.startsWith('--')) el.style.setProperty(k, val); else el.style[k === 'float' ? 'cssFloat' : k] = val;
 }
-export function replayThemeTamper(root) {
+/* Med engelsk ved oppstart oversatte i18n.js teksten i den rå malen. Elementer som bare inneholder tekst hadde
+   innholdet som del av nøkkelen i runtimen, så når teksten ble oversatt, laget React dem på nytt ved andre
+   kompilering – med ren stil. De (og alt inni dem) får derfor ikke omskrivingen. */
+function remounted(root, inline) {
+  const ids = new Set(), I = window.MLI18N;
+  if (!I || I.lang !== 'en') return ids;
+  for (const id in inline) {
+    const el = root.querySelector('[data-dc-tpl="' + id + '"]');
+    if (el && el.closest('[data-no-i18n],script,style,textarea,code,[contenteditable="true"]')) continue;
+    if (inline[id].some(t => /[A-Za-zÆØÅæøå]/.test(t) && I.t(t) !== t)) ids.add(id);
+  }
+  return ids;
+}
+export function replayThemeTamper(root, inline = {}) {
   if (!(window.MLTheme && window.MLTheme.mode === 'light')) return;
+  const fresh = remounted(root, inline);
+  const isFresh = el => { for (let e = el; e && e !== root; e = e.parentElement) if (fresh.has(e.getAttribute('data-dc-tpl'))) return true; return false; };
   for (const el of root.querySelectorAll('*')) {
     const p = reactProps(el), next = p && p.style;
-    if (!next || typeof next !== 'object' || skipped(el, root)) continue;
+    if (!next || typeof next !== 'object' || skipped(el, root) || isFresh(el)) continue;
     const t = tampered(rawOf(next)); if (t == null) continue;
     const prev = cssToObj(t);
     for (const k in prev) if (!(k in next)) setStyle(el, k, '');

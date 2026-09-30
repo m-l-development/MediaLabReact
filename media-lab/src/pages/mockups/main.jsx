@@ -9,7 +9,7 @@ import '@ml/mockup-engine.js';
 import '@ml/ml-share.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("mockups", Logic, template);
+mountPage("mockups", Logic, template, inline);

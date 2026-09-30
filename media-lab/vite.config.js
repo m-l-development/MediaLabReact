@@ -19,6 +19,16 @@ function originals() {
   const find = p => [ORIGINAL, LEGACY, PUBLIC].map(d => path.join(d, p)).find(f => f.startsWith(path.dirname(f)) && fs.existsSync(f) && fs.statSync(f).isFile());
   const serve = (req, res, next) => {
     let p; try { p = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { return next(); }
+    /* bare for testene: store nedlastede videoer sammenlignes fra test-results/ (med Range, så spoling virker) */
+    if (p.startsWith('/__testfiler/')) {
+      if (p === '/__testfiler/tom.html') { res.setHeader('Content-Type', 'text/html'); return res.end('<!doctype html><title>test</title>'); }
+      const f = path.join(ROOT, 'test-results', p.slice('/__testfiler/'.length));
+      if (p.includes('..') || !fs.existsSync(f)) return next();
+      const size = fs.statSync(f).size, m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
+      res.setHeader('Content-Type', 'video/mp4'); res.setHeader('Accept-Ranges', 'bytes');
+      if (m) { const a = m[1] ? +m[1] : 0, b = m[2] ? +m[2] : size - 1; res.statusCode = 206; res.setHeader('Content-Range', `bytes ${a}-${b}/${size}`); res.setHeader('Content-Length', b - a + 1); return fs.createReadStream(f, { start: a, end: b }).pipe(res); }
+      res.setHeader('Content-Length', size); return fs.createReadStream(f).pipe(res);
+    }
     const orig = p.startsWith('/_original/');
     /* React-sidene får samme CSP som på Vercel (uten upgrade-insecure-requests, som krever https), så testene
        avslører alt som ville blitt blokkert. Originalene trenger den gamle, løsere CSP-en og får ingen. */

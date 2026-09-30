@@ -4,6 +4,7 @@ import { expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 
 export const IMG = path.resolve('public/images/sondag.jpeg');
 /* bakgrunnsbølgene fra ml-bg.js tegnes etter tiden siden skriptet startet; bare dette lerretet maskeres */
@@ -24,7 +25,7 @@ export async function pixelDiff(page, a, b, tol = 30) {
 /* Lokal buffer for CDN og AI-modeller (jsdelivr, unpkg, Hugging Face), så de bare lastes ned én gang.
    Innholdet leveres uendret; bare overføringskoding fjernes. */
 const CACHE = path.resolve('.cache/cdn'), inflight = new Map();
-const CDN = /^https:\/\/([a-z0-9-]+\.)*(cdn\.jsdelivr\.net|unpkg\.com|huggingface\.co|hf\.co)\//;
+const CDN = /^https:\/\/([a-z0-9-]+\.)*(cdn\.jsdelivr\.net|unpkg\.com|huggingface\.co|hf\.co|tessdata\.projectnaptha\.com)\//;
 export async function cacheCdn(ctx) {
   fs.mkdirSync(CACHE, { recursive: true });
   await ctx.route(u => CDN.test(u.href), async route => {
@@ -54,14 +55,15 @@ export const CLOCK = () => {
   window.__step = ms => { const end = T + ms; while (T < end) { T = Math.min(end, T + 16); q.splice(0).forEach(f => { try { f(T); } catch (e) { console.error(e); } }); } };
 };
 
-export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init, cdn, clock, fixedNow } = {}) {
-  const ctx = await browser.newContext({ viewport, reducedMotion: 'reduce', timezoneId: 'Europe/Oslo', locale: 'nb-NO', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
-  await ctx.addInitScript(() => { localStorage.setItem('medialab.theme', 'dark'); localStorage.setItem('medialab.lang', 'no'); });
+export async function openSide(browser, url, { viewport = { width: 1440, height: 900 }, route, dialogs, init, cdn, clock, fixedNow, permissions = [] } = {}) {
+  const ctx = await browser.newContext({ viewport, reducedMotion: 'reduce', timezoneId: 'Europe/Oslo', locale: 'nb-NO', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write', ...permissions] });
+  /* norsk og mørk ved start – bare hvis ingenting er valgt, så valg overlever navigasjon mellom sider */
+  await ctx.addInitScript(() => { if (!localStorage.getItem('medialab.theme')) localStorage.setItem('medialab.theme', 'dark'); if (!localStorage.getItem('medialab.lang')) localStorage.setItem('medialab.lang', 'no'); });
   /* samme «tilfeldige» tall i begge versjoner (tilfeldige id-er, farger osv.) */
   await ctx.addInitScript(() => { let s = 20260929; Math.random = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; });
   if (clock) await ctx.addInitScript(CLOCK);
   /* fast Date.now (id-er og tidsstempler i lagrede prosjekter/filer blir like i begge) */
-  if (fixedNow) await ctx.addInitScript(t => { Date.now = () => t; }, fixedNow);
+  if (fixedNow) await ctx.addInitScript(t => { const R = Date; class D extends R { constructor(...a) { super(...(a.length ? a : [t])); } static now() { return t; } } window.Date = D; }, fixedNow);
   if (init) await ctx.addInitScript(init);
   if (route) await ctx.route(route[0], route[1]());
   if (cdn) await cacheCdn(ctx);
@@ -71,32 +73,47 @@ export async function openSide(browser, url, { viewport = { width: 1440, height:
   /* tidsstempler (f.eks. i advarsler fra onnxruntime) fjernes før sammenligning */
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|\{\{.*\}\}/.test(m.text())) errors.push(m.text().split('\n')[0].replace(/\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d+/g, '(tid)')); });
   page.on('dialog', d => (dialogs ? dialogs(d) : d.accept()));
-  page.on('download', async d => { const p = await d.path().catch(() => null); downloads.push({ name: d.suggestedFilename(), sha: p ? crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex') : null, path: p }); });
+  /* filvelgere får et testbilde, eller filen et steg har satt i page.__nextFile */
+  page.on('filechooser', fc => { const f = page.__nextFile || IMG; page.__nextFile = null; fc.setFiles(fc.isMultiple() || !Array.isArray(f) ? f : f[0]).catch(() => {}); });
+  page.on('download', async d => { if (process.env.DLLOG) console.log('DOWNLOAD-HENDELSE ' + url + ' ' + d.suggestedFilename()); const p = await d.path().catch(e => { if (process.env.DLLOG) console.log('PATH-FEIL ' + e.message); return null; }); downloads.push({ name: d.suggestedFilename(), sha: p ? crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex') : null, path: p }); });
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
   return { ctx, page, errors, downloads };
 }
 
+/* sammenligner PDF-strømmene (utpakket) i to filer */
+function pdfDiff(a, b) {
+  const str = d => [...d.toString('latin1').matchAll(/\/Length (\d+)[^>]*>>\s*stream\r?\n/g)].map(m => { const s = d.subarray(m.index + m[0].length, m.index + m[0].length + +m[1]); try { return zlib.inflateSync(s); } catch { return s; } });
+  const [x, y] = [str(a), str(b)]; const ulikeUtenomBilde = []; let storsteAvvik = 0;
+  x.forEach((p, i) => { const q = y[i]; if (!q || p.equals(q)) return; if (p.length !== q.length) { ulikeUtenomBilde.push(i); return; } let m = 0; for (let k = 0; k < p.length; k++) { const dd = Math.abs(p[k] - q[k]); if (dd > m) m = dd; } if (m > 4 || p.length < 100000) ulikeUtenomBilde.push(i); storsteAvvik = Math.max(storsteAvvik, m); });
+  return { strommer: [x.length, y.length], ulikeUtenomBilde, storsteAvvik };
+}
+
 /* dekoder to videoer i nettleseren og sammenligner bilder ved 10 %, 50 % og 90 % av varigheten */
 async function videoDiff(page, a, b) {
-  /* videoene hentes fra disk via en testrute (ikke som tekst), så store 4K-filer ikke bruker opp minnet */
-  const url = new URL('/__testvideo/', page.url()).href;
-  await page.route(url + '*', r => r.fulfill({ status: 200, contentType: 'video/mp4', body: r.request().url().endsWith('/a.mp4') ? a : b }));
-  try { return await page.evaluate(async base => {
-    const load = async s => { const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = base + s + '.mp4'; await new Promise((r, j) => { v.onloadeddata = r; v.onerror = j; }); return v; };
-    const seek = (v, t) => new Promise(r => { v.onseeked = r; v.currentTime = t; });
-    const grab = v => { const c = new OffscreenCanvas(v.videoWidth, v.videoHeight), g = c.getContext('2d'); g.drawImage(v, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
-    const [x, y] = await Promise.all([load('a'), load('b')]);
-    const meta = [x, y].map(v => ({ w: v.videoWidth, h: v.videoHeight, dur: Math.round(v.duration * 10) / 10 }));
-    const frames = [];
-    for (const f of [0.1, 0.5, 0.9]) {
-      await Promise.all([seek(x, x.duration * f), seek(y, x.duration * f)]);
-      const p = grab(x), q = grab(y); let n = 0;
-      for (let i = 0; i < p.length; i += 4) if (Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]) > 30) n++;
-      frames.push(Math.round(n / (p.length / 4) * 1e5) / 1e5);
-    }
-    return { meta, frames };
-  }, url); } finally { await page.unroute(url + '*'); }
+  /* egen, lett fane på samme opphav (så lerretet kan leses); videoene serveres av preview-serveren fra
+     test-results/ (/__testfiler/, med Range), så også 4K-filer på over 100 MB virker */
+  const dir = path.resolve('test-results/_video'); fs.mkdirSync(dir, { recursive: true });
+  fs.copyFileSync(a, path.join(dir, 'a.mp4')); fs.copyFileSync(b, path.join(dir, 'b.mp4'));
+  const vp = await page.context().newPage();
+  try {
+    const url = new URL('/__testfiler/_video/', page.url()).href;
+    await vp.goto(new URL('/__testfiler/tom.html', page.url()).href);
+    return await vp.evaluate(async base => {
+      const seek = (v, t) => new Promise(r => { v.onseeked = r; v.currentTime = t; });
+      /* én video om gangen: hent bildene ved 10/50/90 %, og slipp videoen før den neste lastes */
+      const les = async s => {
+        const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = base + s + '.mp4';
+        await new Promise((r, j) => { v.onloadeddata = r; v.onerror = j; });
+        const meta = { w: v.videoWidth, h: v.videoHeight, dur: Math.round(v.duration * 10) / 10 }, bilder = [];
+        for (const f of [0.1, 0.5, 0.9]) { await seek(v, v.duration * f); const c = new OffscreenCanvas(960, 540), g = c.getContext('2d'); g.drawImage(v, 0, 0, 960, 540); bilder.push(g.getImageData(0, 0, 960, 540).data); }
+        v.removeAttribute('src'); v.load(); return { meta, bilder };
+      };
+      const x = await les('a'), y = await les('b');
+      const frames = x.bilder.map((p, k) => { const q = y.bilder[k]; let n = 0; for (let i = 0; i < p.length; i += 4) if (Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]) > 30) n++; return Math.round(n / (p.length / 4) * 1e5) / 1e5; });
+      return { meta: [x.meta, y.meta], frames };
+    }, url);
+  } finally { await vp.close(); }
 }
 
 /* ---------- utforskning i takt ----------
@@ -184,6 +201,8 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
       await run(B.page).catch(e => { throw new Error(`steg «${step}» feilet i React: ${e.message.split('\n')[0]}`); });
     } else await Promise.all([run(A.page), run(B.page)]).catch(e => { throw new Error(`steg «${step}» feilet: ${e.message.split('\n')[0]}`); });
     if (process.env.STEGLOGG) console.log(`  steg «${step}» ${Date.now() - t} ms`);
+    /* KART=1: skriv ut synlige kontroller etter hvert steg (hjelp til å skrive nye steg) */
+    if (process.env.KART) console.log(`  KART etter «${step}»: ` + (await B.page.evaluate(() => [...document.querySelectorAll('button,[role=button],input,select')].filter(e => e.checkVisibility()).map(e => (e.tagName === 'INPUT' ? 'input[' + e.type + ']' : '') + (e.getAttribute('aria-label') || e.title || e.innerText || e.placeholder || '').replace(/\s+/g, ' ').trim().slice(0, 22) + '#' + (e.getAttribute('data-dc-tpl') || '')).filter(x => !/^#[0-9a-f]{6}#/.test(x)).join(' | '))).slice(0, 1500));
     await Promise.all([A.page.waitForTimeout(opts.settle ?? 700), B.page.waitForTimeout(opts.settle ?? 700)]);
     if (opts.clock) await Promise.all([A.page.evaluate(ms => window.__step(ms), opts.clock), B.page.evaluate(ms => window.__step(ms), opts.clock)]);
     let ta, tb, sa, sb, d;
@@ -222,20 +241,33 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
   A.downloads.forEach((a, i) => { const b = B.downloads[i]; if (b && a.sha !== b.sha && a.path && b.path) { const dir = `test-results/${name}-nedlastinger`; fs.mkdirSync(dir, { recursive: true }); fs.copyFileSync(a.path, `${dir}/${i}-original-${a.name}`); fs.copyFileSync(b.path, `${dir}/${i}-react-${b.name}`); } });
   /* bildefiler: nettleserens PNG/JPG-koder gir av og til ulike bytes for samme bilde (også originalen mot
      seg selv), så ved ulike bytes sammenlignes pikslene (må være helt like). Andre filer: byte for byte. */
-  const isImg = d => /\.(png|jpe?g|webp)$/i.test(d.name);
-  expect.soft(B.downloads.filter(d => !isVid(d) && !isImg(d)).map(d => d.sha), 'nedlastede filer (innhold)').toEqual(A.downloads.filter(d => !isVid(d) && !isImg(d)).map(d => d.sha));
+  const isImg = d => /\.(png|jpe?g|webp)$/i.test(d.name), isPdf = d => /\.pdf$/i.test(d.name);
+  expect.soft(B.downloads.filter(d => !isVid(d) && !isImg(d) && !isPdf(d)).map(d => d.sha), 'nedlastede filer (innhold)').toEqual(A.downloads.filter(d => !isVid(d) && !isImg(d) && !isPdf(d)).map(d => d.sha));
+  /* PDF: ved ulike bytes pakkes strømmene ut (Flate) og sammenlignes; avrunding på høyst 4 per verdi tillates */
+  for (let i = 0; i < Math.min(A.downloads.length, B.downloads.length); i++) {
+    const a = A.downloads[i], b = B.downloads[i];
+    if (!isPdf(a) || a.sha === b.sha || !a.path || !b.path) continue;
+    const r = pdfDiff(fs.readFileSync(a.path), fs.readFileSync(b.path));
+    console.log(`pdf ${a.name}: ulike bytes; ${JSON.stringify(r)}`);
+    expect.soft(r.strommer[1], `pdf ${a.name}: antall strømmer`).toBe(r.strommer[0]);
+    expect.soft(r.ulikeUtenomBilde, `pdf ${a.name}: strømmer som ikke er like`).toEqual([]);
+    expect.soft(r.storsteAvvik, `pdf ${a.name}: største avvik i bildedata`).toBeLessThanOrEqual(4);
+  }
   for (let i = 0; i < Math.min(A.downloads.length, B.downloads.length); i++) {
     const a = A.downloads[i], b = B.downloads[i];
     if (!isImg(a) || a.sha === b.sha || !a.path || !b.path) continue;
     /* avrunding i nettleserens tegning (f.eks. alfa 50 mot 51 i gjennomsiktige lag) tillates: høyst 4 enheter per piksel */
-    const r = await pixelDiff(A.page, fs.readFileSync(a.path), fs.readFileSync(b.path), 4);
+    /* JPEG komprimerer med tap: avrunding i råbildet kan gi litt større avvik i en 8×8-blokk, så JPG får samme
+       toleranse som skjermbilder (30 per piksel) og under 0,01 % ulike piksler */
+    const jpg = /\.jpe?g$/i.test(a.name), r = await pixelDiff(A.page, fs.readFileSync(a.path), fs.readFileSync(b.path), jpg ? 30 : 4);
     console.log(`bilde ${a.name}: ulike bytes, andel ulike piksler ${r}`);
-    expect.soft(r, `bilde ${a.name}: andel ulike piksler`).toBe(0);
+    if (jpg) expect.soft(r, `bilde ${a.name}: andel ulike piksler`).toBeLessThan(0.0001);
+    else expect.soft(r, `bilde ${a.name}: andel ulike piksler`).toBe(0);
   }
   for (let i = 0; i < Math.min(A.downloads.length, B.downloads.length); i++) {
     const a = A.downloads[i], b = B.downloads[i];
     if (!isVid(a) || !a.path || !b.path) continue;
-    const r = await videoDiff(A.page, fs.readFileSync(a.path), fs.readFileSync(b.path));
+    const r = await videoDiff(A.page, a.path, b.path);
     console.log(`video ${a.name}: ${JSON.stringify(r)}`);
     /* sanntidsopptak (MediaRecorder) kan avvike en tidel i varighet, også i originalen */
     expect.soft([r.meta[1].w, r.meta[1].h], `video ${a.name}: oppløsning`).toEqual([r.meta[0].w, r.meta[0].h]);

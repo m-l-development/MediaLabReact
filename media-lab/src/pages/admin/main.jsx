@@ -5,7 +5,7 @@ import '@ml/ml-bg.js';
 import '@ml/ml-cloud.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("admin", Logic, template);
+mountPage("admin", Logic, template, inline);

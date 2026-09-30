@@ -8,7 +8,7 @@ import '@ml/ml-share.js';
 import '@ml/ml-bg.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("isolate-subject", Logic, template);
+mountPage("isolate-subject", Logic, template, inline);

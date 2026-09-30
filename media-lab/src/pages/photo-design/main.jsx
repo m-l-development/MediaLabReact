@@ -10,7 +10,7 @@ import '@ml/ml-fx.js';
 import '@ml/photo-engine.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("photo-design", Logic, template);
+mountPage("photo-design", Logic, template, inline);

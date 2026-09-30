@@ -47,6 +47,8 @@ function encodeCase(html) {
   for (const [real, alias] of Object.entries(RAW_WRAP)) html = html.replace(new RegExp('(</?)' + real + '(?=[\\s>])', 'gi'), '$1' + alias);
   return html;
 }
+const INLINE_TEXT_TAGS = new Set('a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr'.split(' '));
+const NEVER_CONTENT_KEYED = new Set('script style textarea option title select canvas iframe video audio'.split(' '));
 const kebabToCamel = s => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 function cssToObj(css) {
   const o = {};
@@ -150,6 +152,14 @@ function convertTemplate(html) {
   const pc = (kind, value) => { const k = kind + '|' + value; if (!pseudoMap.has(k)) { const cls = 'scp' + pseudoMap.size.toString(36); pseudoMap.set(k, cls); const pe = kind === 'before' || kind === 'after'; pseudo.push('.' + cls + (pe ? '::' : ':') + kind + '{' + (pe ? value : importantify(value)) + '}'); } return pseudoMap.get(k); };
   let depth = 0;
   const pad = n => '  '.repeat(n);
+  /* data-dc-tpl: samme nummerering som runtimen (dybde først over hele malen) */
+  const TPL = new Map(); let tplN = 0;
+  (function stamp(n) { for (const c of n.childNodes || []) { if (c.tagName) TPL.set(c, tplN++); stamp(c); } })(frag);
+  /* elementer som bare inneholder tekst og innebygde tagger fikk innholdet som del av nøkkelen i runtimen
+     (contentKey). Malteksten deres trengs for å vite hvilke originalen laget på nytt (se runtime-quirks.js). */
+  const inline = {};
+  const isInlineOnly = el => el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(RAW_UNWRAP[el.tagName] || el.tagName) && !(function any(n) { return (n.childNodes || []).some(c => c.tagName && (!INLINE_TEXT_TAGS.has(c.tagName) || any(c))); })(el);
+  const textsOf = el => { const t = []; (function r(n) { for (const c of n.childNodes || []) { if (c.nodeName === '#text') t.push(c.value); else r(c); } })(el); return t; };
 
   function text(node, V, ind) {
     const t = node.value;
@@ -190,6 +200,9 @@ function convertTemplate(html) {
     if (tag === 'x-import' || tag === 'dc-import') throw new Error('x-import/dc-import støttes ikke ennå');
     const real = RAW_UNWRAP[tag] || tag;
     const props = []; const pcs = []; let cls = null;
+    const tplId = TPL.get(node);
+    props.push(['data-dc-tpl', JSON.stringify(String(tplId)), String(tplId)]);
+    if (isInlineOnly(node)) inline[tplId] = textsOf(node);
     for (const { name, value } of node.attrs) {
       if (name === 'sc-name' || name === 'data-dc-tpl') continue;
       let key = name.startsWith(CAMEL_ATTR) ? kebabToCamel(name.slice(CAMEL_ATTR.length)) : name;
@@ -227,7 +240,7 @@ function convertTemplate(html) {
   }
 
   const body = kids(frag, 'v', 2);
-  return { body, pseudo, helmet, used };
+  return { body, pseudo, helmet, used, inline };
 }
 
 /* ---------- side ---------- */
@@ -241,14 +254,14 @@ function convertPage(id) {
   /* innhold i <body> foran <x-dc> (f.eks. #boot-splash) beholdes foran #dc-root, som i originalen */
   const bodyPre = src.slice(src.indexOf('<body>') + 6, open.index).trim();
 
-  const { body, pseudo, helmet, used } = convertTemplate(template);
+  const { body, pseudo, helmet, used, inline } = convertTemplate(template);
   const out = path.join(ROOT, 'src/pages', id); fs.mkdirSync(out, { recursive: true });
   const GEN = '/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/' + cfg.src + ' – ikke rediger for hånd før siden er ferdig sammenlignet. */\n';
 
   const helpers = ['I', 'css', 'sty', 'val', 'chk', 'list', 'cx'].filter(h => used.has(h));
   fs.writeFileSync(path.join(out, 'template.jsx'), GEN +
     "import React from 'react';\n" + (helpers.length ? 'import { ' + helpers.join(', ') + " } from '../../shared/dc.jsx';\n" : '') +
-    '\nexport default function template(v) {\n  return (\n    <>\n' + body.join('\n') + '\n    </>\n  );\n}\n');
+    '\n/* malteksten til elementer som bare inneholder tekst (nøkkel = data-dc-tpl), se runtime-quirks.js */\nexport const inline = ' + JSON.stringify(inline) + ';\n\nexport default function template(v) {\n  return (\n    <>\n' + body.join('\n') + '\n    </>\n  );\n}\n');
 
   fs.writeFileSync(path.join(out, 'logic.js'), GEN +
     "import React from 'react';\nimport { DCLogic } from '../../shared/dc.jsx';\n" + script.replace(/^\n/, '') + '\nexport default Component;\n');
@@ -281,10 +294,10 @@ function convertPage(id) {
   fs.writeFileSync(path.join(out, 'main.jsx'), GEN +
     imports.filter(f => !CLASSIC.has(f)).map(f => "import '@ml/" + f + "';\n").join('') +
     imports.filter(f => CLASSIC.has(f)).map((f, i) => "import classic" + i + " from '@ml/" + f + "?url';\n").join('') +
-    "import { mountPage" + (classicOf(imports).length ? ', loadClassic' : '') + " } from '../../shared/dc.jsx';\nimport Logic from './logic.js';\nimport template from './template.jsx';\nimport './pseudo.css';\n\n" +
+    "import { mountPage" + (classicOf(imports).length ? ', loadClassic' : '') + " } from '../../shared/dc.jsx';\nimport Logic from './logic.js';\nimport template, { inline } from './template.jsx';\nimport './pseudo.css';\n\n" +
     (classicOf(imports).length
-      ? '/* ' + classicOf(imports).join(', ') + ' lastes uendret som klassisk skript (se CLASSIC i dc2jsx.mjs) før siden monteres */\nloadClassic([' + classicOf(imports).map((f, i) => 'classic' + i).join(', ') + ']).then(() => mountPage(' + JSON.stringify(name) + ', Logic, template));\n'
-      : 'mountPage(' + JSON.stringify(name) + ', Logic, template);\n'));
+      ? '/* ' + classicOf(imports).join(', ') + ' lastes uendret som klassisk skript (se CLASSIC i dc2jsx.mjs) før siden monteres */\nloadClassic([' + classicOf(imports).map((f, i) => 'classic' + i).join(', ') + ']).then(() => mountPage(' + JSON.stringify(name) + ', Logic, template, inline));\n'
+      : 'mountPage(' + JSON.stringify(name) + ', Logic, template, inline);\n'));
   console.log(id + ': ' + body.length + ' toppnoder, ' + pseudo.length + ' pseudo-regler, ' + helmet.length + ' helmet-elementer, legacy: ' + imports.join(', '));
 }
 

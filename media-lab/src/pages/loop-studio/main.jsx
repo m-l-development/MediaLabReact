@@ -6,7 +6,7 @@ import '@ml/theme.js';
 import '@ml/ml-cloud.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("loop-studio", Logic, template);
+mountPage("loop-studio", Logic, template, inline);

@@ -52,7 +52,7 @@ export const chk = v => (v === undefined ? false : v);
 /* sc-for: ikke-lister blir tomme */
 export const list = v => (Array.isArray(v) ? v : []);
 
-function makeHost(name, Logic, template) {
+function makeHost(name, Logic, template, inline) {
   class DCHost extends React.Component {
     constructor(props) {
       super(props);
@@ -73,7 +73,7 @@ function makeHost(name, Logic, template) {
     componentDidMount() {
       /* særheter fra dc-runtime som er synlige i originalen, se runtime-quirks.js */
       const root = document.getElementById('dc-root');
-      if (root) { keepFooterLikeRuntime(root); setTimeout(() => replayThemeTamper(root), 0); }
+      if (root) { keepFooterLikeRuntime(root); setTimeout(() => replayThemeTamper(root, inline), 0); }
       try { this.logic.componentDidMount(); } catch (e) { console.error(e); }
     }
     componentDidUpdate(prevProps) { this.logic.props = this.props; try { this.logic.componentDidUpdate(prevProps); } catch (e) { console.error(e); } }
@@ -108,8 +108,8 @@ export function loadClassic(urls) {
 }
 
 /* Monterer siden i <div id="dc-root"> slik runtimen gjorde */
-export function mountPage(name, Logic, template) {
-  const Host = makeHost(name, Logic, template);
+export function mountPage(name, Logic, template, inline) {
+  const Host = makeHost(name, Logic, template, inline || {});
   let el = document.getElementById('dc-root');
   if (!el) { el = document.createElement('div'); el.id = 'dc-root'; document.body.prepend(el); }
   createRoot(el).render(<Host />);

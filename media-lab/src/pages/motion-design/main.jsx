@@ -9,7 +9,7 @@ import '@ml/ml-bg.js';
 import '@ml/motion-engine.js';
 import { mountPage } from '../../shared/dc.jsx';
 import Logic from './logic.js';
-import template from './template.jsx';
+import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-mountPage("motion-design", Logic, template);
+mountPage("motion-design", Logic, template, inline);
