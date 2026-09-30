@@ -5,6 +5,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './dc-base.css';
 import { keepFooterLikeRuntime, replayThemeTamper, RAW } from './runtime-quirks.js';
+import { stickyTitle } from './sticky-title.js';
 
 export class DCLogic {
   constructor(props) { this.props = props || {}; this.state = {}; this.__host = undefined; }
@@ -73,7 +74,7 @@ function makeHost(name, Logic, template, inline) {
     componentDidMount() {
       /* særheter fra dc-runtime som er synlige i originalen, se runtime-quirks.js */
       const root = document.getElementById('dc-root');
-      if (root) { keepFooterLikeRuntime(root); setTimeout(() => replayThemeTamper(root, inline), 0); }
+      if (root) { keepFooterLikeRuntime(root); setTimeout(() => replayThemeTamper(root, inline), 0); stickyTitle(root); }
       try { this.logic.componentDidMount(); } catch (e) { console.error(e); }
     }
     componentDidUpdate(prevProps) { this.logic.props = this.props; try { this.logic.componentDidUpdate(prevProps); } catch (e) { console.error(e); } }

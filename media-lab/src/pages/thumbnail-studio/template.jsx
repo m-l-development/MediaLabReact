@@ -10,7 +10,7 @@ export default function template(v) {
     <>
     <div data-dc-tpl="14" style={{"position":"relative","minHeight":"100dvh","display":"flex","flexDirection":"column","fontFamily":"Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif","color":"#f3f1ec","background":"transparent","fontSize":"14px"}}>
       {"\n  "}
-      <div data-dc-tpl="15" style={{"position":"sticky","top":"0","zIndex":"50","padding":"22px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px","flexWrap":"wrap"}}>
+      <div data-dc-tpl="15" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"22px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px","flexWrap":"wrap"}}>
         {"\n    "}
         {v.isHome ? <>
           {"\n      "}
@@ -189,7 +189,7 @@ export default function template(v) {
         {"\n    "}
         <main data-dc-tpl="68" style={{"flex":"1","width":"100%","maxWidth":"1040px","margin":"0 auto","padding":"8vh 28px 64px","display":"flex","flexDirection":"column","alignItems":"center","gap":"18px"}}>
           {"\n      "}
-          <h1 data-dc-tpl="69" style={{"margin":"0","textAlign":"center","fontSize":"clamp(36px, 7.5vw, 96px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
+          <h1 data-dc-tpl="69" data-ml-title="1" style={{"margin":"0","textAlign":"center","fontSize":"clamp(36px, 7.5vw, 96px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
             Thumbnail Studio
           </h1>
           {"\n      "}
@@ -328,7 +328,7 @@ export default function template(v) {
               {I(v.catCount)}
             </span>
             {"\n        "}
-            <h1 data-dc-tpl="106" style={{"margin":"0","fontSize":"clamp(30px, 5vw, 60px)","fontWeight":"600","lineHeight":"1.05","letterSpacing":"0.06em","textTransform":"uppercase","fontStretch":"122%"}}>
+            <h1 data-dc-tpl="106" data-ml-title="1" style={{"margin":"0","fontSize":"clamp(30px, 5vw, 60px)","fontWeight":"600","lineHeight":"1.05","letterSpacing":"0.06em","textTransform":"uppercase","fontStretch":"122%"}}>
               {I(v.catName)}
             </h1>
             {"\n        "}

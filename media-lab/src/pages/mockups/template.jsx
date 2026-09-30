@@ -16,7 +16,7 @@ export default function template(v) {
       {"\n\n  "}
       {v.isGallery ? <>
         {"\n    "}
-        <div data-dc-tpl="23" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px","flexWrap":"wrap"}}>
+        <div data-dc-tpl="23" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px","flexWrap":"wrap"}}>
           {"\n      "}
           <a data-dc-tpl="24" href={v.backHref} style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"40px","padding":"0 20px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"rgba(0,0,0,0.55)","backdropFilter":"blur(12px)","WebkitBackdropFilter":"blur(12px)","fontSize":"13px","fontWeight":"600","letterSpacing":"0.12em","textTransform":"uppercase","color":"#f3f1ec"}} className="scp0">
             <span data-dc-tpl="25" style={{"fontSize":"16px","letterSpacing":"0"}}>
@@ -33,7 +33,7 @@ export default function template(v) {
           {"\n      "}
           <div data-dc-tpl="28" style={{"display":"flex","flexDirection":"column","alignItems":"center","gap":"18px","textAlign":"center"}}>
             {"\n        "}
-            <h1 data-dc-tpl="29" style={{"margin":"0","fontSize":"clamp(34px, 7vw, 88px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
+            <h1 data-dc-tpl="29" data-ml-title="1" style={{"margin":"0","fontSize":"clamp(34px, 7vw, 88px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
               Mockups
             </h1>
             {"\n        "}

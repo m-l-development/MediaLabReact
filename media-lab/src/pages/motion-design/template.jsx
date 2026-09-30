@@ -14,7 +14,7 @@ export default function template(v) {
       {"\n\n  "}
       {v.isMenu ? <>
         {"\n    "}
-        <div data-dc-tpl="20" style={{"position":"sticky","top":"0","zIndex":"50","padding":"22px 28px 10px","display":"flex","alignItems":"center","gap":"12px"}}>
+        <div data-dc-tpl="20" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"22px 28px 10px","display":"flex","alignItems":"center","gap":"12px"}}>
           {"\n      "}
           {v.showBackLink ? <>
             {"\n        "}
@@ -50,7 +50,7 @@ export default function template(v) {
             {"\n        "}
             <div data-dc-tpl="31" style={{"display":"flex","flexDirection":"column","alignItems":"center","gap":"18px","textAlign":"center"}}>
               {"\n          "}
-              <h1 data-dc-tpl="32" style={{"margin":"0","fontSize":"clamp(36px, 6.5vw, 84px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
+              <h1 data-dc-tpl="32" data-ml-title="1" style={{"margin":"0","fontSize":"clamp(36px, 6.5vw, 84px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
                 Motion design
               </h1>
               {"\n          "}

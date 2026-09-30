@@ -10,7 +10,7 @@ export default function template(v) {
     <>
     <div data-dc-tpl="13" onDragOver={v.onDragOver} onDragLeave={v.onDragLeave} onDrop={v.onDrop} style={{"position":"relative","minHeight":"100dvh","display":"flex","flexDirection":"column","fontFamily":"Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif","color":"#f3f1ec","background":"transparent","fontSize":"14px"}}>
       {"\n  "}
-      <div data-dc-tpl="14" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px","flexWrap":"wrap"}}>
+      <div data-dc-tpl="14" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px","flexWrap":"wrap"}}>
         {"\n    "}
         <a data-dc-tpl="15" href="media-lab.dc.html" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"40px","padding":"0 20px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"rgba(0,0,0,0.55)","backdropFilter":"blur(12px)","WebkitBackdropFilter":"blur(12px)","fontSize":"13px","fontWeight":"600","letterSpacing":"0.12em","textTransform":"uppercase","color":"#f3f1ec"}} className="scp0">
           <span data-dc-tpl="16" style={{"fontSize":"16px","letterSpacing":"0"}}>
@@ -35,7 +35,7 @@ export default function template(v) {
         {"\n    "}
         <main data-dc-tpl="21" style={{"flex":"1","width":"100%","maxWidth":"900px","margin":"0 auto","padding":"9vh 28px 64px","display":"flex","flexDirection":"column","alignItems":"center","gap":"40px"}}>
           {"\n      "}
-          <h1 data-dc-tpl="22" style={{"margin":"0","textAlign":"center","fontSize":"clamp(34px, 7vw, 88px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
+          <h1 data-dc-tpl="22" data-ml-title="1" style={{"margin":"0","textAlign":"center","fontSize":"clamp(34px, 7vw, 88px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
             Isolate Subject
           </h1>
           {"\n      "}

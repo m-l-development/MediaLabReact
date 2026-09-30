@@ -26,7 +26,7 @@ export default function template(v) {
       {"\n  "}
       <div data-dc-tpl="15" data-ml-star="1" style={{"position":"absolute","left":"88%","top":"66%","width":"3px","height":"3px","borderRadius":"50%","background":"#fff","boxShadow":"0 0 10px 3px rgba(255,255,255,0.5)"}} />
       {"\n\n  "}
-      <div data-dc-tpl="16" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px"}}>
+      <div data-dc-tpl="16" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px"}}>
         {"\n    "}
         <a data-dc-tpl="17" href="media-lab.dc.html" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"40px","padding":"0 20px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"rgba(0,0,0,0.55)","backdropFilter":"blur(12px)","WebkitBackdropFilter":"blur(12px)","fontSize":"13px","fontWeight":"600","letterSpacing":"0.12em","textTransform":"uppercase","color":"#f3f1ec"}} className="scp0">
           <span data-dc-tpl="18" style={{"fontSize":"16px","letterSpacing":"0"}}>
@@ -71,7 +71,7 @@ export default function template(v) {
         {"\n    "}
         {v.notEditing ? <>
           {"\n      "}
-          <h1 data-dc-tpl="30" style={{"margin":"0","textAlign":"center","fontSize":"clamp(40px, 8.5vw, 104px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
+          <h1 data-dc-tpl="30" data-ml-title="1" style={{"margin":"0","textAlign":"center","fontSize":"clamp(40px, 8.5vw, 104px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
             {I(v.pageTitle)}
           </h1>
           {"\n    "}

@@ -14,7 +14,7 @@ export default function template(v) {
       {"\n\n  "}
       {v.isHome ? <>
         {"\n    "}
-        <div data-dc-tpl="21" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex"}}>
+        <div data-dc-tpl="21" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex"}}>
           {"\n      "}
           <a data-dc-tpl="22" href={v.backHref} style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"40px","padding":"0 20px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"rgba(0,0,0,0.55)","backdropFilter":"blur(12px)","WebkitBackdropFilter":"blur(12px)","fontSize":"13px","fontWeight":"600","letterSpacing":"0.12em","textTransform":"uppercase","color":"#f3f1ec"}} className="scp0">
             <span data-dc-tpl="23" style={{"fontSize":"16px","letterSpacing":"0"}}>
@@ -31,7 +31,7 @@ export default function template(v) {
           {"\n      "}
           <div data-dc-tpl="26" style={{"display":"flex","flexDirection":"column","alignItems":"center","gap":"16px","textAlign":"center"}}>
             {"\n        "}
-            <h1 data-dc-tpl="27" style={{"margin":"0","fontSize":"clamp(34px, 7vw, 88px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
+            <h1 data-dc-tpl="27" data-ml-title="1" style={{"margin":"0","fontSize":"clamp(34px, 7vw, 88px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
               Photo design
             </h1>
             {"\n        "}
