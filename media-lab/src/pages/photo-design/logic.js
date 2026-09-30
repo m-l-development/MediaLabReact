@@ -11,7 +11,7 @@ const chip = on => ({ bg: on ? '#e9e7e2' : 'transparent', fg: on ? '#000000' : '
 const LOGOS = [['images/logo-symbol.png', 'Livets Ord-symbol'], ['images/logo-kbs.png', 'Kveldsbibelskole'], ['images/logo-wol.png', 'Word of Life']];
 
 class Component extends DCLogic {
-  state = { view: 'home', projects: [], fmt: 'sq', cw: 1200, ch: 800, doc: null, sel: null, tool: 'move', tab: 'layer', brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false,
+  state = { view: 'home', projects: [], fmt: 'sq', cw: 1200, ch: 800, doc: null, sel: null, multi: [], tool: 'move', tab: 'layer', brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false,
     busy: '', pct: 0, toast: '', saved: '', autosave: (() => { try { return localStorage.getItem('photodesign.autosave') === '1'; } catch (e) { return false; } })(), guides: { x: false, y: false }, lib: null, libOpen: false, logoOpen: false, fillOpen: true, ltab: 'lag', linkCol: false, tplCat: (() => { try { const t = localStorage.getItem('photodesign.tplcat'); if (typeof t === 'string' && t.length) return t; } catch (e) {} return null; })(), cats: (() => { try { const c = JSON.parse(localStorage.getItem('photodesign.cats')); if (Array.isArray(c) && c.length) return c.filter(x => typeof x === 'string').slice(0, 20); } catch (e) {} return ['Søndagsmøte', 'Kveldsbibelskole', 'Ungdomsmøte']; })(), newCol: (() => { try { return localStorage.getItem('photodesign.newcol') || null; } catch (e) { return null; } })(), dragOver: false, brushXY: null, narrow: false, hist: 0 };
   fileRef = React.createRef(); stageRef = React.createRef(); wrapRef = React.createRef(); canvasRef = React.createRef(); curveRef = React.createRef(); textRef = React.createRef(); bkFileRef = React.createRef();
   M = { media: {}, masks: {} }; past = []; future = []; tplEls = {}; tplRefs = {};
@@ -97,11 +97,11 @@ class Component extends DCLogic {
     }));
     this.setState({ busy: '' }); this.openDoc(doc, false);
   }
-  openDoc(doc, isNew) { if (isNew) this.M = { media: {}, masks: {} }; this.past = []; this.future = []; this.dirty = !!isNew; this.setState({ view: 'edit', doc, sel: null, tool: 'move', tab: 'layer', zoom: 1, expOpen: false, saved: isNew && !this.state.autosave ? 'Ikke lagret' : '', hist: 0 }, () => { this.measure(); if (isNew && this.state.autosave) this.saveNow(); }); }
+  openDoc(doc, isNew) { if (isNew) this.M = { media: {}, masks: {} }; this.past = []; this.future = []; this.dirty = !!isNew; this.setState({ view: 'edit', doc, sel: null, multi: [], tool: 'move', tab: 'layer', zoom: 1, expOpen: false, saved: isNew && !this.state.autosave ? 'Ikke lagret' : '', hist: 0 }, () => { this.measure(); if (isNew && this.state.autosave) this.saveNow(); }); }
   leave = async () => {
     if (this._svT) { clearTimeout(this._svT); this._svT = null; await this.saveNow(); }
     else if (this.dirty) { const q = T('Du har endringer som ikke er lagret. Vil du lagre dem før du går tilbake?'); if (window.confirm(q)) await this.saveNow(); }
-    this.dirty = false; this.setState({ view: 'home', doc: null, sel: null, expOpen: false }); this.refresh();
+    this.dirty = false; this.setState({ view: 'home', doc: null, sel: null, multi: [], expOpen: false }); this.refresh();
   };
   async delProject(p) { if (!window.confirm(T('Slette prosjektet?') + '\n' + p.name)) return; try { await window.PD.store.del(p); } catch (e) {} this.refresh(); }
   saveNow = async () => {
@@ -192,8 +192,52 @@ class Component extends DCLogic {
   }
   takeBlob(b, n) { if (this.state.view === 'edit') this.addBlob(b, n); else { this.create('blank'); setTimeout(() => this.addBlob(b, n), 60); } }
   onFile = e => { const f = [...(e.target.files || [])]; e.target.value = ''; f.forEach(x => this.addBlob(x, x.name)); };
-  dup() { const L = this.selL(); if (!L) return; const n = { ...JSON.parse(JSON.stringify(L)), id: window.PD.uid(L.type[0]), name: L.name + ' ' + T('kopi'), x: L.x + 30, y: L.y + 30 }; if (this.M.masks[L.id]) { const c = window.PD.mk(this.M.masks[L.id].width, this.M.masks[L.id].height); c.getContext('2d').drawImage(this.M.masks[L.id], 0, 0); c._v = 1; this.M.masks[n.id] = c; n.mask = window.PD.uid('k'); } this.addLayer(n); }
-  del() { const id = this.state.sel; if (!id) return; this.setDoc(d => ({ ...d, layers: d.layers.filter(L => L.id !== id) })); this.setState({ sel: null, tool: 'move' }); }
+  copyOf(L) { const n = { ...JSON.parse(JSON.stringify(L)), id: window.PD.uid(L.type[0]), name: L.name + ' ' + T('kopi'), x: L.x + 30, y: L.y + 30, grp: null }; if (this.M.masks[L.id]) { const c = window.PD.mk(this.M.masks[L.id].width, this.M.masks[L.id].height); c.getContext('2d').drawImage(this.M.masks[L.id], 0, 0); c._v = 1; this.M.masks[n.id] = c; n.mask = window.PD.uid('k'); } return n; }
+  dup() {
+    const ids = this.selIds(); if (!ids.length) return; if (ids.length === 1) { const L = this.selL(); if (L) this.addLayer(this.copyOf(L)); return; }
+    const set = new Set(ids), gm = {}, out = this.state.doc.layers.filter(L => set.has(L.id)).map(L => { const n = this.copyOf(L); if (L.grp) n.grp = gm[L.grp] || (gm[L.grp] = window.PD.uid('g')); return n; });
+    this.setDoc(d => ({ ...d, layers: d.layers.concat(out) })); this.setSel(out.map(n => n.id));
+  }
+  del() { const ids = new Set(this.selIds()); if (!ids.size) return; this.setDoc(d => ({ ...d, layers: d.layers.filter(L => !ids.has(L.id)) })); this.setState({ sel: null, multi: [], tool: 'move' }); }
+
+  /* ---------- flervalg og grupper ---------- */
+  selIds() { const S = this.state; if (S.sel) return [S.sel]; const d = S.doc; if (!d || !S.multi || S.multi.length < 2) return []; const has = new Set(d.layers.map(L => L.id)), m = S.multi.filter(id => has.has(id)); return m.length > 1 ? m : []; }
+  setSel(ids) { const u = [...new Set(ids)]; this.setState({ sel: u.length === 1 ? u[0] : null, multi: u.length > 1 ? u : [], tool: 'move' }); }
+  grpOf(L) { return L.grp ? this.state.doc.layers.filter(q => q.grp === L.grp && !q.locked && !q.hidden).map(q => q.id) : [L.id]; }
+  bounds(Ls) {
+    const PD = window.PD; let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    Ls.forEach(L => { const dm = PD.dims(L), a = (L.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), hw = dm.w / 2, hh = dm.h / 2;
+      [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([u, v]) => { const x = L.x + u * hw * c - v * hh * s, y = L.y + u * hw * s + v * hh * c; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }); });
+    return { x0, y0, x1, y1 };
+  }
+  group = () => { const ids = this.selIds(); if (ids.length < 2) return; const g = window.PD.uid('g'), set = new Set(ids); this.setDoc(d => ({ ...d, layers: d.layers.map(L => set.has(L.id) ? { ...L, grp: g } : L) })); this.flash('Lagene er gruppert. De flyttes og skaleres nå sammen.'); };
+  ungroup = () => { const d = this.state.doc, gs = new Set(d.layers.filter(L => this.selIds().includes(L.id) && L.grp).map(L => L.grp)); if (!gs.size) return; this.setDoc(q => ({ ...q, layers: q.layers.map(L => gs.has(L.grp) ? { ...L, grp: null } : L) })); this.flash('Gruppen er delt opp.'); };
+  marquee(e, p0, base, onClick) {
+    let moved = false;
+    this.track(e, ev => { const p = this.pt(ev); if (!moved && Math.hypot(p[0] - p0[0], p[1] - p0[1]) < 4 / this.sc()) return; moved = true; this.setState({ marq: [p0[0], p0[1], p[0], p[1]] }); },
+      () => { const m = this.state.marq; this.setState({ marq: null }); if (!moved || !m) { if (onClick) onClick(); else this.setSel(base); return; }
+        const x0 = Math.min(m[0], m[2]), x1 = Math.max(m[0], m[2]), y0 = Math.min(m[1], m[3]), y1 = Math.max(m[1], m[3]), ids = base.slice();
+        this.state.doc.layers.forEach(L => { if (L.locked || L.hidden) return; const b = this.bounds([L]); if (b.x0 >= x0 && b.x1 <= x1 && b.y0 >= y0 && b.y1 <= y1) this.grpOf(L).forEach(id => ids.push(id)); });
+        this.setSel(ids); });
+  }
+  dragMany(e, ids, p0) {
+    const d = this.state.doc, set = new Set(ids), orig = {}; d.layers.forEach(L => { if (set.has(L.id) && !L.locked) orig[L.id] = [L.x, L.y]; });
+    const b = this.bounds(d.layers.filter(L => orig[L.id])), cx0 = (b.x0 + b.x1) / 2, cy0 = (b.y0 + b.y1) / 2, th = 8 / this.sc(); let moved = false;
+    this.track(e, ev => { const p = this.pt(ev); let dx = p[0] - p0[0], dy = p[1] - p0[1]; if (!moved && Math.hypot(dx, dy) < 2 / this.sc()) return; if (!moved) { moved = true; this.push(); }
+      const gx = !ev.altKey && Math.abs(cx0 + dx - d.w / 2) < th, gy = !ev.altKey && Math.abs(cy0 + dy - d.h / 2) < th; if (gx) dx = d.w / 2 - cx0; if (gy) dy = d.h / 2 - cy0;
+      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => orig[q.id] ? { ...q, x: Math.round((orig[q.id][0] + dx) * 10) / 10, y: Math.round((orig[q.id][1] + dy) * 10) / 10 } : q) }, guides: { x: gx, y: gy } })); },
+      () => { this.setState({ guides: { x: false, y: false } }); if (moved) this.queueSave(); });
+  }
+  /* skalerer alle valgte lag likt ut fra motsatt hjørne, så forholdet mellom dem aldri endres */
+  groupScale(e, sx, sy) {
+    e.preventDefault(); e.stopPropagation(); const set = new Set(this.selIds()), Ls = this.state.doc.layers.filter(L => set.has(L.id) && !L.locked); if (!Ls.length) return; this.push();
+    const b = this.bounds(Ls), O = [sx < 0 ? b.x1 : b.x0, sy < 0 ? b.y1 : b.y0], bw = Math.max(1, b.x1 - b.x0), bh = Math.max(1, b.y1 - b.y0), orig = {}, K = ['size', 'w', 'h', 'strokeW', 'radius', 'ls', 'barH'];
+    Ls.forEach(L => { orig[L.id] = L; });
+    this.track(e, ev => { const p = this.pt(ev), f = Math.max(0.02, (p[0] - O[0]) * sx / bw, (p[1] - O[1]) * sy / bh);
+      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => { const L = orig[q.id]; if (!L) return q; const o = { x: O[0] + (L.x - O[0]) * f, y: O[1] + (L.y - O[1]) * f }; K.forEach(k => { if (typeof L[k] === 'number') o[k] = L[k] * f; }); return { ...q, ...o }; }) } })); },
+      () => this.queueSave());
+  }
+  centerSel() { const set = new Set(this.selIds()), d = this.state.doc, b = this.bounds(d.layers.filter(L => set.has(L.id))), dx = d.w / 2 - (b.x0 + b.x1) / 2, dy = d.h / 2 - (b.y0 + b.y1) / 2; this.setDoc(q => ({ ...q, layers: q.layers.map(L => set.has(L.id) && !L.locked ? { ...L, x: L.x + dx, y: L.y + dy } : L) })); }
   move(id, dir) { this.setDoc(d => { const a = d.layers.slice(), i = a.findIndex(L => L.id === id), j = i + dir; if (i < 0 || j < 0 || j >= a.length) return d; const t = a[i]; a[i] = a[j]; a[j] = t; return { ...d, layers: a }; }); }
   FILLM = ['none', 'solid', 'linear', 'mirror', 'radial', 'conic', 'mesh', 'stripes', 'wave', 'ellipse', 'corner', 'spot', 'glow', 'conicRep', 'conicMirror', 'rays', 'conicCorner'];
   fillStops(f) {
@@ -286,20 +330,24 @@ class Component extends DCLogic {
   tplRef(k) { return this.tplRefs[k] || (this.tplRefs[k] = el => { if (el) { this.tplEls[k] = el; this._tk = null; this.queueDraw(); } else delete this.tplEls[k]; }); }
   pt(e) { const r = this.wrapRef.current.getBoundingClientRect(), s = this.sc(); return [(e.clientX - r.left) / s, (e.clientY - r.top) / s]; }
 
-  stageDown = e => { if (e.target === this.stageRef.current) this.setState({ sel: null, tool: 'move', expOpen: false }); };
+  stageDown = e => { if (e.target !== this.stageRef.current || e.button !== 0 || !this.state.doc) return; this.setState({ expOpen: false }); if (e.pointerType === 'touch') { this.setSel([]); return; } e.preventDefault(); this.marquee(e, this.pt(e), e.shiftKey || e.ctrlKey || e.metaKey ? this.selIds() : []); };
   wrapDown = e => {
     if (e.button !== 0 || !this.state.doc) return; e.preventDefault(); this.setState({ expOpen: false });
     const PD = window.PD, p = this.pt(e), S = this.state, sl = this.selL();
     if (S.tool === 'brush' && sl && sl.type === 'image' && sl.src) { this.brushStart(e, sl, p); return; }
     if (S.tool === 'crop' && sl && sl.type === 'image' && sl.src) { const lp = PD.toLocal(sl, p[0], p[1]); if (Math.abs(lp[0]) <= sl.w / 2 && Math.abs(lp[1]) <= sl.h / 2) { this.cropDrag(e, sl); return; } }
     let L = PD.hit(S.doc, p[0], p[1]); if (L && L.locked) L = null;
-    if (!L) { this.setState({ sel: null, tool: 'move' }); return; }
-    if (L.id !== S.sel) this.setState({ sel: L.id, tool: 'move' });
-    this.dragMove(e, L, p);
+    const add = e.shiftKey || e.ctrlKey || e.metaKey, cur = this.selIds();
+    if (!L) { this.marquee(e, p, add ? cur : []); return; }
+    const g = this.grpOf(L), inSel = g.every(id => cur.includes(id));
+    if (add) { this.marquee(e, p, cur, () => this.setSel(inSel ? cur.filter(id => !g.includes(id)) : cur.concat(g))); return; }
+    const ids = inSel && cur.length > 1 ? cur : g;
+    if (ids.length === 1) { if (L.id !== S.sel) this.setSel([L.id]); this.dragMove(e, L, p); return; }
+    this.setSel(ids); this.dragMany(e, ids, p);
   };
   wrapMove = e => { if (this.state.tool === 'brush') { const p = this.pt(e); this.setState({ brushXY: p }); } };
   wrapLeave = () => { if (this.state.brushXY) this.setState({ brushXY: null }); };
-  wrapDbl = e => { const L = window.PD.hit(this.state.doc, ...this.pt(e)); if (!L) return; if (L.type === 'text') { this.setState({ sel: L.id, tab: 'layer' }, () => { const t = this.textRef.current; if (t) { t.focus(); t.select(); } }); } else if (L.type === 'image') { this.setState({ sel: L.id, tool: this.state.tool === 'crop' ? 'move' : 'crop', tab: 'layer' }); } };
+  wrapDbl = e => { const L = window.PD.hit(this.state.doc, ...this.pt(e)); if (!L) return; if (L.type === 'text') { this.setState({ sel: L.id, multi: [], tab: 'layer' }, () => { const t = this.textRef.current; if (t) { t.focus(); t.select(); } }); } else if (L.type === 'image') { this.setState({ sel: L.id, multi: [], tool: this.state.tool === 'crop' ? 'move' : 'crop', tab: 'layer' }); } };
   track(e, mv, up) { const id = e.pointerId, m = ev => { if (ev.pointerId === id) mv(ev); }, u = ev => { if (ev.pointerId !== id) return; window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u); window.removeEventListener('pointercancel', u); if (up) up(ev); }; window.addEventListener('pointermove', m); window.addEventListener('pointerup', u); window.addEventListener('pointercancel', u); }
   dragMove(e, L, p0) {
     const d = this.state.doc, x0 = L.x, y0 = L.y, th = 8 / this.sc(); let moved = false;
@@ -383,10 +431,13 @@ class Component extends DCLogic {
     if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) this.redo(); else this.undo(); return; }
     if (mod && k === 'y') { e.preventDefault(); this.redo(); return; }
     if (mod && k === 'd') { e.preventDefault(); this.dup(); return; }
-    if (k === 'escape') { this.setState({ sel: null, tool: 'move', expOpen: false }); return; }
-    if (!L) return;
+    if (k === 'escape') { this.setState({ sel: null, multi: [], tool: 'move', expOpen: false }); return; }
+    if (mod && k === 'a') { e.preventDefault(); this.setSel(this.state.doc.layers.filter(q => !q.locked && !q.hidden).map(q => q.id)); return; }
+    if (mod && k === 'g') { e.preventDefault(); if (e.shiftKey) this.ungroup(); else this.group(); return; }
+    const ids = this.selIds(); if (!ids.length) return;
     if (k === 'delete' || k === 'backspace') { e.preventDefault(); this.del(); return; }
-    if (k.startsWith('arrow')) { e.preventDefault(); const st = e.shiftKey ? 10 : 1, dx = k === 'arrowleft' ? -st : k === 'arrowright' ? st : 0, dy = k === 'arrowup' ? -st : k === 'arrowdown' ? st : 0; this.patchL(L.id, q => ({ x: q.x + dx, y: q.y + dy }), 'nudge'); return; }
+    if (k.startsWith('arrow')) { e.preventDefault(); const st = e.shiftKey ? 10 : 1, dx = k === 'arrowleft' ? -st : k === 'arrowright' ? st : 0, dy = k === 'arrowup' ? -st : k === 'arrowdown' ? st : 0, set = new Set(ids); this.setDoc(d => ({ ...d, layers: d.layers.map(q => set.has(q.id) && !q.locked ? { ...q, x: q.x + dx, y: q.y + dy } : q) }), 'nudge'); return; }
+    if (!L) return;
     if (L.type === 'image' && L.src && !mod) { if (k === 'b') this.setState({ tool: this.state.tool === 'brush' ? 'move' : 'brush', tab: 'cut' }); if (k === 'c') this.setState({ tool: this.state.tool === 'crop' ? 'move' : 'crop', tab: 'layer' }); if (k === 'v') this.setState({ tool: 'move' }); }
   }
   onDragOver = e => { if (![...(e.dataTransfer.types || [])].includes('Files')) return; e.preventDefault(); if (!this.state.dragOver) this.setState({ dragOver: true }); };
@@ -435,7 +486,10 @@ class Component extends DCLogic {
       if (isShape) lr = [rg('Hjørneradius', 'radius', 0, Math.round(Math.min(L.w, L.h) / 2), 1, px, 0), rg('Kontur', 'strokeW', 0, 60, 0.5, px, 0)].concat(L.fill2 ? [rg('Vinkel på toning', 'gAng', 0, 360, 1, deg, 90)] : []).concat(lr); }
     const box = L && dm ? { left: (L.x - dm.w / 2) * s + 'px', top: (L.y - dm.h / 2) * s + 'px', w: dm.w * s + 'px', h: dm.h * s + 'px', rot: (L.rot || 0) + 'deg', col: S.tool === 'crop' ? '#f5b82c' : S.tool === 'brush' ? '#ff5a36' : '#3d8bff', line: S.tool === 'crop' ? 'dashed' : 'solid' } : {};
     const H = (kind, sx, sy, left, top, cur, label, round) => ({ left, top, size: kind === 'rot' ? '14px' : '12px', margin: kind === 'rot' ? '-7px 0 0 -7px' : '-6px 0 0 -6px', radius: round ? '50%' : '2px', cursor: cur, label, down: e => this.handleDown(e, kind, sx, sy) });
-    const handles = !L || L.locked || S.tool === 'brush' ? [] : [H('corner', -1, -1, '0%', '0%', 'nwse-resize', 'Skaler'), H('corner', 1, -1, '100%', '0%', 'nesw-resize', 'Skaler'), H('corner', 1, 1, '100%', '100%', 'nwse-resize', 'Skaler'), H('corner', -1, 1, '0%', '100%', 'nesw-resize', 'Skaler')]
+    const ids = this.selIds(), idSet = new Set(ids), isMulti = !L && ids.length > 1, mLs = isMulti ? d.layers.filter(q => idSet.has(q.id)) : [], mGrp = isMulti && !!mLs[0].grp && mLs.every(q => q.grp === mLs[0].grp);
+    if (isMulti) { const b = this.bounds(mLs); Object.assign(box, { left: b.x0 * s + 'px', top: b.y0 * s + 'px', w: (b.x1 - b.x0) * s + 'px', h: (b.y1 - b.y0) * s + 'px', rot: '0deg', col: '#3d8bff', line: mGrp ? 'solid' : 'dashed' }); }
+    const MH = (sx, sy, left, top, cur) => ({ left, top, size: '12px', margin: '-6px 0 0 -6px', radius: '2px', cursor: cur, label: 'Skaler alle', down: e => this.groupScale(e, sx, sy) });
+    const handles = isMulti ? [MH(-1, -1, '0%', '0%', 'nwse-resize'), MH(1, -1, '100%', '0%', 'nesw-resize'), MH(1, 1, '100%', '100%', 'nwse-resize'), MH(-1, 1, '0%', '100%', 'nesw-resize')] : !L || L.locked || S.tool === 'brush' ? [] : [H('corner', -1, -1, '0%', '0%', 'nwse-resize', 'Skaler'), H('corner', 1, -1, '100%', '0%', 'nesw-resize', 'Skaler'), H('corner', 1, 1, '100%', '100%', 'nwse-resize', 'Skaler'), H('corner', -1, 1, '0%', '100%', 'nesw-resize', 'Skaler')]
       .concat(isText ? [] : [H('edgeX', -1, 0, '0%', '50%', 'ew-resize', 'Bredde'), H('edgeX', 1, 0, '100%', '50%', 'ew-resize', 'Bredde'), H('edgeY', 0, -1, '50%', '0%', 'ns-resize', 'Høyde'), H('edgeY', 0, 1, '50%', '100%', 'ns-resize', 'Høyde')])
       .concat(S.tool === 'crop' ? [] : [{ ...H('rot', 0, 0, '50%', '-26px', 'grab', 'Roter', true) }]);
     const curve = adj.curve || [[0, 0], [1, 1]], cf = PD.curveFn(curve); let cp = ''; for (let i = 0; i <= 40; i++) { const x = i / 40, y = PD.clamp(cf(x), 0, 1); cp += (i ? 'L' : 'M') + (x * 100).toFixed(1) + ' ' + ((1 - y) * 100).toFixed(1); }
@@ -462,22 +516,26 @@ class Component extends DCLogic {
       noLayers: !d.layers.length, layerCount: d.layers.length ? String(d.layers.length) : '',
       fxPins: d.layers.filter(q => q.type === 'fx' && !q.hidden && !q.locked).map(q => { const on = q.id === S.sel; return { on, left: (q.x / d.w * 100) + '%', top: (q.y / d.h * 100) + '%', bg: on ? '#e9e7e2' : 'rgba(0,0,0,0.55)', fg: on ? '#000000' : '#ffffff',
         down: e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); if (q.id !== S.sel) this.setState({ sel: q.id, tool: 'move', tab: 'layer' }); this.dragMove(e, q, this.pt(e)); },
-        del: e => { e.preventDefault(); e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); this.setState({ sel: null, tool: 'move' }); } }; }),
-      layers: d.layers.slice().reverse().map(q => { const on = q.id === S.sel; return { name: q.name, icon: q.type === 'image' ? 'B' : q.type === 'text' ? 'T' : q.type === 'fx' ? '✦' : q.type === 'glow' ? '☼' : '◼', bg: on ? '#1c1c1c' : 'transparent', border: on ? '#3d8bff' : 'transparent', op: q.hidden ? 0.45 : 1,
-        click: () => this.setState({ sel: q.id, tool: 'move' }),
+        del: e => { e.preventDefault(); e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); this.setState({ sel: null, multi: [], tool: 'move' }); } }; }),
+      layers: d.layers.slice().reverse().map(q => { const on = idSet.has(q.id); return { name: q.name, grp: !!q.grp, grpC: q.grp ? 'hsl(' + [...q.grp].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7) + ',70%,60%)' : 'transparent', icon: q.type === 'image' ? 'B' : q.type === 'text' ? 'T' : q.type === 'fx' ? '✦' : q.type === 'glow' ? '☼' : '◼', bg: on ? '#1c1c1c' : 'transparent', border: on ? '#3d8bff' : 'transparent', op: q.hidden ? 0.45 : 1,
+        click: e => { if (e && (e.shiftKey || e.ctrlKey || e.metaKey)) { const cur = this.selIds(); this.setSel(cur.includes(q.id) ? cur.filter(i => i !== q.id) : cur.concat([q.id])); } else this.setSel([q.id]); },
         dragStart: e => { this._lagDrag = q.id; try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', q.id); } catch (x) {} },
         dragOver: e => { if (this._lagDrag) e.preventDefault(); },
         drop: e => { e.preventDefault(); const from = this._lagDrag; this._lagDrag = null; if (!from || from === q.id) return; this.setDoc(dd => { const a = dd.layers.slice(), fi = a.findIndex(x => x.id === from); if (fi < 0) return dd; const [m] = a.splice(fi, 1), ti = a.findIndex(x => x.id === q.id); a.splice(ti + 1, 0, m); return { ...dd, layers: a }; }); },
         up: e => { e.stopPropagation(); this.move(q.id, 1); }, down: e => { e.stopPropagation(); this.move(q.id, -1); },
         eye: e => { e.stopPropagation(); this.patchL(q.id, { hidden: !q.hidden }); }, eyeT: q.hidden ? 'Vis' : 'Skjul', eyeC: q.hidden ? '#555555' : '#c9c5bc',
         lock: e => { e.stopPropagation(); this.patchL(q.id, { locked: !q.locked }); }, lockT: q.locked ? 'Lås opp' : 'Lås', lockC: q.locked ? '#f5b82c' : '#555555',
-        del: e => { e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); if (S.sel === q.id) this.setState({ sel: null, tool: 'move' }); } }; }),
+        del: e => { e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); if (S.sel === q.id) this.setState({ sel: null, multi: [], tool: 'move' }); } }; }),
       stageRef: this.stageRef, wrapRef: this.wrapRef, canvasRef: this.canvasRef, stageDown: this.stageDown, wrapDown: this.wrapDown, wrapMove: this.wrapMove, wrapLeave: this.wrapLeave, wrapDbl: this.wrapDbl,
       cssW: d.w * s + 'px', cssH: d.h * s + 'px', cursor: S.tool === 'brush' ? 'none' : S.tool === 'crop' ? 'move' : 'default', guideX: S.guides.x, guideY: S.guides.y, dragOver: S.dragOver,
-      hasBox: !!L && !L.hidden, box, handles,
+      hasBox: (!!L && !L.hidden) || isMulti, box, handles,
+      multiBoxes: mLs.map(q => { const m = PD.dims(q); return { left: (q.x - m.w / 2) * s + 'px', top: (q.y - m.h / 2) * s + 'px', w: m.w * s + 'px', h: m.h * s + 'px', rot: (q.rot || 0) + 'deg' }; }),
+      marqOn: !!S.marq, ...(S.marq ? { marqL: Math.min(S.marq[0], S.marq[2]) * s + 'px', marqT: Math.min(S.marq[1], S.marq[3]) * s + 'px', marqW: Math.abs(S.marq[2] - S.marq[0]) * s + 'px', marqH: Math.abs(S.marq[3] - S.marq[1]) * s + 'px' } : {}),
+      hasMulti: isMulti, multiCount: String(ids.length), multiHint: mGrp ? 'Gruppen flyttes og skaleres som ett objekt. Dobbeltklikk på et element for å redigere det alene.' : 'Dra i hjørnene for å skalere alle likt. Grupper lagene for å låse dem sammen.',
+      multiActs: isMulti ? [[mGrp ? 'Del opp gruppe' : 'Grupper', mGrp ? this.ungroup : this.group, '#f3f1ec'], ['Midtstill', () => this.centerSel(), '#f3f1ec'], ['Dupliser', () => this.dup(), '#f3f1ec'], ['Slett', () => this.del(), '#ff8f7d']].map(([l, click, fg]) => ({ l, click, fg })) : [],
       showBrush: S.tool === 'brush' && !!S.brushXY, brushX: S.brushXY ? S.brushXY[0] * s + 'px' : '0px', brushY: S.brushXY ? S.brushXY[1] * s + 'px' : '0px', brushD: S.brush.size * s + 'px',
       hasBusy: !!S.busy && S.busy !== 'exp', busyLabel: { model: 'Laster ned AI-modell …', run: 'Klipper ut motivet …', load: 'Åpner …' }[S.busy] || '', pctLabel: S.busy === 'model' && S.pct ? S.pct + ' %' : '', busyAny: !!S.busy, busyOp: S.busy ? 0.5 : 1,
-      noSel: !L, hasSel: !!L, docFmt: dfm ? dfm.k : 'custom', docDim: d.w + ' × ' + d.h + ' px', fmtOpts: PD.FORMATS.map(f => ({ v: f.k, l: T(f.l) + ' · ' + f.w + '×' + f.h })).concat(dfm ? [] : [{ v: 'custom', l: T('Egendefinert') + ' · ' + d.w + '×' + d.h }]),
+      noSel: !L && !isMulti, hasSel: !!L, docFmt: dfm ? dfm.k : 'custom', docDim: d.w + ' × ' + d.h + ' px', fmtOpts: PD.FORMATS.map(f => ({ v: f.k, l: T(f.l) + ' · ' + f.w + '×' + f.h })).concat(dfm ? [] : [{ v: 'custom', l: T('Egendefinert') + ' · ' + d.w + '×' + d.h }]),
       onDocFmt: e => { const f = PD.FORMATS.find(x => x.k === e.target.value); if (!f) return; this.setDoc(q => { const kx = f.w / q.w, ky = f.h / q.h, k = Math.min(kx, ky); return { ...q, w: f.w, h: f.h, layers: q.layers.map(L2 => ({ ...L2, x: L2.x * kx, y: L2.y * ky, ...(L2.type === 'text' ? { size: L2.size * k } : { w: L2.w * k, h: L2.h * k }) })) }; }); this.setState({ zoom: 1 }, () => this.measure()); },
       bgHex: hex(d.bg || '#ffffff'), bgCmyk: this.cmykRow(d.bg || '#ffffff', v => this.setDoc(q => ({ ...q, bg: v, fill: null }), 'bg')),
       bleedOn: !!d.bleed, ...(() => { const o = tog(!!d.bleed); return { blTrack: o.track, blKnob: o.knob, blKnobBg: o.knobBg }; })(),
@@ -485,8 +543,8 @@ class Component extends DCLogic {
       bleedNote: d.bleed ? 'Den stiplede linjen viser trygg sone. Hold tekst innenfor. Bakgrunnen fortsetter 3 mm forbi kanten ved eksport.' : 'Trykkerier krever ofte 3 mm utfallende for A4, A3 og visittkort.',
       showSafe: !!d.bleed, safeI: PD.BLEED * this.sc() + 'px', printMm: PD.mmOf(d).map(v => Math.round(v)).join(' × ') + ' mm',
       hasBack: !!d.back, backLabel: d.back ? 'Fjern bakside' : 'Legg til bakside',
-      toggleBack: () => { if (d.back) { if (!confirm(T('Fjerne baksiden?'))) return; this.setDoc(q => { if (q.side === 'back') return { ...q, bg: q.back.bg, layers: q.back.layers, back: null, side: 'front' }; return { ...q, back: null, side: 'front' }; }); this.setState({ sel: null }); } else this.setDoc(q => ({ ...q, back: { bg: q.bg, layers: [] }, side: q.side || 'front' })); },
-      sideOpts: d.back ? [['front', 'Forside'], ['back', 'Bakside']].map(([k, l]) => { const on = (d.side || 'front') === k; return { l, bg: on ? '#e9e7e2' : 'transparent', fg: on ? '#000000' : '#c9c5bc', click: () => { if (on) return; this.setDoc(q => ({ ...q, bg: q.back.bg, layers: q.back.layers, back: { bg: q.bg, layers: q.layers }, side: k })); this.setState({ sel: null, tool: 'move' }); } }; }) : [], onBg: e => { const v = e.target.value; this.setDoc(q => ({ ...q, bg: v, fill: null }), 'bg'); }, bgSw: sw(PAL.slice(0, 8), d.bg, v => this.setDoc(q => ({ ...q, bg: v, fill: null }))), bgNone: bgN, toggleBgNone: () => this.setDoc(q => ({ ...q, bg: q.bg ? null : '#ffffff', fill: null })), bnTrack: bnt.track, bnKnob: bnt.knob, bnKnobBg: bnt.knobBg,
+      toggleBack: () => { if (d.back) { if (!confirm(T('Fjerne baksiden?'))) return; this.setDoc(q => { if (q.side === 'back') return { ...q, bg: q.back.bg, layers: q.back.layers, back: null, side: 'front' }; return { ...q, back: null, side: 'front' }; }); this.setState({ sel: null, multi: [] }); } else this.setDoc(q => ({ ...q, back: { bg: q.bg, layers: [] }, side: q.side || 'front' })); },
+      sideOpts: d.back ? [['front', 'Forside'], ['back', 'Bakside']].map(([k, l]) => { const on = (d.side || 'front') === k; return { l, bg: on ? '#e9e7e2' : 'transparent', fg: on ? '#000000' : '#c9c5bc', click: () => { if (on) return; this.setDoc(q => ({ ...q, bg: q.back.bg, layers: q.back.layers, back: { bg: q.bg, layers: q.layers }, side: k })); this.setState({ sel: null, multi: [], tool: 'move' }); } }; }) : [], onBg: e => { const v = e.target.value; this.setDoc(q => ({ ...q, bg: v, fill: null }), 'bg'); }, bgSw: sw(PAL.slice(0, 8), d.bg, v => this.setDoc(q => ({ ...q, bg: v, fill: null }))), bgNone: bgN, toggleBgNone: () => this.setDoc(q => ({ ...q, bg: q.bg ? null : '#ffffff', fill: null })), bnTrack: bnt.track, bnKnob: bnt.knob, bnKnobBg: bnt.knobBg,
       selName: L ? L.name : '', onSelName: e => P({ name: e.target.value.slice(0, 60) }, 'lname'), isImg, isText, isShape, isGlow,
       gColor: isGlow ? hex(L.color) : '#ffffff', onGColor: e => this.setCol(L, 'color', e.target.value, 'gcolor'), gSw: sw(PAL, isGlow ? L.color : '', v => this.setCol(L, 'color', v)),
       barTog: isText ? [{ l: 'Understrek', on: !!L.bar, click: () => P({ bar: !L.bar, barColor: L.barColor || L.color, barH: L.barH == null ? Math.max(2, Math.round(L.size * 0.07)) : L.barH, barW: L.barW == null ? 1 : L.barW, barGap: L.barGap == null ? 1 : L.barGap }), ...tog(!!L.bar) }] : [], tBar: isText && !!L.bar, tBarC: isText ? hex(L.barColor || L.color) : '#ffffff', onTBarC: e => this.setCol(L, 'barColor', e.target.value, 'tbarc'),
@@ -507,7 +565,7 @@ class Component extends DCLogic {
       shapeToggles: !isShape ? [] : [['Ingen fyll', L.fill === 'rgba(0,0,0,0)', () => P({ fill: L.fill === 'rgba(0,0,0,0)' ? '#f5b82c' : 'rgba(0,0,0,0)' })], ['Toning', !!L.fill2, () => P({ fill2: L.fill2 ? null : '#000000' })]].map(([l, on, click]) => ({ l, on, click, ...tog(on) })),
       sGrad: isShape && !!L.fill2, sFill2: isShape ? hex(L.fill2) : '#000000', onSFill2: e => P({ fill2: e.target.value }, 'sf2'), sStrokeC: isShape ? hex(L.strokeC) : '#ffffff', onSStrokeC: e => P({ strokeC: e.target.value }, 'ssc'),
       layerRanges: lr, selBlend: L ? L.blend || 'source-over' : 'source-over', onBlend: e => P({ blend: e.target.value }), blendOpts: PD.BLENDS.map(([v, l]) => ({ v, l: T(l) })),
-      selActs: [['Midtstill', () => P({ x: d.w / 2, y: d.h / 2 }), '#f3f1ec'], ['Dupliser', () => this.dup(), '#f3f1ec'], ['Slett', () => this.del(), '#ff8f7d']].map(([l, click, fg]) => ({ l, click, fg })),
+      selActs: [['Midtstill', () => P({ x: d.w / 2, y: d.h / 2 }), '#f3f1ec'], ['Dupliser', () => this.dup(), '#f3f1ec'], ['Slett', () => this.del(), '#ff8f7d']].concat(L && L.grp ? [['Velg gruppen', () => this.setSel(this.grpOf(L)), '#3d8bff'], ['Ta ut av gruppen', () => P({ grp: null }), '#f3f1ec']] : []).map(([l, click, fg]) => ({ l, click, fg })),
       looks: PD.LOOKS.map(([k, l, o]) => { const on = isImg && (L.look || 'none') === k; return { l, bg: on ? '#e9e7e2' : '#121212', fg: on ? '#000000' : '#f3f1ec', border: on ? '#e9e7e2' : '#2b2b2b', click: () => P({ look: k, adj: { ...PD.ADJ, ...o } }) }; }),
       resetAdj: () => P({ adj: { ...PD.ADJ }, look: 'none' }), resetCurve: () => P(q => ({ adj: { ...q.adj, curve: null } })),
       adjRanges: !isImg ? [] : ADJL.map(([k, l, mn, mx]) => ({ label: l, min: mn == null ? -100 : mn, max: mx == null ? 100 : mx, val: adj[k] || 0, show: (adj[k] > 0 && (mn == null || mn < 0) ? '+' : '') + Math.round(adj[k] || 0), on: e => { const v = +e.target.value; P(q => ({ adj: { ...q.adj, [k]: v } }), 'adj' + k); }, reset: () => P(q => ({ adj: { ...q.adj, [k]: 0 } })) })),

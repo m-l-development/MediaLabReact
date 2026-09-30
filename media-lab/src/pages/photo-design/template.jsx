@@ -1114,6 +1114,7 @@ export default function template(v) {
                         <span data-dc-tpl="351" style={{"flex":"0 0 auto","width":"18px","height":"18px","display":"flex","alignItems":"center","justifyContent":"center","borderRadius":"5px","background":"#1c1c1c","color":"#9d998f","fontSize":"10px","fontWeight":"700"}}>
                           {I(v1.l?.icon)}
                         </span>
+                        {v1.l?.grp ? <span title="Gruppe" aria-label="Gruppe" style={{"flex":"0 0 auto","width":"6px","height":"6px","borderRadius":"50%","background":v1.l?.grpC}} /> : null}
                         {"\n                  "}
                         <span data-dc-tpl="352" data-no-i18n="1" style={{"flex":"1","minWidth":"0","fontSize":"12px","fontWeight":"600","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}}>
                           {I(v1.l?.name)}
@@ -1204,6 +1205,8 @@ export default function template(v) {
                 {v.showBrush ? <>
                   <div data-dc-tpl="378" style={css(`position:absolute; left:${v.brushX ?? ""}; top:${v.brushY ?? ""}; width:${v.brushD ?? ""}; height:${v.brushD ?? ""}; transform:translate(-50%, -50%); border:1.5px solid #ffffff; outline:1px solid rgba(0,0,0,0.6); border-radius:50%; pointer-events:none;`, "position:absolute; left:{{ brushX }}; top:{{ brushY }}; width:{{ brushD }}; height:{{ brushD }}; transform:translate(-50%, -50%); border:1.5px solid #ffffff; outline:1px solid rgba(0,0,0,0.6); border-radius:50%; pointer-events:none;")} />
                 </> : null}
+                {list(v.multiBoxes).map((b, i) => <div key={'mb' + i} style={{"position":"absolute","left":b.left,"top":b.top,"width":b.w,"height":b.h,"transform":"rotate(" + b.rot + ")","outline":"1px solid rgba(61,139,255,0.7)","pointerEvents":"none"}} />)}
+                {v.marqOn ? <div style={{"position":"absolute","left":v.marqL,"top":v.marqT,"width":v.marqW,"height":v.marqH,"border":"1px solid #3d8bff","background":"rgba(61,139,255,0.12)","pointerEvents":"none","zIndex":5}} /> : null}
                 {"\n          "}
               </div>
               {"\n          "}
@@ -1230,6 +1233,16 @@ export default function template(v) {
               {"\n          "}
               <div data-dc-tpl="386" style={{"display":"flex","flexDirection":"column","gap":"12px","padding":"14px"}}>
                 {"\n            "}
+                {v.hasMulti ? <>
+                  <span style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"0.18em","textTransform":"uppercase","color":"#6f6b64"}}>
+                    <span data-no-i18n="1">{v.multiCount}</span> <span>lag valgt</span>
+                  </span>
+                  <div style={{"display":"grid","gridTemplateColumns":"1fr 1fr","gap":"6px"}}>
+                    {list(v.multiActs).map((b, i) => <button key={i} onClick={b.click} style={{"height":"32px","border":"1px solid #2b2b2b","borderRadius":"10px","background":"#121212","color":b.fg,"font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}} className="scp4">{I(b.l)}</button>)}
+                  </div>
+                  <span style={{"fontSize":"12px","lineHeight":"1.5","color":"#8a867e","textWrap":"pretty"}}>{I(v.multiHint)}</span>
+                  <span style={{"fontSize":"12px","lineHeight":"1.5","color":"#6f6b64","textWrap":"pretty"}}>Ctrl+G grupperer · Ctrl+Shift+G deler opp · Shift+klikk legger til eller fjerner</span>
+                </> : null}
                 {v.noSel ? <>
                   {"\n              "}
                   <span data-dc-tpl="388" style={{"fontSize":"11px","fontWeight":"700","letterSpacing":"0.18em","textTransform":"uppercase","color":"#6f6b64"}}>
