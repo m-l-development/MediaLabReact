@@ -178,7 +178,7 @@
   function textBox(L) {
     if (!MC) MC = mk(4, 4).getContext('2d'); var g = MC; g.font = (L.weight || 400) + ' ' + L.size + 'px "' + L.font + '", Archivo, sans-serif'; try { g.letterSpacing = (L.ls || 0) + 'px'; } catch (e) {}
     var lines = String(L.upper ? L.text.toUpperCase() : L.text).split('\n'), w = 0; lines.forEach(function (s) { w = Math.max(w, g.measureText(s || ' ').width); });
-    return { w: Math.max(L.size * 0.4, w + (L.strokeW || 0)), h: lines.length * L.size * (L.lh || 1.1), lines: lines };
+    return { w: Math.max(L.size * 0.4, w + (L.strokeW || 0)) * (L.tsx || 1), h: lines.length * L.size * (L.lh || 1.1) * (L.tsy || 1), lines: lines };
   }
   function dims(L) { if (L.type === 'text') { var b = textBox(L); return { w: b.w, h: b.h }; } return { w: L.w, h: L.h }; }
 
@@ -209,7 +209,8 @@
       var gr = g.createRadialGradient(0, 0, 0, 0, 0, gw); gr.addColorStop(0, rgba(L.color, 1)); gr.addColorStop(Math.max(0.02, (1 - sf) * 0.7), rgba(L.color, 0.8)); gr.addColorStop(1, rgba(L.color, 0));
       g.fillStyle = gr; g.beginPath(); g.arc(0, 0, gw, 0, Math.PI * 2); g.fill();
     } else if (L.type === 'text') {
-      var b = textBox(L), lh = L.size * (L.lh || 1.1), ax = L.align === 'left' ? -b.w / 2 : L.align === 'right' ? b.w / 2 : 0;
+      var tsx = L.tsx || 1, tsy = L.tsy || 1, b = textBox(L); b = { w: b.w / tsx, h: b.h / tsy, lines: b.lines }; g.scale(tsx, tsy); /* strukket tekst: tegnes i vanlig størrelse og skaleres */
+      var lh = L.size * (L.lh || 1.1), ax = L.align === 'left' ? -b.w / 2 : L.align === 'right' ? b.w / 2 : 0;
       g.font = (L.weight || 400) + ' ' + L.size + 'px "' + L.font + '", Archivo, sans-serif'; try { g.letterSpacing = (L.ls || 0) + 'px'; } catch (e) {}
       g.textAlign = L.align || 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
       if (L.shadow > 0) { g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = L.shadow / 100 * L.size * 0.6; g.shadowOffsetY = L.shadow / 100 * L.size * 0.08; }

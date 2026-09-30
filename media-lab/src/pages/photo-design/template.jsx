@@ -1117,7 +1117,7 @@ export default function template(v) {
                         </span>
                         {v1.l?.grp ? <span title="Gruppe" aria-label="Gruppe" style={{"flex":"0 0 auto","width":"6px","height":"6px","borderRadius":"50%","background":v1.l?.grpC}} /> : null}
                         {"\n                  "}
-                        <LayerName value={v1.l?.name} onRename={v1.l?.rename} style={{"flex":"1","minWidth":"0","fontSize":"12px","fontWeight":"600","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}} />
+                        <LayerName value={v1.l?.name} display={v1.l?.label} onRename={v1.l?.rename} style={{"flex":"1","minWidth":"0","fontSize":"12px","fontWeight":"600","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}} />
                         {"\n                  "}
                         <button data-dc-tpl="353" onClick={v1.l?.eye} title={v1.l?.eyeT} aria-label={v1.l?.eyeT} style={css(`width:22px; height:22px; padding:0; border:0; border-radius:6px; background:transparent; color:${v1.l?.eyeC ?? ""}; font:inherit; font-size:12px; cursor:pointer;`, "width:22px; height:22px; padding:0; border:0; border-radius:6px; background:transparent; color:{{ l.eyeC }}; font:inherit; font-size:12px; cursor:pointer;")} className="scp7">
                           ◉

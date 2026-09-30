@@ -729,7 +729,7 @@ export default function template(v) {
                                 {I(v2.r?.tag)}
                               </span>
                               {"\n              "}
-                              <LayerName value={v2.r?.label} onRename={v2.r?.onRename} style={{"flex":"1","minWidth":"0","fontSize":"12.5px","fontWeight":"600","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}} />
+                              <LayerName value={v2.r?.nameV} display={v2.r?.label} onRename={v2.r?.onRename} style={{"flex":"1","minWidth":"0","fontSize":"12.5px","fontWeight":"600","whiteSpace":"nowrap","overflow":"hidden","textOverflow":"ellipsis"}} />
                               {"\n              "}
                               {v2.r?.isLinked ? <>
                                 <button data-dc-tpl="220" onClick={v2.r?.onUnlink} title="Koble fra laget" aria-label="Koble fra laget" style={{"flex":"0 0 auto","display":"inline-flex","alignItems":"center","gap":"4px","height":"22px","padding":"0 7px","border":"1px solid rgba(77,163,255,0.5)","borderRadius":"999px","background":"transparent","color":"#8cc4ff","font":"inherit","fontSize":"9.5px","fontWeight":"700","letterSpacing":"0.08em","textTransform":"uppercase","cursor":"pointer"}} className="scpg">

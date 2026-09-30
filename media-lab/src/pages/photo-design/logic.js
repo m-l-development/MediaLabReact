@@ -233,8 +233,13 @@ class Component extends DCLogic {
     e.preventDefault(); e.stopPropagation(); const set = new Set(this.selIds()), Ls = this.state.doc.layers.filter(L => set.has(L.id) && !L.locked); if (!Ls.length) return; this.push();
     const b = this.bounds(Ls), O = [sx < 0 ? b.x1 : sx > 0 ? b.x0 : (b.x0 + b.x1) / 2, sy < 0 ? b.y1 : sy > 0 ? b.y0 : (b.y0 + b.y1) / 2], bw = Math.max(1, b.x1 - b.x0), bh = Math.max(1, b.y1 - b.y0), orig = {}, K = ['size', 'w', 'h', 'strokeW', 'radius', 'ls', 'barH'];
     Ls.forEach(L => { orig[L.id] = L; });
-    this.track(e, ev => { const p = this.pt(ev), f = Math.max(0.02, sx ? (p[0] - O[0]) * sx / bw : 0, sy ? (p[1] - O[1]) * sy / bh : 0);
-      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => { const L = orig[q.id]; if (!L) return q; const o = { x: O[0] + (L.x - O[0]) * f, y: O[1] + (L.y - O[1]) * f }; K.forEach(k => { if (typeof L[k] === 'number') o[k] = L[k] * f; }); return { ...q, ...o }; }) } })); },
+    const uni = !!(sx && sy); /* hjørne = skaler likt, side = strekk i én retning */
+    this.track(e, ev => { const p = this.pt(ev), rx = Math.max(0.02, (p[0] - O[0]) * sx / bw), ry = Math.max(0.02, (p[1] - O[1]) * sy / bh), fx = uni ? Math.max(rx, ry) : sx ? rx : 1, fy = uni ? fx : sy ? ry : 1;
+      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => { const L = orig[q.id]; if (!L) return q; const o = { x: O[0] + (L.x - O[0]) * fx, y: O[1] + (L.y - O[1]) * fy };
+        if (uni) K.forEach(k => { if (typeof L[k] === 'number') o[k] = L[k] * fx; });
+        else { const a = (L.rot || 0) * Math.PI / 180, c = Math.cos(a), n = Math.sin(a), ku = Math.hypot(fx * c, fy * n), kv = Math.hypot(fx * n, fy * c);
+          if (L.type === 'text') { o.tsx = Math.min(20, (L.tsx || 1) * ku); o.tsy = Math.min(20, (L.tsy || 1) * kv); } else { if (typeof L.w === 'number') o.w = L.w * ku; if (typeof L.h === 'number') o.h = L.h * kv; } }
+        return { ...q, ...o }; }) } })); },
       () => this.queueSave());
   }
   centerSel() { const set = new Set(this.selIds()), d = this.state.doc, b = this.bounds(d.layers.filter(L => set.has(L.id))), dx = d.w / 2 - (b.x0 + b.x1) / 2, dy = d.h / 2 - (b.y0 + b.y1) / 2; this.setDoc(q => ({ ...q, layers: q.layers.map(L => set.has(L.id) && !L.locked ? { ...L, x: L.x + dx, y: L.y + dy } : L) })); }
@@ -368,7 +373,8 @@ class Component extends DCLogic {
         let nw = kind === 'edgeY' ? w0 : Math.max(8, lx * sx), nh = kind === 'edgeX' ? h0 : Math.max(8, ly * sy);
         if (kind === 'corner' && (L.type === 'text' || (L.type === 'image' ? !ev.shiftKey : ev.shiftKey))) { const f = Math.max(nw / w0, nh / h0); nw = w0 * f; nh = h0 * f; }
         const c2 = rot(kind === 'edgeY' ? 0 : sx * nw / 2, kind === 'edgeX' ? 0 : sy * nh / 2), C = [O[0] + c2[0], O[1] + c2[1]];
-        o = L.type === 'text' ? { size: Math.max(6, Math.round(size0 * (kind === 'edgeY' ? nh / h0 : nw / w0) * 10) / 10), x: C[0], y: C[1] } : { w: nw, h: nh, x: C[0], y: C[1] };
+        const st = v => Math.max(0.05, Math.min(20, v));
+        o = L.type !== 'text' ? { w: nw, h: nh, x: C[0], y: C[1] } : kind === 'edgeX' ? { tsx: st((L.tsx || 1) * nw / w0), x: C[0], y: C[1] } : kind === 'edgeY' ? { tsy: st((L.tsy || 1) * nh / h0), x: C[0], y: C[1] } : { size: Math.max(6, Math.round(size0 * nw / w0 * 10) / 10), x: C[0], y: C[1] };
       }
       this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => q.id === L.id ? { ...q, ...o } : q) } }));
     }, () => this.queueSave());
@@ -488,7 +494,7 @@ class Component extends DCLogic {
     const H = (kind, sx, sy, left, top, cur, label, round) => ({ left, top, size: kind === 'rot' ? '14px' : '12px', margin: kind === 'rot' ? '-7px 0 0 -7px' : '-6px 0 0 -6px', radius: round ? '50%' : '2px', cursor: cur, label, down: e => this.handleDown(e, kind, sx, sy) });
     const ids = this.selIds(), idSet = new Set(ids), isMulti = !L && ids.length > 1, mLs = isMulti ? d.layers.filter(q => idSet.has(q.id)) : [], mGrp = isMulti && !!mLs[0].grp && mLs.every(q => q.grp === mLs[0].grp);
     if (isMulti) { const b = this.bounds(mLs); Object.assign(box, { left: b.x0 * s + 'px', top: b.y0 * s + 'px', w: (b.x1 - b.x0) * s + 'px', h: (b.y1 - b.y0) * s + 'px', rot: '0deg', col: '#3d8bff', line: mGrp ? 'solid' : 'dashed' }); }
-    const MH = (sx, sy, left, top, cur) => ({ left, top, size: '12px', margin: '-6px 0 0 -6px', radius: '2px', cursor: cur, label: 'Skaler alle', down: e => this.groupScale(e, sx, sy) });
+    const MH = (sx, sy, left, top, cur) => ({ left, top, size: '12px', margin: '-6px 0 0 -6px', radius: '2px', cursor: cur, label: sx && sy ? 'Skaler alle' : 'Strekk', down: e => this.groupScale(e, sx, sy) });
     const handles = isMulti ? [MH(-1, -1, '0%', '0%', 'nwse-resize'), MH(1, -1, '100%', '0%', 'nesw-resize'), MH(1, 1, '100%', '100%', 'nwse-resize'), MH(-1, 1, '0%', '100%', 'nesw-resize'), MH(0, -1, '50%', '0%', 'ns-resize'), MH(1, 0, '100%', '50%', 'ew-resize'), MH(0, 1, '50%', '100%', 'ns-resize'), MH(-1, 0, '0%', '50%', 'ew-resize')] : !L || L.locked || S.tool === 'brush' ? [] : [H('corner', -1, -1, '0%', '0%', 'nwse-resize', 'Skaler'), H('corner', 1, -1, '100%', '0%', 'nesw-resize', 'Skaler'), H('corner', 1, 1, '100%', '100%', 'nwse-resize', 'Skaler'), H('corner', -1, 1, '0%', '100%', 'nesw-resize', 'Skaler')]
       .concat([H('edgeX', -1, 0, '0%', '50%', 'ew-resize', 'Bredde'), H('edgeX', 1, 0, '100%', '50%', 'ew-resize', 'Bredde'), H('edgeY', 0, -1, '50%', '0%', 'ns-resize', 'Høyde'), H('edgeY', 0, 1, '50%', '100%', 'ns-resize', 'Høyde')])
       .concat(S.tool === 'crop' ? [] : [{ ...H('rot', 0, 0, '50%', '-26px', 'grab', 'Roter', true) }]);
@@ -517,7 +523,7 @@ class Component extends DCLogic {
       fxPins: d.layers.filter(q => q.type === 'fx' && !q.hidden && !q.locked).map(q => { const on = q.id === S.sel; return { on, left: (q.x / d.w * 100) + '%', top: (q.y / d.h * 100) + '%', bg: on ? '#e9e7e2' : 'rgba(0,0,0,0.55)', fg: on ? '#000000' : '#ffffff',
         down: e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); if (q.id !== S.sel) this.setState({ sel: q.id, tool: 'move', tab: 'layer' }); this.dragMove(e, q, this.pt(e)); },
         del: e => { e.preventDefault(); e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); this.setState({ sel: null, multi: [], tool: 'move' }); } }; }),
-      layers: d.layers.slice().reverse().map(q => { const on = idSet.has(q.id); return { name: q.name, rename: v => { if (v) this.patchL(q.id, { name: v }); }, grp: !!q.grp, grpC: q.grp ? 'hsl(' + [...q.grp].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7) + ',70%,60%)' : 'transparent', icon: q.type === 'image' ? 'B' : q.type === 'text' ? 'T' : q.type === 'fx' ? '✦' : q.type === 'glow' ? '☼' : '◼', bg: on ? '#1c1c1c' : 'transparent', border: on ? '#3d8bff' : 'transparent', op: q.hidden ? 0.45 : 1,
+      layers: d.layers.slice().reverse().map(q => { const on = idSet.has(q.id), tx = q.type === 'text' ? String(q.upper ? String(q.text || '').toUpperCase() : q.text || '').replace(/\s+/g, ' ').trim().slice(0, 40) : ''; return { name: q.name, label: tx && tx.toLowerCase() !== String(q.name || '').toLowerCase() ? (q.name || T('Tekst')) + ' – ' + tx : q.name, rename: v => { if (v) this.patchL(q.id, { name: v }); }, grp: !!q.grp, grpC: q.grp ? 'hsl(' + [...q.grp].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7) + ',70%,60%)' : 'transparent', icon: q.type === 'image' ? 'B' : q.type === 'text' ? 'T' : q.type === 'fx' ? '✦' : q.type === 'glow' ? '☼' : '◼', bg: on ? '#1c1c1c' : 'transparent', border: on ? '#3d8bff' : 'transparent', op: q.hidden ? 0.45 : 1,
         click: e => { if (e && (e.shiftKey || e.ctrlKey || e.metaKey)) { const cur = this.selIds(); this.setSel(cur.includes(q.id) ? cur.filter(i => i !== q.id) : cur.concat([q.id])); } else this.setSel([q.id]); },
         dragStart: e => { this._lagDrag = q.id; try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', q.id); } catch (x) {} },
         dragOver: e => { if (this._lagDrag) e.preventDefault(); },
@@ -531,7 +537,7 @@ class Component extends DCLogic {
       hasBox: (!!L && !L.hidden) || isMulti, box, handles,
       multiBoxes: mLs.map(q => { const m = PD.dims(q); return { left: (q.x - m.w / 2) * s + 'px', top: (q.y - m.h / 2) * s + 'px', w: m.w * s + 'px', h: m.h * s + 'px', rot: (q.rot || 0) + 'deg' }; }),
       marqOn: !!S.marq, ...(S.marq ? { marqL: Math.min(S.marq[0], S.marq[2]) * s + 'px', marqT: Math.min(S.marq[1], S.marq[3]) * s + 'px', marqW: Math.abs(S.marq[2] - S.marq[0]) * s + 'px', marqH: Math.abs(S.marq[3] - S.marq[1]) * s + 'px' } : {}),
-      hasMulti: isMulti, multiCount: String(ids.length), multiHint: mGrp ? 'Gruppen flyttes og skaleres som ett objekt. Dobbeltklikk på et element for å redigere det alene.' : 'Dra i hjørnene for å skalere alle likt. Grupper lagene for å låse dem sammen.',
+      hasMulti: isMulti, multiCount: String(ids.length), multiHint: mGrp ? 'Gruppen flyttes og skaleres som ett objekt. Dobbeltklikk på et element for å redigere det alene.' : 'Dra i hjørnene for å skalere alle likt, eller i sidene for å strekke. Grupper lagene for å låse dem sammen.',
       multiActs: isMulti ? [[mGrp ? 'Del opp gruppe' : 'Grupper', mGrp ? this.ungroup : this.group, '#f3f1ec'], ['Midtstill', () => this.centerSel(), '#f3f1ec'], ['Dupliser', () => this.dup(), '#f3f1ec'], ['Slett', () => this.del(), '#ff8f7d']].map(([l, click, fg]) => ({ l, click, fg })) : [],
       showBrush: S.tool === 'brush' && !!S.brushXY, brushX: S.brushXY ? S.brushXY[0] * s + 'px' : '0px', brushY: S.brushXY ? S.brushXY[1] * s + 'px' : '0px', brushD: S.brush.size * s + 'px',
       hasBusy: !!S.busy && S.busy !== 'exp', busyLabel: { model: 'Laster ned AI-modell …', run: 'Klipper ut motivet …', load: 'Åpner …' }[S.busy] || '', pctLabel: S.busy === 'model' && S.pct ? S.pct + ' %' : '', busyAny: !!S.busy, busyOp: S.busy ? 0.5 : 1,
@@ -565,7 +571,7 @@ class Component extends DCLogic {
       shapeToggles: !isShape ? [] : [['Ingen fyll', L.fill === 'rgba(0,0,0,0)', () => P({ fill: L.fill === 'rgba(0,0,0,0)' ? '#f5b82c' : 'rgba(0,0,0,0)' })], ['Toning', !!L.fill2, () => P({ fill2: L.fill2 ? null : '#000000' })]].map(([l, on, click]) => ({ l, on, click, ...tog(on) })),
       sGrad: isShape && !!L.fill2, sFill2: isShape ? hex(L.fill2) : '#000000', onSFill2: e => P({ fill2: e.target.value }, 'sf2'), sStrokeC: isShape ? hex(L.strokeC) : '#ffffff', onSStrokeC: e => P({ strokeC: e.target.value }, 'ssc'),
       layerRanges: lr, selBlend: L ? L.blend || 'source-over' : 'source-over', onBlend: e => P({ blend: e.target.value }), blendOpts: PD.BLENDS.map(([v, l]) => ({ v, l: T(l) })),
-      selActs: [['Midtstill', () => P({ x: d.w / 2, y: d.h / 2 }), '#f3f1ec'], ['Dupliser', () => this.dup(), '#f3f1ec'], ['Slett', () => this.del(), '#ff8f7d']].concat(L && L.grp ? [['Velg gruppen', () => this.setSel(this.grpOf(L)), '#3d8bff'], ['Ta ut av gruppen', () => P({ grp: null }), '#f3f1ec']] : []).map(([l, click, fg]) => ({ l, click, fg })),
+      selActs: [['Midtstill', () => P({ x: d.w / 2, y: d.h / 2 }), '#f3f1ec'], ['Dupliser', () => this.dup(), '#f3f1ec'], ['Slett', () => this.del(), '#ff8f7d']].concat(isText && ((L.tsx || 1) !== 1 || (L.tsy || 1) !== 1) ? [['Fjern strekk', () => P({ tsx: 1, tsy: 1 }), '#f3f1ec']] : []).concat(L && L.grp ? [['Velg gruppen', () => this.setSel(this.grpOf(L)), '#3d8bff'], ['Ta ut av gruppen', () => P({ grp: null }), '#f3f1ec']] : []).map(([l, click, fg]) => ({ l, click, fg })),
       looks: PD.LOOKS.map(([k, l, o]) => { const on = isImg && (L.look || 'none') === k; return { l, bg: on ? '#e9e7e2' : '#121212', fg: on ? '#000000' : '#f3f1ec', border: on ? '#e9e7e2' : '#2b2b2b', click: () => P({ look: k, adj: { ...PD.ADJ, ...o } }) }; }),
       resetAdj: () => P({ adj: { ...PD.ADJ }, look: 'none' }), resetCurve: () => P(q => ({ adj: { ...q.adj, curve: null } })),
       adjRanges: !isImg ? [] : ADJL.map(([k, l, mn, mx]) => ({ label: l, min: mn == null ? -100 : mn, max: mx == null ? 100 : mx, val: adj[k] || 0, show: (adj[k] > 0 && (mn == null || mn < 0) ? '+' : '') + Math.round(adj[k] || 0), on: e => { const v = +e.target.value; P(q => ({ adj: { ...q.adj, [k]: v } }), 'adj' + k); }, reset: () => P(q => ({ adj: { ...q.adj, [k]: 0 } })) })),
