@@ -17,7 +17,7 @@ const TYPER = ['Sollys', 'Spotlys', 'Måne', 'Ild', 'Røyk', 'Slør', 'Farget ly
 const alleLooks = async p => { for (let i = 0; i < 20; i++) { const v = p.locator(T(336)); if (!(await v.isVisible().catch(() => false))) break; await v.click(); await p.waitForTimeout(200); } };
 
 /* bare desktop: funksjonene er samme kode på mobil, og mobiloppsettet dekkes av compare-, flyt- og utforskningstestene */
-test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil', 'funksjonstestene kjøres på desktop'); });
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil' && !process.env.MOBIL, 'funksjonstestene kjøres på desktop (MOBIL=1 kjører dem også på mobil)'); });
 
 test('effekter: 13 typer, 80 looks, 8 paletter × 3 styrker, favoritter, egne forhåndsvalg', async ({ browser }, info) => {
   test.setTimeout(60 * 60_000);

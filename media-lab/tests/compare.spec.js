@@ -1,4 +1,4 @@
-// Skjermbilder av React-sidene mot originalene, med samme oppsett som media-lab/tests/baseline.spec.js.
+// Skjermbilder av React-sidene mot originalene (grunnlinjebildene i tests/__baseline__/ ble laget fra originalene).
 // Alle sider i grunnlinjen som finnes som React-side i denne mappen (samme filnavn), blir sammenlignet.
 // - Sider uten ml-bg: mot grunnlinjebildene i tests/__baseline__/.
 // - Sider med ml-bg: bølgene tegnes etter tiden siden ml-bg.js startet (originalen starter det senere, avhengig av

@@ -30,7 +30,7 @@ const STEG = [
 ];
 
 /* bare desktop: funksjonene er samme kode på mobil, og mobiloppsettet dekkes av compare-, flyt- og utforskningstestene */
-test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil', 'funksjonstestene kjøres på desktop'); });
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil' && !process.env.MOBIL, 'funksjonstestene kjøres på desktop (MOBIL=1 kjører dem også på mobil)'); });
 
 test('ukeprogram fra fil og bilde, takt-synk og eksport', async ({ browser }, info) => {
   test.setTimeout(40 * 60_000);

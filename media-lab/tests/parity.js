@@ -201,7 +201,11 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
       /* tunge steg (f.eks. store AI-modeller) kjøres etter hverandre for å spare minne */
       await run(A.page).catch(e => { throw new Error(`steg «${step}» feilet i originalen: ${e.message.split('\n')[0]}`); });
       await run(B.page).catch(e => { throw new Error(`steg «${step}» feilet i React: ${e.message.split('\n')[0]}`); });
-    } else await Promise.all([run(A.page), run(B.page)]).catch(e => { throw new Error(`steg «${step}» feilet: ${e.message.split('\n')[0]}`); });
+    } else {
+      const [ra, rb] = await Promise.allSettled([run(A.page), run(B.page)]);
+      const hvor = ra.status === 'rejected' ? (rb.status === 'rejected' ? 'i begge' : 'i originalen') : 'i React', e = ra.reason || rb.reason;
+      if (e) throw new Error(`steg «${step}» feilet ${hvor}: ${e.message.split('\n')[0]}`);
+    }
     if (process.env.STEGLOGG) console.log(`  steg «${step}» ${Date.now() - t} ms`);
     /* KART=1: skriv ut synlige kontroller etter hvert steg (hjelp til å skrive nye steg) */
     if (process.env.KART) console.log(`  KART etter «${step}»: ` + (await B.page.evaluate(() => [...document.querySelectorAll('button,[role=button],input,select')].filter(e => e.checkVisibility()).map(e => (e.tagName === 'INPUT' ? 'input[' + e.type + ']' : '') + (e.getAttribute('aria-label') || e.title || e.innerText || e.placeholder || '').replace(/\s+/g, ' ').trim().slice(0, 22) + '#' + (e.getAttribute('data-dc-tpl') || '')).filter(x => !/^#[0-9a-f]{6}#/.test(x)).join(' | '))).slice(0, 1500));

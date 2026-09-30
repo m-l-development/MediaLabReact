@@ -36,7 +36,7 @@ for (const [mal, etter] of Object.entries(MAL)) {
 }
 
 /* bare desktop: funksjonene er samme kode på mobil, og mobiloppsettet dekkes av compare-, flyt- og utforskningstestene */
-test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil', 'funksjonstestene kjøres på desktop'); });
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil' && !process.env.MOBIL, 'funksjonstestene kjøres på desktop (MOBIL=1 kjører dem også på mobil)'); });
 
 test('delt mappe: legg i og hent fra', async ({ browser }, info) => {
   test.setTimeout(10 * 60_000);

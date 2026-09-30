@@ -58,7 +58,7 @@ export const STEG = [
 ];
 
 /* bare desktop: funksjonene er samme kode på mobil, og mobiloppsettet dekkes av compare-, flyt- og utforskningstestene */
-test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil', 'funksjonstestene kjøres på desktop'); });
+test.beforeEach(({}, info) => { test.skip(info.project.name === 'mobil' && !process.env.MOBIL, 'funksjonstestene kjøres på desktop (MOBIL=1 kjører dem også på mobil)'); });
 
 test('Motion Design: effekter, lyd, voiceover, Whisper, .motion, 60 fps og 4K', async ({ browser }, info) => {
   test.setTimeout(90 * 60_000);
@@ -73,7 +73,7 @@ test('Whisper: AI-undertekster likt i original og React (én fane om gangen)', a
   test.setTimeout(60 * 60_000);
   const kjør = async url => {
     const { page: p, ctx } = await openSide(browser, url, { viewport: info.project.use.viewport, cdn: true, fixedNow: NOW });
-    await STEG[0][1](p); await STEG[2][1](p);
+    await p.waitForTimeout(1500); await STEG[0][1](p); await STEG[2][1](p);
     await p.locator(T(127)).click(); await p.waitForTimeout(400); await p.locator(T(191)).filter({ hasText: 'Norsk' }).click(); await p.locator(T(194)).first().click(); await p.locator(T(195)).click();
     await p.waitForFunction(() => /undertekster er laget|Klarte ikke å lage undertekster/.test(document.body.innerText), null, { timeout: 1_500_000, polling: 1000 }); await p.waitForTimeout(1500);
     const tekst = await p.evaluate(() => document.body.innerText);

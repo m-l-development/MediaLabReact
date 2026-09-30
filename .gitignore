@@ -13,3 +13,4 @@ playwright-report/
 test-results-*.log
 **/tests/fixtures/stor.png
 test-results-*/
+.claude/settings.local.json

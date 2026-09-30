@@ -33,3 +33,9 @@ De nye funksjonstestene for Loop, Thumbnail, Photo, Motion og deling kjøres på
 129 passert, 15 hoppet over (mobilvarianter og Whisper), 2 med pikselavvik på mobil. Begge skyldes kappløp i den gamle runtimen etter navigering (siden hentes fra hurtigbufferen):
 - Footer-teksten under skjermkanten er skjult i originalen (se 05-loop-studio.md). Den maskeres nå i skjermbildene, fordi footeren har en egen test.
 - Lys modus: knapper med `font`-kortform (f.eks. «Nytt bilde», «Last ned sikkerhetskopi») mister fet skrift i originalen bare når andre kompilering vinner over asynkron innlasting. React følger oppførselen ved første besøk. Det er et kosmetisk avvik i originalen, ikke en funksjonsfeil.
+
+## Mobilvarianter og Whisper (`MOBIL=1`, `WHISPER=1`)
+
+- 14 mobilvarianter: 10 like. Tre stopper **i begge** versjoner, fordi stegene klikker på kontroller som er skjult i mobiloppsettet (testskriptet er skrevet for desktop). PDF trykk på mobil: bildestrømmen avviker med maks 9/255 i enkelte piksler (AI-masken kjøres i hver sin fane). Alt annet i PDF-en og JPG-eksporten er likt.
+- Whisper: fanen med originalen krasjer i headless Chrome (minne), så den må testes manuelt i en vanlig nettleser.
+- Stegfeil sier nå om de skjedde i originalen, i React eller i begge.
