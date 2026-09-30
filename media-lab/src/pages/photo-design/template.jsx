@@ -1364,7 +1364,10 @@ export default function template(v) {
                 {"\n\n            "}
                 {v.hasSel ? <>
                   {"\n              "}
-                  <input data-dc-tpl="425" value={val(v.selName)} onChange={v.onSelName} data-no-i18n="1" aria-label="Lagnavn" style={{"height":"36px","padding":"0 10px","border":"1px solid #2b2b2b","borderRadius":"10px","background":"#0e0e0e","color":"#f3f1ec","fontWeight":"600"}} className="scpd" />
+                  <label style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
+                    <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>Lagnavn</span>
+                    <input data-dc-tpl="425" value={val(v.selName)} onChange={v.onSelName} data-no-i18n="1" style={{"height":"36px","padding":"0 10px","border":"1px solid #2b2b2b","borderRadius":"10px","background":"#0e0e0e","color":"#f3f1ec","fontWeight":"600"}} className="scpd" />
+                  </label>
                   {"\n              "}
                   {v.isImg ? <>
                     {"\n                "}
@@ -1434,10 +1437,15 @@ export default function template(v) {
                     {"\n                "}
                     {v.isText ? <>
                       {"\n                  "}
-                      <textarea data-dc-tpl="448" ref={v.textRef} value={val(v.tText)} onChange={v.onTText} rows="3" data-no-i18n="1" style={{"padding":"10px","border":"1px solid #2b2b2b","borderRadius":"10px","background":"#0e0e0e","color":"#f3f1ec","resize":"vertical","lineHeight":"1.4"}} className="scpd" />
+                      <label style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
+                        <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>Tekst</span>
+                        <textarea data-dc-tpl="448" ref={v.textRef} value={val(v.tText)} onChange={v.onTText} rows="3" data-no-i18n="1" style={{"padding":"10px","border":"1px solid #2b2b2b","borderRadius":"10px","background":"#0e0e0e","color":"#f3f1ec","resize":"vertical","lineHeight":"1.4"}} className="scpd" />
+                      </label>
                       {"\n                  "}
                       <div data-dc-tpl="449" style={{"display":"grid","gridTemplateColumns":"1fr 92px","gap":"6px"}}>
                         {"\n                    "}
+                        <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>Skrift</span>
+                        <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>Tykkelse</span>
                         <select data-dc-tpl="450" value={val(v.tFont)} onChange={v.onTFont} aria-label="Skrift" style={{"height":"34px","padding":"0 8px","border":"1px solid #2b2b2b","borderRadius":"10px","background":"#121212","color":"#f3f1ec"}}>
                           {list(v.fontOpts).map(($it1, $i1) => {
                             const v1 = { ...v, "o": $it1, $index: $i1 };
