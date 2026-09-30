@@ -1,11 +1,14 @@
 /* Konvertert fra den gamle dc-siden thumbnail-studio.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { onUpdate } from '../../shared/ml-update.js';
+import { hereGet, hereSet } from '../../shared/here.js';
 class Component extends DCLogic {
   state = { zoom: 1, cropId: null, cropBox: null, multi: [], narrow: false, expT: false, expSize: null, backupBusy: false, ready: false, view: 'home', cats: [], tpls: [], catId: null, editCats: false, doc: null, tplId: null, tplName: '', dirty: false, sel: null, hist: [], fut: [], gx: [], gy: [], msg: '', ai: null, exp: false, expRes: '1080', expFmt: 'png', expBusy: false, save: false, logoOpen: false, busyImg: false, tick: 0, numEd: null, barSel: null, shapeOpen: false, addColor: null, autoAt: '', autoSave: (() => { try { return localStorage.getItem('thumbstudio.autosave') === '1'; } catch (e) { return false; } })() };
   canvasRef = React.createRef(); zoomRef = React.createRef(); ovRef = React.createRef(); fileRef = React.createRef(); taRef = React.createRef(); restoreRef = React.createRef(); cropRef = React.createRef();
   WN = { 400: 'Vanlig', 500: 'Medium', 600: 'Halvfet', 700: 'Fet', 800: 'Ekstra fet', 900: 'Svart' };
   componentDidMount() {
+    onUpdate({ save: () => this.saveForUpdate() });
     this.alive = true;
     { const _ws = (fn, n = 0) => { if (window.MLShare) fn(); else if (n < 120) setTimeout(() => _ws(fn, n + 1), 50); }; _ws(() => { this._unr = window.MLShare.receive((b, n) => this.takeShared(b, n), { accept: ['image'], when: () => !((this.getClip && this.getClip()) || []).length }); }); }
     try { const lm = localStorage.getItem(this.LAYOUT_KEY), cl = this.loadCustom(); this.setState({ layoutMode: lm === 'custom' && !cl ? 'std' : (lm || 'std'), customLayout: cl }); } catch (e) {}
@@ -14,13 +17,35 @@ class Component extends DCLogic {
     this.onBefore = e => { if (this.state.view === 'edit' && this.state.dirty) { e.preventDefault(); e.returnValue = ''; } };
     window.addEventListener('beforeunload', this.onBefore);
     this.onLang = () => this.forceUpdate(); window.addEventListener('medialab-lang', this.onLang);
+    this._here = hereGet('thumb');
     this.init();
   }
   componentWillUnmount() {
     this.alive = false; cancelAnimationFrame(this._raf); if (this.offImg) this.offImg();
     window.removeEventListener('keydown', this.onKey); window.removeEventListener('beforeunload', this.onBefore); window.removeEventListener('medialab-lang', this.onLang); if (this.mq && this.mq.removeEventListener) this.mq.removeEventListener('change', this.onMq); this.stopDrag(); this.cropUp();
   }
-  componentDidUpdate() { if (this.state.view === 'edit') { this.sched(); this.autoTick(); if (this._pendImg && this.state.doc) { const f = this._pendImg; this._pendImg = null; this.useFile(f, { mode: 'add' }); } } }
+  restoreHere() {
+    const h = this._here; this._here = null; if (!h || !this.alive) return;
+    const c = this.state.cats.find(x => x.id === h.cat); if (!c) return;
+    this.setState({ view: 'cat', catId: c.id });
+    if (h.v !== 'edit') return;
+    if (h.base) { this.enterEdit(this.catBase(c), null, '', true); return; }
+    const t = h.tpl && this.state.tpls.find(x => x.id === h.tpl && x.catId === c.id); if (t) this.enterEdit(TS.clone(t.doc), t.id, t.name);
+  }
+  /* ny versjon publisert: lagre det som er åpent. Ny mal i full kategori kan ikke lagres (false) */
+  async saveForUpdate() {
+    const S = this.state; if (S.view !== 'edit' || !S.doc || !S.dirty) return null;
+    if (S.baseEdit) { await this.saveBase(true); return true; }
+    if (S.tplId) { await this.doSave('over', true); return true; }
+    if (this.tplsOf(S.catId).length < TS.MAX_TPL) { await this.doSave('new', true); return true; }
+    return false;
+  }
+  saveHere() {
+    const S = this.state; if (!S.ready) return;
+    const v = S.view === 'edit' ? { v: 'edit', cat: S.catId, tpl: S.tplId || null, base: !!S.baseEdit } : S.view === 'cat' ? { v: 'cat', cat: S.catId } : null, k = JSON.stringify(v);
+    if (k !== this._hk) { this._hk = k; hereSet('thumb', v); }
+  }
+  componentDidUpdate() { this.saveHere(); if (this.state.view === 'edit') { this.sched(); this.autoTick(); if (this._pendImg && this.state.doc) { const f = this._pendImg; this._pendImg = null; this.useFile(f, { mode: 'add' }); } } }
   toFile = (b, n) => new File([b], n || 'bilde.png', { type: b.type });
   takeShared(b, n) { const f = this.toFile(b, n); if (this.state.view === 'edit' && this.state.doc) this.useFile(f, { mode: 'add' }); else { this._pendImg = f; this.flash('Velg en mal, så legges bildet inn.'); } }
   pickShared() { if (window.MLShare) window.MLShare.pick((b, n) => this.takeShared(b, n), { accept: ['image'] }); }
@@ -53,7 +78,7 @@ class Component extends DCLogic {
     this.offImg = TS.onImage(() => { this.sched(); clearTimeout(this._bt); this._bt = setTimeout(() => this.alive && this.setState(s => ({ tick: s.tick + 1 })), 80); });
     const st = await TS.loadState();
     if (!this.alive) return;
-    this.setState({ ready: true, cats: st.cats, tpls: st.tpls }, () => this.gcAll());
+    this.setState({ ready: true, cats: st.cats, tpls: st.tpls }, () => { this.gcAll(); this.restoreHere(); });
     if (st.noDb) this.flash('Nettleseren tillater ikke lagring her, så maler blir ikke lagret.');
   }
   sched() { cancelAnimationFrame(this._raf); this._raf = requestAnimationFrame(() => this.draw()); }

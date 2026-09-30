@@ -1,6 +1,8 @@
 /* Konvertert fra den gamle dc-siden motion-design.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { onUpdate } from '../../shared/ml-update.js';
+import { hereGet, hereSet } from '../../shared/here.js';
 const KEYS = { clip: 'clips', text: 'texts', sub: 'subs', music: 'music', ov: 'ov' };
 const TK = { clip: 'video', text: 'text', sub: 'subs', music: 'music', ov: 'ov' };
 const LIM = { video: 4e9, image: 60e6, audio: 600e6 };
@@ -38,6 +40,7 @@ class Component extends DCLogic {
     ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: '', err: false }, msg: '', toast: '', saved: '', autosave: (() => { try { return localStorage.getItem('motiondesign.autosave') === '1'; } catch (e) { return false; } })(), pv: { w: 640, h: 360, cw: 640, ch: 360 }, narrow: false, dragOver: false, clipDrag: null, packing: false };
 
   componentDidMount() {
+    onUpdate({ save: () => this.state.view === 'edit' && this.state.proj ? this.saveNow().then(() => !this.dirty) : null, busy: () => !!this._exporting || !!(this.state.exp && this.state.exp.busy) });
     this.alive = true;
     this.hid = document.createElement('div'); this.hid.setAttribute('aria-hidden', 'true');
     this.hid.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;'; document.body.appendChild(this.hid);
@@ -69,9 +72,9 @@ class Component extends DCLogic {
     for (let i = 0; i < 200 && !window.VF; i++) await new Promise(r => setTimeout(r, 50));
     if (!window.VF) { this.setState({ msg: 'Motion design kunne ikke starte. Last siden på nytt.', loaded: true }); return; }
     if (document.fonts) window.VF.FONTS.forEach(f => { document.fonts.load('700 40px "' + f + '"').catch(() => {}); document.fonts.load('400 40px "' + f + '"').catch(() => {}); });
+    const h = hereGet('motion');
     await this.refresh();
-    let last = null; try { last = sessionStorage.getItem('motiondesign.open'); } catch (e) {}
-    if (last) { const p = this.state.projects.find(x => x.id === last); if (p) this.openProject(p); }
+    if (h && h.id) { const p = this.state.projects.find(x => x.id === h.id); if (p) this.openProject(p); }
   }
   async refresh() {
     try { const list = await window.VF.store.list(); if (this.alive) this.setState({ projects: list, loaded: true }); }
@@ -109,7 +112,7 @@ class Component extends DCLogic {
     for (const m of p.media) { try { const r = await VF.store.getMedia(m.id); if (r && r.blob) { this.urls[m.id] = URL.createObjectURL(r.blob);
       if (m.kind === 'image' && /png|webp|gif/.test(r.blob.type || r.type || '') && !/^data:image\/(webp|png)/.test(m.thumb || '')) { const im = new Image(); im.src = this.urls[m.id]; try { await im.decode(); const th = this.thumbOf(im, im.naturalWidth, im.naturalHeight, true); if (th) m.thumb = th; } catch (e) {} } } } catch (e) {} }
     this.dirty = false; this.past = []; this.future = []; this.t = 0; this.playing = false; this.nd = {};
-    try { sessionStorage.setItem('motiondesign.open', p.id); } catch (e) {}
+    hereSet('motion', { v: 'edit', id: p.id });
     this.setState({ view: 'edit', proj: p, sel: null, t: 0, playing: false, tab: 'media', replaceFor: null, exp: null, saved: '', msg: '' }, () => { this.syncMediaEls(); setTimeout(this.fitZoom, 60); (async () => { for (const m of p.media) if (m.kind !== 'image' && this.state.proj && this.state.proj.id === p.id) await this.makeWave(m.id); })(); });
   }
   closeMedia() {
@@ -121,7 +124,7 @@ class Component extends DCLogic {
   leave = async () => {
     this.stop(); if (this._svT) await this.saveNow();
     else if (this.dirty) { const q = 'Du har endringer som ikke er lagret. Vil du lagre dem før du går tilbake?'; if (window.confirm(window.MLI18N ? window.MLI18N.t(q) : q)) await this.saveNow(); this.dirty = false; }
-    this.closeMedia(); try { sessionStorage.removeItem('motiondesign.open'); } catch (e) {}
+    this.closeMedia(); hereSet('motion', null);
     this.setState({ view: 'home', proj: null, sel: null, exp: null }); this.refresh();
   };
   async delProject(p) {

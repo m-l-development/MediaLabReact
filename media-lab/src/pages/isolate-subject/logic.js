@@ -1,6 +1,7 @@
 /* Konvertert fra den gamle dc-siden isolate-subject.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { onUpdate } from '../../shared/ml-update.js';
 class Component extends DCLogic {
   state = { phase: 'empty', mode: null, busy: '', pct: 0, soft: 1, tight: 2, crop: false, fillMode: 'fill', bgType: 'none', bg: '#ffffff', bgHex: '#1d3557', cmp: 0, err: '', note: '', name: '', dims: '', drag: false, ready: false, pts: [], ptLabel: 0, view: 'mark', histN: 0, done: false, adv: false };
   viewRef = React.createRef(); fileRef = React.createRef();
@@ -15,6 +16,7 @@ class Component extends DCLogic {
     text: { label: 'Tekst', desc: 'På ensfarget bakgrunn', note: 'Fjerner bakgrunnsfargen, også inni bokstavene.' }
   };
   componentDidMount() {
+    onUpdate({ note: () => this.state.phase !== 'empty' });
     this.alive = true;
     this.onPaste = e => { const it = Array.from((e.clipboardData && e.clipboardData.items) || []).find(i => i.type && i.type.indexOf('image/') === 0); if (it) { e.preventDefault(); this.load(it.getAsFile()); } };
     window.addEventListener('paste', this.onPaste);

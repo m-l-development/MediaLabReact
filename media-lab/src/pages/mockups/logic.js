@@ -1,6 +1,8 @@
 /* Konvertert fra den gamle dc-siden mockups.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { onUpdate } from '../../shared/ml-update.js';
+import { hereGet, hereSet } from '../../shared/here.js';
 const DEF = { fit: 'cover', zoom: 1, ox: 0, oy: 0, bg: '#ffffff', shade: 0.6, gloss: 0.35, occl: true, corners: null };
 const LS = 'mockups.settings';
 const css = u => u ? 'url("' + String(u).replace(/["\\\n]/g, '') + '")' : 'none';
@@ -13,6 +15,7 @@ class Component extends DCLogic {
   imgs = {}; auto = {}; cardEls = {}; cardRefs = {};
 
   componentDidMount() {
+    onUpdate({ note: () => !!this.state.design });
     this.alive = true;
     try { const s = JSON.parse(localStorage.getItem(LS) || '{}'); if (s && typeof s === 'object') this.setState({ set: s }); } catch (e) {}
     this.onResize = () => { const n = window.innerWidth < 860; if (n !== this.state.narrow) this.setState({ narrow: n }); this.measure(); };
@@ -22,10 +25,14 @@ class Component extends DCLogic {
       if (e.key === 'ArrowLeft') { e.preventDefault(); this.step(-1); } else if (e.key === 'ArrowRight') { e.preventDefault(); this.step(1); } else if (e.key === 'Escape') { if (this.state.adj) this.setState({ adj: false }); else this.back(); }
     };
     window.addEventListener('keydown', this.onKey);
+    this._here = hereGet('mockups'); this._hereT = setTimeout(() => { this._here = null; }, 10000);
     this.boot();
   }
-  componentWillUnmount() { (this._urls || []).forEach(u => URL.revokeObjectURL(u)); this.alive = false; window.removeEventListener('resize', this.onResize); window.removeEventListener('keydown', this.onKey); if (this.unrecv) this.unrecv(); if (this.ro) this.ro.disconnect(); clearTimeout(this._tt); }
+  componentWillUnmount() { clearTimeout(this._hereT); (this._urls || []).forEach(u => URL.revokeObjectURL(u)); this.alive = false; window.removeEventListener('resize', this.onResize); window.removeEventListener('keydown', this.onKey); if (this.unrecv) this.unrecv(); if (this.ro) this.ro.disconnect(); clearTimeout(this._tt); }
   componentDidUpdate() {
+    const S = this.state;
+    if (this._here && S.lib && S.lib.some(m => m.id === this._here.sel)) { const id = this._here.sel; this._here = null; clearTimeout(this._hereT); this.open(id); return; }
+    const hv = S.view === 'edit' && S.sel ? S.sel : ''; if (!this._here && hv !== this._hv) { this._hv = hv; hereSet('mockups', hv ? { v: 'edit', sel: hv } : null); }
     const el = this.stageRef.current; if (el && el !== this._roEl) { if (this.ro) this.ro.disconnect(); this._roEl = el; this.ro = new ResizeObserver(() => this.measure()); this.ro.observe(el); this.measure(); }
     if (!el && this._roEl) { if (this.ro) this.ro.disconnect(); this._roEl = null; }
     this.queueDraw();

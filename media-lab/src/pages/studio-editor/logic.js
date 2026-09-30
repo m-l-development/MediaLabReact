@@ -1,6 +1,7 @@
 /* Konvertert fra den gamle dc-siden studio-editor.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { onUpdate } from '../../shared/ml-update.js';
 class Component extends DCLogic {
   state = {
     ready: false, tab: 'program', programText: '', slides: [],
@@ -20,6 +21,7 @@ class Component extends DCLogic {
   media = { images: {}, video: null, vids: {} }; vidGain = {}; t0 = performance.now(); qrCache = {}; loading = {};
 
   componentDidMount() {
+    onUpdate({ save: () => { if (!Array.isArray(this.state.slides)) return null; this.saveNow(); return true; } });
     { const _ws = (fn, n = 0) => { if (window.MLShare) fn(); else if (n < 120) setTimeout(() => _ws(fn, n + 1), 50); }; _ws(() => { this._unr = window.MLShare.receive((b, n) => { if (!this.state.selected) { window.MLShare.toast('Velg en slide først, så legges bildet inn som bakgrunn.'); return; } this.onImgFile({ target: { files: [new File([b], n || 'bilde.png', { type: b.type })], value: '' } }); }, { accept: ['image'], when: () => !!this.state.selected }); }); }
     { const sp = document.getElementById('boot-splash'); if (sp) { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 300); } }
     this.alive = true;

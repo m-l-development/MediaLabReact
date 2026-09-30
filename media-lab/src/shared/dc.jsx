@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client';
 import './dc-base.css';
 import { keepFooterLikeRuntime, replayThemeTamper, RAW } from './runtime-quirks.js';
 import { stickyTitle } from './sticky-title.js';
+import './ml-update.js';
 
 export class DCLogic {
   constructor(props) { this.props = props || {}; this.state = {}; this.__host = undefined; }

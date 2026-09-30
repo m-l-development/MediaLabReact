@@ -31,8 +31,21 @@ const mockupIndex = () => ({
   },
 });
 
+/* versjonsnummer per bygg: bakes inn som __ML_BUILD__ og skrives til dist/version.json (src/shared/ml-update.js sammenligner dem) */
+const buildVersion = () => {
+  let id = 'dev';
+  return {
+    name: 'media-lab-version',
+    config(_, { command }) {
+      if (command === 'build') id = (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 10) + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      return { define: { __ML_BUILD__: JSON.stringify(id) } };
+    },
+    generateBundle() { if (id !== 'dev') this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ v: id }) + '\n' }); },
+  };
+};
+
 export default defineConfig({
-  plugins: [react(), csp(), mockupIndex()],
+  plugins: [react(), csp(), mockupIndex(), buildVersion()],
   appType: 'mpa',
   publicDir: 'public',
   resolve: { alias: { '@ml': path.join(ROOT, 'src/legacy') } },

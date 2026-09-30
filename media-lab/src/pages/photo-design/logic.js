@@ -1,6 +1,8 @@
 /* Konvertert fra den gamle dc-siden photo-design.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { onUpdate } from '../../shared/ml-update.js';
+import { hereGet, hereSet } from '../../shared/here.js';
 const PAL = ['#ffffff', '#000000', '#111111', '#e9e7e2', '#f5b82c', '#e4411f', '#c0392b', '#1d2a3a', '#0495c0', '#2a9d8f', '#7b3fe4', '#e84393'];
 const ADJL = [['exp', 'Eksponering'], ['bri', 'Lysstyrke'], ['con', 'Kontrast'], ['hi', 'Høylys'], ['sh', 'Skygger'], ['sat', 'Metning'], ['temp', 'Temperatur'], ['tint', 'Fargetone'], ['hue', 'Nyanse', -180, 180], ['fade', 'Falming', 0, 100], ['blur', 'Uskarphet', 0, 100], ['vig', 'Vignett'], ['grain', 'Korn', 0, 100]];
 const T = s => window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s;
@@ -17,7 +19,8 @@ class Component extends DCLogic {
   M = { media: {}, masks: {} }; past = []; future = []; tplEls = {}; tplRefs = {};
 
   componentDidMount() {
-    this.alive = true; this.refresh();
+    onUpdate({ save: () => this.state.view === 'edit' && this.state.doc ? this.saveNow().then(() => !this.dirty) : null, busy: () => !!this.state.busy });
+    this.alive = true; this._here = hereGet('photo'); this.refresh().then(() => this.restoreHere());
     this.onResize = () => { const n = window.innerWidth < 980; if (n !== this.state.narrow) this.setState({ narrow: n }); this.measure(); }; window.addEventListener('resize', this.onResize); this.onResize();
     this.onKey = e => this.key(e); window.addEventListener('keydown', this.onKey);
     this.onBU = e => { if (this.dirty && this.state.view === 'edit') { e.preventDefault(); e.returnValue = ''; } }; window.addEventListener('beforeunload', this.onBU);
@@ -28,7 +31,9 @@ class Component extends DCLogic {
   componentDidUpdate() {
     const el = this.stageRef.current; if (el && el !== this._roEl) { if (this.ro) this.ro.disconnect(); this._roEl = el; this.ro = new ResizeObserver(() => this.measure()); this.ro.observe(el); this.measure(); }
     if (!el) this._roEl = null; this.queueDraw();
+    const S = this.state, hv = S.view === 'edit' && S.doc ? S.doc.id : ''; if (hv !== this._hv) { this._hv = hv; hereSet('photo', hv ? { v: 'edit', id: hv } : null); }
   }
+  restoreHere() { const h = this._here; this._here = null; if (!h || h.v !== 'edit' || !this.alive || this.state.view !== 'home') return; const p = this.state.projects.find(x => x.id === h.id && !x.tpl); if (p) this.open(p); }
   /* ---------- avansert modus: effektbibliotek ---------- */
   fxFileRef = React.createRef(); fxThumbs = {}; fxQ = []; fxQK = new Set();
   advOn() { const F = window.MLFX; return this.state.adv != null ? this.state.adv : !!(F && F.adv()); }
