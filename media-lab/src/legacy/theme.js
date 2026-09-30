@@ -12,7 +12,9 @@
     if (mx - mn <= 28) {
       if (/shadow/.test(prop) && avg < 80) return null;
       if (/^background/.test(prop) && a < 0.3 && avg > 150) return null;
-      var G = 228 - (avg / 255) * 208, dr = r - avg, dg = g - avg, db = b - avg;
+      /* tekst snus med en kurve så dempede grånyanser blir tydelig mørke på offwhite; flater og kanter litt mørkere enn lineært, så de skiller seg fra bakgrunnen */
+      var t = avg / 255, txt = /^(color|caret-color|fill|stroke|-webkit-text-fill-color|text-decoration-color)$/.test(prop);
+      var G = txt ? 18 + 210 * Math.pow(1 - t, 1.6) : 228 - 208 * Math.pow(t, 0.85), dr = r - avg, dg = g - avg, db = b - avg;
       if (Math.abs(dr) < 2 && Math.abs(dg) < 2 && Math.abs(db) < 2) { var k = G / 228; dr = 1.5 * k; dg = 0; db = -4.5 * k; }
       return [cl(G + dr), cl(G + dg), cl(G + db), a];
     }

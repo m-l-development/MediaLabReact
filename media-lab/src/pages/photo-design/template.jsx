@@ -266,7 +266,7 @@ export default function template(v) {
       {"\n\n  "}
       {v.isEdit ? <>
         {"\n    "}
-        <div data-dc-tpl="90" data-ml-bg="static" style={{"flex":"1","height":"100dvh","display":"flex","flexDirection":"column","overflow":"clip"}}>
+        <div data-dc-tpl="90" data-ml-bg="static" style={{"flex":"1","height":"100dvh","minHeight":v.rootMinH,"maxHeight":v.rootMaxH,"display":"flex","flexDirection":"column","overflow":"clip"}}>
           {"\n      "}
           <header data-dc-tpl="91" style={{"position":"sticky","top":"0","zIndex":"40","display":"flex","alignItems":"center","gap":"8px","padding":"10px 14px","borderBottom":"1px solid #1c1c1c","background":"#0b0b0b","flexWrap":"wrap"}}>
             {"\n        "}
@@ -1155,13 +1155,11 @@ export default function template(v) {
                   <div data-dc-tpl="363" style={css(`position:absolute; left:${v.safeI ?? ""}; top:${v.safeI ?? ""}; right:${v.safeI ?? ""}; bottom:${v.safeI ?? ""}; border:1px dashed rgba(255,63,164,0.85); pointer-events:none; z-index:3;`, "position:absolute; left:{{ safeI }}; top:{{ safeI }}; right:{{ safeI }}; bottom:{{ safeI }}; border:1px dashed rgba(255,63,164,0.85); pointer-events:none; z-index:3;")} />
                 </> : null}
                 {"\n            "}
-                {v.guideX ? <>
-                  <div data-dc-tpl="365" style={{"position":"absolute","left":"50%","top":"0","bottom":"0","width":"1px","background":"#ff3fa4","pointerEvents":"none"}} />
-                </> : null}
-                {"\n            "}
-                {v.guideY ? <>
-                  <div data-dc-tpl="367" style={{"position":"absolute","top":"50%","left":"0","right":"0","height":"1px","background":"#ff3fa4","pointerEvents":"none"}} />
-                </> : null}
+                {list(v.guideLines).map((g, i) => <div key={'gl' + i} style={{"position":"absolute","left":g.left,"top":g.top,"width":g.w,"height":g.h,"background":"#9b1c3c","pointerEvents":"none","zIndex":4}} />)}
+                {list(v.guideMarks).map((g, i) => <React.Fragment key={'gm' + i}>
+                  <div style={{"position":"absolute","left":g.left,"top":g.top,"width":g.w,"height":g.h,"background":"#9b1c3c","pointerEvents":"none","zIndex":4}} />
+                  <span data-no-i18n="1" style={{"position":"absolute","left":g.lx,"top":g.ly,"transform":"translate(-50%, -50%)","padding":"1px 5px","borderRadius":"4px","background":"#9b1c3c","color":"#ffffff","fontSize":"10px","fontWeight":"700","lineHeight":"14px","pointerEvents":"none","zIndex":5,"whiteSpace":"nowrap"}}>{g.label}</span>
+                </React.Fragment>)}
                 {"\n            "}
                 {v.hasBox ? <>
                   {"\n              "}

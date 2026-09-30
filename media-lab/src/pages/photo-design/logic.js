@@ -14,7 +14,7 @@ const LOGOS = [['images/logo-symbol.png', 'Livets Ord-symbol'], ['images/logo-kb
 
 class Component extends DCLogic {
   state = { view: 'home', projects: [], fmt: 'sq', cw: 1200, ch: 800, doc: null, sel: null, multi: [], tool: 'move', tab: 'layer', brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false,
-    busy: '', pct: 0, toast: '', saved: '', autosave: (() => { try { return localStorage.getItem('photodesign.autosave') === '1'; } catch (e) { return false; } })(), guides: { x: false, y: false }, lib: null, libOpen: false, logoOpen: false, fillOpen: true, ltab: 'lag', linkCol: false, tplCat: (() => { try { const t = localStorage.getItem('photodesign.tplcat'); if (typeof t === 'string' && t.length) return t; } catch (e) {} return null; })(), cats: (() => { try { const c = JSON.parse(localStorage.getItem('photodesign.cats')); if (Array.isArray(c) && c.length) return c.filter(x => typeof x === 'string').slice(0, 20); } catch (e) {} return ['Søndagsmøte', 'Kveldsbibelskole', 'Ungdomsmøte']; })(), newCol: (() => { try { return localStorage.getItem('photodesign.newcol') || null; } catch (e) { return null; } })(), dragOver: false, brushXY: null, narrow: false, hist: 0 };
+    busy: '', pct: 0, toast: '', saved: '', autosave: (() => { try { return localStorage.getItem('photodesign.autosave') === '1'; } catch (e) { return false; } })(), guides: null, lib: null, libOpen: false, logoOpen: false, fillOpen: true, ltab: 'lag', linkCol: false, tplCat: (() => { try { const t = localStorage.getItem('photodesign.tplcat'); if (typeof t === 'string' && t.length) return t; } catch (e) {} return null; })(), cats: (() => { try { const c = JSON.parse(localStorage.getItem('photodesign.cats')); if (Array.isArray(c) && c.length) return c.filter(x => typeof x === 'string').slice(0, 20); } catch (e) {} return ['Søndagsmøte', 'Kveldsbibelskole', 'Ungdomsmøte']; })(), newCol: (() => { try { return localStorage.getItem('photodesign.newcol') || null; } catch (e) { return null; } })(), dragOver: false, brushXY: null, narrow: false, hist: 0 };
   fileRef = React.createRef(); stageRef = React.createRef(); wrapRef = React.createRef(); canvasRef = React.createRef(); curveRef = React.createRef(); textRef = React.createRef(); bkFileRef = React.createRef();
   M = { media: {}, masks: {} }; past = []; future = []; tplEls = {}; tplRefs = {};
 
@@ -227,11 +227,55 @@ class Component extends DCLogic {
   }
   dragMany(e, ids, p0) {
     const d = this.state.doc, set = new Set(ids), orig = {}; d.layers.forEach(L => { if (set.has(L.id) && !L.locked) orig[L.id] = [L.x, L.y]; });
-    const b = this.bounds(d.layers.filter(L => orig[L.id])), cx0 = (b.x0 + b.x1) / 2, cy0 = (b.y0 + b.y1) / 2, th = 8 / this.sc(); let moved = false;
+    if (!Object.keys(orig).length) return;
+    const b0 = this.bounds(d.layers.filter(L => orig[L.id])), P = this.snapPrep(Object.keys(orig)); let moved = false;
     this.track(e, ev => { const p = this.pt(ev); let dx = p[0] - p0[0], dy = p[1] - p0[1]; if (!moved && Math.hypot(dx, dy) < 2 / this.sc()) return; if (!moved) { moved = true; this.push(); }
-      const gx = !ev.altKey && Math.abs(cx0 + dx - d.w / 2) < th, gy = !ev.altKey && Math.abs(cy0 + dy - d.h / 2) < th; if (gx) dx = d.w / 2 - cx0; if (gy) dy = d.h / 2 - cy0;
-      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => orig[q.id] ? { ...q, x: Math.round((orig[q.id][0] + dx) * 10) / 10, y: Math.round((orig[q.id][1] + dy) * 10) / 10 } : q) }, guides: { x: gx, y: gy } })); },
-      () => { this.setState({ guides: { x: false, y: false } }); if (moved) this.queueSave(); });
+      const sn = this.snapAt(P, { x0: b0.x0 + dx, x1: b0.x1 + dx, y0: b0.y0 + dy, y1: b0.y1 + dy }, ev.altKey); dx += sn.dx; dy += sn.dy;
+      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => orig[q.id] ? { ...q, x: Math.round((orig[q.id][0] + dx) * 10) / 10, y: Math.round((orig[q.id][1] + dy) * 10) / 10 } : q) }, guides: sn })); },
+      () => { this.setState({ guides: null }); if (moved) this.queueSave(); });
+  }
+  /* ---------- hjelpelinjer ved flytting: lerretets kanter og midte, andre lags kanter og midte, og like avstander ---------- */
+  snapPrep(ids) {
+    const d = this.state.doc, set = new Set(ids);
+    const B = d.layers.filter(L => !set.has(L.id) && !L.hidden && L.type !== 'fx').map(L => this.bounds([L])).filter(b => isFinite(b.x0) && !(b.x1 - b.x0 >= d.w * 0.98 && b.y1 - b.y0 >= d.h * 0.98));
+    const tg = ax => { const c = ax === 'x' ? d.w : d.h, o = [{ v: 0 }, { v: c / 2 }, { v: c }]; B.forEach(b => { const a0 = ax === 'x' ? b.x0 : b.y0, a1 = ax === 'x' ? b.x1 : b.y1; o.push({ v: a0, b }, { v: (a0 + a1) / 2, b }, { v: a1, b }); }); return o; };
+    /* avstander mellom nabolag som ligger over/under (eller ved siden av) hverandre */
+    const gaps = ax => { const o = []; B.forEach(a => { let best = null; B.forEach(c => { if (a === c) return; const ov = ax === 'y' ? a.x0 < c.x1 && c.x0 < a.x1 : a.y0 < c.y1 && c.y0 < a.y1, g = ax === 'y' ? c.y0 - a.y1 : c.x0 - a.x1; if (ov && g > 0.5 && (!best || g < best.g)) best = { g, a, c }; }); if (best) o.push(best); }); return o; };
+    return { B, tx: tg('x'), ty: tg('y'), gx: gaps('x'), gy: gaps('y') };
+  }
+  snapAt(P, b, off) {
+    const d = this.state.doc, th = 7 / this.sc(), out = { dx: 0, dy: 0, lines: [], marks: [] }; if (off) return out;
+    const lo = (c, ax) => ax === 'x' ? c.x0 : c.y0, hi = (c, ax) => ax === 'x' ? c.x1 : c.y1;
+    const cross = (c, bb, ax) => ax === 'y' ? c.x0 < bb.x1 && bb.x0 < c.x1 : c.y0 < bb.y1 && bb.y0 < c.y1;
+    const nbrs = (bb, ax, t) => { let pre = null, nxt = null; P.B.forEach(c => { if (!cross(c, bb, ax)) return; if (hi(c, ax) <= lo(bb, ax) + t && (!pre || hi(c, ax) > hi(pre, ax))) pre = c; if (lo(c, ax) >= hi(bb, ax) - t && (!nxt || lo(c, ax) < lo(nxt, ax))) nxt = c; }); return { pre, nxt }; };
+    const axis = ax => {
+      const e0 = lo(b, ax), e1 = hi(b, ax), len = e1 - e0, cand = [];
+      (ax === 'x' ? P.tx : P.ty).forEach(t => [e0, e0 + len / 2, e1].forEach(e => { const df = t.v - e; if (Math.abs(df) < th) cand.push({ d: df, k: 0 }); }));
+      const { pre, nxt } = nbrs(b, ax, th);
+      const add = (pos, sp) => { const df = pos - e0; if (Math.abs(df) < th) cand.push({ d: df, k: 1, sp }); };
+      if (pre && nxt) add((hi(pre, ax) + lo(nxt, ax) - len) / 2, { side: 'mid' });
+      (ax === 'x' ? P.gx : P.gy).forEach(g => { if (pre) add(hi(pre, ax) + g.g, { side: 'pre', ref: g }); if (nxt) add(lo(nxt, ax) - g.g - len, { side: 'nxt', ref: g }); });
+      /* justering mot kanter/midter går foran lik avstand når de er omtrent like nære */
+      const pen = 2 / this.sc(); cand.sort((p, q) => (Math.abs(p.d) + p.k * pen) - (Math.abs(q.d) + q.k * pen)); return cand[0] || null;
+    };
+    const cx = axis('x'), cy = axis('y'); if (cx) out.dx = cx.d; if (cy) out.dy = cy.d;
+    const f = { x0: b.x0 + out.dx, x1: b.x1 + out.dx, y0: b.y0 + out.dy, y1: b.y1 + out.dy };
+    /* linjer for alt som nå står på linje med det som flyttes */
+    const seen = {};
+    ['x', 'y'].forEach(ax => (ax === 'x' ? P.tx : P.ty).forEach(t => { const e0 = lo(f, ax), e1 = hi(f, ax); if (![e0, (e0 + e1) / 2, e1].some(e => Math.abs(t.v - e) < 0.6)) return;
+      const k = ax + Math.round(t.v); const o = ax === 'x' ? 'y' : 'x', a = t.b ? Math.min(lo(f, o), lo(t.b, o)) : 0, z = t.b ? Math.max(hi(f, o), hi(t.b, o)) : (o === 'x' ? d.w : d.h);
+      if (seen[k]) { seen[k][1] = Math.min(seen[k][1], a); seen[k][2] = Math.max(seen[k][2], z); return; }
+      seen[k] = ax === 'x' ? [t.v, a, z, 'v'] : [t.v, a, z, 'h']; }));
+    out.lines = Object.values(seen).map(([v, a, z, dir]) => dir === 'v' ? [v, a, v, z] : [a, v, z, v]);
+    /* avstandsmerker når en lik avstand er brukt */
+    const gapMark = (a, c, ax) => { const o = ax === 'x' ? 'y' : 'x', m = (Math.max(lo(a, o), lo(c, o)) + Math.min(hi(a, o), hi(c, o))) / 2, s0 = hi(a, ax), s1 = lo(c, ax), g = Math.round(s1 - s0); if (g < 1) return; out.marks.push(ax === 'x' ? [s0, m, s1, m, g] : [m, s0, m, s1, g]); };
+    ['x', 'y'].forEach(ax => {
+      const { pre, nxt } = nbrs(f, ax, 0.6), gp = pre ? lo(f, ax) - hi(pre, ax) : -1, gn = nxt ? lo(nxt, ax) - hi(f, ax) : -1, eq = (a, b) => a > 0.5 && Math.abs(a - b) < 0.6;
+      if (eq(gp, gn)) { gapMark(pre, f, ax); gapMark(f, nxt, ax); return; }
+      const G = ax === 'x' ? P.gx : P.gy, rp = G.find(g => eq(gp, g.g)), rn = G.find(g => eq(gn, g.g));
+      if (rp) { gapMark(pre, f, ax); gapMark(rp.a, rp.c, ax); } else if (rn) { gapMark(f, nxt, ax); gapMark(rn.a, rn.c, ax); }
+    });
+    return out;
   }
   /* skalerer alle valgte lag likt ut fra motsatt hjørne, så forholdet mellom dem aldri endres */
   groupScale(e, sx, sy) {
@@ -246,6 +290,27 @@ class Component extends DCLogic {
           if (L.type === 'text') { o.tsx = Math.min(20, (L.tsx || 1) * ku); o.tsy = Math.min(20, (L.tsy || 1) * kv); } else { if (typeof L.w === 'number') o.w = L.w * ku; if (typeof L.h === 'number') o.h = L.h * kv; } }
         return { ...q, ...o }; }) } })); },
       () => this.queueSave());
+  }
+  /* bytt format: alt regnes fra oppsettet før forrige bytte hvis ingenting er endret siden (frem og tilbake gir samme resultat).
+     Lag som går kant til kant strekkes i den retningen, lag inntil en kant blir liggende der, ellers flyttes de forholdsmessig og skaleres likt. */
+  changeFormat(f) {
+    const d = this.state.doc; if (!d || (d.w === f.w && d.h === f.h)) return;
+    const key = q => JSON.stringify([q.w, q.h, q.layers, q.back ? q.back.layers : null]);
+    const B = this._fmtBase && this._fmtBase.id === d.id && this._fmtBase.after === key(d) ? this._fmtBase : { id: d.id, w: d.w, h: d.h, layers: d.layers, back: d.back ? d.back.layers : null };
+    const kx = f.w / B.w, ky = f.h / B.h, k = Math.min(kx, ky), e = 1;
+    const fit = L => {
+      const b = this.bounds([L]), tl = b.x0 <= e, tr = b.x1 >= B.w - e, tt = b.y0 <= e, tb = b.y1 >= B.h - e, fw = tl && tr, fh = tt && tb, txt = L.type === 'text';
+      const sx = txt ? k : fw ? kx : k, sy = txt ? k : fh ? ky : k, o = { ...L };
+      o.x = fw ? L.x * kx : tl ? b.x0 + (L.x - b.x0) * sx : tr ? f.w + (b.x1 - B.w) - (b.x1 - L.x) * sx : L.x * kx;
+      o.y = fh ? L.y * ky : tt ? b.y0 + (L.y - b.y0) * sy : tb ? f.h + (b.y1 - B.h) - (b.y1 - L.y) * sy : L.y * ky;
+      if (txt) { o.size = L.size * k; ['strokeW', 'ls', 'barH'].forEach(p => { if (typeof L[p] === 'number') o[p] = L[p] * k; }); }
+      else { if (typeof L.w === 'number') o.w = L.w * sx; if (typeof L.h === 'number') o.h = L.h * sy; ['strokeW', 'radius'].forEach(p => { if (typeof L[p] === 'number') o[p] = L[p] * k; }); }
+      return o;
+    };
+    const of = window.PD.FORMATS.find(x => x.w === d.w && x.h === d.h), rename = of && d.name === T(of.l);
+    const nd = { ...d, w: f.w, h: f.h, layers: B.layers.map(fit), back: d.back ? { ...d.back, layers: (B.back || d.back.layers).map(fit) } : d.back, name: rename ? T(f.l) : d.name };
+    this._fmtBase = { ...B, after: key(nd) };
+    this.setDoc(() => nd); this.setState({ zoom: 1 }, () => this.measure());
   }
   centerSel() { const set = new Set(this.selIds()), d = this.state.doc, b = this.bounds(d.layers.filter(L => set.has(L.id))), dx = d.w / 2 - (b.x0 + b.x1) / 2, dy = d.h / 2 - (b.y0 + b.y1) / 2; this.setDoc(q => ({ ...q, layers: q.layers.map(L => set.has(L.id) && !L.locked ? { ...L, x: L.x + dx, y: L.y + dy } : L) })); }
   move(id, dir) { this.setDoc(d => { const a = d.layers.slice(), i = a.findIndex(L => L.id === id), j = i + dir; if (i < 0 || j < 0 || j >= a.length) return d; const t = a[i]; a[i] = a[j]; a[j] = t; return { ...d, layers: a }; }); }
@@ -359,13 +424,7 @@ class Component extends DCLogic {
   wrapLeave = () => { if (this.state.brushXY) this.setState({ brushXY: null }); };
   wrapDbl = e => { const L = window.PD.hit(this.state.doc, ...this.pt(e)); if (!L) return; if (L.type === 'text') { this.setState({ sel: L.id, multi: [], tab: 'layer' }, () => { const t = this.textRef.current; if (t) { t.focus(); t.select(); } }); } else if (L.type === 'image') { this.setState({ sel: L.id, multi: [], tool: this.state.tool === 'crop' ? 'move' : 'crop', tab: 'layer' }); } };
   track(e, mv, up) { const id = e.pointerId, m = ev => { if (ev.pointerId === id) mv(ev); }, u = ev => { if (ev.pointerId !== id) return; window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u); window.removeEventListener('pointercancel', u); if (up) up(ev); }; window.addEventListener('pointermove', m); window.addEventListener('pointerup', u); window.addEventListener('pointercancel', u); }
-  dragMove(e, L, p0) {
-    const d = this.state.doc, x0 = L.x, y0 = L.y, th = 8 / this.sc(); let moved = false;
-    this.track(e, ev => { const p = this.pt(ev); let x = x0 + p[0] - p0[0], y = y0 + p[1] - p0[1]; if (!moved && Math.hypot(p[0] - p0[0], p[1] - p0[1]) < 2 / this.sc()) return; if (!moved) { moved = true; this.push(); }
-      const gx = !ev.altKey && Math.abs(x - d.w / 2) < th, gy = !ev.altKey && Math.abs(y - d.h / 2) < th; if (gx) x = d.w / 2; if (gy) y = d.h / 2;
-      this.setState(s => ({ doc: { ...s.doc, layers: s.doc.layers.map(q => q.id === L.id ? { ...q, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 } : q) }, guides: { x: gx, y: gy } })); },
-      () => { this.setState({ guides: { x: false, y: false } }); if (moved) this.queueSave(); });
-  }
+  dragMove(e, L, p0) { this.dragMany(e, [L.id], p0); }
   handleDown(e, kind, sx, sy) {
     e.preventDefault(); e.stopPropagation(); const PD = window.PD, L = this.selL(); if (!L) return; this.push();
     const dm = PD.dims(L), w0 = dm.w, h0 = dm.h, a = (L.rot || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), rot = (x, y) => [x * ca - y * sa, x * sa + y * ca];
@@ -517,6 +576,7 @@ class Component extends DCLogic {
       expScales: [1, 2].map(k => ({ l: k + '× · ' + d.w * k + ' × ' + d.h * k, ...chip(S.exp.scale === k), click: () => this.setState(z => ({ exp: { ...z.exp, scale: k } })) })),
       canTransp: S.exp.fmt === 'png', expT: S.exp.t, toggleTransp: () => this.setState(z => ({ exp: { ...z.exp, t: !z.exp.t } })), tTrack: et.track, tKnob: et.knob, tKnobBg: et.knobBg,
       dlLabel: S.busy === 'exp' ? 'Lager …' : 'Last ned', doDownload: this.doDownload, doCopy: this.doCopy, doSend: this.doSend,
+      rootMinH: S.narrow ? 'auto' : '0', rootMaxH: S.narrow ? 'none' : '100dvh', /* PC: editoren låses til skjermhøyden, ellers vokser arbeidsflaten med høye formater */
       cols: S.narrow ? 'minmax(0, 1fr)' : '230px minmax(0, 1fr) 290px', rows: S.narrow ? '60vh auto auto' : 'minmax(0, 1fr)', leftOrder: S.narrow ? 2 : 0, stageOrder: S.narrow ? 0 : 1, rightOrder: S.narrow ? 1 : 2,
       addBtns: [['Bilde', () => this.fileRef.current && this.fileRef.current.click()], ['Tekst', this.addText], ['Form', () => this.addShape('rect')], ['Sirkel', () => this.addShape('ellipse')], ['Toning', this.addGrad], ['Lys', this.addGlow], ['Logo', () => this.setState({ logoOpen: !S.logoOpen }), S.logoOpen], ['Delt mappe', () => window.MLShare && window.MLShare.pick((b, n) => this.addBlob(b, n), { accept: ['image'] })], ['Bibliotek', () => { const o = !S.libOpen; this.setState({ libOpen: o }); if (o && !S.lib) this.loadLib(); }, S.libOpen]]
         .map(([l, click, on]) => ({ l, click, border: on ? '#e9e7e2' : '#2b2b2b', bg: on ? '#1c1c1c' : '#121212' })),
@@ -538,7 +598,9 @@ class Component extends DCLogic {
         lock: e => { e.stopPropagation(); this.patchL(q.id, { locked: !q.locked }); }, lockT: q.locked ? 'Lås opp' : 'Lås', lockC: q.locked ? '#f5b82c' : '#555555',
         del: e => { e.stopPropagation(); this.setDoc(dd => ({ ...dd, layers: dd.layers.filter(x => x.id !== q.id) })); if (S.sel === q.id) this.setState({ sel: null, multi: [], tool: 'move' }); } }; }),
       stageRef: this.stageRef, wrapRef: this.wrapRef, canvasRef: this.canvasRef, stageDown: this.stageDown, wrapDown: this.wrapDown, wrapMove: this.wrapMove, wrapLeave: this.wrapLeave, wrapDbl: this.wrapDbl,
-      cssW: d.w * s + 'px', cssH: d.h * s + 'px', cursor: S.tool === 'brush' ? 'none' : S.tool === 'crop' ? 'move' : 'default', guideX: S.guides.x, guideY: S.guides.y, dragOver: S.dragOver,
+      cssW: d.w * s + 'px', cssH: d.h * s + 'px', cursor: S.tool === 'brush' ? 'none' : S.tool === 'crop' ? 'move' : 'default', dragOver: S.dragOver,
+      guideLines: S.guides ? S.guides.lines.map(([x1, y1, x2, y2]) => ({ left: Math.min(x1, x2) * s + 'px', top: Math.min(y1, y2) * s + 'px', w: x1 === x2 ? '1px' : Math.abs(x2 - x1) * s + 'px', h: y1 === y2 ? '1px' : Math.abs(y2 - y1) * s + 'px' })) : [],
+      guideMarks: S.guides ? S.guides.marks.map(([x1, y1, x2, y2, g]) => { const v = x1 === x2; return { left: Math.min(x1, x2) * s + 'px', top: Math.min(y1, y2) * s + 'px', w: v ? '1px' : Math.abs(x2 - x1) * s + 'px', h: v ? Math.abs(y2 - y1) * s + 'px' : '1px', v, label: String(g), lx: (x1 + x2) / 2 * s + 'px', ly: (y1 + y2) / 2 * s + 'px' }; }) : [],
       hasBox: (!!L && !L.hidden) || isMulti, box, handles,
       multiBoxes: mLs.map(q => { const m = PD.dims(q); return { left: (q.x - m.w / 2) * s + 'px', top: (q.y - m.h / 2) * s + 'px', w: m.w * s + 'px', h: m.h * s + 'px', rot: (q.rot || 0) + 'deg' }; }),
       marqOn: !!S.marq, ...(S.marq ? { marqL: Math.min(S.marq[0], S.marq[2]) * s + 'px', marqT: Math.min(S.marq[1], S.marq[3]) * s + 'px', marqW: Math.abs(S.marq[2] - S.marq[0]) * s + 'px', marqH: Math.abs(S.marq[3] - S.marq[1]) * s + 'px' } : {}),
@@ -547,7 +609,7 @@ class Component extends DCLogic {
       showBrush: S.tool === 'brush' && !!S.brushXY, brushX: S.brushXY ? S.brushXY[0] * s + 'px' : '0px', brushY: S.brushXY ? S.brushXY[1] * s + 'px' : '0px', brushD: S.brush.size * s + 'px',
       hasBusy: !!S.busy && S.busy !== 'exp', busyLabel: { model: 'Laster ned AI-modell …', run: 'Klipper ut motivet …', load: 'Åpner …' }[S.busy] || '', pctLabel: S.busy === 'model' && S.pct ? S.pct + ' %' : '', busyAny: !!S.busy, busyOp: S.busy ? 0.5 : 1,
       noSel: !L && !isMulti, hasSel: !!L, docFmt: dfm ? dfm.k : 'custom', docDim: d.w + ' × ' + d.h + ' px', fmtOpts: PD.FORMATS.map(f => ({ v: f.k, l: T(f.l) + ' · ' + f.w + '×' + f.h })).concat(dfm ? [] : [{ v: 'custom', l: T('Egendefinert') + ' · ' + d.w + '×' + d.h }]),
-      onDocFmt: e => { const f = PD.FORMATS.find(x => x.k === e.target.value); if (!f) return; this.setDoc(q => { const kx = f.w / q.w, ky = f.h / q.h, k = Math.min(kx, ky); return { ...q, w: f.w, h: f.h, layers: q.layers.map(L2 => ({ ...L2, x: L2.x * kx, y: L2.y * ky, ...(L2.type === 'text' ? { size: L2.size * k } : { w: L2.w * k, h: L2.h * k }) })) }; }); this.setState({ zoom: 1 }, () => this.measure()); },
+      onDocFmt: e => { const f = PD.FORMATS.find(x => x.k === e.target.value); if (f) this.changeFormat(f); },
       bgHex: hex(d.bg || '#ffffff'), bgCmyk: this.cmykRow(d.bg || '#ffffff', v => this.setDoc(q => ({ ...q, bg: v, fill: null }), 'bg')),
       bleedOn: !!d.bleed, ...(() => { const o = tog(!!d.bleed); return { blTrack: o.track, blKnob: o.knob, blKnobBg: o.knobBg }; })(),
       toggleBleed: () => { const on = !d.bleed; this.setDoc(q => ({ ...q, bleed: on, layers: PD.bleedLayers(q.layers, q.w, q.h, on), back: q.back ? { ...q.back, layers: PD.bleedLayers(q.back.layers, q.w, q.h, on) } : q.back })); this.flash(on ? 'Bakgrunner og former som går helt ut til kanten, er forlenget 3 mm ut i utfallende område.' : 'Utfallende er slått av.'); },
