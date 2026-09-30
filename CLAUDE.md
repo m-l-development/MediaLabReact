@@ -10,7 +10,7 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 **Struktur (React, migrert fra dc-runtime; originalene og sammenligningstestene er fjernet, men finnes i git-historikken før commit «Fjern test- og migreringsfiler»):**
 - `*.dc.html` (samme filnavn som før) → `src/pages/<id>/main.jsx` + `logic.js` (klassen fra originalen, `extends DCLogic`) + `template.jsx` (JSX av `renderVals()`) + `pseudo.css` (hover/focus). **Rediger disse filene direkte** – de er nå kilden.
 - `src/shared/dc.jsx` (vert som erstatter dc-runtime), `src/shared/runtime-quirks.js` (etterligner synlige særheter fra runtimen: footer og lys modus).
-- `src/shared/sticky-title.js`: fast topplinje på verktøysidene. Topplinjen merkes `data-ml-bar`, den store tittelen `data-ml-title`; når tittelen er rullet bort, vises et uskarpt felt og liten tittel ved tilbakeknappen (lagt i `<body>`, tar ikke klikk). Nye sider: merk begge.
+- `src/shared/sticky-title.js`: fast topplinje. Topplinjen merkes `data-ml-bar`, den store tittelen `data-ml-title`. Startsidene: tittelen tones ut under linjen og vises liten ved tilbakeknappen – **aldri noe felt/boks bak linjen på startsidene** (brukerens ønske). Editorene (uten `data-ml-title`): tett felt bak linjen når siden er rullet. Tilbakeknapp + appnavn skal stå fast i alle verktøy og visninger, også ved rulling i sidepaneler.
 - `src/legacy/*.js`: i18n, theme, ml-*, *-engine – uendrede filer, importeres via `@ml/…`. `ukeloop-engine.js` lastes som klassisk skript (`?url`), fordi spiller-HTML bygges med `Function.toString()`.
 - `npm run dev` / `npm run build` (vite build → `dist/`; lager også `public/images/mockups/index.json`) / `npm run preview`. Dev og preview sender samme CSP som Vercel.
 
