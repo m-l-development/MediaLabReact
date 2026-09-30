@@ -173,7 +173,9 @@ export async function flow(browser, name, origUrl, reactUrl, steps, opts = {}) {
     /* rulleposisjon (vindu og rullbare paneler) er også en del av opplevelsen */
     scroll: [Math.round(scrollX), Math.round(scrollY), ...[...document.querySelectorAll('*')].filter(e => e.scrollTop > 0 || e.scrollLeft > 0).map(e => e.tagName + ':' + Math.round(e.scrollLeft) + ',' + Math.round(e.scrollTop) + ' «' + (e.innerText || '').replace(/\s+/g, ' ').slice(0, 40) + '»')],
   }));
-  const shot = P => P.screenshot({ fullPage: !opts.viewportOnly, animations: 'disabled', caret: 'hide', mask: [P.locator(opts.mask || ML_BG)], maskColor: '#000' });
+  /* footer-teksten maskeres: originalen skjuler den under skjermkanten når siden kommer fra hurtigbufferen
+     (kjent kappløp i runtimen, se docs/react-migrering/05-loop-studio.md); footer-oppførselen har egen test */
+  const shot = P => P.screenshot({ fullPage: !opts.viewportOnly, animations: 'disabled', caret: 'hide', mask: [P.locator(opts.mask || ML_BG), P.locator('footer span')], maskColor: '#000' });
   const report = [], warnings = [];
   const all = [...steps];
   const rng = seeded(opts.explore ? opts.explore.seed : 1);

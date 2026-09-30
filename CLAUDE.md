@@ -2,6 +2,8 @@
 
 Brukeren skriver norsk. Svar kort og direkte på norsk.
 
+GitHub: `zoefredrikstad-maker/LabMedia`, branch `main`.
+
 ## Filer
 All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene under viser til sidene i `media-lab/`; felles skript/motorer ligger i `media-lab/src/legacy/`, bilder/mockups i `media-lab/public/`.
 
@@ -10,7 +12,7 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 - `src/shared/dc.jsx` (vert som erstatter dc-runtime), `src/shared/runtime-quirks.js` (etterligner synlige særheter fra runtimen: footer og lys modus).
 - `src/legacy/*.js`: i18n, theme, ml-*, *-engine – uendrede filer, importeres via `@ml/…`. `ukeloop-engine.js` lastes som klassisk skript (`?url`), fordi spiller-HTML bygges med `Function.toString()`.
 - `legacy-dc/`: originalsidene med dc-runtime, bare til sammenligning (`/_original/…` i dev/preview). Deployes ikke. `npm run convert` (scripts/dc2jsx.mjs) kan generere sidene på nytt fra dem – **ikke gjør det etter at React-sidene er endret for hånd**.
-- `npm run dev` / `npm run build` (mockup-index + vite build → `dist/`) / `npm test` (Playwright: skjermbilder, flyttester og utforskning i takt mot originalen, under samme CSP som Vercel). `tests-grunnlinje/` lager grunnlinjebilder av originalene.
+- `npm run dev` / `npm run build` (mockup-index + vite build → `dist/`) / `npm test` (Playwright: skjermbilder, flyttester og utforskning i takt mot originalen, under samme CSP som Vercel).
 
 - `media-lab.dc.html` – forsiden (Media Lab). Kort: Loop Studio, Isolate Subject, Thumbnail Studio. Språkbytte NO/EN, mørk/lys-knapp nede til høyre (mørk er standard, lys = dempet off-white #e4e1da).
 - `loop-studio.dc.html` (+ `loop-editor.dc.html`) / `studio-editor.dc.html` (Ukeprogram Loop) + `ukeloop-engine.js` – loopende video av ukeprogram. Tilfeldig farge-knapp (bare trykkbar, ikke alltid aktiv) med 100+ klassiske fargepaletter, lydbibliotek.

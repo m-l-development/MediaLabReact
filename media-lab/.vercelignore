@@ -6,7 +6,6 @@ test-results/
 test-results-*
 *.log
 tests/
-tests-grunnlinje/
 legacy-dc/
 playwright.config.js
 .DS_Store

@@ -2,7 +2,6 @@
 uploads/
 screenshots/
 docs/
-.thumbnail
 **/node_modules/
 **/.cache/
 **/dist/
@@ -10,7 +9,6 @@ docs/
 **/test-results-*
 **/*.log
 media-lab/tests/
-media-lab/tests-grunnlinje/
 media-lab/legacy-dc/
 media-lab/playwright.config.js
 .DS_Store

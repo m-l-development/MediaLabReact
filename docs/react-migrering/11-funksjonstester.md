@@ -27,3 +27,9 @@ De nye funksjonstestene for Loop, Thumbnail, Photo, Motion og deling kjøres på
 ## Endringer i appen underveis (for å være lik originalen)
 - Elementene har fått **`data-dc-tpl`** som i originalen, så DOM-strukturen er identisk (kontrollert på alle 9 sider).
 - **Lys modus + engelsk ved oppstart:** i originalen ble elementer som bare inneholder tekst laget på nytt når i18n.js hadde oversatt dem, og de slapp dermed font-særheten. `runtime-quirks.js` tar nå hensyn til dette (malteksten per element kommer fra `export const inline` i hver `template.jsx`).
+
+## Siste fulle kjøring
+
+129 passert, 15 hoppet over (mobilvarianter og Whisper), 2 med pikselavvik på mobil. Begge skyldes kappløp i den gamle runtimen etter navigering (siden hentes fra hurtigbufferen):
+- Footer-teksten under skjermkanten er skjult i originalen (se 05-loop-studio.md). Den maskeres nå i skjermbildene, fordi footeren har en egen test.
+- Lys modus: knapper med `font`-kortform (f.eks. «Nytt bilde», «Last ned sikkerhetskopi») mister fet skrift i originalen bare når andre kompilering vinner over asynkron innlasting. React følger oppførselen ved første besøk. Det er et kosmetisk avvik i originalen, ikke en funksjonsfeil.
