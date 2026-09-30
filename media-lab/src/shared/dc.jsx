@@ -128,4 +128,6 @@ export function mountPage(name, Logic, template, inline) {
   let el = document.getElementById('dc-root');
   if (!el) { el = document.createElement('div'); el.id = 'dc-root'; document.body.prepend(el); }
   createRoot(el).render(<Host />);
+  /* siden startet: selvreparasjonen (vite.config.js) kan brukes igjen ved neste feil */
+  setTimeout(() => { try { sessionStorage.removeItem('medialab.heal'); } catch (e) {} }, 3000);
 }

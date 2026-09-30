@@ -44,8 +44,18 @@ const buildVersion = () => {
   };
 };
 
+/* Selvreparasjon: Vercel sender «immutable» også på 404 under /assets/. Får nettleseren en 404 like mens en ny versjon
+   publiseres, husker den feilen og siden blir svart. Feiler en fil under /assets/, hentes alle sidens filer på nytt forbi
+   cachen og siden lastes én gang til. Flagget i sessionStorage hindrer løkker; mountPage (dc.jsx) fjerner det når siden har startet. */
+const HEAL = `(function(){var K='medialab.heal',d=false;function heal(){if(d)return;d=true;try{if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1')}catch(e){return}
+var u=[].map.call(document.querySelectorAll('script[type=module][src],link[rel=modulepreload][href],link[rel=stylesheet][href*="/assets/"]'),function(e){return e.src||e.href});
+Promise.all(u.map(function(x){return fetch(x,{cache:'reload',credentials:'same-origin'}).catch(function(){})})).then(function(){location.reload()})}
+addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&(t.tagName==='SCRIPT'||t.tagName==='LINK')&&/\\/assets\\//.test(t.src||t.href||''))heal()},true);
+addEventListener('vite:preloadError',function(e){e.preventDefault();heal()})})();`;
+const selfHeal = () => ({ name: 'media-lab-self-heal', apply: 'build', transformIndexHtml: () => [{ tag: 'script', children: HEAL, injectTo: 'head-prepend' }] });
+
 export default defineConfig({
-  plugins: [react(), csp(), mockupIndex(), buildVersion()],
+  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal()],
   appType: 'mpa',
   publicDir: 'public',
   resolve: { alias: { '@ml': path.join(ROOT, 'src/legacy') } },
