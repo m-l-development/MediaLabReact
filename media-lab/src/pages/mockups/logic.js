@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/mockups.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden mockups.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
 const DEF = { fit: 'cover', zoom: 1, ox: 0, oy: 0, bg: '#ffffff', shade: 0.6, gloss: 0.35, occl: true, corners: null };

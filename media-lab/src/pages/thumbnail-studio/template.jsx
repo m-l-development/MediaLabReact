@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/thumbnail-studio.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden thumbnail-studio.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { I, css, val, chk, list } from '../../shared/dc.jsx';
 

@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/admin.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden admin.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
 const FOLD = [['mockups', 'Mockups', 'img'], ['faste', 'Faste bilder', 'img'], ['logoer', 'Logoer', 'img'], ['bakgrunner', 'Bakgrunner og maler', 'img'], ['lyd', 'Lydbibliotek', 'audio']];

@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/photo-design.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden photo-design.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
 const PAL = ['#ffffff', '#000000', '#111111', '#e9e7e2', '#f5b82c', '#e4411f', '#c0392b', '#1d2a3a', '#0495c0', '#2a9d8f', '#7b3fe4', '#e84393'];

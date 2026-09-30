@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/motion-design.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden motion-design.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
 const KEYS = { clip: 'clips', text: 'texts', sub: 'subs', music: 'music', ov: 'ov' };

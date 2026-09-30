@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/studio-editor.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden studio-editor.dc.html. Dette er nå kilden – rediger direkte. */
 import '@ml/ml-pwa.js';
 import '@ml/i18n.js';
 import '@ml/ml-footer.js';
@@ -12,5 +12,5 @@ import Logic from './logic.js';
 import template, { inline } from './template.jsx';
 import './pseudo.css';
 
-/* ukeloop-engine.js lastes uendret som klassisk skript (se CLASSIC i dc2jsx.mjs) før siden monteres */
+/* ukeloop-engine.js lastes uendret som klassisk skript før siden monteres (spiller-HTML bygges med Function.toString()) */
 loadClassic([classic0]).then(() => mountPage("studio-editor", Logic, template, inline));

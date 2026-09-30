@@ -7,12 +7,11 @@ GitHub: `zoefredrikstad-maker/LabMedia`, branch `main`.
 ## Filer
 All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene under viser til sidene i `media-lab/`; felles skript/motorer ligger i `media-lab/src/legacy/`, bilder/mockups i `media-lab/public/`.
 
-**Struktur etter React-migreringen (se `docs/react-migrering/`):**
+**Struktur (React, migrert fra dc-runtime; originalene og sammenligningstestene er fjernet, men finnes i git-historikken før commit «Fjern test- og migreringsfiler»):**
 - `*.dc.html` (samme filnavn som før) → `src/pages/<id>/main.jsx` + `logic.js` (klassen fra originalen, `extends DCLogic`) + `template.jsx` (JSX av `renderVals()`) + `pseudo.css` (hover/focus). **Rediger disse filene direkte** – de er nå kilden.
 - `src/shared/dc.jsx` (vert som erstatter dc-runtime), `src/shared/runtime-quirks.js` (etterligner synlige særheter fra runtimen: footer og lys modus).
 - `src/legacy/*.js`: i18n, theme, ml-*, *-engine – uendrede filer, importeres via `@ml/…`. `ukeloop-engine.js` lastes som klassisk skript (`?url`), fordi spiller-HTML bygges med `Function.toString()`.
-- `legacy-dc/`: originalsidene med dc-runtime, bare til sammenligning (`/_original/…` i dev/preview). Deployes ikke. `npm run convert` (scripts/dc2jsx.mjs) kan generere sidene på nytt fra dem – **ikke gjør det etter at React-sidene er endret for hånd**.
-- `npm run dev` / `npm run build` (mockup-index + vite build → `dist/`) / `npm test` (Playwright: skjermbilder, flyttester og utforskning i takt mot originalen, under samme CSP som Vercel).
+- `npm run dev` / `npm run build` (mockup-index + vite build → `dist/`) / `npm run preview`. Dev og preview sender samme CSP som Vercel.
 
 - `media-lab.dc.html` – forsiden (Media Lab). Kort: Loop Studio, Isolate Subject, Thumbnail Studio. Språkbytte NO/EN, mørk/lys-knapp nede til høyre (mørk er standard, lys = dempet off-white #e4e1da).
 - `loop-studio.dc.html` (+ `loop-editor.dc.html`) / `studio-editor.dc.html` (Ukeprogram Loop) + `ukeloop-engine.js` – loopende video av ukeprogram. Tilfeldig farge-knapp (bare trykkbar, ikke alltid aktiv) med 100+ klassiske fargepaletter, lydbibliotek.

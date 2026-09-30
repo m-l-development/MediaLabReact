@@ -1,14 +1,7 @@
 # Lastes aldri opp til Vercel (appen er media-lab/: src, public, api, *.dc.html, vercel.json, package.json)
 uploads/
 screenshots/
-docs/
 **/node_modules/
-**/.cache/
 **/dist/
-**/test-results/
-**/test-results-*
 **/*.log
-media-lab/tests/
-media-lab/legacy-dc/
-media-lab/playwright.config.js
 .DS_Store

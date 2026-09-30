@@ -1,11 +1,5 @@
 # Trengs ikke på Vercel (bygget bruker src/, public/, api/ og *.dc.html). node_modules installeres av Vercel.
 node_modules/
-.cache/
 dist/
-test-results/
-test-results-*
 *.log
-tests/
-legacy-dc/
-playwright.config.js
 .DS_Store

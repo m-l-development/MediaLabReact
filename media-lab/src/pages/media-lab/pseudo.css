@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/media-lab.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden media-lab.dc.html. Dette er nå kilden – rediger direkte. */
 .scp0:hover{color:var(--ml-fg, #f3f1ec) !important}
 .scp1:hover{border-color:var(--ml-line-hi, rgba(255,255,255,0.55)) !important;background:var(--ml-card-hi, rgba(20,20,20,0.7)) !important;color:var(--ml-fg, #f3f1ec) !important}
 .scp2:hover{border-color:var(--ml-line-hi, rgba(255,255,255,0.55)) !important}

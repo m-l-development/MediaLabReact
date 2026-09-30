@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/admin.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden admin.dc.html. Dette er nå kilden – rediger direkte. */
 import '@ml/i18n.js';
 import '@ml/theme.js';
 import '@ml/ml-bg.js';

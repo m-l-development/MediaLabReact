@@ -1,4 +1,4 @@
-/* GENERERT av scripts/dc2jsx.mjs fra legacy-dc/media-lab.dc.html – ikke rediger for hånd før siden er ferdig sammenlignet. */
+/* Konvertert fra den gamle dc-siden media-lab.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { css } from '../../shared/dc.jsx';
 
