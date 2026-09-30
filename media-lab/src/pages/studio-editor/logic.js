@@ -906,7 +906,8 @@ class Component extends DCLogic {
     if (!this._wheelOn && this.zoomOuter.current) { this._wheelOn = true; this._onWheel = ev => { if (this.state.fs) return; const o = this.zoomOuter.current, r = o.getBoundingClientRect(); if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); const Z = this.state.zoom || { z: 1 }; this.setZoom(Z.z * Math.exp(-ev.deltaY * 0.01), ev.clientX - r.left, ev.clientY - r.top); } else if (this.state.zoom) { ev.preventDefault(); this.panZoom(ev.deltaX, ev.deltaY); } }; this.zoomOuter.current.addEventListener('wheel', this._onWheel, { passive: false }); }
     if (!this._roOn && window.ResizeObserver) { this._roOn = true; this._ro = new ResizeObserver(() => { this._cbox = null; this._pk = null; }); this._ro.observe(c); c.parentElement && this._ro.observe(c.parentElement); }
     let k = 1;
-    if (!this.state.rec) { const B = this.cbox(c), dpr = Math.min(2, window.devicePixelRatio || 1); if (B.w > 0) k = Math.min(1, Math.max(0.3, Math.ceil(B.w * dpr / W * 10) / 10)); }
+    if (!this.state.rec) { const B = this.cbox(c), dpr = Math.min(2, window.devicePixelRatio || 1); if (B.w > 0) k = Math.min(1, Math.max(0.3, Math.ceil(B.w * dpr / W * 10) / 10));
+      const vw = this.state.vigEd && this.vigEdWrap.current ? this.vigEdWrap.current.clientWidth : 0; if (vw > 0) k = Math.max(k, Math.min(1, Math.ceil(vw * dpr / W * 10) / 10)); /* vignettdialogen viser et større bilde */ }
     const BW = Math.round(W * k), BH = Math.round(H * k);
     if (c.width !== BW || c.height !== BH) { c.width = BW; c.height = BH; this._pk = null; }
     const R = this.resolved(), live = this.state.playing || this.state.rec;
@@ -2334,7 +2335,7 @@ class Component extends DCLogic {
         const E = S.vigEd; if (!E || !sel) return { vigEdOpen: false };
         const all = E.scope === 'all', L = this.vigLayerOf(sel, E.layer, E.scope) || this.vigLayerOf(sel, 0, E.scope), pc = v => (v * 100).toFixed(2) + '%';
         const extras = all ? (S.cfg.vigs || []) : (sel.vigs || []), n = extras.length;
-        const vw = window.innerWidth, vh = window.innerHeight, ar = DM.W / DM.H, maxW = Math.min(MB ? vw - 56 : 620, vw - 60), maxH = MB ? vh * 0.34 : vh * 0.6;
+        const vw = window.innerWidth, vh = window.innerHeight, ar = DM.W / DM.H, maxW = MB ? vw - 56 : Math.max(280, Math.min(vw - 60, Math.min(1080, vw - 24) - 36 - 18 - 380)), maxH = MB ? vh * 0.34 : Math.max(vh * 0.6, vh - 110); /* PC: nesten hele høyden (stående formater); dialogen er 1080 px bred og kontrollene får minst 380 px */
         let pw = maxW, ph = pw / ar; if (ph > maxH) { ph = maxH; pw = ph * ar; }
         const SW = ['#080808', '#24406e', '#8a2238', '#1e6e4f', '#5e3190', '#b07a1c', '#ffffff'];
         const own = !all && Object.values(this.VSMAP).some(k => sel[k] != null && k !== 'fx' && k !== 'fy');
@@ -2346,7 +2347,7 @@ class Component extends DCLogic {
           veToSlide: () => this.setState({ vigEd: { layer: 0, scope: 'slide' } }), veToAll: () => this.setState({ vigEd: { layer: 0, scope: 'all' } }),
           veScopeNote: all ? 'Endringer her gjelder alle slides og overstyrer det du har endret på enkeltslides.' : (own ? 'Denne sliden har egne innstillinger som overstyrer «Alle slides».' : 'Denne sliden følger innstillingene for alle slides. Endrer du noe her, får sliden egne innstillinger.'),
           veHasOwn: own && E.layer === 0, veUseAll: () => { this.setState(st => ({ slides: st.slides.map(x => { if (x.id !== id) return x; const o = { ...x }; Object.values(this.VSMAP).forEach(k => { if (k !== 'fx' && k !== 'fy') delete o[k]; }); return o; }) })); this._pk = null; },
-          vePW: Math.round(pw) + 'px', vePH: Math.round(ph) + 'px', veX: pc(L.x), veY: pc(L.y), veRotDeg: L.rot + 'deg', veRot: Math.round(L.rot), veOpen: Math.round(L.open * 100),
+          vePW: Math.round(pw) + 'px', vePH: Math.round(ph) + 'px', vePos: MB ? 'relative' : 'sticky', veX: pc(L.x), veY: pc(L.y), veRotDeg: L.rot + 'deg', veRot: Math.round(L.rot), veOpen: Math.round(L.open * 100),
           veAmt: Math.round((L.amt == null ? 1 : L.amt) * 100), onVeAmt: ev => this.setVigLayer({ amt: Number(ev.target.value) / 100 }), veAmt100: () => this.setVigLayer({ amt: 1 }),
           veTransp: Math.round((1 - (L.alpha == null ? 1 : L.alpha)) * 100), onVeTransp: ev => this.setVigLayer({ alpha: 1 - Number(ev.target.value) / 100 }), veTransp0: () => this.setVigLayer({ alpha: 1 }),
           veSoft: Math.round((L.soft == null ? 0.5 : L.soft) * 100), onVeSoft: ev => this.setVigLayer({ soft: Number(ev.target.value) / 100 }), veSoft50: () => this.setVigLayer({ soft: 0.5 }),

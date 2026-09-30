@@ -597,7 +597,15 @@ function __ukeloopRendererFactory() {
     /* one vignette layer; the slide's own vignette plus any extra layers use the same shapes */
     /* strength: 0 = no vignette, 1 = normal, 2 = the colour covers the whole frame */
     var vigLayer = function (vtyp, fx, fy, open, vrot, VC, vk, sz, amt, sf) {
-      sf = sf == null ? 0.5 : clamp(sf, 0, 1); var SF = 0.12 + 1.76 * sf;
+      sf = sf == null ? 0.5 : clamp(sf, 0, 1);
+      /* diffus: 0–50 % som før (0,12–1×); over 50 % strekkes overgangen opp til 4× og toningen går gradvis over i en S-kurve (EZ), så overgangen nesten forsvinner */
+      var SF = sf <= 0.5 ? 0.12 + 1.76 * sf : 1 + (sf - 0.5) * 6, EZ = sf > 0.5 ? clamp((sf - 0.5) * 2, 0, 1) : 0;
+      var ease = function (a) {
+        if (!EZ || a.length < 2) return a; var o = [a[0]];
+        for (var i = 1; i < a.length; i++) { var p = a[i - 1], q = a[i]; for (var j = 1; j <= 8; j++) { var t = j / 8, s = t * t * (3 - 2 * t), u = t + (s - t) * EZ; o.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * u]); } }
+        return o;
+      };
+      var fillRad = function (g, a) { ease([[0, 0], [1, clamp(a, 0, 1)]]).forEach(function (p) { g.addColorStop(clamp(p[0], 0, 1), rgba(VC, p[1])); }); };
       amt = amt == null ? 1 : clamp(amt, 0, 2);
       if (vk <= 0.001) return; /* vignette switched off (slide or all slides) */
       if (amt > 1) {
@@ -633,11 +641,12 @@ function __ukeloopRendererFactory() {
         if (sym) { var h1 = a.filter(function (p) { return p[0] <= 0.5; }), h2 = a.filter(function (p) { return p[0] > 0.5; }).map(function (p) { return [1 - p[0], p[1]]; }).reverse(); h1 = soften(h1); h2 = soften(h2).reverse().map(function (p) { return [1 - p[0], p[1]]; }); a = h1.concat(h2); }
         else a = soften(a);
         for (var i = 1; i < a.length; i++) if (a[i][0] <= a[i - 1][0]) a[i][0] = Math.min(1, a[i - 1][0] + 0.001);
-        return a;
+        return ease(a);
       };
-      var radial = function (cx, cy, r0, r1, a) { var mid = (r0 + r1) / 2, hf = (r1 - r0) / 2 * SF; r0 = Math.max(0, mid - hf); r1 = Math.max(r0 + 1, mid + hf); var g = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1); g.addColorStop(0, rgba(VC, 0)); g.addColorStop(1, rgba(VC, clamp(a, 0, 1))); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); };
+      /* SF ≤ 1: overgangen strammes rundt midten. SF > 1: ytterkanten står fast og overgangen strekkes innover, så vignetten ikke blir svakere */
+      var radial = function (cx, cy, r0, r1, a) { if (SF > 1) r0 = Math.max(0, r1 - (r1 - r0) * SF); else { var mid = (r0 + r1) / 2, hf = (r1 - r0) / 2 * SF; r0 = Math.max(0, mid - hf); r1 = Math.max(r0 + 1, mid + hf); } var g = ctx.createRadialGradient(cx, cy, r0, cx, cy, r1); fillRad(g, a); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); };
       if (vtyp === 'round') radial(rcx, rcy, Math.min(W, H) * (0.18 + 0.32 * open) * sz, Math.max(W, H) * (0.5 + 0.4 * open) * sz, 0.82 * vk);
-      else if (vtyp === 'oval') { ctx.save(); ctx.translate(rcx, rcy); ctx.rotate(vrot * Math.PI / 180); ctx.scale(W / Math.max(W, H), H / Math.max(W, H)); var R = Math.max(W, H); var oa = R * (0.28 + 0.2 * open) * sz, ob = R * (0.62 + 0.18 * open) * sz, om = (oa + ob) / 2, oh = (ob - oa) / 2 * SF; var og = ctx.createRadialGradient(0, 0, Math.max(0, om - oh), 0, 0, Math.max(1, om + oh)); og.addColorStop(0, rgba(VC, 0)); og.addColorStop(1, rgba(VC, clamp(0.82 * vk, 0, 1))); ctx.fillStyle = og; ctx.fillRect(-3 * R, -3 * R, 6 * R, 6 * R); ctx.restore(); }
+      else if (vtyp === 'oval') { ctx.save(); ctx.translate(rcx, rcy); ctx.rotate(vrot * Math.PI / 180); ctx.scale(W / Math.max(W, H), H / Math.max(W, H)); var R = Math.max(W, H); var oa = R * (0.28 + 0.2 * open) * sz, ob = R * (0.62 + 0.18 * open) * sz, om = (oa + ob) / 2, oh = (ob - oa) / 2 * SF; var og = SF > 1 ? ctx.createRadialGradient(0, 0, Math.max(0, ob - (ob - oa) * SF), 0, 0, Math.max(1, ob)) : ctx.createRadialGradient(0, 0, Math.max(0, om - oh), 0, 0, Math.max(1, om + oh)); fillRad(og, 0.82 * vk); ctx.fillStyle = og; ctx.fillRect(-3 * R, -3 * R, 6 * R, 6 * R); ctx.restore(); }
       else if (vtyp === 'bottom') cssGradientAt(ctx, W, H, 0 + vrot, SS([[0, 0.95], [0.3 + 0.15 * open, 0.45], [0.62 + 0.2 * open, 0]]), vk, VC);
       else if (vtyp === 'top') cssGradientAt(ctx, W, H, 180 + vrot, SS([[0, 0.95], [0.3 + 0.15 * open, 0.45], [0.62 + 0.2 * open, 0]]), vk, VC);
       else if (vtyp === 'cinema') { cssGradientAt(ctx, W, H, 0 + vrot, SS([[0, 0.95], [0.22 + 0.1 * open, 0.35], [0.45, 0]]), vk, VC); cssGradientAt(ctx, W, H, 180 + vrot, SS([[0, 0.95], [0.22 + 0.1 * open, 0.35], [0.45, 0]]), vk, VC); }

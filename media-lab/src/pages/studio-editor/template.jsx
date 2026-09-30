@@ -4933,7 +4933,7 @@ export default function template(v) {
             {"\n        "}
             <div data-dc-tpl="1525" style={{"display":"flex","gap":"18px","flexWrap":"wrap","alignItems":"flex-start"}}>
               {"\n          "}
-              <div data-dc-tpl="1526" ref={v.vigEdWrap} onPointerDown={v.onVigEdDown} style={css(`position:relative; flex:0 0 auto; width:${v.vePW ?? ""}; height:${v.vePH ?? ""}; border:1px solid #262626; border-radius:8px; overflow:hidden; background:#000; cursor:grab; touch-action:none; user-select:none;`, "position:relative; flex:0 0 auto; width:{{ vePW }}; height:{{ vePH }}; border:1px solid #262626; border-radius:8px; overflow:hidden; background:#000; cursor:grab; touch-action:none; user-select:none;")}>
+              <div data-dc-tpl="1526" ref={v.vigEdWrap} onPointerDown={v.onVigEdDown} style={css(`position:${v.vePos ?? "relative"}; top:0; flex:0 0 auto; width:${v.vePW ?? ""}; height:${v.vePH ?? ""}; border:1px solid #262626; border-radius:8px; overflow:hidden; background:#000; cursor:grab; touch-action:none; user-select:none;`, "position:relative; flex:0 0 auto; width:{{ vePW }}; height:{{ vePH }}; border:1px solid #262626; border-radius:8px; overflow:hidden; background:#000; cursor:grab; touch-action:none; user-select:none;")}>
                 {"\n            "}
                 <canvas data-dc-tpl="1527" ref={v.vigEdCanvas} style={{"display":"block","width":"100%","height":"100%","pointerEvents":"none"}} />
                 {"\n            "}
