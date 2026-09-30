@@ -59,7 +59,7 @@ export default function template(v) {
       {"\n\n  "}
       <aside data-dc-tpl="26" style={css(`flex:${v.asideFlex ?? ""}; width:${v.paneW ?? ""}; max-width:${v.asideMaxW ?? ""}; min-width:0; height:${v.paneH ?? ""}; overflow-y:auto; background:#0a0a0a; border-right:${v.asideBorder ?? ""}; display:${v.asideDisplay ?? ""}; flex-direction:column;`, "flex:{{ asideFlex }}; width:{{ paneW }}; max-width:{{ asideMaxW }}; min-width:0; height:{{ paneH }}; overflow-y:auto; background:#0a0a0a; border-right:{{ asideBorder }}; display:{{ asideDisplay }}; flex-direction:column;")}>
         {"\n    "}
-        <header data-dc-tpl="27" style={css(`padding:${v.asideHeadPad ?? ""}; display:flex; flex-direction:column; gap:12px;`, "padding:{{ asideHeadPad }}; display:flex; flex-direction:column; gap:12px;")}>
+        <header data-dc-tpl="27" style={css(`position:sticky; top:0; z-index:5; background:#0a0a0a; padding:${v.asideHeadPad ?? ""}; display:flex; flex-direction:column; gap:12px;`, "position:sticky; top:0; z-index:5; background:#0a0a0a; padding:{{ asideHeadPad }}; display:flex; flex-direction:column; gap:12px;")}>
           {"\n      "}
           <div data-dc-tpl="28" style={css(`display:${v.asideBackDisp ?? ""}; align-items:center; gap:12px; min-width:0;`, "display:{{ asideBackDisp }}; align-items:center; gap:12px; min-width:0;")}>
             {"\n        "}

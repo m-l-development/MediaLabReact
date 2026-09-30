@@ -265,9 +265,9 @@ export default function template(v) {
       {"\n\n  "}
       {v.isEdit ? <>
         {"\n    "}
-        <div data-dc-tpl="90" data-ml-bg="static" style={{"flex":"1","height":"100dvh","display":"flex","flexDirection":"column","overflow":"hidden"}}>
+        <div data-dc-tpl="90" data-ml-bg="static" style={{"flex":"1","height":"100dvh","display":"flex","flexDirection":"column","overflow":"clip"}}>
           {"\n      "}
-          <header data-dc-tpl="91" style={{"position":"relative","display":"flex","alignItems":"center","gap":"8px","padding":"10px 14px","borderBottom":"1px solid #1c1c1c","background":"#0b0b0b","flexWrap":"wrap"}}>
+          <header data-dc-tpl="91" style={{"position":"sticky","top":"0","zIndex":"40","display":"flex","alignItems":"center","gap":"8px","padding":"10px 14px","borderBottom":"1px solid #1c1c1c","background":"#0b0b0b","flexWrap":"wrap"}}>
             {"\n        "}
             <button data-dc-tpl="92" onClick={v.leave} style={{"display":"inline-flex","alignItems":"center","gap":"6px","height":"34px","padding":"0 14px 0 10px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"12.5px","fontWeight":"600","cursor":"pointer"}} className="scp4">
               <span data-dc-tpl="93" style={{"fontSize":"15px"}}>
