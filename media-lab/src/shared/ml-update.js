@@ -33,10 +33,11 @@ async function check() {
   show();
 }
 
+/* kortet er lyst (lysere enn bakgrunnen i begge moduser) og merket data-ml-theme, så theme.js ikke snur fargene */
 function btn(label, primary) {
   const b = document.createElement('button'); b.type = 'button'; b.textContent = T(label);
   b.style.cssText = 'height:36px;padding:0 16px;border-radius:999px;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:0.04em;cursor:pointer;' +
-    (primary ? 'border:1px solid #f3f1ec;background:#f3f1ec;color:#000000;' : 'border:1px solid rgba(255,255,255,0.22);background:transparent;color:#f3f1ec;');
+    (primary ? 'border:1px solid #111111;background:#111111;color:#f3f1ec;' : 'border:1px solid rgba(0,0,0,0.25);background:transparent;color:#111111;');
   return b;
 }
 function hide() { if (!box) return; const b = box; box = null; b.style.opacity = '0'; b.style.transform = 'translateY(12px)'; setTimeout(() => b.remove(), 260); }
@@ -44,13 +45,14 @@ function hide() { if (!box) return; const b = box; box = null; b.style.opacity =
 async function show() {
   if (box || !document.body) return;
   const narrow = window.matchMedia && matchMedia('(max-width: 560px)').matches;
-  box = document.createElement('div'); box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-live', 'polite'); box.setAttribute('data-ml-update', '1');
+  const light = document.documentElement.getAttribute('data-ml-mode') === 'light';
+  box = document.createElement('div'); box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-live', 'polite'); box.setAttribute('data-ml-update', '1'); box.setAttribute('data-ml-theme', '1');
   box.style.cssText = 'position:fixed;left:20px;' + (narrow ? 'right:20px;bottom:88px;' : 'bottom:20px;width:360px;max-width:calc(100vw - 40px);') +
-    'z-index:9999;display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid rgba(255,255,255,0.16);border-radius:18px;background:rgba(12,12,12,0.95);' +
-    '-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 20px 50px rgba(0,0,0,0.5);color:#f3f1ec;font-family:Archivo,"Helvetica Neue",Helvetica,Arial,sans-serif;' +
+    'z-index:9999;display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid rgba(0,0,0,0.12);border-radius:18px;background:' + (light ? '#ffffff' : '#f3f1ec') + ';' +
+    'box-shadow:0 20px 50px rgba(0,0,0,' + (light ? '0.18' : '0.55') + ');color:#111111;font-family:Archivo,"Helvetica Neue",Helvetica,Arial,sans-serif;' +
     'opacity:0;transform:translateY(12px);transition:opacity 250ms ease,transform 250ms ease;';
   const h = document.createElement('strong'); h.textContent = T('Ny versjon av Media Lab er klar'); h.style.cssText = 'font-size:14px;font-weight:700;line-height:1.3;';
-  const p = document.createElement('span'); p.style.cssText = 'font-size:12.5px;line-height:1.5;color:#b3afa6;text-wrap:pretty;';
+  const p = document.createElement('span'); p.style.cssText = 'font-size:12.5px;line-height:1.5;color:#4a4740;text-wrap:pretty;';
   const hasSave = [...hooks].some(x => x.save);
   p.textContent = T(hasSave ? 'Lagrer arbeidet ditt …' : 'Oppdater siden for å få de nyeste endringene.');
   const row = document.createElement('div'); row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;';
