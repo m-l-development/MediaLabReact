@@ -203,3 +203,39 @@ Resultater per pakke. Alt kjøres mot `connecthub-dev` med syntetiske data. Prod
 - `dist/` er 57 MB, hovedsakelig ONNX-wasm på 21 MB.
 - Server- og funksjonslogger hos Vercel følger Vercels oppbevaringstid. Det finnes ingen egen klientfeillogg lenger, fordi den gamle var knyttet til `api/ml.js` og aldri brukt.
 - Automatisk kjøring av sletting etter oppbevaringstid (pg_cron) er ikke slått på. Det vurderes i P11.
+
+## P9 – tester for leverandørbytte (2026-10-01)
+
+**Kontrakttester** (`src/services/contract.test.js`)
+- Samme testsett kjøres mot den falske adapteren i minnet (`src/services/adapters/fake/data.js`) og mot den ekte Supabase-adapteren mot `connecthub-dev` med en syntetisk vanlig bruker. Den ekte kjøres når `CH_LIVE_*` er satt.
+- Testsettet dekker:
+  - valgte kolonner, filter, sortering, grense og `inList`
+  - databasefunksjoner
+  - at ukjent funksjon gir `not_found`
+  - at nektet innsetting og hemmelig kolonne gir `forbidden`
+  - at oppdatering av rader brukeren ikke har lov til å endre, gir `[]` uten endring
+- Resultat: falsk adapter 3/3, Supabase 3/3. En ny leverandør må bestå det samme testsettet.
+- Tjenestelaget er testet mot den falske adapteren: `admin.members` slår sammen data riktig, og `files.upload` stopper video, feil type og for store filer før noe sendes.
+- Feilkoder er gjort like for begge: Supabase sine `PGRST202`/`PGRST205` og PostgreSQL sine `42P01`/`42883` gir `not_found`.
+
+**Gjenopprettingsøvelse i vanlig PostgreSQL** (`build/restore-drill.mjs`, `npm run drill`)
+- PGlite (`@electric-sql/pglite` 0.5.8, devDependency, Apache-2.0) er en ekte PostgreSQL (versjon 18.3) kompilert til WebAssembly. Den kjører i Node uten installasjon, Docker, nett eller kostnad, og brukes bare i tester.
+- Resultat:
+  - Alle 9 leverandørnøytrale migreringer kjører uendret. To Supabase-spesifikke ble hoppet over (`bootstrap_developer` og fillagringsbøtta).
+  - Hele RLS-testsettet består: **144/144**. Testen av `bootstrap_developer` er gjort betinget.
+  - Data eksportert fra `connecthub-dev` (bare syntetiske data, kontrollert) ble gjenopprettet. Alle 8 tabellene har samme radantall, og **8/8 brukere ser nøyaktig sine egne menigheter gjennom RLS**. Det betyr at tilgangsreglene virker uendret i en annen PostgreSQL.
+- Skjemadelen kjører også i `npm test`, uten nett.
+- **Begrensning:** eksporten er en JSON-eksport av tabellene, ikke `pg_dump`. Den fanger ikke opp Auth-brukere eller filinnhold. Fullverdig sikkerhetskopi og gjenoppretting (PITR, `pg_dump` og filer) hører til P11, der Supabase Pro er planlagt.
+
+**Røyktest av statisk hosting** (`build/static-serve.mjs`)
+- `dist/` servert av en vanlig Node-server med headerne fra `vercel.json`:
+  - CSP og andre headere sendes, og wasm sendes med riktig type.
+  - Stivandring (`../`) gir 404.
+  - Direkte URL sender til innlogging, og innlogging virker.
+  - Photo Design og Motion Design starter, og fonter lastes.
+  - Admin leser data via RLS. Det eneste eksterne kallet går til Supabase.
+- Uten Vercel finnes ikke `middleware.js` og `api/` (404, som forventet). En ny vert må koble inn `server/lib/gate.js` og `server/handlers/ch.js`, som allerede er Web-standard (`Request → Response`).
+
+**Automatisk testkjøring:** malen ligger i `docs/ci/github-actions-ci.yml` og er **ikke aktivert**, fordi GitHub Actions er en ekstern tjeneste som krever egen godkjenning.
+
+**Samlet:** `npm test` 51/51, RLS i Supabase 144/144 og RLS i vanlig PostgreSQL 144/144.

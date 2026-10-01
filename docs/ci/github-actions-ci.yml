@@ -1,0 +1,28 @@
+# ConnectHub – MAL for automatisk testkjøring i GitHub Actions. IKKE AKTIVERT.
+# GitHub Actions er en ekstern tjeneste (kjøretid kan koste på private repoer) og krever egen godkjenning.
+# Aktivering: kopier filen til .github/workflows/ci.yml. Ingen hemmeligheter trengs: testene bruker ikke nett
+# (bortsett fra npm-registeret ved bygging), og bygget lages uten backend-variabler.
+name: ci
+on:
+  push:
+    branches: [connecthub]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: media-lab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: media-lab/package-lock.json
+      - run: npm ci
+      - run: npm test            # enhetstester, kontrakttester (falsk adapter), RLS-testsett i vanlig PostgreSQL (PGlite)
+      - run: npm run vendor:check
+      - run: npm run build       # inkl. sikkerhetssøk i bygget, kontroll av tredjepartsfiler og CSP-hasher

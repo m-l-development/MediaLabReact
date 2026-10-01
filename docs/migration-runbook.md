@@ -39,3 +39,12 @@ Første versjon (P2). Utvides i P3–P9. Ingenting her kjøres mot produksjon ut
 
 ## Tilbakeføring
 DNS/domene og miljøvariabler pekes tilbake til forrige oppsett; kilden er uendret fordi ingenting slettes før godkjenning.
+
+## Øvelse før bytte (P9)
+1. `cd media-lab && npm test` – inkluderer RLS-testsettet i vanlig PostgreSQL (PGlite).
+2. Eksporter tabellene fra kildeprosjektet som JSON (`{ app_users: [...], ... }`, se `TABLES` i `build/restore-drill.mjs`) og kjør
+   `npm run drill -- <eksport.json>`. Radantall og tilgang per bruker skal stemme.
+3. Kjør kontrakttestene mot den nye dataadapteren med en syntetisk bruker. De skal bestå uendret.
+4. `node build/static-serve.mjs` – kontroller at `dist/` virker på en vanlig statisk vert med headerne.
+5. Hos ny leverandør: opprett rollene `anon`, `authenticated` og serverrollen, og kjør migreringene uten `*_supabase_*`. Lag
+   tilsvarende funksjoner for `bootstrap_developer` (oppslag i den nye Auth-tjenestens brukere) og fillagring (privat bøtte).

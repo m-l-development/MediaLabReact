@@ -128,11 +128,11 @@ PC-ens nettleserprofil, kan lese dataene med utviklerverktøy.
 - Serverhemmeligheter (fra P4/P5) ligger bare i serverens miljø og brukes i én modul.
 - Integrasjonsprefikset i Vercel må **aldri** settes til `VITE_` eller tilsvarende.
 
-## Testing av leverandøruavhengighet (bygges ut i P9)
-- `npm test` (`node:test`): byggesperrer, konfigurasjon; senere tjenestelag med falsk adapter.
-- Kontrakttester: samme testsett mot falsk og ekte adapter.
-- Gjenopprettingsøvelse: `pg_dump` fra `connecthub-dev` → vanlig PostgreSQL → RLS-testene.
-- Statisk hosting: `dist/` servert uten Vercel, med headerne herfra.
+## Testing av leverandøruavhengighet (P9)
+- `npm test`: byggesperrer, konfigurasjon, server (JWT, API, filkontroll), tjenestelag mot falsk adapter, **kontrakttester** (`src/services/contract.test.js`; samme sett mot ekte adapter med `CH_LIVE_*`), og **RLS-testsettet i vanlig PostgreSQL** (PGlite).
+- Gjenopprettingsøvelse: `npm run drill -- <eksport.json>` – migreringer + RLS-tester + gjenoppretting av data + tilgangskontroll i vanlig PostgreSQL.
+- Statisk hosting: `node build/static-serve.mjs` serverer `dist/` med headerne fra `vercel.json` uten Vercel.
+- Mal for automatisk testkjøring: `docs/ci/github-actions-ci.yml` (ikke aktivert).
 
 ## Miljøer
 | Miljø | Git | Supabase | Vercel |
