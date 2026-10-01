@@ -1,10 +1,40 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveSupabaseEnv, scanText, SCAN_EXT } from './build/env-guard.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+
+/* ConnectHub: bare to navngitte offentlige verdier legges inn i koden (__CH_BACKEND__). Vite sin automatiske
+   eksponering av miljøvariabler låses med et prefiks ingen variabel bruker, så verken VITE_- eller integrasjonsvariabler
+   kan lekke. Etter bygging søkes dist/ for hemmelighetsmønstre. Reglene og tester: build/env-guard.js. */
+const connecthubEnv = () => {
+  let target = 'local', outDir = 'dist', building = false;
+  return {
+    name: 'connecthub-env',
+    config(_, { mode, command }) {
+      building = command === 'build';
+      const r = resolveSupabaseEnv({ ...loadEnv(mode, ROOT, ''), ...process.env });
+      target = r.target;
+      r.warnings.forEach(w => console.warn('\x1b[33m' + w + '\x1b[0m'));
+      if (r.public) console.log(`ConnectHub-backend: ${r.public.ref} (${r.target})`);
+      return { envPrefix: 'CONNECTHUB_NEVER_EXPOSED_', define: { __CH_BACKEND__: JSON.stringify(r.public) } };
+    },
+    configResolved(c) { outDir = c.build.outDir; },
+    closeBundle() {
+      const dir = path.resolve(ROOT, outDir); if (!building || !fs.existsSync(dir)) return;
+      const hits = [], walk = d => fs.readdirSync(d, { withFileTypes: true }).forEach(e => {
+        const p = path.join(d, e.name);
+        if (e.isDirectory()) walk(p); else if (SCAN_EXT.test(e.name)) scanText(fs.readFileSync(p, 'utf8'), { target }).forEach(f => hits.push(path.relative(dir, p) + ': ' + f));
+      });
+      walk(dir);
+      if (hits.length) throw new Error('ConnectHub: mulige hemmeligheter i bygget – bygget stoppes:\n' + hits.join('\n'));
+      console.log('ConnectHub: sikkerhetssøk i bygget – ingen funn.');
+    },
+  };
+};
 const PUBLIC = path.join(ROOT, 'public');
 const PAGES = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
 /* samme CSP lokalt som på Vercel (uten upgrade-insecure-requests, som krever https), så det som ville blitt blokkert, vises med en gang */
@@ -55,7 +85,7 @@ addEventListener('vite:preloadError',function(e){e.preventDefault();heal()})})()
 const selfHeal = () => ({ name: 'media-lab-self-heal', apply: 'build', transformIndexHtml: () => [{ tag: 'script', children: HEAL, injectTo: 'head-prepend' }] });
 
 export default defineConfig({
-  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal()],
+  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv()],
   appType: 'mpa',
   publicDir: 'public',
   resolve: { alias: { '@ml': path.join(ROOT, 'src/legacy') } },

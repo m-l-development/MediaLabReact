@@ -2,7 +2,15 @@
 
 Brukeren skriver norsk. Svar kort og direkte på norsk.
 
-GitHub: `zoefredrikstad-maker/LabMedia`, branch `main`.
+GitHub: `zoefredrikstad-maker/MediaLabReact`. `main` = produksjon (Vercel Production). `connecthub` = ConnectHub-utvikling (Vercel Preview → Supabase `connecthub-dev`).
+
+## ConnectHub (videreutvikling av Media Lab) – faste regler
+- Arbeid skjer på grenen `connecthub` og mot `connecthub-dev` (`uatpdmhnwwjgzlxaucsx`). **Aldri** endringer i `main`, produksjonsdatabasen `connecthub` (`cmuienhheklcgtfmpvbe`), Vercel-innstillinger eller miljøvariabler uten uttrykkelig godkjenning. Produksjon (P11) og kostnader godkjennes alltid separat.
+- Innlogging er obligatorisk for alle verktøy, data og API-er, også ved direkte URL. Ingen åpen registrering.
+- **Video lagres aldri i skyen** (verken felles eller privat) – bare i prosjektmappe på brukerens PC.
+- Eksisterende lokale prosjekter bevares og knyttes til riktig bruker. Ikke slett gamle løsninger, data eller variabler uten godkjenning.
+- Leverandøruavhengighet: sider bruker bare `src/services/`; bare `src/services/adapters/` kjenner Supabase. Se `docs/architecture-and-portability.md` og `docs/migration-runbook.md`.
+- Hemmeligheter når aldri nettleseren: `build/env-guard.js` + `connecthubEnv` i `vite.config.js` leser bare URL og publiseringsnøkkel ved navn, sjekker prosjekt-ID per miljø og søker i bygget. `npm test` kjører testene.
 
 ## Filer
 All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene under viser til sidene i `media-lab/`; felles skript/motorer ligger i `media-lab/src/legacy/`, bilder/mockups i `media-lab/public/`.
