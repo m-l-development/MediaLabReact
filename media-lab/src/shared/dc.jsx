@@ -7,6 +7,7 @@ import './dc-base.css';
 import { keepFooterLikeRuntime, replayThemeTamper, RAW } from './runtime-quirks.js';
 import { stickyTitle } from './sticky-title.js';
 import './ml-update.js';
+import './prefetch.js';
 import { ensureLoggedIn } from './auth-gate.js';
 
 /* Sideoverganger (@view-transition i noen sider): når Chrome avbryter en overgang (f.eks. ved rask navigering) avvises

@@ -6,6 +6,9 @@
   if (window.MLBg) return;
   var root, anim, flat, canvas, g1, g2, starEls = [], raf = 0, last = -1, t0 = 0, isStatic = false;
   var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* svake enheter (få kjerner/lite minne, «spar data»): færre bilder i sekundet og litt lavere oppløsning – bevegelsen er rolig */
+  var nav = navigator, low = (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4 || !!(nav.connection && nav.connection.saveData);
+  var STEP = low ? 80 : 50, DPR = low ? 1.5 : 2;
   var stars = [[82, 12, 3, 10, 3, 0.5], [12, 34, 2, 8, 2, 0.45], [46, 8, 2, 8, 2, 0.4], [93, 48, 2, 8, 2, 0.4]];
   function light() { return !!(window.MLTheme && window.MLTheme.mode === 'light'); }
   function el(css) { var d = document.createElement('div'); d.style.cssText = css; return d; }
@@ -19,7 +22,7 @@
   }
   function draw(t) {
     var c = canvas; if (!c || isStatic) return;
-    var d = Math.min(2, window.devicePixelRatio || 1), W = c.clientWidth, H = c.clientHeight; if (!W || !H) return;
+    var d = Math.min(DPR, window.devicePixelRatio || 1), W = c.clientWidth, H = c.clientHeight; if (!W || !H) return;
     if (c.width !== Math.round(W * d) || c.height !== Math.round(H * d)) { c.width = Math.round(W * d); c.height = Math.round(H * d); }
     var g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, W, H);
     var lt = light(), ink = lt ? '60,54,44' : '255,255,255', ka = lt ? 0.75 : 1, N = 22, step = Math.max(6, W / 160);
@@ -40,7 +43,7 @@
   function tick(now) {
     raf = 0; if (document.hidden || still || isStatic) return;
     raf = requestAnimationFrame(tick);
-    if (now - last < 50) return; last = now; draw((now - t0) / 1000);
+    if (now - last < STEP) return; last = now; draw((now - t0) / 1000);
   }
   function start() { if (!raf && !still && !isStatic && !document.hidden) raf = requestAnimationFrame(tick); }
   function setStatic(v) {

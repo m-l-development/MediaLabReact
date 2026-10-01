@@ -30,11 +30,13 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
   const paint0 = paint; const paintT = () => { paint0(); if (window.CH && window.CH.testRole) btn.style.boxShadow = '0 0 0 2px #2f4fd8'; };
   paintT(); window.addEventListener('medialab-theme', paintT);
 
-  /* Varsler: hentes ved oppstart, når fanen blir synlig og hvert 2. minutt. */
-  let list = [];
-  const refresh = async () => { try { list = await N.list(); } catch (e) { return; } const n = list.filter(x => !x.read_at).length; badge.textContent = n > 9 ? '9+' : String(n); badge.style.display = n ? 'block' : 'none'; };
-  refresh(); setInterval(() => { if (!document.hidden) refresh(); }, 120000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  /* Varsler: hentes når siden er ferdig lastet (ikke i konkurranse med sidens egne data), når fanen blir synlig
+     (høyst hvert halve minutt) og hvert 2. minutt. */
+  let list = [], at = 0;
+  const refresh = async () => { at = Date.now(); try { list = await N.list(); } catch (e) { return; } const n = list.filter(x => !x.read_at).length; badge.textContent = n > 9 ? '9+' : String(n); badge.style.display = n ? 'block' : 'none'; };
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 1));
+  setTimeout(() => idle(refresh, { timeout: 3000 }), 800); setInterval(() => { if (!document.hidden) refresh(); }, 120000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - at > 30000) refresh(); });
 
   let menu = null;
   const close = () => { if (menu) { menu.remove(); menu = null; } };
@@ -64,7 +66,7 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
       }
       if (list.some(x => !x.read_at)) { const r = mk('Merk alle som lest', false, true); r.onclick = async () => { r.disabled = true; await N.markAllRead(list).catch(() => {}); await refresh(); showN(); }; nbox.appendChild(r); }
     };
-    showN();
+    showN(); if (!at) refresh().then(() => { if (menu) showN(); });
 
     const out = mk('Logg ut', false), wipe = mk('Logg ut og fjern mine lokale data', true);
     out.onclick = async () => { out.disabled = true; await auth.signOut(); location.replace(auth.loginUrl()); };

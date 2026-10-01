@@ -56,6 +56,15 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 - P10: `src/services/community.js` (samarbeidsområder, abonnement uten betaling, varsler, personvern, menighetens livsløp), serverhandlinger i `server/handlers/privacy.js` (`privacy.delete_me`, `church.export`, `church.purge`), varsler og personvern i kontomenyen (`src/shared/account-menu.js`), fanene Samarbeid/Abonnement i admin.
 - Tester: `npm test` (inkl. RLS-testsettet i PGlite), `npm run drill`, `node build/static-serve.mjs`; RLS mot dev: `supabase db query --linked --project-ref uatpdmhnwwjgzlxaucsx -f supabase/tests/rls_test.sql`.
 - Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`). Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
+- Ytelse:
+  - `src/services/me-cache.js`: siden vises straks med forrige `whoami` for samme bruker, økt og MFA-nivå (localStorage `ch.me`). Porten kontrollerer mot databasen like etter og stopper eller laster siden på nytt ved avvik. Bufferen fjernes ved utlogging.
+  - `src/shared/prefetch.js`: henter neste sides skript ved hover eller berøring.
+  - `connecthub-admin/thumbs.jsx`: miniatyrer hentes når de vises, skaleres ned og huskes. Nedlasting henter originalen.
+  - Admin `act` låser bare knappen eller skjemaet som startet handlingen, og `Btn` viser at den jobber.
+  - `i18n.js` bygger aldri ett stort regulært uttrykk (kostet ~0,6 s per sidelasting).
+  - Motion Design tegner forhåndsvisningen 4 ganger i sekundet i ro, og som før ved bruk eller avspilling.
+  - Bakgrunnsanimasjonene har færre bilder og lavere oppløsning på svake enheter.
+  - Målinger i `docs/testlogg.md`.
 - Tredjeparts skript og fonter (P8): `build/vendor.js` + `build/vendor-lock.json` (SHA-384) → `/vendor/` (transformers, tesseract, mp4-muxer, qrcode) og `/fonts/fonts.css` (+ `/fonts/<familie>.css`). Ny versjon: endre listen, `npm run vendor:lock`, se gjennom endringen. Aldri CDN-adresser i koden.
 
 ## Regler

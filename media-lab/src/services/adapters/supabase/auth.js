@@ -1,7 +1,9 @@
 /* Supabase-implementasjon av innloggingsgrensesnittet i src/services/auth.js. Returnerer bare nøytrale typer. */
 import { getClient } from './client.js';
 
-const sess = s => s ? { accessToken: s.access_token, expiresAt: s.expires_at, userId: s.user && s.user.id, email: s.user && s.user.email } : null;
+/* sessionId/aal fra tokenet (uverifisert – brukes bare som nøkkel for hurtigbufferen i me-cache.js, aldri til tilgang). */
+const claims = t => { try { return JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return {}; } };
+const sess = s => { if (!s) return null; const c = claims(s.access_token); return { accessToken: s.access_token, expiresAt: s.expires_at, userId: s.user && s.user.id, email: s.user && s.user.email, sessionId: c.session_id || null, aal: c.aal || null }; };
 const fail = e => ({ ok: false, error: e && (e.code || e.message) ? String(e.code || e.message) : 'ukjent' });
 
 export const supabaseAuth = {

@@ -3,6 +3,7 @@
 import '@ml/i18n.js';
 import '@ml/theme.js';
 import '../../shared/ml-update.js';
+import '../../shared/prefetch.js';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ensureLoggedIn } from '../../shared/auth-gate.js';

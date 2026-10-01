@@ -108,6 +108,25 @@ html[data-ml-mode="light"] [data-ml-theme="admin"] {
 [data-ml-theme="admin"] .ch-drop.over { border-color: var(--text); color: var(--text); }
 [data-ml-theme="admin"] .ch-meter { height: 8px; border-radius: 999px; background: var(--panel2); overflow: hidden; }
 [data-ml-theme="admin"] .ch-meter i { display: block; height: 100%; background: var(--ok); }
+[data-ml-theme="admin"] .ch-thumb .ch-img { contain: content; }
+
+/* Umiddelbar respons: trykk vises med en gang (også på berøringsskjerm), knapper som venter på serveren viser det,
+   og en tynn linje under topplinjen viser at noe lastes. Bare transform/opasitet – billig å tegne. */
+[data-ml-theme="admin"] .ch-btn, [data-ml-theme="admin"] .ch-nav a, [data-ml-theme="admin"] .ch-tabs a, [data-ml-theme="admin"] .ch-li.click, [data-ml-theme="admin"] .ch-stat { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+[data-ml-theme="admin"] .ch-btn:active:not(:disabled), [data-ml-theme="admin"] .ch-nav a:active, [data-ml-theme="admin"] .ch-tabs a:active, [data-ml-theme="admin"] .ch-stat:active { transform: scale(.97); }
+[data-ml-theme="admin"] .ch-li.click:active { background: var(--panel2); }
+[data-ml-theme="admin"] .ch-btn.busy, [data-ml-theme="admin"] form[aria-busy="true"] .ch-btn.primary { position: relative; cursor: progress; color: transparent !important; }
+[data-ml-theme="admin"] .ch-btn.busy::after, [data-ml-theme="admin"] form[aria-busy="true"] .ch-btn.primary::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--muted); border-top-color: transparent; animation: ch-spin .7s linear infinite; }
+[data-ml-theme="admin"] .ch-btn.primary.busy::after, [data-ml-theme="admin"] form[aria-busy="true"] .ch-btn.primary::after { border-color: var(--inv-text); border-top-color: transparent; }
+[data-ml-theme="admin"] .ch-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; pointer-events: none; opacity: 0; animation: ch-fade .15s .15s forwards; }
+[data-ml-theme="admin"] .ch-progress::before { content: ''; position: absolute; inset: 0; width: 40%; background: var(--accent); animation: ch-bar 1s ease-in-out infinite; }
+@keyframes ch-spin { to { transform: rotate(360deg); } }
+@keyframes ch-fade { to { opacity: 1; } }
+@keyframes ch-bar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-ml-theme="admin"] .ch-progress::before { animation: none; width: 100%; opacity: .6; }
+  [data-ml-theme="admin"] .ch-btn.busy::after, [data-ml-theme="admin"] form[aria-busy="true"] .ch-btn.primary::after { animation-duration: 2s; }
+}
 
 /* Mindre skjermer */
 @media (max-width: 900px) {

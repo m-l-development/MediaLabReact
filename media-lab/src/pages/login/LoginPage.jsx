@@ -1,6 +1,7 @@
 import React from 'react';
 import { auth, safeNext, passwordProblem } from '../../services/auth.js';
 import { whoami, isStaff } from '../../services/data/me.js';
+import { writeMe } from '../../services/me-cache.js';
 import { acceptInvitation } from '../../services/admin.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
@@ -88,6 +89,7 @@ export default function LoginPage() {
     if (st && st.next === 'aal2' && st.current !== 'aal2' && st.factors.length) { setMfa(st); setMode('mfa'); return; }
     let me = null; try { me = await whoami(); } catch (e) { setErr('Kunne ikke kontakte ConnectHub. Prøv igjen.'); setMode('login'); return; }
     if (!me) { setMode('notlinked'); return; }
+    writeMe(await auth.session().catch(() => null), me);   /* første side etter innlogging vises straks */
     if (isStaff(me) && st && !st.factors.length) { setMode('enroll'); return; }
     go();
   }, []);

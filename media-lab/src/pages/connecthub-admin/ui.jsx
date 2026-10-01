@@ -23,7 +23,18 @@ export const mb = n => (Number(n || 0) / 1048576).toFixed(1) + ' MB';
 export const initials = s => String(s || '?').trim().split(/[\s@.]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 export const norm = s => String(s || '').toLowerCase();
 
-export const Btn = ({ kind, small, children, ...p }) => <button type="button" className={'ch-btn' + (kind ? ' ' + kind : '') + (small ? ' small' : '')} {...p}>{children}</button>;
+/* Knapp: gir straks synlig respons. Returnerer klikk-handlingen et løfte (Promise), viser knappen at den jobber, og nye
+   klikk på samme knapp ignoreres til den er ferdig (hindrer dobbel innsending uten å låse resten av siden). */
+export function Btn({ kind, small, children, onClick, disabled, ...p }) {
+  const [busy, setBusy] = React.useState(false), live = React.useRef(true);
+  React.useEffect(() => () => { live.current = false; }, []);
+  const click = onClick && (e => {
+    if (busy) { e.preventDefault(); return; }
+    const r = onClick(e);
+    if (r && typeof r.then === 'function') { setBusy(true); const end = () => { if (live.current) setBusy(false); }; r.then(end, end); }
+  });
+  return <button type="button" className={'ch-btn' + (kind ? ' ' + kind : '') + (small ? ' small' : '') + (busy ? ' busy' : '')} aria-busy={busy || undefined} disabled={disabled} onClick={click} {...p}>{children}</button>;
+}
 export const Badge = ({ tone, children }) => <span className={'ch-badge' + (tone ? ' ' + tone : '')}>{children}</span>;
 export const StatusBadge = ({ s }) => <Badge tone={TONE[s]}>{T(STATUS[s] || s)}</Badge>;
 export const RoleBadge = ({ r, church }) => <Badge tone="role">{T(ROLE[r] || r)}{church ? ' · ' + church : ''}</Badge>;

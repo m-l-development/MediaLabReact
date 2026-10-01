@@ -4,6 +4,7 @@
    med RLS og på serveren. */
 import { hasBackend } from './config.js';
 import { supabaseAuth as A } from './adapters/supabase/auth.js';
+import { clearMe } from './me-cache.js';
 
 export const COOKIE = 'ch_at';
 export const LOGIN_PATH = '/login.dc.html';
@@ -22,7 +23,7 @@ export const auth = {
   available: () => hasBackend(),
   async session() { if (!hasBackend()) return null; watch(); const s = await A.getSession(); writeCookie(s); return s; },
   signIn: (email, pw) => A.signIn(String(email || '').trim(), String(pw || '')),
-  async signOut() { const r = await A.signOut(); writeCookie(null); return r; },
+  async signOut() { clearMe(); const r = await A.signOut(); writeCookie(null); return r; },
   /* Svarer alltid «ok» utad, så det ikke avsløres om e-posten finnes. */
   async requestPasswordReset(email) { await A.requestPasswordReset(String(email || '').trim(), location.origin + LOGIN_PATH + '?flow=recovery'); return { ok: true }; },
   completeFromUrl: url => A.completeFromUrl(url),

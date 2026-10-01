@@ -22,12 +22,21 @@ export default function AdminPage({ me }) {
   const route = useRoute();
   const [d, setD] = React.useState({ churches: [], users: [], memberships: [], roles: [], invites: [], status: null, pendingSubs: 0, loaded: false });
   const [note, setNote] = React.useState(null);
-  const [busy, setBusy] = React.useState(false);
+  const [pending, setPending] = React.useState(0);       // handlinger/lasting som pågår (tynn fremdriftslinje)
   const [invite, setInvite] = React.useState(null);      // åpen «Ny invitasjon» med forhåndsutfylling
   const [ctxChurch, setCtxChurch] = React.useState(null); // valgt menighet for Filer/Abonnement/Logg
 
   const say = (text, ok = true) => { setNote({ text, ok }); clearTimeout(say._t); say._t = setTimeout(() => setNote(null), 6000); };
-  const act = fn => async (...a) => { if (busy) return; setBusy(true); setNote(null); try { return await fn(...a); } catch (e) { if (!(e && e.code === 'cancel')) say(errText(e), false); } finally { setBusy(false); } };
+  /* Handlinger og lasting. Låser bare det som startet handlingen (knappen selv via Btn, eller skjemaet), aldri hele
+     siden – før ble alle klikk ignorert så lenge noe lastet i bakgrunnen. */
+  const act = fn => async (...a) => {
+    const t = a[0] && a[0].currentTarget, form = t && t.tagName === 'FORM' ? t : null;
+    if (form) { if (form.getAttribute('aria-busy') === 'true') return; form.setAttribute('aria-busy', 'true'); }
+    if (form || (t && t.nodeType === 1)) setNote(null);
+    setPending(n => n + 1);
+    try { return await fn(...a); } catch (e) { if (!(e && e.code === 'cancel')) say(errText(e), false); }
+    finally { setPending(n => n - 1); if (form) form.removeAttribute('aria-busy'); }
+  };
 
   const reload = React.useCallback(async () => {
     const [churches, users, memberships, roles, invites, status, subs] = await Promise.all([
@@ -56,7 +65,7 @@ export default function AdminPage({ me }) {
   const pendingInvites = d.invites.filter(i => i.status === 'pending' && new Date(i.expires_at) > new Date());
   const isUser = kind === 'user';
   const nav = NAV.filter(([k]) => allowed.has(k));
-  const ctx = { me, kind, isUser, staff, dev, collab, staffNoMfa, adminOf, allowed, d, reload, act, say, busy, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
+  const ctx = { me, kind, isUser, staff, dev, collab, staffNoMfa, adminOf, allowed, d, reload, act, say, busy: pending > 0, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
 
   const [sec0, id, sub] = route, sec = NAV.some(([k]) => k === sec0) ? sec0 : 'oversikt';
   let body;
@@ -79,6 +88,7 @@ export default function AdminPage({ me }) {
         <span className="ch-brand">{brand}</span>
         <span className="ch-spacer" />
         {(staff || adminOf.length > 0) && <Btn kind="primary" small onClick={() => setInvite({ church: sec === 'menigheter' && id ? id : ctxChurch })}>+ {T('Ny invitasjon')}</Btn>}
+        {pending > 0 && <span className="ch-progress" role="progressbar" aria-label={T('Laster …')} />}
       </header>
       <div className="ch-shell">
         <nav className="ch-nav" aria-label={T('Admin')}>
@@ -108,9 +118,9 @@ function ModeratorOverview() {
   const { me, act } = useAdmin();
   const [st, setSt] = React.useState({ spaces: [], members: 0, files: 0 });
   React.useEffect(() => { act(async () => {
-    const list = await SP.list(); let members = 0, files = 0;
-    for (const s of list.filter(x => x.status === 'active')) { members += (await SP.members(s.id)).filter(m => m.status === 'active').length; files += (await SP.files(s.id)).length; }
-    setSt({ spaces: list, members, files });
+    const list = await SP.list();
+    const per = await Promise.all(list.filter(x => x.status === 'active').map(s => Promise.all([SP.members(s.id), SP.files(s.id)])));   /* parallelt, ikke ett område om gangen */
+    setSt({ spaces: list, members: per.reduce((n, [m]) => n + m.filter(x => x.status === 'active').length, 0), files: per.reduce((n, [, f]) => n + f.length, 0) });
   })(); }, []);
   return <>
     <Head title="Oversikt" sub={(me.full_name || me.email) + ' · Moderator'} />
@@ -137,7 +147,7 @@ function Overview({ pendingInvites }) {
   const [recent, setRecent] = React.useState([]);
   React.useEffect(() => { act(async () => {
     setRecent((await admin.audit(staff ? null : adminOf[0] || null)).slice(0, 8));
-  })(); }, [d.loaded]);
+  })(); }, []);
   const s = d.status, soon = pendingInvites.filter(i => new Date(i.expires_at) - Date.now() < 2 * 864e5);
   const todo = [
     ...(staff && d.pendingSubs ? [{ k: 'subs', t: d.pendingSubs + ' ' + T('abonnementsforespørsler venter på avgjørelse'), to: href('abonnement') }] : []),
@@ -255,7 +265,7 @@ function UserDetail({ id, onClose }) {
     <div className="ch-row"><StatusBadge s={u.status} />{roles.map(r => <RoleBadge key={r.id} r={r.role} church={r.church_id ? churchName(r.church_id) : ''} />)}</div>
 
     <Card title="Opplysninger">
-      {self ? <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.updateMyProfile(u.id, prof.name, prof.phone), 'Opplysningene er lagret.')(); }}>
+      {self ? <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.updateMyProfile(u.id, prof.name, prof.phone), 'Opplysningene er lagret.')(e); }}>
         <Field label="Navn"><input className="ch-input" value={prof.name} maxLength={120} onChange={e => setProf(p => ({ ...p, name: e.target.value }))} /></Field>
         <Field label="Telefon"><input className="ch-input" value={prof.phone} maxLength={40} onChange={e => setProf(p => ({ ...p, phone: e.target.value }))} /></Field>
         <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre')}</Btn>

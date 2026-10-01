@@ -11,6 +11,7 @@ import { whoami } from '../services/data/me.js';
 import { installLocalUser, legacyStatus, shouldAsk, rememberAnswer, adoptLegacy } from './local-user.js';
 import { mountAccountMenu } from './account-menu.js';
 import { withTimeout } from '../services/timeout.js';
+import { readMe, writeMe, clearMe, sameMe } from '../services/me-cache.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 
@@ -68,10 +69,21 @@ export async function ensureLoggedIn() {
   const here = location.pathname + location.search + location.hash;
   let s; try { s = await withTimeout(auth.session(), 20000); } catch (e) { if (e && e.code === 'timeout') { block('Kunne ikke kontakte ConnectHub. Sjekk nettforbindelsen og last siden på nytt.'); return new Promise(() => {}); } s = null; }
   if (!s) { location.replace(auth.loginUrl(here)); return new Promise(() => {}); }
-  let me = null;
-  try { me = await whoami(); } catch (e) { me = undefined; }
-  if (me === undefined) { block('Kunne ikke kontakte ConnectHub. Sjekk nettforbindelsen og last siden på nytt.'); return new Promise(() => {}); }
-  if (!me) { location.replace(auth.loginUrl(here) + '&reason=notlinked'); return new Promise(() => {}); }
+  /* Kjent innlogging (samme økt): siden vises straks med forrige svar, og svaret kontrolleres mot databasen med en gang.
+     Er kontoen deaktivert eller endret, stoppes siden eller lastes på nytt med riktige roller. Ukjent økt: vent på databasen. */
+  let me = readMe(s);
+  if (me) {
+    whoami().then(fresh => {
+      if (!fresh) { clearMe(); location.replace(auth.loginUrl(here) + '&reason=notlinked'); return; }
+      writeMe(s, fresh);
+      if (!sameMe(fresh, me)) location.reload();
+    }, () => {});   /* nettfeil: siden fortsetter; data og handlinger kontrolleres uansett av databasen */
+  } else {
+    try { me = await whoami(); } catch (e) { me = undefined; }
+    if (me === undefined) { block('Kunne ikke kontakte ConnectHub. Sjekk nettforbindelsen og last siden på nytt.'); return new Promise(() => {}); }
+    if (!me) { clearMe(); location.replace(auth.loginUrl(here) + '&reason=notlinked'); return new Promise(() => {}); }
+    writeMe(s, me);
+  }
   try { sessionStorage.removeItem('ch.loop'); } catch (e) {}
   installLocalUser(me.id);
   /* Testrolle (bare utvikling/Preview): grensesnittet ser «view»; serveren og RLS bruker fortsatt den ekte kontoen. */

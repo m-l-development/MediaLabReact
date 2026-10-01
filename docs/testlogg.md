@@ -288,3 +288,49 @@ Resultater per pakke. Alt kjøres mot `connecthub-dev` med syntetiske data. Prod
 - Det finnes ingen betaling. `price_nok_month` er bare informasjon, og betaling krever egen adapter og godkjenning (P11 eller senere).
 - Endelig sletting etter 30 dager kjøres ikke automatisk. Stab må utføre den.
 - Meldinger kommer bare som varsler i appen. E-post krever SMTP (P11).
+
+## Ytelse – hele ConnectHub (2026-10-01)
+
+Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald» betyr ny nettleserprosess for hver side, som når man åpner et nytt vindu. Mobil er 390 px bred med CPU strupet ×4.
+
+**Flaskehalser som ble funnet**
+- **Ordboken (`i18n.js`):** bygget et regulært uttrykk med 2630 alternativer ved hver sidelasting, også på norsk. Det kostet ca. 0,6 s blokkert JS på PC og ca. 3 s på mobil per kald sidelasting.
+- **Innloggingsporten:** ventet på `whoami` (databasekall) før noe ble vist, ved hvert sidebytte.
+- **Admin, låser og venting:**
+  - En global lås avviste alle klikk stille så lenge noe lastet i bakgrunnen, og knappene ga ingen tilbakemelding.
+  - Oversikten hentet loggen to ganger.
+  - Moderatorens oversikt hentet område for område etter hverandre.
+- **Filer og samarbeid:** viste ingenting før alle bildene (originaler på opptil 4 MB, opptil 60 stk.) var lastet ned. Ved hvert mappebytte ble alt hentet på nytt.
+- **Varsler:** ble hentet samtidig med sidens egne data på hver side.
+- **Motion Design:** tegnet hele forhåndsvisningen 60 ganger i sekundet også når editoren sto i ro.
+- **Bakgrunnsanimasjonene:** forsiden og Loop Studio lagde 44 fargeoverganger per bilde. Ingen av bakgrunnene tok hensyn til svake enheter.
+
+**Resultater**
+| Måling | Før | Etter |
+|---|---|---|
+| Kald sidelasting, PC: appen synlig | 780–1160 ms | 110–165 ms |
+| Kald sidelasting, PC: blokkert JS | 560–660 ms per side | 0 ms (Photo Design 70 ms) |
+| Kald sidelasting, mobil: appen synlig | 3400–3700 ms | 420–650 ms |
+| Kald sidelasting, mobil: blokkert JS | 3100–3800 ms | 340–1040 ms |
+| Vanlig sidebytte, PC: appen synlig | 107–145 ms | 53–126 ms (venter ikke på databasen) |
+| Klikk i admin-menyen | 21–23 ms | 21–23 ms (uendret) |
+| Mappebytte i Filer | ny henting av alt, inkl. alle originaler | markert på 6 ms; kjent mappe vises fra hurtigbuffer |
+| Motion Design i ro | ca. 60 tegninger/s | 4/s (ved bruk og avspilling fortsatt 61/s) |
+
+**Tester**
+- `npm test` 77/77, 7 tester er nye:
+  - ordboken gir samme resultat som før på ca. 10 000 tekster, og oppstarten tar under 150 ms
+  - hurtigbufferen for «hvem er jeg» gjelder bare samme bruker, økt og MFA-nivå, og utløper og fjernes ved utlogging
+  - forhåndslastingen bruker bare egne sider og filer
+- Rolletestene i nettleseren for alle fire rollene og for testmodus: uendret resultat.
+- Hurtigbufferen for «hvem er jeg»:
+  - Forfalskede roller i bufferen ble rettet av databasen ved neste sidelasting, og serveren avviste kallet med 403.
+  - Etter utlogging er bufferen fjernet, og en direkte adresse går til innloggingssiden.
+- Admin på mobil:
+  - Miniatyrbildene lastes.
+  - Knappen viser at den jobber, og tre raske klikk gir én nedlasting.
+  - Fremdriftslinjen vises, og klikk under lasting blir ikke lenger avvist.
+
+**Gjenstår**
+- API-funksjonene på Vercel har ingen fast region, så de kjører trolig i Vercels standardregion i USA, mens databasen ligger i Stockholm (`eu-north-1`). Det gjelder opplasting, bildelenker og invitasjoner. Region krever endring i Vercel-oppsettet og egen godkjenning.
+- Målingene er gjort lokalt. Vercel Preview er beskyttet av Vercel-innlogging og kunne ikke måles direkte.

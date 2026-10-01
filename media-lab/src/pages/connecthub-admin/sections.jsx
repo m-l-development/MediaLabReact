@@ -5,6 +5,7 @@ import { files as FS, FOLDERS } from '../../services/files.js';
 import { spaces as SP, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, href, go } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
+import { Thumb, downloadOriginal } from './thumbs.jsx';
 
 const ACTIONS = {
   'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
@@ -120,11 +121,11 @@ function ChurchSettings({ church }) {
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await reload(); });
   return <div className="ch-grid">
     {staff && <Card title="Navn og lagring">
-      <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.renameChurch(church.id, name), 'Navnet er endret.')(); }}>
+      <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.renameChurch(church.id, name), 'Navnet er endret.')(e); }}>
         <Field label="Navn"><input className="ch-input" value={name} onChange={e => setName(e.target.value)} minLength={2} maxLength={120} required /></Field>
         <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre navn')}</Btn>
       </form>
-      <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.setQuota(church.id, Math.max(0, Math.min(10240, parseInt(quota, 10) || 0))), 'Lagringskvoten er endret.')(); }}>
+      <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.setQuota(church.id, Math.max(0, Math.min(10240, parseInt(quota, 10) || 0))), 'Lagringskvoten er endret.')(e); }}>
         <Field label="Lagringskvote (MB)"><input className="ch-input" type="number" min={0} max={10240} value={quota} onChange={e => setQuota(e.target.value)} /></Field>
         <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre kvote')}</Btn>
       </form>
@@ -187,32 +188,37 @@ const AREAS = {
   delt: { label: 'Delt mappe', folders: [['bilder', 'Delt mappe']],
     info: 'Bilder som deles i menigheten. Alle medlemmer kan se, laste ned og legge til egne bilder. Du kan slette dine egne; Admin kan rydde i alt.' },
 };
+/* Sist viste liste per menighet og mappe (resten av besøket): bytte fram og tilbake viser lista med en gang, og den
+   oppdateres i bakgrunnen. */
+const FILE_LISTS = new Map();
 export function FilesView({ churchId }) {
   const { me, canManage, act, say } = useAdmin();
   const admin_ = canManage(churchId);
-  const [fl, setFl] = React.useState({ area: 'faste', folder: 'faste', list: [], thumbs: {}, usage: null, priv: false, over: false });
-  const load = async (folder = fl.folder, area = fl.area) => {
-    const [list, usage] = await Promise.all([FS.list({ churchId, folder }), FS.usage(churchId)]);
-    const thumbs = await FS.objectUrls(list.slice(0, 60).map(x => x.id));
-    setFl(f => { Object.values(f.thumbs).forEach(u => URL.revokeObjectURL(u)); return { ...f, area, folder, list, thumbs, usage }; });
+  const [fl, setFl] = React.useState({ area: 'faste', folder: 'faste', list: [], loading: true, usage: null, priv: false, over: false });
+  const seq = React.useRef(0);
+  /* Viser valgt mappe straks (fra hurtigbufferen hvis den finnes); lista og forbruket hentes parallelt. Bildene hentes
+     av <Thumb> når de vises. Bare siste valg vinner hvis brukeren bytter raskt. */
+  const load = async (folder = fl.folder, area = fl.area, { usage = false } = {}) => {
+    const n = ++seq.current, key = churchId + '|' + folder, hit = FILE_LISTS.get(key);
+    setFl(f => ({ ...f, area, folder, list: hit || [], loading: !hit }));
+    const [list, use] = await Promise.all([FS.list({ churchId, folder }), usage ? FS.usage(churchId) : null]);
+    FILE_LISTS.set(key, list);
+    if (n === seq.current) setFl(f => ({ ...f, list, loading: false, usage: use || f.usage }));
   };
-  React.useEffect(() => { if (churchId) act(() => load())(); }, [churchId]);
+  React.useEffect(() => { if (churchId) { setFl(f => ({ ...f, usage: null })); act(() => load(undefined, undefined, { usage: true }))(); } }, [churchId]);
   const A = AREAS[fl.area], canUpload = fl.area === 'delt' || admin_;
   const upload = act(async list => {
     if (!canUpload) return;
     let n = 0; for (const file of list) { try { await FS.upload(file, { churchId, folder: fl.folder, priv: fl.area === 'delt' && fl.priv }); n++; } catch (err) { say(file.name + ': ' + errText(err), false); } }
-    if (n) say(n + ' ' + T('filer er lastet opp.')); await load();
+    if (n) say(n + ' ' + T('filer er lastet opp.')); await load(undefined, undefined, { usage: true });
   });
-  const download = act(async x => {
-    const u = fl.thumbs[x.id] || (await FS.objectUrls([x.id]))[x.id]; if (!u) throw Object.assign(new Error(), { code: 'not_found' });
-    const a = document.createElement('a'); a.href = u; a.download = x.file_name; document.body.appendChild(a); a.click(); a.remove();
-  });
+  const download = act(x => downloadOriginal(x.id, x.file_name));
   const u = fl.usage, pct = u && u.quota_bytes ? Math.min(100, Math.round(100 * u.used_bytes / u.quota_bytes)) : 0;
   return <>
-    <nav className="ch-tabs" aria-label={T('Filområder')}>{Object.entries(AREAS).map(([k, v]) => <a key={k} href="#" className={fl.area === k ? 'on' : ''} onClick={e => { e.preventDefault(); act(() => load(v.folders[0][0], k))(); }}>{T(v.label)}</a>)}</nav>
+    <nav className="ch-tabs" aria-label={T('Filområder')}>{Object.entries(AREAS).map(([k, v]) => <a key={k} href="#" className={fl.area === k ? 'on' : ''} onClick={e => { e.preventDefault(); if (fl.area !== k) act(() => load(v.folders[0][0], k))(); }}>{T(v.label)}</a>)}</nav>
     <Card title={A.label} sub={fl.area === 'faste' ? T(admin_ ? 'Du kan vedlikeholde' : 'Bare visning og nedlasting') : null}>
       <p className="ch-muted">{T(A.info)}</p>
-      {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={act(() => load(f))}>{T(l)}</Btn>)}</div>}
+      {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={() => { if (fl.folder !== f) act(() => load(f))(); }}>{T(l)}</Btn>)}</div>}
       {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
         <p className="ch-muted">{T('Brukt')}: {mb(u.used_bytes)} / {mb(u.quota_bytes)}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
       {canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
@@ -224,19 +230,19 @@ export function FilesView({ churchId }) {
         <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {T((A.folders.find(x => x[0] === fl.folder) || [])[1] || '')}</p>
       </div> : <p className="ch-note warn">{T('Faste-mappen vedlikeholdes av Admin. Du kan se og laste ned filene.')}</p>}
     </Card>
-    <Card title={(A.folders.find(x => x[0] === fl.folder) || [])[1] || ''} sub={fl.list.length}>
+    <Card title={(A.folders.find(x => x[0] === fl.folder) || [])[1] || ''} sub={fl.loading ? null : fl.list.length}>
       {fl.list.length ? <div className="ch-thumbs">{fl.list.map(x => {
         const mine = x.uploaded_by === me.id, canDel = admin_ || (fl.area === 'delt' && mine);
         return <div key={x.id} className="ch-thumb">
-          <div className="ch-img" style={{ backgroundImage: fl.thumbs[x.id] ? 'url(' + fl.thumbs[x.id] + ')' : 'none' }} />
+          <Thumb id={x.id} />
           <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
           <span className="ch-muted">{mb(x.file_size)} · {fmtDate(x.created_at)}</span>
           <div className="ch-row">
             <Btn small onClick={() => download(x)}>{T('Last ned')}</Btn>
-            {canDel && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); await load(); })}>{T('Slett')}</Btn>}
+            {canDel && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); setFl(f => ({ ...f, list: f.list.filter(y => y.id !== x.id) })); await load(undefined, undefined, { usage: true }); })}>{T('Slett')}</Btn>}
           </div>
         </div>;
-      })}</div> : <Empty>{T('Ingen filer i denne mappen.')}</Empty>}
+      })}</div> : <Empty>{T(fl.loading ? 'Laster …' : 'Ingen filer i denne mappen.')}</Empty>}
     </Card>
   </>;
 }
@@ -247,29 +253,31 @@ export function FilesView({ churchId }) {
    ikke tilgang (verken her eller i databasen). */
 export function SpacesView() {
   const { collab, act, say } = useAdmin();
-  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], cands: [], thumbs: {}, name: '', add: '' });
+  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], cands: [], name: '', add: '', loading: true });
+  const seq = React.useRef(0);
+  /* Områdeliste og katalog parallelt, deretter det valgte områdets deltakere, delte filer og kandidater parallelt.
+     Bildene hentes av <Thumb> når de vises. Valgt område markeres straks; bare siste valg vinner. */
   const load = async (sel = sp.sel) => {
-    const list = await SP.list(), dir = collab ? await SP.directory().catch(() => []) : [];
+    const n = ++seq.current; if (sel) setSp(p => ({ ...p, sel }));
+    const [list, dir] = await Promise.all([SP.list(), collab ? SP.directory().catch(() => []) : []]);
     const cur = sel && list.some(x => x.id === sel) ? sel : (list.find(x => x.status === 'active') || list[0] || {}).id || null;
-    const [members, files] = cur ? await Promise.all([SP.members(cur), SP.files(cur)]) : [[], []];
+    const [members, files, all] = cur ? await Promise.all([SP.members(cur), SP.files(cur), collab ? FS.list() : []]) : [[], [], []];
     const active = new Set(members.filter(m => m.status === 'active').map(m => m.church_id));
-    const cands = collab && cur ? (await FS.list()).filter(f => f.visibility === 'church' && active.has(f.church_id)) : [];
-    const shownIds = collab ? cands.map(f => f.id) : files.map(f => f.file_id);
-    const thumbs = await FS.objectUrls(shownIds.slice(0, 60));
-    setSp(p => { Object.values(p.thumbs).forEach(u => URL.revokeObjectURL(u)); return { ...p, list, dir, sel: cur, members, files, cands, thumbs }; });
+    const cands = all.filter(f => f.visibility === 'church' && active.has(f.church_id));
+    if (n === seq.current) setSp(p => ({ ...p, list, dir, sel: cur, members, files, cands, loading: false }));
   };
   React.useEffect(() => { act(() => load())(); }, []);
   const cur = sp.list.find(x => x.id === sp.sel), cname = id => (sp.dir.find(d => d.id === id) || {}).name || T('Menighet');
   const shared = new Set(sp.files.map(f => f.file_id));
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await load(); });
-  const download = act(async (id, name) => { const u = sp.thumbs[id] || (await FS.objectUrls([id]))[id]; if (!u) return; const a = document.createElement('a'); a.href = u; a.download = name || 'bilde'; document.body.appendChild(a); a.click(); a.remove(); });
+  const download = act((id, name) => downloadOriginal(id, name));
 
   return <div className="ch-grid">
     <Card title="Samarbeidsområder" sub={sp.list.length}>
       {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<b>{x.name}</b>,
         <div className="ch-end">{x.status !== 'active' && <Badge>{T('Arkivert')}</Badge>}{x.id === sp.sel && <Badge tone="ok">{T('Valgt')}</Badge>}</div>] }))} />
-        : <Empty>{T(collab ? 'Ingen samarbeidsområder ennå.' : 'Ingen samarbeid er gjort tilgjengelig for deg ennå.')}</Empty>}
-      {collab && <form className="ch-row" onSubmit={e => { e.preventDefault(); act(async () => { const id = await SP.create(sp.name); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })(); }}>
+        : <Empty>{T(sp.loading ? 'Laster …' : collab ? 'Ingen samarbeidsområder ennå.' : 'Ingen samarbeid er gjort tilgjengelig for deg ennå.')}</Empty>}
+      {collab && <form className="ch-row" onSubmit={e => { e.preventDefault(); act(async () => { const id = await SP.create(sp.name); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })(e); }}>
         <input className="ch-input" style={{ flex: '1 1 200px' }} placeholder={T('Navn på nytt område')} value={sp.name} onChange={e => setSp(p => ({ ...p, name: e.target.value }))} minLength={2} maxLength={120} required />
         <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett område')}</Btn>
       </form>}
@@ -294,7 +302,7 @@ export function SpacesView() {
     {cur && collab && <Card title="Hva som deles" sub={shared.size}>
       <p className="ch-muted">{T('Velg fellesbilder fra menighetene som deltar. Private filer kan aldri deles, og video finnes ikke i ConnectHub.')}</p>
       {sp.cands.length ? <div className="ch-thumbs">{sp.cands.map(x => <div key={x.id} className="ch-thumb">
-        <div className="ch-img" style={{ backgroundImage: sp.thumbs[x.id] ? 'url(' + sp.thumbs[x.id] + ')' : 'none' }} />
+        <Thumb id={x.id} />
         <span style={{ wordBreak: 'break-all' }}>{x.file_name}</span><span className="ch-muted">{cname(x.church_id)}</span>
         <Btn small kind={shared.has(x.id) ? '' : 'primary'} onClick={run(() => SP.share(x.id, cur.id, !shared.has(x.id)))}>{T(shared.has(x.id) ? 'Fjern fra området' : 'Del i området')}</Btn>
       </div>)}</div> : <Empty>{T('Ingen fellesbilder i menighetene som deltar.')}</Empty>}
@@ -303,7 +311,7 @@ export function SpacesView() {
     {cur && !collab && <Card title={cur.name} sub={sp.files.length}>
       <p className="ch-muted">{sp.members.filter(m => m.status === 'active').length} {T('menigheter deltar.')} {T('Du kan se og laste ned bildene som deles her.')}</p>
       {sp.files.length ? <div className="ch-thumbs">{sp.files.map(x => <div key={x.file_id} className="ch-thumb">
-        <div className="ch-img" style={{ backgroundImage: sp.thumbs[x.file_id] ? 'url(' + sp.thumbs[x.file_id] + ')' : 'none' }} />
+        <Thumb id={x.file_id} />
         <Btn small onClick={() => download(x.file_id, 'delt-bilde')}>{T('Last ned')}</Btn>
       </div>)}</div> : <Empty>{T('Ingen bilder er delt i området ennå.')}</Empty>}
     </Card>}
@@ -324,7 +332,7 @@ export function SubsView({ churchId }) {
     </Card>
     <Card title="Nåværende abonnement">
       <List cols="1fr auto auto" head={['Menighet', 'Plan', 'Gratis']} empty="Ingen abonnement registrert (standard: Gratis, 200 MB)." rows={sub.current.map(c => ({ key: c.church_id, cells: [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei')] }))} />
-      {churchId && canManage(churchId) && !staff && <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => SUB.request(churchId, sub.plan, sub.free, sub.reason), 'Forespørselen er sendt.')(); }}>
+      {churchId && canManage(churchId) && !staff && <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => SUB.request(churchId, sub.plan, sub.free, sub.reason), 'Forespørselen er sendt.')(e); }}>
         <Field label="Plan"><select className="ch-select" value={sub.plan} onChange={e => setSub(p => ({ ...p, plan: e.target.value }))}>{sub.plans.map(p => <option key={p.code} value={p.code}>{T(p.name)}</option>)}</select></Field>
         <Field label="Begrunnelse (valgfritt)"><input className="ch-input" value={sub.reason} onChange={e => setSub(p => ({ ...p, reason: e.target.value }))} maxLength={1000} /></Field>
         <label className="ch-row ch-muted"><input type="checkbox" checked={sub.free} onChange={e => setSub(p => ({ ...p, free: e.target.checked }))} /> {T('Be om gratis abonnement')}</label>

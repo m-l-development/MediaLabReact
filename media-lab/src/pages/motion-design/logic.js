@@ -49,6 +49,8 @@ class Component extends DCLogic {
     window.addEventListener('resize', this.onResize); window.addEventListener('keydown', this.onKey);
     this.onHide = () => { if (this._svT) this.saveNow(); }; window.addEventListener('pagehide', this.onHide);
     this.onBU = e => { if (this.dirty && this.state.view === 'edit') { e.preventDefault(); e.returnValue = ''; } }; window.addEventListener('beforeunload', this.onBU);
+    this.poke = () => { this._act = performance.now(); };
+    for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'input', 'touchstart', 'drop']) window.addEventListener(ev, this.poke, { capture: true, passive: true });
     this.raf = requestAnimationFrame(this.loop);
     this.boot();
     { const _ws = (fn, n = 0) => { if (window.MLShare) fn(); else if (n < 120) setTimeout(() => _ws(fn, n + 1), 50); }; _ws(() => { this._unr = window.MLShare.receive((b, n) => this.takeShared(b, n), { accept: ['image', 'video', 'audio'], when: () => this.state.view === 'edit' && !this.clip }); }); }
@@ -58,11 +60,13 @@ class Component extends DCLogic {
   sendFrame = async () => { const VF = window.VF, p = this.state.proj; if (!p || !window.MLShare) return; const z = VF.exportSize(p, '1080'), c = document.createElement('canvas'); c.width = z.w; c.height = z.h; try { VF.drawFrame(c.getContext('2d'), z.w, z.h, p, this.M, this.t, null); } catch (e) {} c.toBlob(b => { if (b) window.MLShare.send(b, this.fileBase(p) + '-stillbilde.png', 'motion'); }, 'image/png'); };
   sendVideo = () => { if (this._lastExp && window.MLShare) window.MLShare.send(this._lastExp.blob, this._lastExp.name, 'motion'); };
   componentWillUnmount() {
-    this.alive = false; cancelAnimationFrame(this.raf); clearInterval(this._voI); if (this.vo) { try { this.vo.st.getTracks().forEach(t => t.stop()); } catch (e) {} } clearTimeout(this._toastT);
+    this.alive = false; cancelAnimationFrame(this.raf); clearInterval(this._voI);
+    for (const ev of ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'input', 'touchstart', 'drop']) window.removeEventListener(ev, this.poke, { capture: true }); if (this.vo) { try { this.vo.st.getTracks().forEach(t => t.stop()); } catch (e) {} } clearTimeout(this._toastT);
     window.removeEventListener('resize', this.onResize); window.removeEventListener('keydown', this.onKey); window.removeEventListener('pagehide', this.onHide); window.removeEventListener('beforeunload', this.onBU);
     if (this.ro) this.ro.disconnect(); this.closeMedia(); if (this.hid) this.hid.remove();
   }
   componentDidUpdate() {
+    this._act = performance.now();   /* visningen er endret: tegn straks (se loop) */
     this.drawCurve();
     const tl = this.tlRef.current; if (tl && tl !== this._wEl) { if (this._wEl) this._wEl.removeEventListener('wheel', this.onTlWheel); this._wEl = tl; tl.addEventListener('wheel', this.onTlWheel, { passive: false }); }
     const el = this.stageRef.current;
@@ -229,6 +233,11 @@ class Component extends DCLogic {
     const VF = window.VF, p = this.state.proj; if (this.state.view !== 'edit' || !p || !VF || this._exporting) return;
     const T = VF.totalDur(p);
     if (this.playing) { let t = this.pt0 + (now - this.pn0) / 1000; if (t >= T) { t = T; this.t = t; this.stop(); } else this.t = t; }
+    /* Står videoen stille og ingen bruker editoren akkurat nå (mus, tastatur, berøring eller endring i visningen siste
+       1,5 s), tegnes forhåndsvisningen 4 ganger i sekundet i stedet for 60. Ved bruk og avspilling tegnes hvert bilde som
+       før, så dra og skrubbing er like jevne – men en editor i ro bruker ikke lenger CPU/batteri på å tegne det samme. */
+    if (!this.playing && now - (this._act || 0) > 1500 && now - (this._idleDraw || 0) < 250) return;
+    this._idleDraw = now;
     this.syncPlayback(p, T); this.draw(p); this.updPH(T);
   };
   syncPlayback(p, T) {

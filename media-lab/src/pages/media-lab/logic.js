@@ -18,18 +18,27 @@ class Component extends DCLogic {
     if (this.state.theme === 'light') this.setTheme('light');
     this.still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const t0 = performance.now();
-    let last = -1;
-    const tick = now => { if (!this.alive) return; if (!this.still) this.raf = requestAnimationFrame(tick); if (now != null && now - last < 32) return; last = now || 0; this.draw(((now || performance.now()) - t0) / 1000); };
-    tick();
+    /* Svake enheter (få kjerner/lite minne, eller «spar data»): færre bilder i sekundet og litt lavere oppløsning på
+       bakgrunnen – bevegelsen er rolig, så forskjellen synes knapt, men knapper og rulling svarer raskere. Animasjonen
+       stopper når forsiden ikke vises (annen fane) eller bakgrunnen er rullet ut av syne. */
+    const nav = navigator, low = (nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory || 8) <= 4 || !!(nav.connection && nav.connection.saveData);
+    this.maxDpr = low ? 1.5 : 2;
+    const step = low ? 50 : 32;
+    let last = -1, seen = true;
+    const tick = now => { this.raf = 0; if (!this.alive || this.still || !seen || document.hidden) return; this.raf = requestAnimationFrame(tick); if (now - last < step) return; last = now; this.draw((now - t0) / 1000); };
+    this.start = () => { if (!this.raf && this.alive && !this.still && seen && !document.hidden) this.raf = requestAnimationFrame(tick); };
+    this.draw(0); this.start();
+    document.addEventListener('visibilitychange', this.start);
+    if (typeof IntersectionObserver === 'function' && this.meshRef.current) { this.io = new IntersectionObserver(es => { seen = es.some(e => e.isIntersecting); this.start(); }); this.io.observe(this.meshRef.current); }
     this.onResize = () => this.still && this.draw(0);
     window.addEventListener('resize', this.onResize);
   }
   readFolder() { const h = (location.hash || '').slice(1).toLowerCase(); return h === 'some' || h === 'tools' ? h : ''; }
   goFolder(f) { try { history.pushState(null, '', f ? '#' + f : location.pathname + location.search); } catch (e) {} this.setState({ folder: f }); window.scrollTo(0, 0); }
-  componentWillUnmount() { this.alive = false; window.removeEventListener('popstate', this.onPop); cancelAnimationFrame(this.raf); window.removeEventListener('resize', this.onResize); window.removeEventListener('medialab-lang', this.onLang); }
+  componentWillUnmount() { this.alive = false; window.removeEventListener('popstate', this.onPop); cancelAnimationFrame(this.raf); document.removeEventListener('visibilitychange', this.start); if (this.io) this.io.disconnect(); window.removeEventListener('resize', this.onResize); window.removeEventListener('medialab-lang', this.onLang); }
   draw(t) {
     const c = this.meshRef.current; if (!c) return;
-    const d = Math.min(2, window.devicePixelRatio || 1), W = c.clientWidth, H = c.clientHeight;
+    const d = Math.min(this.maxDpr || 2, window.devicePixelRatio || 1), W = c.clientWidth, H = c.clientHeight;
     if (c.width !== Math.round(W * d) || c.height !== Math.round(H * d)) { c.width = Math.round(W * d); c.height = Math.round(H * d); }
     const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, W, H);
     const NX = 44, NZ = 30, pts = [];
@@ -48,10 +57,12 @@ class Component extends DCLogic {
       g.strokeStyle = 'rgba(' + ink + ',' + ((0.05 + 0.2 * (1 - j / NZ)) * ka).toFixed(3) + ')';
       g.beginPath(); pts[j].forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke();
     }
+    /* samme fargeovergang for alle de loddrette linjene – lages én gang per bilde, ikke 44 */
+    const gr = g.createLinearGradient(0, H, 0, 0);
+    gr.addColorStop(0, 'rgba(' + ink + ',' + (0.22 * ka).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(' + ink + ',0.03)');
+    g.strokeStyle = gr;
     for (let i = 0; i < NX; i++) {
-      const gr = g.createLinearGradient(0, H, 0, 0);
-      gr.addColorStop(0, 'rgba(' + ink + ',' + (0.22 * ka).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(' + ink + ',0.03)');
-      g.strokeStyle = gr; g.beginPath();
+      g.beginPath();
       for (let j = 0; j < NZ; j++) { const p = pts[j][i]; j ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }
       g.stroke();
     }
