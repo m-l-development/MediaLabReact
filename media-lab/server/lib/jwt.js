@@ -43,7 +43,7 @@ const cache = new Map();
 export async function getJwks(issuer, fetchFn = fetch, { force = false, now = Date.now() } = {}) {
   const hit = cache.get(issuer);
   if (hit && !force && now - hit.at < 600000) return hit.jwks;
-  const r = await fetchFn(issuer + '/.well-known/jwks.json', { headers: { accept: 'application/json' } });
+  const r = await fetchFn(issuer + '/.well-known/jwks.json', { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(5000) });   /* sperren skal aldri henge */
   if (!r.ok) throw new Error('JWKS ' + r.status);
   const jwks = await r.json();
   cache.set(issuer, { jwks, at: now });

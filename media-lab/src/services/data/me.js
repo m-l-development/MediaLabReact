@@ -1,8 +1,9 @@
 /* «Hvem er jeg» – egen bruker, aktive roller og menigheter (public.whoami() i databasen). null = ikke koblet/deaktivert. */
 import { data } from '../port.js';
+import { withTimeout } from '../timeout.js';
 
 export async function whoami() {
-  const r = await data().rpc('whoami');
+  const r = await withTimeout(data().rpc('whoami'), 20000);
   return r || null;
 }
 

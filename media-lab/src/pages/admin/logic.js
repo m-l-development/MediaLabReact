@@ -23,7 +23,7 @@ class Component extends DCLogic {
     for (let i = 0; i < 100 && !window.MLCloud; i++) await new Promise(r => setTimeout(r, 40));
     this.setState({ phase: 'load', err: '' });
     try { const d = await this.api('status'); if (d.setup) this.setState({ phase: 'setup', needCode: !!d.needCode }); else if (d.me) this.enter(d.me); else this.setState({ phase: 'login' }); }
-    catch (e) { if (e.status === 503 && e.data && e.data.error === 'config') this.setState({ phase: 'config', cfg: e.data.missing || [] }); else this.setState({ phase: 'offline' }); }
+    catch (e) { if (e.status === 503 && e.data && e.data.error === 'config') this.setState({ phase: 'config', cfg: e.data.missing || [] }); else this.setState({ phase: e.timeout || e.status === 504 ? 'timeout' : 'offline' }); }
   };
   enter(me) {
     const scope = me.role === 'dev' ? 'global' : me.org ? 'org/' + me.org : '';
@@ -98,6 +98,7 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state, me = S.me, dev = !!me && me.role === 'dev', deploy = /^[a-z0-9-]+\.dc\.html$/.test(decodeURIComponent(location.pathname.split('/').pop() || ''));
     const AUTH = { load: ['Kobler til …', 'Et øyeblikk.'], offline: ['Ikke tilgjengelig her', 'Admin krever serveren på den publiserte siden (Vercel). Åpne Media Lab via nettadressen, ikke som lokal fil.'],
+      timeout: ['Serveren svarer ikke', 'Den gamle adminløsningen fikk ikke svar fra serveren. Bruk den nye ConnectHub-adminen, eller prøv igjen senere.'],
       config: ['Serveren mangler oppsett', 'Koble en privat Blob-butikk til prosjektet i Vercel og legg inn miljøvariabelen AUTH_SECRET (minst 32 tilfeldige tegn). Deploy på nytt etterpå.'],
       setup: ['Opprett utviklerkonto', 'Ingen kontoer finnes ennå. Den første kontoen blir utvikler og får tilgang til alt.'], login: ['Logg inn', 'For administratorer og utviklere.'] }[S.phase] || ['', ''];
     const tabs = !me ? [] : (me.role === 'user' ? [['acct', 'Min konto']] : [['files', 'Filer'], ['users', 'Brukere']].concat(dev ? [['orgs', 'Menigheter'], ['logs', 'Logg'], ['sys', 'System']] : []).concat([['acct', 'Min konto']]));
@@ -107,7 +108,7 @@ class Component extends DCLogic {
     return {
       homeHref: deploy ? 'media-lab.dc.html' : 'media-lab.dc.html',
       isAuth: S.phase !== 'panel', isPanel: S.phase === 'panel', authTitle: AUTH[0], authText: AUTH[1],
-      showForm: S.phase === 'setup' || S.phase === 'login', isSetup: S.phase === 'setup', needCode: S.needCode, showRetry: S.phase === 'offline' || S.phase === 'config', boot: this.boot,
+      showForm: S.phase === 'setup' || S.phase === 'login', isSetup: S.phase === 'setup', needCode: S.needCode, showRetry: S.phase === 'offline' || S.phase === 'config' || S.phase === 'timeout', boot: this.boot,
       fName: S.fName, fPw: S.fPw, fPw2: S.fPw2, fCode: S.fCode, onFName: this.inp('fName'), onFPw: this.inp('fPw'), onFPw2: this.inp('fPw2'), onFCode: this.inp('fCode'),
       pwAuto: S.phase === 'setup' ? 'new-password' : 'current-password', submitAuth: this.submitAuth, submitLabel: S.busy ? 'Vent …' : S.phase === 'setup' ? 'Opprett konto' : 'Logg inn',
       hasErr: !!S.err, err: S.err, busy: S.busy, busyOp: S.busy ? 0.5 : 1,

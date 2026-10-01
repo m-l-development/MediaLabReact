@@ -9,6 +9,7 @@ import { hasBackend } from '../services/config.js';
 import { whoami } from '../services/data/me.js';
 import { installLocalUser, legacyStatus, shouldAsk, rememberAnswer, adoptLegacy } from './local-user.js';
 import { mountAccountMenu } from './account-menu.js';
+import { withTimeout } from '../services/timeout.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 
@@ -64,7 +65,7 @@ export async function ensureLoggedIn() {
     return new Promise(() => {});
   }
   const here = location.pathname + location.search + location.hash;
-  const s = await auth.session().catch(() => null);
+  let s; try { s = await withTimeout(auth.session(), 20000); } catch (e) { if (e && e.code === 'timeout') { block('Kunne ikke kontakte ConnectHub. Sjekk nettforbindelsen og last siden på nytt.'); return new Promise(() => {}); } s = null; }
   if (!s) { location.replace(auth.loginUrl(here)); return new Promise(() => {}); }
   let me = null;
   try { me = await whoami(); } catch (e) { me = undefined; }

@@ -74,6 +74,7 @@ export async function handle(request, env, deps = {}) {
     return await route({ request, env, deps, cfg, backend, token, claims: v.claims, body });
   } catch (e) {
     if (e && e.status && e.error) return fail(e.error, e.status);
+    if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) return fail('upstream_timeout', 504);
     if (e && e.code) { const d = dbError(e); return fail(d.error, d.status); }
     return fail('server_error', 500);
   }

@@ -15,6 +15,7 @@ const ERR = {
   same_password: 'Velg et annet passord enn det gamle.',
   otp_expired: 'Lenken er utløpt eller allerede brukt. Be om en ny.',
   lenke_ugyldig: 'Lenken er utløpt eller allerede brukt. Be om en ny.',
+  timeout: 'Serveren svarte ikke i tide. Sjekk nettforbindelsen og prøv igjen.',
   flow_state_not_found: 'Lenken må åpnes i samme nettleser som du ba om den fra. Be om en ny.',
   invitation_invalid: 'Invitasjonen er ikke gyldig lenger. Be om en ny invitasjon.',
   invitation_expired: 'Invitasjonen er utløpt. Be om en ny invitasjon.',

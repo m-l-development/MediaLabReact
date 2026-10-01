@@ -25,7 +25,7 @@ export const files = {
   /* Henter bildene som lokale blob:-adresser (ingen «tainted» lerret ved eksport, og ingen utløpte lenker). */
   async objectUrls(ids) {
     const urls = await files.urls(ids.slice(0, 100)), out = {};
-    await Promise.all(Object.entries(urls).map(async ([id, u]) => { try { const r = await fetch(u); if (r.ok) out[id] = URL.createObjectURL(await r.blob()); } catch (e) {} }));
+    await Promise.all(Object.entries(urls).map(async ([id, u]) => { try { const r = await fetch(u, { signal: AbortSignal.timeout(20000) }); if (r.ok) out[id] = URL.createObjectURL(await r.blob()); } catch (e) {} }));
     return out;
   },
 };

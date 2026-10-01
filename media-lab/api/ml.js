@@ -3,7 +3,7 @@
    Valgfritt: SETUP_CODE – må oppgis ved første oppsett av utviklerkontoen. */
 import { put, get, del, list } from '@vercel/blob';
 import crypto from 'node:crypto';
-import { verifyToken, readCookie, COOKIE } from '../server/lib/gate.js';
+import { verifyToken, readCookie, COOKIE as CH_COOKIE } from '../server/lib/gate.js';
 
 const DB = 'sys/db.json';
 const FOLDERS = { mockups: 'img', faste: 'img', logoer: 'img', bakgrunner: 'img', lyd: 'audio' };
@@ -257,11 +257,11 @@ async function route(req) {
   return err('Ukjent handling.', 404);
 }
 
-export default async function handler(req) {
+async function handler(req) {
   /* ConnectHub (P5): det gamle API-et krever nå også gyldig ConnectHub-innlogging (cookien ch_at), i tillegg til sin egen.
      Beholdes til ny løsning er godkjent og det kan fjernes (se docs/testlogg.md). */
   const ck = req.headers && typeof req.headers.get === 'function' ? req.headers.get('cookie') : req.headers && req.headers.cookie;
-  const v = await verifyToken(readCookie(ck, COOKIE), { env: process.env });
+  const v = await verifyToken(readCookie(ck, CH_COOKIE), { env: process.env });
   if (!v.claims) return err(v.unavailable ? 'Midlertidig utilgjengelig.' : 'Logg inn i ConnectHub først.', v.unavailable ? 503 : 401);
   try { return await route(req); }
   catch (e) {
@@ -271,3 +271,15 @@ export default async function handler(req) {
     return err(pre ? 'Noen andre endret samtidig. Prøv igjen.' : 'Serverfeil. Se loggen.', pre ? 409 : 500);
   }
 }
+
+/* Vercel tolker en standard-eksportert funksjon som Node-stil (req, res) og venter på res.end(); denne koden bruker
+   Web-standard (Request → Response), så svaret ble aldri sendt og forespørselen hang til 504. Navngitte GET/POST gir
+   riktig signatur. Tidsgrense: svarer alltid innen 15 s, også om lagringen henger. */
+export const config = { maxDuration: 20 };
+const LIMIT_MS = 15000;
+const withLimit = async req => {
+  let t; const late = new Promise(r => { t = setTimeout(() => r(err('Serveren svarte ikke i tide. Prøv igjen.', 504)), LIMIT_MS); });
+  try { return await Promise.race([handler(req), late]); } finally { clearTimeout(t); }
+};
+export const GET = withLimit;
+export const POST = withLimit;

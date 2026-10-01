@@ -6,7 +6,11 @@
   async function api(a, opt) {
     opt = opt || {}; var m = opt.method || 'GET', h = {};
     if (m === 'POST') { h['x-ml'] = '1'; h['content-type'] = opt.raw ? (opt.raw.type || 'application/octet-stream') : 'application/json'; }
-    var r = await fetch(q(a, opt.q), { method: m, credentials: 'same-origin', headers: h, body: opt.raw || (opt.body ? JSON.stringify(opt.body) : undefined) });
+    /* Tidsgrense: serveren skal aldri kunne holde siden i «Kobler til …» (10 s, opplasting 60 s). */
+    var ac = new AbortController(), tm = setTimeout(function () { ac.abort(); }, opt.raw ? 60000 : 10000), r;
+    try { r = await fetch(q(a, opt.q), { method: m, credentials: 'same-origin', headers: h, body: opt.raw || (opt.body ? JSON.stringify(opt.body) : undefined), signal: ac.signal }); }
+    catch (e0) { var et = new Error(ac.signal.aborted ? 'timeout' : 'offline'); et.offline = true; et.timeout = ac.signal.aborted; throw et; }
+    finally { clearTimeout(tm); }
     var ct = r.headers.get('content-type') || '', d = null; if (ct.indexOf('json') >= 0) { try { d = await r.json(); } catch (e) {} }
     if (!d && !r.ok) { var e0 = new Error('offline'); e0.status = r.status; e0.offline = true; throw e0; }
     if (!r.ok) { var e1 = new Error((d && d.error) || ('HTTP ' + r.status)); e1.status = r.status; e1.data = d; throw e1; }
@@ -22,8 +26,9 @@
   var sent = 0, seen = {};
   function report(level, msg, src, line, stack) {
     if (sent >= 8 || off || location.protocol !== 'https:' || /claudeusercontent|localhost|127\.0\.0\.1/.test(location.hostname)) return;
+    if (/ViewTransition|Transition was aborted/i.test(String(msg))) return;   /* nettleserens sideoverganger – ufarlig */
     var k = String(msg).slice(0, 120); if (seen[k]) return; seen[k] = 1; sent++;
-    try { fetch(API + '?a=log', { method: 'POST', keepalive: true, credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ level: level, msg: String(msg || '').slice(0, 600), src: String(src || '').slice(0, 200), line: line || 0, stack: String(stack || '').slice(0, 1500), page: location.pathname.slice(0, 200) }) }).catch(function () {}); } catch (e) {}
+    try { fetch(API + '?a=log', { method: 'POST', keepalive: true, signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined, credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ level: level, msg: String(msg || '').slice(0, 600), src: String(src || '').slice(0, 200), line: line || 0, stack: String(stack || '').slice(0, 1500), page: location.pathname.slice(0, 200) }) }).catch(function () {}); } catch (e) {}
   }
   window.addEventListener('error', function (e) { if (e && e.message) report('error', e.message, e.filename, e.lineno, e.error && e.error.stack); });
   window.addEventListener('unhandledrejection', function (e) { var r = e && e.reason; report('error', (r && r.message) || String(r), '', 0, r && r.stack); });

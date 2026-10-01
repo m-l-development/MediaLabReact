@@ -9,6 +9,14 @@ import { stickyTitle } from './sticky-title.js';
 import './ml-update.js';
 import { ensureLoggedIn } from './auth-gate.js';
 
+/* Sideoverganger (@view-transition i noen sider): når Chrome avbryter en overgang (f.eks. ved rask navigering) avvises
+   løftene med «Transition was aborted … ViewTransition opt-in disabled». Det er ufarlig; vi fanger det så det ikke
+   dukker opp som uhåndtert feil. */
+if (typeof window !== 'undefined') for (const ev of ['pageswap', 'pagereveal']) window.addEventListener(ev, e => {
+  const vt = e.viewTransition; if (!vt) return;
+  for (const p of ['ready', 'finished', 'updateCallbackDone']) if (vt[p] && vt[p].catch) vt[p].catch(() => {});
+});
+
 export class DCLogic {
   constructor(props) { this.props = props || {}; this.state = {}; this.__host = undefined; }
   setState(update, cb) { this.__host && this.__host.__setLogicState(update, cb); }

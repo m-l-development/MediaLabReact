@@ -6,7 +6,7 @@ export function supabaseServer(cfg, fetchFn = fetch) {
   const asServer = { apikey: cfg.secretKey, authorization: 'Bearer ' + cfg.secretKey };
   const asUser = token => ({ apikey: cfg.publishableKey, authorization: 'Bearer ' + token });
   const call = async (path, { method = 'GET', headers = {}, body, raw } = {}) => {
-    const r = await fetchFn(cfg.url + path, { method, headers: { ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers }, body: raw ? body : body !== undefined ? JSON.stringify(body) : undefined });
+    const r = await fetchFn(cfg.url + path, { signal: AbortSignal.timeout(20000), method, headers: { ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers }, body: raw ? body : body !== undefined ? JSON.stringify(body) : undefined });
     const text = await r.text(); let data = null; try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
     if (!r.ok) { const e = new Error('backend ' + r.status); e.status = r.status; e.code = data && (data.code || data.error_code || data.error); throw e; }
     return data;
