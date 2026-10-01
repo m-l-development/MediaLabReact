@@ -22,10 +22,13 @@ export function publicOrigin(env, requestUrl) {
 /* Servernøkler. Leses bare her, bare på serveren, og sjekkes før bruk. Lokalt kommer den hemmelige nøkkelen bare fra
    skallets miljø (aldri fra filer i prosjektet). Navnene følger Vercel-integrasjonen (prefiks per prosjekt). */
 const PREFIX = { production: 'connecthub', preview: 'connecthub-dev' };
+/* Manuelt opprettede variabler kan ikke ha bindestrek i Vercel; derfor godtas også dette navnet på Preview. */
+const MANUAL_SECRET = { preview: 'connecthub_devSUPABASE_SECRET_KEY' };
 export function serverConfig(env) {
   const target = targetOf(env), p = env.VERCEL_ENV ? PREFIX[target] : 'CONNECTHUB_';
   const publishableKey = String(env[p + 'SUPABASE_PUBLISHABLE_KEY'] || '').trim();
-  const secretKey = String(env[p + 'SUPABASE_SECRET_KEY'] || env[p + 'SUPABASE_SERVICE_ROLE_KEY'] || '').trim();
+  const manual = env.VERCEL_ENV && MANUAL_SECRET[target] ? env[MANUAL_SECRET[target]] : '';
+  const secretKey = String(env[p + 'SUPABASE_SECRET_KEY'] || env[p + 'SUPABASE_SERVICE_ROLE_KEY'] || manual || '').trim();
   if (!/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(publishableKey)) return { error: 'publishable_key_missing' };
   if (!secretKey) return { error: 'secret_key_missing' };
   if (!/^sb_secret_[A-Za-z0-9_-]{10,}$/.test(secretKey)) {

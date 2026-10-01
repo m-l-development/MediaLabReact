@@ -36,6 +36,16 @@ test('serverConfig: krever publiserings- og hemmelig nøkkel; service_role-JWT m
   assert.equal(serverConfig(ENV).url, 'https://uatpdmhnwwjgzlxaucsx.supabase.co');
 });
 
+test('serverConfig: Preview godtar manuelt opprettet connecthub_devSUPABASE_SECRET_KEY (Vercel tillater ikke bindestrek)', () => {
+  const env = { VERCEL_ENV: 'preview', 'connecthub-devSUPABASE_PUBLISHABLE_KEY': 'sb_publishable_testtesttest', connecthub_devSUPABASE_SECRET_KEY: 'sb_secret_manuelltesttest' };
+  const c = serverConfig(env);
+  assert.equal(c.error, undefined); assert.equal(c.target, 'preview'); assert.equal(c.secretKey, 'sb_secret_manuelltesttest');
+  assert.equal(c.url, 'https://uatpdmhnwwjgzlxaucsx.supabase.co', 'snakker fortsatt bare med dev-prosjektet');
+  assert.equal(serverConfig({ ...env, 'connecthub-devSUPABASE_SECRET_KEY': 'sb_secret_integrasjontest' }).secretKey, 'sb_secret_integrasjontest', 'integrasjonens navn går foran');
+  assert.equal(serverConfig({ VERCEL_ENV: 'production', connecthubSUPABASE_PUBLISHABLE_KEY: 'sb_publishable_testtesttest', connecthub_devSUPABASE_SECRET_KEY: 'sb_secret_manuelltesttest' }).error, 'secret_key_missing', 'gjelder ikke i Production');
+  assert.equal(serverConfig({ ...env, connecthub_devSUPABASE_SECRET_KEY: 'feil-format' }).error, 'secret_key_invalid');
+});
+
 test('API: metode, ukjent handling, manglende oppsett, manglende og ugyldig innlogging', async () => {
   assert.equal((await run(await req('invite.create', {}, { method: 'GET' }), fakeBackend())).status, 405);
   assert.equal((await run(await req('finnes.ikke', {}), fakeBackend())).status, 404);
