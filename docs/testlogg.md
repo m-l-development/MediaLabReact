@@ -107,3 +107,60 @@ Resultater per pakke. Alt kjøres mot `connecthub-dev` med syntetiske data. Prod
 - «Prosjektinformasjon privat» er tolket som at prosjektinformasjonen bare lagres lokalt og per bruker, i nettleseren eller i prosjektmappen. **Ingen prosjektinformasjon sendes til skyen.** En privat kopi i skyen er ikke laget. Den kan legges til senere med egen godkjenning.
 - Valgfri mappemodus for bilder (Photo Design og andre) er **ikke laget**. Bildene lagres fortsatt lokalt i nettleseren. Det er foreslått som videre arbeid.
 - Nettleseren kan be om tilgang til mappen på nytt etter omstart. Da vises «Gi tilgang til mappen».
+
+## P7 – delte filer, bare bilder (2026-10-01)
+
+**Løsning**
+- **Database** (`20261001140000_files.sql`):
+  - `files` har fått `folder` (bilder, logoer, bakgrunner, mockups, faste) og `visibility` (church eller private).
+  - Kvoter: 200 MB per menighet (`churches.storage_quota_mb`) og 50 MB private filer per bruker.
+  - `can_upload` (som bruker), `register_file` (bare server, med lås per menighet og ny kontroll), `delete_file`, `file_keys` (signering bare for filer brukeren kan se) og `storage_usage`.
+  - Private filer ser bare den som lastet dem opp, ikke admin eller stab.
+- **Lagring** (`20261001140100_supabase_storage.sql`): privat bøtte `ch-files`, bare bildeformater, maks 4 MB og **ingen** policyer for klienter. Bare serveren kan lese og skrive.
+- **Server** (`server/handlers/files.js` og `server/lib/sniff.js`), i denne rekkefølgen:
+  1. innlogging
+  2. størrelse (maks 4 MB)
+  3. innholdskontroll med magiske bytes: bare PNG, JPEG, WebP og GIF godtas, og video gjenkjennes og avvises (MP4/MOV/3GP, WebM/MKV, AVI, MPEG, WMV, FLV, TS, Ogg) uansett navn
+  4. rettighet og kvote med brukerens token
+  5. lagring med nøkkel fra serveren
+  6. registrering
+
+  Feiler registreringen, slettes filen igjen. Visning skjer med signerte lenker som varer i 10 minutter.
+- **Klient**: `src/services/files.js` og `src/shared/ch-cloud.js`. Det siste erstatter den gamle `ml-cloud.js` i alle verktøy (Mockups, Photo Design m.fl.) med samme grensesnitt (`MLCloud.files(mappe)`). Bildene hentes som lokale `blob:`-adresser, så eksport fra lerretet virker og lenkene ikke utløper i verktøyene. Fanen «Filer» på admin-siden har opplasting, miniatyrer, kvote og sletting.
+
+**Funnet og rettet:** RLS-testene viste at `delete_file` og `revoke_invitation` slapp gjennom når opplaster eller oppretter var NULL (NOT NULL er NULL). Det er rettet i `20261001140200_null_safe_checks.sql`, og det er laget test for begge. Alle andre tilgangssjekker er gjennomgått for samme mønster.
+
+**Tester**
+- `npm test`: 41/41, med 8 nye. Disse dekker:
+  - innholdskontroll for alle bildeformater
+  - avvisning av MP4, MOV, WebM og AVI forkledd som bilde, og PNG med videonavn
+  - avvisning av SVG, HTML, PDF og tom fil
+  - størrelsesgrense
+  - at ingenting lagres uten tillatelse
+  - at filen ryddes bort når registreringen feiler
+  - at signering bare gjelder filer databasen gir
+- `rls_test.sql`: 139/139, med 23 nye. Disse dekker mapperettigheter, private filer, kvote, at registrering bare kan gjøres av serveren, videoavvisning i databasen og NULL-sikkerhet.
+
+**E2E** (lokal API mot `connecthub-dev`)
+| Test | Resultat |
+|---|---|
+| Admin: PNG til «logoer» | 200 |
+| MP4-innhold kalt `bilde.png` | 415 `video_not_allowed` |
+| PNG kalt `film.mp4` | 415 `video_not_allowed` |
+| SVG med skript | 415 `type_not_allowed` |
+| 5 MB | 413 |
+| Annen menighet | 403 |
+| Uten innlogging | 401 |
+| Medlem: «bilder» 200, «logoer» 403, privat fil 200 | OK |
+| Medlem i annen menighet: ser 0 filer, signerte lenker for A sine filer gir `{}`, sletting gir 403 | OK |
+| Direkte opplasting til fillagringen med brukertoken → avvist av RLS. Listing av bøtta → `[]` | OK |
+| `storage_key` kan ikke leses av klienter (403) | OK |
+| Signert lenke gir `200 image/png` | OK |
+| Photo Design: `MLCloud.files('logoer')` gir logoen som `blob:` | OK |
+| Admin-siden «Filer»: miniatyr vises | OK |
+
+**Begrensninger**
+- Maks 4 MB per fil, på grunn av Vercels grense for forespørsler. Større bilder krever direkte opplasting med signert lenke, og den er ikke laget.
+- Kvoter er faste standardverdier. Stab kan endre `storage_quota_mb`, men det finnes ikke noe grensesnitt for det ennå.
+- Feilet sletting i lagringen etter at raden er slettet, kan gi en foreldreløs fil. Den er ikke synlig for noen, men må ryddes av drift.
+- Supabase Free gir 1 GB lagring totalt, så kvotene bør vurderes i P11.

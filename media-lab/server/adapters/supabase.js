@@ -1,6 +1,7 @@
 /* Serveradapter for Supabase (REST via fetch). ENESTE serverfil som kjenner Supabase sine endepunkter.
    Ved bytte av leverandør: ny adapter med samme metoder (se docs/architecture-and-portability.md).
    Den hemmelige nøkkelen brukes bare her og sendes bare til leverandøren. */
+const BUCKET = 'ch-files';
 export function supabaseServer(cfg, fetchFn = fetch) {
   const asServer = { apikey: cfg.secretKey, authorization: 'Bearer ' + cfg.secretKey };
   const asUser = token => ({ apikey: cfg.publishableKey, authorization: 'Bearer ' + token });
@@ -30,6 +31,14 @@ export function supabaseServer(cfg, fetchFn = fetch) {
         return { kind: 'magiclink' };
       }
     },
+    /* Fillagring (privat bøtte, bare serveren). Nøkler lages av serveren (c/<menighet>/<uuid>.<ext>). */
+    storagePut: (key, bytes, mime) => call('/storage/v1/object/' + BUCKET + '/' + key, { method: 'POST', headers: { ...asServer, 'content-type': mime, 'x-upsert': 'false', 'cache-control': 'max-age=3600' }, body: bytes, raw: true }),
+    async storageSign(keys, expiresIn) {
+      const r = await call('/storage/v1/object/sign/' + BUCKET, { method: 'POST', headers: asServer, body: { expiresIn, paths: keys } });
+      const out = {}; for (const x of r || []) if (x && x.path && x.signedURL && !x.error) out[x.path] = cfg.url + '/storage/v1' + x.signedURL;
+      return out;
+    },
+    storageDelete: keys => call('/storage/v1/object/' + BUCKET, { method: 'DELETE', headers: asServer, body: { prefixes: keys } }),
     _call: call, _asServer: asServer, _asUser: asUser,
   };
 }

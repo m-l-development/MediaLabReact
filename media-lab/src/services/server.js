@@ -5,12 +5,12 @@ import { ServiceError } from './errors.js';
 let fetchImpl = (...a) => fetch(...a);
 export function useServerFetch(f) { fetchImpl = f; }
 
-export async function callServer(action, body, { raw, contentType } = {}) {
+export async function callServer(action, body, { raw, contentType, query } = {}) {
   const s = await auth.session();
   if (!s || !s.accessToken) throw new ServiceError('unauthorized');
   let r;
   try {
-    r = await fetchImpl('/api/ch?a=' + encodeURIComponent(action), {
+    r = await fetchImpl('/api/ch?a=' + encodeURIComponent(action) + (query ? '&' + new URLSearchParams(query) : ''), {
       method: 'POST', headers: { 'content-type': contentType || 'application/json', authorization: 'Bearer ' + s.accessToken },
       body: raw !== undefined ? raw : JSON.stringify(body || {}),
     });

@@ -3,7 +3,7 @@ import '@ml/ml-pwa.js';
 import '@ml/i18n.js';
 import '@ml/ml-footer.js';
 import '@ml/theme.js';
-import '@ml/ml-cloud.js';
+import '../../shared/ch-cloud.js';
 import '@ml/ml-share.js';
 import '@ml/ml-bg.js';
 import '@ml/thumb-engine.js';

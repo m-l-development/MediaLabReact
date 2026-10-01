@@ -263,6 +263,52 @@ select ch_test.cnt('Server: utløpt invitasjon avvises', $q$select 1 where publi
 select ch_test.cnt('Server: utløpt invitasjon er merket utløpt', $q$select 1 from public.invitations where email = 'utlopt@test.invalid' and status = 'expired'$q$, 1);
 select ch_test.cnt('Server: invitasjon fra en som ikke (lenger) har rett avvises', $q$select 1 where public.accept_invitation(repeat('3', 64), 'https://test.invalid/auth/v1', 'sub-m', 'mistet@test.invalid') ->> 'error' = 'inviter_lost_access'$q$, 1);
 
+-- ---------- Filer (P7) ----------
+set local role postgres;
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, uploaded_by, folder, visibility) values
+  ('aaaaaaaa-0000-4000-8000-00000000000a', 'test/privat-a.png', 'privat.png', 'image/png', 100, '00000000-0000-4000-8000-000000000008', 'bilder', 'private');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.ok('Fil: medlem kan laste opp til «bilder»', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 1000)$q$);
+select ch_test.ok('Fil: medlem kan laste opp privat', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'logoer', true, 1000)$q$);
+select ch_test.err('Fil: medlem kan ikke legge i «logoer» (felles)', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'logoer', false, 1000)$q$, '42501');
+select ch_test.err('Fil: over 4 MB avvises', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 5000000)$q$, '22023');
+select ch_test.err('Fil: ukjent mappe avvises', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'video', false, 1000)$q$, '22023');
+select ch_test.cnt('Fil: eier ser egen private fil', $q$select 1 from public.files where file_name = 'privat.png'$q$, 1);
+select ch_test.cnt('Fil: file_keys gir nøkkel for egen private fil', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'privat.png'))$q$, 1);
+select ch_test.err('Fil: medlem kan ikke slette fellesfil andre har lastet opp', $q$select public.delete_file((select id from public.files where file_name = 'a.png'))$q$, '42501');
+select ch_test.err('Fil: kan ikke registrere fil selv (bare serveren)', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-8', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'k1', 'x.png', 'image/png', 10, null)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-4","aal":"aal1"}';
+select ch_test.cnt('Fil: annen bruker (medlemskap deaktivert) ser ikke privat fil', $q$select 1 from public.files where file_name = 'privat.png'$q$, 0);
+select ch_test.cnt('Fil: annen bruker får ikke nøkkel til privat fil', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'privat.png'))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
+select ch_test.err('Fil: medlem i B kan ikke laste opp til A', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 1000)$q$, '42501');
+select ch_test.cnt('Fil: medlem i B får ikke nøkler til filer i A', $q$select 1 from public.file_keys(array(select id from public.files))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Fil: admin kan legge i «logoer»', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'logoer', false, 1000)$q$);
+select ch_test.cnt('Fil: admin ser ikke medlemmers private filer', $q$select 1 from public.files where file_name = 'privat.png'$q$, 0);
+select ch_test.ok('Fil: admin kan slette fellesfil i egen menighet', $q$select public.delete_file((select id from public.files where file_name = 'a.png'))$q$);
+set local role postgres;
+update public.churches set storage_quota_mb = 0 where id = 'aaaaaaaa-0000-4000-8000-00000000000a';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Fil: kvote brukt opp avvises', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 1000)$q$, '54000');
+set local role postgres;
+update public.churches set storage_quota_mb = 200 where id = 'aaaaaaaa-0000-4000-8000-00000000000a';
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.ok('Fil: server registrerer fil for medlem', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-8', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'test/ny.png', 'ny.png', 'image/png', 10, null)$q$);
+select ch_test.err('Fil: server kan ikke registrere for medlem i annen menighet', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-5', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'test/x.png', 'x.png', 'image/png', 10, null)$q$, '42501');
+select ch_test.err('Fil: server kan ikke registrere video (navn)', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-8', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'test/v.png', 'film.mov', 'image/png', 10, null)$q$, '23514');
+select ch_test.err('Fil: server kan ikke registrere video (type)', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-8', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'test/v2', 'film', 'video/mp4', 10, null)$q$, '23514');
+set local role postgres;
+insert into public.invitations (id, email, church_id, role, token_hash, expires_at, created_by) values
+  ('99999999-0000-4000-8000-000000000099', 'foreldrelos@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'church_admin', repeat('9', 64), now() + interval '1 day', null);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('NULL-sikkerhet: medlem kan ikke trekke tilbake invitasjon uten oppretter', $q$select public.revoke_invitation('99999999-0000-4000-8000-000000000099')$q$, '42501');
+set local role postgres;
+select ch_test.cnt('Fil: registrert fil har riktig opplaster', $q$select 1 from public.files where storage_key = 'test/ny.png' and uploaded_by = '00000000-0000-4000-8000-000000000008'$q$, 1);
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000002'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
