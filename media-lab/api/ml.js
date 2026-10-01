@@ -256,7 +256,7 @@ async function route(req) {
   return err('Ukjent handling.', 404);
 }
 
-export default async function handler(req) {
+async function handler(req) {
   try { return await route(req); }
   catch (e) {
     console.error(e);
@@ -265,3 +265,15 @@ export default async function handler(req) {
     return err(pre ? 'Noen andre endret samtidig. Prøv igjen.' : 'Serverfeil. Se loggen.', pre ? 409 : 500);
   }
 }
+
+/* Vercel tolker en standard-eksportert funksjon som Node-stil (req, res) og venter på res.end(); denne koden bruker
+   Web-standard (Request → Response), så svaret ble aldri sendt og forespørselen hang til tidsavbrudd. Navngitte GET/POST
+   gir riktig signatur. Tidsgrense: svarer alltid innen 15 s, også om lagringen henger. */
+export const config = { maxDuration: 20 };
+const LIMIT_MS = 15000;
+const withLimit = async req => {
+  let t; const late = new Promise(r => { t = setTimeout(() => r(err('Serveren svarte ikke i tide. Prøv igjen.', 504)), LIMIT_MS); });
+  try { return await Promise.race([handler(req), late]); } finally { clearTimeout(t); }
+};
+export const GET = withLimit;
+export const POST = withLimit;
