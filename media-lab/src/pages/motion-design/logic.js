@@ -3,6 +3,7 @@ import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
 import { onUpdate } from '../../shared/ml-update.js';
 import { hereGet, hereSet } from '../../shared/here.js';
+import { installMotionFolders, supported as folderSupported } from '../../shared/project-folder.js';
 const KEYS = { clip: 'clips', text: 'texts', sub: 'subs', music: 'music', ov: 'ov' };
 const TK = { clip: 'video', text: 'text', sub: 'subs', music: 'music', ov: 'ov' };
 const LIM = { video: 4e9, image: 60e6, audio: 600e6 };
@@ -71,6 +72,7 @@ class Component extends DCLogic {
   async boot() {
     for (let i = 0; i < 200 && !window.VF; i++) await new Promise(r => setTimeout(r, 50));
     if (!window.VF) { this.setState({ msg: 'Motion design kunne ikke starte. Last siden på nytt.', loaded: true }); return; }
+    installMotionFolders(window.VF);
     if (document.fonts) window.VF.FONTS.forEach(f => { document.fonts.load('700 40px "' + f + '"').catch(() => {}); document.fonts.load('400 40px "' + f + '"').catch(() => {}); });
     const h = hereGet('motion');
     await this.refresh();
@@ -109,6 +111,9 @@ class Component extends DCLogic {
     const VF = window.VF; let p;
     try { p = VF.normalize(raw); } catch (e) { this.setState({ msg: 'Prosjektet kunne ikke åpnes.' }); return; }
     this.closeMedia();
+    let fst = await VF.store.folderStatus(p).catch(() => ({ folder: null }));
+    if (fst.folder && !fst.access && await VF.store.requestAccess(p.id).catch(() => false)) fst = await VF.store.folderStatus(p);
+    this.setState({ folder: fst });
     for (const m of p.media) { try { const r = await VF.store.getMedia(m.id); if (r && r.blob) { this.urls[m.id] = URL.createObjectURL(r.blob);
       if (m.kind === 'image' && /png|webp|gif/.test(r.blob.type || r.type || '') && !/^data:image\/(webp|png)/.test(m.thumb || '')) { const im = new Image(); im.src = this.urls[m.id]; try { await im.decode(); const th = this.thumbOf(im, im.naturalWidth, im.naturalHeight, true); if (th) m.thumb = th; } catch (e) {} } } } catch (e) {} }
     this.dirty = false; this.past = []; this.future = []; this.t = 0; this.playing = false; this.nd = {};
@@ -128,9 +133,10 @@ class Component extends DCLogic {
     this.setState({ view: 'home', proj: null, sel: null, exp: null }); this.refresh();
   };
   async delProject(p) {
-    if (!confirm('Slette «' + p.name + '»? Filene i prosjektet slettes også fra nettleseren.')) return;
-    const VF = window.VF;
-    try { await VF.store.del(p.id); for (const m of (p.media || [])) await VF.store.delMedia(m.id).catch(() => {}); } catch (e) {}
+    const VF = window.VF, fs0 = await VF.store.folderStatus(p).catch(() => ({ folder: null }));
+    const q = fs0.folder ? 'Fjerne «' + p.name + '» fra listen? Filene i prosjektmappen «' + fs0.folder + '» blir liggende på PC-en, og prosjektet kan åpnes igjen med «Åpne prosjektmappe».' : 'Slette «' + p.name + '»? Filene i prosjektet slettes også fra nettleseren.';
+    if (!confirm(window.MLI18N ? window.MLI18N.t(q) : q)) return;
+    try { if (fs0.folder) await VF.store.forgetFolder(p.id); await VF.store.del(p.id); for (const m of (p.media || [])) await VF.store.delMedia(m.id).catch(() => {}); } catch (e) {}
     this.refresh();
   }
   onProjFile = async e => {
@@ -146,6 +152,33 @@ class Component extends DCLogic {
     try { const b = await window.VF.pack(p); this.download(b, this.fileBase(p) + '.motion'); this.showToast('Prosjektfilen er lastet ned med alle filene.'); }
     catch (e) { this.showToast('Prosjektfilen kunne ikke lages.'); }
     this.setState({ packing: false });
+  };
+  /* ---------- prosjektmappe (P6) ---------- */
+  folderDlg = () => { if (!this.state.proj) return; this.setState({ folderDlg: true }); this.refreshFolder(); };
+  closeFolderDlg = () => this.setState({ folderDlg: false });
+  async refreshFolder() { const p = this.state.proj; if (!p) return; const st = await window.VF.store.folderStatus(p).catch(() => ({ folder: null })); if (this.alive) this.setState({ folder: st }); }
+  pickFolder = async () => {
+    const p = this.state.proj; if (!p || !folderSupported()) return;
+    let dir; try { dir = await window.showDirectoryPicker({ id: 'motion-prosjekt', mode: 'readwrite', startIn: 'videos' }); } catch (e) { return; }
+    this.setState({ folderBusy: 'Kopierer filene til mappen …' });
+    try { await this.saveNow(); await window.VF.store.copyToFolder(p, dir, (n, t) => this.alive && this.setState({ folderBusy: 'Kopierer ' + n + ' av ' + t + ' …' })); this.showToast('Prosjektet ligger nå i mappen «' + dir.name + '». Kopien i nettleseren er beholdt.'); }
+    catch (e) { this.showToast((e && e.message) || 'Kunne ikke kopiere til mappen. Ingenting er slettet.'); }
+    this.setState({ folderBusy: '' }); this.refreshFolder();
+  };
+  grantFolder = async () => { const p = this.state.proj; if (!p) return; if (await window.VF.store.requestAccess(p.id)) { this.setState({ folderDlg: false }); this.openProject(p); } else this.showToast('Fikk ikke tilgang til prosjektmappen.'); };
+  freeBrowser = async () => {
+    const p = this.state.proj; if (!p) return;
+    const q = 'Fjerne kopiene av filene fra nettleseren? Bare filer som er kontrollert i prosjektmappen fjernes. Prosjektet virker deretter bare når mappen er tilgjengelig på denne PC-en.';
+    if (!confirm(window.MLI18N ? window.MLI18N.t(q) : q)) return;
+    try { const n = await window.VF.store.freeBrowserCopies(p); this.showToast(n + ' filer er fjernet fra nettleseren. Originalene ligger i prosjektmappen.'); } catch (e) { this.showToast((e && e.message) || 'Kunne ikke frigjøre plass.'); }
+    this.refreshFolder();
+  };
+  openFolder = async () => {
+    if (!folderSupported()) return;
+    let dir; try { dir = await window.showDirectoryPicker({ id: 'motion-prosjekt', mode: 'readwrite' }); } catch (e) { return; }
+    this.setState({ msg: 'Åpner prosjektmappen …' });
+    try { const p = await window.VF.store.openFromFolder(dir); this.setState({ msg: '' }); await this.refresh(); this.openProject(p); }
+    catch (e) { this.setState({ msg: (e && e.message) || 'Prosjektmappen kunne ikke åpnes.' }); }
   };
   fileBase(p) { return String(p.name || 'motion-design').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').slice(0, 60) || 'motion-design'; }
   download(blob, name) { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); }
@@ -164,7 +197,7 @@ class Component extends DCLogic {
     clearTimeout(this._svT); this._svT = null; const VF = window.VF, p = this.state.proj; if (!p) return;
     let thumb = p.thumb || '';
     try { const s = 360 / Math.max(p.w, p.h), c = document.createElement('canvas'); c.width = Math.round(p.w * s); c.height = Math.round(p.h * s); const T = VF.totalDur(p); VF.drawFrame(c.getContext('2d'), c.width, c.height, p, this.M, Math.min(this.t > 0.05 ? this.t : Math.min(1.5, T / 2), T - 0.02), null); thumb = c.toDataURL('image/jpeg', 0.72); } catch (e) {}
-    try { await VF.store.put({ ...p, thumb, updated: Date.now() }); this.dirty = false; if (this.alive && this.state.proj && this.state.proj.id === p.id) this.setState({ saved: 'Lagret i nettleseren' }); }
+    try { await VF.store.put({ ...p, thumb, updated: Date.now() }); this.dirty = false; if (this.alive && this.state.proj && this.state.proj.id === p.id) this.setState({ saved: this.state.folder && this.state.folder.folder && this.state.folder.access ? 'Lagret i prosjektmappen' : 'Lagret i nettleseren' }); }
     catch (e) { if (this.alive) this.setState({ saved: 'Kunne ikke lagre' }); }
   }
 
@@ -413,7 +446,7 @@ class Component extends DCLogic {
       const k = this.okType(f); if (!k) { bad++; continue; } if (f.size > LIM[k]) { big++; continue; }
       this.showToast('Leser ' + f.name + ' …');
       const id = VF.uid('m');
-      try { await VF.store.putMedia(id, { blob: f, name: f.name, type: f.type }); } catch (e) { this.showToast('Nettleseren har ikke plass til filen.'); continue; }
+      try { await VF.store.putMediaIn(this.state.proj.id, id, { blob: f, name: f.name, type: f.type }); } catch (e) { this.showToast(this.state.folder && this.state.folder.folder ? 'Filen kunne ikke lagres i prosjektmappen.' : 'Nettleseren har ikke plass til filen.'); continue; }
       const url = URL.createObjectURL(f); this.urls[id] = url;
       const meta = await this.probe(k, url);
       if (!meta) { bad++; URL.revokeObjectURL(url); delete this.urls[id]; VF.store.delMedia(id).catch(() => {}); continue; }
@@ -481,7 +514,7 @@ class Component extends DCLogic {
     if (Math.abs(v.currentTime - st) > 0.02) await new Promise(r => { const f = () => { v.removeEventListener('seeked', f); r(); }; v.addEventListener('seeked', f); setTimeout(f, 2000); v.currentTime = st; });
     const cv = document.createElement('canvas'); cv.width = v.videoWidth; cv.height = v.videoHeight; cv.getContext('2d').drawImage(v, 0, 0);
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92)); if (!blob) return;
-    const id = VF.uid('m'); try { await VF.store.putMedia(id, { blob, name: 'Frosset bilde.jpg', type: 'image/jpeg' }); } catch (e) { this.showToast('Nettleseren har ikke plass til bildet.'); return; }
+    const id = VF.uid('m'); try { await VF.store.putMediaIn(this.state.proj.id, id, { blob, name: 'Frosset bilde.jpg', type: 'image/jpeg' }); } catch (e) { this.showToast('Nettleseren har ikke plass til bildet.'); return; }
     const url = URL.createObjectURL(blob); this.urls[id] = url; const im = new Image(); im.src = url; this.M.imgs[id] = im;
     const m = { id, name: 'Frosset bilde', kind: 'image', dur: 0, w: cv.width, h: cv.height, thumb: this.thumbOf(cv, cv.width, cv.height) };
     const c = l.c, off = (t - l.start) * (c.speed || 1), keep = ['fit', 'zoom', 'fx', 'fy', 'x', 'y', 'scale', 'rot', 'flipH', 'flipV', 'crop', 'bri', 'con', 'sat', 'look', 'curves', 'cS', 'cM', 'cH', 'temp', 'tint', 'vig', 'grain', 'blur', 'dim'];
@@ -1077,7 +1110,7 @@ class Component extends DCLogic {
       isMenu: !ed, isEdit: ed, isHome: S.view === 'home', isFormat: S.view === 'format', isTpl: S.view === 'tpl',
       showBackLink: S.view === 'home', showBackBtn: S.view === 'format' || S.view === 'tpl', backLabel: S.view === 'tpl' ? 'Format' : 'Prosjekter',
       goBack: () => this.setState({ view: S.view === 'tpl' ? 'format' : 'home', msg: '' }),
-      newProject: () => this.setState({ view: 'format', msg: '' }), openFile: () => this.fileProj.current && this.fileProj.current.click(), fileProj: this.fileProj, onProjFile: this.onProjFile,
+      newProject: () => this.setState({ view: 'format', msg: '' }), openFile: () => this.fileProj.current && this.fileProj.current.click(), fileProj: this.fileProj, onProjFile: this.onProjFile, openFolder: this.openFolder, folderSupported: folderSupported(),
       hasHomeMsg: !!S.msg, homeMsg: S.msg,
       hasProjects: S.projects.length > 0, noProjects: S.loaded && !S.projects.length,
       projects: S.projects.map(p => {
@@ -1161,6 +1194,8 @@ class Component extends DCLogic {
       drLBg: S.drawer !== 'r' ? '#e9e7e2' : '#121212', drLFg: S.drawer !== 'r' ? '#000000' : '#f3f1ec', drRBg: S.drawer === 'r' ? '#e9e7e2' : '#121212', drRFg: S.drawer === 'r' ? '#000000' : '#f3f1ec',
       ordL: narrow ? 2 : 1, ordC: narrow ? 1 : 2, ordR: narrow ? 3 : 3, stageH: 'auto', stagePad: port ? '8px' : '16px',
       leave: this.leave, projName: p.name, onName: e => { const v = e.target.value.slice(0, 120); this.setProj(q => ({ ...q, name: v }), true, 'name'); },
+      folderDlg: this.folderDlg, folderOpen: !!S.folderDlg, closeFolderDlg: this.closeFolderDlg, pickFolder: this.pickFolder, grantFolder: this.grantFolder, freeBrowser: this.freeBrowser, folderBusy: S.folderBusy || '',
+      folderName: S.folder && S.folder.folder || '', folderAccess: !!(S.folder && S.folder.access), folderInBrowser: (S.folder && S.folder.inBrowser) || 0, folderLabel: S.folder && S.folder.folder ? '📁 ' + S.folder.folder : 'Prosjektmappe',
       fmtLabel: p.w + ' × ' + p.h, saved: S.saved, savedCol: S.saved === 'Ikke lagret' ? '#f5b82c' : '#6f6b64', showSaveBtn: !S.autosave, saveBrowser: this.saveBrowser, toggleAutosave: this.toggleAutosave, autosave: !!S.autosave, asTrack: S.autosave ? '#e9e7e2' : '#333333', asKnob: S.autosave ? '13px' : '2px', asKnobBg: S.autosave ? '#000000' : '#9d998f',
       toggleMarker: this.toggleMarker, mkLabel: this.markerAt(this.t) ? 'Fjern markør' : 'Markør', undo: this.undo, redo: this.redo, undoOp: this.past.length ? 1 : 0.35, redoOp: this.future.length ? 1 : 0.35,
       saveFile: this.saveFile, saveFileLabel: S.packing ? 'Lager fil …' : 'Lagre prosjektfil',

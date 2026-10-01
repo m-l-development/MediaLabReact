@@ -6,7 +6,7 @@
    Begrensning: dette er et skille i appen. Den som deler samme Windows-konto/nettleserprofil, kan teknisk lese
    nettleserens lagring. Fullt skille krever egne Windows-kontoer eller nettleserprofiler. */
 
-export const DBS = ['photodesign', 'motiondesign', 'thumbstudio', 'mockuplib', 'ukeloop', 'medialab-share'];
+export const DBS = ['photodesign', 'motiondesign', 'thumbstudio', 'mockuplib', 'ukeloop', 'medialab-share', 'mlfolders'];
 const LS_RE = /^(ukeloop\.|loopstudio\.|medialab\.fx\.|medialab\.advanced$|mockups\.|photodesign\.|thumbstudio\.|motiondesign\.)/;
 const OWNER_KEY = 'ch.local.owner', ASKED = uid => 'ch.local.asked.' + uid;
 
