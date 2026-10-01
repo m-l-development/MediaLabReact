@@ -9,17 +9,20 @@ major_version = 17
 
 [auth]
 site_url = "https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app"
+# Bare EKSAKTE vertsnavn. Aldri jokertegn i vertsnavnet (sikkerhetsgjennomgang P3: *.vercel.app-navn kan registreres av andre
+# og brukes til å stjele innloggingskoder fra e-postlenker). Jokertegn i stien på en fast vert er trygt.
 additional_redirect_urls = [
-  "http://localhost:5173/**",
   "https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app/**",
-  "https://media-lab-react-vyef-*-media-lab3.vercel.app/**",
+  "http://localhost:5173/**",
+  "http://localhost:4174/**",
 ]
 enable_signup = false
 minimum_password_length = 10
 password_requirements = "letters_digits"
 
 [auth.email]
-enable_signup = false
+# NB: Dette betyr «e-postinnlogging på» (EXTERNAL_EMAIL_ENABLED), ikke registrering. Registrering sperres av [auth] enable_signup = false.
+enable_signup = true
 enable_confirmations = true
 double_confirm_changes = true
 secure_password_change = true

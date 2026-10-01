@@ -21,7 +21,7 @@ omfattende omskriving. Dette dokumentet beskriver hvordan, og holdes oppdatert f
 | Byggesperrer | `media-lab/build/env-guard.js` + plugin i `vite.config.js` | Variabelnavn (tabell) |
 | Serverregler (fra P4/P5) | `media-lab/server/` – Web-standard `(Request) → Response` | Nei |
 | Serverinnganger | `media-lab/api/*.js` (2–3 linjer) | Ja (Vercel) |
-| Sperre foran sider (P4) | én fil for Edge Middleware | Ja (Vercel), isolert |
+| Sperre foran sider (P4) | `media-lab/middleware.js` → `server/lib/gate.js` | Bare inngangen (Vercel) |
 | Database | `supabase/migrations/*.sql` – vanlig PostgreSQL | Nesten ikke (se under) |
 
 ## Brukeridentitet og RLS
@@ -46,6 +46,34 @@ Rolleregler: ingen kan endre egne roller; Developer/Moderator krever MFA (aal2);
 Developer eller Moderator gir `church_admin` til aktive medlemmer; én aktiv admin per menighet; alt loggføres.
 Status (bruker, medlemskap, menighet, rolle) sjekkes ved hvert kall – tilbakekalling virker umiddelbart, også med gyldig token.
 
+## Innlogging, sperre og lokale data (P4)
+**Tre lag, så innlogging ikke kan omgås med direkte URL eller API-kall:**
+1. **Sperre foran sidene:** `middleware.js` (Vercel Routing Middleware) → `server/lib/gate.js`. Hver side unntatt
+   `login.dc.html` og statiske filer (`assets/`, `images/`, `mockups/` m.m.) krever cookien `ch_at` med et gyldig
+   tilgangstoken. Tokenet verifiseres med leverandørens offentlige nøkler (JWKS, ES256/RS256), og `iss`, `aud`, `exp`
+   og `role` sjekkes. Preview godtar bare tokens fra `connecthub-dev`. Hvis nøklene ikke kan hentes, stenger sperren (503).
+2. **Porten i nettleseren:** `src/shared/auth-gate.js` (kalles av `mountPage` før en side starter). Den sjekker økten
+   og `whoami()`, og sender ukoblede eller deaktiverte kontoer til innloggingssiden.
+3. **Databasen (RLS):** sperrer alt uansett, også om de to første lagene skulle feile.
+
+**Innloggingssiden:** `login.dc.html` har modusene innlogging, MFA, MFA-oppsett for stab, glemt passord, nytt passord
+og konto ikke aktiv. `next` godtar bare stier på samme vert (`safeNext`). Svaret på «glemt passord» er alltid nøytralt.
+Den har også et vern mot omdirigeringssløyfer (`ch.loop`).
+
+**Konto:** `public.whoami()` gir egen profil, roller og menigheter, eller `null` for ukoblede og deaktiverte kontoer.
+`app.link_identity` kobler `iss`/`sub` til `app_users`. Det skjer bare på serveren eller av driftspersonell.
+
+**Første Developer:** `app.bootstrap_developer(e-post, iss)` kjøres av driftspersonell med `supabase db query` etter
+at personen har bekreftet e-posten. Funksjonen kan ikke kalles fra klienten. Den er Supabase-spesifikk fordi den leser
+`auth.users`, og den ligger i en egen migrering.
+
+**Lokale data per bruker (`src/shared/local-user.js`):** IndexedDB-databasene til verktøyene og prosjektnøklene i
+localStorage får suffikset `@<bruker-id>`. Gamle data uten eier blir værende under de opprinnelige navnene. Ved første
+innlogging kan brukeren velge «Knytt til meg». Da settes `ch.local.owner`, og ingenting kopieres eller flyttes. Andre
+brukere ser ikke disse dataene. «Logg ut og fjern mine lokale data» sletter bare den innloggede brukerens databaser og
+nøkler. **Begrensning:** dette skiller brukere fra hverandre i appen, men er ikke kryptering. Den som har tilgang til
+PC-ens nettleserprofil, kan lese dataene med utviklerverktøy.
+
 ## Leverandørbindinger (gjenstående og bevisste)
 | Binding | Hvor | Ved bytte |
 |---|---|---|
@@ -53,7 +81,10 @@ Status (bruker, medlemskap, menighet, rolle) sjekkes ved hvert kall – tilbakek
 | Variabelnavn fra Vercel-integrasjonen (`connecthubSUPABASE_*`, `connecthub-devSUPABASE_*`) | `build/env-guard.js` → `ENV_NAMES` | Endre tabellen (andre verter: `CONNECTHUB_SUPABASE_*`) |
 | Miljøgjenkjenning (`VERCEL_ENV`) | `build/env-guard.js` → `targetOf` | Tilsvarende variabel hos ny vert |
 | Rollene `anon`/`authenticated` i PostgreSQL | migreringer | Opprett rollene hos ny leverandør (skript i runbook) |
-| Auth-innstillinger (registrering av, adresser, passordkrav) | Supabase-dashbordet | Gjenskapes hos ny leverandør; listet i runbook |
+| Auth-innstillinger (registrering av, adresser, passordkrav) | `supabase/config.toml` (bare dev) | Gjenskapes hos ny leverandør; listet i runbook. NB: `[auth.email] enable_signup` betyr «e-postinnlogging på», ikke registrering. |
+| Sperre foran sider | `media-lab/middleware.js` (tynn) → `server/lib/gate.js` (Web-standard) | Ny tynn inngang hos ny vert |
+| Auth-klient (PKCE, MFA/TOTP) | `src/services/adapters/supabase/auth.js` | Ny adapter med samme metoder |
+| `bootstrap_developer` leser `auth.users` | egen migrering | Tilsvarende oppslag hos ny leverandør |
 | Sikkerhetsheadere og CSP | `media-lab/vercel.json` | Samme headere i vertens konfigurasjon (nginx, `_headers` o.l.) |
 | Serverinnganger | `media-lab/api/*.js` | Ny inngang hos ny vert; logikken i `server/` gjenbrukes |
 | Gammel API (`api/ml.js` + `@vercel/blob`) | aldri tatt i bruk | Fjernes i P5 etter egen godkjenning |

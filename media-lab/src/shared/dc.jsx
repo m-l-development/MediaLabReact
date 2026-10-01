@@ -7,6 +7,7 @@ import './dc-base.css';
 import { keepFooterLikeRuntime, replayThemeTamper, RAW } from './runtime-quirks.js';
 import { stickyTitle } from './sticky-title.js';
 import './ml-update.js';
+import { ensureLoggedIn } from './auth-gate.js';
 
 export class DCLogic {
   constructor(props) { this.props = props || {}; this.state = {}; this.__host = undefined; }
@@ -122,12 +123,14 @@ export function loadClassic(urls) {
   })), Promise.resolve());
 }
 
-/* Monterer siden i <div id="dc-root"> slik runtimen gjorde */
+/* Monterer siden i <div id="dc-root"> slik runtimen gjorde – først etter at innloggingsporten har godkjent brukeren */
 export function mountPage(name, Logic, template, inline) {
-  const Host = makeHost(name, Logic, template, inline || {});
-  let el = document.getElementById('dc-root');
-  if (!el) { el = document.createElement('div'); el.id = 'dc-root'; document.body.prepend(el); }
-  createRoot(el).render(<Host />);
+  ensureLoggedIn().then(() => {
+    const Host = makeHost(name, Logic, template, inline || {});
+    let el = document.getElementById('dc-root');
+    if (!el) { el = document.createElement('div'); el.id = 'dc-root'; document.body.prepend(el); }
+    createRoot(el).render(<Host />);
+  });
   /* siden startet: selvreparasjonen (vite.config.js) kan brukes igjen ved neste feil */
   setTimeout(() => { try { sessionStorage.removeItem('medialab.heal'); } catch (e) {} }, 3000);
 }

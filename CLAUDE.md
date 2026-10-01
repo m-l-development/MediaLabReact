@@ -10,6 +10,7 @@ GitHub: `zoefredrikstad-maker/MediaLabReact`. `main` = produksjon (Vercel Produc
 - **Video lagres aldri i skyen** (verken felles eller privat) – bare i prosjektmappe på brukerens PC.
 - Eksisterende lokale prosjekter bevares og knyttes til riktig bruker. Ikke slett gamle løsninger, data eller variabler uten godkjenning.
 - Leverandøruavhengighet: sider bruker bare `src/services/`; bare `src/services/adapters/` kjenner Supabase. Se `docs/architecture-and-portability.md` og `docs/migration-runbook.md`.
+- Innlogging (P4): `login.dc.html` (`src/pages/login/`), port i `src/shared/auth-gate.js` (kalles av `mountPage`), sperre foran sidene i `media-lab/middleware.js` → `server/lib/gate.js` (cookie `ch_at`, JWKS-verifisering), kontomeny `src/shared/account-menu.js`. Lokale data per bruker: `src/shared/local-user.js` (`navn@<bruker-id>`; gamle data knyttes uten kopiering via `ch.local.owner`). Testresultater i `docs/testlogg.md`.
 - Hemmeligheter når aldri nettleseren: `build/env-guard.js` + `connecthubEnv` i `vite.config.js` leser bare URL og publiseringsnøkkel ved navn, sjekker prosjekt-ID per miljø og søker i bygget. `npm test` kjører testene.
 
 ## Filer

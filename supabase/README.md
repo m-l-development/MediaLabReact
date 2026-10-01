@@ -8,8 +8,21 @@ Migreringene er vanlig PostgreSQL og kan kjøres mot enhver PostgreSQL med rolle
 | `migrations/20261001100100_core_tables.sql` | `app_users`, `user_identities`, `churches`, `memberships`, `user_roles`, `invitations`, `audit_logs`, `files` (video avvises) |
 | `migrations/20261001100200_access_functions.sql` | `app.current_user_id()` m.fl., revisjonslogg (bare tillegg), `assign_role`/`revoke_role` |
 | `migrations/20261001100300_grants_policies.sql` | Kolonnerettigheter og RLS-policyer |
-| `tests/rls_test.sql` | 68 tester for roller, menighetsskille, MFA, logg og videosperre. Rulles alltid tilbake |
-| `config.toml` | Auth-innstillinger for **utviklingsprosjektet** (registrering av, adresser, passordkrav) |
+| `migrations/20261001120000_identity_functions.sql` | `public.whoami()` (egen profil/roller/menigheter, `null` for ukoblet/deaktivert), `app.link_identity` (bare server/drift) |
+| `migrations/20261001120100_supabase_bootstrap.sql` | `app.bootstrap_developer` – første Developer (Supabase-spesifikk, leser `auth.users`, bare drift) |
+| `tests/rls_test.sql` | 77 tester for roller, menighetsskille, MFA, logg, videosperre og identitet. Rulles alltid tilbake |
+| `config.toml` | Auth-innstillinger for **utviklingsprosjektet** (registrering av, adresser, passordkrav). `[auth] enable_signup = false` sperrer registrering; `[auth.email] enable_signup = true` betyr bare at e-postinnlogging er på |
+
+## Første Developer (etter at personen har bekreftet e-posten sin i Auth)
+```
+-- kjøres av driftspersonell med db query, aldri fra klienten
+select app.bootstrap_developer('person@eksempel.no', 'https://<prosjekt-id>.supabase.co/auth/v1');
+```
+Personen må deretter sette opp totrinnsbekreftelse ved første innlogging før Developer-rettighetene virker.
+
+## Syntetiske testdata i `connecthub-dev`
+Brukere `ch-test-*@example.com` (user, user2, admin, dev, mod, unlinked, disabled) og menighetene «CH-test Menighet A/B».
+Bare til testing; kan fjernes når som helst. Passord ligger aldri i repoet.
 
 ## Kommandoer (alltid med eksplisitt prosjekt-ID)
 ```
