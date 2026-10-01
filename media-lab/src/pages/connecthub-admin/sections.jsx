@@ -1,0 +1,319 @@
+/* ConnectHub admin – Menigheter, Invitasjoner, Filer, Samarbeid, Abonnement og Logg. */
+import React from 'react';
+import { admin } from '../../services/admin.js';
+import { files as FS, FOLDERS } from '../../services/files.js';
+import { spaces as SP, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
+import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, href, go } from './ui.jsx';
+import { useAdmin, Head } from './AdminPage.jsx';
+
+const ACTIONS = {
+  'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
+  'memberships.insert': 'Medlem lagt til', 'memberships.update': 'Medlemskap endret', 'memberships.delete': 'Medlemskap fjernet',
+  'user_roles.insert': 'Rolle gitt', 'user_roles.update': 'Rolle endret eller fjernet', 'user_roles.delete': 'Rolle slettet',
+  'invitations.insert': 'Invitasjon laget', 'invitations.update': 'Invitasjon endret', 'invitations.delete': 'Invitasjon slettet',
+  'app_users.insert': 'Bruker opprettet', 'app_users.update': 'Bruker endret', 'app_users.delete': 'Bruker slettet',
+  'files.insert': 'Fil lastet opp', 'files.update': 'Fil endret', 'files.delete': 'Fil slettet', 'message.send': 'Melding sendt',
+  'spaces.create': 'Samarbeidsområde opprettet', 'spaces.invite': 'Invitert til samarbeid', 'spaces.membership': 'Samarbeid endret',
+  'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
+  'church_subscriptions.insert': 'Abonnement satt', 'church_subscriptions.update': 'Abonnement endret',
+  'account.delete': 'Konto slettet', 'audit_logs.purge': 'Gammel logg slettet',
+};
+export const actionName = a => ACTIONS[a] || a;
+
+/* Menighetsvelger for seksjoner som gjelder én menighet. */
+export function ChurchPicker() {
+  const { d, ctxChurch, setCtxChurch } = useAdmin();
+  const list = d.churches.filter(c => c.status === 'active');
+  if (list.length < 2) return null;
+  return <Select label="Menighet" value={ctxChurch || ''} onChange={setCtxChurch} options={list.map(c => [c.id, c.name])} />;
+}
+
+/* ---------- Menigheter ---------- */
+export function ChurchesView() {
+  const { d, staff, act, say, reload, userName } = useAdmin();
+  const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [name, setName] = React.useState('');
+  const list = d.churches.filter(c => (!q || norm(c.name).includes(norm(q))) && (st === 'all' || c.status === st));
+  const count = id => d.memberships.filter(m => m.church_id === id && m.status === 'active').length;
+  const admins = id => d.roles.filter(r => r.role === 'church_admin' && r.church_id === id).map(r => userName(r.user_id));
+  return <>
+    <Head title="Menigheter" sub={staff ? 'Alle menigheter i ConnectHub.' : 'Menighetene du er med i.'} />
+    {staff && <Card title="Ny menighet">
+      <form className="ch-row" onSubmit={act(async e => { e.preventDefault(); const c = await admin.createChurch(name); setName(''); say(T('Menigheten er opprettet.')); await reload(); go('menigheter', c.id); })}>
+        <input className="ch-input" style={{ flex: '1 1 240px' }} placeholder={T('Navn på ny menighet')} value={name} onChange={e => setName(e.target.value)} minLength={2} maxLength={120} required />
+        <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett menighet')}</Btn>
+      </form>
+    </Card>}
+    <div className="ch-row">
+      <Search value={q} onChange={setQ} placeholder="Søk etter menighet …" />
+      <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle statuser'], ['active', 'Aktiv'], ['temporarily_disabled', 'Midlertidig deaktivert'], ['pending_deletion', 'Venter på sletting']]} />
+    </div>
+    <List cols="minmax(200px,2fr) auto minmax(140px,1.5fr) auto" head={['Menighet', 'Medlemmer', 'Admin', 'Status']} empty="Ingen menigheter passer med søket."
+      onRow={r => go('menigheter', r.key)}
+      rows={list.map(c => ({ key: c.id, cells: [
+        <div className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{T('Opprettet')} {fmtDate(c.created_at)}</span></div></div>,
+        <span>{count(c.id)} <span className="ch-muted">{T('medlemmer')}</span></span>,
+        <span className="ch-muted">{admins(c.id).join(', ') || '–'}</span>,
+        <div className="ch-end"><StatusBadge s={c.status} /></div>] }))} />
+  </>;
+}
+
+const CTABS = [['medlemmer', 'Medlemmer'], ['invitasjoner', 'Invitasjoner'], ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['innstillinger', 'Innstillinger']];
+export function ChurchDetail({ id, tab }) {
+  const { d, canManage } = useAdmin();
+  const c = d.churches.find(x => x.id === id);
+  if (!d.loaded) return null;
+  if (!c) return <><Head title="Menighet" crumb={<a href={href('menigheter')}>← {T('Menigheter')}</a>} /><Card><Empty>{T('Fant ikke menigheten, eller du har ikke tilgang.')}</Empty></Card></>;
+  const n = d.memberships.filter(m => m.church_id === id && m.status === 'active').length;
+  return <>
+    <Head title={c.name} crumb={<a href={href('menigheter')}>← {T('Menigheter')}</a>} sub={n + ' ' + T('aktive medlemmer')} right={<StatusBadge s={c.status} />} />
+    <nav className="ch-tabs">{CTABS.filter(([k]) => k !== 'innstillinger' || canManage(id)).map(([k, l]) => <a key={k} href={href('menigheter', id, k)} className={tab === k ? 'on' : ''}>{T(l)}</a>)}</nav>
+    {tab === 'medlemmer' && <MembersView church={c} />}
+    {tab === 'invitasjoner' && <InvitesView churchId={id} embedded />}
+    {tab === 'filer' && <FilesView churchId={id} />}
+    {tab === 'samarbeid' && <SpacesView churchId={id} />}
+    {tab === 'abonnement' && <SubsView churchId={id} />}
+    {tab === 'innstillinger' && <ChurchSettings church={c} />}
+  </>;
+}
+
+function MembersView({ church }) {
+  const { me, d, staff, canManage, act, say, reload, openInvite } = useAdmin();
+  const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [msg, setMsg] = React.useState({ title: '', body: '' });
+  const id = church.id, manage = canManage(id);
+  const rows = d.memberships.filter(m => m.church_id === id).map(m => ({ m, u: d.users.find(u => u.id === m.user_id), adm: d.roles.find(r => r.role === 'church_admin' && r.church_id === id && r.user_id === m.user_id) }))
+    .filter(x => (!q || norm((x.u && (x.u.full_name + ' ' + x.u.email)) || '').includes(norm(q))) && (st === 'all' || x.m.status === st || (st === 'admin' && x.adm)))
+    .sort((a, b) => String(a.u && (a.u.full_name || a.u.email)).localeCompare(String(b.u && (b.u.full_name || b.u.email)), 'no'));
+  const run = (fn, ok) => act(async () => { await fn(); say(T(ok)); await reload(); });
+  return <>
+    <div className="ch-row">
+      <Search value={q} onChange={setQ} placeholder="Søk etter medlem …" />
+      <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle'], ['active', 'Aktive'], ['disabled', 'Deaktiverte'], ['admin', 'Admin']]} />
+      {manage && <Btn kind="primary" onClick={() => openInvite({ church: id })}>+ {T('Inviter medlem')}</Btn>}
+    </div>
+    <List cols="minmax(220px,2fr) auto auto" head={['Medlem', 'Status', '']} empty="Ingen medlemmer passer med søket."
+      onRow={r => go('brukere', r.key)}
+      rows={rows.map(({ m, u, adm }) => ({ key: m.user_id, cells: [
+        <div className="ch-who"><Avatar name={u ? (u.full_name || u.email) : '?'} /><div><b>{u ? (u.full_name || u.email) : T('Ukjent bruker')}</b><span>{u ? u.email : ''}</span></div></div>,
+        <div className="ch-row"><StatusBadge s={m.status} />{adm && <RoleBadge r="church_admin" />}{u && u.status !== 'active' && <Badge tone="bad">{T('Konto deaktivert')}</Badge>}</div>,
+        m.user_id === me.id ? <span className="ch-muted">{T('Deg')}</span> : <div className="ch-end">
+          {manage && (m.status === 'active'
+            ? <Btn small kind="danger" onClick={run(() => admin.setMembershipStatus(m.user_id, id, 'disabled'), 'Medlemskapet er deaktivert.')}>{T('Deaktiver')}</Btn>
+            : <Btn small onClick={run(() => admin.setMembershipStatus(m.user_id, id, 'active'), 'Medlemskapet er aktivert.')}>{T('Aktiver')}</Btn>)}
+          {staff && m.status === 'active' && !adm && <Btn small onClick={run(() => admin.assignRole(m.user_id, 'church_admin', id, 'Admin-siden'), 'Brukeren er nå admin.')}>{T('Gjør til admin')}</Btn>}
+          {staff && adm && <Btn small onClick={run(() => admin.revokeRole(adm.id, 'Admin-siden'), 'Admin-rollen er fjernet.')}>{T('Fjern admin')}</Btn>}
+        </div>] }))} />
+    {manage && <Card title="Melding til alle medlemmer">
+      <form className="ch-form" onSubmit={act(async e => { e.preventDefault(); const n = await NOTI.sendToChurch(id, msg.title, msg.body); setMsg({ title: '', body: '' }); say(T('Meldingen er sendt til') + ' ' + n + ' ' + T('medlemmer.')); })}>
+        <Field label="Tittel"><input className="ch-input" value={msg.title} onChange={e => setMsg(m => ({ ...m, title: e.target.value }))} maxLength={160} required /></Field>
+        <Field label="Tekst (valgfritt)"><input className="ch-input" value={msg.body} onChange={e => setMsg(m => ({ ...m, body: e.target.value }))} maxLength={1000} /></Field>
+        <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Send melding')}</Btn>
+      </form>
+      <p className="ch-muted">{T('Meldingen vises som varsel i appen for alle aktive medlemmer.')}</p>
+    </Card>}
+  </>;
+}
+
+function ChurchSettings({ church }) {
+  const { staff, act, say, reload, canManage } = useAdmin();
+  const [name, setName] = React.useState(church.name), [quota, setQuota] = React.useState(church.storage_quota_mb || 200);
+  const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await reload(); });
+  return <div className="ch-grid">
+    {staff && <Card title="Navn og lagring">
+      <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.renameChurch(church.id, name), 'Navnet er endret.')(); }}>
+        <Field label="Navn"><input className="ch-input" value={name} onChange={e => setName(e.target.value)} minLength={2} maxLength={120} required /></Field>
+        <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre navn')}</Btn>
+      </form>
+      <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.setQuota(church.id, Math.max(0, Math.min(10240, parseInt(quota, 10) || 0))), 'Lagringskvoten er endret.')(); }}>
+        <Field label="Lagringskvote (MB)"><input className="ch-input" type="number" min={0} max={10240} value={quota} onChange={e => setQuota(e.target.value)} /></Field>
+        <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre kvote')}</Btn>
+      </form>
+      <p className="ch-muted">{T('Kvoten settes også automatisk når et abonnement godkjennes.')}</p>
+    </Card>}
+    {canManage(church.id) && <Card title="Eksport">
+      <p className="ch-muted">{T('Last ned menighetens data (medlemmer, invitasjoner, filer med lenker som virker i 1 time, samarbeid og logg) som JSON.')}</p>
+      <div className="ch-row"><Btn onClick={act(async () => { downloadJson(await churchLife.export(church.id), 'menighet-' + church.name.replace(/[^A-Za-z0-9æøåÆØÅ]+/g, '-') + '.json'); say(T('Eksporten er lastet ned. Lenkene til filene virker i 1 time.')); })}>{T('Eksporter')}</Btn></div>
+    </Card>}
+    {staff && <Card title="Status og sletting">
+      <div className="ch-row"><StatusBadge s={church.status} />{church.delete_after && <span className="ch-muted">{T('Kan slettes fra')} {fmtDate(church.delete_after)}</span>}</div>
+      <p className="ch-muted">{T('Midlertidig deaktivert: medlemmene mister tilgang, ingenting slettes. Venter på sletting: deaktivert, og kan slettes for godt etter 30 dager. Begge kan angres.')}</p>
+      <div className="ch-row">
+        {church.status !== 'active' && <Btn onClick={run(() => churchLife.setStatus(church.id, 'active'), 'Status er endret.')}>{T('Aktiver')}</Btn>}
+        {church.status === 'active' && <Btn onClick={run(() => churchLife.setStatus(church.id, 'temporarily_disabled'), 'Status er endret.')}>{T('Deaktiver midlertidig')}</Btn>}
+        {church.status !== 'pending_deletion' && <Btn kind="danger" onClick={run(() => { if (!confirm(T('Sette menigheten til sletting? Den deaktiveres nå og kan slettes endelig om 30 dager. Det kan angres frem til da.'))) throw Object.assign(new Error(), { code: 'cancel' }); return churchLife.setStatus(church.id, 'pending_deletion'); }, 'Status er endret.')}>{T('Sett til sletting')}</Btn>}
+        {church.status === 'pending_deletion' && <Btn kind="danger" onClick={act(async () => { const n = prompt(T('Endelig sletting av menigheten, alle medlemskap og alle filene. Kan ikke angres. Skriv navnet på menigheten for å bekrefte:')); if (n === null) return; await churchLife.purge(church.id, n); say(T('Menigheten er slettet.')); await reload(); go('menigheter'); })}>{T('Slett for godt')}</Btn>}
+      </div>
+    </Card>}
+  </div>;
+}
+
+/* ---------- Invitasjoner ---------- */
+export function InvitesView({ churchId, embedded }) {
+  const { d, staff, canManage, churchName, act, say, reload, openInvite, me } = useAdmin();
+  const [q, setQ] = React.useState(''), [st, setSt] = React.useState('pending'), [role, setRole] = React.useState('all'), [ch, setCh] = React.useState('all');
+  const statusOf = i => i.status === 'pending' && new Date(i.expires_at) < new Date() ? 'expired' : i.status;
+  const list = d.invites.filter(i => (!churchId || i.church_id === churchId) && (ch === 'all' || i.church_id === ch) && (!q || norm(i.email).includes(norm(q))) && (st === 'all' || statusOf(i) === st) && (role === 'all' || i.role === role));
+  const run = (fn, ok) => act(async () => { const r = await fn(); if (r && r.email_sent === false) say(T('Ny lenke er laget, men e-posten kunne ikke sendes.'), false); else say(T(ok)); await reload(); });
+  return <>
+    {!embedded && <Head title="Invitasjoner" sub="Personen får en e-post med lenke. Lenken vises aldri her." right={<Btn kind="primary" onClick={() => openInvite({})}>+ {T('Ny invitasjon')}</Btn>} />}
+    <div className="ch-row">
+      <Search value={q} onChange={setQ} placeholder="Søk etter e-post …" />
+      <Select label="Status" value={st} onChange={setSt} options={[['pending', 'Venter'], ['accepted', 'Godtatt'], ['expired', 'Utløpt'], ['revoked', 'Trukket tilbake'], ['all', 'Alle statuser']]} />
+      <Select label="Rolle" value={role} onChange={setRole} options={[['all', 'Alle roller'], ['user', 'Bruker'], ['church_admin', 'Admin'], ['moderator', 'Moderator'], ['developer', 'Developer']]} />
+      {!churchId && d.churches.length > 1 && <Select label="Menighet" value={ch} onChange={setCh} options={[['all', 'Alle menigheter'], ...d.churches.map(c => [c.id, c.name])]} />}
+      {embedded && canManage(churchId) && <Btn kind="primary" onClick={() => openInvite({ church: churchId })}>+ {T('Inviter')}</Btn>}
+    </div>
+    <List cols="minmax(200px,2fr) minmax(120px,1fr) auto minmax(120px,auto) auto" head={['E-post', 'Rolle og menighet', 'Status', 'Utløper', '']} empty="Ingen invitasjoner passer med filteret."
+      rows={list.map(i => { const s = statusOf(i), mine = staff || i.created_by === me.id || (i.role === 'user' && canManage(i.church_id)); return { key: i.id, cells: [
+        <div className="ch-who"><Avatar name={i.email} /><div><b>{i.email}</b><span>{T('Sendt')} {fmtDate(i.created_at)}</span></div></div>,
+        <span>{T(ROLE[i.role] || i.role)}{i.church_id ? ' · ' + churchName(i.church_id) : ''}</span>,
+        <StatusBadge s={s} />,
+        <span className="ch-muted">{s === 'accepted' ? fmtDate(i.accepted_at) : fmtDate(i.expires_at)}</span>,
+        (s === 'pending' || s === 'expired') && i.status === 'pending' && mine ? <div className="ch-end">
+          <Btn small onClick={run(() => admin.resendInvitation(i.id), 'Ny lenke er sendt.')}>{T('Send på nytt')}</Btn>
+          <Btn small kind="danger" onClick={run(() => admin.revokeInvitation(i.id), 'Invitasjonen er trukket tilbake.')}>{T('Trekk tilbake')}</Btn>
+        </div> : <span />] }; })} />
+    <p className="ch-muted">{T('E-post sendes foreløpig via Supabase sin innebygde tjeneste, som bare når teamets adresser (maks 2 i timen). Egen e-posttjeneste kommer ved produksjonssetting.')}</p>
+  </>;
+}
+
+/* ---------- Filer ---------- */
+const FOLDER_NAME = { bilder: 'Bilder', logoer: 'Logoer', bakgrunner: 'Bakgrunner', mockups: 'Mockups', faste: 'Faste' };
+export function FilesView({ churchId }) {
+  const { me, canManage, act, say } = useAdmin();
+  const [fl, setFl] = React.useState({ folder: 'bilder', list: [], thumbs: {}, usage: null, priv: false, over: false });
+  const load = async (folder = fl.folder) => {
+    const [list, usage] = await Promise.all([FS.list({ churchId, folder }), FS.usage(churchId)]);
+    const thumbs = await FS.objectUrls(list.slice(0, 60).map(x => x.id));
+    setFl(f => { Object.values(f.thumbs).forEach(u => URL.revokeObjectURL(u)); return { ...f, folder, list, thumbs, usage }; });
+  };
+  React.useEffect(() => { if (churchId) act(() => load())(); }, [churchId]);
+  const upload = act(async list => {
+    let n = 0; for (const file of list) { try { await FS.upload(file, { churchId, folder: fl.folder, priv: fl.priv }); n++; } catch (err) { say(file.name + ': ' + errText(err), false); } }
+    if (n) say(n + ' ' + T('filer er lastet opp.')); await load();
+  });
+  const u = fl.usage, pct = u && u.quota_bytes ? Math.min(100, Math.round(100 * u.used_bytes / u.quota_bytes)) : 0;
+  return <>
+    <Card title="Mapper og lagring">
+      <div className="ch-row">{FOLDERS.map(f => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={act(() => load(f))}>{T(FOLDER_NAME[f])}</Btn>)}</div>
+      {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
+        <p className="ch-muted">{T('Brukt')}: {mb(u.used_bytes)} / {mb(u.quota_bytes)} · {T('Dine private')}: {mb(u.my_private_bytes)} / {mb(u.my_private_quota_bytes)}</p></>}
+      <p className="ch-muted">{T('Bare bilder (PNG, JPG, WebP, GIF), maks 4 MB. Video kan aldri lastes opp – videoer ligger i prosjektmappen på PC-en. «Bilder» kan alle medlemmer legge til; de andre mappene bare admin. Private filer ser bare du.')}</p>
+      <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
+        onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); upload([...e.dataTransfer.files]); }}>
+        <div className="ch-row" style={{ justifyContent: 'center' }}>
+          <label className="ch-btn primary">{T('Last opp bilder')}<input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={e => { const l = [...e.target.files]; e.target.value = ''; upload(l); }} /></label>
+          <label className="ch-row ch-muted"><input type="checkbox" checked={fl.priv} onChange={e => setFl(f => ({ ...f, priv: e.target.checked }))} /> {T('Privat (bare meg)')}</label>
+        </div>
+        <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {T(FOLDER_NAME[fl.folder])}</p>
+      </div>
+    </Card>
+    <Card title={FOLDER_NAME[fl.folder]} sub={fl.list.length}>
+      {fl.list.length ? <div className="ch-thumbs">{fl.list.map(x => <div key={x.id} className="ch-thumb">
+        <div className="ch-img" style={{ backgroundImage: fl.thumbs[x.id] ? 'url(' + fl.thumbs[x.id] + ')' : 'none' }} />
+        <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
+        <span className="ch-muted">{mb(x.file_size)} · {fmtDate(x.created_at)}</span>
+        {(x.uploaded_by === me.id || canManage(churchId)) && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); await load(); })}>{T('Slett')}</Btn>}
+      </div>)}</div> : <Empty>{T('Ingen filer i denne mappen.')}</Empty>}
+    </Card>
+  </>;
+}
+
+/* ---------- Samarbeid ---------- */
+export function SpacesView({ churchId }) {
+  const { staff, adminOf, canManage, churchName, act, say } = useAdmin();
+  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], myFiles: [], name: '', invite: '' });
+  const load = async (sel = sp.sel) => {
+    const [list, dir] = await Promise.all([SP.list(), SP.directory().catch(() => [])]);
+    const cur = sel && list.some(x => x.id === sel) ? sel : (list[0] || {}).id || null;
+    const [members, files, myFiles] = cur ? await Promise.all([SP.members(cur), SP.files(cur), churchId ? FS.list({ churchId }) : []]) : [[], [], []];
+    setSp(p => ({ ...p, list, dir, sel: cur, members, files, myFiles: myFiles.filter(x => x.visibility === 'church' && x.church_id === churchId) }));
+  };
+  React.useEffect(() => { act(() => load())(); }, [churchId]);
+  const cur = sp.list.find(x => x.id === sp.sel), cname = id => (sp.dir.find(d => d.id === id) || {}).name || churchName(id);
+  const myM = cur && sp.members.find(m => m.church_id === churchId), isOwnerAdmin = cur && (staff || adminOf.includes(cur.owner_church_id));
+  return <>
+    <div className="ch-grid">
+      <Card title="Samarbeidsområder" sub={sp.list.length}>
+        <p className="ch-muted">{T('Samarbeidsområder lar flere menigheter dele bilder. Bare fellesbilder kan deles – aldri private filer, og aldri video.')}</p>
+        {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<b>{x.name}</b>, x.id === sp.sel ? <Badge tone="ok">{T('Valgt')}</Badge> : <span />] }))} /> : <Empty>{T('Ingen samarbeidsområder ennå.')}</Empty>}
+        {churchId && canManage(churchId) && <form className="ch-row" onSubmit={act(async e => { e.preventDefault(); const id = await SP.create(sp.name, churchId); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })}>
+          <input className="ch-input" style={{ flex: '1 1 200px' }} placeholder={T('Navn på nytt område')} value={sp.name} onChange={e => setSp(p => ({ ...p, name: e.target.value }))} minLength={2} maxLength={120} required />
+          <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett område')}</Btn>
+        </form>}
+      </Card>
+      {cur && <Card title={cur.name} sub={T('Delte bilder i området') + ': ' + sp.files.length}>
+        <List cols="1fr auto auto" rows={sp.members.map(m => ({ key: m.church_id, cells: [
+          <span>{cname(m.church_id)}{m.church_id === cur.owner_church_id && <span className="ch-muted"> ({T('eier')})</span>}</span>, <StatusBadge s={m.status} />,
+          adminOf.includes(m.church_id) && m.church_id !== cur.owner_church_id ? <div className="ch-end">
+            {m.status === 'invited' && <Btn small kind="primary" onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'active'); say(T('Menigheten deltar nå i området.')); await load(); })}>{T('Godta')}</Btn>}
+            {m.status === 'invited' && <Btn small onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'declined'); await load(); })}>{T('Avslå')}</Btn>}
+            {m.status === 'active' && <Btn small kind="danger" onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'left'); say(T('Menigheten har forlatt området. Bildene den delte er fjernet fra området.')); await load(); })}>{T('Forlat')}</Btn>}
+          </div> : <span />] }))} />
+        {isOwnerAdmin && <div className="ch-row">
+          <select className="ch-select" value={sp.invite} onChange={e => setSp(p => ({ ...p, invite: e.target.value }))} aria-label={T('Inviter menighet …')}><option value="">{T('Inviter menighet …')}</option>{sp.dir.filter(dd => !sp.members.some(m => m.church_id === dd.id && ['active', 'invited'].includes(m.status))).map(dd => <option key={dd.id} value={dd.id}>{dd.name}</option>)}</select>
+          <Btn disabled={!sp.invite} onClick={act(async () => { await SP.invite(cur.id, sp.invite); setSp(p => ({ ...p, invite: '' })); say(T('Invitasjonen er sendt til menighetens admin.')); await load(); })}>{T('Inviter')}</Btn>
+        </div>}
+        {myM && myM.status === 'active' && canManage(churchId) && <>
+          <p className="ch-muted">{T('Fellesbilder i')} {churchName(churchId)}</p>
+          <List cols="1fr auto" empty="Ingen fellesbilder i menigheten." rows={sp.myFiles.map(x => { const on = sp.files.some(sf => sf.file_id === x.id); return { key: x.id, cells: [x.file_name,
+            <Btn small kind={on ? '' : 'primary'} onClick={act(async () => { await SP.share(x.id, cur.id, !on); await load(); })}>{T(on ? 'Fjern fra området' : 'Del i området')}</Btn>] }; })} />
+        </>}
+      </Card>}
+    </div>
+  </>;
+}
+
+/* ---------- Abonnement ---------- */
+export function SubsView({ churchId }) {
+  const { staff, canManage, churchName, act, say, reload } = useAdmin();
+  const [sub, setSub] = React.useState({ plans: [], current: [], reqs: [], plan: 'standard', free: true, reason: '', note: '' });
+  const load = async () => { const [plans, current, reqs] = await Promise.all([SUB.plans(), SUB.current(churchId), SUB.requests(churchId)]); setSub(p => ({ ...p, plans, current, reqs })); };
+  React.useEffect(() => { act(load)(); }, [churchId]);
+  const run = (fn, ok) => act(async () => { await fn(); say(T(ok)); await load(); await reload(); });
+  return <div className="ch-grid">
+    <Card title="Planer">
+      <List cols="1fr auto auto" head={['Plan', 'Lagring', 'Pris']} rows={sub.plans.map(p => ({ key: p.code, cells: [T(p.name), p.storage_quota_mb + ' MB', p.price_nok_month === 0 ? T('Gratis') : p.price_nok_month ? p.price_nok_month + ' kr/mnd' : T('Avtales')] }))} />
+      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; stab godkjenner. Abonnementet bestemmer lagringskvoten.')}</p>
+    </Card>
+    <Card title="Nåværende abonnement">
+      <List cols="1fr auto auto" head={['Menighet', 'Plan', 'Gratis']} empty="Ingen abonnement registrert (standard: Gratis, 200 MB)." rows={sub.current.map(c => ({ key: c.church_id, cells: [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei')] }))} />
+      {churchId && canManage(churchId) && !staff && <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => SUB.request(churchId, sub.plan, sub.free, sub.reason), 'Forespørselen er sendt.')(); }}>
+        <Field label="Plan"><select className="ch-select" value={sub.plan} onChange={e => setSub(p => ({ ...p, plan: e.target.value }))}>{sub.plans.map(p => <option key={p.code} value={p.code}>{T(p.name)}</option>)}</select></Field>
+        <Field label="Begrunnelse (valgfritt)"><input className="ch-input" value={sub.reason} onChange={e => setSub(p => ({ ...p, reason: e.target.value }))} maxLength={1000} /></Field>
+        <label className="ch-row ch-muted"><input type="checkbox" checked={sub.free} onChange={e => setSub(p => ({ ...p, free: e.target.checked }))} /> {T('Be om gratis abonnement')}</label>
+        <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Send forespørsel')}</Btn>
+      </form>}
+    </Card>
+    <Card title="Forespørsler" sub={sub.reqs.filter(r => r.status === 'pending').length + ' ' + T('venter')}>
+      {staff && <Field label="Merknad til avgjørelsen (valgfritt)"><input className="ch-input" value={sub.note} onChange={e => setSub(p => ({ ...p, note: e.target.value }))} maxLength={500} /></Field>}
+      <List cols="minmax(140px,1fr) auto auto auto" head={['Menighet og plan', 'Gratis', 'Status', '']} empty="Ingen forespørsler." rows={sub.reqs.map(r => ({ key: r.id, cells: [
+        <div><b>{churchName(r.church_id)}</b><div className="ch-muted">{r.plan}{r.reason ? ' · ' + r.reason : ''}{r.decision_note ? ' · ' + r.decision_note : ''}</div></div>,
+        T(r.free_of_charge ? 'Ja' : 'Nei'), <StatusBadge s={r.status} />,
+        r.status === 'pending' ? (staff ? <div className="ch-end">
+          <Btn small kind="primary" onClick={run(() => SUB.decide(r.id, true, sub.note), 'Forespørselen er godkjent.')}>{T('Godkjenn')}</Btn>
+          <Btn small kind="danger" onClick={run(() => SUB.decide(r.id, false, sub.note), 'Forespørselen er avslått.')}>{T('Avslå')}</Btn>
+        </div> : <Btn small onClick={run(() => SUB.withdraw(r.id), 'Forespørselen er trukket tilbake.')}>{T('Trekk tilbake')}</Btn>) : <span />] }))} />
+    </Card>
+  </div>;
+}
+
+/* ---------- Logg ---------- */
+export function LogView({ churchId }) {
+  const { churchName, userName, act } = useAdmin();
+  const [log, setLog] = React.useState([]), [q, setQ] = React.useState(''), [kind, setKind] = React.useState('all');
+  React.useEffect(() => { act(async () => setLog(await admin.audit(churchId)))(); }, [churchId]);
+  const kinds = [...new Set(log.map(l => l.action.split('.')[0]))];
+  const KIND = { churches: 'Menigheter', memberships: 'Medlemskap', user_roles: 'Roller', invitations: 'Invitasjoner', app_users: 'Brukere', files: 'Filer', message: 'Meldinger', spaces: 'Samarbeid', subscription_requests: 'Abonnement', church_subscriptions: 'Abonnement', account: 'Kontoer', audit_logs: 'Logg' };
+  const list = log.filter(l => (kind === 'all' || l.action.startsWith(kind + '.')) && (!q || norm(T(actionName(l.action)) + ' ' + userName(l.actor_user_id) + ' ' + (l.church_id ? churchName(l.church_id) : '') + ' ' + (l.reason || '')).includes(norm(q))));
+  return <>
+    <div className="ch-row">
+      <Search value={q} onChange={setQ} placeholder="Søk i loggen …" />
+      <Select label="Type" value={kind} onChange={setKind} options={[['all', 'Alle typer'], ...kinds.map(k => [k, KIND[k] || k])]} />
+    </div>
+    <List cols="minmax(120px,auto) minmax(140px,1fr) minmax(160px,1.5fr) minmax(100px,1fr)" head={['Tid', 'Hvem', 'Hendelse', 'Menighet']} empty="Ingen hendelser."
+      rows={list.map(l => ({ key: l.id, cells: [<span className="ch-muted">{fmt(l.created_at)}</span>, userName(l.actor_user_id),
+        <span>{T(actionName(l.action))}{[l.meta && l.meta.role && T(ROLE[l.meta.role] || l.meta.role), l.reason].filter(Boolean).map((x, i) => <span key={i} className="ch-muted"> · {x}</span>)}</span>,
+        <span className="ch-muted">{l.church_id ? churchName(l.church_id) : '–'}</span>] }))} />
+    <p className="ch-muted">{T('Loggen kan ikke endres eller slettes. Den viser de siste 200 hendelsene.')}</p>
+  </>;
+}

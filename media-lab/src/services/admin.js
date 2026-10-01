@@ -7,7 +7,7 @@ import { callServer } from './server.js';
 const USER_COLS = 'id, email, full_name, phone, status, created_at';
 
 export const admin = {
-  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after', order: 'name' }),
+  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after, storage_quota_mb', order: 'name' }),
   createChurch: name => data().insert('churches', { name: String(name || '').trim() }, 'id, name, status'),
   renameChurch: (id, name) => data().update('churches', { id }, { name: String(name || '').trim() }),
 
@@ -36,6 +36,15 @@ export const admin = {
   resendInvitation: id => callServer('invite.resend', { id }),
   revokeInvitation: id => data().rpc('revoke_invitation', { p_id: id }),
 
+  /* Oversikter for admin-grensesnittet (RLS avgjør hva som returneres). */
+  allMemberships: () => data().select('memberships', { columns: 'user_id, church_id, status, created_at' }),
+  allRoles: () => data().select('user_roles', { columns: 'id, user_id, role, church_id, assigned_at', isNull: ['revoked_at'] }),
+  /* Stab kan legge en eksisterende bruker til i en menighet (eksisterende RLS-regel memberships_insert_staff). */
+  addMembership: (userId, churchId) => data().insert('memberships', { user_id: userId, church_id: churchId }, 'user_id, church_id, status'),
+  setQuota: (churchId, mbQuota) => data().update('churches', { id: churchId }, { storage_quota_mb: mbQuota }),
+  /* Egne opplysninger (RLS: bare seg selv, bare navn og telefon). */
+  updateMyProfile: (id, fullName, phone) => data().update('app_users', { id }, { full_name: String(fullName || '').trim() || null, phone: String(phone || '').trim() || null }),
+  userActivity: userId => data().select('audit_logs', { columns: 'id, action, target_type, church_id, meta, created_at', eq: { actor_user_id: userId }, order: 'created_at', desc: true, limit: 25 }),
   audit: churchId => data().select('audit_logs', { columns: 'id, actor_user_id, action, target_type, target_id, church_id, reason, meta, created_at', ...(churchId ? { eq: { church_id: churchId } } : {}), order: 'created_at', desc: true, limit: 200 }),
   systemStatus: () => data().rpc('system_status'),
 };

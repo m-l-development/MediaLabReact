@@ -16,6 +16,6 @@ export async function callServer(action, body, { raw, contentType, query } = {})
     });
   } catch (e) { throw new ServiceError('network'); }
   let j = null; try { j = await r.json(); } catch (e) {}
-  if (!r.ok || !j || j.ok === false) throw new ServiceError((j && j.error) || 'http_' + r.status);
+  if (!r.ok || !j || j.ok === false) throw new ServiceError((j && j.error) || 'http_' + r.status, j && j.detail);   /* detail: f.eks. hvilken servernøkkel som mangler */
   return j;
 }
