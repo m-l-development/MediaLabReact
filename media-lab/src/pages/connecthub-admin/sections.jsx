@@ -15,6 +15,7 @@ const ACTIONS = {
   'app_users.insert': 'Bruker opprettet', 'app_users.update': 'Bruker endret', 'app_users.delete': 'Bruker slettet',
   'files.insert': 'Fil lastet opp', 'files.update': 'Fil endret', 'files.delete': 'Fil slettet', 'message.send': 'Melding sendt',
   'spaces.create': 'Samarbeidsområde opprettet', 'spaces.invite': 'Invitert til samarbeid', 'spaces.membership': 'Samarbeid endret',
+  'spaces.update': 'Samarbeidsområde endret', 'spaces.status': 'Samarbeidsområde arkivert eller åpnet', 'spaces.delete': 'Samarbeidsområde slettet',
   'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
   'church_subscriptions.insert': 'Abonnement satt', 'church_subscriptions.update': 'Abonnement endret',
   'account.delete': 'Konto slettet', 'audit_logs.purge': 'Gammel logg slettet',
@@ -274,7 +275,7 @@ export function SpacesView() {
 
   return <div className="ch-grid">
     <Card title="Samarbeidsområder" sub={sp.list.length}>
-      {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<b>{x.name}</b>,
+      {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<div><b>{x.name}</b>{x.description && <div className="ch-muted">{x.description}</div>}</div>,
         <div className="ch-end">{x.status !== 'active' && <Badge>{T('Arkivert')}</Badge>}{x.id === sp.sel && <Badge tone="ok">{T('Valgt')}</Badge>}</div>] }))} />
         : <Empty>{T(sp.loading ? 'Laster …' : collab ? 'Ingen samarbeidsområder ennå.' : 'Ingen samarbeid er gjort tilgjengelig for deg ennå.')}</Empty>}
       {collab && <form className="ch-row" onSubmit={e => { e.preventDefault(); act(async () => { const id = await SP.create(sp.name); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })(e); }}>
@@ -299,6 +300,9 @@ export function SpacesView() {
       </div>
     </Card>}
 
+    {cur && collab && <SpaceSettings key={cur.id} space={cur} members={sp.members.filter(m => m.status === 'active').length} shared={shared.size}
+      onSaved={() => load(cur.id)} onDeleted={() => load(null)} />}
+
     {cur && collab && <Card title="Hva som deles" sub={shared.size}>
       <p className="ch-muted">{T('Velg fellesbilder fra menighetene som deltar. Private filer kan aldri deles, og video finnes ikke i ConnectHub.')}</p>
       {sp.cands.length ? <div className="ch-thumbs">{sp.cands.map(x => <div key={x.id} className="ch-thumb">
@@ -309,6 +313,7 @@ export function SpacesView() {
     </Card>}
 
     {cur && !collab && <Card title={cur.name} sub={sp.files.length}>
+      {cur.description && <p>{cur.description}</p>}
       <p className="ch-muted">{sp.members.filter(m => m.status === 'active').length} {T('menigheter deltar.')} {T('Du kan se og laste ned bildene som deles her.')}</p>
       {sp.files.length ? <div className="ch-thumbs">{sp.files.map(x => <div key={x.file_id} className="ch-thumb">
         <Thumb id={x.file_id} />
@@ -316,6 +321,31 @@ export function SpacesView() {
       </div>)}</div> : <Empty>{T('Ingen bilder er delt i området ennå.')}</Empty>}
     </Card>}
   </div>;
+}
+
+/* Navn, beskrivelse og sletting av et samarbeidsområde (Moderator/Developer; databasen avgjør). */
+function SpaceSettings({ space, members, shared, onSaved, onDeleted }) {
+  const { act, say } = useAdmin();
+  const [f, setF] = React.useState({ name: space.name, description: space.description || '' });
+  const changed = f.name.trim() !== space.name || f.description.trim() !== (space.description || '');
+  const save = act(async e => { e.preventDefault(); await SP.update(space.id, f.name, f.description); say(T('Området er endret.')); await onSaved(); });
+  const remove = act(async () => {
+    const v = prompt(T('Slette samarbeidsområdet for godt? Menighetene mister tilgangen, og delingene fjernes. Selve bildene blir liggende i menighetene. Kan ikke angres. Skriv navnet på området for å bekrefte:') + '\n\n' + space.name);
+    if (v === null) return;
+    if (v.trim() !== space.name) { say(T('Navnet stemmer ikke. Området er ikke slettet.'), false); return; }
+    await SP.remove(space.id, v.trim()); say(T('Området er slettet.')); await onDeleted();
+  });
+  return <Card title="Navn og beskrivelse">
+    <form className="ch-form" onSubmit={save}>
+      <Field label="Navn"><input className="ch-input" value={f.name} onChange={e => setF(x => ({ ...x, name: e.target.value }))} minLength={2} maxLength={120} required /></Field>
+      <Field label="Beskrivelse (valgfritt)"><textarea className="ch-input" style={{ height: 'auto', minHeight: 70, padding: '8px 12px', resize: 'vertical' }} value={f.description} onChange={e => setF(x => ({ ...x, description: e.target.value }))} maxLength={500} placeholder={T('Hva området brukes til – vises for medlemmene')} /></Field>
+      <div className="ch-row"><Btn kind="primary" disabled={!changed} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre endringer')}</Btn></div>
+    </form>
+    <div className="ch-danger">
+      <p className="ch-muted">{T('Arkiver skjuler området for medlemmene og kan angres. Sletting fjerner området for godt:')} {members} {T('menigheter mister tilgangen og')} {shared} {T('delinger fjernes. Bildene beholdes.')}</p>
+      <div className="ch-row"><Btn kind="danger" onClick={remove}>{T('Slett området')}</Btn></div>
+    </div>
+  </Card>;
 }
 
 /* ---------- Abonnement ---------- */

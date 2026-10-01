@@ -4,12 +4,15 @@ import { data } from './port.js';
 import { callServer } from './server.js';
 
 export const spaces = {
-  list: () => data().select('spaces', { columns: 'id, name, owner_church_id, status, created_at', order: 'name' }),
+  list: () => data().select('spaces', { columns: 'id, name, description, owner_church_id, status, created_at', order: 'name' }),
   members: spaceId => data().select('space_members', { columns: 'space_id, church_id, status, created_at', eq: { space_id: spaceId } }),
   files: spaceId => data().select('space_files', { columns: 'space_id, file_id, created_at', eq: { space_id: spaceId } }),
   directory: () => data().rpc('church_directory'),
   create: (name, ownerChurch) => data().rpc('create_space', ownerChurch ? { p_name: name, p_owner: ownerChurch } : { p_name: name }),
   setStatus: (spaceId, status) => data().rpc('set_space_status', { p_space: spaceId, p_status: status }),
+  update: (spaceId, name, description) => data().rpc('update_space', { p_space: spaceId, p_name: String(name || '').trim(), p_description: String(description || '').trim() || null }),
+  /* Sletter området, deltakerne og delingene (filene beholdes). confirm = områdets navn. */
+  remove: (spaceId, confirm) => data().rpc('delete_space', { p_space: spaceId, p_confirm: confirm }),
   invite: (spaceId, churchId) => data().rpc('invite_to_space', { p_space: spaceId, p_church: churchId }),
   setMembership: (spaceId, churchId, status) => data().rpc('set_space_membership', { p_space: spaceId, p_church: churchId, p_status: status }),
   share: (fileId, spaceId, on = true) => data().rpc('share_file_to_space', { p_file: fileId, p_space: spaceId, p_share: on }),

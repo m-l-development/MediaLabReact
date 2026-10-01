@@ -381,6 +381,33 @@ select ch_test.cnt('Samarbeid: Developer har teknisk tilgang', $q$select 1 from 
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-6","aal":"aal1"}';
 select ch_test.cnt('Samarbeid: utenforstående ser ikke området', $q$select 1 from public.spaces$q$, 0);
 
+-- Endre og slette område: bare Moderator (og Developer). Sletting beholder filene.
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeid: Moderator oppretter område som skal endres og slettes', $q$select public.create_space('Sletteområde')$q$);
+select ch_test.ok('Samarbeid: Moderator gir A tilgang og deler fil', $q$select public.invite_to_space((select id from public.spaces where name = 'Sletteområde'), 'aaaaaaaa-0000-4000-8000-00000000000a'), public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Sletteområde'))$q$);
+select ch_test.ok('Samarbeid: Moderator endrer navn og beskrivelse', $q$select public.update_space((select id from public.spaces where name = 'Sletteområde'), '  Nytt navn  ', 'Felles bilder til påske')$q$);
+select ch_test.cnt('Samarbeid: navn og beskrivelse er lagret', $q$select 1 from public.spaces where name = 'Nytt navn' and description = 'Felles bilder til påske'$q$, 1);
+select ch_test.err('Samarbeid: for kort navn avvises', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'x')$q$, '23514');
+select ch_test.err('Samarbeid: for lang beskrivelse avvises', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn', repeat('x', 501))$q$, '23514');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Samarbeid: medlem i A ser beskrivelsen', $q$select 1 from public.spaces where name = 'Nytt navn' and description is not null$q$, 1);
+select ch_test.err('Samarbeid: medlem kan ikke endre område', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'Kapret')$q$, '42501');
+select ch_test.err('Samarbeid: medlem kan ikke slette område', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$, '42501');
+select ch_test.err('Samarbeid: medlem kan ikke arkivere område', $q$select public.set_space_status((select id from public.spaces where name = 'Nytt navn'), 'archived')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Samarbeid: Admin kan ikke endre område', $q$select public.update_space((select id from public.spaces limit 1), 'Kapret')$q$, '42501');
+select ch_test.err('Samarbeid: Admin kan ikke slette område', $q$select public.delete_space((select id from public.spaces limit 1), 'x')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Samarbeid: Moderator uten MFA kan ikke slette', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Samarbeid: sletting krever riktig navn', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Feil')$q$, '22023');
+select ch_test.ok('Samarbeid: Moderator sletter området', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$);
+select ch_test.cnt('Samarbeid: området er borte', $q$select 1 from public.spaces where name = 'Nytt navn'$q$, 0);
+select ch_test.cnt('Samarbeid: filen som var delt, finnes fortsatt', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Samarbeid: Developer kan endre område (teknisk tilgang)', $q$select public.update_space((select id from public.spaces where name = 'Testområde'), 'Testområde', 'Teknisk test')$q$);
+select ch_test.atleast('Samarbeid: endring og sletting er loggført', $q$select 1 from public.audit_logs where action in ('spaces.update', 'spaces.delete')$q$, 2);
+
 -- ---------- Abonnement (P10) ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
 select ch_test.err('Abonnement: medlem kan ikke be om abonnement', $q$select public.request_subscription('aaaaaaaa-0000-4000-8000-00000000000a', 'standard', true, 'x')$q$, '42501');

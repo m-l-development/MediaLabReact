@@ -334,3 +334,21 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 **Gjenstår**
 - API-funksjonene på Vercel har ingen fast region, så de kjører trolig i Vercels standardregion i USA, mens databasen ligger i Stockholm (`eu-north-1`). Det gjelder opplasting, bildelenker og invitasjoner. Region krever endring i Vercel-oppsettet og egen godkjenning.
 - Målingene er gjort lokalt. Vercel Preview er beskyttet av Vercel-innlogging og kunne ikke måles direkte.
+
+## Samarbeid: Moderator kan endre og slette områder (2026-10-01)
+
+- **Migrering `20261001180000_space_edit.sql`:**
+  - Ny kolonne `spaces.description` (valgfri, maks 500 tegn).
+  - Ny funksjon `update_space` endrer navn og beskrivelse.
+  - Ny funksjon `delete_space` sletter området. Den krever at navnet skrives inn som bekreftelse, fjerner deltakere og delinger, men ikke filene.
+  - `set_space_status` loggfører nå også arkivering.
+  - Bare Moderator (med MFA) og Developer har tilgang.
+- **Databasetester:** 248/248 på `connecthub-dev` og i PGlite. 19 tester er nye. De viser blant annet:
+  - Medlem, Admin og Moderator uten MFA blir nektet.
+  - Feil navn avvises ved sletting.
+  - Filen som var delt, finnes fortsatt etter sletting.
+  - Endring og sletting blir loggført.
+- **Nettlesertest:**
+  - Moderator oppretter et område, endrer navn og beskrivelse og gir Menighet A tilgang.
+  - Medlemmet ser beskrivelsen, men får ingen redigering, og sletting via API gir 403.
+  - Moderator prøver å slette med feil navn, og det avvises. Med riktig navn slettes området.

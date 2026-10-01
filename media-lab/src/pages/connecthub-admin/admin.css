@@ -147,3 +147,4 @@ html[data-ml-mode="light"] [data-ml-theme="admin"] {
   [data-ml-theme="admin"] .ch-kv { grid-template-columns: 1fr; }
   [data-ml-theme="admin"] .ch-kv dt { margin-top: 6px; }
 }
+[data-ml-theme="admin"] .ch-danger { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
