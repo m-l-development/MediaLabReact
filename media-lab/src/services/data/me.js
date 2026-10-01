@@ -8,7 +8,11 @@ export async function whoami() {
 }
 
 export const hasRole = (me, role, churchId) => !!me && (me.roles || []).some(r => r.role === role && (churchId == null || r.church_id === churchId));
+/* Roller med MFA-krav (Developer og Moderator). */
 export const isStaff = me => hasRole(me, 'developer') || hasRole(me, 'moderator');
+export const isDeveloper = me => hasRole(me, 'developer');
+/* Samarbeidsansvarlig: Moderator, eller Developer for teknisk tilgang. */
+export const isCollabAdmin = me => hasRole(me, 'moderator') || hasRole(me, 'developer');
 export const isChurchAdmin = (me, churchId) => hasRole(me, 'church_admin', churchId);
 /* Viser admin-inngangen: stab eller admin i minst én menighet. (Rettighetene håndheves uansett av databasen.) */
 export const canAdmin = me => isStaff(me) || hasRole(me, 'church_admin');

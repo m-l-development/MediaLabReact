@@ -6,27 +6,25 @@ import { admin } from '../../services/admin.js';
 import { isStaff, hasRole } from '../../services/data/me.js';
 import { subscriptions as SUB, spaces as SP } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
+import { NAV, sectionsFor } from './access.js';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, SpacesView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 
 export const Ctx = React.createContext(null);
 export const useAdmin = () => React.useContext(Ctx);
 
-const NAV = [
-  ['oversikt', 'Oversikt'], ['brukere', 'Brukere'], ['menigheter', 'Menigheter'], ['invitasjoner', 'Invitasjoner'],
-  ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['logg', 'Logg'],
-];
-/* Vanlige brukere ser bare det de har nytte av (rettighetene håndheves uansett av databasen). */
-const USER_NAV = ['oversikt', 'menigheter', 'filer', 'samarbeid'];
-
 export default function AdminPage({ me }) {
-  const staff = isStaff(me) && me.mfa, dev = staff && hasRole(me, 'developer'), staffNoMfa = isStaff(me) && !me.mfa;
+  const dev = hasRole(me, 'developer') && me.mfa, staff = dev;                    // systemadministrasjon = Developer
+  const collab = (hasRole(me, 'moderator') || hasRole(me, 'developer')) && me.mfa; // samarbeid = Moderator (og Developer)
+  const staffNoMfa = isStaff(me) && !me.mfa;
   const adminOf = (me.roles || []).filter(r => r.role === 'church_admin').map(r => r.church_id);
+  const kind = dev ? 'developer' : collab ? 'moderator' : adminOf.length ? 'admin' : 'user';
+  const allowed = sectionsFor({ dev, collab, adminOf, churches: me.churches || [] });
   const route = useRoute();
   const [d, setD] = React.useState({ churches: [], users: [], memberships: [], roles: [], invites: [], status: null, pendingSubs: 0, loaded: false });
   const [note, setNote] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [invite, setInvite] = React.useState(null);      // åpen «Ny invitasjon» med forhåndsutfylling
-  const [ctxChurch, setCtxChurch] = React.useState(null); // valgt menighet for Filer/Samarbeid/Abonnement
+  const [ctxChurch, setCtxChurch] = React.useState(null); // valgt menighet for Filer/Abonnement/Logg
 
   const say = (text, ok = true) => { setNote({ text, ok }); clearTimeout(say._t); say._t = setTimeout(() => setNote(null), 6000); };
   const act = fn => async (...a) => { if (busy) return; setBusy(true); setNote(null); try { return await fn(...a); } catch (e) { if (!(e && e.code === 'cancel')) say(errText(e), false); } finally { setBusy(false); } };
@@ -56,33 +54,35 @@ export default function AdminPage({ me }) {
   const userName = id => { const u = userById(id); return u ? (u.full_name || u.email) : (id ? T('Ukjent bruker') : T('System')); };
   const canManage = id => staff || adminOf.includes(id);
   const pendingInvites = d.invites.filter(i => i.status === 'pending' && new Date(i.expires_at) > new Date());
-  const isUser = !staff && !adminOf.length;
-  const nav = isUser ? NAV.filter(([k]) => USER_NAV.includes(k)) : NAV;
-  const ctx = { me, isUser, staff, dev, staffNoMfa, adminOf, d, reload, act, say, busy, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
+  const isUser = kind === 'user';
+  const nav = NAV.filter(([k]) => allowed.has(k));
+  const ctx = { me, kind, isUser, staff, dev, collab, staffNoMfa, adminOf, allowed, d, reload, act, say, busy, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
 
-  const [sec0, id, sub] = route, sec = isUser && !USER_NAV.includes(sec0) ? 'oversikt' : sec0;
+  const [sec0, id, sub] = route, sec = NAV.some(([k]) => k === sec0) ? sec0 : 'oversikt';
   let body;
-  if (sec === 'brukere') body = <UsersView selected={id} />;
+  if (!allowed.has(sec)) body = <Forbidden />;
+  else if (sec === 'brukere') body = <UsersView selected={id} />;
   else if (sec === 'menigheter') body = id ? <ChurchDetail id={id} tab={sub || (canManage(id) ? 'medlemmer' : 'filer')} /> : <ChurchesView />;
   else if (sec === 'invitasjoner') body = <InvitesView />;
-  else if (sec === 'filer') body = <><Head title="Filer" sub="Bilder i menighetens mapper. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
-  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Del bilder med andre menigheter." right={<ChurchPicker />} /><SpacesView churchId={ctxChurch} /></>;
-  else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – stab godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
+  else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser og delt mappe. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
+  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub={collab ? 'Sett opp samarbeidsområder og velg hva som deles.' : 'Samarbeid som er gjort tilgjengelig for deg.'} /><SpacesView /></>;
+  else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
-  else body = isUser ? <UserOverview /> : <Overview pendingInvites={pendingInvites} />;
+  else body = kind === 'user' ? <UserOverview /> : kind === 'moderator' && !adminOf.length ? <ModeratorOverview /> : <Overview pendingInvites={pendingInvites} />;
 
-  const counts = { invitasjoner: pendingInvites.length, abonnement: d.pendingSubs };
+  const counts = { invitasjoner: allowed.has('invitasjoner') ? pendingInvites.length : 0, abonnement: d.pendingSubs };
+  const brand = kind === 'user' ? 'CONNECTHUB' : kind === 'moderator' && !adminOf.length ? 'CONNECTHUB · SAMARBEID' : 'CONNECTHUB · ADMIN';
   return <Ctx.Provider value={ctx}>
     <div data-ml-theme="admin" data-ml-bg="static">
       <header className="ch-top" data-ml-bar="1">
         <a className="ch-back" href="media-lab.dc.html">← Media Lab</a>
-        <span className="ch-brand">{isUser ? 'CONNECTHUB' : 'CONNECTHUB · ADMIN'}</span>
+        <span className="ch-brand">{brand}</span>
         <span className="ch-spacer" />
         {(staff || adminOf.length > 0) && <Btn kind="primary" small onClick={() => setInvite({ church: sec === 'menigheter' && id ? id : ctxChurch })}>+ {T('Ny invitasjon')}</Btn>}
       </header>
       <div className="ch-shell">
         <nav className="ch-nav" aria-label={T('Admin')}>
-          {nav.map(([k, l]) => <a key={k} href={href(k)} className={sec === k || (k === 'oversikt' && !nav.some(n => n[0] === sec)) ? 'on' : ''}>{T(l)}{counts[k] > 0 && <span className="ch-count">{counts[k]}</span>}</a>)}
+          {nav.map(([k, l]) => <a key={k} href={href(k)} className={sec === k ? 'on' : ''}>{T(l)}{counts[k] > 0 && <span className="ch-count">{counts[k]}</span>}</a>)}
           {dev && <div className="ch-navfoot">{T('Gammel admin er beholdt til den kan fjernes:')} <a href="admin.dc.html">admin.dc.html</a></div>}
         </nav>
         <main className="ch-main">
@@ -96,6 +96,34 @@ export default function AdminPage({ me }) {
   </Ctx.Provider>;
 }
 
+/* Kontrollert avvisning når rollen ikke har tilgang til en side (f.eks. via direkte adresse). */
+function Forbidden() {
+  return <><Head title="Ingen tilgang" />
+    <Card><p className="ch-muted">{T('Rollen din har ikke tilgang til denne siden. Tilgangen kontrolleres også på serveren og i databasen.')}</p>
+      <div className="ch-row"><a className="ch-btn" href={href('oversikt')}>{T('Til oversikten')}</a></div></Card></>;
+}
+
+/* Oversikt for Moderator: samarbeid. */
+function ModeratorOverview() {
+  const { me, act } = useAdmin();
+  const [st, setSt] = React.useState({ spaces: [], members: 0, files: 0 });
+  React.useEffect(() => { act(async () => {
+    const list = await SP.list(); let members = 0, files = 0;
+    for (const s of list.filter(x => x.status === 'active')) { members += (await SP.members(s.id)).filter(m => m.status === 'active').length; files += (await SP.files(s.id)).length; }
+    setSt({ spaces: list, members, files });
+  })(); }, []);
+  return <>
+    <Head title="Oversikt" sub={(me.full_name || me.email) + ' · Moderator'} />
+    <div className="ch-stats">
+      <a className="ch-stat" href={href('samarbeid')}><b>{st.spaces.filter(s => s.status === 'active').length}</b><span>{T('Aktive samarbeidsområder')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{st.members}</b><span>{T('Deltakende menigheter')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{st.files}</b><span>{T('Delte bilder')}</span></a>
+    </div>
+    <Card title="Ditt ansvar"><p className="ch-muted">{T('Som Moderator setter du opp samarbeidsområder, velger hvilke menigheter som får tilgang, og hvilke fellesbilder som deles. Brukeradministrasjon og filer håndteres av Admin.')}</p>
+      <div className="ch-row"><a className="ch-btn primary" href={href('samarbeid')}>{T('Gå til samarbeid')}</a></div></Card>
+  </>;
+}
+
 export function Head({ title, sub, right, crumb }) {
   return <div className="ch-head">
     <div>{crumb && <div className="ch-crumb">{crumb}</div>}<h1>{T(title)}</h1>{sub && <div className="ch-sub">{T(sub)}</div>}</div>
@@ -107,15 +135,12 @@ export function Head({ title, sub, right, crumb }) {
 function Overview({ pendingInvites }) {
   const { me, staff, dev, d, churchName, adminOf, act } = useAdmin();
   const [recent, setRecent] = React.useState([]);
-  const [spaceInv, setSpaceInv] = React.useState([]);
   React.useEffect(() => { act(async () => {
     setRecent((await admin.audit(staff ? null : adminOf[0] || null)).slice(0, 8));
-    if (adminOf.length) { const list = await SP.list(); const inv = []; for (const s of list) for (const m of await SP.members(s.id)) if (m.status === 'invited' && adminOf.includes(m.church_id)) inv.push({ space: s, church: m.church_id }); setSpaceInv(inv); }
   })(); }, [d.loaded]);
   const s = d.status, soon = pendingInvites.filter(i => new Date(i.expires_at) - Date.now() < 2 * 864e5);
   const todo = [
     ...(staff && d.pendingSubs ? [{ k: 'subs', t: d.pendingSubs + ' ' + T('abonnementsforespørsler venter på avgjørelse'), to: href('abonnement') }] : []),
-    ...spaceInv.map(x => ({ k: 'sp' + x.space.id, t: T('Invitasjon til samarbeid') + ': «' + x.space.name + '» (' + churchName(x.church) + ')', to: href('samarbeid') })),
     ...(pendingInvites.length ? [{ k: 'inv', t: pendingInvites.length + ' ' + T('ventende invitasjoner') + (soon.length ? ' · ' + soon.length + ' ' + T('utløper snart') : ''), to: href('invitasjoner') }] : []),
     ...d.churches.filter(c => c.status === 'pending_deletion').map(c => ({ k: 'del' + c.id, t: c.name + ': ' + T('venter på sletting') + ' (' + fmtDate(c.delete_after) + ')', to: href('menigheter', c.id, 'innstillinger') })),
   ];
@@ -160,7 +185,7 @@ function DevCard() {
 
 /* ---------- Oversikt for vanlige brukere ---------- */
 function UserOverview() {
-  const { me, d } = useAdmin();
+  const { me, d, allowed } = useAdmin();
   const mine = d.churches.filter(c => (me.churches || []).some(x => x.id === c.id));
   return <>
     <Head title="Oversikt" sub="Velkommen til ConnectHub." />
@@ -172,7 +197,7 @@ function UserOverview() {
     </Card>
     <div className="ch-grid">
       <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens fellesmappe, og ha dine egne private bilder.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer')}>{T('Åpne filer')}</a></div></Card>
-      <Card title="Samarbeid"><p className="ch-muted">{T('Se bilder som deles mellom menighetene du er med i.')}</p><div className="ch-row"><a className="ch-btn" href={href('samarbeid')}>{T('Åpne samarbeid')}</a></div></Card>
+      {allowed.has('samarbeid') && <Card title="Samarbeid"><p className="ch-muted">{T('Se bilder som deles mellom menighetene du er med i.')}</p><div className="ch-row"><a className="ch-btn" href={href('samarbeid')}>{T('Åpne samarbeid')}</a></div></Card>}
       <Card title="Profil og varsler"><p className="ch-muted">{T('Navn, telefon, varsler og personvern finner du i kontomenyen nede til høyre.')}</p></Card>
     </div>
   </>;

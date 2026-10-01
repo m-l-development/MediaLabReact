@@ -2,7 +2,7 @@
    Endrer bare hva grensesnittet viser («se siden som»). Den kan bare SENKE rollen (Developer → Admin/User,
    Admin → User) og gir aldri flere rettigheter: serveren og RLS bruker alltid den ekte innloggingen. */
 
-export const VIEWS = ['developer', 'admin', 'user'];
+export const VIEWS = ['developer', 'moderator', 'admin', 'user'];
 const KEY = 'ch.testRole';
 const DEV_REF = 'uatpdmhnwwjgzlxaucsx';
 
@@ -10,14 +10,21 @@ const DEV_REF = 'uatpdmhnwwjgzlxaucsx';
 export const switcherAllowed = backend => !!backend && backend.target !== 'production' && backend.projectRef === DEV_REF;
 
 const has = (me, role) => !!me && (me.roles || []).some(r => r.role === role);
-export const realView = me => has(me, 'developer') ? 'developer' : (has(me, 'moderator') || has(me, 'church_admin')) ? 'admin' : 'user';
-/* Hvilke visninger denne brukeren kan velge (bare like eller lavere enn den ekte). */
-export const allowedViews = me => ({ developer: ['developer', 'admin', 'user'], admin: ['admin', 'user'], user: [] })[realView(me)];
+export const realView = me => has(me, 'developer') ? 'developer' : has(me, 'moderator') ? 'moderator' : has(me, 'church_admin') ? 'admin' : 'user';
+/* Hvilke visninger denne brukeren kan velge: bare roller man faktisk har (Developer dekker alle), pluss User. */
+export function allowedViews(me) {
+  const dev = has(me, 'developer'), list = [];
+  if (dev) list.push('developer');
+  if (dev || has(me, 'moderator')) list.push('moderator');
+  if (dev || has(me, 'church_admin')) list.push('admin');
+  return list.length ? [...list, 'user'] : [];
+}
 
 /* Returnerer «me» slik grensesnittet skal se den i valgt visning. Ugyldig/ikke tillatt valg → ekte «me». */
 export function effectiveMe(me, view) {
   if (!me || !view || !allowedViews(me).includes(view) || view === realView(me)) return me;
   if (view === 'user') return { ...me, roles: [] };
+  if (view === 'moderator') return { ...me, roles: [{ role: 'moderator', church_id: null }] };
   /* Admin-visning: egne admin-roller, ellers (for stab) som admin i menighetene man er medlem av. */
   const admins = (me.roles || []).filter(r => r.role === 'church_admin');
   const roles = admins.length ? admins : (me.churches || []).map(c => ({ role: 'church_admin', church_id: c.id }));
@@ -31,7 +38,7 @@ export function setView(view, me) {
 }
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
-export const VIEW_LABEL = { developer: 'Developer', admin: 'Admin', user: 'User' };
+export const VIEW_LABEL = { developer: 'Developer', moderator: 'Moderator', admin: 'Admin', user: 'User' };
 
 /* Tydelig indikator nederst på siden når testmodus er aktiv, med knapp tilbake til den ekte rollen. */
 export function mountTestBanner(realMe, view) {

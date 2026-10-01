@@ -66,7 +66,8 @@ insert into public.app_users (id, email, full_name, status) values
   ('00000000-0000-4000-8000-000000000005', 'userb@test.invalid', 'Bruker B', 'active'),
   ('00000000-0000-4000-8000-000000000006', 'utenfor@test.invalid', 'Utenfor', 'active'),
   ('00000000-0000-4000-8000-000000000007', 'deaktivert@test.invalid', 'Deaktivert A', 'disabled'),
-  ('00000000-0000-4000-8000-000000000008', 'medlem2@test.invalid', 'Medlem 2 A', 'active');
+  ('00000000-0000-4000-8000-000000000008', 'medlem2@test.invalid', 'Medlem 2 A', 'active'),
+  ('00000000-0000-4000-8000-000000000009', 'medlemb@test.invalid', 'Medlem B', 'active');
 insert into public.user_identities (provider, subject, user_id)
 select 'https://test.invalid/auth/v1', 'sub-' || right(id::text, 1), id from public.app_users where email like '%@test.invalid';
 insert into public.memberships (user_id, church_id) values
@@ -74,7 +75,8 @@ insert into public.memberships (user_id, church_id) values
   ('00000000-0000-4000-8000-000000000004', 'aaaaaaaa-0000-4000-8000-00000000000a'),
   ('00000000-0000-4000-8000-000000000007', 'aaaaaaaa-0000-4000-8000-00000000000a'),
   ('00000000-0000-4000-8000-000000000008', 'aaaaaaaa-0000-4000-8000-00000000000a'),
-  ('00000000-0000-4000-8000-000000000005', 'bbbbbbbb-0000-4000-8000-00000000000b');
+  ('00000000-0000-4000-8000-000000000005', 'bbbbbbbb-0000-4000-8000-00000000000b'),
+  ('00000000-0000-4000-8000-000000000009', 'bbbbbbbb-0000-4000-8000-00000000000b');
 insert into public.user_roles (user_id, role, church_id) values
   ('00000000-0000-4000-8000-000000000001', 'developer', null),
   ('00000000-0000-4000-8000-000000000002', 'moderator', null),
@@ -159,20 +161,24 @@ select ch_test.rows('Admin A: kan ikke endre medlemskap i B', $q$update public.m
 select ch_test.rows('Admin A: kan deaktivere medlem i A', $q$update public.memberships set status = 'disabled' where user_id = '00000000-0000-4000-8000-000000000004'$q$, 1);
 set local role postgres;
 
--- ---------- Moderator ----------
+-- ---------- Moderator: samarbeid, ingen administrasjon ----------
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
 select ch_test.cnt('Moderator uten MFA: ser ingen menigheter', 'select 1 from public.churches', 0);
-select ch_test.err('Moderator uten MFA: kan ikke tildele admin', $q$select public.assign_role('00000000-0000-4000-8000-000000000005', 'church_admin', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+select ch_test.cnt('Moderator uten MFA: får ikke menighetslisten', 'select 1 from public.church_directory()', 0);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.cnt('Moderator: ser alle menigheter', $q$select 1 from public.churches where name like 'Testmenighet %'$q$, 2);
-select ch_test.ok('Moderator: kan gjøre Bruker B til admin i B', $q$select public.assign_role('00000000-0000-4000-8000-000000000005', 'church_admin', 'bbbbbbbb-0000-4000-8000-00000000000b', 'test')$q$);
+select ch_test.cnt('Moderator: ser ikke menighetene som admin (ingen admin-rettigheter)', 'select 1 from public.churches', 0);
+select ch_test.cnt('Moderator: ser ingen brukere utenom seg selv', 'select 1 from public.app_users', 1);
+select ch_test.cnt('Moderator: får menighetslisten til samarbeid', $q$select 1 from public.church_directory() where name like 'Testmenighet %'$q$, 2);
+select ch_test.err('Moderator: kan ikke tildele admin', $q$select public.assign_role('00000000-0000-4000-8000-000000000005', 'church_admin', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
 select ch_test.err('Moderator: kan ikke opprette developer', $q$select public.assign_role('00000000-0000-4000-8000-000000000006', 'developer')$q$, '42501');
 select ch_test.err('Moderator: kan ikke opprette moderator', $q$select public.assign_role('00000000-0000-4000-8000-000000000006', 'moderator')$q$, '42501');
-select ch_test.err('Moderator: kan ikke gi seg selv rolle', $q$select public.assign_role('00000000-0000-4000-8000-000000000002', 'church_admin', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '42501');
-select ch_test.err('Moderator: kan ikke gjøre ikke-medlem til admin', $q$select public.assign_role('00000000-0000-4000-8000-000000000006', 'church_admin', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '22023');
-select ch_test.err('Moderator: bare én aktiv admin per menighet', $q$select public.assign_role('00000000-0000-4000-8000-000000000008', 'church_admin', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '23505');
-select ch_test.err('Moderator: kan ikke tilbakekalle developer', $q$select public.revoke_role((select id from public.user_roles where role = 'developer' and revoked_at is null limit 1))$q$, '42501');
+select ch_test.err('Moderator: kan ikke opprette menighet', $q$insert into public.churches (name) values ('Ny')$q$, '42501');
+select ch_test.err('Moderator: kan ikke tilbakekalle developer (ser den ikke engang)', $q$select public.revoke_role((select id from public.user_roles where role = 'developer' and revoked_at is null limit 1))$q$, null);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Developer: kan gjøre Bruker B til admin i B', $q$select public.assign_role('00000000-0000-4000-8000-000000000005', 'church_admin', 'bbbbbbbb-0000-4000-8000-00000000000b', 'test')$q$);
+select ch_test.err('Developer: kan ikke gjøre ikke-medlem til admin', $q$select public.assign_role('00000000-0000-4000-8000-000000000006', 'church_admin', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '22023');
+select ch_test.err('Developer: bare én aktiv admin per menighet', $q$select public.assign_role('00000000-0000-4000-8000-000000000008', 'church_admin', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '23505');
 set local role postgres;
 
 -- ---------- Developer ----------
@@ -230,14 +236,16 @@ select ch_test.cnt('Admin A: ser ikke token-hash i invitasjoner (kolonnen)', $q$
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
 select ch_test.err('Moderator uten MFA: kan ikke invitere', $q$select public.create_invitation('x@test.invalid', 'bbbbbbbb-0000-4000-8000-00000000000b', 'user', repeat('e', 64))$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Moderator: kan invitere admin til A', $q$select public.create_invitation('nyadmin@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'church_admin', repeat('f', 64))$q$);
-select ch_test.err('Moderator: kan ikke invitere moderator', $q$select public.create_invitation('x@test.invalid', null, 'moderator', repeat('e', 64))$q$, '42501');
-select ch_test.ok('Moderator: kan se systemstatus', 'select public.system_status()');
-select ch_test.ok('Moderator: kan deaktivere utenforstående', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'disabled')$q$);
-select ch_test.ok('Moderator: kan aktivere igjen', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'active')$q$);
-select ch_test.err('Moderator: kan ikke deaktivere Developer', $q$select public.set_user_status('00000000-0000-4000-8000-000000000001', 'disabled')$q$, '42501');
-select ch_test.err('Moderator: kan ikke deaktivere seg selv', $q$select public.set_user_status('00000000-0000-4000-8000-000000000002', 'disabled')$q$, '42501');
+select ch_test.err('Moderator: kan ikke invitere brukere (ingen admin-rettigheter)', $q$select public.create_invitation('x@test.invalid', 'bbbbbbbb-0000-4000-8000-00000000000b', 'user', repeat('e', 64))$q$, '42501');
+select ch_test.err('Moderator: kan ikke invitere admin', $q$select public.create_invitation('x@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'church_admin', repeat('e', 64))$q$, '42501');
+select ch_test.err('Moderator: kan ikke se systemstatus', 'select public.system_status()', '42501');
+select ch_test.err('Moderator: kan ikke deaktivere brukere', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'disabled')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Developer: kan invitere admin til A', $q$select public.create_invitation('nyadmin@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'church_admin', repeat('f', 64))$q$);
+select ch_test.ok('Developer: kan se systemstatus', 'select public.system_status()');
+select ch_test.ok('Developer: kan deaktivere utenforstående', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'disabled')$q$);
+select ch_test.ok('Developer: kan aktivere igjen', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'active')$q$);
+select ch_test.err('Developer: kan ikke deaktivere seg selv', $q$select public.set_user_status('00000000-0000-4000-8000-000000000001', 'disabled')$q$, '42501');
 select ch_test.ok('Developer: kan invitere moderator', $q$select public.create_invitation('nymod@test.invalid', null, 'moderator', repeat('1', 64))$q$);
 set local role postgres;
 -- Godkjenning (serveren). Kjøres som service_role der rollen finnes.
@@ -324,34 +332,54 @@ select ch_test.err('Varsel: kan ikke endre tittel', $q$update public.notificatio
 select ch_test.err('Varsel: kan ikke lage varsler selv', $q$insert into public.notifications (user_id, kind, title) values ('00000000-0000-4000-8000-000000000008', 'message', 'x')$q$, '42501');
 select ch_test.err('Varsel: medlem kan ikke sende melding til menigheten', $q$select public.send_church_message('aaaaaaaa-0000-4000-8000-00000000000a', 'Hei', 'x')$q$, '42501');
 
--- ---------- Samarbeidsområder (P10) ----------
+-- ---------- Samarbeid: bare Moderator administrerer, Admin har ingen tilgang ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
-select ch_test.ok('Område: admin A oppretter område', $q$select public.create_space('Testområde', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
-select ch_test.ok('Område: admin A deler fellesfil i området', $q$select public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Testområde'))$q$);
+select ch_test.err('Samarbeid: Admin kan ikke opprette område', $q$select public.create_space('Adminområde', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '42501');
+select ch_test.cnt('Samarbeid: Admin får ikke menighetslisten for samarbeid', 'select 1 from public.church_directory()', 0);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
-select ch_test.cnt('Område: medlem i A ser området', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
-select ch_test.err('Område: medlem kan ikke dele filer', $q$select public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Testområde'))$q$, '42501');
-select ch_test.err('Område: medlem kan ikke dele sin private fil', $q$select public.share_file_to_space((select id from public.files where file_name = 'privat.png'), (select id from public.spaces where name = 'Testområde'))$q$, '22023');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
-select ch_test.cnt('Område: admin i B ser ikke området før invitasjon', $q$select 1 from public.spaces where name = 'Testområde'$q$, 0);
-select ch_test.cnt('Område: B ser ikke delt fil før invitasjon', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
-set local role postgres;
-set local role authenticated;
+select ch_test.err('Samarbeid: medlem kan ikke opprette område', $q$select public.create_space('Medlemsområde')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeid: Moderator oppretter område', $q$select public.create_space('Testområde')$q$);
+select ch_test.ok('Samarbeid: Moderator gjør området tilgjengelig for A', $q$select public.invite_to_space((select id from public.spaces where name = 'Testområde'), 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
+select ch_test.cnt('Samarbeid: Moderator ser fellesfiler i deltakende menighet (for å velge)', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
+select ch_test.cnt('Samarbeid: Moderator ser ikke private filer', $q$select 1 from public.files where file_name = 'privat.png'$q$, 0);
+select ch_test.cnt('Samarbeid: Moderator ser ikke filer i menigheter som ikke deltar', $q$select 1 from public.files where church_id = 'bbbbbbbb-0000-4000-8000-00000000000b'$q$, 0);
+select ch_test.ok('Samarbeid: Moderator deler fellesfil fra A', $q$select public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Testområde'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Samarbeid: medlem i A ser området', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
+select ch_test.err('Samarbeid: medlem kan ikke dele filer', $q$select public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Testområde'))$q$, '42501');
+select ch_test.err('Samarbeid: medlem kan ikke endre deltakelse', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'aaaaaaaa-0000-4000-8000-00000000000a', 'left')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
-select ch_test.ok('Område: admin A inviterer B', $q$select public.invite_to_space((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b')$q$);
-select ch_test.err('Område: eier kan ikke forlate eget område', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'aaaaaaaa-0000-4000-8000-00000000000a', 'left')$q$, '22023');
+select ch_test.cnt('Samarbeid: Admin i A ser ikke området (API)', $q$select 1 from public.spaces$q$, 0);
+select ch_test.cnt('Samarbeid: Admin i A ser ikke deltakerne (API)', $q$select 1 from public.space_members$q$, 0);
+select ch_test.cnt('Samarbeid: Admin i A ser ikke delingene (API)', $q$select 1 from public.space_files$q$, 0);
+select ch_test.err('Samarbeid: Admin kan ikke gjøre tilgjengelig', $q$select public.invite_to_space((select id from public.spaces limit 1), 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Samarbeid: medlem i B ser ikke området før det er gjort tilgjengelig', $q$select 1 from public.spaces$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeid: Moderator gjør området tilgjengelig for B', $q$select public.invite_to_space((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Samarbeid: medlem i B ser området', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
+select ch_test.atleast('Samarbeid: medlem i B fikk varsel', $q$select 1 from public.notifications where kind = 'space_invite'$q$, 1);
+select ch_test.cnt('Samarbeid: medlem i B ser delt fil fra A', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
+select ch_test.cnt('Samarbeid: medlem i B får nedlastingslenke (nøkkel) til delt fil', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'bilde.jpg'))$q$, 1);
+select ch_test.cnt('Samarbeid: medlem i B ser ikke andre filer i A', $q$select 1 from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and file_name <> 'bilde.jpg'$q$, 0);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
-select ch_test.cnt('Område: invitert admin ser området', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
-select ch_test.cnt('Område: invitert (ikke godtatt) ser ikke delte filer', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
-select ch_test.atleast('Område: admin i B fikk varsel om invitasjonen', $q$select 1 from public.notifications where kind = 'space_invite'$q$, 1);
-select ch_test.ok('Område: admin i B godtar', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b', 'active')$q$);
-select ch_test.cnt('Område: B ser delt fil fra A', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
-select ch_test.cnt('Område: B får signert nøkkel til delt fil', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'bilde.jpg'))$q$, 1);
-select ch_test.cnt('Område: B ser fortsatt ikke andre filer i A', $q$select 1 from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and file_name <> 'bilde.jpg'$q$, 0);
-select ch_test.ok('Område: B forlater', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b', 'left')$q$);
-select ch_test.cnt('Område: etter å ha forlatt ser B ikke filen', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
+select ch_test.cnt('Samarbeid: Admin i B ser ikke området', $q$select 1 from public.spaces$q$, 0);
+select ch_test.cnt('Samarbeid: Admin i B ser ikke delt fil fra A', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
+select ch_test.cnt('Samarbeid: Admin i B får ikke nøkkel til delt fil', $q$select 1 from public.file_keys(array(select f.id from public.files f where f.file_name = 'bilde.jpg'))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeid: Moderator fjerner B', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b', 'left')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Samarbeid: etter fjerning ser medlem i B ikke filen', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeid: Moderator arkiverer området', $q$select public.set_space_status((select id from public.spaces where name = 'Testområde'), 'archived')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Samarbeid: arkivert område er ikke tilgjengelig for medlemmer', $q$select 1 from public.spaces$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Samarbeid: Developer har teknisk tilgang', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-6","aal":"aal1"}';
-select ch_test.cnt('Område: utenforstående ser ikke området', $q$select 1 from public.spaces$q$, 0);
+select ch_test.cnt('Samarbeid: utenforstående ser ikke området', $q$select 1 from public.spaces$q$, 0);
 
 -- ---------- Abonnement (P10) ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
@@ -363,7 +391,9 @@ select ch_test.err('Abonnement: admin kan ikke godkjenne selv', $q$select public
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
 select ch_test.err('Abonnement: moderator uten MFA kan ikke godkjenne', $q$select public.decide_subscription_request((select id from public.subscription_requests where status = 'pending' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a'), true, 'x')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Abonnement: moderator godkjenner', $q$select public.decide_subscription_request((select id from public.subscription_requests where status = 'pending' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a'), true, 'Godkjent i test')$q$);
+select ch_test.err('Abonnement: moderator kan ikke godkjenne (ingen admin-rettigheter)', $q$select public.decide_subscription_request((select id from public.subscription_requests where status = 'pending' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a'), true, 'x')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Abonnement: Developer godkjenner', $q$select public.decide_subscription_request((select id from public.subscription_requests where status = 'pending' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a'), true, 'Godkjent i test')$q$);
 select ch_test.cnt('Abonnement: kvoten følger planen', $q$select 1 from public.churches where id = 'aaaaaaaa-0000-4000-8000-00000000000a' and storage_quota_mb = 1024$q$, 1);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
 select ch_test.cnt('Abonnement: admin ser abonnementet', $q$select 1 from public.church_subscriptions where plan = 'standard' and free_of_charge$q$, 1);
@@ -378,12 +408,14 @@ select ch_test.err('Livsløp: admin kan ikke bruke set_church_status', $q$select
 select ch_test.ok('Livsløp: admin kan eksportere egen menighet', $q$select public.export_church('aaaaaaaa-0000-4000-8000-00000000000a')$q$);
 select ch_test.err('Livsløp: admin kan ikke eksportere annen menighet', $q$select public.export_church('bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Livsløp: stab deaktiverer B midlertidig', $q$select public.set_church_status('bbbbbbbb-0000-4000-8000-00000000000b', 'temporarily_disabled')$q$);
+select ch_test.err('Livsløp: moderator kan ikke endre menighetsstatus', $q$select public.set_church_status('bbbbbbbb-0000-4000-8000-00000000000b', 'temporarily_disabled')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Livsløp: Developer deaktiverer B midlertidig', $q$select public.set_church_status('bbbbbbbb-0000-4000-8000-00000000000b', 'temporarily_disabled')$q$);
 select ch_test.err('Livsløp: ugyldig overgang avvises', $q$select public.set_church_status('bbbbbbbb-0000-4000-8000-00000000000b', 'deleted')$q$, '22023');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
 select ch_test.cnt('Livsløp: medlemmer i deaktivert menighet ser den ikke', $q$select 1 from public.churches$q$, 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Livsløp: stab aktiverer B igjen', $q$select public.set_church_status('bbbbbbbb-0000-4000-8000-00000000000b', 'active')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Livsløp: Developer aktiverer B igjen', $q$select public.set_church_status('bbbbbbbb-0000-4000-8000-00000000000b', 'active')$q$);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
 select ch_test.ok('Livsløp: developer oppretter menighet C', $q$insert into public.churches (name) values ('Testmenighet C')$q$);
 select ch_test.err('Livsløp: aktiv menighet kan ikke slettes', $q$select public.prepare_church_purge((select id from public.churches where name = 'Testmenighet C'), 'Testmenighet C')$q$, '22023');
@@ -438,7 +470,7 @@ select ch_test.err('Logg: innstillingen kan ikke brukes til å slette nyere hend
 set local connecthub.audit_purge_before to '';
 
 -- ---------- Logging ----------
-select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000002'$q$, 1);
+select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 
 select json_build_object(

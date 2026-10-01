@@ -59,7 +59,7 @@ export function ChurchesView() {
   </>;
 }
 
-const CTABS = [['medlemmer', 'Medlemmer'], ['invitasjoner', 'Invitasjoner'], ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['innstillinger', 'Innstillinger']];
+const CTABS = [['medlemmer', 'Medlemmer'], ['invitasjoner', 'Invitasjoner'], ['filer', 'Filer'], ['abonnement', 'Abonnement'], ['innstillinger', 'Innstillinger']];
 export function ChurchDetail({ id, tab }) {
   const { d, canManage } = useAdmin();
   const c = d.churches.find(x => x.id === id);
@@ -68,11 +68,10 @@ export function ChurchDetail({ id, tab }) {
   const n = d.memberships.filter(m => m.church_id === id && m.status === 'active').length;
   return <>
     <Head title={c.name} crumb={<a href={href('menigheter')}>← {T('Menigheter')}</a>} sub={canManage(id) ? n + ' ' + T('aktive medlemmer') : T('Du er medlem')} right={<StatusBadge s={c.status} />} />
-    <nav className="ch-tabs">{CTABS.filter(([k]) => canManage(id) || k === 'filer' || k === 'samarbeid').map(([k, l]) => <a key={k} href={href('menigheter', id, k)} className={tab === k ? 'on' : ''}>{T(l)}</a>)}</nav>
+    <nav className="ch-tabs">{CTABS.filter(([k]) => canManage(id) || k === 'filer').map(([k, l]) => <a key={k} href={href('menigheter', id, k)} className={tab === k ? 'on' : ''}>{T(l)}</a>)}</nav>
     {tab === 'medlemmer' && canManage(id) && <MembersView church={c} />}
     {tab === 'invitasjoner' && canManage(id) && <InvitesView churchId={id} embedded />}
     {tab === 'filer' && <FilesView churchId={id} />}
-    {tab === 'samarbeid' && <SpacesView churchId={id} />}
     {tab === 'abonnement' && canManage(id) && <SubsView churchId={id} />}
     {tab === 'innstillinger' && <ChurchSettings church={c} />}
   </>;
@@ -178,91 +177,137 @@ export function InvitesView({ churchId, embedded }) {
   </>;
 }
 
-/* ---------- Filer ---------- */
-const FOLDER_NAME = { bilder: 'Bilder', logoer: 'Logoer', bakgrunner: 'Bakgrunner', mockups: 'Mockups', faste: 'Faste' };
+/* ---------- Filer: to adskilte områder ---------- */
+/* Faste = felles ressurser som brukes av flere verktøy (Photo Design, Thumbnail Studio, Mockups …). Bare Admin
+   vedlikeholder; alle medlemmer ser og laster ned. Delt mappe = medlemmene deler bilder; Admin rydder.
+   Mappenavnene i databasen er uendret (faste, logoer, bakgrunner, mockups, bilder), så verktøyene som bruker dem virker som før. */
+const AREAS = {
+  faste: { label: 'Faste – felles ressurser', folders: [['faste', 'Faste bilder'], ['logoer', 'Logoer'], ['bakgrunner', 'Bakgrunner'], ['mockups', 'Mockups']],
+    info: 'Felles bilder og logoer som brukes i flere verktøy (Photo Design, Thumbnail Studio, Mockups m.fl.). Admin legger til, organiserer og fjerner. Alle medlemmer kan se og laste ned.' },
+  delt: { label: 'Delt mappe', folders: [['bilder', 'Delt mappe']],
+    info: 'Bilder som deles i menigheten. Alle medlemmer kan se, laste ned og legge til egne bilder. Du kan slette dine egne; Admin kan rydde i alt.' },
+};
 export function FilesView({ churchId }) {
   const { me, canManage, act, say } = useAdmin();
-  const [fl, setFl] = React.useState({ folder: 'bilder', list: [], thumbs: {}, usage: null, priv: false, over: false });
-  const load = async (folder = fl.folder) => {
+  const admin_ = canManage(churchId);
+  const [fl, setFl] = React.useState({ area: 'faste', folder: 'faste', list: [], thumbs: {}, usage: null, priv: false, over: false });
+  const load = async (folder = fl.folder, area = fl.area) => {
     const [list, usage] = await Promise.all([FS.list({ churchId, folder }), FS.usage(churchId)]);
     const thumbs = await FS.objectUrls(list.slice(0, 60).map(x => x.id));
-    setFl(f => { Object.values(f.thumbs).forEach(u => URL.revokeObjectURL(u)); return { ...f, folder, list, thumbs, usage }; });
+    setFl(f => { Object.values(f.thumbs).forEach(u => URL.revokeObjectURL(u)); return { ...f, area, folder, list, thumbs, usage }; });
   };
   React.useEffect(() => { if (churchId) act(() => load())(); }, [churchId]);
+  const A = AREAS[fl.area], canUpload = fl.area === 'delt' || admin_;
   const upload = act(async list => {
-    let n = 0; for (const file of list) { try { await FS.upload(file, { churchId, folder: fl.folder, priv: fl.priv }); n++; } catch (err) { say(file.name + ': ' + errText(err), false); } }
+    if (!canUpload) return;
+    let n = 0; for (const file of list) { try { await FS.upload(file, { churchId, folder: fl.folder, priv: fl.area === 'delt' && fl.priv }); n++; } catch (err) { say(file.name + ': ' + errText(err), false); } }
     if (n) say(n + ' ' + T('filer er lastet opp.')); await load();
+  });
+  const download = act(async x => {
+    const u = fl.thumbs[x.id] || (await FS.objectUrls([x.id]))[x.id]; if (!u) throw Object.assign(new Error(), { code: 'not_found' });
+    const a = document.createElement('a'); a.href = u; a.download = x.file_name; document.body.appendChild(a); a.click(); a.remove();
   });
   const u = fl.usage, pct = u && u.quota_bytes ? Math.min(100, Math.round(100 * u.used_bytes / u.quota_bytes)) : 0;
   return <>
-    <Card title="Mapper og lagring">
-      <div className="ch-row">{FOLDERS.map(f => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={act(() => load(f))}>{T(FOLDER_NAME[f])}</Btn>)}</div>
+    <nav className="ch-tabs" aria-label={T('Filområder')}>{Object.entries(AREAS).map(([k, v]) => <a key={k} href="#" className={fl.area === k ? 'on' : ''} onClick={e => { e.preventDefault(); act(() => load(v.folders[0][0], k))(); }}>{T(v.label)}</a>)}</nav>
+    <Card title={A.label} sub={fl.area === 'faste' ? T(admin_ ? 'Du kan vedlikeholde' : 'Bare visning og nedlasting') : null}>
+      <p className="ch-muted">{T(A.info)}</p>
+      {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={act(() => load(f))}>{T(l)}</Btn>)}</div>}
       {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
-        <p className="ch-muted">{T('Brukt')}: {mb(u.used_bytes)} / {mb(u.quota_bytes)} · {T('Dine private')}: {mb(u.my_private_bytes)} / {mb(u.my_private_quota_bytes)}</p></>}
-      <p className="ch-muted">{T('Bare bilder (PNG, JPG, WebP, GIF), maks 4 MB. Video kan aldri lastes opp – videoer ligger i prosjektmappen på PC-en. «Bilder» kan alle medlemmer legge til; de andre mappene bare admin. Private filer ser bare du.')}</p>
-      <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
+        <p className="ch-muted">{T('Brukt')}: {mb(u.used_bytes)} / {mb(u.quota_bytes)}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
+      {canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
         onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); upload([...e.dataTransfer.files]); }}>
         <div className="ch-row" style={{ justifyContent: 'center' }}>
           <label className="ch-btn primary">{T('Last opp bilder')}<input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={e => { const l = [...e.target.files]; e.target.value = ''; upload(l); }} /></label>
-          <label className="ch-row ch-muted"><input type="checkbox" checked={fl.priv} onChange={e => setFl(f => ({ ...f, priv: e.target.checked }))} /> {T('Privat (bare meg)')}</label>
+          {fl.area === 'delt' && <label className="ch-row ch-muted"><input type="checkbox" checked={fl.priv} onChange={e => setFl(f => ({ ...f, priv: e.target.checked }))} /> {T('Privat (bare meg)')}</label>}
         </div>
-        <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {T(FOLDER_NAME[fl.folder])}</p>
-      </div>
+        <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {T((A.folders.find(x => x[0] === fl.folder) || [])[1] || '')}</p>
+      </div> : <p className="ch-note warn">{T('Faste-mappen vedlikeholdes av Admin. Du kan se og laste ned filene.')}</p>}
     </Card>
-    <Card title={FOLDER_NAME[fl.folder]} sub={fl.list.length}>
-      {fl.list.length ? <div className="ch-thumbs">{fl.list.map(x => <div key={x.id} className="ch-thumb">
-        <div className="ch-img" style={{ backgroundImage: fl.thumbs[x.id] ? 'url(' + fl.thumbs[x.id] + ')' : 'none' }} />
-        <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
-        <span className="ch-muted">{mb(x.file_size)} · {fmtDate(x.created_at)}</span>
-        {(x.uploaded_by === me.id || canManage(churchId)) && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); await load(); })}>{T('Slett')}</Btn>}
-      </div>)}</div> : <Empty>{T('Ingen filer i denne mappen.')}</Empty>}
+    <Card title={(A.folders.find(x => x[0] === fl.folder) || [])[1] || ''} sub={fl.list.length}>
+      {fl.list.length ? <div className="ch-thumbs">{fl.list.map(x => {
+        const mine = x.uploaded_by === me.id, canDel = admin_ || (fl.area === 'delt' && mine);
+        return <div key={x.id} className="ch-thumb">
+          <div className="ch-img" style={{ backgroundImage: fl.thumbs[x.id] ? 'url(' + fl.thumbs[x.id] + ')' : 'none' }} />
+          <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
+          <span className="ch-muted">{mb(x.file_size)} · {fmtDate(x.created_at)}</span>
+          <div className="ch-row">
+            <Btn small onClick={() => download(x)}>{T('Last ned')}</Btn>
+            {canDel && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); await load(); })}>{T('Slett')}</Btn>}
+          </div>
+        </div>;
+      })}</div> : <Empty>{T('Ingen filer i denne mappen.')}</Empty>}
     </Card>
   </>;
 }
 
 /* ---------- Samarbeid ---------- */
-export function SpacesView({ churchId }) {
-  const { staff, adminOf, canManage, churchName, act, say } = useAdmin();
-  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], myFiles: [], name: '', invite: '' });
+/* Moderator (og Developer teknisk) administrerer: oppretter områder, gjør dem tilgjengelige for menigheter og velger
+   hvilke fellesbilder som deles. Brukere ser bare områder som er gjort tilgjengelige, og kan se og laste ned. Admin har
+   ikke tilgang (verken her eller i databasen). */
+export function SpacesView() {
+  const { collab, act, say } = useAdmin();
+  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], cands: [], thumbs: {}, name: '', add: '' });
   const load = async (sel = sp.sel) => {
-    const [list, dir] = await Promise.all([SP.list(), SP.directory().catch(() => [])]);
-    const cur = sel && list.some(x => x.id === sel) ? sel : (list[0] || {}).id || null;
-    const [members, files, myFiles] = cur ? await Promise.all([SP.members(cur), SP.files(cur), churchId ? FS.list({ churchId }) : []]) : [[], [], []];
-    setSp(p => ({ ...p, list, dir, sel: cur, members, files, myFiles: myFiles.filter(x => x.visibility === 'church' && x.church_id === churchId) }));
+    const list = await SP.list(), dir = collab ? await SP.directory().catch(() => []) : [];
+    const cur = sel && list.some(x => x.id === sel) ? sel : (list.find(x => x.status === 'active') || list[0] || {}).id || null;
+    const [members, files] = cur ? await Promise.all([SP.members(cur), SP.files(cur)]) : [[], []];
+    const active = new Set(members.filter(m => m.status === 'active').map(m => m.church_id));
+    const cands = collab && cur ? (await FS.list()).filter(f => f.visibility === 'church' && active.has(f.church_id)) : [];
+    const shownIds = collab ? cands.map(f => f.id) : files.map(f => f.file_id);
+    const thumbs = await FS.objectUrls(shownIds.slice(0, 60));
+    setSp(p => { Object.values(p.thumbs).forEach(u => URL.revokeObjectURL(u)); return { ...p, list, dir, sel: cur, members, files, cands, thumbs }; });
   };
-  React.useEffect(() => { act(() => load())(); }, [churchId]);
-  const cur = sp.list.find(x => x.id === sp.sel), cname = id => (sp.dir.find(d => d.id === id) || {}).name || churchName(id);
-  const myM = cur && sp.members.find(m => m.church_id === churchId), isOwnerAdmin = cur && (staff || adminOf.includes(cur.owner_church_id));
-  return <>
-    <div className="ch-grid">
-      <Card title="Samarbeidsområder" sub={sp.list.length}>
-        <p className="ch-muted">{T('Samarbeidsområder lar flere menigheter dele bilder. Bare fellesbilder kan deles – aldri private filer, og aldri video.')}</p>
-        {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<b>{x.name}</b>, x.id === sp.sel ? <Badge tone="ok">{T('Valgt')}</Badge> : <span />] }))} /> : <Empty>{T('Ingen samarbeidsområder ennå.')}</Empty>}
-        {churchId && canManage(churchId) && <form className="ch-row" onSubmit={act(async e => { e.preventDefault(); const id = await SP.create(sp.name, churchId); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })}>
-          <input className="ch-input" style={{ flex: '1 1 200px' }} placeholder={T('Navn på nytt område')} value={sp.name} onChange={e => setSp(p => ({ ...p, name: e.target.value }))} minLength={2} maxLength={120} required />
-          <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett område')}</Btn>
-        </form>}
-      </Card>
-      {cur && <Card title={cur.name} sub={T('Delte bilder i området') + ': ' + sp.files.length}>
-        <List cols="1fr auto auto" rows={sp.members.map(m => ({ key: m.church_id, cells: [
-          <span>{cname(m.church_id)}{m.church_id === cur.owner_church_id && <span className="ch-muted"> ({T('eier')})</span>}</span>, <StatusBadge s={m.status} />,
-          adminOf.includes(m.church_id) && m.church_id !== cur.owner_church_id ? <div className="ch-end">
-            {m.status === 'invited' && <Btn small kind="primary" onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'active'); say(T('Menigheten deltar nå i området.')); await load(); })}>{T('Godta')}</Btn>}
-            {m.status === 'invited' && <Btn small onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'declined'); await load(); })}>{T('Avslå')}</Btn>}
-            {m.status === 'active' && <Btn small kind="danger" onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'left'); say(T('Menigheten har forlatt området. Bildene den delte er fjernet fra området.')); await load(); })}>{T('Forlat')}</Btn>}
-          </div> : <span />] }))} />
-        {isOwnerAdmin && <div className="ch-row">
-          <select className="ch-select" value={sp.invite} onChange={e => setSp(p => ({ ...p, invite: e.target.value }))} aria-label={T('Inviter menighet …')}><option value="">{T('Inviter menighet …')}</option>{sp.dir.filter(dd => !sp.members.some(m => m.church_id === dd.id && ['active', 'invited'].includes(m.status))).map(dd => <option key={dd.id} value={dd.id}>{dd.name}</option>)}</select>
-          <Btn disabled={!sp.invite} onClick={act(async () => { await SP.invite(cur.id, sp.invite); setSp(p => ({ ...p, invite: '' })); say(T('Invitasjonen er sendt til menighetens admin.')); await load(); })}>{T('Inviter')}</Btn>
-        </div>}
-        {myM && myM.status === 'active' && canManage(churchId) && <>
-          <p className="ch-muted">{T('Fellesbilder i')} {churchName(churchId)}</p>
-          <List cols="1fr auto" empty="Ingen fellesbilder i menigheten." rows={sp.myFiles.map(x => { const on = sp.files.some(sf => sf.file_id === x.id); return { key: x.id, cells: [x.file_name,
-            <Btn small kind={on ? '' : 'primary'} onClick={act(async () => { await SP.share(x.id, cur.id, !on); await load(); })}>{T(on ? 'Fjern fra området' : 'Del i området')}</Btn>] }; })} />
-        </>}
-      </Card>}
-    </div>
-  </>;
+  React.useEffect(() => { act(() => load())(); }, []);
+  const cur = sp.list.find(x => x.id === sp.sel), cname = id => (sp.dir.find(d => d.id === id) || {}).name || T('Menighet');
+  const shared = new Set(sp.files.map(f => f.file_id));
+  const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await load(); });
+  const download = act(async (id, name) => { const u = sp.thumbs[id] || (await FS.objectUrls([id]))[id]; if (!u) return; const a = document.createElement('a'); a.href = u; a.download = name || 'bilde'; document.body.appendChild(a); a.click(); a.remove(); });
+
+  return <div className="ch-grid">
+    <Card title="Samarbeidsområder" sub={sp.list.length}>
+      {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<b>{x.name}</b>,
+        <div className="ch-end">{x.status !== 'active' && <Badge>{T('Arkivert')}</Badge>}{x.id === sp.sel && <Badge tone="ok">{T('Valgt')}</Badge>}</div>] }))} />
+        : <Empty>{T(collab ? 'Ingen samarbeidsområder ennå.' : 'Ingen samarbeid er gjort tilgjengelig for deg ennå.')}</Empty>}
+      {collab && <form className="ch-row" onSubmit={e => { e.preventDefault(); act(async () => { const id = await SP.create(sp.name); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })(); }}>
+        <input className="ch-input" style={{ flex: '1 1 200px' }} placeholder={T('Navn på nytt område')} value={sp.name} onChange={e => setSp(p => ({ ...p, name: e.target.value }))} minLength={2} maxLength={120} required />
+        <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett område')}</Btn>
+      </form>}
+    </Card>
+
+    {cur && collab && <Card title={cur.name} sub={cur.status !== 'active' ? T('Arkivert') : null} actions={
+      <Btn small onClick={run(() => SP.setStatus(cur.id, cur.status === 'active' ? 'archived' : 'active'), cur.status === 'active' ? 'Området er arkivert.' : 'Området er åpnet igjen.')}>{T(cur.status === 'active' ? 'Arkiver' : 'Åpne igjen')}</Btn>}>
+      <p className="ch-muted">{T('Menigheter med tilgang. Medlemmene ser delte bilder; Admin-rollen har ikke tilgang til samarbeid.')}</p>
+      <List cols="1fr auto auto" empty="Ingen menigheter har tilgang ennå." rows={sp.members.map(m => ({ key: m.church_id, cells: [cname(m.church_id), <StatusBadge s={m.status} />,
+        <div className="ch-end">{m.status === 'active'
+          ? <Btn small kind="danger" onClick={run(() => SP.setMembership(cur.id, m.church_id, 'left'), 'Tilgangen er fjernet.')}>{T('Fjern tilgang')}</Btn>
+          : <Btn small onClick={run(() => SP.invite(cur.id, m.church_id), 'Menigheten har fått tilgang.')}>{T('Gi tilgang igjen')}</Btn>}</div>] }))} />
+      <div className="ch-row">
+        <select className="ch-select" value={sp.add} onChange={e => setSp(p => ({ ...p, add: e.target.value }))} aria-label={T('Gi en menighet tilgang')}>
+          <option value="">{T('Gi en menighet tilgang …')}</option>
+          {sp.dir.filter(d => !sp.members.some(m => m.church_id === d.id && m.status === 'active')).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <Btn disabled={!sp.add} onClick={run(async () => { await SP.invite(cur.id, sp.add); setSp(p => ({ ...p, add: '' })); }, 'Menigheten har fått tilgang. Medlemmene er varslet.')}>{T('Gi tilgang')}</Btn>
+      </div>
+    </Card>}
+
+    {cur && collab && <Card title="Hva som deles" sub={shared.size}>
+      <p className="ch-muted">{T('Velg fellesbilder fra menighetene som deltar. Private filer kan aldri deles, og video finnes ikke i ConnectHub.')}</p>
+      {sp.cands.length ? <div className="ch-thumbs">{sp.cands.map(x => <div key={x.id} className="ch-thumb">
+        <div className="ch-img" style={{ backgroundImage: sp.thumbs[x.id] ? 'url(' + sp.thumbs[x.id] + ')' : 'none' }} />
+        <span style={{ wordBreak: 'break-all' }}>{x.file_name}</span><span className="ch-muted">{cname(x.church_id)}</span>
+        <Btn small kind={shared.has(x.id) ? '' : 'primary'} onClick={run(() => SP.share(x.id, cur.id, !shared.has(x.id)))}>{T(shared.has(x.id) ? 'Fjern fra området' : 'Del i området')}</Btn>
+      </div>)}</div> : <Empty>{T('Ingen fellesbilder i menighetene som deltar.')}</Empty>}
+    </Card>}
+
+    {cur && !collab && <Card title={cur.name} sub={sp.files.length}>
+      <p className="ch-muted">{sp.members.filter(m => m.status === 'active').length} {T('menigheter deltar.')} {T('Du kan se og laste ned bildene som deles her.')}</p>
+      {sp.files.length ? <div className="ch-thumbs">{sp.files.map(x => <div key={x.file_id} className="ch-thumb">
+        <div className="ch-img" style={{ backgroundImage: sp.thumbs[x.file_id] ? 'url(' + sp.thumbs[x.file_id] + ')' : 'none' }} />
+        <Btn small onClick={() => download(x.file_id, 'delt-bilde')}>{T('Last ned')}</Btn>
+      </div>)}</div> : <Empty>{T('Ingen bilder er delt i området ennå.')}</Empty>}
+    </Card>}
+  </div>;
 }
 
 /* ---------- Abonnement ---------- */
