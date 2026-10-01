@@ -239,3 +239,52 @@ Resultater per pakke. Alt kjøres mot `connecthub-dev` med syntetiske data. Prod
 **Automatisk testkjøring:** malen ligger i `docs/ci/github-actions-ci.yml` og er **ikke aktivert**, fordi GitHub Actions er en ekstern tjeneste som krever egen godkjenning.
 
 **Samlet:** `npm test` 51/51, RLS i Supabase 144/144 og RLS i vanlig PostgreSQL 144/144.
+
+## P10 – samarbeid, abonnement, varsler, personvern og menighetens livsløp (2026-10-01)
+
+**Database** (`20261001160000_…`, `20261001160100_…`, vanlig PostgreSQL)
+- **Varsler** (`notifications`):
+  - Hver bruker ser og kan merke bare sine egne varsler.
+  - Varsler lages bare av databasen: når en invitasjon godtas, ved invitasjon til samarbeid, ved avgjørelse om abonnement, ved endret menighetsstatus, og ved melding fra admin til alle medlemmer (maks 20 per døgn).
+- **Samarbeidsområder** (`spaces`, `space_members`, `space_files`):
+  - Admin oppretter et område og inviterer andre menigheter. Admin i den inviterte menigheten godtar eller avslår, og menigheten kan senere forlate området.
+  - Bare fellesbilder kan deles, aldri private filer. Video kan uansett ikke lagres.
+  - Deltakerne ser bare filene som er delt. Forlater en menighet området, fjernes filene den har delt.
+  - Navnelisten over menigheter (`church_directory`) gir bare id og navn, og bare til admin og stab.
+- **Abonnement uten betaling** (`plans`, `church_subscriptions`, `subscription_requests`): admin ber om en plan eller om gratis abonnement, og stab med MFA godkjenner. Godkjenning setter lagringskvoten. Alt loggføres.
+- **Menighetens livsløp**:
+  - Status kan bare endres via `set_church_status` og bare av stab. Mulige overganger er aktiv, midlertidig deaktivert og «venter på sletting» (30 dager).
+  - Eksport (`export_church` og serverhandlingen `church.export`) kan gjøres av admin og stab. Filene følger med som lenker som virker i 1 time.
+  - Endelig sletting krever stab med MFA (aal fra det verifiserte tokenet), status «venter på sletting» og at navnet bekreftes. Filene i lagringen slettes, revisjonsloggen beholdes og selve slettingen loggføres.
+- **Personvern**:
+  - `export_my_data` gir egne opplysninger. Prosjekter og video ligger lokalt og er derfor ikke med.
+  - «Slett kontoen min» (`privacy.delete_me`) sletter private filer, ConnectHub-brukeren og innloggingskontoen, og anonymiserer invitasjoner til adressen. Fellesbilder beholdes uten opplaster. Den siste Developer kan ikke slette seg selv.
+  - Revisjonsloggen tillater nå akkurat én endring: at koblingen til en slettet person fjernes. Alt annet i loggen er fortsatt uforanderlig.
+- **Grensesnitt:**
+  - Admin har fått fanene «Samarbeid» og «Abonnement».
+  - Under «Menigheter» kan admin eksportere, og stab kan i tillegg endre status og slette for godt.
+  - Under «Medlemmer» kan admin sende melding til alle medlemmer.
+  - Kontomenyen har fått varsler med teller for uleste, «Last ned mine data» og «Slett kontoen min».
+
+**Tester**
+- `rls_test.sql`: **209/209** i Supabase (`connecthub-dev`) og **209/209** i vanlig PostgreSQL (PGlite). 65 tester er nye.
+- `npm test`: 55/55, med 4 nye for serverhandlingene. De dekker rekkefølgen ved kontosletting, at et avslag stopper alt, at eksporten bare får lenker til tillatte filer, og at aal hentes fra tokenet.
+
+**E2E** (lokal API mot `connecthub-dev`, syntetiske brukere)
+| Test | Resultat |
+|---|---|
+| Admin A oppretter område, inviterer B og deler et fellesbilde | OK |
+| Admin B får varsel (1 ulest), godtar, og B deltar | OK |
+| Medlem i B ser bare det delte bildet fra A, ingen andre filer | OK |
+| Admin sender melding (3 mottakere). Medlem ser teller og varsel, og «Merk alle som lest» nullstiller | OK |
+| Admin ber om gratis Standard, og Developer (MFA) godkjenner. Kvoten er 1024 MB | OK |
+| Eksport av menighet: 4 medlemmer og 2 filer med lenke. Admin kan ikke slette menigheten (403) | OK |
+| Developer: ny menighet → venter på sletting (31.10.2026) → feil navn avvist → riktig navn slettet | OK |
+| new1: eksport av egne data, så «Slett kontoen min». Logget ut, innlogging avvist, innloggingskontoen borte | OK |
+| Databasekontroll etterpå: 0 foreldreløse og 0 manglende filer i lagringen. Begge slettingene er loggført | OK |
+
+**Begrensninger**
+- Varsler hentes hvert 2. minutt og når fanen blir synlig. Det er ikke sanntid, for å holde appen uavhengig av leverandør.
+- Det finnes ingen betaling. `price_nok_month` er bare informasjon, og betaling krever egen adapter og godkjenning (P11 eller senere).
+- Endelig sletting etter 30 dager kjøres ikke automatisk. Stab må utføre den.
+- Meldinger kommer bare som varsler i appen. E-post krever SMTP (P11).

@@ -14,7 +14,10 @@ Migreringene er vanlig PostgreSQL og kan kjøres mot enhver PostgreSQL med rolle
 | `migrations/20261001140000_files.sql` | Mapper, synlighet (felles/privat), kvoter, `can_upload`, `register_file` (bare server), `delete_file`, `file_keys`, `storage_usage` |
 | `migrations/20261001140100_supabase_storage.sql` | Supabase-spesifikk: privat bøtte `ch-files` (bare bilder, 4 MB, ingen klientpolicyer) |
 | `migrations/20261001140200_null_safe_checks.sql` | NULL-sikre tilgangssjekker i `delete_file` og `revoke_invitation` |
-| `tests/rls_test.sql` | 139 tester for roller, menighetsskille, MFA, logg, videosperre, identitet og invitasjoner. Rulles alltid tilbake |
+| `migrations/20261001150000_log_retention.sql` | Oppbevaringstid for revisjonsloggen (`app.purge_audit_logs`, minst 12 mnd, bare drift) |
+| `migrations/20261001160000_collab_subscriptions_notifications.sql` | Varsler, samarbeidsområder (deling av fellesbilder), abonnement uten betaling |
+| `migrations/20261001160100_privacy_church_lifecycle.sql` | Menighetens livsløp (status, eksport, endelig sletting), eksport og sletting av egen konto |
+| `tests/rls_test.sql` | 209 tester for roller, menighetsskille, MFA, logg, videosperre, identitet og invitasjoner. Rulles alltid tilbake |
 | `config.toml` | Auth-innstillinger for **utviklingsprosjektet** (registrering av, adresser, passordkrav). `[auth] enable_signup = false` sperrer registrering; `[auth.email] enable_signup = true` betyr bare at e-postinnlogging er på |
 
 ## Første Developer (etter at personen har bekreftet e-posten sin i Auth)

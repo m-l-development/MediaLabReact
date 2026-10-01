@@ -7,7 +7,7 @@ import { callServer } from './server.js';
 const USER_COLS = 'id, email, full_name, phone, status, created_at';
 
 export const admin = {
-  churches: () => data().select('churches', { columns: 'id, name, status, created_at', order: 'name' }),
+  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after', order: 'name' }),
   createChurch: name => data().insert('churches', { name: String(name || '').trim() }, 'id, name, status'),
   renameChurch: (id, name) => data().update('churches', { id }, { name: String(name || '').trim() }),
 

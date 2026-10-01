@@ -2,6 +2,7 @@ import React from 'react';
 import { admin } from '../../services/admin.js';
 import { isStaff, hasRole } from '../../services/data/me.js';
 import { files as FS, FOLDERS } from '../../services/files.js';
+import { spaces as SP, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const ERR = {
@@ -12,7 +13,7 @@ const ERR = {
 };
 const errText = e => T(ERR[e && e.code] || 'Noe gikk galt. Prøv igjen.');
 const ROLE = { user: 'Bruker', church_admin: 'Admin', moderator: 'Moderator', developer: 'Developer' };
-const STATUS = { active: 'Aktiv', disabled: 'Deaktivert', pending: 'Venter', accepted: 'Godtatt', revoked: 'Trukket tilbake', expired: 'Utløpt', temporarily_disabled: 'Midlertidig deaktivert', pending_deletion: 'Venter på sletting', deleted: 'Slettet' };
+const STATUS = { active: 'Aktiv', disabled: 'Deaktivert', pending: 'Venter', accepted: 'Godtatt', revoked: 'Trukket tilbake', expired: 'Utløpt', invited: 'Invitert', left: 'Har forlatt', declined: 'Avslått', approved: 'Godkjent', rejected: 'Avslått', withdrawn: 'Trukket tilbake', cancelled: 'Avsluttet', temporarily_disabled: 'Midlertidig deaktivert', pending_deletion: 'Venter på sletting', deleted: 'Slettet' };
 const fmt = d => d ? new Date(d).toLocaleString(document.documentElement.lang === 'en' ? 'en-GB' : 'nb-NO', { dateStyle: 'short', timeStyle: 'short' }) : '';
 
 const C = {
@@ -60,6 +61,9 @@ export default function AdminPage({ me }) {
   const [busy, setBusy] = React.useState(false);
   const [form, setForm] = React.useState({ email: '', role: 'user', church: '' , name: '' });
   const [fl, setFl] = React.useState({ folder: 'bilder', priv: false, list: [], thumbs: {}, usage: null });
+  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], myFiles: [], name: '', invite: '' });
+  const [sub, setSub] = React.useState({ plans: [], current: [], reqs: [], plan: 'standard', free: true, reason: '', note: '' });
+  const [msg, setMsg] = React.useState({ title: '', body: '' });
 
   const say = (text, ok = true) => setNote({ text, ok });
   const act = fn => async (...a) => { if (busy) return; setBusy(true); setNote(null); try { await fn(...a); } catch (e) { say(errText(e), false); } finally { setBusy(false); } };
@@ -86,6 +90,14 @@ export default function AdminPage({ me }) {
   React.useEffect(() => { act(() => loadChurchData(church))(); }, [church]);
   React.useEffect(() => { if (tab === 'log') act(loadLog)(); }, [tab, church]);
   React.useEffect(() => { if (tab === 'files') act(() => loadFiles())(); }, [tab, church]);
+  const loadSpaces = async (sel = sp.sel) => {
+    const [list, dir] = await Promise.all([SP.list(), SP.directory().catch(() => [])]);
+    const cur = sel && list.some(x => x.id === sel) ? sel : (list[0] || {}).id || null;
+    const [members, files, myFiles] = cur ? await Promise.all([SP.members(cur), SP.files(cur), church ? FS.list({ churchId: church }) : []]) : [[], [], []];
+    setSp(p => ({ ...p, list, dir, sel: cur, members, files, myFiles: myFiles.filter(x => x.visibility === 'church' && x.church_id === church) }));
+  };
+  const loadSubs = async () => { const [plans, current, reqs] = await Promise.all([SUB.plans(), SUB.current(staff ? null : church), SUB.requests(staff ? null : church)]); setSub(p => ({ ...p, plans, current, reqs })); };
+  React.useEffect(() => { if (tab === 'spaces') act(() => loadSpaces())(); if (tab === 'subs') act(loadSubs)(); }, [tab, church]);
 
   const nameOf = id => { const u = users.find(x => x.id === id) || (members.find(m => m.user_id === id) || {}).user; return u ? (u.full_name || u.email) : (id ? String(id).slice(0, 8) : T('System')); };
   const churchName = id => (churches.find(c => c.id === id) || {}).name || '–';
@@ -100,7 +112,7 @@ export default function AdminPage({ me }) {
     await loadChurchData(church); await loadStaff();
   });
 
-  const tabs = [['overview', 'Oversikt'], ['churches', 'Menigheter'], ['members', 'Medlemmer'], ['invites', 'Invitasjoner'], ['files', 'Filer'], ...(staff ? [['users', 'Brukere']] : []), ['log', 'Logg']];
+  const tabs = [['overview', 'Oversikt'], ['churches', 'Menigheter'], ['members', 'Medlemmer'], ['invites', 'Invitasjoner'], ['files', 'Filer'], ['spaces', 'Samarbeid'], ['subs', 'Abonnement'], ...(staff ? [['users', 'Brukere']] : []), ['log', 'Logg']];
   const churchPicker = churches.length > 1 && <label style={{ ...C.row, ...C.muted }}>{T('Menighet')}
     <select style={C.input} value={church || ''} onChange={e => setChurch(e.target.value)}>{churches.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>;
 
@@ -118,12 +130,26 @@ export default function AdminPage({ me }) {
     {staff && <form style={C.row} onSubmit={act(async e => { e.preventDefault(); const c = await admin.createChurch(form.name); setForm(f => ({ ...f, name: '' })); say(T('Menigheten er opprettet.')); await loadChurches(); setChurch(c.id); })}>
       <input style={C.input} placeholder={T('Navn på ny menighet')} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} minLength={2} maxLength={120} required />
       <button style={C.primary} disabled={busy}>{T('Opprett menighet')}</button></form>}
-    <Table cols={['Navn', 'Status', 'Opprettet', '']} rows={churches.map(c => [c.name, T(STATUS[c.status] || c.status), fmt(c.created_at),
-      <button style={C.btn} onClick={() => { setChurch(c.id); setTab('members'); }}>{T('Medlemmer')}</button>])} />
+    <Table cols={['Navn', 'Status', 'Opprettet', '']} rows={churches.map(c => [c.name, T(STATUS[c.status] || c.status) + (c.delete_after ? ' (' + fmt(c.delete_after) + ')' : ''), fmt(c.created_at),
+      <span style={C.row}>
+        <button style={C.btn} onClick={() => { setChurch(c.id); setTab('members'); }}>{T('Medlemmer')}</button>
+        {canManage(c.id) && <button style={C.btn} onClick={act(async () => { const d = await churchLife.export(c.id); downloadJson(d, 'menighet-' + c.name.replace(/[^A-Za-z0-9æøåÆØÅ]+/g, '-') + '.json'); say(T('Eksporten er lastet ned. Lenkene til filene virker i 1 time.')); })}>{T('Eksporter')}</button>}
+        {staff && <select style={C.input} value="" onChange={act(async e => { const v = e.target.value; if (!v) return; if (v === 'pending_deletion' && !confirm(T('Sette menigheten til sletting? Den deaktiveres nå og kan slettes endelig om 30 dager. Det kan angres frem til da.'))) return; await churchLife.setStatus(c.id, v); say(T('Status er endret.')); await loadChurches(); })}>
+          <option value="">{T('Endre status …')}</option>
+          {c.status !== 'active' && <option value="active">{T('Aktiv')}</option>}
+          {c.status === 'active' && <option value="temporarily_disabled">{T('Midlertidig deaktivert')}</option>}
+          {c.status !== 'pending_deletion' && <option value="pending_deletion">{T('Sett til sletting')}</option>}
+        </select>}
+        {staff && c.status === 'pending_deletion' && <button style={C.danger} onClick={act(async () => { const n = prompt(T('Endelig sletting av menigheten, alle medlemskap og alle filene. Kan ikke angres. Skriv navnet på menigheten for å bekrefte:')); if (n === null) return; await churchLife.purge(c.id, n); say(T('Menigheten er slettet.')); await loadChurches(); })}>{T('Slett for godt')}</button>}
+      </span>])} />
   </div>;
 
   if (tab === 'members') body = <div style={C.card}>
     <div style={{ ...C.row, justifyContent: 'space-between' }}><h2 style={C.h}>{T('Medlemmer')} · {churchName(church)}</h2>{churchPicker}</div>
+    {canManage(church) && <form style={C.row} onSubmit={act(async e => { e.preventDefault(); const n = await NOTI.sendToChurch(church, msg.title, msg.body); setMsg({ title: '', body: '' }); say(T('Meldingen er sendt til') + ' ' + n + ' ' + T('medlemmer.')); })}>
+      <input style={{ ...C.input, flex: '1 1 180px' }} placeholder={T('Melding til alle medlemmer – tittel')} value={msg.title} onChange={e => setMsg(m => ({ ...m, title: e.target.value }))} maxLength={160} required />
+      <input style={{ ...C.input, flex: '2 1 240px' }} placeholder={T('Tekst (valgfritt)')} value={msg.body} onChange={e => setMsg(m => ({ ...m, body: e.target.value }))} maxLength={1000} />
+      <button style={C.btn} disabled={busy}>{T('Send melding')}</button></form>}
     <Table cols={['Navn', 'E-post', 'Status', '']} rows={members.map(m => [
       <span>{m.user ? (m.user.full_name || '–') : '–'}{m.admin && <span style={C.badge}>{T('Admin')}</span>}{m.user && m.user.status !== 'active' && <span style={C.badge}>{T('Konto deaktivert')}</span>}</span>,
       m.user ? m.user.email : '–', T(STATUS[m.status] || m.status),
@@ -186,6 +212,55 @@ export default function AdminPage({ me }) {
       {!fl.list.length && <p style={C.muted}>{T('Ingen filer i denne mappen.')}</p>}
     </div>;
   }
+
+  if (tab === 'spaces') {
+    const cur = sp.list.find(x => x.id === sp.sel), cname = id => (sp.dir.find(d => d.id === id) || {}).name || churchName(id);
+    const myM = cur && sp.members.find(m => m.church_id === church);
+    const isOwnerAdmin = cur && (staff || adminOf.includes(cur.owner_church_id));
+    body = <div style={C.card}>
+      <div style={{ ...C.row, justifyContent: 'space-between' }}><h2 style={C.h}>{T('Samarbeid')}</h2>{churchPicker}</div>
+      <p style={C.muted}>{T('Samarbeidsområder lar flere menigheter dele bilder. Bare fellesbilder kan deles – aldri private filer, og aldri video.')}</p>
+      {canManage(church) && <form style={C.row} onSubmit={act(async e => { e.preventDefault(); const id = await SP.create(sp.name, church); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await loadSpaces(id); })}>
+        <input style={C.input} placeholder={T('Navn på nytt område')} value={sp.name} onChange={e => setSp(p => ({ ...p, name: e.target.value }))} minLength={2} maxLength={120} required />
+        <button style={C.primary} disabled={busy}>{T('Opprett område')}</button></form>}
+      {sp.list.length > 0 && <label style={{ ...C.row, ...C.muted }}>{T('Område')}<select style={C.input} value={sp.sel || ''} onChange={e => act(() => loadSpaces(e.target.value))()}>{sp.list.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
+      {!sp.list.length && <p style={C.muted}>{T('Ingen samarbeidsområder ennå.')}</p>}
+      {cur && <>
+        <Table cols={['Menighet', 'Status', '']} rows={sp.members.map(m => [cname(m.church_id) + (m.church_id === cur.owner_church_id ? ' (' + T('eier') + ')' : ''), T(STATUS[m.status] || m.status),
+          adminOf.includes(m.church_id) && m.church_id !== cur.owner_church_id ? <span style={C.row}>
+            {m.status === 'invited' && <button style={C.primary} onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'active'); say(T('Menigheten deltar nå i området.')); await loadSpaces(); })}>{T('Godta')}</button>}
+            {m.status === 'invited' && <button style={C.btn} onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'declined'); await loadSpaces(); })}>{T('Avslå')}</button>}
+            {m.status === 'active' && <button style={C.danger} onClick={act(async () => { await SP.setMembership(cur.id, m.church_id, 'left'); say(T('Menigheten har forlatt området. Bildene den delte er fjernet fra området.')); await loadSpaces(); })}>{T('Forlat')}</button>}
+          </span> : ''])} />
+        {isOwnerAdmin && <div style={C.row}>
+          <select style={C.input} value={sp.invite} onChange={e => setSp(p => ({ ...p, invite: e.target.value }))}><option value="">{T('Inviter menighet …')}</option>{sp.dir.filter(d => !sp.members.some(m => m.church_id === d.id && ['active', 'invited'].includes(m.status))).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+          <button style={C.btn} disabled={!sp.invite || busy} onClick={act(async () => { await SP.invite(cur.id, sp.invite); setSp(p => ({ ...p, invite: '' })); say(T('Invitasjonen er sendt til menighetens admin.')); await loadSpaces(); })}>{T('Inviter')}</button></div>}
+        <p style={C.muted}>{T('Delte bilder i området')}: {sp.files.length}</p>
+        {myM && myM.status === 'active' && canManage(church) && <Table cols={['Fellesbilde i din menighet', '']} rows={sp.myFiles.map(x => {
+          const on = sp.files.some(sf => sf.file_id === x.id);
+          return [x.file_name, <button style={on ? C.btn : C.primary} onClick={act(async () => { await SP.share(x.id, cur.id, !on); await loadSpaces(); })}>{T(on ? 'Fjern fra området' : 'Del i området')}</button>];
+        })} empty="Ingen fellesbilder i menigheten." />}
+      </>}
+    </div>;
+  }
+
+  if (tab === 'subs') body = <div style={C.card}>
+    <div style={{ ...C.row, justifyContent: 'space-between' }}><h2 style={C.h}>{T('Abonnement')}</h2>{!staff && churchPicker}</div>
+    <p style={C.muted}>{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; stab godkjenner. Abonnementet bestemmer lagringskvoten.')}</p>
+    <Table cols={['Plan', 'Lagring', 'Pris']} rows={sub.plans.map(p => [T(p.name), p.storage_quota_mb + ' MB', p.price_nok_month === 0 ? T('Gratis') : p.price_nok_month ? p.price_nok_month + ' kr/mnd' : T('Avtales')])} />
+    <Table cols={['Menighet', 'Abonnement', 'Gratis', 'Oppdatert']} rows={sub.current.map(c => [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei'), fmt(c.updated_at)])} empty="Ingen abonnement registrert (standard: Gratis, 200 MB)." />
+    {canManage(church) && !staff && <form style={C.row} onSubmit={act(async e => { e.preventDefault(); await SUB.request(church, sub.plan, sub.free, sub.reason); setSub(p => ({ ...p, reason: '' })); say(T('Forespørselen er sendt.')); await loadSubs(); })}>
+      <select style={C.input} value={sub.plan} onChange={e => setSub(p => ({ ...p, plan: e.target.value }))}>{sub.plans.map(p => <option key={p.code} value={p.code}>{T(p.name)}</option>)}</select>
+      <label style={{ ...C.row, ...C.muted }}><input type="checkbox" checked={sub.free} onChange={e => setSub(p => ({ ...p, free: e.target.checked }))} /> {T('Be om gratis abonnement')}</label>
+      <input style={{ ...C.input, flex: '1 1 220px' }} placeholder={T('Begrunnelse (valgfritt)')} value={sub.reason} onChange={e => setSub(p => ({ ...p, reason: e.target.value }))} maxLength={1000} />
+      <button style={C.primary} disabled={busy}>{T('Send forespørsel')}</button></form>}
+    <Table cols={['Menighet', 'Plan', 'Gratis', 'Status', 'Begrunnelse', '']} rows={sub.reqs.map(r => [churchName(r.church_id), r.plan, T(r.free_of_charge ? 'Ja' : 'Nei'), T(STATUS[r.status] || r.status), [r.reason, r.decision_note].filter(Boolean).join(' · '),
+      r.status === 'pending' ? (staff ? <span style={C.row}>
+        <button style={C.primary} onClick={act(async () => { await SUB.decide(r.id, true, sub.note); say(T('Forespørselen er godkjent.')); await loadSubs(); await loadChurches(); })}>{T('Godkjenn')}</button>
+        <button style={C.danger} onClick={act(async () => { await SUB.decide(r.id, false, sub.note); say(T('Forespørselen er avslått.')); await loadSubs(); })}>{T('Avslå')}</button>
+      </span> : <button style={C.btn} onClick={act(async () => { await SUB.withdraw(r.id); await loadSubs(); })}>{T('Trekk tilbake')}</button>) : ''])} empty="Ingen forespørsler." />
+    {staff && <input style={C.input} placeholder={T('Merknad til avgjørelsen (valgfritt)')} value={sub.note} onChange={e => setSub(p => ({ ...p, note: e.target.value }))} maxLength={500} />}
+  </div>;
 
   if (tab === 'users' && staff) body = <div style={C.card}>
     <h2 style={C.h}>{T('Brukere')}</h2>

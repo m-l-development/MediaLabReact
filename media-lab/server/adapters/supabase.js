@@ -21,6 +21,8 @@ export function supabaseServer(cfg, fetchFn = fetch) {
       const u = await call('/auth/v1/admin/users/' + encodeURIComponent(id), { headers: asServer });
       return { id: u.id, email: u.email || null, emailConfirmed: !!u.email_confirmed_at };
     },
+    /* Sletter innloggingskontoen (ved sletting av egen konto). */
+    deleteAuthUser: id => call('/auth/v1/admin/users/' + encodeURIComponent(id), { method: 'DELETE', headers: asServer }),
     /* Sender invitasjon (ny konto) eller innloggingslenke (eksisterende konto) til adressen. E-posten beviser eierskap. */
     async sendInvite(email, redirectTo) {
       const q = '?redirect_to=' + encodeURIComponent(redirectTo);
