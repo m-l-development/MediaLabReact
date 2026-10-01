@@ -46,6 +46,20 @@ test('serverConfig: Preview godtar manuelt opprettet connecthub_devSUPABASE_SECR
   assert.equal(serverConfig({ ...env, connecthub_devSUPABASE_SECRET_KEY: 'feil-format' }).error, 'secret_key_invalid');
 });
 
+test('Preview: begge nøklene kan ha understrek-navn; manglende nøkkel gir feilkode med navn, aldri verdier', async () => {
+  const env = { VERCEL_ENV: 'preview', connecthub_devSUPABASE_PUBLISHABLE_KEY: 'sb_publishable_manueltest1', connecthub_devSUPABASE_SECRET_KEY: 'sb_secret_manuelltesttest' };
+  const c = serverConfig(env);
+  assert.equal(c.error, undefined); assert.equal(c.publishableKey, 'sb_publishable_manueltest1'); assert.equal(c.url, 'https://uatpdmhnwwjgzlxaucsx.supabase.co');
+  assert.equal(serverConfig({ VERCEL_ENV: 'production', connecthub_devSUPABASE_PUBLISHABLE_KEY: 'sb_publishable_manueltest1' }).error, 'publishable_key_missing', 'gjelder ikke i Production');
+  for (const [miss, code] of [['connecthub_devSUPABASE_PUBLISHABLE_KEY', 'publishable_key_missing'], ['connecthub_devSUPABASE_SECRET_KEY', 'secret_key_missing']]) {
+    const e = { ...env }; delete e[miss];
+    const r = await handle(await req('invite.create', {}), e, { fetchFn });
+    const text = await r.text();
+    assert.equal(r.status, 503); assert.deepEqual(JSON.parse(text), { ok: false, error: 'not_configured', detail: code });
+    assert.ok(!/sb_(secret|publishable)_/.test(text), 'ingen nøkkelverdier i svaret');
+  }
+});
+
 test('API: metode, ukjent handling, manglende oppsett, manglende og ugyldig innlogging', async () => {
   assert.equal((await run(await req('invite.create', {}, { method: 'GET' }), fakeBackend())).status, 405);
   assert.equal((await run(await req('finnes.ikke', {}), fakeBackend())).status, 404);

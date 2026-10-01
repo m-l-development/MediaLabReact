@@ -64,7 +64,7 @@ export async function handle(request, env, deps = {}) {
     const route = Object.prototype.hasOwnProperty.call(routes, action) ? routes[action] : null;
     if (!route) return fail('unknown_action', 404);
     const cfg = serverConfig(env);
-    if (cfg.error) return fail('not_configured', 503);
+    if (cfg.error) return json({ ok: false, error: 'not_configured', detail: cfg.error }, 503);   /* bare navnet på feilen, aldri verdier */
     const token = bearer(request);
     const v = await verifyToken(token, { env, fetchFn: deps.fetchFn });
     if (v.unavailable) return fail('unavailable', 503);
