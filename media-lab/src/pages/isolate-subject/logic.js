@@ -90,7 +90,7 @@ class Component extends DCLogic {
     this.setState({ phase: 'crop', cr: { x: 0, y: 0, w: 1, h: 1 }, ar: 'free', mode: null, pts: [], busy: '', err: '', note: '', name, dims: W + ' × ' + H, cmp: 0, ready: false, done: false, histN: 0 });
   }
   lib() {
-    return this.T || (this.T = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1').then(T => { T.env.allowLocalModels = false; return T; }));
+    return this.T || (this.T = import(/* @vite-ignore */ '/vendor/transformers-3.5.1/transformers.min.js'.toString()).then(T => { T.env.allowLocalModels = false; T.env.backends.onnx.wasm.wasmPaths = location.origin + '/vendor/transformers-3.5.1/'; return T; }));
   }
   progress() {
     const files = {};

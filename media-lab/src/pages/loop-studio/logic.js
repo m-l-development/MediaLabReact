@@ -66,7 +66,7 @@ class Component extends DCLogic {
     /* warm the editor so opening a template is near-instant (no blank flash while it downloads) */
     this._pf = new Set();
     const pf = (h, as) => { if (!h || this._pf.has(h)) return; this._pf.add(h); const l = document.createElement('link'); l.rel = 'prefetch'; l.href = h; if (as) l.as = as; document.head.appendChild(l); };
-    this._warm = setTimeout(() => { pf('ukeloop-engine.js', 'script'); pf('support.js', 'script'); }, 400);
+    this._warm = setTimeout(() => pf('studio-editor.dc.html', 'document'), 400);
     this.onOver = e => { const a = e.target && e.target.closest && e.target.closest('a[href],a[data-ml-href]'); if (a) { const h = a.getAttribute('href') || a.getAttribute('data-ml-href') || ''; if (/\.dc\.html/.test(h)) pf(h, 'document'); } };
     document.addEventListener('pointerover', this.onOver, { passive: true });
     document.addEventListener('touchstart', this.onOver, { passive: true });

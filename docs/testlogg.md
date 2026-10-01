@@ -164,3 +164,42 @@ Resultater per pakke. Alt kjøres mot `connecthub-dev` med syntetiske data. Prod
 - Kvoter er faste standardverdier. Stab kan endre `storage_quota_mb`, men det finnes ikke noe grensesnitt for det ennå.
 - Feilet sletting i lagringen etter at raden er slettet, kan gi en foreldreløs fil. Den er ikke synlig for noen, men må ryddes av drift.
 - Supabase Free gir 1 GB lagring totalt, så kvotene bør vurderes i P11.
+
+## P8 – herding: egne kopier av skript og fonter, strengere CSP, oppbevaringstid for logg (2026-10-01)
+
+**Endringer**
+- **Ingen skript eller fonter fra CDN.** `build/vendor.js` henter nøyaktige pakkeversjoner fra npm-registeret (`npm pack`) under bygging, kopierer bare nettleserfilene til `dist/vendor/` og `dist/fonts/` og kontrollerer alle 57 filene mot `build/vendor-lock.json` (SHA-384). Avvik stopper bygget. Pakkene som hentes:
+  - transformers.js 3.5.1 med ONNX-wasm
+  - tesseract.js 5.1.1 med kjerne 5.1.1 og norske språkdata
+  - mp4-muxer 5.1.3
+  - qrcode-generator 1.4.4
+  - 9 fontfamilier fra Fontsource (OFL, bare latin og latin-ext)
+
+  Kontroll av kildene: SHA-384 fra npm for `qrcode.js`, `tesseract.min.js` og `mp4-muxer.js` er identiske med SRI-hashene som sto i koden fra jsDelivr. Skriptene lastes fortsatt med SRI.
+- **CSP:** jsDelivr, Google Fonts og tessdata er fjernet.
+  - `script-src` har ikke lenger `'unsafe-inline'`. De to faste inline-skriptene er tillatt med SHA-256, og bygget stopper hvis et inline-skript mangler i CSP-en.
+  - `connect-src` tillater bare egen vert, de to Supabase-prosjektene og Hugging Face (AI-modeller, som er data og ikke kode).
+- **Innloggingssperren** slipper `/vendor/` og `/fonts/` gjennom, slik at innloggingssiden får fontene sine. Mellomlagring: `/vendor/` i ett år (versjonerte mapper), `/fonts/` i 30 dager.
+- **Revisjonsloggen** (`20261001150000_log_retention.sql`): oppbevaringstiden er 24 måneder som standard og minst 12. `app.purge_audit_logs()` kan bare kjøres av drift, og slettingen loggføres selv. Nyere hendelser kan fortsatt aldri slettes.
+- Retting av eksisterende feil: Loop Studio forhåndslastet to filer som ikke finnes lenger, og det ga 404.
+
+**Tester**
+- `npm test`: 44/44, med 3 nye. Disse dekker fontparseren, at låsen dekker alt, og CSP-regler (ingen CDN, ingen `unsafe-inline` eller `unsafe-eval` for skript).
+- `rls_test.sql`: 144/144, med 5 nye for oppbevaringstiden.
+- `npm run build`: tredjepartsfilene er kontrollert, og alle inline-skript står i CSP-en.
+
+**E2E** (samme CSP som Vercel, alle sider)
+| Test | Resultat |
+|---|---|
+| Innloggingssiden: Archivo lastet fra `/fonts/`, ingen eksterne verter | OK |
+| 10 sider etter innlogging: bare egen vert og `connecthub-dev` som eksterne verter | OK |
+| qrcode og mp4-muxer fra `/vendor/` med SRI | OK |
+| Tesseract OCR med norske språkdata fra egen vert: leste «SØNDAG 11» | OK |
+| transformers.js og ONNX-wasm fra `/vendor/`, MODNet fra Hugging Face: bakgrunnsfjerning kjørte (96×96, 4 kanaler) | OK |
+
+**Begrensninger**
+- Fonter dekker latin og latin-ext. Andre skriftsystemer faller tilbake til systemfont.
+- Bygget henter pakkene fra npm-registeret (som `npm install`). Uten nett feiler bygget. Hurtigbufferen ligger i `node_modules/.ch-vendor`.
+- `dist/` er 57 MB, hovedsakelig ONNX-wasm på 21 MB.
+- Server- og funksjonslogger hos Vercel følger Vercels oppbevaringstid. Det finnes ingen egen klientfeillogg lenger, fordi den gamle var knyttet til `api/ml.js` og aldri brukt.
+- Automatisk kjøring av sletting etter oppbevaringstid (pg_cron) er ikke slått på. Det vurderes i P11.

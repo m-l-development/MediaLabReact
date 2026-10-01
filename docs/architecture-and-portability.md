@@ -85,6 +85,13 @@ PC-ens nettleserprofil, kan lese dataene med utviklerverktøy.
   brukerens token** når rettigheter skal gjelde, og som serverrolle bare for funksjoner som er gitt bare til den.
 - **Lokalt:** `chApiLocal` i `vite.config.js` kjører samme handler i `vite dev`/`preview`.
 
+## Tredjepartskode og CSP (P8)
+- Ingen skript eller fonter lastes fra CDN. `build/vendor.js` lager `dist/vendor/` og `dist/fonts/` fra fastsatte
+  npm-versjoner og kontrollerer dem mot `build/vendor-lock.json`. Det gjør appen uavhengig av jsDelivr og Google Fonts,
+  og de samme filene virker hos enhver statisk vert.
+- CSP-en ligger i `media-lab/vercel.json`, og vite dev/preview bruker den samme. Ved bytte av vert flyttes headerne til
+  vertens oppsett. Inline-skript har SHA-256 i CSP-en, og byggesjekken stopper bygget hvis en hash mangler.
+
 ## Leverandørbindinger (gjenstående og bevisste)
 | Binding | Hvor | Ved bytte |
 |---|---|---|

@@ -740,7 +740,7 @@
 
   /* ---------- optional AI cut-out (transformers.js, runs locally) ---------- */
   var T = null, pipes = {}, MODELS = { person: 'Xenova/modnet', object: 'onnx-community/BiRefNet_lite-ONNX' };
-  function lib() { return T || (T = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1').then(function (m) { m.env.allowLocalModels = false; return m; })); }
+  function lib() { return T || (T = import(/* @vite-ignore */ '/vendor/transformers-3.5.1/transformers.min.js'.toString()).then(function (m) { m.env.allowLocalModels = false; m.env.backends.onnx.wasm.wasmPaths = location.origin + '/vendor/transformers-3.5.1/'; return m; })); }
   async function getPipe(key, onProg, wasmOnly) {
     if (pipes[key] && !(wasmOnly && pipes[key]._dev !== 'wasm')) return pipes[key];
     var M = await lib(), gpu = false;

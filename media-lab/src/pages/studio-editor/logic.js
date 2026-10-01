@@ -1854,7 +1854,7 @@ class Component extends DCLogic {
     if (window.Tesseract) return Promise.resolve();
     return this._tp || (this._tp = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js'; s.integrity = 'sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F'; s.crossOrigin = 'anonymous'; s.referrerPolicy = 'no-referrer';
+      s.src = '/vendor/tesseract-5.1.1/tesseract.min.js'; s.integrity = 'sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F'; 
       s.onload = res; s.onerror = () => { this._tp = null; rej(new Error('load')); };
       document.head.appendChild(s);
     }));
@@ -1927,7 +1927,7 @@ class Component extends DCLogic {
       if (!text) {
         await this.loadTesseract();
         const c = await this.prepImage(f);
-        const r = await window.Tesseract.recognize(c, 'nor', { logger: m => { if (m.status === 'recognizing text' && this.alive) this.setState({ parseMsg: 'Leser bildet … ' + Math.round(m.progress * 100) + ' %' }); } });
+        const r = await window.Tesseract.recognize(c, 'nor', { workerPath: location.origin + '/vendor/tesseract-5.1.1/worker.min.js', corePath: location.origin + '/vendor/tesseract-core-5.1.1/', langPath: location.origin + '/vendor/tessdata', logger: m => { if (m.status === 'recognizing text' && this.alive) this.setState({ parseMsg: 'Leser bildet … ' + Math.round(m.progress * 100) + ' %' }); } });
         text = String(r.data.text || '').split('\n').map(l => l.replace(/\s{2,}/g, ' ').trim()).filter(Boolean).join('\n');
       }
       this.setState({ programText: text, busy: '' }, () => {
@@ -1979,7 +1979,7 @@ class Component extends DCLogic {
         try { const ab = await U.store.get('audio'); if (ab) audio = { src: await U.toDataURL(ab), ...this.audioOpts() }; } catch (e) {}
       }
       const fam0 = this.state.cfg.font || 'Archivo', fam = /^[A-Za-z][A-Za-z ]{1,39}$/.test(fam0) ? fam0 : 'Archivo', { W, H } = this.dims();
-      const font = fam === 'Helvetica' ? '' : await U.embeddedFontCSS(fam === 'Archivo' ? U.FONT_CSS : 'https://fonts.googleapis.com/css2?family=' + fam.replace(/ /g, '+') + ':wght@400;500;600;700&display=swap');
+      const font = fam === 'Helvetica' ? '' : await U.embeddedFontCSS(fam === 'Archivo' ? U.FONT_CSS : '/fonts/' + fam.toLowerCase().replace(/ /g, '-') + '.css');
       const html = U.buildPlayerHTML({ W, H, data, media: { images, video }, audio, title: this.state.cfg.header || 'Ukeprogram' }, font);
       this.download(new Blob([html], { type: 'text/html' }), this.fileBase() + '.html');
     } finally { this.setState({ busy: '' }); }
@@ -1988,8 +1988,8 @@ class Component extends DCLogic {
     if (window.Mp4Muxer) return window.Mp4Muxer;
     await new Promise((res, rej) => {
       const sc = document.createElement('script');
-      sc.src = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js';
-      sc.integrity = 'sha384-SujebcgqCNlLMRSnVkLD+3eWOzsxobv30Bct+0lV+fc1EHHEuvcePwmDgMzpnptj'; sc.crossOrigin = 'anonymous'; sc.referrerPolicy = 'no-referrer';
+      sc.src = '/vendor/mp4-muxer-5.1.3/mp4-muxer.js';
+      sc.integrity = 'sha384-SujebcgqCNlLMRSnVkLD+3eWOzsxobv30Bct+0lV+fc1EHHEuvcePwmDgMzpnptj'; 
       sc.onload = res; sc.onerror = () => rej(new Error('lib')); document.head.appendChild(sc);
     });
     return window.Mp4Muxer;

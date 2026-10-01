@@ -52,7 +52,8 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 - `ml-bg.js` – felles bakgrunn for verktøysidene. Menyer/startskjermer: bevegelig linjefelt i samme palett som forsiden (men annerledes). Arbeidsflater: fast, jevn, mørk tone — merk elementet med `data-ml-bg="static"`. Rot-diven må ha `background:transparent`.
 - `ml-footer.js` – footer: innfading av statisk footer + valgfri lenke. Sett `FOOTER_URL` øverst i filen (må være https://) for å gjøre «Design by Kristen Utvikling» klikkbar.
 - `i18n.js` (NO→EN-ordbok, `var D = {…}`), `theme.js` (lys/mørk for alle sider, lagres i localStorage `medialab.theme`). Lys modus regner om nøytrale farger per egenskap i `mapRGB`: tekst med kurve (`18 + 210·(1−t)^1.6`) for god kontrast, flater/kanter `228 − 208·t^0.85`.
-- `vercel.json`: `buildCommand: npm run build`, `outputDirectory: dist`, CSP (uten `unsafe-eval`/unpkg – bare den gamle runtimen trengte dem; `wasm-unsafe-eval` beholdes for onnxruntime), `assets/` hurtigbufres lenge (filnavn med hash).
+- `vercel.json`: `buildCommand: npm run build`, `outputDirectory: dist`, CSP uten CDN og uten `unsafe-inline` for skript (inline-skript tillates med SHA-256 – bygget stopper hvis et mangler; `wasm-unsafe-eval` beholdes for onnxruntime), `assets/` hurtigbufres lenge (filnavn med hash).
+- Tredjeparts skript og fonter (P8): `build/vendor.js` + `build/vendor-lock.json` (SHA-384) → `/vendor/` (transformers, tesseract, mp4-muxer, qrcode) og `/fonts/fonts.css` (+ `/fonts/<familie>.css`). Ny versjon: endre listen, `npm run vendor:lock`, se gjennom endringen. Aldri CDN-adresser i koden.
 
 ## Regler
 - All ny tekst må ha engelsk oversettelse i `media-lab/src/legacy/i18n.js`.

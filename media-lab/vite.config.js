@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolveSupabaseEnv, scanText, SCAN_EXT } from './build/env-guard.js';
 
@@ -104,8 +105,44 @@ const chApiLocal = () => {
   return { name: 'connecthub-api-local', configureServer: add, configurePreviewServer: add };
 };
 
+/* P8: tredjeparts skript og fonter fra egen vert (build/vendor.js), kontrollert mot build/vendor-lock.json. Ved bygging
+   skrives de til dist/; i dev serveres de fra minnet. I tillegg: alle inline-skript i dist må stå med hash i CSP-en
+   (script-src uten 'unsafe-inline'), ellers stoppes bygget. */
+const vendorAssets = () => {
+  const cache = path.join(ROOT, 'node_modules', '.ch-vendor'); let mem = null;
+  const load = async () => {
+    if (mem) return mem;
+    const V = await import('./build/vendor.js');
+    const files = V.build(cache), bad = V.verify(files, JSON.parse(fs.readFileSync(path.join(ROOT, 'build', 'vendor-lock.json'), 'utf8')));
+    if (bad.length) throw new Error('ConnectHub: tredjepartsfiler stemmer ikke med build/vendor-lock.json:\n  ' + bad.join('\n  '));
+    return (mem = files);
+  };
+  const TYPES = { js: 'text/javascript', mjs: 'text/javascript', wasm: 'application/wasm', css: 'text/css', woff2: 'font/woff2', gz: 'application/gzip', txt: 'text/plain', md: 'text/plain' };
+  const serve = s => { s.middlewares.use(async (req, res, next) => {
+    const m = /^\/((?:vendor|fonts)\/[^?#]+)/.exec(req.url || ''); if (!m) return next();
+    try { const f = (await load())[decodeURIComponent(m[1])]; if (!f) return next(); res.setHeader('content-type', TYPES[m[1].split('.').pop()] || 'application/octet-stream'); res.end(f); } catch (e) { next(e); }
+  }); };
+  return {
+    name: 'connecthub-vendor', configureServer: serve, configurePreviewServer: serve,
+    async closeBundle() {
+      if (!fs.existsSync(path.join(ROOT, 'dist'))) return;
+      const V = await import('./build/vendor.js'); V.writeOut(await load(), path.join(ROOT, 'dist'));
+      const csp = CSP, missing = [];
+      for (const f of fs.readdirSync(path.join(ROOT, 'dist')).filter(f => f.endsWith('.html'))) {
+        const h = fs.readFileSync(path.join(ROOT, 'dist', f), 'utf8');
+        for (const m of h.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+          const k = "'sha256-" + crypto.createHash('sha256').update(m[1]).digest('base64') + "'";
+          if (!csp.includes(k)) missing.push(f + ': ' + k);
+        }
+      }
+      if (missing.length) throw new Error('ConnectHub: inline-skript mangler i CSP (vercel.json script-src):\n  ' + missing.join('\n  '));
+      console.log('ConnectHub: tredjepartsfiler kontrollert og kopiert; alle inline-skript står i CSP.');
+    },
+  };
+};
+
 export default defineConfig({
-  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv(), chApiLocal()],
+  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv(), chApiLocal(), vendorAssets()],
   appType: 'mpa',
   publicDir: 'public',
   resolve: { alias: { '@ml': path.join(ROOT, 'src/legacy') } },

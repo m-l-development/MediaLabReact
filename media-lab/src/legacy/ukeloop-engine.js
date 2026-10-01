@@ -1096,17 +1096,15 @@ function __ukeloopPlayerBoot(P, R) {
   }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function toDataURL(blob) { return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsDataURL(blob); }); }
-  var FONT_CSS = 'https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap';
+  var FONT_CSS = '/fonts/archivo.css';
   async function embeddedFontCSS(url) {
     try {
-      url = url || FONT_CSS; if (url.indexOf('https://fonts.googleapis.com/') !== 0) return '';
-      var css = await (await fetch(url)).text();
-      var blocks = css.split(/(?=\/\*)/).filter(function (b) { return /^\/\*\s*latin(-ext)?\s*\*\//.test(b); });
+      url = url || FONT_CSS; if (!/^\/fonts\/[a-z0-9-]+\.css$/.test(url)) return '';
+      var rules = (await (await fetch(url)).text()).split('\n').filter(function (r) { return r.indexOf('@font-face') === 0 && /font-style:\s*normal/.test(r); });
       var out = '';
-      for (var i = 0; i < blocks.length; i++) {
-        var b = blocks[i], m = b.match(/url\(([^)]+)\)/);
-        if (m) { var fu = m[1].replace(/['"]/g, ''); if (fu.indexOf('https://fonts.gstatic.com/') !== 0) continue; var data = await toDataURL(await (await fetch(fu)).blob()); b = b.replace(m[0], 'url(' + data + ')'); }
-        out += b;
+      for (var i = 0; i < rules.length; i++) {
+        var m = rules[i].match(/url\((\/fonts\/[a-z0-9-]+\.woff2)\)/); if (!m) continue;
+        var data = await toDataURL(await (await fetch(m[1])).blob()); out += rules[i].replace(m[0], 'url(' + data + ')') + '\n';
       }
       return out;
     } catch (e) { return ''; }

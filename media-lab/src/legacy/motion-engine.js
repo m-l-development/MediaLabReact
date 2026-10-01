@@ -716,8 +716,8 @@
   function loadMuxer() {
     if (window.Mp4Muxer) return Promise.resolve(window.Mp4Muxer);
     return MUX || (MUX = new Promise(function (res, rej) {
-      var sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js';
-      sc.integrity = 'sha384-SujebcgqCNlLMRSnVkLD+3eWOzsxobv30Bct+0lV+fc1EHHEuvcePwmDgMzpnptj'; sc.crossOrigin = 'anonymous'; sc.referrerPolicy = 'no-referrer';
+      var sc = document.createElement('script'); sc.src = '/vendor/mp4-muxer-5.1.3/mp4-muxer.js';
+      sc.integrity = 'sha384-SujebcgqCNlLMRSnVkLD+3eWOzsxobv30Bct+0lV+fc1EHHEuvcePwmDgMzpnptj'; 
       sc.onload = function () { res(window.Mp4Muxer); }; sc.onerror = function () { MUX = null; rej(new Error('Kunne ikke laste eksportmodulen. Sjekk nettet.')); }; document.head.appendChild(sc);
     }));
   }
@@ -816,7 +816,7 @@
     var buf = await renderAudio(p, getBlob, 16000, total, { noMusic: true, mono: true, raw: true });
     if (!buf) throw new Error('Fant ingen lyd i videoklippene.');
     o.onProgress('Laster talemodellen …');
-    var T = await (TF || (TF = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1').then(function (m) { m.env.allowLocalModels = false; return m; }).catch(function (e) { TF = null; throw e; })));
+    var T = await (TF || (TF = import(/* @vite-ignore */ '/vendor/transformers-3.5.1/transformers.min.js'.toString()).then(function (m) { m.env.allowLocalModels = false; m.env.backends.onnx.wasm.wasmPaths = location.origin + '/vendor/transformers-3.5.1/'; return m; }).catch(function (e) { TF = null; throw e; })));
     var files = {}, cb = function (d) { if (d && d.status === 'progress' && d.file) { files[d.file] = d.progress || 0; var ks = Object.keys(files), pc = ks.reduce(function (a, k) { return a + files[k]; }, 0) / ks.length; o.onProgress('Laster talemodellen … ' + Math.round(pc) + ' %'); } };
     var gpu = !!navigator.gpu, mk = function (dev) { return T.pipeline('automatic-speech-recognition', o.model, { device: dev, dtype: dev === 'webgpu' ? { encoder_model: 'fp32', decoder_model_merged: 'q4' } : 'q8', progress_callback: cb }); }, pipe;
     try { pipe = await mk(gpu ? 'webgpu' : 'wasm'); } catch (e) { if (!gpu) throw e; pipe = await mk('wasm'); }

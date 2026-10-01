@@ -316,7 +316,7 @@
 
   /* ---------- AI-utklipp (transformers.js, lastes første gang) ---------- */
   var T = null, pipes = {}, MODELS = { person: 'Xenova/modnet', object: 'onnx-community/BiRefNet_lite-ONNX' };
-  function lib() { return T || (T = import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1').then(function (m) { m.env.allowLocalModels = false; return m; })); }
+  function lib() { return T || (T = import(/* @vite-ignore */ '/vendor/transformers-3.5.1/transformers.min.js'.toString()).then(function (m) { m.env.allowLocalModels = false; m.env.backends.onnx.wasm.wasmPaths = location.origin + '/vendor/transformers-3.5.1/'; return m; })); }
   async function pipe(kind, onProg, wasm) {
     var k = kind + (wasm ? 'w' : ''); if (pipes[k]) return pipes[k]; var m = await lib(), gpu = false;
     if (!wasm && navigator.gpu) { try { gpu = !!(await navigator.gpu.requestAdapter()); } catch (e) {} }

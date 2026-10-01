@@ -7,7 +7,7 @@ import { targetOf, issuerOf } from './backend.js';
 
 export const COOKIE = 'ch_at';
 export const LOGIN = '/login.dc.html';
-const PUBLIC = /^\/(assets\/|images\/|mockups\/|api\/|login\.dc\.html$|version\.json$|manifest\.webmanifest$|favicon\.ico$|robots\.txt$)/;
+const PUBLIC = /^\/(assets\/|images\/|mockups\/|api\/|vendor\/|fonts\/|login\.dc\.html$|version\.json$|manifest\.webmanifest$|favicon\.ico$|robots\.txt$)/;
 
 export const isPublicPath = p => PUBLIC.test(p);
 

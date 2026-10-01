@@ -309,6 +309,18 @@ select ch_test.err('NULL-sikkerhet: medlem kan ikke trekke tilbake invitasjon ut
 set local role postgres;
 select ch_test.cnt('Fil: registrert fil har riktig opplaster', $q$select 1 from public.files where storage_key = 'test/ny.png' and uploaded_by = '00000000-0000-4000-8000-000000000008'$q$, 1);
 
+-- ---------- Oppbevaringstid for loggen (P8) ----------
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Logg: Developer kan ikke kjøre sletting etter oppbevaringstid', 'select app.purge_audit_logs(24)', '42501');
+set local role postgres;
+select ch_test.err('Logg: oppbevaringstid under 12 måneder avvises', 'select app.purge_audit_logs(6)', '22023');
+select ch_test.ok('Logg: drift kan slette hendelser eldre enn 24 måneder', 'select app.purge_audit_logs(24)');
+select ch_test.atleast('Logg: slettingen er selv loggført', $q$select 1 from public.audit_logs where action = 'audit_logs.purge'$q$, 1);
+set local connecthub.audit_purge_before to '2000-01-01';
+select ch_test.err('Logg: innstillingen kan ikke brukes til å slette nyere hendelser', 'delete from public.audit_logs', '42501');
+set local connecthub.audit_purge_before to '';
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000002'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
