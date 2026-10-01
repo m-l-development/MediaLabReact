@@ -1,6 +1,7 @@
 /* Konvertert fra den gamle dc-siden media-lab.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { css } from '../../shared/dc.jsx';
+import { canAdmin } from '../../services/data/me.js';
 
 /* malteksten til elementer som bare inneholder tekst (nøkkel = data-dc-tpl), se runtime-quirks.js */
 export const inline = {"17":["NO"],"18":["EN"],"20":["Media Lab"],"24":["Video"],"25":["Loop Studio"],"26":["Lag en loopende video av ukens program med bilder, musikk og effekter."],"27":["Åpne"],"28":["Åpne"],"30":["Bilde"],"31":["Thumbnail Studio"],"32":["Lag miniatyrbilder i 16:9 til YouTube og appen fra faste maler. Last ned i 1080p eller 4K."],"33":["Åpne"],"34":["Åpne"],"37":["Sosiale medier"],"40":["SoMe"],"41":["Redigeringsprogram for video og bilde til promo, Instagram og Facebook."],"42":["Åpne","2 verktøy"],"43":["Åpne"],"44":["2 verktøy"],"47":["Mappe"],"50":["Tools"],"51":["Mindre verktøy for bilder: isoler motiv og legg bilder inn i ekte skjermer."],"52":["Åpne","2 verktøy"],"53":["Åpne"],"54":["2 verktøy"],"64":["SoMe"],"67":["Video"],"68":["Motion design"],"69":["Lag promovideoer og innhold til Instagram og Facebook med klipp, tekst, musikk og overganger."],"70":["Åpne"],"71":["Åpne"],"73":["Bilde"],"74":["Photo design"],"75":["Rediger bilder med lag, justeringer og maler til promo, Instagram og Facebook."],"76":["Åpne"],"77":["Åpne"],"87":["Tools"],"90":["Bilde"],"91":["Isolate Subject"],"92":["Isoler en person, et objekt, en logo eller tekst fra bildet med AI, rett i nettleseren. Gratis, og bildet lastes aldri opp."],"93":["Åpne"],"94":["Åpne"],"96":["Bilde"],"97":["Mockups"],"98":["Legg et bilde inn i skjermen på en PC, TV, nettbrett eller telefon i ekte fotografier."],"99":["Åpne"],"100":["Åpne"],"106":["Design by Kristen Utvikling"]};
@@ -327,13 +328,13 @@ export default function template(v) {
         {"\n  "}
       </footer>
       {"\n  "}
-      <a data-dc-tpl="107" href="admin.dc.html" title="Admin" aria-label="Admin" style={{"position":"fixed","left":"18px","bottom":"calc(18px + env(safe-area-inset-bottom))","zIndex":"60","width":"40px","height":"40px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"999px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-muted, #b3afa6)"}} className="scp5">
+      {canAdmin(window.CH && window.CH.me) && <a data-dc-tpl="107" href="connecthub-admin.dc.html" title="Admin" aria-label="Admin" style={{"position":"fixed","left":"18px","bottom":"calc(18px + env(safe-area-inset-bottom))","zIndex":"60","width":"40px","height":"40px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"999px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-muted, #b3afa6)"}} className="scp5">
         <svg data-dc-tpl="108" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path data-dc-tpl="109" d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z" />
           <circle data-dc-tpl="110" cx="12" cy="10.5" r="2.3" />
           <path data-dc-tpl="111" d="M8.4 16.2c.8-1.6 2.1-2.4 3.6-2.4s2.8.8 3.6 2.4" />
         </svg>
-      </a>
+      </a>}
     </div>
     </>
   );

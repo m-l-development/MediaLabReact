@@ -9,6 +9,11 @@ create table ch_test.res (n serial primary key, name text, ok boolean, info text
 grant usage on schema ch_test to anon, authenticated;
 grant insert, select on ch_test.res to anon, authenticated;
 grant usage on sequence ch_test.res_n_seq to anon, authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then
+  execute 'grant usage on schema ch_test to service_role';
+  execute 'grant insert, select on ch_test.res to service_role';
+  execute 'grant usage on sequence ch_test.res_n_seq to service_role';
+end if; end $$;
 
 create function ch_test.cnt(p_name text, p_sql text, p_exp int) returns void language plpgsql as $$
 declare v int;
@@ -63,7 +68,7 @@ insert into public.app_users (id, email, full_name, status) values
   ('00000000-0000-4000-8000-000000000007', 'deaktivert@test.invalid', 'Deaktivert A', 'disabled'),
   ('00000000-0000-4000-8000-000000000008', 'medlem2@test.invalid', 'Medlem 2 A', 'active');
 insert into public.user_identities (provider, subject, user_id)
-select 'https://test.invalid/auth/v1', 'sub-' || right(id::text, 1), id from public.app_users;
+select 'https://test.invalid/auth/v1', 'sub-' || right(id::text, 1), id from public.app_users where email like '%@test.invalid';
 insert into public.memberships (user_id, church_id) values
   ('00000000-0000-4000-8000-000000000003', 'aaaaaaaa-0000-4000-8000-00000000000a'),
   ('00000000-0000-4000-8000-000000000004', 'aaaaaaaa-0000-4000-8000-00000000000a'),
@@ -160,7 +165,7 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.cnt('Moderator uten MFA: ser ingen menigheter', 'select 1 from public.churches', 0);
 select ch_test.err('Moderator uten MFA: kan ikke tildele admin', $q$select public.assign_role('00000000-0000-4000-8000-000000000005', 'church_admin', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.cnt('Moderator: ser alle menigheter', 'select 1 from public.churches', 2);
+select ch_test.cnt('Moderator: ser alle menigheter', $q$select 1 from public.churches where name like 'Testmenighet %'$q$, 2);
 select ch_test.ok('Moderator: kan gjøre Bruker B til admin i B', $q$select public.assign_role('00000000-0000-4000-8000-000000000005', 'church_admin', 'bbbbbbbb-0000-4000-8000-00000000000b', 'test')$q$);
 select ch_test.err('Moderator: kan ikke opprette developer', $q$select public.assign_role('00000000-0000-4000-8000-000000000006', 'developer')$q$, '42501');
 select ch_test.err('Moderator: kan ikke opprette moderator', $q$select public.assign_role('00000000-0000-4000-8000-000000000006', 'moderator')$q$, '42501');
@@ -198,6 +203,65 @@ select ch_test.cnt('whoami: ukoblet konto får null', 'select 1 where public.who
 set local role postgres;
 select ch_test.ok('Drift: link_identity gjenbruker eksisterende bruker med samme e-post', $q$select 1 where app.link_identity('https://annen.invalid/auth/v1', 'ny-sub', 'USERA@test.invalid') = '00000000-0000-4000-8000-000000000004'$q$);
 select ch_test.cnt('Drift: link_identity ga ny identitet til samme bruker', $q$select 1 from public.user_identities where user_id = '00000000-0000-4000-8000-000000000004'$q$, 2);
+
+-- ---------- Administrasjon og invitasjoner (P5) ----------
+set local role anon;
+select ch_test.err('Anonym: kan ikke opprette invitasjon', $q$select public.create_invitation('x@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('b', 64))$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-4","aal":"aal1"}';
+select ch_test.err('Bruker A: kan ikke invitere', $q$select public.create_invitation('x@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('b', 64))$q$, '42501');
+select ch_test.err('Bruker A: kan ikke kalle accept_invitation', $q$select public.accept_invitation(repeat('a', 64), 'https://test.invalid/auth/v1', 'sub-x', 'ny@test.invalid')$q$, '42501');
+select ch_test.err('Bruker A: kan ikke se systemstatus', 'select public.system_status()', '42501');
+select ch_test.err('Bruker A: kan ikke deaktivere andre', $q$select public.set_user_status('00000000-0000-4000-8000-000000000005', 'disabled')$q$, '42501');
+select ch_test.err('Bruker A: kan ikke trekke tilbake andres invitasjon (ser den ikke)', $q$select public.revoke_invitation((select id from public.invitations where email = 'ny@test.invalid'))$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Admin A: kan invitere bruker til A (uten MFA)', $q$select public.create_invitation('Ny2@Test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('c', 64))$q$);
+select ch_test.ok('Admin A: ny invitasjon til samme adresse erstatter den gamle', $q$select public.create_invitation('ny2@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('d', 64))$q$);
+select ch_test.cnt('Admin A: bare én ventende invitasjon per adresse', $q$select 1 from public.invitations where email = 'ny2@test.invalid' and status = 'pending'$q$, 1);
+select ch_test.err('Admin A: kan ikke invitere til B', $q$select public.create_invitation('x@test.invalid', 'bbbbbbbb-0000-4000-8000-00000000000b', 'user', repeat('e', 64))$q$, '42501');
+select ch_test.err('Admin A: kan ikke invitere admin', $q$select public.create_invitation('x@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'church_admin', repeat('e', 64))$q$, '42501');
+select ch_test.err('Admin A: kan ikke invitere developer', $q$select public.create_invitation('x@test.invalid', null, 'developer', repeat('e', 64))$q$, '42501');
+select ch_test.err('Admin A: kan ikke invitere eksisterende medlem', $q$select public.create_invitation('medlem2@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('e', 64))$q$, '23505');
+select ch_test.err('Admin A: ugyldig gyldighet avvises', $q$select public.create_invitation('x@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('e', 64), 30)$q$, '22023');
+select ch_test.ok('Admin A: kan trekke tilbake egen invitasjon', $q$select public.revoke_invitation((select id from public.invitations where email = 'ny@test.invalid'))$q$);
+select ch_test.cnt('Admin A: ser ikke token-hash i invitasjoner (kolonnen)', $q$select 1 from information_schema.column_privileges where grantee = 'authenticated' and table_name = 'invitations' and column_name = 'token_hash'$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Moderator uten MFA: kan ikke invitere', $q$select public.create_invitation('x@test.invalid', 'bbbbbbbb-0000-4000-8000-00000000000b', 'user', repeat('e', 64))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Moderator: kan invitere admin til A', $q$select public.create_invitation('nyadmin@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'church_admin', repeat('f', 64))$q$);
+select ch_test.err('Moderator: kan ikke invitere moderator', $q$select public.create_invitation('x@test.invalid', null, 'moderator', repeat('e', 64))$q$, '42501');
+select ch_test.ok('Moderator: kan se systemstatus', 'select public.system_status()');
+select ch_test.ok('Moderator: kan deaktivere utenforstående', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'disabled')$q$);
+select ch_test.ok('Moderator: kan aktivere igjen', $q$select public.set_user_status('00000000-0000-4000-8000-000000000006', 'active')$q$);
+select ch_test.err('Moderator: kan ikke deaktivere Developer', $q$select public.set_user_status('00000000-0000-4000-8000-000000000001', 'disabled')$q$, '42501');
+select ch_test.err('Moderator: kan ikke deaktivere seg selv', $q$select public.set_user_status('00000000-0000-4000-8000-000000000002', 'disabled')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Developer: kan invitere moderator', $q$select public.create_invitation('nymod@test.invalid', null, 'moderator', repeat('1', 64))$q$);
+set local role postgres;
+-- Godkjenning (serveren). Kjøres som service_role der rollen finnes.
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.cnt('Server: feil e-post avvises', $q$select 1 where public.accept_invitation(repeat('d', 64), 'https://test.invalid/auth/v1', 'sub-ny2', 'annen@test.invalid') ->> 'error' = 'wrong_email'$q$, 1);
+select ch_test.cnt('Server: erstattet lenke virker ikke', $q$select 1 where public.accept_invitation(repeat('c', 64), 'https://test.invalid/auth/v1', 'sub-ny2', 'ny2@test.invalid') ->> 'error' = 'invitation_invalid'$q$, 1);
+select ch_test.cnt('Server: tilbaketrukket invitasjon virker ikke', $q$select 1 where public.accept_invitation(repeat('a', 64), 'https://test.invalid/auth/v1', 'sub-ny', 'ny@test.invalid') ->> 'error' = 'invitation_invalid'$q$, 1);
+select ch_test.cnt('Server: gyldig invitasjon godtas', $q$select 1 where (public.accept_invitation(repeat('d', 64), 'https://test.invalid/auth/v1', 'sub-ny2', 'NY2@test.invalid') ->> 'ok')::boolean$q$, 1);
+select ch_test.cnt('Server: samme lenke kan ikke brukes to ganger', $q$select 1 where public.accept_invitation(repeat('d', 64), 'https://test.invalid/auth/v1', 'sub-ny2', 'ny2@test.invalid') ->> 'error' = 'invitation_invalid'$q$, 1);
+select ch_test.cnt('Server: moderator-invitasjon gir global rolle', $q$select 1 where (public.accept_invitation(repeat('1', 64), 'https://test.invalid/auth/v1', 'sub-nymod', 'nymod@test.invalid') ->> 'ok')::boolean$q$, 1);
+set local role postgres;
+select ch_test.cnt('Godkjent: ny bruker er medlem av A', $q$select 1 from public.memberships m join public.app_users u on u.id = m.user_id where u.email = 'ny2@test.invalid' and m.church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and m.status = 'active'$q$, 1);
+select ch_test.cnt('Godkjent: identiteten er koblet', $q$select 1 from public.user_identities where subject = 'sub-ny2'$q$, 1);
+select ch_test.cnt('Godkjent: moderatorrollen er gitt', $q$select 1 from public.user_roles r join public.app_users u on u.id = r.user_id where u.email = 'nymod@test.invalid' and r.role = 'moderator' and r.revoked_at is null$q$, 1);
+select ch_test.atleast('Godkjent: loggført med ny bruker som utfører', $q$select 1 from public.audit_logs l join public.app_users u on u.id = l.actor_user_id where u.email = 'ny2@test.invalid' and l.action = 'invitations.update'$q$, 1);
+-- Admin-invitasjon når menigheten allerede har admin → avvises uten å gi rolle.
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.cnt('Server: ny admin avvises når menigheten har admin', $q$select 1 where public.accept_invitation(repeat('f', 64), 'https://test.invalid/auth/v1', 'sub-nyadmin', 'nyadmin@test.invalid') ->> 'error' = 'admin_exists'$q$, 1);
+set local role postgres;
+-- Utløpt invitasjon og inviterende som har mistet rollen.
+insert into public.invitations (email, church_id, role, token_hash, expires_at, created_by) values
+  ('utlopt@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('2', 64), now() - interval '1 minute', '00000000-0000-4000-8000-000000000003'),
+  ('mistet@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', repeat('3', 64), now() + interval '1 day', '00000000-0000-4000-8000-000000000004');
+select ch_test.cnt('Server: utløpt invitasjon avvises', $q$select 1 where public.accept_invitation(repeat('2', 64), 'https://test.invalid/auth/v1', 'sub-u', 'utlopt@test.invalid') ->> 'error' = 'invitation_expired'$q$, 1);
+select ch_test.cnt('Server: utløpt invitasjon er merket utløpt', $q$select 1 from public.invitations where email = 'utlopt@test.invalid' and status = 'expired'$q$, 1);
+select ch_test.cnt('Server: invitasjon fra en som ikke (lenger) har rett avvises', $q$select 1 where public.accept_invitation(repeat('3', 64), 'https://test.invalid/auth/v1', 'sub-m', 'mistet@test.invalid') ->> 'error' = 'inviter_lost_access'$q$, 1);
 
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000002'$q$, 1);

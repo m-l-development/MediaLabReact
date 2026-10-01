@@ -10,7 +10,8 @@ Migreringene er vanlig PostgreSQL og kan kjøres mot enhver PostgreSQL med rolle
 | `migrations/20261001100300_grants_policies.sql` | Kolonnerettigheter og RLS-policyer |
 | `migrations/20261001120000_identity_functions.sql` | `public.whoami()` (egen profil/roller/menigheter, `null` for ukoblet/deaktivert), `app.link_identity` (bare server/drift) |
 | `migrations/20261001120100_supabase_bootstrap.sql` | `app.bootstrap_developer` – første Developer (Supabase-spesifikk, leser `auth.users`, bare drift) |
-| `tests/rls_test.sql` | 77 tester for roller, menighetsskille, MFA, logg, videosperre og identitet. Rulles alltid tilbake |
+| `migrations/20261001130000_admin.sql` | Invitasjoner (`create_invitation`, `reissue_invitation`, `revoke_invitation`, `accept_invitation` bare for serveren), `set_user_status`, `system_status` |
+| `tests/rls_test.sql` | 116 tester for roller, menighetsskille, MFA, logg, videosperre, identitet og invitasjoner. Rulles alltid tilbake |
 | `config.toml` | Auth-innstillinger for **utviklingsprosjektet** (registrering av, adresser, passordkrav). `[auth] enable_signup = false` sperrer registrering; `[auth.email] enable_signup = true` betyr bare at e-postinnlogging er på |
 
 ## Første Developer (etter at personen har bekreftet e-posten sin i Auth)

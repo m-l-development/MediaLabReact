@@ -84,8 +84,28 @@ addEventListener('error',function(e){var t=e.target;if(t&&t!==window&&(t.tagName
 addEventListener('vite:preloadError',function(e){e.preventDefault();heal()})})();`;
 const selfHeal = () => ({ name: 'media-lab-self-heal', apply: 'build', transformIndexHtml: () => [{ tag: 'script', children: HEAL, injectTo: 'head-prepend' }] });
 
+/* ConnectHub-API-et lokalt (vite dev/preview), med samme kode som på Vercel (server/handlers/ch.js).
+   Den hemmelige nøkkelen leses BARE fra skallets miljø (CONNECTHUB_SUPABASE_SECRET_KEY), aldri fra .env-filer.
+   CH_TEST_MAILBOX (bare lokalt, for tester): invitasjonslenker skrives til denne filen i stedet for å sendes på e-post. */
+const chApiLocal = () => {
+  const add = s => { s.middlewares.use(async (req, res, next) => {
+    if (!req.url.startsWith('/api/ch')) return next();
+    try {
+      const { handle } = await import('./server/handlers/ch.js');
+      const fileEnv = loadEnv('development', ROOT, 'CONNECTHUB_'); delete fileEnv.CONNECTHUB_SUPABASE_SECRET_KEY;
+      const env = { ...fileEnv, ...process.env }; delete env.VERCEL_ENV;
+      const chunks = []; for await (const c of req) chunks.push(c);
+      const request = new Request('http://' + req.headers.host + req.url, { method: req.method, headers: req.headers, body: req.method === 'POST' ? Buffer.concat(chunks) : undefined });
+      const deps = process.env.CH_TEST_MAILBOX ? { deliver: async (email, link) => { fs.appendFileSync(process.env.CH_TEST_MAILBOX, JSON.stringify({ email, link }) + '\n'); return { kind: 'test' }; } } : {};
+      const r = await handle(request, env, deps);
+      res.statusCode = r.status; r.headers.forEach((v, k) => res.setHeader(k, v)); res.end(Buffer.from(await r.arrayBuffer()));
+    } catch (e) { res.statusCode = 500; res.end('{"ok":false,"error":"local_api"}'); }
+  }); };
+  return { name: 'connecthub-api-local', configureServer: add, configurePreviewServer: add };
+};
+
 export default defineConfig({
-  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv()],
+  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv(), chApiLocal()],
   appType: 'mpa',
   publicDir: 'public',
   resolve: { alias: { '@ml': path.join(ROOT, 'src/legacy') } },

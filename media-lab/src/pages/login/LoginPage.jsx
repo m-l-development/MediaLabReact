@@ -1,6 +1,7 @@
 import React from 'react';
 import { auth, safeNext, passwordProblem } from '../../services/auth.js';
 import { whoami, isStaff } from '../../services/data/me.js';
+import { acceptInvitation } from '../../services/admin.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const ERR = {
@@ -15,7 +16,19 @@ const ERR = {
   otp_expired: 'Lenken er utløpt eller allerede brukt. Be om en ny.',
   lenke_ugyldig: 'Lenken er utløpt eller allerede brukt. Be om en ny.',
   flow_state_not_found: 'Lenken må åpnes i samme nettleser som du ba om den fra. Be om en ny.',
+  invitation_invalid: 'Invitasjonen er ikke gyldig lenger. Be om en ny invitasjon.',
+  invitation_expired: 'Invitasjonen er utløpt. Be om en ny invitasjon.',
+  wrong_email: 'Invitasjonen gjelder en annen e-postadresse enn den du er logget inn med. Logg ut og åpne lenken fra e-posten på nytt.',
+  email_not_confirmed: 'E-postadressen din er ikke bekreftet. Åpne lenken fra e-posten på nytt.',
+  user_disabled: 'Kontoen er deaktivert. Kontakt administrator.',
+  admin_exists: 'Menigheten har allerede en administrator. Kontakt den som inviterte deg.',
+  church_inactive: 'Menigheten er ikke aktiv. Kontakt den som inviterte deg.',
+  inviter_lost_access: 'Den som inviterte deg, har ikke lenger tilgang til å invitere. Be om en ny invitasjon.',
 };
+const INVITE_KEY = 'ch.invite';
+const readInvite = () => { try { return sessionStorage.getItem(INVITE_KEY); } catch (e) { return null; } };
+const dropInvite = () => { try { sessionStorage.removeItem(INVITE_KEY); } catch (e) {} };
+const cleanUrl = q => history.replaceState(null, '', location.pathname + (q.get('next') ? '?next=' + encodeURIComponent(q.get('next')) : ''));
 const msg = e => T(ERR[e] || 'Noe gikk galt. Prøv igjen.');
 
 const S = {
@@ -36,6 +49,8 @@ function Field({ label, ...p }) { return <label style={S.label}><span>{T(label)}
 
 export default function LoginPage() {
   const q = new URLSearchParams(location.search);
+  /* Invitasjonstokenet flyttes fra adressen til denne fanen (sessionStorage) og slettes når det er brukt. */
+  if (/^[A-Za-z0-9_-]{43}$/.test(q.get('invite') || '')) { try { sessionStorage.setItem(INVITE_KEY, q.get('invite')); } catch (e) {} }
   const next = safeNext(q.get('next'));
   const [mode, setMode] = React.useState('loading');
   const [err, setErr] = React.useState(null);
@@ -59,7 +74,15 @@ export default function LoginPage() {
   };
 
   /* Etter innlogging/nytt passord: MFA-trinn, kobling og eventuelt oppsett av autentiseringsapp for stab. */
+  /* Godtar en ventende invitasjon etter innlogging. true = ok/ingen, 'wrong' = annen e-post, false = annen feil (vist). */
+  const acceptPending = async () => {
+    const t = readInvite(); if (!t) return true;
+    try { await acceptInvitation(t); dropInvite(); setInfo(T('Invitasjonen er godtatt.')); return true; }
+    catch (e) { dropInvite(); setErr(msg(e.code)); return e.code === 'wrong_email' ? 'wrong' : false; }
+  };
+
   const proceed = React.useCallback(async () => {
+    if (await acceptPending() === 'wrong') { setMode('inviteerr'); return; }
     const st = await auth.mfaStatus().catch(() => null);
     if (st && st.next === 'aal2' && st.current !== 'aal2' && st.factors.length) { setMfa(st); setMode('mfa'); return; }
     let me = null; try { me = await whoami(); } catch (e) { setErr('Kunne ikke kontakte ConnectHub. Prøv igjen.'); setMode('login'); return; }
@@ -73,14 +96,17 @@ export default function LoginPage() {
     const hasLink = q.get('code') || q.get('token_hash') || /access_token=|error_description=/.test(location.hash);
     if (hasLink) {
       const r = await auth.completeFromUrl(location.href);
-      history.replaceState(null, '', location.pathname + (q.get('next') ? '?next=' + encodeURIComponent(q.get('next')) : ''));
+      cleanUrl(q);
       if (!r.ok) { setErr(msg(r.error)); setMode('login'); return; }
       await auth.session();
-      if (r.type === 'recovery' || r.type === 'invite') { setMode('setpw'); return; }
+      if (r.type === 'invite') { if (await acceptPending() !== true) { setMode('inviteerr'); return; } setMode('setpw'); return; }
+      if (r.type === 'recovery') { setMode('setpw'); return; }
       await proceed(); return;
     }
+    if (q.get('invite')) cleanUrl(q);
     const s = await auth.session().catch(() => null);
     if (s && q.get('reason') !== 'notlinked') { await proceed(); return; }
+    if (!s && readInvite()) setInfo(T('Logg inn med e-postadressen invitasjonen ble sendt til, så godtas den.'));
     if (s && q.get('reason') === 'notlinked') { setMode('notlinked'); return; }
     setMode('login');
   })(); }, []);
@@ -160,6 +186,11 @@ export default function LoginPage() {
     <Field label="Gjenta passordet" type="password" autoComplete="new-password" required value={pw2} onChange={e => setPw2(e.target.value)} />
     <button type="submit" style={S.primary} disabled={busy}>{T('Lagre passord')}</button>
   </form>;
+  if (mode === 'inviteerr') body = <>
+    <h1 style={S.h}>{T('Invitasjonen kunne ikke godtas')}</h1>
+    <button type="button" style={S.primary} onClick={onLogout} disabled={busy}>{T('Logg ut')}</button>
+    <button type="button" style={S.link} onClick={run(async () => { setErr(null); await proceed(); })}>{T('Fortsett uten invitasjonen')}</button>
+  </>;
   if (mode === 'notlinked') body = <>
     <h1 style={S.h}>{T('Kontoen er ikke aktiv')}</h1>
     <p style={S.p}>{T('Du er logget inn, men kontoen er ikke koblet til en aktiv ConnectHub-bruker, eller den er deaktivert. Kontakt administrator.')}</p>

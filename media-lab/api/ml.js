@@ -3,6 +3,7 @@
    Valgfritt: SETUP_CODE – må oppgis ved første oppsett av utviklerkontoen. */
 import { put, get, del, list } from '@vercel/blob';
 import crypto from 'node:crypto';
+import { verifyToken, readCookie, COOKIE } from '../server/lib/gate.js';
 
 const DB = 'sys/db.json';
 const FOLDERS = { mockups: 'img', faste: 'img', logoer: 'img', bakgrunner: 'img', lyd: 'audio' };
@@ -257,6 +258,11 @@ async function route(req) {
 }
 
 export default async function handler(req) {
+  /* ConnectHub (P5): det gamle API-et krever nå også gyldig ConnectHub-innlogging (cookien ch_at), i tillegg til sin egen.
+     Beholdes til ny løsning er godkjent og det kan fjernes (se docs/testlogg.md). */
+  const ck = req.headers && typeof req.headers.get === 'function' ? req.headers.get('cookie') : req.headers && req.headers.cookie;
+  const v = await verifyToken(readCookie(ck, COOKIE), { env: process.env });
+  if (!v.claims) return err(v.unavailable ? 'Midlertidig utilgjengelig.' : 'Logg inn i ConnectHub først.', v.unavailable ? 503 : 401);
   try { return await route(req); }
   catch (e) {
     console.error(e);

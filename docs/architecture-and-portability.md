@@ -74,6 +74,17 @@ brukere ser ikke disse dataene. «Logg ut og fjern mine lokale data» sletter ba
 nøkler. **Begrensning:** dette skiller brukere fra hverandre i appen, men er ikke kryptering. Den som har tilgang til
 PC-ens nettleserprofil, kan lese dataene med utviklerverktøy.
 
+## Serverfunksjoner og dataport (P5)
+- **Klient:** sidene bruker `src/services/*.js` (f.eks. `admin.js`). Disse bruker dataporten `src/services/port.js`
+  (`select`, `insert`, `update`, `rpc`) og `src/services/server.js` (`callServer`). Feil kommer som `ServiceError` med
+  nøytrale koder (`forbidden`, `conflict`, `invalid`, `rate_limited`, `not_found`, `network`). Bare
+  `adapters/supabase/` kjenner Supabase. Andre adaptere (f.eks. en falsk i tester) settes med `useDataAdapter()`.
+- **Server:** `api/ch.js` (Vercel, 3 linjer) → `server/handlers/ch.js` (Web-standard `Request → Response`, handlinger via
+  `?a=`) → `server/adapters/supabase.js`, som er eneste serverfil med Supabase-endepunkter og den hemmelige nøkkelen.
+  Innlogging verifiseres med JWKS (`server/lib/gate.js` → `verifyToken`). Serveren kaller databasefunksjoner **med
+  brukerens token** når rettigheter skal gjelde, og som serverrolle bare for funksjoner som er gitt bare til den.
+- **Lokalt:** `chApiLocal` i `vite.config.js` kjører samme handler i `vite dev`/`preview`.
+
 ## Leverandørbindinger (gjenstående og bevisste)
 | Binding | Hvor | Ved bytte |
 |---|---|---|
