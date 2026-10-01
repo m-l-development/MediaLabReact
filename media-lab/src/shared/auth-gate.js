@@ -5,7 +5,8 @@
    - Lokale data knyttes til brukeren (local-user.js) før noe verktøy åpner lagringen.
    - Bygg uten backend: blokkeres, unntatt i lokal utvikling (vite dev), der det vises et tydelig varsel. */
 import { auth } from '../services/auth.js';
-import { hasBackend } from '../services/config.js';
+import { hasBackend, backend } from '../services/config.js';
+import { switcherAllowed, readView, effectiveMe, mountTestBanner } from './test-role.js';
 import { whoami } from '../services/data/me.js';
 import { installLocalUser, legacyStatus, shouldAsk, rememberAnswer, adoptLegacy } from './local-user.js';
 import { mountAccountMenu } from './account-menu.js';
@@ -73,8 +74,12 @@ export async function ensureLoggedIn() {
   if (!me) { location.replace(auth.loginUrl(here) + '&reason=notlinked'); return new Promise(() => {}); }
   try { sessionStorage.removeItem('ch.loop'); } catch (e) {}
   installLocalUser(me.id);
-  window.CH = Object.freeze({ me });
+  /* Testrolle (bare utvikling/Preview): grensesnittet ser «view»; serveren og RLS bruker fortsatt den ekte kontoen. */
+  const allowed = switcherAllowed(backend), view = allowed ? readView() : null, eff = allowed ? effectiveMe(me, view) : me;
+  const testRole = eff !== me ? view : null;
+  window.CH = Object.freeze({ me: eff, realMe: me, testRole, switcher: allowed, backend: backend ? Object.freeze({ target: backend.target, projectRef: backend.projectRef }) : null });
   await askLegacy(me);
-  mountAccountMenu(me);
-  return me;
+  mountAccountMenu(eff, me, allowed);
+  if (testRole) mountTestBanner(me, testRole);
+  return eff;
 }

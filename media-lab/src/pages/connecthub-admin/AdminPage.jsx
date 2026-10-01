@@ -15,6 +15,8 @@ const NAV = [
   ['oversikt', 'Oversikt'], ['brukere', 'Brukere'], ['menigheter', 'Menigheter'], ['invitasjoner', 'Invitasjoner'],
   ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['logg', 'Logg'],
 ];
+/* Vanlige brukere ser bare det de har nytte av (rettighetene håndheves uansett av databasen). */
+const USER_NAV = ['oversikt', 'menigheter', 'filer', 'samarbeid'];
 
 export default function AdminPage({ me }) {
   const staff = isStaff(me) && me.mfa, dev = staff && hasRole(me, 'developer'), staffNoMfa = isStaff(me) && !me.mfa;
@@ -35,8 +37,17 @@ export default function AdminPage({ me }) {
       staff ? admin.systemStatus().catch(() => null) : null,
       staff ? SUB.requests(null).catch(() => []) : [],
     ]);
-    setD({ churches, users, memberships, roles, invites, status, pendingSubs: subs.filter(s => s.status === 'pending').length, loaded: true });
-    setCtxChurch(c => c && churches.some(x => x.id === c) ? c : ((churches.find(x => adminOf.includes(x.id)) || churches[0] || {}).id || null));
+    let v = { churches, users, memberships, roles, invites };
+    if (window.CH && window.CH.testRole && !staff) {
+      const scope = new Set(adminOf.length ? adminOf : (me.churches || []).map(c => c.id)), inScope = id => scope.has(id);
+      const ms = memberships.filter(m => inScope(m.church_id) && (adminOf.length || m.user_id === me.id));
+      const people = new Set([me.id, ...ms.map(m => m.user_id)]);
+      v = { churches: churches.filter(c => inScope(c.id)), memberships: ms, users: users.filter(u => people.has(u.id)),
+        roles: roles.filter(r => people.has(r.user_id) && (!r.church_id || inScope(r.church_id)) && (adminOf.length || r.user_id === me.id)),
+        invites: adminOf.length ? invites.filter(i => inScope(i.church_id)) : [] };
+    }
+    setD({ ...v, status, pendingSubs: subs.filter(s => s.status === 'pending').length, loaded: true });
+    setCtxChurch(c => c && v.churches.some(x => x.id === c) ? c : ((v.churches.find(x => adminOf.includes(x.id)) || v.churches[0] || {}).id || null));
   }, [staff]);
   React.useEffect(() => { act(reload)(); }, []);
 
@@ -45,36 +56,37 @@ export default function AdminPage({ me }) {
   const userName = id => { const u = userById(id); return u ? (u.full_name || u.email) : (id ? T('Ukjent bruker') : T('System')); };
   const canManage = id => staff || adminOf.includes(id);
   const pendingInvites = d.invites.filter(i => i.status === 'pending' && new Date(i.expires_at) > new Date());
-  const ctx = { me, staff, dev, staffNoMfa, adminOf, d, reload, act, say, busy, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
+  const isUser = !staff && !adminOf.length;
+  const nav = isUser ? NAV.filter(([k]) => USER_NAV.includes(k)) : NAV;
+  const ctx = { me, isUser, staff, dev, staffNoMfa, adminOf, d, reload, act, say, busy, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
 
-  const [sec, id, sub] = route;
+  const [sec0, id, sub] = route, sec = isUser && !USER_NAV.includes(sec0) ? 'oversikt' : sec0;
   let body;
   if (sec === 'brukere') body = <UsersView selected={id} />;
-  else if (sec === 'menigheter') body = id ? <ChurchDetail id={id} tab={sub || 'medlemmer'} /> : <ChurchesView />;
+  else if (sec === 'menigheter') body = id ? <ChurchDetail id={id} tab={sub || (canManage(id) ? 'medlemmer' : 'filer')} /> : <ChurchesView />;
   else if (sec === 'invitasjoner') body = <InvitesView />;
   else if (sec === 'filer') body = <><Head title="Filer" sub="Bilder i menighetens mapper. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
   else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Del bilder med andre menigheter." right={<ChurchPicker />} /><SpacesView churchId={ctxChurch} /></>;
   else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – stab godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
-  else body = <Overview pendingInvites={pendingInvites} />;
+  else body = isUser ? <UserOverview /> : <Overview pendingInvites={pendingInvites} />;
 
   const counts = { invitasjoner: pendingInvites.length, abonnement: d.pendingSubs };
   return <Ctx.Provider value={ctx}>
     <div data-ml-theme="admin" data-ml-bg="static">
       <header className="ch-top" data-ml-bar="1">
         <a className="ch-back" href="media-lab.dc.html">← Media Lab</a>
-        <span className="ch-brand">CONNECTHUB · ADMIN</span>
+        <span className="ch-brand">{isUser ? 'CONNECTHUB' : 'CONNECTHUB · ADMIN'}</span>
         <span className="ch-spacer" />
         {(staff || adminOf.length > 0) && <Btn kind="primary" small onClick={() => setInvite({ church: sec === 'menigheter' && id ? id : ctxChurch })}>+ {T('Ny invitasjon')}</Btn>}
       </header>
       <div className="ch-shell">
         <nav className="ch-nav" aria-label={T('Admin')}>
-          {NAV.map(([k, l]) => <a key={k} href={href(k)} className={sec === k || (k === 'oversikt' && !NAV.some(n => n[0] === sec)) ? 'on' : ''}>{T(l)}{counts[k] > 0 && <span className="ch-count">{counts[k]}</span>}</a>)}
+          {nav.map(([k, l]) => <a key={k} href={href(k)} className={sec === k || (k === 'oversikt' && !nav.some(n => n[0] === sec)) ? 'on' : ''}>{T(l)}{counts[k] > 0 && <span className="ch-count">{counts[k]}</span>}</a>)}
           {dev && <div className="ch-navfoot">{T('Gammel admin er beholdt til den kan fjernes:')} <a href="admin.dc.html">admin.dc.html</a></div>}
         </nav>
         <main className="ch-main">
           {staffNoMfa && <p className="ch-note warn">{T('Rollen din krever totrinnsbekreftelse. Logg ut og inn igjen og sett opp autentiseringsappen for å bruke stab-rettighetene.')}</p>}
-          {d.loaded && !staff && !adminOf.length && <p className="ch-note warn">{T('Du har ikke administratortilgang. Under «Filer» kan du se og legge til bilder i menighetens fellesmappe og dine private filer.')}</p>}
           {note && <p role="status" className={'ch-note ' + (note.ok ? 'ok' : 'bad')}>{note.text}</p>}
           {body}
         </main>
@@ -93,7 +105,7 @@ export function Head({ title, sub, right, crumb }) {
 
 /* ---------- Oversikt ---------- */
 function Overview({ pendingInvites }) {
-  const { me, staff, d, churchName, adminOf, act } = useAdmin();
+  const { me, staff, dev, d, churchName, adminOf, act } = useAdmin();
   const [recent, setRecent] = React.useState([]);
   const [spaceInv, setSpaceInv] = React.useState([]);
   React.useEffect(() => { act(async () => {
@@ -117,6 +129,7 @@ function Overview({ pendingInvites }) {
       {staff && <a className="ch-stat" href={href('abonnement')}><b>{d.pendingSubs}</b><span>{T('Forespørsler om abonnement')}</span></a>}
       {s && <a className="ch-stat" href={href('logg')}><b>{s.audit_last_24h}</b><span>{T('Hendelser siste døgn')}</span></a>}
     </div>
+    {dev && <DevCard />}
     <div className="ch-grid">
       <Card title="Krever handling" sub={todo.length || null}>
         {todo.length ? <List cols="1fr" rows={todo.map(x => ({ key: x.k, cells: [<a href={x.to}>{x.t} →</a>] }))} /> : <p className="ch-muted">{T('Ingenting venter på deg nå.')}</p>}
@@ -124,6 +137,43 @@ function Overview({ pendingInvites }) {
       <Card title="Siste hendelser" actions={<a className="ch-btn small" href={href('logg')}>{T('Hele loggen')}</a>}>
         {recent.length ? <List cols="1fr auto" rows={recent.map(l => ({ key: l.id, cells: [<span>{T(actionName(l.action))}{l.church_id ? ' · ' + churchName(l.church_id) : ''}</span>, <span className="ch-muted">{fmt(l.created_at)}</span>] }))} /> : <p className="ch-muted">{T('Ingen hendelser.')}</p>}
       </Card>
+    </div>
+  </>;
+}
+
+/* Utviklerinformasjon (bare Developer): miljø og tilstand – ingen hemmeligheter. */
+function DevCard() {
+  const { me } = useAdmin();
+  const b = (window.CH && window.CH.backend) || {};
+  return <Card title="Utvikler">
+    <dl className="ch-kv">
+      <dt>{T('Miljø')}</dt><dd>{T(b.target === 'preview' ? 'Vercel Preview' : b.target === 'local' ? 'Lokal utvikling' : b.target || '–')}</dd>
+      <dt>{T('Supabase-prosjekt')}</dt><dd>{b.projectRef || '–'}</dd>
+      <dt>{T('Bygg')}</dt><dd>{typeof __ML_BUILD__ !== 'undefined' ? __ML_BUILD__ : '–'}</dd>
+      <dt>{T('Bruker-ID')}</dt><dd>{me.id}</dd>
+      <dt>{T('Totrinn (MFA)')}</dt><dd>{T(me.mfa ? 'Aktiv i denne økten' : 'Ikke aktiv')}</dd>
+      <dt>{T('Testrolle')}</dt><dd>{T(window.CH && window.CH.switcher ? 'Tilgjengelig i kontomenyen' : 'Ikke tilgjengelig her')}</dd>
+    </dl>
+    <div className="ch-row"><a className="ch-btn small" href={href('logg')}>{T('Logg')}</a><a className="ch-btn small" href="admin.dc.html">{T('Gammel admin')}</a></div>
+  </Card>;
+}
+
+/* ---------- Oversikt for vanlige brukere ---------- */
+function UserOverview() {
+  const { me, d } = useAdmin();
+  const mine = d.churches.filter(c => (me.churches || []).some(x => x.id === c.id));
+  return <>
+    <Head title="Oversikt" sub="Velkommen til ConnectHub." />
+    {window.CH && window.CH.testRole === 'admin' && <p className="ch-note warn">{T('Admin-visningen viser menighetene du er medlem av. Legg deg til i en menighet (som Developer) for å teste den.')}</p>}
+    <Card title="Mine menigheter" sub={mine.length}>
+      {mine.length ? <div className="ch-grid">{mine.map(c => <a key={c.id} className="ch-stat" href={href('menigheter', c.id)}>
+        <div className="ch-row"><span className="ch-avatar">{c.name.slice(0, 2).toUpperCase()}</span><b style={{ fontSize: 16 }}>{c.name}</b></div>
+        <span>{T('Du er medlem')} · {T('Åpne')} →</span></a>)}</div> : <Empty>{T('Du er ikke medlem av noen menighet ennå. Du får en invitasjon fra menighetens admin.')}</Empty>}
+    </Card>
+    <div className="ch-grid">
+      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens fellesmappe, og ha dine egne private bilder.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer')}>{T('Åpne filer')}</a></div></Card>
+      <Card title="Samarbeid"><p className="ch-muted">{T('Se bilder som deles mellom menighetene du er med i.')}</p><div className="ch-row"><a className="ch-btn" href={href('samarbeid')}>{T('Åpne samarbeid')}</a></div></Card>
+      <Card title="Profil og varsler"><p className="ch-muted">{T('Navn, telefon, varsler og personvern finner du i kontomenyen nede til høyre.')}</p></Card>
     </div>
   </>;
 }
@@ -207,7 +257,7 @@ function UserDetail({ id, onClose }) {
             {!self && staff && adm && <Btn small onClick={run(() => admin.revokeRole(adm.id, 'Admin-siden'), 'Admin-rollen er fjernet.')}>{T('Fjern admin')}</Btn>}
           </div>] };
       })} /> : <p className="ch-muted">{T('Ikke medlem av noen menighet.')}</p>}
-      {staff && !self && <div className="ch-row">
+      {staff && <div className="ch-row">
         <select className="ch-select" value={addCh} onChange={e => setAddCh(e.target.value)} aria-label={T('Legg til i menighet')}>
           <option value="">{T('Legg til i menighet …')}</option>
           {d.churches.filter(c => c.status === 'active' && !mems.some(m => m.church_id === c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

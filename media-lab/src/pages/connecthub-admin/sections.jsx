@@ -30,7 +30,7 @@ export function ChurchPicker() {
 
 /* ---------- Menigheter ---------- */
 export function ChurchesView() {
-  const { d, staff, act, say, reload, userName } = useAdmin();
+  const { d, staff, isUser, act, say, reload, userName } = useAdmin();
   const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [name, setName] = React.useState('');
   const list = d.churches.filter(c => (!q || norm(c.name).includes(norm(q))) && (st === 'all' || c.status === st));
   const count = id => d.memberships.filter(m => m.church_id === id && m.status === 'active').length;
@@ -47,13 +47,15 @@ export function ChurchesView() {
       <Search value={q} onChange={setQ} placeholder="Søk etter menighet …" />
       <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle statuser'], ['active', 'Aktiv'], ['temporarily_disabled', 'Midlertidig deaktivert'], ['pending_deletion', 'Venter på sletting']]} />
     </div>
+    {isUser ? <List cols="minmax(200px,1fr) auto" head={['Menighet', 'Status']} empty="Du er ikke medlem av noen menighet ennå." onRow={r => go('menigheter', r.key)}
+      rows={list.map(c => ({ key: c.id, cells: [<div className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{T('Du er medlem')}</span></div></div>, <div className="ch-end"><StatusBadge s={c.status} /></div>] }))} /> :
     <List cols="minmax(200px,2fr) auto minmax(140px,1.5fr) auto" head={['Menighet', 'Medlemmer', 'Admin', 'Status']} empty="Ingen menigheter passer med søket."
       onRow={r => go('menigheter', r.key)}
       rows={list.map(c => ({ key: c.id, cells: [
         <div className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{T('Opprettet')} {fmtDate(c.created_at)}</span></div></div>,
         <span>{count(c.id)} <span className="ch-muted">{T('medlemmer')}</span></span>,
         <span className="ch-muted">{admins(c.id).join(', ') || '–'}</span>,
-        <div className="ch-end"><StatusBadge s={c.status} /></div>] }))} />
+        <div className="ch-end"><StatusBadge s={c.status} /></div>] }))} />}
   </>;
 }
 
@@ -65,13 +67,13 @@ export function ChurchDetail({ id, tab }) {
   if (!c) return <><Head title="Menighet" crumb={<a href={href('menigheter')}>← {T('Menigheter')}</a>} /><Card><Empty>{T('Fant ikke menigheten, eller du har ikke tilgang.')}</Empty></Card></>;
   const n = d.memberships.filter(m => m.church_id === id && m.status === 'active').length;
   return <>
-    <Head title={c.name} crumb={<a href={href('menigheter')}>← {T('Menigheter')}</a>} sub={n + ' ' + T('aktive medlemmer')} right={<StatusBadge s={c.status} />} />
-    <nav className="ch-tabs">{CTABS.filter(([k]) => k !== 'innstillinger' || canManage(id)).map(([k, l]) => <a key={k} href={href('menigheter', id, k)} className={tab === k ? 'on' : ''}>{T(l)}</a>)}</nav>
-    {tab === 'medlemmer' && <MembersView church={c} />}
-    {tab === 'invitasjoner' && <InvitesView churchId={id} embedded />}
+    <Head title={c.name} crumb={<a href={href('menigheter')}>← {T('Menigheter')}</a>} sub={canManage(id) ? n + ' ' + T('aktive medlemmer') : T('Du er medlem')} right={<StatusBadge s={c.status} />} />
+    <nav className="ch-tabs">{CTABS.filter(([k]) => canManage(id) || k === 'filer' || k === 'samarbeid').map(([k, l]) => <a key={k} href={href('menigheter', id, k)} className={tab === k ? 'on' : ''}>{T(l)}</a>)}</nav>
+    {tab === 'medlemmer' && canManage(id) && <MembersView church={c} />}
+    {tab === 'invitasjoner' && canManage(id) && <InvitesView churchId={id} embedded />}
     {tab === 'filer' && <FilesView churchId={id} />}
     {tab === 'samarbeid' && <SpacesView churchId={id} />}
-    {tab === 'abonnement' && <SubsView churchId={id} />}
+    {tab === 'abonnement' && canManage(id) && <SubsView churchId={id} />}
     {tab === 'innstillinger' && <ChurchSettings church={c} />}
   </>;
 }
