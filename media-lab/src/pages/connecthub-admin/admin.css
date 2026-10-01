@@ -148,3 +148,7 @@ html[data-ml-mode="light"] [data-ml-theme="admin"] {
   [data-ml-theme="admin"] .ch-kv dt { margin-top: 6px; }
 }
 [data-ml-theme="admin"] .ch-danger { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+
+/* Trinn 19: redigering av abonnementsplan (Developer) – lister, forhåndsvisning og knapper over hele bredden. */
+[data-ml-theme="admin"] .ch-plan-edit { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+[data-ml-theme="admin"] .ch-plan-edit > .ch-list, [data-ml-theme="admin"] .ch-plan-edit > p, [data-ml-theme="admin"] .ch-plan-edit > .ch-row, [data-ml-theme="admin"] .ch-plan-edit > label { grid-column: 1 / -1; }

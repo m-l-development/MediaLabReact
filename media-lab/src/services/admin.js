@@ -7,7 +7,7 @@ import { callServer } from './server.js';
 const USER_COLS = 'id, email, full_name, phone, status, created_at';
 
 export const admin = {
-  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after, storage_quota_mb', order: 'name' }),
+  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after, storage_quota_mb, quota_custom', order: 'name' }),
   createChurch: name => data().insert('churches', { name: String(name || '').trim() }, 'id, name, status'),
   renameChurch: (id, name) => data().update('churches', { id }, { name: String(name || '').trim() }),
 
@@ -41,7 +41,10 @@ export const admin = {
   allRoles: () => data().select('user_roles', { columns: 'id, user_id, role, church_id, assigned_at', isNull: ['revoked_at'] }),
   /* Stab kan legge en eksisterende bruker til i en menighet (eksisterende RLS-regel memberships_insert_staff). */
   addMembership: (userId, churchId) => data().insert('memberships', { user_id: userId, church_id: churchId }, 'user_id, church_id, status'),
-  setQuota: (churchId, mbQuota) => data().update('churches', { id: churchId }, { storage_quota_mb: mbQuota }),
+  /* Egen kvote for én menighet (Developer med MFA, loggført; beskyttes mot automatiske planendringer). */
+  setQuota: (churchId, mbQuota) => data().rpc('set_church_quota', { p_church: churchId, p_quota_mb: mbQuota }),
+  /* Menigheten følger planens kvote igjen (eller standarden uten abonnement). Loggført. */
+  followPlanQuota: churchId => data().rpc('follow_plan_quota', { p_church: churchId }),
   /* Egne opplysninger (RLS: bare seg selv, bare navn og telefon). */
   updateMyProfile: (id, fullName, phone) => data().update('app_users', { id }, { full_name: String(fullName || '').trim() || null, phone: String(phone || '').trim() || null }),
   userActivity: userId => data().select('audit_logs', { columns: 'id, action, target_type, church_id, meta, created_at', eq: { actor_user_id: userId }, order: 'created_at', desc: true, limit: 25 }),

@@ -18,7 +18,7 @@ const ACTIONS = {
   'spaces.update': 'Samarbeidsområde endret', 'spaces.status': 'Samarbeidsområde arkivert eller åpnet', 'spaces.delete': 'Samarbeidsområde slettet',
   'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
   'church_subscriptions.insert': 'Abonnement satt', 'church_subscriptions.update': 'Abonnement endret',
-  'account.delete': 'Konto slettet', 'audit_logs.purge': 'Gammel logg slettet',
+  'account.delete': 'Konto slettet', 'plans.update': 'Abonnementsplan endret', 'churches.quota': 'Lagringskvote endret', 'audit_logs.purge': 'Gammel logg slettet',
 };
 export const actionName = a => ACTIONS[a] || a;
 
@@ -128,9 +128,13 @@ function ChurchSettings({ church }) {
       </form>
       <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.setQuota(church.id, Math.max(0, Math.min(10240, parseInt(quota, 10) || 0))), 'Lagringskvoten er endret.')(e); }}>
         <Field label="Lagringskvote (MB)"><input className="ch-input" type="number" min={0} max={10240} value={quota} onChange={e => setQuota(e.target.value)} /></Field>
-        <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre kvote')}</Btn>
+        <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre egen kvote')}</Btn>
       </form>
-      <p className="ch-muted">{T('Kvoten settes også automatisk når et abonnement godkjennes.')}</p>
+      {church.quota_custom
+        ? <div className="ch-row"><Badge tone="warn">{T('Egen kvote')}</Badge><span className="ch-muted">{T('Beskyttet: endres ikke av planendringer eller når et abonnement godkjennes.')}</span>
+            <Btn small onClick={run(() => admin.followPlanQuota(church.id), 'Menigheten følger planens kvote igjen.')}>{T('Følg planen igjen')}</Btn></div>
+        : <p className="ch-muted">{T('Kvoten følger planen og settes når et abonnement godkjennes. Lagrer du en egen kvote, beskyttes den mot automatiske endringer.')}</p>}
+      <p className="ch-muted">{T('Alle kvoteendringer loggføres med gammel og ny verdi. Ingen filer slettes om kvoten senkes – bare nye opplastinger stoppes.')}</p>
     </Card>}
     {canManage(church.id) && <Card title="Eksport">
       <p className="ch-muted">{T('Last ned menighetens data (medlemmer, invitasjoner, filer med lenker som virker i 1 time, samarbeid og logg) som JSON.')}</p>
@@ -349,16 +353,76 @@ function SpaceSettings({ space, members, shared, onSaved, onDeleted }) {
 }
 
 /* ---------- Abonnement ---------- */
+const priceText = v => v === 0 ? T('Gratis') : v ? v + ' kr/mnd' : T('Avtales');
+
+/* Developer endrer kvote og pris for en plan (trinn 19). Databasen krever MFA og loggfører gammel og ny verdi.
+   Endres kvoten, må forhåndsvisningen av berørte menigheter hentes før lagring. Egne kvoter, menigheter uten abonnement og
+   avsluttede abonnementer endres aldri automatisk. Ingen filer slettes. */
+function PlanEditor({ plan, onCancel, onDone }) {
+  const { act, say } = useAdmin();
+  const [f, setF] = React.useState({ quota: String(plan.storage_quota_mb), price: plan.price_nok_month == null ? '' : String(plan.price_nok_month), upd: true });
+  const [pv, setPv] = React.useState(null);
+  const qs = f.quota.trim(), ps = f.price.trim();
+  const okQ = /^\d{1,5}$/.test(qs) && +qs <= 10240, okP = ps === '' || /^\d{1,7}$/.test(ps);
+  const q = okQ ? +qs : null, price = ps === '' ? null : +ps;
+  const quotaChanged = okQ && q !== plan.storage_quota_mb, priceChanged = okP && price !== plan.price_nok_month;
+  const needPreview = quotaChanged && f.upd;
+  React.useEffect(() => { setPv(null); }, [qs, f.upd]);
+  const preview = act(async () => setPv(await SUB.planPreview(plan.code, q)));
+  const changing = (pv || []).filter(r => r.will_change), over = changing.filter(r => r.over_after);
+  const save = act(async e => {
+    e.preventDefault();
+    if (!okQ || !okP || (!quotaChanged && !priceChanged)) return;
+    if (needPreview && !pv) throw Object.assign(new Error(), { code: 'invalid' });
+    const lines = [T('Lagre endringen for') + ' «' + T(plan.name) + '»?'];
+    if (quotaChanged) lines.push(T('Lagring') + ': ' + plan.storage_quota_mb + ' MB → ' + q + ' MB');
+    if (priceChanged) lines.push(T('Pris') + ': ' + priceText(plan.price_nok_month) + ' → ' + priceText(price));
+    if (needPreview) lines.push(changing.length + ' ' + T('menigheter får ny kvote.') + (over.length ? ' ' + over.length + ' ' + T('kommer over kvoten – nye opplastinger stoppes, ingen filer slettes.') : ''));
+    else if (quotaChanged) lines.push(T('Menighetenes kvoter endres ikke.'));
+    if (!confirm(lines.join('\n'))) return;
+    const r = await SUB.updatePlan(plan.code, q, price, f.upd && quotaChanged);
+    say(T('Planen er endret.') + (r && r.churches_updated ? ' ' + r.churches_updated + ' ' + T('menigheter fikk ny kvote.') : ''));
+    await onDone();
+  });
+  return <form className="ch-form ch-plan-edit" onSubmit={save} aria-label={T('Endre plan') + ' ' + T(plan.name)}>
+    <Field label="Lagring (MB, 0–10240)"><input className="ch-input" inputMode="numeric" value={f.quota} onChange={e => setF(x => ({ ...x, quota: e.target.value }))} aria-invalid={!okQ} /></Field>
+    <Field label="Pris (kr/mnd, tom = Avtales)"><input className="ch-input" inputMode="numeric" value={f.price} onChange={e => setF(x => ({ ...x, price: e.target.value }))} aria-invalid={!okP} /></Field>
+    {quotaChanged && <label className="ch-row ch-muted"><input type="checkbox" checked={f.upd} onChange={e => setF(x => ({ ...x, upd: e.target.checked }))} /> {T('Oppdater også menighetene på planen (ikke egne kvoter)')}</label>}
+    {(!okQ || !okP) && <p className="ch-note bad">{T('Lagring må være et helt tall mellom 0 og 10240. Pris må være et helt tall (eller tom).')}</p>}
+    {needPreview && <div className="ch-row"><Btn small onClick={preview}>{T('Vis berørte menigheter')}</Btn></div>}
+    {needPreview && pv && <>
+      <p className="ch-muted">{changing.length} {T('endres')} · {pv.length - changing.length} {T('endres ikke')}{over.length ? ' · ' + over.length + ' ' + T('over kvoten etter endring') : ''}</p>
+      <List cols="minmax(140px,1fr) auto auto" head={['Menighet', 'Kvote', 'Merknad']} empty="Ingen menigheter er knyttet til planen."
+        rows={pv.map(r => ({ key: r.church_id, cells: [<b>{r.church_name}</b>,
+          <span>{r.will_change ? r.current_mb + ' → ' + r.new_mb + ' MB' : r.current_mb + ' MB'}</span>,
+          <span className="ch-row">{r.will_change ? <Badge tone="ok">{T('Endres')}</Badge> : <span className="ch-muted">{T(PREVIEW_REASON[r.reason] || r.reason)}</span>}
+            {r.over_after && <Badge tone="bad">{T('Over kvoten')}</Badge>}</span>] }))} />
+    </>}
+    <div className="ch-row">
+      <Btn kind="primary" disabled={!okQ || !okP || (!quotaChanged && !priceChanged) || (needPreview && !pv)} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre plan')}</Btn>
+      <Btn onClick={onCancel}>{T('Avbryt')}</Btn>
+    </div>
+    <p className="ch-muted">{T('Endringen loggføres med gammel og ny verdi. Egne kvoter, menigheter uten abonnement og avsluttede abonnementer endres ikke. Ingen filer slettes.')}</p>
+  </form>;
+}
+const PREVIEW_REASON = {
+  'uten registrert abonnement (endres ikke)': 'Uten registrert abonnement (endres ikke)', 'avsluttet abonnement (endres ikke)': 'Avsluttet abonnement (endres ikke)',
+  'egen kvote (beskyttet)': 'Egen kvote (beskyttet)', 'kvoten avviker fra planen (endres ikke)': 'Kvoten avviker fra planen (endres ikke)', 'uendret kvote': 'Uendret kvote', 'endres': 'Endres',
+};
 export function SubsView({ churchId }) {
-  const { staff, canManage, churchName, act, say, reload } = useAdmin();
+  const { staff, canManage, churchName, act, say, reload, d } = useAdmin();
   const [sub, setSub] = React.useState({ plans: [], current: [], reqs: [], plan: 'standard', free: true, reason: '', note: '' });
+  const [editing, setEditing] = React.useState(null);   // plankode som redigeres (bare Developer)
+  const churchOf = id => d.churches.find(c => c.id === id) || {};
   const load = async () => { const [plans, current, reqs] = await Promise.all([SUB.plans(), SUB.current(churchId), SUB.requests(churchId)]); setSub(p => ({ ...p, plans, current, reqs })); };
   React.useEffect(() => { act(load)(); }, [churchId]);
   const run = (fn, ok) => act(async () => { await fn(); say(T(ok)); await load(); await reload(); });
   return <div className="ch-grid">
     <Card title="Planer">
-      <List cols="1fr auto auto" head={['Plan', 'Lagring', 'Pris']} rows={sub.plans.map(p => ({ key: p.code, cells: [T(p.name), p.storage_quota_mb + ' MB', p.price_nok_month === 0 ? T('Gratis') : p.price_nok_month ? p.price_nok_month + ' kr/mnd' : T('Avtales')] }))} />
-      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; stab godkjenner. Abonnementet bestemmer lagringskvoten.')}</p>
+      <List cols={staff ? '1fr auto auto auto' : '1fr auto auto'} head={staff ? ['Plan', 'Lagring', 'Pris', ''] : ['Plan', 'Lagring', 'Pris']} rows={sub.plans.map(p => ({ key: p.code, cells: [T(p.name), p.storage_quota_mb + ' MB', priceText(p.price_nok_month),
+        ...(staff ? [<div className="ch-end"><Btn small onClick={() => setEditing(editing === p.code ? null : p.code)}>{T(editing === p.code ? 'Lukk' : 'Endre')}</Btn></div>] : [])] }))} />
+      {staff && editing && <PlanEditor key={editing} plan={sub.plans.find(p => p.code === editing)} onCancel={() => setEditing(null)} onDone={async () => { setEditing(null); await load(); await reload(); }} />}
+      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; Developer godkjenner. Abonnementet bestemmer lagringskvoten.')}</p>
     </Card>
     <Card title="Nåværende abonnement">
       <List cols="1fr auto auto" head={['Menighet', 'Plan', 'Gratis']} empty="Ingen abonnement registrert (standard: Gratis, 200 MB)." rows={sub.current.map(c => ({ key: c.church_id, cells: [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei')] }))} />
@@ -372,7 +436,8 @@ export function SubsView({ churchId }) {
     <Card title="Forespørsler" sub={sub.reqs.filter(r => r.status === 'pending').length + ' ' + T('venter')}>
       {staff && <Field label="Merknad til avgjørelsen (valgfritt)"><input className="ch-input" value={sub.note} onChange={e => setSub(p => ({ ...p, note: e.target.value }))} maxLength={500} /></Field>}
       <List cols="minmax(140px,1fr) auto auto auto" head={['Menighet og plan', 'Gratis', 'Status', '']} empty="Ingen forespørsler." rows={sub.reqs.map(r => ({ key: r.id, cells: [
-        <div><b>{churchName(r.church_id)}</b><div className="ch-muted">{r.plan}{r.reason ? ' · ' + r.reason : ''}{r.decision_note ? ' · ' + r.decision_note : ''}</div></div>,
+        <div><b>{churchName(r.church_id)}</b><div className="ch-muted">{r.plan}{r.reason ? ' · ' + r.reason : ''}{r.decision_note ? ' · ' + r.decision_note : ''}</div>
+          {staff && r.status === 'pending' && churchOf(r.church_id).quota_custom && <div className="ch-muted"><Badge tone="warn">{T('Egen kvote beholdes')} ({churchOf(r.church_id).storage_quota_mb} MB)</Badge></div>}</div>,
         T(r.free_of_charge ? 'Ja' : 'Nei'), <StatusBadge s={r.status} />,
         r.status === 'pending' ? (staff ? <div className="ch-end">
           <Btn small kind="primary" onClick={run(() => SUB.decide(r.id, true, sub.note), 'Forespørselen er godkjent.')}>{T('Godkjenn')}</Btn>
@@ -388,7 +453,7 @@ export function LogView({ churchId }) {
   const [log, setLog] = React.useState([]), [q, setQ] = React.useState(''), [kind, setKind] = React.useState('all');
   React.useEffect(() => { act(async () => setLog(await admin.audit(churchId)))(); }, [churchId]);
   const kinds = [...new Set(log.map(l => l.action.split('.')[0]))];
-  const KIND = { churches: 'Menigheter', memberships: 'Medlemskap', user_roles: 'Roller', invitations: 'Invitasjoner', app_users: 'Brukere', files: 'Filer', message: 'Meldinger', spaces: 'Samarbeid', subscription_requests: 'Abonnement', church_subscriptions: 'Abonnement', account: 'Kontoer', audit_logs: 'Logg' };
+  const KIND = { churches: 'Menigheter', memberships: 'Medlemskap', user_roles: 'Roller', invitations: 'Invitasjoner', app_users: 'Brukere', files: 'Filer', message: 'Meldinger', spaces: 'Samarbeid', plans: 'Abonnement', subscription_requests: 'Abonnement', church_subscriptions: 'Abonnement', account: 'Kontoer', audit_logs: 'Logg' };
   const list = log.filter(l => (kind === 'all' || l.action.startsWith(kind + '.')) && (!q || norm(T(actionName(l.action)) + ' ' + userName(l.actor_user_id) + ' ' + (l.church_id ? churchName(l.church_id) : '') + ' ' + (l.reason || '')).includes(norm(q))));
   return <>
     <div className="ch-row">

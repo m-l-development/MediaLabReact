@@ -25,6 +25,10 @@ export const subscriptions = {
   request: (churchId, plan, free, reason) => data().rpc('request_subscription', { p_church: churchId, p_plan: plan, p_free: !!free, p_reason: reason || null }),
   withdraw: id => data().rpc('withdraw_subscription_request', { p_id: id }),
   decide: (id, approve, note) => data().rpc('decide_subscription_request', { p_id: id, p_approve: !!approve, p_note: note || null }),
+  /* Trinn 19 – bare Developer med MFA (databasen avgjør). Pris tom/null = «Avtales». Alt loggføres med gammel og ny verdi. */
+  updatePlan: (code, quotaMb, priceNokMonth, updateChurches) => data().rpc('update_plan', { p_plan: code, p_quota_mb: quotaMb, p_price_nok_month: priceNokMonth == null || priceNokMonth === '' ? null : Number(priceNokMonth), p_update_churches: !!updateChurches }),
+  /* Hvilke menigheter en ny kvote vil berøre, og hvilke som hoppes over og hvorfor (bare lesing). */
+  planPreview: (code, quotaMb) => data().rpc('plan_change_preview', { p_plan: code, p_new_quota_mb: quotaMb }),
 };
 
 export const notifications = {

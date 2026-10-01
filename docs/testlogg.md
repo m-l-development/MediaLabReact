@@ -352,3 +352,20 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
   - Moderator oppretter et område, endrer navn og beskrivelse og gir Menighet A tilgang.
   - Medlemmet ser beskrivelsen, men får ingen redigering, og sletting via API gir 403.
   - Moderator prøver å slette med feil navn, og det avvises. Med riktig navn slettes området.
+
+## Trinn 19 – Developer endrer pris og lagringskvote per abonnementsplan (2026-10-01/02, connecthub-dev)
+
+**Endringer:**
+- Migreringen `20261001200000_plan_editing.sql`: `update_plan`, `plan_change_preview`, `set_church_quota`, `follow_plan_quota` og `churches.quota_custom`. Egen kvote beholdes ved godkjenning, og alt loggføres. Direkte skriving til kvoter og planer er stengt.
+- Grensesnittet under Abonnement: redigering for Developer med forhåndsvisning og bekreftelse. Merket «Egen kvote», «Følg planen igjen» og «Egen kvote beholdes (X MB)».
+- Ingen pris- eller kvoteverdier er endret. Gratis 200 MB / 0 kr, Standard 1024 MB / Avtales og Utvidet 5120 MB / Avtales er beholdt.
+- Ingen kobling til Gratis-planen (G1).
+
+**Tester:**
+- **Databasetester:** 59 nye. De dekker alle roller, Developer uten MFA, ikke innlogget, direkte skriving, validering, logg med gammel og ny verdi og hvem, forhåndsvisning, beskyttelse av egne kvoter, avsluttede abonnementer og menigheter uten abonnement. Lavere kvote stopper opplasting uten å slette filer, og egen kvote beholdes ved godkjenning.
+- **Tjenestetest:** kvote og pris endres bare via funksjoner, aldri ved direkte skriving.
+- **Nettleser:** Developer med MFA får redigering, validering og forhåndsvisning (uten å lagre). Admin, Moderator og User får 403 på alle funksjoner og på direkte skriving.
+- **Sjekksum:** plan- og kvoteverdier, filer og lagringsobjekter er uendret.
+
+**Gjenstår:**
+- Nettleserverifisering i dev av at planendringer faktisk lagres, at egen kvote beholdes ved godkjenning, og at lavere kvote stopper opplasting. Krever egen godkjenning for testverdier i dev.

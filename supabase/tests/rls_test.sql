@@ -428,6 +428,115 @@ select ch_test.atleast('Abonnement: admin fikk varsel om avgjørelsen', $q$selec
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
 select ch_test.cnt('Abonnement: medlem ser ikke abonnement eller forespørsler', $q$select 1 from public.church_subscriptions union all select 1 from public.subscription_requests$q$, 0);
 
+-- ---------- Planer og kvoter (trinn 19): bare Developer med MFA, alt loggført, egne kvoter beskyttet ----------
+set local role postgres;
+insert into public.churches (id, name) values
+  ('dddddddd-0000-4000-8000-00000000000d', 'Testmenighet Q'), ('eeeeeeee-0000-4000-8000-00000000000e', 'Testmenighet R'),
+  ('ffffffff-0000-4000-8000-00000000000f', 'Testmenighet S'), ('12121212-0000-4000-8000-000000000012', 'Testmenighet T'),
+  ('13131313-0000-4000-8000-000000000013', 'Testmenighet U');   -- U: uten registrert abonnement (G1)
+update public.churches set storage_quota_mb = 1024 where id in ('dddddddd-0000-4000-8000-00000000000d', 'eeeeeeee-0000-4000-8000-00000000000e', 'ffffffff-0000-4000-8000-00000000000f');
+update public.churches set storage_quota_mb = 999 where id = '12121212-0000-4000-8000-000000000012';
+insert into public.church_subscriptions (church_id, plan, free_of_charge, status) values
+  ('dddddddd-0000-4000-8000-00000000000d', 'standard', true, 'active'), ('eeeeeeee-0000-4000-8000-00000000000e', 'standard', true, 'active'),
+  ('ffffffff-0000-4000-8000-00000000000f', 'standard', true, 'cancelled'), ('12121212-0000-4000-8000-000000000012', 'standard', true, 'active');
+create temp table t19 as select (select count(*) from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a') a_files;
+grant select on t19 to authenticated;
+set local role anon;
+select ch_test.err('Plan: ikke innlogget kan ikke endre plan', $q$select public.update_plan('standard', 2048, null, false)$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Plan: Developer uten MFA kan ikke endre plan', $q$select public.update_plan('standard', 2048, null, false)$q$, '42501');
+select ch_test.err('Plan: Developer uten MFA kan ikke sette egen kvote', $q$select public.set_church_quota('dddddddd-0000-4000-8000-00000000000d', 1500)$q$, '42501');
+select ch_test.err('Plan: Developer uten MFA får ikke forhåndsvisning', $q$select public.plan_change_preview('standard', 2048)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Plan: Moderator kan ikke endre plan', $q$select public.update_plan('standard', 2048, null, false)$q$, '42501');
+select ch_test.err('Plan: Moderator kan ikke sette egen kvote', $q$select public.set_church_quota('dddddddd-0000-4000-8000-00000000000d', 1500)$q$, '42501');
+select ch_test.err('Plan: Moderator får ikke forhåndsvisning', $q$select public.plan_change_preview('standard', 2048)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Plan: Admin kan ikke endre plan', $q$select public.update_plan('standard', 2048, null, false)$q$, '42501');
+select ch_test.err('Plan: Admin kan ikke sette kvote for egen menighet', $q$select public.set_church_quota('aaaaaaaa-0000-4000-8000-00000000000a', 9000)$q$, '42501');
+select ch_test.err('Plan: Admin kan ikke følge plan igjen', $q$select public.follow_plan_quota('aaaaaaaa-0000-4000-8000-00000000000a')$q$, '42501');
+select ch_test.err('Plan: Admin kan ikke skrive kvoten direkte', $q$update public.churches set storage_quota_mb = 9000 where id = 'aaaaaaaa-0000-4000-8000-00000000000a'$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Plan: User kan ikke endre plan', $q$select public.update_plan('standard', 2048, null, false)$q$, '42501');
+select ch_test.err('Plan: User kan ikke sette kvote', $q$select public.set_church_quota('aaaaaaaa-0000-4000-8000-00000000000a', 9000)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Plan: direkte endring av plans avvises også for Developer', $q$update public.plans set storage_quota_mb = 1 where code = 'standard'$q$, '42501');
+select ch_test.err('Plan: direkte innsetting i plans avvises', $q$insert into public.plans (code, name, storage_quota_mb) values ('hack', 'Hack', 1)$q$, '42501');
+select ch_test.err('Plan: direkte sletting i plans avvises', $q$delete from public.plans where code = 'gratis'$q$, '42501');
+select ch_test.err('Plan: direkte endring av menighetens kvote avvises også for Developer', $q$update public.churches set storage_quota_mb = 5 where id = 'aaaaaaaa-0000-4000-8000-00000000000a'$q$, '42501');
+select ch_test.err('Plan: kvote under 0 avvises', $q$select public.update_plan('standard', -1, null, false)$q$, '22023');
+select ch_test.err('Plan: kvote over 10240 MB avvises', $q$select public.update_plan('standard', 10241, null, false)$q$, '22023');
+select ch_test.err('Plan: negativ pris avvises', $q$select public.update_plan('standard', 1024, -5, false)$q$, '22023');
+select ch_test.err('Plan: ukjent plan avvises', $q$select public.update_plan('finnesikke', 1024, null, false)$q$, '22023');
+select ch_test.err('Plan: egen kvote over 10240 MB avvises', $q$select public.set_church_quota('dddddddd-0000-4000-8000-00000000000d', 20000)$q$, '22023');
+select ch_test.ok('Plan: Developer setter egen kvote for Q', $q$select public.set_church_quota('dddddddd-0000-4000-8000-00000000000d', 1500)$q$);
+set local role postgres;
+select ch_test.cnt('Plan: egen kvote er satt og merket', $q$select 1 from public.churches where id = 'dddddddd-0000-4000-8000-00000000000d' and storage_quota_mb = 1500 and quota_custom$q$, 1);
+select ch_test.cnt('Plan: egen kvote er loggført med gammel og ny verdi', $q$select 1 from public.audit_logs where action = 'churches.quota' and church_id = 'dddddddd-0000-4000-8000-00000000000d' and meta ->> 'old_mb' = '1024' and meta ->> 'new_mb' = '1500' and meta ->> 'reason' = 'egen kvote' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
+set local role authenticated;
+
+-- Forhåndsvisning
+select ch_test.cnt('Forhåndsvisning: to menigheter på Standard endres (A og R)', $q$select 1 from public.plan_change_preview('standard', 2048) where will_change and church_id in ('aaaaaaaa-0000-4000-8000-00000000000a', 'eeeeeeee-0000-4000-8000-00000000000e')$q$, 2);
+select ch_test.cnt('Forhåndsvisning: ingen av testmenighetene Q, S og T endres', $q$select 1 from public.plan_change_preview('standard', 2048) where will_change and church_name in ('Testmenighet Q', 'Testmenighet S', 'Testmenighet T')$q$, 0);
+select ch_test.cnt('Forhåndsvisning: egen kvote vises som beskyttet', $q$select 1 from public.plan_change_preview('standard', 2048) where church_name = 'Testmenighet Q' and not will_change and reason like 'egen kvote%'$q$, 1);
+select ch_test.cnt('Forhåndsvisning: avsluttet abonnement endres ikke', $q$select 1 from public.plan_change_preview('standard', 2048) where church_name = 'Testmenighet S' and not will_change and reason like 'avsluttet%'$q$, 1);
+select ch_test.cnt('Forhåndsvisning: kvote som avviker fra planen endres ikke', $q$select 1 from public.plan_change_preview('standard', 2048) where church_name = 'Testmenighet T' and not will_change$q$, 1);
+select ch_test.cnt('Forhåndsvisning: lavere kvote viser at A kommer over kvoten', $q$select 1 from public.plan_change_preview('standard', 0) where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and will_change and over_after$q$, 1);
+select ch_test.cnt('Forhåndsvisning (G1): menigheter uten abonnement endres aldri av Gratis-planen', $q$select 1 from public.plan_change_preview('gratis', 300) where will_change$q$, 0);
+select ch_test.atleast('Forhåndsvisning (G1): menigheter uten abonnement vises som «endres ikke»', $q$select 1 from public.plan_change_preview('gratis', 300) where reason like 'uten registrert abonnement%'$q$, 2);
+
+-- Endring av plan
+select ch_test.cnt('Plan: Developer endrer Standard til 2048 MB og oppdaterer menighetene (minst A og R)', $q$select 1 where (public.update_plan('standard', 2048, null, true) ->> 'churches_updated')::int >= 2$q$, 1);
+set local role postgres;
+select ch_test.cnt('Plan: planen har ny kvote', $q$select 1 from public.plans where code = 'standard' and storage_quota_mb = 2048$q$, 1);
+select ch_test.cnt('Plan: A og R har fått ny kvote', $q$select 1 from public.churches where id in ('aaaaaaaa-0000-4000-8000-00000000000a', 'eeeeeeee-0000-4000-8000-00000000000e') and storage_quota_mb = 2048$q$, 2);
+select ch_test.cnt('Plan: egen kvote (Q), avsluttet (S) og avvikende (T) er urørt', $q$select 1 from public.churches where (id, storage_quota_mb) in (('dddddddd-0000-4000-8000-00000000000d', 1500), ('ffffffff-0000-4000-8000-00000000000f', 1024), ('12121212-0000-4000-8000-000000000012', 999))$q$, 3);
+select ch_test.cnt('Plan: planendringen er loggført med gammel og ny verdi og hvem', $q$select 1 from public.audit_logs where action = 'plans.update' and target_id = 'standard' and meta -> 'old' ->> 'quota_mb' = '1024' and meta -> 'new' ->> 'quota_mb' = '2048' and (meta ->> 'churches_updated')::int >= 2 and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
+select ch_test.cnt('Plan: hver endret menighet er loggført', $q$select 1 from public.audit_logs where action = 'churches.quota' and church_id in ('aaaaaaaa-0000-4000-8000-00000000000a', 'eeeeeeee-0000-4000-8000-00000000000e') and meta ->> 'reason' like 'plan «standard» endret' and meta ->> 'old_mb' = '1024' and meta ->> 'new_mb' = '2048'$q$, 2);
+select ch_test.err('Plan: loggen kan ikke endres', $q$update public.audit_logs set meta = '{}' where action = 'plans.update'$q$, '42501');
+set local role authenticated;
+
+-- Lavere kvote: ingen filer slettes, bare ny opplasting stoppes
+select ch_test.ok('Kvote: Developer setter Standard til 0 MB (A har filer)', $q$select public.update_plan('standard', 0, null, true)$q$);
+set local role postgres;
+select ch_test.cnt('Kvote: ingen filer i A er slettet', $q$select 1 from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' having count(*) = (select a_files from t19)$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Kvote: ny opplasting stoppes når forbruket er over kvoten', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 10)$q$, '54000');
+select ch_test.atleast('Kvote: nedlasting virker fortsatt', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'ny.png'))$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Kvote: Developer setter Standard tilbake til 1024 MB', $q$select public.update_plan('standard', 1024, null, true)$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.ok('Kvote: opplasting virker igjen', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 10)$q$);
+
+-- Gratis-planen (G1) og pris
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Gratis (G1): endring av Gratis-planen oppdaterer ingen menigheter uten abonnement', $q$select 1 where (public.update_plan('gratis', 300, 0, true) ->> 'churches_updated') = '0'$q$, 1);
+set local role postgres;
+select ch_test.cnt('Gratis (G1): B og U (uten abonnement) beholder 200 MB', $q$select 1 from public.churches where id in ('bbbbbbbb-0000-4000-8000-00000000000b', '13131313-0000-4000-8000-000000000013') and storage_quota_mb = 200$q$, 2);
+set local role authenticated;
+select ch_test.ok('Pris: Developer setter pris for Utvidet uten å endre kvoten', $q$select public.update_plan('utvidet', 5120, 990, false)$q$);
+select ch_test.cnt('Pris: ny pris er lagret, kvoten er uendret', $q$select 1 from public.plans p where p.code = 'utvidet' and p.price_nok_month = 990 and p.storage_quota_mb = 5120$q$, 1);
+select ch_test.ok('Pris: tom pris («Avtales») er lov', $q$select public.update_plan('utvidet', 5120, null, false)$q$);
+
+-- Godkjenning av abonnement beholder egen kvote
+select ch_test.ok('Godkjenning: Developer setter egen kvote for B', $q$select public.set_church_quota('bbbbbbbb-0000-4000-8000-00000000000b', 777)$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
+select ch_test.ok('Godkjenning: Admin i B ber om Utvidet', $q$select public.request_subscription('bbbbbbbb-0000-4000-8000-00000000000b', 'utvidet', false, 'Test')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Godkjenning: Developer godkjenner', $q$select public.decide_subscription_request((select id from public.subscription_requests where status = 'pending' and church_id = 'bbbbbbbb-0000-4000-8000-00000000000b'), true, 'ok')$q$);
+set local role postgres;
+select ch_test.cnt('Godkjenning: egen kvote (777 MB) er beholdt', $q$select 1 from public.churches where id = 'bbbbbbbb-0000-4000-8000-00000000000b' and storage_quota_mb = 777 and quota_custom$q$, 1);
+select ch_test.cnt('Godkjenning: beholdt egen kvote er loggført', $q$select 1 from public.audit_logs where action = 'churches.quota' and church_id = 'bbbbbbbb-0000-4000-8000-00000000000b' and meta ->> 'reason' like '%egen kvote beholdt'$q$, 1);
+select ch_test.cnt('Godkjenning: planens kvote ved godkjenning uten egen kvote er loggført (A)', $q$select 1 from public.audit_logs where action = 'churches.quota' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and meta ->> 'reason' = 'abonnement «standard» godkjent'$q$, 1);
+set local role authenticated;
+select ch_test.cnt('Følg planen igjen: B får Utvidet-kvoten og mister merket', $q$select 1 where public.follow_plan_quota('bbbbbbbb-0000-4000-8000-00000000000b') = 5120$q$, 1);
+set local role postgres;
+select ch_test.cnt('Følg planen igjen: merket er fjernet og endringen loggført', $q$select 1 from public.churches c where c.id = 'bbbbbbbb-0000-4000-8000-00000000000b' and not c.quota_custom and c.storage_quota_mb = 5120 and exists (select 1 from public.audit_logs l where l.action = 'churches.quota' and l.church_id = c.id and l.meta ->> 'reason' = 'følger planen igjen')$q$, 1);
+update public.plans set storage_quota_mb = 200, price_nok_month = 0 where code = 'gratis';
+set local role authenticated;
+
 -- ---------- Menighetens livsløp (P10) ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
 select ch_test.err('Livsløp: admin kan ikke endre status direkte', $q$update public.churches set status = 'deleted'$q$, '42501');

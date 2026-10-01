@@ -86,3 +86,22 @@ test('files.upload: video, feil type og for store filer stoppes før noe sendes'
   await rejects(files.upload(f('x.svg', 'image/svg+xml', 10), { churchId: 'c1' }), 'type_not_allowed');
   await rejects(files.upload(f('x.png', 'image/png', 5 * 1024 * 1024), { churchId: 'c1' }), 'too_large');
 });
+
+test('trinn 19: kvote og pris endres bare via loggførte databasefunksjoner – aldri ved direkte skriving', async () => {
+  const calls = [];
+  const rpcs = Object.fromEntries(['update_plan', 'plan_change_preview', 'set_church_quota', 'follow_plan_quota'].map(fn => [fn, a => { calls.push([fn, a]); return fn === 'update_plan' ? { ok: true, churches_updated: 0 } : []; }]));
+  const fake = makeFakeData({ tables: { churches: [{ id: 'c1', storage_quota_mb: 200 }], plans: [] }, rpcs });
+  const upd = fake.update.bind(fake); let direct = 0; fake.update = (...a) => { direct++; return upd(...a); };
+  useDataAdapter(fake);
+  const { subscriptions } = await import('./community.js');
+  await admin.setQuota('c1', 777);
+  await admin.followPlanQuota('c1');
+  await subscriptions.updatePlan('standard', 2048, '', true);
+  await subscriptions.updatePlan('utvidet', 5120, '990', false);
+  await subscriptions.planPreview('standard', 2048);
+  assert.equal(direct, 0, 'ingen direkte oppdatering av tabeller');
+  assert.deepEqual(calls.map(c => c[0]), ['set_church_quota', 'follow_plan_quota', 'update_plan', 'update_plan', 'plan_change_preview']);
+  assert.deepEqual(calls[2][1], { p_plan: 'standard', p_quota_mb: 2048, p_price_nok_month: null, p_update_churches: true }, 'tom pris = «Avtales» (null)');
+  assert.equal(calls[3][1].p_price_nok_month, 990);
+  useDataAdapter(null);
+});
