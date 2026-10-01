@@ -8,3 +8,5 @@ dist/
 uploads/
 screenshots/
 .claude/settings.local.json
+supabase/.temp/
+supabase/.branches/

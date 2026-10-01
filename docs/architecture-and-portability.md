@@ -30,6 +30,22 @@ omfattende omskriving. Dette dokumentet beskriver hvordan, og holdes oppdatert f
 - Alle RLS-policyer bruker **`app.current_user_id()`**. Den leser `sub`/`iss` fra `request.jwt.claims` (PostgREST-standard) og slår opp i `user_identities`. Ingen policy nevner Supabase.
 - RLS-policyer, funksjoner og triggere er vanlig PostgreSQL og følger med `pg_dump`.
 
+## Databasen (P3)
+| Tabell | Innhold | Hvem ser | Hvem skriver |
+|---|---|---|---|
+| `app_users` | Egen bruker-ID, e-post, navn, telefon, status | Seg selv, stab, admin i felles menighet | Navn/telefon: bare seg selv |
+| `user_identities` | Kobling `iss`/`sub` → `app_users` | Bare egne | Server (P4/P5) |
+| `churches` | Menigheter og status | Medlemmer, admin, stab | Stab (Developer/Moderator) |
+| `memberships` | Bruker ↔ menighet, status | Egne, admin i menigheten, stab | Opprettes av stab (invitasjoner i P5); status av admin/stab, aldri eget |
+| `user_roles` | `developer`/`moderator` (globale), `church_admin` (per menighet) | Egne, admin i menigheten, stab | Bare `assign_role`/`revoke_role` |
+| `invitations` | Hash av token, utløp, status | Stab, admin i menigheten, oppretter | Server (P5); token-hash aldri lesbar |
+| `audit_logs` | Hvem gjorde hva, uten persondata i `meta` | Stab, admin for egen menighet | Bare triggere; kan aldri endres/slettes |
+| `files` | Metadata for bilder | Medlemmer, admin, stab | Server (P7); video avvises av databasen |
+
+Rolleregler: ingen kan endre egne roller; Developer/Moderator krever MFA (aal2); bare Developer gir `developer`/`moderator`;
+Developer eller Moderator gir `church_admin` til aktive medlemmer; én aktiv admin per menighet; alt loggføres.
+Status (bruker, medlemskap, menighet, rolle) sjekkes ved hvert kall – tilbakekalling virker umiddelbart, også med gyldig token.
+
 ## Leverandørbindinger (gjenstående og bevisste)
 | Binding | Hvor | Ved bytte |
 |---|---|---|

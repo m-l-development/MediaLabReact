@@ -1,0 +1,25 @@
+# ConnectHub – Supabase CLI-oppsett for UTVIKLINGSPROSJEKTET connecthub-dev (uatpdmhnwwjgzlxaucsx).
+# Bare innstillingene som står her pushes (`supabase config push --project-ref uatpdmhnwwjgzlxaucsx`);
+# alt annet i prosjektet står urørt. Kjør `supabase config diff --project-ref …` først.
+# Produksjon (connecthub) settes opp separat i P11 – denne filen skal ALDRI pushes mot produksjonsprosjektet.
+project_id = "connecthub-dev"
+
+[db]
+major_version = 17
+
+[auth]
+site_url = "https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app"
+additional_redirect_urls = [
+  "http://localhost:5173/**",
+  "https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app/**",
+  "https://media-lab-react-vyef-*-media-lab3.vercel.app/**",
+]
+enable_signup = false
+minimum_password_length = 10
+password_requirements = "letters_digits"
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = true
