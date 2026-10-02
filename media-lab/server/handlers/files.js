@@ -46,6 +46,29 @@ export const routes = {
     const urls = {}; for (const r of rows || []) if (signed[r.storage_key]) urls[r.id] = signed[r.storage_key];
     return json({ ok: true, urls, expires_in: 600 });
   },
+  /* Overføring til Samarbeidsfiler: en KOPI av en fellesfil legges i koblingens mappe. Originalen røres aldri.
+     Tilgang avgjøres av databasen med brukerens token (can_transfer) og på nytt ved registrering (med lås og kvote).
+     Kopien kontrolleres mot originalens SHA-256; ved avvik eller feil i registreringen slettes kopien igjen. */
+  async 'file.copy_to_link'(ctx) {
+    const file = String(ctx.body.file_id || ''), link = String(ctx.body.link_id || '');
+    if (!UUID.test(file) || !UUID.test(link)) return fail('invalid');
+    const src = await ctx.backend.rpcAsUser(ctx.token, 'can_transfer', { p_file: file, p_link: link });
+    if (!src || !src.storage_key || !UUID.test(String(src.church_id || ''))) return fail('not_found', 404);
+    const ext = (String(src.storage_key).match(/\.(png|jpg|webp|gif)$/) || [])[1] || 'bin';
+    const key = 'c/' + src.church_id + '/' + crypto.randomUUID() + '.' + ext;
+    await ctx.backend.storageCopy(src.storage_key, key);
+    try {
+      if (src.sha256) {
+        const sha = hex(await crypto.subtle.digest('SHA-256', await ctx.backend.storageGet(key)));
+        if (sha !== src.sha256) throw { status: 502, error: 'copy_mismatch' };
+      }
+      const f = await ctx.backend.rpcAsServer('register_link_copy', { p_issuer: ctx.claims.iss, p_subject: ctx.claims.sub, p_file: file, p_link: link, p_key: key });
+      return json({ ok: true, file: f });
+    } catch (e) {
+      await ctx.backend.storageDelete([key]).catch(() => {});
+      throw e;
+    }
+  },
   async 'file.delete'(ctx) {
     const id = String(ctx.body.id || ''); if (!UUID.test(id)) return fail('invalid');
     const key = await ctx.backend.rpcAsUser(ctx.token, 'delete_file', { p_id: id });

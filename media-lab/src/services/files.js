@@ -22,6 +22,10 @@ export const files = {
   },
   async urls(ids) { if (!ids.length) return {}; return (await callServer('file.urls', { ids })).urls || {}; },
   remove: id => callServer('file.delete', { id }),
+  /* Samarbeidsfiler (trinn 18): kopier i en kobling. Originalen blir liggende. */
+  listLink: linkId => data().select('files', { columns: COLS + ', link_id, source_folder', eq: { link_id: linkId }, order: 'created_at', desc: true, limit: 500 }),
+  listCollab: () => data().select('files', { columns: COLS + ', link_id, source_folder', eq: { folder: 'samarbeid' }, order: 'created_at', desc: true, limit: 500 }),
+  copyToLink: (fileId, linkId) => callServer('file.copy_to_link', { file_id: fileId, link_id: linkId }),
   /* Henter bildene som lokale blob:-adresser (ingen «tainted» lerret ved eksport, og ingen utløpte lenker). */
   async objectUrls(ids) {
     const urls = await files.urls(ids.slice(0, 100)), out = {};

@@ -4,17 +4,17 @@ import React from 'react';
 import './admin.css';
 import { admin } from '../../services/admin.js';
 import { isStaff, hasRole } from '../../services/data/me.js';
-import { subscriptions as SUB, spaces as SP } from '../../services/community.js';
+import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor } from './access.js';
-import { ChurchesView, ChurchDetail, InvitesView, FilesView, SpacesView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
+import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 
 export const Ctx = React.createContext(null);
 export const useAdmin = () => React.useContext(Ctx);
 
 export default function AdminPage({ me }) {
   const dev = hasRole(me, 'developer') && me.mfa, staff = dev;                    // systemadministrasjon = Developer
-  const collab = (hasRole(me, 'moderator') || hasRole(me, 'developer')) && me.mfa; // samarbeid = Moderator (og Developer)
+  const collab = hasRole(me, 'moderator') && me.mfa;                               // samarbeid (koblinger) = bare Moderator (trinn 18)
   const staffNoMfa = isStaff(me) && !me.mfa;
   const adminOf = (me.roles || []).filter(r => r.role === 'church_admin').map(r => r.church_id);
   const kind = dev ? 'developer' : collab ? 'moderator' : adminOf.length ? 'admin' : 'user';
@@ -73,8 +73,8 @@ export default function AdminPage({ me }) {
   else if (sec === 'brukere') body = <UsersView selected={id} />;
   else if (sec === 'menigheter') body = id ? <ChurchDetail id={id} tab={sub || (canManage(id) ? 'medlemmer' : 'filer')} /> : <ChurchesView />;
   else if (sec === 'invitasjoner') body = <InvitesView />;
-  else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser og delt mappe. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
-  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub={collab ? 'Sett opp samarbeidsområder og velg hva som deles.' : 'Samarbeid som er gjort tilgjengelig for deg.'} /><SpacesView /></>;
+  else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser, delt mappe og Samarbeidsfiler. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
+  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Koblinger mellom to menigheter. Hver kobling har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
   else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
   else body = kind === 'user' ? <UserOverview /> : kind === 'moderator' && !adminOf.length ? <ModeratorOverview /> : <Overview pendingInvites={pendingInvites} />;
@@ -113,23 +113,21 @@ function Forbidden() {
       <div className="ch-row"><a className="ch-btn" href={href('oversikt')}>{T('Til oversikten')}</a></div></Card></>;
 }
 
-/* Oversikt for Moderator: samarbeid. */
+/* Oversikt for Moderator: koblinger mellom menigheter (bare metadata, aldri filinnhold). */
 function ModeratorOverview() {
   const { me, act } = useAdmin();
-  const [st, setSt] = React.useState({ spaces: [], members: 0, files: 0 });
-  React.useEffect(() => { act(async () => {
-    const list = await SP.list();
-    const per = await Promise.all(list.filter(x => x.status === 'active').map(s => Promise.all([SP.members(s.id), SP.files(s.id)])));   /* parallelt, ikke ett område om gangen */
-    setSt({ spaces: list, members: per.reduce((n, [m]) => n + m.filter(x => x.status === 'active').length, 0), files: per.reduce((n, [, f]) => n + f.length, 0) });
-  })(); }, []);
+  const [ls, setLs] = React.useState([]);
+  React.useEffect(() => { act(async () => setLs(await LK.mine()))(); }, []);
+  const active = ls.filter(l => l.status === 'active');
+  const churches = new Set(active.flatMap(l => [l.church_a, l.church_b]).filter(Boolean));
   return <>
     <Head title="Oversikt" sub={(me.full_name || me.email) + ' · Moderator'} />
     <div className="ch-stats">
-      <a className="ch-stat" href={href('samarbeid')}><b>{st.spaces.filter(s => s.status === 'active').length}</b><span>{T('Aktive samarbeidsområder')}</span></a>
-      <a className="ch-stat" href={href('samarbeid')}><b>{st.members}</b><span>{T('Deltakende menigheter')}</span></a>
-      <a className="ch-stat" href={href('samarbeid')}><b>{st.files}</b><span>{T('Delte bilder')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{active.length}</b><span>{T('Aktive koblinger')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{churches.size}</b><span>{T('Menigheter med kobling')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{ls.length - active.length}</b><span>{T('Avsluttede koblinger')}</span></a>
     </div>
-    <Card title="Ditt ansvar"><p className="ch-muted">{T('Som Moderator setter du opp samarbeidsområder, velger hvilke menigheter som får tilgang, og hvilke fellesbilder som deles. Brukeradministrasjon og filer håndteres av Admin.')}</p>
+    <Card title="Ditt ansvar"><p className="ch-muted">{T('Som Moderator kobler du sammen to og to menigheter. Hver kobling får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet. Brukere og filer håndteres av Admin.')}</p>
       <div className="ch-row"><a className="ch-btn primary" href={href('samarbeid')}>{T('Gå til samarbeid')}</a></div></Card>
   </>;
 }
@@ -195,7 +193,7 @@ function DevCard() {
 
 /* ---------- Oversikt for vanlige brukere ---------- */
 function UserOverview() {
-  const { me, d, allowed } = useAdmin();
+  const { me, d } = useAdmin();
   const mine = d.churches.filter(c => (me.churches || []).some(x => x.id === c.id));
   return <>
     <Head title="Oversikt" sub="Velkommen til ConnectHub." />
@@ -206,8 +204,7 @@ function UserOverview() {
         <span>{T('Du er medlem')} · {T('Åpne')} →</span></a>)}</div> : <Empty>{T('Du er ikke medlem av noen menighet ennå. Du får en invitasjon fra menighetens admin.')}</Empty>}
     </Card>
     <div className="ch-grid">
-      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens fellesmappe, og ha dine egne private bilder.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer')}>{T('Åpne filer')}</a></div></Card>
-      {allowed.has('samarbeid') && <Card title="Samarbeid"><p className="ch-muted">{T('Se bilder som deles mellom menighetene du er med i.')}</p><div className="ch-row"><a className="ch-btn" href={href('samarbeid')}>{T('Åpne samarbeid')}</a></div></Card>}
+      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens fellesmappe, ha dine egne private bilder, og se Samarbeidsfiler med menigheter dere samarbeider med.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer')}>{T('Åpne filer')}</a></div></Card>
       <Card title="Profil og varsler"><p className="ch-muted">{T('Navn, telefon, varsler og personvern finner du i kontomenyen nede til høyre.')}</p></Card>
     </div>
   </>;

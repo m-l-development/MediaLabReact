@@ -367,5 +367,87 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 - **Nettleser:** Developer med MFA får redigering, validering og forhåndsvisning (uten å lagre). Admin, Moderator og User får 403 på alle funksjoner og på direkte skriving.
 - **Sjekksum:** plan- og kvoteverdier, filer og lagringsobjekter er uendret.
 
-**Gjenstår:**
-- Nettleserverifisering i dev av at planendringer faktisk lagres, at egen kvote beholdes ved godkjenning, og at lavere kvote stopper opplasting. Krever egen godkjenning for testverdier i dev.
+### Nettlesertester med lagring (plan 19.8, godkjent 2026-10-02)
+
+**Miljø:**
+- Lokal `vite preview` av den committede versjonen `d7bd755`, i en egen arbeidskopi uten trinn 18-koden. Kontrollert: ingen `my_links` i bygget.
+- Kjørt mot `connecthub-dev` med lokal API.
+- Kontoer: bare de syntetiske kontoene `ch-test-dev` (MFA), `ch-test-admin` og `ch-test-user2`.
+
+| Test | Resultat |
+|---|---|
+| 1. Utvidet: forhåndsvisning før lagring | «Ingen menigheter er knyttet til planen.» |
+| 1. Lagre 5121 MB / 1 kr/mnd | Bekreftelsen viser «5120 MB → 5121 MB / Avtales → 1 kr/mnd / 0 menigheter får ny kvote». Verdiene vises i lista og etter ny lasting, og ligger slik i databasen. **OK** |
+| 1. Logg | `plans.update` med gammel `{5120, null}`, ny `{5121, 1}`, `churches_updated 0` og hvem (`ch-test-dev`). **OK** |
+| 1. Gjenoppretting | 5120 MB / «Avtales» i lista og i databasen, og loggført. **OK** |
+| 2. A får egen kvote 1000 MB | Merket «Egen kvote» vises. 1000 MB med egen kvote i databasen. **OK** |
+| 2. Admin A ber om Standard, gratis | «Forespørselen er sendt.» **OK** |
+| 2. Developer ser forespørselen | Merket «Egen kvote beholdes (1000 MB)» vises. Godkjent. **OK** |
+| 2. Etter godkjenning | A har fortsatt 1000 MB med egen kvote. Abonnementet er Standard, gratis og aktivt. Loggen sier «abonnement «standard» godkjent – egen kvote beholdt». **OK** |
+| 2. Gjenoppretting | «Følg planen igjen» → 1024 MB uten egen kvote, loggført «følger planen igjen». **OK** |
+| 3. user2 laster opp `ch-test-kvotetest.png` i B sin Delt mappe | Lastet opp, 685 byte. SHA-256 `347db23a…5d89c9d` er lik i nettleseren og i databasen. **OK** |
+| 3. B får egen kvote 0 MB | 0 MB med egen kvote. **OK** |
+| 3. Opplasting av `ch-test-kvotetest-2.png` ved 0 MB | **Blokkert** (HTTP 429). Ingen ny rad og intet nytt lagringsobjekt (fortsatt 6 og 6). **OK, men se avvik 1** |
+| 3. Nedlasting ved 0 MB | Virker: 685 byte med samme SHA-256 `347db23a…5d89c9d` som ved opplasting. Filen står fortsatt i lista. **OK** |
+| 3. Gjenoppretting | «Følg planen igjen» → B har 200 MB uten egen kvote (G1, uten abonnement). user2 slettet testfilen («Filen er slettet.»), og raden og lagringsobjektet er borte. **OK** |
+
+**Sjekksum før og etter** (plan- og kvoteverdier, merket for egen kvote, abonnementer, menigheter, medlemskap, roller, brukere, alle filrader, alle lagringsobjekter, menigheten «12», kontoen din og skjermbildet ditt):
+- **Alt er identisk.**
+- Testfiler etterpå: 0.
+- Eneste forskjell: abonnementsforespørsler 1 → 2. Det er den godkjente forespørselen fra test 2 og et forventet spor.
+- Andre forventede spor: nytt tidspunkt og ny utfører på A sitt abonnement (innholdet er likt), varsler til Admin A, nye loggrader, og TOTP-faktoren til `ch-test-dev` er lagt inn på nytt (som i tidligere E2E).
+
+**Avvik:**
+1. **Misvisende feilmelding når kvoten er brukt opp.**
+   - Databasen avviser med «Menighetens lagringskvote er brukt opp» (SQLSTATE 54000).
+   - `server/lib/http.js` (`dbError`) gjør alle 54000 om til `429 rate_limited`, så brukeren ser «For mange forsøk. Vent litt.».
+   - Sperren virker. Bare teksten er feil.
+   - Feilen fantes før trinn 19 og gjelder også private kvoter.
+   - **Ikke rettet** (ikke en del av godkjenningen). Forslag: egen kode, f.eks. `quota_exceeded` med teksten «Lagringskvoten er brukt opp.», for kvotefeil.
+2. **Underveis i testskriptet:** to selektorer traff ikke (menighetslista, og navigasjon før siden var lastet).
+   - Ingenting ble lagret i de forsøkene, og databasen var uendret (kontrollert).
+   - Rettet i skriptet og kjørt på nytt.
+
+**Gjenstår:** ingenting for trinn 19 utover avvik 1, som krever egen godkjenning.
+
+## Trinn 18 – Koblinger og Samarbeidsfiler mellom to menigheter (2026-10-02, connecthub-dev)
+
+**Omfang:**
+- Koblinger mellom nøyaktig to menigheter med egen Samarbeidsfiler-mappe. Bare Moderator oppretter, avslutter og gjenåpner.
+- Overføring som kopi:
+  - fra Delt mappe av alle medlemmer
+  - fra Faste bare av Admin
+  - aldri private filer
+- Fjerning bare av Admin i menigheten som bidro.
+- **Filtilgang:**
+  - A1: Developer bare via medlemskap
+  - A2: Moderator bare metadata
+  - M1: Faste bare for Admin
+- Verktøyene viser Samarbeidsfiler i et eget område (A4). Feilen der Mockups aldri viste skybilder (`f.path`), er rettet.
+
+**Tester:**
+
+| Kjøring | Resultat |
+|---|---|
+| `npm test` (kandidat: 123b529 + trinn 18) | 83/83 |
+| RLS i PGlite | 381/381 |
+| RLS mot dev | 381/381 |
+| Bygg | OK. Sikkerhetssøket har ingen funn. |
+
+**Nettleser** (lokal `vite preview` av kandidaten mot dev, bare syntetiske kontoer og CH-test-menighetene):
+
+| Steg | Resultat |
+|---|---|
+| Moderator oppretter koblingen A–B | «Koblingen er opprettet». Samme par igjen gir 409. Menyen viser Oversikt og Samarbeid. |
+| Medlem i A | **Fanen Samarbeidsfiler vises.** Kopi fra Delt mappe med dialogen «… mellom A og B … Originalen blir liggende i «Delt mappe»». **Ingen kopiknapp:** på privat fil eller i Faste. **Avvist:** API-kopi fra Faste (403). **Ingen fjerningsknapp** for medlem. |
+| Admin A | Kopi av logoen fra Faste (Logoer). «Fjern fra Samarbeidsfiler» vises på egne bidrag. `create_link` gir 403. |
+| Medlem i B | **Ser kopiene** under «Fra CH-test Menighet A», uten fjerningsknapp. **Nedlasting:** SHA-256 er lik originalene (`94f01e35…`, `f3d9fa1a…`). **Ser aldri A sine vanlige filer** (REST tom). **Avvist:** `can_transfer` for A sin fil (403) og fjerning av A sin kopi (403). **Verktøy:** Photo Design-skyen gir gruppen «… – …» med begge kopiene, og vanlige logoer er tomme for B. |
+| Moderator | Bare filnavn, størrelse, menighet og dato. Ingen miniatyrer, ingen filrader (REST tom) og ingen nedlastingslenker (`urls: {}`). |
+| Developer (medlem av A, ikke av B) | Menyen har ikke Samarbeid. Ser Samarbeidsfiler i A, uten fjerning (ikke Admin). B gir «Du er ikke medlem av denne menigheten …». `create_link` gir 403. |
+| Bruker uten medlemskap | Samarbeidsfiler og `my_links` er tomme. |
+| Avslutt og gjenåpne | Avsluttet: fanen er borte for B, og REST er tom. Gjenåpnet: begge kopiene er synlige igjen. Ingenting er slettet. |
+| Opprydding | Admin A fjernet begge kopiene. Bekreftelsen nevner originalmappen, og originalene finnes. Koblingen er avsluttet. |
+
+**Data:**
+- Øyeblikksbildet før og etter (planer, kvoter, menigheter, abonnementer, medlemskap, roller, brukere, filrader og lagringsobjekter med sjekksum, «12», kontoen din og skjermbildet ditt): **alle 14 felt er identiske**.
+- **Varige spor:** én avsluttet testkobling (CH-test A–B), loggrader og varsler til de syntetiske Admin-kontoene.

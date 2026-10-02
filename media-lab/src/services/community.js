@@ -18,6 +18,22 @@ export const spaces = {
   share: (fileId, spaceId, on = true) => data().rpc('share_file_to_space', { p_file: fileId, p_space: spaceId, p_share: on }),
 };
 
+/* Koblinger mellom nøyaktig to menigheter med egen Samarbeidsfiler-mappe (trinn 18). Bare Moderator oppretter, avslutter
+   og gjenåpner; medlemmer ser koblinger for egne menigheter. Databasen avgjør alt (RLS og funksjoner). */
+export const links = {
+  /* [{ id, church_a, church_a_name, church_b, church_b_name, status, created_at, ended_at, my_church }] */
+  mine: () => data().rpc('my_links'),
+  directory: () => data().rpc('church_directory'),
+  create: (church1, church2) => data().rpc('create_link', { p_church1: church1, p_church2: church2 }),
+  end: id => data().rpc('end_link', { p_link: id }),
+  reopen: id => data().rpc('reopen_link', { p_link: id }),
+  /* Bare Moderator: filnavn og metadata, aldri innhold. */
+  filesMeta: id => data().rpc('link_files_meta', { p_link: id }),
+};
+/* Visningsnavn for en kobling: «Menighet A – Menighet B» (eller den andre menigheten sett fra egen menighet). */
+export const linkName = l => [l.church_a_name, l.church_b_name].map(n => n || '(slettet menighet)').join(' – ');
+export const otherChurch = (l, mine) => (l.church_a === mine ? l.church_b_name : l.church_a_name) || '(slettet menighet)';
+
 export const subscriptions = {
   /* Plannavn og pris (alle innloggede). Planenes veiledende lagring kan bare Developer lese (plansAdmin). */
   plans: () => data().select('plans', { columns: 'code, name, price_nok_month, active', order: 'code' }),

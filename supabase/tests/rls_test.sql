@@ -332,81 +332,194 @@ select ch_test.err('Varsel: kan ikke endre tittel', $q$update public.notificatio
 select ch_test.err('Varsel: kan ikke lage varsler selv', $q$insert into public.notifications (user_id, kind, title) values ('00000000-0000-4000-8000-000000000008', 'message', 'x')$q$, '42501');
 select ch_test.err('Varsel: medlem kan ikke sende melding til menigheten', $q$select public.send_church_message('aaaaaaaa-0000-4000-8000-00000000000a', 'Hei', 'x')$q$, '42501');
 
--- ---------- Samarbeid: bare Moderator administrerer, Admin har ingen tilgang ----------
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
-select ch_test.err('Samarbeid: Admin kan ikke opprette område', $q$select public.create_space('Adminområde', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '42501');
-select ch_test.cnt('Samarbeid: Admin får ikke menighetslisten for samarbeid', 'select 1 from public.church_directory()', 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
-select ch_test.err('Samarbeid: medlem kan ikke opprette område', $q$select public.create_space('Medlemsområde')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Samarbeid: Moderator oppretter område', $q$select public.create_space('Testområde')$q$);
-select ch_test.ok('Samarbeid: Moderator gjør området tilgjengelig for A', $q$select public.invite_to_space((select id from public.spaces where name = 'Testområde'), 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
-select ch_test.cnt('Samarbeid: Moderator ser fellesfiler i deltakende menighet (for å velge)', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
-select ch_test.cnt('Samarbeid: Moderator ser ikke private filer', $q$select 1 from public.files where file_name = 'privat.png'$q$, 0);
-select ch_test.cnt('Samarbeid: Moderator ser ikke filer i menigheter som ikke deltar', $q$select 1 from public.files where church_id = 'bbbbbbbb-0000-4000-8000-00000000000b'$q$, 0);
-select ch_test.ok('Samarbeid: Moderator deler fellesfil fra A', $q$select public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Testområde'))$q$);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: medlem i A ser området', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
-select ch_test.err('Samarbeid: medlem kan ikke dele filer', $q$select public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Testområde'))$q$, '42501');
-select ch_test.err('Samarbeid: medlem kan ikke endre deltakelse', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'aaaaaaaa-0000-4000-8000-00000000000a', 'left')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: Admin i A ser ikke området (API)', $q$select 1 from public.spaces$q$, 0);
-select ch_test.cnt('Samarbeid: Admin i A ser ikke deltakerne (API)', $q$select 1 from public.space_members$q$, 0);
-select ch_test.cnt('Samarbeid: Admin i A ser ikke delingene (API)', $q$select 1 from public.space_files$q$, 0);
-select ch_test.err('Samarbeid: Admin kan ikke gjøre tilgjengelig', $q$select public.invite_to_space((select id from public.spaces limit 1), 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: medlem i B ser ikke området før det er gjort tilgjengelig', $q$select 1 from public.spaces$q$, 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Samarbeid: Moderator gjør området tilgjengelig for B', $q$select public.invite_to_space((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b')$q$);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: medlem i B ser området', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
-select ch_test.atleast('Samarbeid: medlem i B fikk varsel', $q$select 1 from public.notifications where kind = 'space_invite'$q$, 1);
-select ch_test.cnt('Samarbeid: medlem i B ser delt fil fra A', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
-select ch_test.cnt('Samarbeid: medlem i B får nedlastingslenke (nøkkel) til delt fil', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'bilde.jpg'))$q$, 1);
-select ch_test.cnt('Samarbeid: medlem i B ser ikke andre filer i A', $q$select 1 from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and file_name <> 'bilde.jpg'$q$, 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: Admin i B ser ikke området', $q$select 1 from public.spaces$q$, 0);
-select ch_test.cnt('Samarbeid: Admin i B ser ikke delt fil fra A', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
-select ch_test.cnt('Samarbeid: Admin i B får ikke nøkkel til delt fil', $q$select 1 from public.file_keys(array(select f.id from public.files f where f.file_name = 'bilde.jpg'))$q$, 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Samarbeid: Moderator fjerner B', $q$select public.set_space_membership((select id from public.spaces where name = 'Testområde'), 'bbbbbbbb-0000-4000-8000-00000000000b', 'left')$q$);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: etter fjerning ser medlem i B ikke filen', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Samarbeid: Moderator arkiverer området', $q$select public.set_space_status((select id from public.spaces where name = 'Testområde'), 'archived')$q$);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: arkivert område er ikke tilgjengelig for medlemmer', $q$select 1 from public.spaces$q$, 0);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.cnt('Samarbeid: Developer har teknisk tilgang', $q$select 1 from public.spaces where name = 'Testområde'$q$, 1);
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-6","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: utenforstående ser ikke området', $q$select 1 from public.spaces$q$, 0);
+-- ---------- Koblinger og Samarbeidsfiler (trinn 18): menigheter ser aldri hverandres vanlige filer ----------
+set local role postgres;
+-- Hjelpevisning (eierens rettigheter, uten RLS): fil-ID-er til testene, uavhengig av hva rollen selv kan se.
+create view ch_test.all_files as select id, file_name, folder, storage_key, link_id from public.files;
+grant select on ch_test.all_files to authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on ch_test.all_files to service_role'; end if; end $$;
+insert into public.churches (id, name) values ('cccccccc-0000-4000-8000-00000000000c', 'Testmenighet K');
+insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000006', 'cccccccc-0000-4000-8000-00000000000c');
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, uploaded_by, folder, visibility) values
+  ('aaaaaaaa-0000-4000-8000-00000000000a', 'test/faste-a.png', 'faste-a.png', 'image/png', 20, '00000000-0000-4000-8000-000000000003', 'faste', 'church'),
+  ('aaaaaaaa-0000-4000-8000-00000000000a', 'test/faste-a2.png', 'faste-a2.png', 'image/png', 20, '00000000-0000-4000-8000-000000000008', 'logoer', 'church'),
+  ('bbbbbbbb-0000-4000-8000-00000000000b', 'test/b-delt.png', 'b-delt.png', 'image/png', 30, '00000000-0000-4000-8000-000000000009', 'bilder', 'church'),
+  ('cccccccc-0000-4000-8000-00000000000c', 'test/k-delt.png', 'k-delt.png', 'image/png', 40, '00000000-0000-4000-8000-000000000006', 'bilder', 'church');
+set local role authenticated;
 
--- Endre og slette område: bare Moderator (og Developer). Sletting beholder filene.
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Samarbeid: Moderator oppretter område som skal endres og slettes', $q$select public.create_space('Sletteområde')$q$);
-select ch_test.ok('Samarbeid: Moderator gir A tilgang og deler fil', $q$select public.invite_to_space((select id from public.spaces where name = 'Sletteområde'), 'aaaaaaaa-0000-4000-8000-00000000000a'), public.share_file_to_space((select id from public.files where file_name = 'bilde.jpg'), (select id from public.spaces where name = 'Sletteområde'))$q$);
-select ch_test.ok('Samarbeid: Moderator endrer navn og beskrivelse', $q$select public.update_space((select id from public.spaces where name = 'Sletteområde'), '  Nytt navn  ', 'Felles bilder til påske')$q$);
-select ch_test.cnt('Samarbeid: navn og beskrivelse er lagret', $q$select 1 from public.spaces where name = 'Nytt navn' and description = 'Felles bilder til påske'$q$, 1);
-select ch_test.err('Samarbeid: for kort navn avvises', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'x')$q$, '23514');
-select ch_test.err('Samarbeid: for lang beskrivelse avvises', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn', repeat('x', 501))$q$, '23514');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
-select ch_test.cnt('Samarbeid: medlem i A ser beskrivelsen', $q$select 1 from public.spaces where name = 'Nytt navn' and description is not null$q$, 1);
-select ch_test.err('Samarbeid: medlem kan ikke endre område', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'Kapret')$q$, '42501');
-select ch_test.err('Samarbeid: medlem kan ikke slette område', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$, '42501');
-select ch_test.err('Samarbeid: medlem kan ikke arkivere område', $q$select public.set_space_status((select id from public.spaces where name = 'Nytt navn'), 'archived')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
-select ch_test.err('Samarbeid: Admin kan ikke endre område', $q$select public.update_space((select id from public.spaces limit 1), 'Kapret')$q$, '42501');
-select ch_test.err('Samarbeid: Admin kan ikke slette område', $q$select public.delete_space((select id from public.spaces limit 1), 'x')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
-select ch_test.err('Samarbeid: Moderator uten MFA kan ikke slette', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.err('Samarbeid: sletting krever riktig navn', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Feil')$q$, '22023');
-select ch_test.ok('Samarbeid: Moderator sletter området', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$);
-select ch_test.cnt('Samarbeid: området er borte', $q$select 1 from public.spaces where name = 'Nytt navn'$q$, 0);
-select ch_test.cnt('Samarbeid: filen som var delt, finnes fortsatt', $q$select 1 from public.files where file_name = 'bilde.jpg'$q$, 1);
+-- A1/A2: ingen bred tilgang for Developer eller Moderator
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.ok('Samarbeid: Developer kan endre område (teknisk tilgang)', $q$select public.update_space((select id from public.spaces where name = 'Testområde'), 'Testområde', 'Teknisk test')$q$);
-select ch_test.atleast('Samarbeid: endring og sletting er loggført', $q$select 1 from public.audit_logs where action in ('spaces.update', 'spaces.delete')$q$, 2);
+select ch_test.cnt('Filtilgang A1: Developer ser ikke filer i menigheter uten medlemskap', $q$select 1 from public.files$q$, 0);
+select ch_test.cnt('Filtilgang A1: Developer får ingen nedlastingsnøkler', $q$select 1 from public.file_keys(array(select id from ch_test.all_files))$q$, 0);
+select ch_test.cnt('Filtilgang A1: Developer ser ikke forbruk i andres menighet', $q$select 1 where public.storage_usage('aaaaaaaa-0000-4000-8000-00000000000a') is null$q$, 1);
+select ch_test.err('Filtilgang A1: Developer kan ikke laste opp i menighet uten medlemskap', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 10)$q$, '42501');
+select ch_test.err('Filtilgang A1: Developer kan ikke slette i menighet uten medlemskap', $q$select public.delete_file((select id from ch_test.all_files where file_name = 'bilde.jpg'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Filtilgang A2: Moderator ser ingen filrader', $q$select 1 from public.files$q$, 0);
+select ch_test.cnt('Filtilgang A2: Moderator får ingen nedlastingsnøkler', $q$select 1 from public.file_keys(array(select id from ch_test.all_files))$q$, 0);
+
+-- Koblinger: bare Moderator (med MFA)
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Kobling: Admin kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+select ch_test.cnt('Kobling: Admin får ikke menighetslisten', 'select 1 from public.church_directory()', 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Kobling: medlem kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Kobling: Developer kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Kobling: Moderator uten MFA kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Kobling: Moderator kobler B og A (rekkefølgen spiller ingen rolle)', $q$select public.create_link('bbbbbbbb-0000-4000-8000-00000000000b', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
+select ch_test.err('Kobling: bare én aktiv kobling per par', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '23505');
+select ch_test.err('Kobling: ikke med seg selv', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '22023');
+select ch_test.ok('Kobling: Moderator kobler A og K', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'cccccccc-0000-4000-8000-00000000000c')$q$);
+select ch_test.cnt('Kobling: Moderator ser begge koblingene', 'select 1 from public.my_links()', 2);
+set local role postgres;
+create temp table t18 as select
+  (select id from public.church_links where church_a = 'aaaaaaaa-0000-4000-8000-00000000000a' and church_b = 'bbbbbbbb-0000-4000-8000-00000000000b') ab,
+  (select id from public.church_links where church_a = 'aaaaaaaa-0000-4000-8000-00000000000a' and church_b = 'cccccccc-0000-4000-8000-00000000000c') ak;
+grant select on t18 to authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on t18 to service_role'; end if; end $$;
+select ch_test.atleast('Kobling: Admin i begge menighetene fikk varsel', $q$select 1 from public.notifications where kind = 'church_link'$q$, 2);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Kobling: medlem i A ser sine to koblinger', 'select 1 from public.my_links()', 2);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Kobling: medlem i B ser bare koblingen A–B', 'select 1 from public.my_links()', 1);
+select ch_test.cnt('Kobling: medlem i B ser navnet på A gjennom koblingen', $q$select 1 from public.my_links() where church_a_name = 'Testmenighet A'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Kobling: Developer uten medlemskap ser ingen koblinger', 'select 1 from public.my_links()', 0);
+select ch_test.cnt('Kobling: Developer leser ingen koblinger direkte', 'select 1 from public.church_links', 0);
+
+-- Overføring (kopi): Delt mappe for alle medlemmer, Faste bare Admin, aldri private eller andres filer
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.ok('Overføring: medlem kan kopiere fra Delt mappe', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'bilde.jpg'), (select ab from t18))$q$);
+select ch_test.err('Overføring: medlem kan ikke kopiere fra Faste', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'faste-a.png'), (select ab from t18))$q$, '42501');
+select ch_test.err('Overføring: private filer kan aldri overføres', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'privat.png'), (select ab from t18))$q$, '42501');
+select ch_test.err('Overføring: kan ikke kopiere den andre menighetens fil', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'b-delt.png'), (select ab from t18))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-6","aal":"aal1"}';
+select ch_test.err('Overføring: kan ikke kopiere til en kobling egen menighet ikke er med i', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'k-delt.png'), (select ab from t18))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Overføring: Admin kan kopiere fra Faste', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'faste-a.png'), (select ab from t18))$q$);
+select ch_test.err('Overføring: kan ikke registrere kopi selv (bare serveren)', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-3', (select id from ch_test.all_files where file_name = 'faste-a.png'), (select ab from t18), 'test/x')$q$, '42501');
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.ok('Overføring: server registrerer kopi for medlem (Delt mappe)', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-8', (select id from ch_test.all_files where file_name = 'bilde.jpg'), (select ab from t18), 'test/kopi-ab-1.png')$q$);
+select ch_test.err('Overføring: samme bilde kan ikke kopieres to ganger til samme kobling', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-8', (select id from ch_test.all_files where file_name = 'bilde.jpg' and link_id is null), (select ab from t18), 'test/kopi-ab-1b.png')$q$, '23505');
+select ch_test.err('Overføring: server kan ikke registrere Faste-kopi for vanlig medlem', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-8', (select id from ch_test.all_files where file_name = 'faste-a.png'), (select ab from t18), 'test/kopi-x.png')$q$, '42501');
+select ch_test.ok('Overføring: server registrerer Faste-kopi for Admin', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-3', (select id from ch_test.all_files where file_name = 'faste-a.png'), (select ab from t18), 'test/kopi-ab-2.png')$q$);
+select ch_test.ok('Overføring: server registrerer kopi fra B (medlem i B)', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-9', (select id from ch_test.all_files where file_name = 'b-delt.png'), (select ab from t18), 'test/kopi-ab-3.png')$q$);
+set local role postgres;
+select ch_test.cnt('Overføring: originalene er uendret (fortsatt i egne mapper)', $q$select 1 from public.files where file_name in ('bilde.jpg', 'faste-a.png', 'b-delt.png') and link_id is null$q$, 3);
+select ch_test.cnt('Overføring: kopien peker på originalen og er i Samarbeidsfiler', $q$select 1 from public.files where storage_key = 'test/kopi-ab-1.png' and folder = 'samarbeid' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and source_file_id is not null and source_folder = 'bilder'$q$, 1);
+select ch_test.cnt('Overføring: Faste-kopien husker mappen (for verktøyenes paneler)', $q$select 1 from public.files where storage_key = 'test/kopi-ab-2.png' and source_folder = 'faste'$q$, 1);
+select ch_test.err('Overføring: Samarbeidsfiler kan ikke være private', $q$update public.files set visibility = 'private' where storage_key = 'test/kopi-ab-1.png'$q$, '23514');
+set local role authenticated;
+
+-- Synlighet: bare kopiene i koblingen, bare for de to menighetene
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Samarbeidsfiler: medlem i B ser de tre kopiene', $q$select 1 from public.files where folder = 'samarbeid'$q$, 3);
+select ch_test.cnt('Samarbeidsfiler: medlem i B ser ingen av A sine vanlige filer', $q$select 1 from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and folder <> 'samarbeid'$q$, 0);
+select ch_test.cnt('Samarbeidsfiler: medlem i B får nøkler til kopiene', $q$select 1 from public.file_keys(array(select id from ch_test.all_files where folder = 'samarbeid'))$q$, 3);
+select ch_test.cnt('Samarbeidsfiler: medlem i B får ikke nøkkel til originalen i A', $q$select 1 from public.file_keys(array(select id from ch_test.all_files where file_name = 'bilde.jpg' and link_id is null))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-6","aal":"aal1"}';
+select ch_test.cnt('Samarbeidsfiler: medlem i K (koblet til A i en annen kobling) ser ingen A–B-filer', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+select ch_test.cnt('Samarbeidsfiler: medlem i K ser ingen av A sine filer', $q$select 1 from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a'$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Samarbeidsfiler: medlem i A ser kopiene i A–B', $q$select 1 from public.files where folder = 'samarbeid'$q$, 3);
+select ch_test.cnt('Samarbeidsfiler: medlem i A ser ikke B sine vanlige filer', $q$select 1 from public.files where file_name = 'b-delt.png' and link_id is null$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Samarbeidsfiler: Moderator ser ingen filrader', $q$select 1 from public.files$q$, 0);
+select ch_test.cnt('Samarbeidsfiler: Moderator får metadata', $q$select 1 from public.link_files_meta((select ab from t18))$q$, 3);
+select ch_test.cnt('Samarbeidsfiler: Moderator får ingen nedlastingsnøkler', $q$select 1 from public.file_keys(array(select id from ch_test.all_files where folder = 'samarbeid'))$q$, 0);
+select ch_test.err('Samarbeidsfiler: Moderator kan ikke slette', $q$select public.delete_file((select id from ch_test.all_files where storage_key = 'test/kopi-ab-1.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.err('Samarbeidsfiler: medlem får ikke metadata-oversikten', $q$select public.link_files_meta((select ab from t18))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Samarbeidsfiler: Developer uten medlemskap ser ingenting', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+
+-- Fjerning: bare Admin i menigheten som bidro; originalen blir liggende
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Fjerning: medlem kan ikke fjerne fra Samarbeidsfiler (heller ikke egen overføring)', $q$select public.delete_file((select id from ch_test.all_files where storage_key = 'test/kopi-ab-1.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
+select ch_test.err('Fjerning: Admin i B kan ikke fjerne A sitt bidrag', $q$select public.delete_file((select id from ch_test.all_files where storage_key = 'test/kopi-ab-1.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Fjerning: Admin i A fjerner eget bidrag (kopien slettes)', $q$select public.delete_file((select id from ch_test.all_files where storage_key = 'test/kopi-ab-1.png'))$q$);
+select ch_test.cnt('Fjerning: originalen i A finnes fortsatt', $q$select 1 from public.files where file_name = 'bilde.jpg' and link_id is null$q$, 1);
+
+-- Faste (M1): bare Admin i egen menighet sletter
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Faste: medlem som lastet opp (uten Admin-rolle) kan ikke slette', $q$select public.delete_file((select id from ch_test.all_files where file_name = 'faste-a2.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Faste: Moderator kan ikke slette', $q$select public.delete_file((select id from ch_test.all_files where file_name = 'faste-a2.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
+select ch_test.err('Faste: Admin i annen menighet kan ikke slette', $q$select public.delete_file((select id from ch_test.all_files where file_name = 'faste-a2.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Faste: Admin i egen menighet sletter', $q$select public.delete_file((select id from ch_test.all_files where file_name = 'faste-a2.png'))$q$);
+set local role postgres;
+insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000001', 'bbbbbbbb-0000-4000-8000-00000000000b');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.atleast('Filtilgang A1: Developer som er medlem ser filene i menigheten', $q$select 1 from public.files where church_id = 'bbbbbbbb-0000-4000-8000-00000000000b' and folder <> 'samarbeid'$q$, 1);
+select ch_test.ok('Filtilgang A1: Developer som er medlem kan laste opp i Delt mappe', $q$select public.can_upload('bbbbbbbb-0000-4000-8000-00000000000b', 'bilder', false, 10)$q$);
+select ch_test.err('Faste: Developer som bare er medlem kan ikke laste opp i Faste', $q$select public.can_upload('bbbbbbbb-0000-4000-8000-00000000000b', 'faste', false, 10)$q$, '42501');
+select ch_test.err('Filtilgang A1: Developer som bare er medlem kan ikke slette andres fil i Delt mappe', $q$select public.delete_file((select id from ch_test.all_files where file_name = 'b-delt.png' and link_id is null))$q$, '42501');
+select ch_test.cnt('Samarbeidsfiler: Developer som er medlem i B ser kopiene i A–B', $q$select 1 from public.files where folder = 'samarbeid'$q$, 2);
+
+-- Avsluttet kobling skjuler alt (ingen sletting); gjenåpning viser igjen
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.err('Kobling: medlem kan ikke avslutte', $q$select public.end_link((select ab from t18))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Kobling: Moderator avslutter A–B', $q$select public.end_link((select ab from t18))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Avsluttet: medlem i B ser ingen Samarbeidsfiler', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Avsluttet: medlem i A ser heller ikke egne kopier', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Avsluttet: ingen nye overføringer', $q$select public.can_transfer((select id from ch_test.all_files where file_name = 'bilde.jpg' and link_id is null), (select ab from t18))$q$, '22023');
+set local role postgres;
+select ch_test.cnt('Avsluttet: kopiene er ikke slettet', $q$select 1 from public.files where link_id = (select ab from t18)$q$, 2);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Kobling: Moderator gjenåpner A–B', $q$select public.reopen_link((select ab from t18))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Gjenåpnet: medlem i B ser kopiene igjen', $q$select 1 from public.files where folder = 'samarbeid'$q$, 2);
+
+-- Menighet som ikke kan bruke samarbeid (deaktivert nå, utløpt abonnement i trinn 15): bidragene skjules for den andre
+set local role postgres;
+update public.churches set status = 'temporarily_disabled' where id = 'bbbbbbbb-0000-4000-8000-00000000000b';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Utilgjengelig menighet: A ser ikke lenger B sitt bidrag, bare sitt eget', $q$select 1 from public.files where folder = 'samarbeid'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Utilgjengelig menighet: medlem i B ser ingen Samarbeidsfiler', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+set local role postgres;
+update public.churches set status = 'active' where id = 'bbbbbbbb-0000-4000-8000-00000000000b';
+select ch_test.cnt('Utilgjengelig menighet: ingen kopier ble slettet', $q$select 1 from public.files where link_id = (select ab from t18)$q$, 2);
+set local role authenticated;
+
+-- Den gamle samarbeidsmodellen: deling av vanlige filer er skrudd av; Developer har ikke lenger samarbeidstilgang
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Gammel modell: Moderator kan fortsatt opprette område (uten filtilgang)', $q$select public.create_space('Gammelt område')$q$);
+select ch_test.err('Gammel modell: deling av vanlige filer er skrudd av', $q$select public.share_file_to_space((select id from ch_test.all_files where file_name = 'bilde.jpg' and link_id is null), (select id from public.spaces where name = 'Gammelt område'))$q$, '42501');
+select ch_test.err('Gammel modell: å gi menigheter tilgang er skrudd av', $q$select public.invite_to_space((select id from public.spaces where name = 'Gammelt område'), 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '42501');
+select ch_test.ok('Gammel modell: Moderator kan endre navn og beskrivelse', $q$select public.update_space((select id from public.spaces where name = 'Gammelt område'), 'Nytt navn', 'Felles bilder til påske')$q$);
+select ch_test.err('Gammel modell: for kort navn avvises', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'x')$q$, '23514');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Gammel modell: medlem ser ikke områder', $q$select 1 from public.spaces$q$, 0);
+select ch_test.err('Gammel modell: medlem kan ikke slette område', $q$select public.delete_space((select id from public.spaces limit 1), 'Nytt navn')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Gammel modell: Admin kan ikke opprette område', $q$select public.create_space('Adminområde')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Gammel modell: Developer har ikke lenger samarbeidstilgang', $q$select 1 from public.spaces$q$, 0);
+select ch_test.err('Gammel modell: Developer kan ikke endre område', $q$select public.update_space((select id from public.spaces limit 1), 'Kapret')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Gammel modell: Moderator uten MFA kan ikke slette', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Gammel modell: sletting krever riktig navn', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Feil')$q$, '22023');
+select ch_test.ok('Gammel modell: Moderator sletter området', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$);
+set local role postgres;
+select ch_test.atleast('Logg: koblinger og endringer er loggført', $q$select 1 from public.audit_logs where action in ('links.create', 'links.end', 'links.reopen', 'spaces.update', 'spaces.delete')$q$, 5);
+set local role authenticated;
 
 -- ---------- Abonnement (P10) ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';

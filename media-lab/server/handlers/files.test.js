@@ -105,3 +105,50 @@ test('file.urls og file.delete: går via brukerens token; lenker bare for filer 
   const d = await call('file.delete', { id: ids[0] });
   assert.equal(d.status, 200); assert.deepEqual(b.log.find(x => x[0] === 'del')[1], ['k/slett']);
 });
+
+/* --- Samarbeidsfiler: kopi til kobling (trinn 18) --- */
+const LINK = '55555555-5555-4555-8555-555555555555', SRC = '66666666-6666-4666-8666-666666666666';
+const shaHex = async b => [...new Uint8Array(await crypto.subtle.digest('SHA-256', b))].map(x => x.toString(16).padStart(2, '0')).join('');
+function linkFake(over = {}, bytes = PNG, copyBytes = bytes) {
+  const b = fake(over);
+  b.storageCopy = async (from, to) => { b.log.push(['copy', from, to]); };
+  b.storageGet = async k => { b.log.push(['get', k]); return copyBytes; };
+  return b;
+}
+const copy = async (body, backend) => {
+  const r = await handle(new Request('https://x/api/ch?a=file.copy_to_link', { method: 'POST', headers: { authorization: 'Bearer ' + await token(), 'content-type': 'application/json' }, body: JSON.stringify(body) }), ENV, { fetchFn, backend });
+  return { status: r.status, body: await r.json() };
+};
+
+test('file.copy_to_link: kopierer i lagringen, kontrollerer SHA-256 og registrerer kopien for innlogget bruker', async () => {
+  const sha = await shaHex(PNG);
+  const b = linkFake({ can_transfer: () => ({ storage_key: 'c/' + CH + '/orig.png', church_id: CH, sha256: sha }), register_link_copy: a => ({ id: 'kopi', link_id: a.p_link }) });
+  const r = await copy({ file_id: SRC, link_id: LINK }, b);
+  assert.equal(r.status, 200); assert.equal(r.body.file.id, 'kopi');
+  const c = b.log.find(x => x[0] === 'copy'); assert.equal(c[1], 'c/' + CH + '/orig.png'); assert.match(c[2], new RegExp('^c/' + CH + '/[0-9a-f-]{36}\.png$'));
+  assert.notEqual(c[2], c[1], 'originalen overskrives aldri');
+  const reg = b.log.find(x => x[1] === 'register_link_copy')[2];
+  assert.equal(reg.p_subject, 's1'); assert.equal(reg.p_file, SRC); assert.equal(reg.p_link, LINK); assert.equal(reg.p_key, c[2]);
+  assert.ok(!b.log.some(x => x[0] === 'del'), 'ingenting slettes når alt går bra');
+  assert.ok(!b.log.some(x => x[0] === 'put'), 'ingen ny opplasting – bare kopi');
+});
+
+test('file.copy_to_link: avslag i databasen gir 403 uten at noe kopieres; ugyldige ID-er gir 400', async () => {
+  const nei = linkFake({ can_transfer: () => { throw Object.assign(new Error(), { code: '42501' }); } });
+  assert.equal((await copy({ file_id: SRC, link_id: LINK }, nei)).status, 403);
+  assert.ok(!nei.log.some(x => x[0] === 'copy'));
+  assert.equal((await copy({ file_id: 'x', link_id: LINK }, linkFake())).status, 400);
+});
+
+test('file.copy_to_link: kopi som ikke er identisk, eller feil ved registrering, ryddes bort igjen', async () => {
+  const sha = await shaHex(PNG);
+  const feil = linkFake({ can_transfer: () => ({ storage_key: 'c/' + CH + '/o.png', church_id: CH, sha256: sha }) }, PNG, JPG);
+  const r1 = await copy({ file_id: SRC, link_id: LINK }, feil);
+  assert.equal(r1.status, 502); assert.equal(r1.body.error, 'copy_mismatch');
+  assert.deepEqual(feil.log.find(x => x[0] === 'del')[1], [feil.log.find(x => x[0] === 'copy')[2]]);
+  assert.ok(!feil.log.some(x => x[1] === 'register_link_copy'));
+  const dobbel = linkFake({ can_transfer: () => ({ storage_key: 'c/' + CH + '/o.png', church_id: CH, sha256: sha }), register_link_copy: () => { throw Object.assign(new Error(), { code: '23505' }); } });
+  const r2 = await copy({ file_id: SRC, link_id: LINK }, dobbel);
+  assert.equal(r2.status, 409);
+  assert.deepEqual(dobbel.log.find(x => x[0] === 'del')[1], [dobbel.log.find(x => x[0] === 'copy')[2]]);
+});

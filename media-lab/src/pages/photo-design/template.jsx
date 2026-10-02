@@ -485,6 +485,12 @@ export default function template(v) {
                         })}
                         {"\n                "}
                       </div>
+                      {list(v.libCollab).map((g, gi) => <div key={'c' + gi} data-ml-collab style={{"display":"flex","flexDirection":"column","gap":"6px","marginTop":"4px","paddingTop":"8px","borderTop":"1px solid #1c1c1c"}}>
+                        <span style={{"fontSize":"11px","letterSpacing":"0.04em","textTransform":"uppercase","color":"#8a867e"}}><span>Samarbeidsfiler</span><span>{g.title}</span></span>
+                        <div style={{"display":"grid","gridTemplateColumns":"repeat(3, 1fr)","gap":"6px"}}>
+                          {list(g.items).map((it, i) => <button key={i} onClick={it.click} title={it.name} aria-label={it.name} style={{"aspectRatio":"1","padding":"0","border":"1px solid #232323","borderRadius":"8px","backgroundColor":"#1a1a1a","backgroundImage":it.css,"backgroundSize":"contain","backgroundRepeat":"no-repeat","backgroundPosition":"center","cursor":"pointer"}} className="scp8" />)}
+                        </div>
+                      </div>)}
                       {"\n              "}
                     </div>
                     {"\n            "}

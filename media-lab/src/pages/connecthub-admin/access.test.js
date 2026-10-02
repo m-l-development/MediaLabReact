@@ -5,8 +5,11 @@ import { sectionsFor } from './access.js';
 const sec = o => [...sectionsFor({ dev: false, collab: false, adminOf: [], churches: [], ...o })].sort();
 const A = { id: 'a' }, B = { id: 'b' };
 
-test('Developer ser alle seksjoner', () => {
-  assert.deepEqual(sec({ dev: true, collab: true }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt', 'samarbeid']);
+test('Developer: systemadministrasjon, men ikke Samarbeid (bare Moderator administrerer koblinger)', () => {
+  assert.deepEqual(sec({ dev: true }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt']);
+});
+test('Developer som også er Moderator får Samarbeid gjennom Moderator-rollen', () => {
+  assert.ok(sectionsFor({ dev: true, collab: true, adminOf: [], churches: [] }).has('samarbeid'));
 });
 test('Admin: brukere, menigheter, invitasjoner, filer, abonnement og logg – IKKE samarbeid', () => {
   assert.deepEqual(sec({ adminOf: ['a'], churches: [A] }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt']);
@@ -14,11 +17,11 @@ test('Admin: brukere, menigheter, invitasjoner, filer, abonnement og logg – IK
 test('Moderator: bare samarbeid (ingen admin- eller filfunksjoner)', () => {
   assert.deepEqual(sec({ collab: true }), ['oversikt', 'samarbeid']);
 });
-test('User: menigheter, filer og samarbeid', () => {
-  assert.deepEqual(sec({ churches: [A] }), ['filer', 'menigheter', 'oversikt', 'samarbeid']);
+test('User: menigheter og filer (Samarbeidsfiler ligger under Filer) – ikke Samarbeid', () => {
+  assert.deepEqual(sec({ churches: [A] }), ['filer', 'menigheter', 'oversikt']);
 });
-test('Admin i én menighet og vanlig medlem i en annen får samarbeid som medlem', () => {
-  assert.ok(sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A, B] }).has('samarbeid'));
+test('Admin og medlem i flere menigheter får aldri Samarbeid-administrasjon', () => {
+  assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A, B] }).has('samarbeid'));
 });
 test('Uten menighet og uten rolle: bare oversikt', () => {
   assert.deepEqual(sec({}), ['oversikt']);

@@ -41,6 +41,14 @@ export function supabaseServer(cfg, fetchFn = fetch) {
       return out;
     },
     storageDelete: keys => call('/storage/v1/object/' + BUCKET, { method: 'DELETE', headers: asServer, body: { prefixes: keys } }),
+    /* Kopi i lagringen (for Samarbeidsfiler). Originalen røres ikke. */
+    storageCopy: (from, to) => call('/storage/v1/object/copy', { method: 'POST', headers: asServer, body: { bucketId: BUCKET, sourceKey: from, destinationKey: to } }),
+    /* Henter innholdet (bytes) – brukes til å kontrollere at kopien er identisk med originalen. */
+    async storageGet(key) {
+      const r = await fetchFn(cfg.url + '/storage/v1/object/' + BUCKET + '/' + key, { signal: AbortSignal.timeout(20000), headers: asServer });
+      if (!r.ok) { const e = new Error('backend ' + r.status); e.status = r.status; throw e; }
+      return new Uint8Array(await r.arrayBuffer());
+    },
     _call: call, _asServer: asServer, _asUser: asUser,
   };
 }

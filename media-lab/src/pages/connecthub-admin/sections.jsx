@@ -2,8 +2,8 @@
 import React from 'react';
 import { admin, DEFAULT_QUOTA_MB } from '../../services/admin.js';
 import { files as FS, FOLDERS } from '../../services/files.js';
-import { spaces as SP, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
-import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, href, go } from './ui.jsx';
+import { spaces as SP, links as LK, linkName, otherChurch, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
+import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Dialog, href, go } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
 import { Thumb, downloadOriginal } from './thumbs.jsx';
 
@@ -16,6 +16,7 @@ const ACTIONS = {
   'files.insert': 'Fil lastet opp', 'files.update': 'Fil endret', 'files.delete': 'Fil slettet', 'message.send': 'Melding sendt',
   'spaces.create': 'Samarbeidsområde opprettet', 'spaces.invite': 'Invitert til samarbeid', 'spaces.membership': 'Samarbeid endret',
   'spaces.update': 'Samarbeidsområde endret', 'spaces.status': 'Samarbeidsområde arkivert eller åpnet', 'spaces.delete': 'Samarbeidsområde slettet',
+  'links.create': 'Kobling opprettet', 'links.end': 'Kobling avsluttet', 'links.reopen': 'Kobling gjenåpnet',
   'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
   'church_subscriptions.insert': 'Abonnement satt', 'church_subscriptions.update': 'Abonnement endret',
   'account.delete': 'Konto slettet', 'plans.update': 'Abonnementsplan endret', 'churches.quota': 'Lagringskvote endret', 'audit_logs.purge': 'Gammel logg slettet',
@@ -199,50 +200,95 @@ export function InvitesView({ churchId, embedded }) {
   </>;
 }
 
-/* ---------- Filer: to adskilte områder ---------- */
-/* Faste = felles ressurser som brukes av flere verktøy (Photo Design, Thumbnail Studio, Mockups …). Bare Admin
-   vedlikeholder; alle medlemmer ser og laster ned. Delt mappe = medlemmene deler bilder; Admin rydder.
-   Mappenavnene i databasen er uendret (faste, logoer, bakgrunner, mockups, bilder), så verktøyene som bruker dem virker som før. */
+/* ---------- Filer: Faste, Delt mappe og Samarbeidsfiler ---------- */
+/* Faste = felles ressurser som brukes av flere verktøy (Photo Design, Thumbnail Studio, Mockups …). Bare Admin i
+   menigheten vedlikeholder (M1); alle medlemmer ser og laster ned. Delt mappe = medlemmene deler bilder; Admin rydder.
+   Samarbeidsfiler (trinn 18) = KOPIER som deles i en kobling mellom nøyaktig to menigheter; originalen blir liggende.
+   Filer vises bare for medlemmer – også Developer ser bare filer i menigheter der Developer er medlem (A1).
+   Mappenavnene i databasen er uendret (faste, logoer, bakgrunner, mockups, bilder, samarbeid). */
 const AREAS = {
   faste: { label: 'Faste – felles ressurser', folders: [['faste', 'Faste bilder'], ['logoer', 'Logoer'], ['bakgrunner', 'Bakgrunner'], ['mockups', 'Mockups']],
     info: 'Felles bilder og logoer som brukes i flere verktøy (Photo Design, Thumbnail Studio, Mockups m.fl.). Admin legger til, organiserer og fjerner. Alle medlemmer kan se og laste ned.' },
   delt: { label: 'Delt mappe', folders: [['bilder', 'Delt mappe']],
     info: 'Bilder som deles i menigheten. Alle medlemmer kan se, laste ned og legge til egne bilder. Du kan slette dine egne; Admin kan rydde i alt.' },
+  samarbeid: { label: 'Samarbeidsfiler', folders: [['samarbeid', 'Samarbeidsfiler']],
+    info: 'Kopier av bilder som deles med én annen menighet i en kobling. Begge menighetene kan se og laste ned. Bilder legges inn ved å dele en kopi fra Delt mappe eller Faste – originalen blir liggende. Bare Admin i menigheten som bidro, kan fjerne en kopi.' },
 };
+const FOLDER_NAME = { bilder: 'Delt mappe', faste: 'Faste bilder', logoer: 'Logoer', bakgrunner: 'Bakgrunner', mockups: 'Mockups' };
 /* Sist viste liste per menighet og mappe (resten av besøket): bytte fram og tilbake viser lista med en gang, og den
    oppdateres i bakgrunnen. */
 const FILE_LISTS = new Map();
 export function FilesView({ churchId }) {
-  const { me, canManage, act, say } = useAdmin();
-  const admin_ = canManage(churchId);
-  const [fl, setFl] = React.useState({ area: 'faste', folder: 'faste', list: [], loading: true, usage: null, priv: false, over: false });
+  const { me, adminOf, churchName, act, say } = useAdmin();
+  const member = (me.churches || []).some(c => c.id === churchId) || adminOf.includes(churchId);
+  const admin_ = adminOf.includes(churchId);   // M1: Faste og fjerning av egne bidrag i Samarbeidsfiler – bare Admin i menigheten
+  const [fl, setFl] = React.useState({ area: 'faste', folder: 'faste', list: [], loading: true, usage: null, priv: false, over: false, links: [], link: null, copy: null });
   const seq = React.useRef(0);
   /* Viser valgt mappe straks (fra hurtigbufferen hvis den finnes); lista og forbruket hentes parallelt. Bildene hentes
      av <Thumb> når de vises. Bare siste valg vinner hvis brukeren bytter raskt. */
-  const load = async (folder = fl.folder, area = fl.area, { usage = false } = {}) => {
-    const n = ++seq.current, key = churchId + '|' + folder, hit = FILE_LISTS.get(key);
-    setFl(f => ({ ...f, area, folder, list: hit || [], loading: !hit }));
-    const [list, use] = await Promise.all([FS.list({ churchId, folder }), usage ? FS.usage(churchId) : null]);
+  const load = async (folder = fl.folder, area = fl.area, { usage = false, link = fl.link } = {}) => {
+    const n = ++seq.current, key = churchId + '|' + folder + (folder === 'samarbeid' ? '|' + link : ''), hit = FILE_LISTS.get(key);
+    setFl(f => ({ ...f, area, folder, link, list: hit || [], loading: !hit }));
+    const [list, use] = await Promise.all([folder === 'samarbeid' ? (link ? FS.listLink(link) : []) : FS.list({ churchId, folder }), usage ? FS.usage(churchId) : null]);
     FILE_LISTS.set(key, list);
     if (n === seq.current) setFl(f => ({ ...f, list, loading: false, usage: use || f.usage }));
   };
-  React.useEffect(() => { if (churchId) { setFl(f => ({ ...f, usage: null })); act(() => load(undefined, undefined, { usage: true }))(); } }, [churchId]);
-  const A = AREAS[fl.area], canUpload = fl.area === 'delt' || admin_;
+  /* Aktive koblinger der denne menigheten er med (databasen gir bare koblinger for egne menigheter). */
+  const loadLinks = async () => {
+    const all = await LK.mine().catch(() => []);
+    const links = all.filter(l => l.status === 'active' && (l.church_a === churchId || l.church_b === churchId));
+    setFl(f => ({ ...f, links, link: f.link && links.some(l => l.id === f.link) ? f.link : (links[0] || {}).id || null }));
+    return links;
+  };
+  React.useEffect(() => {
+    if (!churchId || !member) return;
+    setFl(f => ({ ...f, area: 'faste', folder: 'faste', usage: null, links: [], link: null }));
+    act(async () => { await Promise.all([load('faste', 'faste', { usage: true }), loadLinks()]); })();
+  }, [churchId, member]);
+  if (!member) return <Card title="Filer"><p className="ch-note warn">{T('Du er ikke medlem av denne menigheten. Filer vises bare for medlemmer – også for Developer.')}</p></Card>;
+
+  const A = AREAS[fl.area], collab = fl.area === 'samarbeid', canUpload = !collab && (fl.area === 'delt' || admin_);
+  const curLink = fl.links.find(l => l.id === fl.link), other = l => otherChurch(l, churchId);
   const upload = act(async list => {
     if (!canUpload) return;
     let n = 0; for (const file of list) { try { await FS.upload(file, { churchId, folder: fl.folder, priv: fl.area === 'delt' && fl.priv }); n++; } catch (err) { say(file.name + ': ' + errText(err), false); } }
     if (n) say(n + ' ' + T('filer er lastet opp.')); await load(undefined, undefined, { usage: true });
   });
   const download = act(x => downloadOriginal(x.id, x.file_name));
+  /* Kopi til Samarbeidsfiler: Delt mappe for alle medlemmer, Faste bare for Admin, aldri private filer. */
+  const canCopy = x => fl.links.length > 0 && !collab && x.visibility === 'church' && (fl.area === 'delt' || admin_);
+  const doCopy = act(async e => {
+    e.preventDefault();
+    const { file, link } = fl.copy, l = fl.links.find(x => x.id === link);
+    await FS.copyToLink(file.id, link);
+    for (const k of [...FILE_LISTS.keys()]) if (k.startsWith(churchId + '|samarbeid')) FILE_LISTS.delete(k);
+    setFl(f => ({ ...f, copy: null }));
+    say(T('En kopi er lagt i Samarbeidsfiler med') + ' ' + other(l) + '.');
+    await load(undefined, undefined, { usage: true });
+  });
+  const removeCopy = x => act(async () => {
+    if (!confirm(T('Den delte kopien slettes for begge menighetene. Originalen i') + ' «' + T(FOLDER_NAME[x.source_folder] || 'Delt mappe') + '» ' + T('blir liggende.') + '\n\n' + T('Fjerne fra Samarbeidsfiler?'))) return;
+    await FS.remove(x.id); say(T('Kopien er fjernet fra Samarbeidsfiler.'));
+    setFl(f => ({ ...f, list: f.list.filter(y => y.id !== x.id) })); await load(undefined, undefined, { usage: true });
+  })();
   const u = fl.usage, pct = u && u.quota_bytes ? Math.min(100, Math.round(100 * u.used_bytes / u.quota_bytes)) : 0;
+  const thumb = (x, extra) => <div key={x.id} className="ch-thumb">
+    <Thumb id={x.id} />
+    <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
+    {extra}
+  </div>;
+  const areas = Object.entries(AREAS).filter(([k]) => k !== 'samarbeid' || fl.links.length);
+
   return <>
-    <nav className="ch-tabs" aria-label={T('Filområder')}>{Object.entries(AREAS).map(([k, v]) => <a key={k} href="#" className={fl.area === k ? 'on' : ''} onClick={e => { e.preventDefault(); if (fl.area !== k) act(() => load(v.folders[0][0], k))(); }}>{T(v.label)}</a>)}</nav>
+    <nav className="ch-tabs" aria-label={T('Filområder')}>{areas.map(([k, v]) => <a key={k} href="#" className={fl.area === k ? 'on' : ''} onClick={e => { e.preventDefault(); if (fl.area !== k) act(() => load(v.folders[0][0], k))(); }}>{T(v.label)}</a>)}</nav>
     <Card title={A.label} sub={fl.area === 'faste' ? T(admin_ ? 'Du kan vedlikeholde' : 'Bare visning og nedlasting') : null}>
       <p className="ch-muted">{T(A.info)}</p>
       {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={() => { if (fl.folder !== f) act(() => load(f))(); }}>{T(l)}</Btn>)}</div>}
+      {collab && fl.links.length > 1 && <div className="ch-row">{fl.links.map(l => <Btn key={l.id} small kind={fl.link === l.id ? 'primary' : ''} onClick={() => { if (fl.link !== l.id) act(() => load('samarbeid', 'samarbeid', { link: l.id }))(); }}>{T('Med')} {other(l)}</Btn>)}</div>}
       {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
         <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(Math.max(0, u.quota_bytes - u.used_bytes))}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
-      {canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
+      {collab ? <p className="ch-muted" data-ch-link>{curLink ? <>{T('Delt mellom')} <b>{churchName(churchId)}</b> {T('og')} <b>{other(curLink)}</b>. {T('Kopiene teller i kvoten til menigheten som bidro.')}</> : null}</p>
+      : canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
         onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); upload([...e.dataTransfer.files]); }}>
         <div className="ch-row" style={{ justifyContent: 'center' }}>
           <label className="ch-btn primary">{T('Last opp bilder')}<input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={e => { const l = [...e.target.files]; e.target.value = ''; upload(l); }} /></label>
@@ -251,121 +297,88 @@ export function FilesView({ churchId }) {
         <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {T((A.folders.find(x => x[0] === fl.folder) || [])[1] || '')}</p>
       </div> : <p className="ch-note warn">{T('Faste-mappen vedlikeholdes av Admin. Du kan se og laste ned filene.')}</p>}
     </Card>
-    <Card title={(A.folders.find(x => x[0] === fl.folder) || [])[1] || ''} sub={fl.loading ? null : fl.list.length}>
+    {collab ? (curLink ? [['oss', fl.list.filter(x => x.church_id === churchId), T('Fra oss')], ['dem', fl.list.filter(x => x.church_id !== churchId), T('Fra') + ' ' + other(curLink)]].map(([k, list, title]) =>
+      <Card key={k} title={title} sub={fl.loading ? null : list.length}>
+        {list.length ? <div className="ch-thumbs">{list.map(x => thumb(x, <>
+          <span className="ch-muted">{T('Lagt inn av')} {x.church_id === churchId ? churchName(churchId) : other(curLink)} · {fmtDate(x.created_at)}</span>
+          <div className="ch-row">
+            <Btn small onClick={() => download(x)}>{T('Last ned')}</Btn>
+            {k === 'oss' && admin_ && <Btn small kind="danger" onClick={() => removeCopy(x)}>{T('Fjern fra Samarbeidsfiler')}</Btn>}
+          </div></>))}</div> : <Empty>{T(fl.loading ? 'Laster …' : 'Ingen bilder her ennå.')}</Empty>}
+      </Card>) : <Card><Empty>{T('Ingen aktive koblinger.')}</Empty></Card>)
+    : <Card title={(A.folders.find(x => x[0] === fl.folder) || [])[1] || ''} sub={fl.loading ? null : fl.list.length}>
       {fl.list.length ? <div className="ch-thumbs">{fl.list.map(x => {
         const mine = x.uploaded_by === me.id, canDel = admin_ || (fl.area === 'delt' && mine);
-        return <div key={x.id} className="ch-thumb">
-          <Thumb id={x.id} />
-          <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
+        return thumb(x, <>
           <span className="ch-muted">{mb(x.file_size)} · {fmtDate(x.created_at)}</span>
           <div className="ch-row">
             <Btn small onClick={() => download(x)}>{T('Last ned')}</Btn>
+            {canCopy(x) && <Btn small onClick={() => setFl(f => ({ ...f, copy: { file: x, link: f.link || (f.links[0] || {}).id } }))}>{T('Del i Samarbeidsfiler')}</Btn>}
             {canDel && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); setFl(f => ({ ...f, list: f.list.filter(y => y.id !== x.id) })); await load(undefined, undefined, { usage: true }); })}>{T('Slett')}</Btn>}
-          </div>
-        </div>;
+          </div></>);
       })}</div> : <Empty>{T(fl.loading ? 'Laster …' : 'Ingen filer i denne mappen.')}</Empty>}
-    </Card>
+    </Card>}
+    {fl.copy && <Dialog title={T('Del i Samarbeidsfiler')} onClose={() => setFl(f => ({ ...f, copy: null }))}>
+      <form onSubmit={doCopy} style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-ch-copy>
+        {fl.links.length > 1 && <Field label="Kobling"><select className="ch-select" value={fl.copy.link} onChange={e => { const v = e.target.value; setFl(f => ({ ...f, copy: { ...f.copy, link: v } })); }}>{fl.links.map(l => <option key={l.id} value={l.id}>{T('Med')} {other(l)}</option>)}</select></Field>}
+        <p>{T('En kopi av bildet')} «{fl.copy.file.file_name}» {T('legges i Samarbeidsfiler mellom')} <b>{churchName(churchId)}</b> {T('og')} <b>{other(fl.links.find(l => l.id === fl.copy.link) || {})}</b>. {T('Begge menighetene kan se og laste den ned. Originalen blir liggende i')} «{T(FOLDER_NAME[fl.copy.file.folder] || 'Delt mappe')}».</p>
+        <div className="ch-row"><Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Del kopi')}</Btn><Btn onClick={() => setFl(f => ({ ...f, copy: null }))}>{T('Avbryt')}</Btn></div>
+      </form>
+    </Dialog>}
   </>;
 }
 
-/* ---------- Samarbeid ---------- */
-/* Moderator (og Developer teknisk) administrerer: oppretter områder, gjør dem tilgjengelige for menigheter og velger
-   hvilke fellesbilder som deles. Brukere ser bare områder som er gjort tilgjengelige, og kan se og laste ned. Admin har
-   ikke tilgang (verken her eller i databasen). */
-export function SpacesView() {
-  const { collab, act, say } = useAdmin();
-  const [sp, setSp] = React.useState({ list: [], sel: null, members: [], files: [], dir: [], cands: [], name: '', add: '', loading: true });
+/* ---------- Samarbeid: koblinger mellom to menigheter (bare Moderator) ---------- */
+/* Moderator oppretter, avslutter og gjenåpner koblinger. Hver kobling har sin egen Samarbeidsfiler-mappe som bare de to
+   menighetene ser. Moderator ser bare filnavn og opplysninger om filene (A2) – aldri innhold, miniatyrer eller nedlasting –
+   og kan ikke slette filer, bare avslutte koblingen (da skjules filene for begge, ingenting slettes). */
+export function LinksView() {
+  const { act, say } = useAdmin();
+  const [s, setS] = React.useState({ list: [], dir: [], a: '', b: '', sel: null, meta: [], loading: true });
   const seq = React.useRef(0);
-  /* Områdeliste og katalog parallelt, deretter det valgte områdets deltakere, delte filer og kandidater parallelt.
-     Bildene hentes av <Thumb> når de vises. Valgt område markeres straks; bare siste valg vinner. */
-  const load = async (sel = sp.sel) => {
-    const n = ++seq.current; if (sel) setSp(p => ({ ...p, sel }));
-    const [list, dir] = await Promise.all([SP.list(), collab ? SP.directory().catch(() => []) : []]);
-    const cur = sel && list.some(x => x.id === sel) ? sel : (list.find(x => x.status === 'active') || list[0] || {}).id || null;
-    const [members, files, all] = cur ? await Promise.all([SP.members(cur), SP.files(cur), collab ? FS.list() : []]) : [[], [], []];
-    const active = new Set(members.filter(m => m.status === 'active').map(m => m.church_id));
-    const cands = all.filter(f => f.visibility === 'church' && active.has(f.church_id));
-    if (n === seq.current) setSp(p => ({ ...p, list, dir, sel: cur, members, files, cands, loading: false }));
+  const load = async (sel = s.sel) => {
+    const n = ++seq.current; if (sel) setS(p => ({ ...p, sel }));
+    const [list, dir] = await Promise.all([LK.mine(), SP.directory().catch(() => [])]);
+    const cur = sel && list.some(l => l.id === sel) ? sel : (list.find(l => l.status === 'active') || list[0] || {}).id || null;
+    const meta = cur ? await LK.filesMeta(cur).catch(() => []) : [];
+    if (n === seq.current) setS(p => ({ ...p, list, dir, sel: cur, meta, loading: false }));
   };
   React.useEffect(() => { act(() => load())(); }, []);
-  const cur = sp.list.find(x => x.id === sp.sel), cname = id => (sp.dir.find(d => d.id === id) || {}).name || T('Menighet');
-  const shared = new Set(sp.files.map(f => f.file_id));
+  const cur = s.list.find(l => l.id === s.sel);
+  const cname = id => cur && id === cur.church_a ? cur.church_a_name : cur && id === cur.church_b ? cur.church_b_name : (s.dir.find(d => d.id === id) || {}).name || T('Menighet');
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await load(); });
-  const download = act((id, name) => downloadOriginal(id, name));
-
+  const create = act(async e => {
+    e.preventDefault();
+    const id = await LK.create(s.a, s.b); setS(p => ({ ...p, a: '', b: '' }));
+    say(T('Koblingen er opprettet. Admin i begge menighetene er varslet.')); await load(id);
+  });
+  const end = l => run(() => { if (!confirm(T('Avslutte koblingen') + ' «' + linkName(l) + '»?\n\n' + T('Samarbeidsfilene skjules for begge menighetene. Ingen filer slettes, og koblingen kan gjenåpnes.'))) throw Object.assign(new Error(), { code: 'cancel' }); return LK.end(l.id); }, 'Koblingen er avsluttet. Filene er skjult, ingenting er slettet.');
+  const active = s.list.filter(l => l.status === 'active');
   return <div className="ch-grid">
-    <Card title="Samarbeidsområder" sub={sp.list.length}>
-      {sp.list.length ? <List cols="1fr auto" onRow={r => act(() => load(r.key))()} rows={sp.list.map(x => ({ key: x.id, cells: [<div><b>{x.name}</b>{x.description && <div className="ch-muted">{x.description}</div>}</div>,
-        <div className="ch-end">{x.status !== 'active' && <Badge>{T('Arkivert')}</Badge>}{x.id === sp.sel && <Badge tone="ok">{T('Valgt')}</Badge>}</div>] }))} />
-        : <Empty>{T(sp.loading ? 'Laster …' : collab ? 'Ingen samarbeidsområder ennå.' : 'Ingen samarbeid er gjort tilgjengelig for deg ennå.')}</Empty>}
-      {collab && <form className="ch-row" onSubmit={e => { e.preventDefault(); act(async () => { const id = await SP.create(sp.name); setSp(p => ({ ...p, name: '' })); say(T('Området er opprettet.')); await load(id); })(e); }}>
-        <input className="ch-input" style={{ flex: '1 1 200px' }} placeholder={T('Navn på nytt område')} value={sp.name} onChange={e => setSp(p => ({ ...p, name: e.target.value }))} minLength={2} maxLength={120} required />
-        <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett område')}</Btn>
-      </form>}
+    <Card title="Ny kobling">
+      <p className="ch-muted">{T('Kobler sammen to menigheter. De får en felles Samarbeidsfiler-mappe der de kan dele kopier av bilder. Menighetene ser aldri hverandres vanlige filer.')}</p>
+      <form className="ch-form" onSubmit={create} data-ch-newlink>
+        <Field label="Menighet 1"><select className="ch-select" value={s.a} onChange={e => { const v = e.target.value; setS(p => ({ ...p, a: v })); }} required>
+          <option value="">{T('Velg menighet …')}</option>{s.dir.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
+        <Field label="Menighet 2"><select className="ch-select" value={s.b} onChange={e => { const v = e.target.value; setS(p => ({ ...p, b: v })); }} required>
+          <option value="">{T('Velg menighet …')}</option>{s.dir.filter(d => d.id !== s.a).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
+        <div className="ch-row"><Btn kind="primary" disabled={!s.a || !s.b || s.a === s.b} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett kobling')}</Btn></div>
+      </form>
     </Card>
-
-    {cur && collab && <Card title={cur.name} sub={cur.status !== 'active' ? T('Arkivert') : null} actions={
-      <Btn small onClick={run(() => SP.setStatus(cur.id, cur.status === 'active' ? 'archived' : 'active'), cur.status === 'active' ? 'Området er arkivert.' : 'Området er åpnet igjen.')}>{T(cur.status === 'active' ? 'Arkiver' : 'Åpne igjen')}</Btn>}>
-      <p className="ch-muted">{T('Menigheter med tilgang. Medlemmene ser delte bilder; Admin-rollen har ikke tilgang til samarbeid.')}</p>
-      <List cols="1fr auto auto" empty="Ingen menigheter har tilgang ennå." rows={sp.members.map(m => ({ key: m.church_id, cells: [cname(m.church_id), <StatusBadge s={m.status} />,
-        <div className="ch-end">{m.status === 'active'
-          ? <Btn small kind="danger" onClick={run(() => SP.setMembership(cur.id, m.church_id, 'left'), 'Tilgangen er fjernet.')}>{T('Fjern tilgang')}</Btn>
-          : <Btn small onClick={run(() => SP.invite(cur.id, m.church_id), 'Menigheten har fått tilgang.')}>{T('Gi tilgang igjen')}</Btn>}</div>] }))} />
-      <div className="ch-row">
-        <select className="ch-select" value={sp.add} onChange={e => setSp(p => ({ ...p, add: e.target.value }))} aria-label={T('Gi en menighet tilgang')}>
-          <option value="">{T('Gi en menighet tilgang …')}</option>
-          {sp.dir.filter(d => !sp.members.some(m => m.church_id === d.id && m.status === 'active')).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        <Btn disabled={!sp.add} onClick={run(async () => { await SP.invite(cur.id, sp.add); setSp(p => ({ ...p, add: '' })); }, 'Menigheten har fått tilgang. Medlemmene er varslet.')}>{T('Gi tilgang')}</Btn>
-      </div>
-    </Card>}
-
-    {cur && collab && <SpaceSettings key={cur.id} space={cur} members={sp.members.filter(m => m.status === 'active').length} shared={shared.size}
-      onSaved={() => load(cur.id)} onDeleted={() => load(null)} />}
-
-    {cur && collab && <Card title="Hva som deles" sub={shared.size}>
-      <p className="ch-muted">{T('Velg fellesbilder fra menighetene som deltar. Private filer kan aldri deles, og video finnes ikke i ConnectHub.')}</p>
-      {sp.cands.length ? <div className="ch-thumbs">{sp.cands.map(x => <div key={x.id} className="ch-thumb">
-        <Thumb id={x.id} />
-        <span style={{ wordBreak: 'break-all' }}>{x.file_name}</span><span className="ch-muted">{cname(x.church_id)}</span>
-        <Btn small kind={shared.has(x.id) ? '' : 'primary'} onClick={run(() => SP.share(x.id, cur.id, !shared.has(x.id)))}>{T(shared.has(x.id) ? 'Fjern fra området' : 'Del i området')}</Btn>
-      </div>)}</div> : <Empty>{T('Ingen fellesbilder i menighetene som deltar.')}</Empty>}
-    </Card>}
-
-    {cur && !collab && <Card title={cur.name} sub={sp.files.length}>
-      {cur.description && <p>{cur.description}</p>}
-      <p className="ch-muted">{sp.members.filter(m => m.status === 'active').length} {T('menigheter deltar.')} {T('Du kan se og laste ned bildene som deles her.')}</p>
-      {sp.files.length ? <div className="ch-thumbs">{sp.files.map(x => <div key={x.file_id} className="ch-thumb">
-        <Thumb id={x.file_id} />
-        <Btn small onClick={() => download(x.file_id, 'delt-bilde')}>{T('Last ned')}</Btn>
-      </div>)}</div> : <Empty>{T('Ingen bilder er delt i området ennå.')}</Empty>}
+    <Card title="Koblinger" sub={active.length + ' ' + T('aktive')}>
+      <List cols="minmax(160px,1fr) auto auto" empty={s.loading ? 'Laster …' : 'Ingen koblinger ennå.'} onRow={r => act(() => load(r.key))()} rows={s.list.map(l => ({ key: l.id, cells: [
+        <div><b>{linkName(l)}</b><div className="ch-muted">{l.status === 'active' ? T('Opprettet') + ' ' + fmtDate(l.created_at) : T('Avsluttet') + ' ' + fmtDate(l.ended_at)}</div></div>,
+        <span className="ch-row">{l.status === 'active' ? <Badge tone="ok">{T('Aktiv')}</Badge> : <Badge>{T('Avsluttet')}</Badge>}{l.id === s.sel && <Badge>{T('Valgt')}</Badge>}</span>,
+        <div className="ch-end">{l.status === 'active'
+          ? <Btn small kind="danger" onClick={end(l)}>{T('Avslutt')}</Btn>
+          : <Btn small onClick={run(() => LK.reopen(l.id), 'Koblingen er gjenåpnet. Filene er synlige igjen.')}>{T('Gjenåpne')}</Btn>}</div>] }))} />
+    </Card>
+    {cur && <Card title={linkName(cur)} sub={s.meta.length}>
+      <p className="ch-muted">{T('Filene i koblingens Samarbeidsfiler. Som Moderator ser du bare filnavn og opplysninger – ikke innholdet – og du kan ikke laste ned eller slette.')}</p>
+      <List cols="minmax(140px,1fr) auto minmax(100px,auto) auto" head={['Fil', 'Størrelse', 'Lagt inn av', 'Dato']} empty="Ingen filer i koblingen." rows={s.meta.map(f => ({ key: f.id, cells: [
+        <span style={{ wordBreak: 'break-all' }}>{f.file_name}</span>, <span className="ch-muted">{mb(f.file_size)}</span>, <span>{cname(f.church_id)}</span>, <span className="ch-muted">{fmtDate(f.created_at)}</span>] }))} />
     </Card>}
   </div>;
-}
-
-/* Navn, beskrivelse og sletting av et samarbeidsområde (Moderator/Developer; databasen avgjør). */
-function SpaceSettings({ space, members, shared, onSaved, onDeleted }) {
-  const { act, say } = useAdmin();
-  const [f, setF] = React.useState({ name: space.name, description: space.description || '' });
-  const changed = f.name.trim() !== space.name || f.description.trim() !== (space.description || '');
-  const save = act(async e => { e.preventDefault(); await SP.update(space.id, f.name, f.description); say(T('Området er endret.')); await onSaved(); });
-  const remove = act(async () => {
-    const v = prompt(T('Slette samarbeidsområdet for godt? Menighetene mister tilgangen, og delingene fjernes. Selve bildene blir liggende i menighetene. Kan ikke angres. Skriv navnet på området for å bekrefte:') + '\n\n' + space.name);
-    if (v === null) return;
-    if (v.trim() !== space.name) { say(T('Navnet stemmer ikke. Området er ikke slettet.'), false); return; }
-    await SP.remove(space.id, v.trim()); say(T('Området er slettet.')); await onDeleted();
-  });
-  return <Card title="Navn og beskrivelse">
-    <form className="ch-form" onSubmit={save}>
-      <Field label="Navn"><input className="ch-input" value={f.name} onChange={e => setF(x => ({ ...x, name: e.target.value }))} minLength={2} maxLength={120} required /></Field>
-      <Field label="Beskrivelse (valgfritt)"><textarea className="ch-input" style={{ height: 'auto', minHeight: 70, padding: '8px 12px', resize: 'vertical' }} value={f.description} onChange={e => setF(x => ({ ...x, description: e.target.value }))} maxLength={500} placeholder={T('Hva området brukes til – vises for medlemmene')} /></Field>
-      <div className="ch-row"><Btn kind="primary" disabled={!changed} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre endringer')}</Btn></div>
-    </form>
-    <div className="ch-danger">
-      <p className="ch-muted">{T('Arkiver skjuler området for medlemmene og kan angres. Sletting fjerner området for godt:')} {members} {T('menigheter mister tilgangen og')} {shared} {T('delinger fjernes. Bildene beholdes.')}</p>
-      <div className="ch-row"><Btn kind="danger" onClick={remove}>{T('Slett området')}</Btn></div>
-    </div>
-  </Card>;
 }
 
 /* ---------- Abonnement ---------- */

@@ -397,6 +397,8 @@ class Component extends DCLogic {
   async loadLib() {
     const items = LOGOS.map(([src, name]) => ({ src, name })); this.setState({ lib: items });
     if (window.MLCloud) { for (const f of ['logoer', 'bakgrunner']) { const c = await window.MLCloud.files(f); c.files.forEach(x => items.push({ src: x.url, name: x.name })); } const hid = (await window.MLCloud.files('logoer')).hidden; this.setState({ lib: items.filter(i => !hid.has(i.src.split('/').pop())) }); }
+    /* Samarbeidsfiler (trinn 18): eget, merket område per kobling – aldri blandet med menighetens egne filer (A4). */
+    if (window.MLCloud && window.MLCloud.collab) { const groups = await window.MLCloud.collab(); this.setState({ libCollab: groups }); }
   }
   async fromLib(it) { try { const r = await fetch(it.src, { credentials: 'same-origin' }); if (!r.ok) throw 0; const b = await r.blob(); this.addBlob(b, it.name); } catch (e) { this.flash('Bildet kunne ikke hentes.'); } }
 
@@ -596,6 +598,7 @@ class Component extends DCLogic {
       logoOpen: S.logoOpen, logoItems: LOGOS.map(([src, name]) => ({ name, css: css(src), click: () => this.fromLib({ src, name }) })),
       lTabs: [['lag', 'Lag'], ['stil', 'Stil'], ['fx', 'Effekter']].map(([k, l]) => ({ l, ...chip((S.ltab || 'lag') === k), click: () => this.setState({ ltab: k }) })), ltLag: (S.ltab || 'lag') === 'lag', ltStil: S.ltab === 'stil', ltFx: S.ltab === 'fx',
       libOpen: S.libOpen, libEmpty: !!S.lib && !lib.length, libItems: lib.map(it => ({ name: it.name, css: css(it.src), click: () => this.fromLib(it) })),
+      libCollab: (S.libCollab || []).map(g => ({ title: ' – ' + g.title, items: g.files.map(it => ({ name: it.name, css: css(it.url), click: () => this.fromLib({ src: it.url, name: it.name }) })) })),
       ...this.stilVals(d, sw, tog, PAL), backupDl: this.backupDl, backupPick: this.backupPick, onBackupFile: this.onBackupFile, bkFileRef: this.bkFileRef,
       noLayers: !d.layers.length, layerCount: d.layers.length ? String(d.layers.length) : '',
       fxPins: d.layers.filter(q => q.type === 'fx' && !q.hidden && !q.locked).map(q => { const on = q.id === S.sel; return { on, left: (q.x / d.w * 100) + '%', top: (q.y / d.h * 100) + '%', bg: on ? '#e9e7e2' : 'rgba(0,0,0,0.55)', fg: on ? '#000000' : '#ffffff',

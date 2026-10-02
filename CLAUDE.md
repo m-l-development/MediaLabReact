@@ -55,7 +55,21 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 - `vercel.json`: `buildCommand: npm run build`, `outputDirectory: dist`, CSP uten CDN og uten `unsafe-inline` for skript (inline-skript tillates med SHA-256 – bygget stopper hvis et mangler; `wasm-unsafe-eval` beholdes for onnxruntime), `assets/` hurtigbufres lenge (filnavn med hash).
 - P10: `src/services/community.js` (samarbeidsområder, abonnement uten betaling, varsler, personvern, menighetens livsløp), serverhandlinger i `server/handlers/privacy.js` (`privacy.delete_me`, `church.export`, `church.purge`), varsler og personvern i kontomenyen (`src/shared/account-menu.js`), fanene Samarbeid/Abonnement i admin.
 - Tester: `npm test` (inkl. RLS-testsettet i PGlite), `npm run drill`, `node build/static-serve.mjs`; RLS mot dev: `supabase db query --linked --project-ref uatpdmhnwwjgzlxaucsx -f supabase/tests/rls_test.sql`.
-- Samarbeid (Moderator, Developer teknisk): opprette, endre navn og beskrivelse (`update_space`), arkivere og åpne igjen (`set_space_status`), slette (`delete_space`, krever navnet som bekreftelse; fjerner område, deltakere og delinger, men ikke filene), gi og fjerne menigheters tilgang, og velge delte bilder. Admin har ingen tilgang. Alt loggføres.
+- Samarbeid (trinn 18, `supabase/migrations/20261001190000_church_links.sql` + `…190100_link_source_folder.sql`):
+  - Grunnkrav: menigheter ser aldri hverandres filer.
+  - **Koblinger:** en kobling (`church_links`) gjelder nøyaktig to menigheter. Bare Moderator med MFA oppretter, avslutter og gjenåpner (`create_link`, `end_link`, `reopen_link`; Samarbeid-siden `LinksView`). Navnet vises som «Menighet A – Menighet B».
+  - **Samarbeidsfiler:** hver kobling har en egen mappe (`files.folder = 'samarbeid'`, `link_id`, `source_file_id`, `source_folder`).
+  - **Kopiering inn:** filer kommer bare inn som KOPI via `file.copy_to_link`: `can_transfer` → `storageCopy`, kontroll mot SHA-256, og `register_link_copy` med lås og kvote. Originalen røres aldri.
+    - Delt mappe: alle medlemmer kan kopiere.
+    - Faste: bare Admin.
+    - Private filer kan aldri kopieres.
+  - **Fjerning:** bare Admin i menigheten som bidro, kan fjerne kopien (`delete_file`).
+  - **Moderator** ser bare metadata (`link_files_meta`), aldri innhold.
+  - **Developer** ser filer bare i menigheter der Developer er medlem (A1).
+  - **Faste** forvaltes bare av Admin (M1).
+  - **Avsluttet kobling:** alt skjules for begge, og ingenting slettes.
+  - **Verktøyene:** `MLCloud.collab()` i `ch-cloud.js` gir Samarbeidsfiler i et eget, merket område (Photo Design-biblioteket, Mockups-kategorien «Samarbeidsfiler»). `files(mappe)` gir bare egne menigheters filer.
+  - **De gamle samarbeidsområdene** (`spaces`) er beholdt i databasen, men vises ikke lenger. Deling gjennom dem er skrudd av.
 - Lagringskvote (trinn 19 + 21, `supabase/migrations/20261001200000_plan_editing.sql` og `20261002100000_church_quota_standard.sql`):
   - Menighetens faktiske kvote er `churches.storage_quota_mb`. Den er fast standard 200 MB (`app.default_quota_mb()`, `DEFAULT_QUOTA_MB`), eller en egen kvote som Developer med MFA tildeler per menighet (`set_church_quota`).
   - «Tilbakestill til standard (200 MB)» bruker `reset_church_quota`.

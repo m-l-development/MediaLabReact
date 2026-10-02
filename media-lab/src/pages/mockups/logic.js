@@ -7,7 +7,7 @@ const DEF = { fit: 'cover', zoom: 1, ox: 0, oy: 0, bg: '#ffffff', shade: 0.6, gl
 const LS = 'mockups.settings';
 const css = u => u ? 'url("' + String(u).replace(/["\\\n]/g, '') + '")' : 'none';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const CATN = { all: 'Alle', phone: 'Mobil', laptop: 'Laptop', screen: 'Skjerm og TV', print: 'Trykk', other: 'Annet' };
+const CATN = { all: 'Alle', phone: 'Mobil', laptop: 'Laptop', screen: 'Skjerm og TV', print: 'Trykk', other: 'Annet', collab: 'Samarbeidsfiler' };
 
 class Component extends DCLogic {
   state = { view: 'gallery', lib: null, cat: 'all', sel: null, design: null, designName: '', designUrl: '', set: {}, adj: false, fmt: 'png', toast: '', dragOver: false, box: { w: 600, h: 400 }, narrow: false, busy: false };
@@ -65,7 +65,11 @@ class Component extends DCLogic {
     if (window.MLCloud) {
       try {
         const c = await window.MLCloud.files('mockups'); if (!this.alive) return;
-        const cloudFiles = c.files.map(f => ({ id: 'cloud-' + f.path.replace(/[^a-z0-9]+/gi, '-').slice(-60), src: f.url, name: window.MK.nice(f.name), cat: window.MK.catOf(f.name), corners: null, aspect: null, keepHoles: false, occl: true }));
+        /* ConnectHub-filene har id (ikke path som i den gamle skyen) – før feilet dette, og skymockupene ble aldri vist. */
+        const cloudFiles = c.files.map(f => ({ id: 'cloud-' + String(f.id || f.path || f.name).replace(/[^a-z0-9]+/gi, '-').slice(-60), src: f.url, name: window.MK.nice(f.name), cat: window.MK.catOf(f.name), corners: null, aspect: null, keepHoles: false, occl: true }));
+        /* Samarbeidsfiler (trinn 18): delte mockup-bilder i en egen kategori, merket med koblingen (A4). */
+        const groups = window.MLCloud.collab ? await window.MLCloud.collab(['mockups']) : []; if (!this.alive) return;
+        groups.forEach(g => g.files.forEach(f => cloudFiles.push({ id: 'collab-' + f.id, src: f.url, name: window.MK.nice(f.name) + ' · ' + g.title, cat: 'collab', corners: null, aspect: null, keepHoles: false, occl: true })));
         lib = lib.filter(m => !c.hidden.has(m.src.split('/').pop())).concat(cloudFiles);
         this.setState({ lib });
         loadImages(cloudFiles);
@@ -169,7 +173,7 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state, lib = S.lib || [], m = this.mk(), st = m ? this.stOf(m) : { ...DEF }, deploy = /^[a-z0-9-]+\.dc\.html$/.test(decodeURIComponent(location.pathname.split('/').pop() || ''));
     const count = k => k === 'all' ? lib.length : lib.filter(x => x.cat === k).length;
-    const cats = ['all', 'phone', 'laptop', 'screen', 'print', 'other'].filter(k => k === 'all' || count(k)).map(k => ({ l: CATN[k], n: String(count(k)), bg: S.cat === k ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: S.cat === k ? '#000000' : '#f3f1ec', border: S.cat === k ? '#e9e7e2' : 'rgba(255,255,255,0.18)', click: () => { this.dirtyCards = true; this.setState({ cat: k }); } }));
+    const cats = ['all', 'phone', 'laptop', 'screen', 'print', 'other', 'collab'].filter(k => k === 'all' || count(k)).map(k => ({ l: CATN[k], n: String(count(k)), bg: S.cat === k ? '#e9e7e2' : 'rgba(12,12,12,0.6)', fg: S.cat === k ? '#000000' : '#f3f1ec', border: S.cat === k ? '#e9e7e2' : 'rgba(255,255,255,0.18)', click: () => { this.dirtyCards = true; this.setState({ cat: k }); } }));
     const P = o => this.patch(o), pc = v => Math.round(v * 100) + ' %';
     const rg = (label, k, min, max, step, show, def) => ({ label, min, max, step, val: st[k], show, on: e => P({ [k]: +e.target.value }), reset: () => P({ [k]: def }) });
     const q = st.corners || [];
