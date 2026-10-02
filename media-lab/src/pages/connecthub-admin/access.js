@@ -1,21 +1,22 @@
 /* Hvilke admin-seksjoner hver rolle ser (speiler tilgangsreglene i databasen). */
 export const NAV = [
   ['oversikt', 'Oversikt'], ['brukere', 'Brukere'], ['menigheter', 'Menigheter'], ['invitasjoner', 'Invitasjoner'],
-  ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['tilbakemeldinger', 'Tilbakemeldinger'], ['logg', 'Logg'],
+  ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['tilbakemeldinger', 'Tilbakemeldinger'],
+  ['opprydning', 'Opprydning'], ['logg', 'Logg'],
 ];
 /* Hvilke seksjoner rollen ser – eksplisitt per rolle, ingen arv. Grensesnittet speiler databasen
-   (migrering 20261004100000_moderator_access.sql):
-   - Developer: systemadministrasjon (brukere, menigheter, invitasjoner, filer, abonnement, tilbakemeldinger, logg) –
-     ikke Samarbeid (koblinger administreres av Moderator). Filer vises bare i menigheter der Developer er medlem (A1).
-   - Moderator: den samme systemadministrasjonen OG Samarbeid. Ikke utviklerkortet / «Åpne ConnectHub Dev», og kan ikke
-     gi, fjerne eller invitere Developer/Moderator (håndheves i databasen). Filer som Developer (A1/A2).
+   (migreringene 20261004100000_moderator_access.sql og 20261006100000_dev_collab_cleanup_roles.sql):
+   - Developer: systemadministrasjon (brukere, menigheter, invitasjoner, filer, abonnement, tilbakemeldinger, opprydning,
+     logg) og Samarbeid (koblinger mellom menigheter, som Moderator). Filer vises bare i menigheter der Developer er medlem (A1).
+     I tillegg (ikke en meny): utviklerkortet / «Åpne ConnectHub Dev» og å gi/fjerne/invitere Developer og Moderator.
+   - Moderator: den samme systemadministrasjonen og Samarbeid. Filer som Developer (A1/A2).
    - Admin: brukere, menigheter, invitasjoner, filer (inkl. Samarbeidsfiler), abonnement og logg i egen menighet.
    - User: egne menigheter og filer (inkl. Samarbeidsfiler i koblinger menigheten er med i).
    Rettighetene håndheves uansett av RLS og serveren. */
-const SYSTEM = ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'abonnement', 'tilbakemeldinger', 'logg'];
+const SYSTEM = ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'samarbeid', 'abonnement', 'tilbakemeldinger', 'opprydning', 'logg'];
 export const SECTIONS = {
   developer: SYSTEM,
-  moderator: [...SYSTEM, 'samarbeid'],
+  moderator: SYSTEM,
   admin: ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'abonnement', 'logg'],
   member: ['oversikt', 'menigheter', 'filer'],
 };

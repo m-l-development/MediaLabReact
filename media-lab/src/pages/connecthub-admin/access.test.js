@@ -5,19 +5,22 @@ import { sectionsFor, brandOf } from './access.js';
 const sec = o => [...sectionsFor({ dev: false, collab: false, adminOf: [], churches: [], ...o })].sort();
 const A = { id: 'a' }, B = { id: 'b' };
 
-test('Developer: systemadministrasjon, men ikke Samarbeid (bare Moderator administrerer koblinger)', () => {
-  assert.deepEqual(sec({ dev: true }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt', 'tilbakemeldinger']);
+const STAFF = ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger'];
+test('Developer: systemadministrasjon, Samarbeid og Opprydning', () => {
+  assert.deepEqual(sec({ dev: true }), STAFF);
 });
-test('Developer som også er Moderator får Samarbeid gjennom Moderator-rollen', () => {
-  assert.ok(sectionsFor({ dev: true, collab: true, adminOf: [], churches: [] }).has('samarbeid'));
+test('Developer som også er Moderator får samme meny', () => {
+  assert.deepEqual(sec({ dev: true, collab: true }), STAFF);
+});
+test('Opprydning: bare Developer og Moderator – aldri Admin eller User', () => {
+  assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A] }).has('opprydning'));
+  assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: [], churches: [A] }).has('opprydning'));
 });
 test('Admin: brukere, menigheter, invitasjoner, filer, abonnement og logg – IKKE samarbeid', () => {
   assert.deepEqual(sec({ adminOf: ['a'], churches: [A] }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt']);
 });
-test('Moderator: samme systemadministrasjon som Developer, pluss Samarbeid', () => {
-  assert.deepEqual(sec({ collab: true }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt', 'samarbeid', 'tilbakemeldinger']);
-  const devOnly = sec({ dev: true }), modOnly = sec({ collab: true });
-  assert.deepEqual(modOnly.filter(k => !devOnly.includes(k)), ['samarbeid'], 'eneste forskjell i menyen er Samarbeid');
+test('Moderator: samme meny som Developer (utviklerverktøy og privilegerte roller er ikke menyer)', () => {
+  assert.deepEqual(sec({ collab: true }), STAFF);
 });
 test('User: menigheter og filer (Samarbeidsfiler ligger under Filer) – ikke Samarbeid', () => {
   assert.deepEqual(sec({ churches: [A] }), ['filer', 'menigheter', 'oversikt']);

@@ -30,6 +30,11 @@ export function canJoinAnother(roles, memberships, userId, churchName) {
   return { ok: false, reason: fill(tr('En bruker kan bare være medlem av én menighet om gangen. Fjern brukeren fra {church} først.'), { church: churchName(act[0].church_id) }) };
 }
 
+/* Kan den globale rollen r fjernes? Ikke hvis det er brukerens siste globale rolle og brukeren har mer enn ett aktivt
+   medlemskap (som User/Admin er grensen én menighet). Databasen håndhever det samme (CH004). */
+export const roleBlocked = (globalRoles, r, activeCount) =>
+  !(globalRoles || []).some(g => g.id !== r.id && !g.revoked_at && (g.role === 'developer' || g.role === 'moderator')) && activeCount > 1;
+
 export function removeConfirmText({ name, church, isAdmin }) {
   const lines = [fill(tr('Fjerne {name} fra {church}?'), { name, church }), '',
     tr('Brukeren mister med en gang tilgang til menighetens filer, data og funksjoner. Kontoen slettes ikke, og historikken beholdes. Brukeren kan inviteres på nytt senere.')];

@@ -740,3 +740,53 @@ Etter publisering:
 - Man kunne opprette en ny kobling for et par med en avsluttet kobling, og «Gjenåpne» på den gamle ga en misvisende feil. Nå tilbys «Gjenåpne koblingen», og konflikten gir en presis melding.
 - Under feilsøkingen ble det opprettet én ekstra kobling A–B. Den er avsluttet igjen.
 - **Gjenstår (beslutning):** Developer har ikke tilgang til Samarbeid.
+
+## Developer i Samarbeid, opprydning av private filer og sikker rolleendring (2026-10-02, connecthub-dev)
+
+**Migrering `20261006100000_dev_collab_cleanup_roles.sql` (dev).** Tørrkjøring viste bare denne filen, og alle 14 kontrollfelt er like før og etter.
+- **Samarbeid:** `app.is_collab_admin()` = Moderator eller Developer (eksplisitt). Det gjelder alle koblingsfunksjoner og den gamle områdemodellen. Filtilgangen er uendret: `can_see_file` og `file_keys` krever medlemskap, og `link_files_meta` gir bare metadata.
+- **Rolleendring:** triggeren `user_roles_global_guard` (før `revoked_at`-oppdatering eller sletting av en global rolle) stopper fjerning av den siste globale rollen når brukeren har mer enn ett aktivt medlemskap (CH004). Den bruker samme lås per bruker som medlemskapstriggeren.
+  - `active_memberships_of(user)` brukes til forklaringen i grensesnittet.
+  - Ingen medlemskap fjernes automatisk.
+- **Opprydning:**
+  - Køtabellen `file_cleanup_queue` (RLS, ingen klienttilgang).
+  - `app.cleanup_block_reason`, `cleanup_overview` (stab: antall og størrelse per menighet, ingen filnavn) og `cleanup_candidates` (bare metadata, krever at stab er aktivt medlem).
+  - `cleanup_private_files`: lås, ny kontroll, antall og byte må stemme med bekreftelsen (CH006), blokkerte filer stopper alt (CH005). Radene slettes og nøklene legges i kø i én transaksjon, og hendelsen loggføres som `files.cleanup`.
+  - `cleanup_retry_ids`, og for serveren `cleanup_queue_claim` / `cleanup_queue_done` (loggført som `files.cleanup_storage`).
+- **Kandidat:** en privat fil der eieren har status «fjernet» i filens menighet. **Blokkert** (vises med årsak) når filen er kilde for en kopi, er delt i et samarbeidsområde, menigheten ikke er aktiv, eller filen allerede står i kø.
+
+**Server:** `file.cleanup` og `file.cleanup_retry` (`server/handlers/files.js`). Lagringsnøkler går aldri til nettleseren. Hver fil fjernes fra lagringen og registreres som «done» eller «failed», og feilede kan prøves igjen.
+
+**Grensesnitt:**
+- Developer har Samarbeid i menyen og Samarbeid-kortet på oversikten.
+- Ny seksjon «Opprydning» for Developer og Moderator: oversikt per menighet, filnavn bare der du er medlem, valg av klare filer, oppsummering og bekreftelse, og nytt forsøk ved lagringsfeil.
+- Brukerskuffen: «Fjern» på en global rolle viser en sperre med antall og menigheter, forklaring og «Gå til medlemskapene» (hver fjerning bekreftes for seg), og deretter «Fjern rollen».
+
+**RLS:** 566/566 i PGlite og i dev, hvorav 56 nye eller endrede:
+- Developer i koblinger og områder, og bare metadata (ingen private filer, ingen nedlastingsnøkler, ingen sletting).
+- Rolleendring: Developer eller Moderator med flere medlemskap til User eller Admin blir blokkert; med ett eller ingen medlemskap er det lov. Direkte oppdatering eller sletting i databasen stoppes. Manuell fjerning, deretter rolleendring. Medlemskap der brukeren er Admin krever egen bekreftelse. Ingen User eller Admin har mer enn ett aktivt medlemskap.
+- Opprydning: Admin, User og Moderator uten MFA avvises. Menighetssperren. Ingen filtilgang gjennom verktøyet. Endret utvalg, ikke klar fil, aktivt medlems fil og filer fra en annen menighet stoppes. Sletting, kvote, kø, logg og serverens resultat.
+
+**Samtidighet (ekte, to databaseøkter, ny syntetisk bruker `ch-test-conc@example.com` uten innlogging):**
+- Rollen fjernes først, nytt medlemskap samtidig: ventet 3,6 s, så CH001.
+- Medlemskap aktiveres først, rollen fjernes samtidig: ventet 4,7 s, så CH004.
+- Brukeren står som Moderator med A og B aktive, som testdata for rollesperren.
+
+**`npm test`:** 121/121 (`files.test.js` +3 for opprydning på serveren, `members.test.js` +1 for `roleBlocked`, `access.test.js` oppdatert).
+
+**Nettleser (lokal preview mot dev):**
+- **User:** lastet opp en ny privat testfil (`ch-test-opprydning.png`, 190 B).
+- **Admin:** fjernet User fra A. Opprydning og Samarbeid gir «Ingen tilgang», og API-ene 403.
+- **Moderator (ikke medlem av A):** ser A med 2 filer, men «Bare for medlemmer av menigheten». Fillisten og slettingen gir 403.
+- **Developer (medlem av A):** Samarbeid i menyen og på oversikten. Gjenåpnet og avsluttet A–B igjen, med bare metadata, og ingen private filer via API. Opprydning i A viste `ch-test-privat.png` (eksisterende) og `ch-test-opprydning.png`, begge «Klar». Bare testfilen ble slettet: bekreftelsen viste antall, størrelse og filnavn, lagringsbruken i A gikk fra 17256 til 17066 B, og loggen har `files.cleanup` og `files.cleanup_storage` med `storage_deleted`.
+- **Rollesperren** for `ch-test-conc` viste 2 medlemskap (A, B) og forklaringen, og «Gå til medlemskapene» virket. Direkte `revoke_role` gir CH004.
+- **User2:** Opprydning «Ingen tilgang», `create_link` 403.
+- **Gjenopprettet:** `ch-test-user` er lagt tilbake i A, så `ch-test-privat.png` er ikke lenger kandidat. Koblingen A–B er avsluttet igjen.
+- **Regresjon** av Moderator-testene for alle fire roller: grønn. User2 er Admin i «12» etter brukerens egne endringer, og vises derfor som Admin.
+
+**Testdata lagt til i dev:**
+- `ch-test-conc@example.com` (Moderator, A og B).
+- Kø-oppføringen for den slettede testfilen.
+- Loggrader.
+
+Ingen eksisterende filer er slettet.

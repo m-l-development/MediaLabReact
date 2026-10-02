@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isGlobal, activeOf, roleSummary, canJoinAnother, removeConfirmText } from './members.js';
+import { isGlobal, activeOf, roleSummary, canJoinAnother, removeConfirmText, roleBlocked } from './members.js';
 
 const name = id => ({ a: 'Menighet A', b: 'Menighet B' }[id] || '–');
 const M = [{ user_id: 'u', church_id: 'a', status: 'active' }, { user_id: 'u', church_id: 'b', status: 'removed' }, { user_id: 'v', church_id: 'b', status: 'disabled' }];
@@ -22,6 +22,14 @@ test('én menighet om gangen: User/Admin med aktivt medlemskap kan ikke legges t
   assert.equal(r.ok, false); assert.match(r.reason, /Menighet A/);
   assert.equal(canJoinAnother([], M, 'v', name).ok, true, 'deaktivert medlemskap hindrer ikke');
   assert.equal(canJoinAnother([{ role: 'moderator', church_id: null }], M, 'u', name).ok, true);
+});
+test('global rolle: blokkeres når det er den siste og brukeren har flere aktive medlemskap', () => {
+  const dev = { id: 'r1', role: 'developer' }, mod = { id: 'r2', role: 'moderator' };
+  assert.equal(roleBlocked([dev], dev, 2), true, 'siste globale rolle og to medlemskap');
+  assert.equal(roleBlocked([dev], dev, 1), false, 'ett medlemskap er lov');
+  assert.equal(roleBlocked([dev], dev, 0), false, 'ingen medlemskap er lov');
+  assert.equal(roleBlocked([dev, mod], dev, 3), false, 'har fortsatt Moderator – fortsatt unntatt');
+  assert.equal(roleBlocked([dev, { ...mod, revoked_at: 'x' }], dev, 2), true, 'tilbakekalt rolle teller ikke');
 });
 test('bekreftelsen for fjerning nevner menigheten, og Admin-varsel når brukeren er Admin', () => {
   const t = removeConfirmText({ name: 'Ola', church: 'Menighet A', isAdmin: false });

@@ -88,6 +88,10 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Overbooking er tillatt:** summen av kvotene kan være større enn grensen.
   - **Developer med MFA:** `storage_overview` og `set_storage_limit` (loggført `storage.limit`), kortet «Samlet lagringsplass» under Abonnement. Varsel (`storage`) ved 80 % og 90 %.
   - **Medlemmer:** `storage_usage.system_free_bytes`. Måleren viser det minste av ledig kvote og ledig samlet plass.
+- Samarbeid, opprydning og rolleendring (fra `supabase/migrations/20261006100000_dev_collab_cleanup_roles.sql`, bare i dev):
+  - **Samarbeid:** `app.is_collab_admin()` = Moderator ELLER Developer.
+  - **Rolleendring:** triggeren `user_roles_global_guard` stopper fjerning av siste globale rolle ved flere aktive medlemskap (CH004), med samme lås per bruker som `single_church_guard`.
+  - **Opprydning (`connecthub-admin/cleanup.jsx`, server `file.cleanup`/`file.cleanup_retry`):** private filer fra fjernede medlemmer. Stab ser antall og størrelse for alle menigheter, men filnavn og sletting bare der de selv er medlem. Sletting skjer med ny kontroll, `file_cleanup_queue` og logg.
 - Medlemskap (fra `supabase/migrations/20261005100000_single_church.sql` og `…100100_removed_member_files.sql`, bare i dev så langt):
   - **Én menighet om gangen:** User og Admin kan ha høyst ett aktivt medlemskap. Developer og Moderator er unntatt.
   - **Håndheving:** triggeren `memberships_single_church` (lås per bruker, SQLSTATE `CH001`), så alle veier stoppes. `create_invitation` og `accept_invitation` gir `already_member_elsewhere`.

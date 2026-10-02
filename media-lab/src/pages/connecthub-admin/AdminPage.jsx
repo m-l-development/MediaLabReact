@@ -7,9 +7,10 @@ import { isStaff, hasRole } from '../../services/data/me.js';
 import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor, brandOf } from './access.js';
-import { roleSummary, canJoinAnother, memberActions, fill } from './members.js';
+import { roleSummary, canJoinAnother, memberActions, fill, roleBlocked } from './members.js';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 import { FeedbackView } from './feedback.jsx';
+import { CleanupView } from './cleanup.jsx';
 import { noteError } from '../../shared/feedback-errors.js';
 
 /* global __CH_DEV_SITE__ */
@@ -90,6 +91,7 @@ export default function AdminPage({ me }) {
   else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser, delt mappe og Samarbeidsfiler. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
   else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Koblinger mellom to menigheter. Hver kobling har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
   else if (sec === 'tilbakemeldinger') body = <FeedbackView selected={id} />;
+  else if (sec === 'opprydning') body = <CleanupView churchId={id} />;
   else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer eller Moderator godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
   else body = kind === 'user' ? <UserOverview /> : <Overview pendingInvites={pendingInvites} />;
@@ -142,7 +144,7 @@ function CollabCard() {
       <a className="ch-stat" href={href('samarbeid')}><b>{churches.size}</b><span>{T('Menigheter med kobling')}</span></a>
       <a className="ch-stat" href={href('samarbeid')}><b>{ls.length - active.length}</b><span>{T('Avsluttede koblinger')}</span></a>
     </div>
-    <p className="ch-muted">{T('Som Moderator kobler du sammen to og to menigheter. Hver kobling får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet.')}</p>
+    <p className="ch-muted">{T('Som Developer eller Moderator kobler du sammen to og to menigheter. Hver kobling får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet.')}</p>
     <div className="ch-row"><a className="ch-btn primary" href={href('samarbeid')}>{T('Gå til samarbeid')}</a></div>
   </Card>;
 }
@@ -178,7 +180,7 @@ function Overview({ pendingInvites }) {
       {s && <a className="ch-stat" href={href('logg')}><b>{s.audit_last_24h}</b><span>{T('Hendelser siste døgn')}</span></a>}
     </div>
     {dev && <DevCard />}
-    {collab && <CollabCard />}
+    {(collab || dev) && <CollabCard />}
     <div className="ch-grid">
       <Card title="Krever handling" sub={todo.length || null}>
         {todo.length ? <List cols="1fr" rows={todo.map(x => ({ key: x.k, cells: [<a href={x.to}>{x.t} →</a>] }))} /> : <p className="ch-muted">{T('Ingenting venter på deg nå.')}</p>}
@@ -272,6 +274,7 @@ function UserDetail({ id, onClose }) {
   const [activity, setActivity] = React.useState([]);
   const [prof, setProf] = React.useState({ name: '', phone: '' });
   const [addCh, setAddCh] = React.useState('');
+  const [roleBlock, setRoleBlock] = React.useState(null);   // global rolle som ikke kan fjernes ennå (flere aktive medlemskap)
   React.useEffect(() => { if (u) setProf({ name: u.full_name || '', phone: u.phone || '' }); if (staff && u) admin.userActivity(u.id).then(setActivity).catch(() => {}); }, [id, u && u.updated_at]);
   if (!u) return <Drawer title={T('Bruker')} onClose={onClose}><Empty>{T('Fant ikke brukeren, eller du har ikke tilgang.')}</Empty></Drawer>;
   const self = u.id === me.id;
@@ -310,7 +313,7 @@ function UserDetail({ id, onClose }) {
       {!self && <p className="ch-muted">{T('Navn og telefon endres av brukeren selv.')}</p>}
     </Card>
 
-    <Card title="Menighet og medlemskap" sub={mems.length || null}>
+    <div data-ch-membercard><Card title="Menighet og medlemskap" sub={mems.length || null}>
       {mems.length ? <List cols="1fr auto auto" rows={mems.map(m => {
         const adm = roles.find(r => r.role === 'church_admin' && r.church_id === m.church_id);
         const a = { userId: u.id, churchId: m.church_id, name: nm, church: churchName(m.church_id), isAdmin: !!adm, roleId: adm && adm.id };
@@ -335,10 +338,28 @@ function UserDetail({ id, onClose }) {
         <Btn disabled={!addCh} onClick={run(async () => { await admin.addMembership(u.id, addCh); setAddCh(''); }, 'Brukeren er lagt til i menigheten.')}>{T('Legg til')}</Btn>
       </div> : <p className="ch-note" data-ch-onechurch>{join.reason}</p>)}
       <p className="ch-muted">{T('«Deaktiver midlertidig» stenger tilgangen til medlemskapet aktiveres igjen. «Fjern fra menigheten» avslutter medlemskapet – brukeren må inviteres på nytt for å komme tilbake.')}</p>
-    </Card>
+    </Card></div>
 
     {staff && <Card title="Globale roller">
-      <div className="ch-row">{global.length ? global.map(r => <span key={r.id} className="ch-row"><RoleBadge r={r.role} />{dev && !self && <Btn small onClick={run(() => admin.revokeRole(r.id, 'Admin-siden'), 'Rollen er fjernet.')}>{T('Fjern')}</Btn>}</span>) : <span className="ch-muted">{T('Ingen')}</span>}</div>
+      <div className="ch-row">{global.length ? global.map(r => <span key={r.id} className="ch-row"><RoleBadge r={r.role} />{dev && !self && <Btn small data-ch-revokeglobal onClick={() => {
+        /* Fjernes den siste globale rollen, blir brukeren User/Admin igjen – og kan da bare ha ett aktivt medlemskap.
+           Databasen stopper uansett (CH004); her forklares det før forsøket, med vei til medlemskapene. */
+        if (roleBlocked(global, r, active.length)) { setRoleBlock(r); return; }
+        run(() => { if (!confirm(fill(T('Fjerne rollen {role} fra {name}?'), { role: T(ROLE[r.role] || r.role), name: nm }))) throw Object.assign(new Error(), { code: 'cancel' }); return admin.revokeRole(r.id, 'Admin-siden'); }, 'Rollen er fjernet.')();
+      }}>{T('Fjern')}</Btn>}</span>) : <span className="ch-muted">{T('Ingen')}</span>}</div>
+      {roleBlock && <div className="ch-note warn" data-ch-roleblock>
+        <p><b>{fill(T('Rollen {role} kan ikke fjernes fra {name} ennå.'), { role: T(ROLE[roleBlock.role] || roleBlock.role), name: nm })}</b></p>
+        {active.length > 1 ? <>
+          <p>{fill(T('Brukeren har {n} aktive medlemskap: {churches}. Som User eller Admin kan brukeren bare være medlem av én menighet om gangen.'), { n: active.length, churches: active.map(m => churchName(m.church_id)).join(', ') })}</p>
+          <p>{T('Fjern medlemskapene brukeren ikke skal ha under «Menighet og medlemskap». Hver fjerning bekreftes for seg, og ingenting fjernes automatisk. Kom tilbake hit når brukeren har ett aktivt medlemskap.')}</p>
+          <div className="ch-row"><Btn small kind="primary" onClick={() => { const el = document.querySelector('[data-ch-membercard]'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>{T('Gå til medlemskapene')}</Btn>
+            <Btn small onClick={() => setRoleBlock(null)}>{T('Lukk')}</Btn></div>
+        </> : <>
+          <p>{T('Brukeren har nå høyst ett aktivt medlemskap, så rollen kan fjernes.')}</p>
+          <div className="ch-row"><Btn small kind="danger" onClick={run(async () => { if (!confirm(fill(T('Fjerne rollen {role} fra {name}?'), { role: T(ROLE[roleBlock.role] || roleBlock.role), name: nm }))) throw Object.assign(new Error(), { code: 'cancel' }); await admin.revokeRole(roleBlock.id, 'Admin-siden'); setRoleBlock(null); }, 'Rollen er fjernet.')}>{T('Fjern rollen')}</Btn>
+            <Btn small onClick={() => setRoleBlock(null)}>{T('Lukk')}</Btn></div>
+        </>}
+      </div>}
       {dev && !self && u.status === 'active' && <div className="ch-row">
         {!global.some(r => r.role === 'moderator') && <Btn small onClick={run(() => admin.assignRole(u.id, 'moderator', null, 'Admin-siden'), 'Brukeren er nå moderator.')}>{T('Gjør til moderator')}</Btn>}
         {!global.some(r => r.role === 'developer') && <Btn small onClick={run(() => { if (!confirm(T('Gi Developer-rollen? Developer har full tilgang til hele ConnectHub.'))) throw Object.assign(new Error(), { code: 'cancel' }); return admin.assignRole(u.id, 'developer', null, 'Admin-siden'); }, 'Brukeren er nå Developer.')}>{T('Gjør til Developer')}</Btn>}

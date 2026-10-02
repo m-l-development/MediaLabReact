@@ -400,7 +400,7 @@ select ch_test.cnt('Kobling: Admin får ikke menighetslisten', 'select 1 from pu
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
 select ch_test.err('Kobling: medlem kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.err('Kobling: Developer kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+select ch_test.ok_rb('Kobling: Developer kan opprette kobling (som Moderator)', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
 select ch_test.err('Kobling: Moderator uten MFA kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
@@ -423,8 +423,8 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.cnt('Kobling: medlem i B ser bare koblingen A–B', 'select 1 from public.my_links()', 1);
 select ch_test.cnt('Kobling: medlem i B ser navnet på A gjennom koblingen', $q$select 1 from public.my_links() where church_a_name = 'Testmenighet A'$q$, 1);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.cnt('Kobling: Developer uten medlemskap ser ingen koblinger', 'select 1 from public.my_links()', 0);
-select ch_test.cnt('Kobling: Developer leser ingen koblinger direkte', 'select 1 from public.church_links', 0);
+select ch_test.cnt('Kobling: Developer ser alle koblinger (som Moderator), også uten medlemskap', $q$select 1 from public.my_links() where church_a in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c')$q$, 2);
+select ch_test.cnt('Kobling: Developer leser koblingene (som Moderator)', $q$select 1 from public.church_links where church_a in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c')$q$, 2);
 
 -- Overføring (kopi): Delt mappe for alle medlemmer, Faste bare Admin, aldri private eller andres filer
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
@@ -471,6 +471,10 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.err('Samarbeidsfiler: medlem får ikke metadata-oversikten', $q$select public.link_files_meta((select ab from t18))$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
 select ch_test.cnt('Samarbeidsfiler: Developer uten medlemskap ser ingenting', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+select ch_test.cnt('Samarbeidsfiler: Developer får bare metadata (som Moderator)', $q$select 1 from public.link_files_meta((select ab from t18))$q$, 3);
+select ch_test.cnt('Samarbeidsfiler: Developer uten medlemskap får ingen nedlastingsnøkler', $q$select 1 from public.file_keys(array(select id from ch_test.all_files where folder = 'samarbeid'))$q$, 0);
+select ch_test.err('Samarbeidsfiler: Developer uten medlemskap kan ikke slette kopier', $q$select public.delete_file((select id from ch_test.all_files where storage_key = 'test/kopi-ab-1.png'))$q$, '42501');
+select ch_test.cnt('Samarbeidsfiler: Developer ser ingen private filer', $q$select 1 from public.files where visibility = 'private'$q$, 0);
 
 -- Fjerning: bare Admin i menigheten som bidro; originalen blir liggende
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
@@ -532,7 +536,7 @@ update public.churches set status = 'active' where id = 'bbbbbbbb-0000-4000-8000
 select ch_test.cnt('Utilgjengelig menighet: ingen kopier ble slettet', $q$select 1 from public.files where link_id = (select ab from t18)$q$, 2);
 set local role authenticated;
 
--- Den gamle samarbeidsmodellen: deling av vanlige filer er skrudd av; Developer har ikke lenger samarbeidstilgang
+-- Den gamle samarbeidsmodellen: deling av vanlige filer er skrudd av; Developer og Moderator administrerer (uten filtilgang)
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
 select ch_test.ok('Gammel modell: Moderator kan fortsatt opprette område (uten filtilgang)', $q$select public.create_space('Gammelt område')$q$);
 select ch_test.err('Gammel modell: deling av vanlige filer er skrudd av', $q$select public.share_file_to_space((select id from ch_test.all_files where file_name = 'bilde.jpg' and link_id is null), (select id from public.spaces where name = 'Gammelt område'))$q$, '42501');
@@ -545,8 +549,8 @@ select ch_test.err('Gammel modell: medlem kan ikke slette område', $q$select pu
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
 select ch_test.err('Gammel modell: Admin kan ikke opprette område', $q$select public.create_space('Adminområde')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.cnt('Gammel modell: Developer har ikke lenger samarbeidstilgang', $q$select 1 from public.spaces$q$, 0);
-select ch_test.err('Gammel modell: Developer kan ikke endre område', $q$select public.update_space((select id from public.spaces limit 1), 'Kapret')$q$, '42501');
+select ch_test.atleast('Gammel modell: Developer har samarbeidstilgang (som Moderator)', $q$select 1 from public.spaces$q$, 1);
+select ch_test.ok_rb('Gammel modell: Developer kan endre område (som Moderator)', $q$select public.update_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn', 'Endret av Developer')$q$);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
 select ch_test.err('Gammel modell: Moderator uten MFA kan ikke slette', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
@@ -1070,6 +1074,128 @@ select ch_test.ok('Fjerning: etter fjerning kan brukeren legges til i en annen m
 select ch_test.ok('Fjerning: Developer kan fjerne et medlem', $q$select public.remove_membership('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032', 'test')$q$);
 select ch_test.ok('Fjerning: fjernet medlem kan legges til igjen av stab (raden gjenbrukes)', $q$select public.add_membership('00000000-0000-4000-8000-000000000021', '31313131-0000-4000-8000-000000000031')$q$);
 select ch_test.cnt('Fjerning: igjen aktiv i M1, fjernet i M2', $q$select 1 from public.memberships where user_id = '00000000-0000-4000-8000-000000000021' and ((church_id = '31313131-0000-4000-8000-000000000031' and status = 'active') or (church_id = '32323232-0000-4000-8000-000000000032' and status = 'removed'))$q$, 2);
+set local role postgres;
+
+-- ---------- Rolleendring: global rolle kan ikke fjernes fra en bruker med flere aktive medlemskap ----------
+-- Fixturer (M1 = 31…, M2 = 32…): 25 Developer + Admin i M1 (M1+M2), 30 Developer (M1+M2), 26 Moderator (M1+M2),
+-- 29 Moderator + Admin i M2 (M1+M2), 27 Moderator (bare M1), 28 Developer (ingen menighet).
+set local role postgres;
+insert into public.app_users (id, email, full_name, status) values
+  ('00000000-0000-4000-8000-000000000025', 'g-devadm@test.invalid', 'G DevAdmin', 'active'), ('00000000-0000-4000-8000-000000000026', 'g-mod@test.invalid', 'G Mod', 'active'),
+  ('00000000-0000-4000-8000-000000000027', 'g-modone@test.invalid', 'G ModEn', 'active'), ('00000000-0000-4000-8000-000000000028', 'g-devnone@test.invalid', 'G DevIngen', 'active'),
+  ('00000000-0000-4000-8000-000000000029', 'g-modadm@test.invalid', 'G ModAdmin', 'active'), ('00000000-0000-4000-8000-000000000030', 'g-dev@test.invalid', 'G Dev', 'active');
+insert into public.user_identities (provider, subject, user_id) select 'https://test.invalid/auth/v1', 'sub-g' || right(id::text, 2), id from public.app_users where email like 'g-%@test.invalid';
+insert into public.user_roles (user_id, role, church_id) values
+  ('00000000-0000-4000-8000-000000000025', 'developer', null), ('00000000-0000-4000-8000-000000000030', 'developer', null),
+  ('00000000-0000-4000-8000-000000000026', 'moderator', null), ('00000000-0000-4000-8000-000000000029', 'moderator', null),
+  ('00000000-0000-4000-8000-000000000027', 'moderator', null), ('00000000-0000-4000-8000-000000000028', 'developer', null);
+insert into public.memberships (user_id, church_id) values
+  ('00000000-0000-4000-8000-000000000025', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000025', '32323232-0000-4000-8000-000000000032'),
+  ('00000000-0000-4000-8000-000000000030', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000030', '32323232-0000-4000-8000-000000000032'),
+  ('00000000-0000-4000-8000-000000000026', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000026', '32323232-0000-4000-8000-000000000032'),
+  ('00000000-0000-4000-8000-000000000029', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000029', '32323232-0000-4000-8000-000000000032'),
+  ('00000000-0000-4000-8000-000000000027', '31313131-0000-4000-8000-000000000031');
+insert into public.user_roles (user_id, role, church_id) values
+  ('00000000-0000-4000-8000-000000000025', 'church_admin', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000029', 'church_admin', '32323232-0000-4000-8000-000000000032');
+create table ch_test.groles as select id, user_id, role from public.user_roles where user_id::text like '00000000-0000-4000-8000-0000000000%' and role in ('developer', 'moderator') and church_id is null;
+grant select on ch_test.groles to authenticated;
+
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Rolleendring: Developer (Admin i M1) med to aktive medlemskap kan ikke bli Admin', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000025'))$q$, 'CH004');
+select ch_test.err('Rolleendring: Developer med to aktive medlemskap kan ikke bli User', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000030'))$q$, 'CH004');
+select ch_test.err('Rolleendring: Moderator med to aktive medlemskap kan ikke bli User', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000026'))$q$, 'CH004');
+select ch_test.err('Rolleendring: Moderator (Admin i M2) med to aktive medlemskap kan ikke bli Admin', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000029'))$q$, 'CH004');
+select ch_test.cnt('Rolleendring blokkert: medlemskap og roller er uendret', $q$select 1 from public.memberships where user_id in ('00000000-0000-4000-8000-000000000025', '00000000-0000-4000-8000-000000000026', '00000000-0000-4000-8000-000000000029', '00000000-0000-4000-8000-000000000030') and status = 'active' union all select 1 from public.user_roles where id in (select id from ch_test.groles where user_id in ('00000000-0000-4000-8000-000000000025', '00000000-0000-4000-8000-000000000026', '00000000-0000-4000-8000-000000000029', '00000000-0000-4000-8000-000000000030')) and revoked_at is null$q$, 12);
+select ch_test.ok_rb('Rolleendring: Moderator med ett aktivt medlemskap kan bli User', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000027'))$q$);
+select ch_test.ok_rb('Rolleendring: Developer uten medlemskap kan bli User', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000028'))$q$);
+select ch_test.cnt('Rolleendring: aktive medlemskap kan leses for å forklare sperren', $q$select 1 from public.active_memberships_of('00000000-0000-4000-8000-000000000026')$q$, 2);
+select ch_test.err('Rolleendring: medlemskap der brukeren er Admin krever egen bekreftelse', $q$select public.remove_membership('00000000-0000-4000-8000-000000000029', '32323232-0000-4000-8000-000000000032')$q$, 'CH003');
+select ch_test.err('Rolleendring: fortsatt blokkert når medlemskapet ikke ble fjernet', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000029'))$q$, 'CH004');
+select ch_test.ok('Rolleendring: Developer fjerner ett medlemskap manuelt', $q$select public.remove_membership('00000000-0000-4000-8000-000000000026', '32323232-0000-4000-8000-000000000032', 'test')$q$);
+select ch_test.ok('Rolleendring: deretter kan Moderator-rollen fjernes', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000026'))$q$);
+select ch_test.err('Rolleendring: tidligere Moderator kan ikke aktiveres i en annen menighet igjen', $q$select public.add_membership('00000000-0000-4000-8000-000000000026', '32323232-0000-4000-8000-000000000032')$q$, 'CH001');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Rolleendring: Moderator kan fortsatt ikke fjerne Developer-roller', $q$select public.revoke_role((select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000028'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g26","aal":"aal1"}';
+select ch_test.cnt('Rolleendring: User ser bare egne medlemskap', $q$select 1 from public.active_memberships_of('00000000-0000-4000-8000-000000000025')$q$, 0);
+set local role postgres;
+select ch_test.err('Rolleendring: direkte oppdatering i databasen stoppes også', $q$update public.user_roles set revoked_at = now() where id = (select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000030')$q$, 'CH004');
+select ch_test.err('Rolleendring: direkte sletting i databasen stoppes også', $q$delete from public.user_roles where id = (select id from ch_test.groles where user_id = '00000000-0000-4000-8000-000000000030')$q$, 'CH004');
+select ch_test.cnt('Rolleendring: samme lås per bruker som medlemskapstriggeren (samtidige endringer køes)', $q$select 1 from pg_proc where proname in ('global_role_guard', 'single_church_guard') and prosrc like '%ch:membership:%' and prosrc like '%pg_advisory_xact_lock%'$q$, 2);
+select ch_test.cnt('Rolleendring: ingen User/Admin har mer enn ett aktivt medlemskap', $q$select 1 from public.memberships m where m.status = 'active' and not exists (select 1 from public.user_roles r where r.user_id = m.user_id and r.role in ('developer', 'moderator') and r.church_id is null and r.revoked_at is null) group by m.user_id having count(*) > 1$q$, 0);
+
+-- ---------- Opprydning av private filer fra fjernede medlemmer ----------
+-- I M1: U22 er fjernet (kandidater c-1, c-2, c-src; c-src er kilde for en kopi), U24 er aktiv (c-aktiv), U21 er lagt til
+-- igjen etter fjerning (m1-privat er ikke kandidat).
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, uploaded_by, folder, visibility) values
+  ('31313131-0000-4000-8000-000000000031', 'test/c-1.png', 'c-1.png', 'image/png', 100, '00000000-0000-4000-8000-000000000022', 'bilder', 'private'),
+  ('31313131-0000-4000-8000-000000000031', 'test/c-2.png', 'c-2.png', 'image/png', 200, '00000000-0000-4000-8000-000000000022', 'bilder', 'private'),
+  ('31313131-0000-4000-8000-000000000031', 'test/c-src.png', 'c-src.png', 'image/png', 50, '00000000-0000-4000-8000-000000000022', 'bilder', 'private'),
+  ('31313131-0000-4000-8000-000000000031', 'test/c-aktiv.png', 'c-aktiv.png', 'image/png', 70, '00000000-0000-4000-8000-000000000024', 'bilder', 'private'),
+  ('32323232-0000-4000-8000-000000000032', 'test/c-m2.png', 'c-m2.png', 'image/png', 40, '00000000-0000-4000-8000-000000000023', 'bilder', 'private');
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility, source_file_id)
+  select '31313131-0000-4000-8000-000000000031', 'test/c-kopi.png', 'c-kopi.png', 'image/png', 50, 'bilder', 'church', id from public.files where file_name = 'c-src.png';
+create table ch_test.cfiles as select id, file_name from public.files where file_name like 'c-%';
+grant select on ch_test.cfiles to authenticated;
+create table ch_test.cbytes as select coalesce(sum(file_size), 0) as before from public.files where church_id = '31313131-0000-4000-8000-000000000031';
+grant select on ch_test.cbytes to authenticated;
+
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Opprydning: Admin får ikke oversikten', 'select * from public.cleanup_overview()', '42501');
+select ch_test.err('Opprydning: Admin får ikke fillisten', $q$select * from public.cleanup_candidates('31313131-0000-4000-8000-000000000031')$q$, '42501');
+select ch_test.err('Opprydning: Admin kan ikke slette', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name = 'c-1.png'), 1, 100)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-m24","aal":"aal1"}';
+select ch_test.err('Opprydning: User får ikke oversikten', 'select * from public.cleanup_overview()', '42501');
+select ch_test.err('Opprydning: User kan ikke slette', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name = 'c-1.png'), 1, 100)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Opprydning: Moderator uten MFA avvises', 'select * from public.cleanup_overview()', '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Opprydning: oversikten viser M1 med 3 kandidater, 2 klare (350 B / 300 B)', $q$select 1 from public.cleanup_overview() where church_id = '31313131-0000-4000-8000-000000000031' and candidates = 3 and candidate_bytes = 350 and ready = 2 and ready_bytes = 300 and not can_view$q$, 1);
+select ch_test.err('Opprydning: uten medlemskap ingen filnavn (menighetssperren)', $q$select * from public.cleanup_candidates('31313131-0000-4000-8000-000000000031')$q$, '42501');
+select ch_test.err('Opprydning: uten medlemskap ingen sletting', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name = 'c-1.png'), 1, 100)$q$, '42501');
+set local role postgres;
+insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000002', '31313131-0000-4000-8000-000000000031') on conflict (user_id, church_id) do update set status = 'active';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Opprydning: medlem i stab ser kandidatene (ikke aktive medlemmer, ikke gjeninnsatte)', $q$select 1 from public.cleanup_candidates('31313131-0000-4000-8000-000000000031')$q$, 3);
+select ch_test.cnt('Opprydning: filen med en kopi er ikke klar, med årsak', $q$select 1 from public.cleanup_candidates('31313131-0000-4000-8000-000000000031') where file_name = 'c-src.png' and not ready and reason like '%kopi%'$q$, 1);
+select ch_test.cnt('Opprydning: fillisten har ingen lagringsnøkkel', $q$select 1 from pg_proc where proname = 'cleanup_candidates' and array_to_string(proargnames, ',') like '%storage_key%'$q$, 0);
+select ch_test.cnt('Opprydning: tilgang til verktøyet gir ikke tilgang til filene', $q$select 1 from public.files where file_name in ('c-1.png', 'c-2.png') union all select 1 from public.file_keys(array(select id from ch_test.cfiles where file_name in ('c-1.png', 'c-2.png')))$q$, 0);
+select ch_test.err('Opprydning: feil antall/størrelse (endret utvalg) stoppes', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name in ('c-1.png', 'c-2.png')), 2, 999)$q$, 'CH006');
+select ch_test.err('Opprydning: en fil som ikke er klar stopper hele slettingen', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name in ('c-1.png', 'c-src.png')), 2, 150)$q$, 'CH005');
+select ch_test.err('Opprydning: et aktivt medlems private fil kan ikke ryddes', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name = 'c-aktiv.png'), 1, 70)$q$, 'CH005');
+select ch_test.err('Opprydning: filer fra en annen menighet avvises', $q$select public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name in ('c-m2.png', 'c-1.png')), 2, 140)$q$, '42501');
+set local role postgres;
+select ch_test.cnt('Opprydning: ingenting slettet etter avviste forsøk', $q$select 1 from public.files where file_name like 'c-%'$q$, 6);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Opprydning: bekreftet sletting av 2 filer (300 B)', $q$select 1 where (public.cleanup_private_files('31313131-0000-4000-8000-000000000031', array(select id from ch_test.cfiles where file_name in ('c-1.png', 'c-2.png')), 2, 300) ->> 'count')::int = 2$q$, 1);
+set local role postgres;
+select ch_test.cnt('Opprydning: radene er slettet, de andre filene er urørt', $q$select 1 from public.files where file_name like 'c-%'$q$, 4);
+select ch_test.cnt('Opprydning: menighetens lagringsbruk gikk ned med 300 B', $q$select 1 from ch_test.cbytes where before - 300 = (select coalesce(sum(file_size), 0) from public.files where church_id = '31313131-0000-4000-8000-000000000031')$q$, 1);
+select ch_test.cnt('Opprydning: to lagringsnøkler står i køen', $q$select 1 from public.file_cleanup_queue where church_id = '31313131-0000-4000-8000-000000000031' and status = 'pending'$q$, 2);
+select ch_test.cnt('Opprydning: loggført med utfører, menighet, antall og filer', $q$select 1 from public.audit_logs where action = 'files.cleanup' and actor_user_id = '00000000-0000-4000-8000-000000000002' and church_id = '31313131-0000-4000-8000-000000000031' and (meta ->> 'count')::int = 2 and jsonb_array_length(meta -> 'files') = 2$q$, 1);
+set local role authenticated;
+select ch_test.err('Opprydning: innloggede kan ikke hente lagringsnøkler fra køen', $q$select * from public.cleanup_queue_claim(array(select id from public.file_cleanup_queue))$q$, '42501');
+select ch_test.err('Opprydning: innloggede leser ikke køen direkte', $q$select 1 from public.file_cleanup_queue$q$, '42501');
+set local role postgres;
+create table ch_test.cq as select id, file_name from public.file_cleanup_queue where church_id = '31313131-0000-4000-8000-000000000031';
+grant select on ch_test.cq to authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on ch_test.cq to service_role'; execute 'set local role service_role'; end if; end $$;
+select ch_test.cnt('Opprydning (server): henter nøklene for køen', $q$select 1 from public.cleanup_queue_claim(array(select id from ch_test.cq))$q$, 2);
+select ch_test.ok('Opprydning (server): én fjernet fra lagringen', $q$select public.cleanup_queue_done((select id from ch_test.cq where file_name = 'c-1.png'), true)$q$);
+select ch_test.ok('Opprydning (server): én feilet i lagringen', $q$select public.cleanup_queue_done((select id from ch_test.cq where file_name = 'c-2.png'), false, 'timeout')$q$);
+set local role postgres;
+select ch_test.cnt('Opprydning: resultatet er registrert (done + failed) og loggført', $q$select 1 from public.file_cleanup_queue where (file_name = 'c-1.png' and status = 'done') or (file_name = 'c-2.png' and status = 'failed' and last_error = 'timeout') union all select 1 from public.audit_logs where action = 'files.cleanup_storage' and church_id = '31313131-0000-4000-8000-000000000031'$q$, 4);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Opprydning: feilet oppføring kan prøves igjen', $q$select 1 where array_length(public.cleanup_retry_ids('31313131-0000-4000-8000-000000000031'), 1) = 1$q$, 1);
+select ch_test.cnt('Opprydning: oversikten viser køen', $q$select 1 from public.cleanup_overview() where church_id = '31313131-0000-4000-8000-000000000031' and queue_failed = 1 and candidates = 1 and ready = 0 and can_view$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Opprydning: Developer får oversikten', 'select * from public.cleanup_overview()');
+select ch_test.err('Opprydning: Developer uten medlemskap får ikke fillisten', $q$select * from public.cleanup_candidates('31313131-0000-4000-8000-000000000031')$q$, '42501');
 set local role postgres;
 
 -- ---------- Logging ----------

@@ -10,7 +10,7 @@ import { memberActions } from './members.js';
 
 const ACTIONS = {
   'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
-  'memberships.insert': 'Medlem lagt til', 'memberships.update': 'Medlemskap endret', 'memberships.delete': 'Medlemskap fjernet', 'memberships.remove': 'Fjernet fra menighet',
+  'memberships.insert': 'Medlem lagt til', 'memberships.update': 'Medlemskap endret', 'memberships.delete': 'Medlemskap fjernet', 'memberships.remove': 'Fjernet fra menighet', 'files.cleanup': 'Private filer ryddet', 'files.cleanup_storage': 'Ryddet fil fjernet fra lagringen',
   'user_roles.insert': 'Rolle gitt', 'user_roles.update': 'Rolle endret eller fjernet', 'user_roles.delete': 'Rolle slettet',
   'invitations.insert': 'Invitasjon laget', 'invitations.update': 'Invitasjon endret', 'invitations.delete': 'Invitasjon slettet',
   'app_users.insert': 'Bruker opprettet', 'app_users.update': 'Bruker endret', 'app_users.delete': 'Bruker slettet',
@@ -398,7 +398,7 @@ export function LinksView() {
           : <Btn small onClick={reopen(l)}>{T('Gjenåpne')}</Btn>}</div>] }))} />
     </Card>
     {cur && <Card title={linkName(cur)} sub={s.meta.length}>
-      <p className="ch-muted">{T('Filene i koblingens Samarbeidsfiler. Som Moderator ser du bare filnavn og opplysninger – ikke innholdet – og du kan ikke laste ned eller slette.')}</p>
+      <p className="ch-muted">{T('Filene i koblingens Samarbeidsfiler. Som Developer eller Moderator ser du bare filnavn og opplysninger – ikke innholdet – og du kan ikke laste ned eller slette.')}</p>
       <List cols="minmax(140px,1fr) auto minmax(100px,auto) auto" head={['Fil', 'Størrelse', 'Lagt inn av', 'Dato']} empty="Ingen filer i koblingen." rows={s.meta.map(f => ({ key: f.id, cells: [
         <span style={{ wordBreak: 'break-all' }}>{f.file_name}</span>, <span className="ch-muted">{mb(f.file_size)}</span>, <span>{cname(f.church_id)}</span>, <span className="ch-muted">{fmtDate(f.created_at)}</span>] }))} />
     </Card>}

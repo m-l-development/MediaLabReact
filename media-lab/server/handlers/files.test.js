@@ -152,3 +152,37 @@ test('file.copy_to_link: kopi som ikke er identisk, eller feil ved registrering,
   assert.equal(r2.status, 409);
   assert.deepEqual(dobbel.log.find(x => x[0] === 'del')[1], [dobbel.log.find(x => x[0] === 'copy')[2]]);
 });
+
+/* --- Opprydning av private filer fra fjernede medlemmer --- */
+const Q1 = '77777777-7777-4777-8777-777777777777', Q2 = '88888888-8888-4888-8888-888888888888';
+const clean = async (a, body, backend) => { const r = await handle(new Request('https://x/api/ch?a=' + a, { method: 'POST', headers: { authorization: 'Bearer ' + await token(), 'content-type': 'application/json' }, body: JSON.stringify(body) }), ENV, { fetchFn, backend }); return { status: r.status, body: await r.json() }; };
+test('file.cleanup: databasen sletter med brukerens token, serveren fjerner lagrede filer og registrerer hvert resultat', async () => {
+  const b = fake({ cleanup_private_files: a => ({ ok: true, count: a.p_ids.length, bytes: a.p_expected_bytes, queue: [Q1, Q2] }),
+    cleanup_queue_claim: a => a.p_ids.map(id => ({ id, storage_key: 'c/' + id + '.png' })), cleanup_queue_done: () => null });
+  b.storageDelete = async keys => { b.log.push(['del', keys]); if (keys[0].includes(Q2)) throw Object.assign(new Error('x'), { code: 'timeout' }); };
+  const r = await clean('file.cleanup', { church_id: CH, ids: [Q1, Q2], expected_count: 2, expected_bytes: 300 }, b);
+  assert.equal(r.status, 200); assert.deepEqual([r.body.count, r.body.storage_done, r.body.storage_failed], [2, 1, 1]);
+  assert.ok(!JSON.stringify(r.body).includes('c/'), 'ingen lagringsnøkler til nettleseren');
+  const call = b.log.find(x => x[1] === 'cleanup_private_files'); assert.equal(call[0], 'user'); assert.deepEqual(call[2], { p_church: CH, p_ids: [Q1, Q2], p_expected_count: 2, p_expected_bytes: 300 });
+  assert.equal(b.log.find(x => x[1] === 'cleanup_queue_claim')[0], 'server', 'nøklene hentes bare av serveren');
+  const done = b.log.filter(x => x[1] === 'cleanup_queue_done').map(x => [x[2].p_id, x[2].p_ok]);
+  assert.deepEqual(done, [[Q1, true], [Q2, false]]);
+});
+test('file.cleanup: ugyldig input stoppes før databasen; databasens avvisning (ikke klar / endret) gir 409 og ingenting fjernes', async () => {
+  const b = fake();
+  for (const body of [{ church_id: 'x', ids: [Q1], expected_count: 1, expected_bytes: 1 }, { church_id: CH, ids: [], expected_count: 1, expected_bytes: 1 },
+    { church_id: CH, ids: ['ikke-uuid'], expected_count: 1, expected_bytes: 1 }, { church_id: CH, ids: [Q1], expected_count: 'en', expected_bytes: 1 }])
+    assert.equal((await clean('file.cleanup', body, b)).status, 400);
+  assert.equal(b.log.length, 0);
+  for (const [code, err] of [['CH005', 'cleanup_not_ready'], ['CH006', 'cleanup_changed'], ['42501', 'forbidden']]) {
+    const bb = fake({ cleanup_private_files: () => { throw Object.assign(new Error('db'), { code }); } });
+    const r = await clean('file.cleanup', { church_id: CH, ids: [Q1], expected_count: 1, expected_bytes: 100 }, bb);
+    assert.equal(r.body.error, err); assert.ok(!bb.log.some(x => x[1] === 'cleanup_queue_claim'), 'ingenting fjernes fra lagringen');
+  }
+});
+test('file.cleanup_retry: prøver ventende/feilede oppføringer igjen (ID-er fra databasen med brukerens token)', async () => {
+  const b = fake({ cleanup_retry_ids: () => [Q2], cleanup_queue_claim: a => a.p_ids.map(id => ({ id, storage_key: 'c/' + id })), cleanup_queue_done: () => null });
+  const r = await clean('file.cleanup_retry', { church_id: CH }, b);
+  assert.equal(r.status, 200); assert.equal(r.body.storage_done, 1);
+  assert.equal(b.log.find(x => x[1] === 'cleanup_retry_ids')[0], 'user');
+});

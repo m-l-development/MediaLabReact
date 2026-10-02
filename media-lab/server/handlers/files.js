@@ -16,6 +16,24 @@ async function readBody(request) {
   return buf;
 }
 
+/* Opprydning: henter lagringsnøklene for kø-oppføringene (bare serveren), fjerner filene fra lagringen og registrerer
+   resultatet for hver fil. En feil stopper ikke de andre; feilede oppføringer kan prøves igjen (file.cleanup_retry). */
+async function drainCleanup(ctx, ids) {
+  if (!ids || !ids.length) return { done: 0, failed: 0 };
+  const rows = (await ctx.backend.rpcAsServer('cleanup_queue_claim', { p_ids: ids })) || [];
+  let done = 0, failed = 0;
+  for (const r of rows) {
+    try {
+      await ctx.backend.storageDelete([r.storage_key]);
+      await ctx.backend.rpcAsServer('cleanup_queue_done', { p_id: r.id, p_ok: true }); done++;
+    } catch (e) {
+      failed++;
+      await ctx.backend.rpcAsServer('cleanup_queue_done', { p_id: r.id, p_ok: false, p_error: String((e && (e.code || e.message)) || 'storage_error').slice(0, 200) }).catch(() => {});
+    }
+  }
+  return { done, failed };
+}
+
 export const routes = {
   async 'file.upload'(ctx) {
     const q = new URL(ctx.request.url).searchParams;
@@ -68,6 +86,26 @@ export const routes = {
       await ctx.backend.storageDelete([key]).catch(() => {});
       throw e;
     }
+  },
+  /* Opprydning av private filer fra fjernede medlemmer (Developer/Moderator som er medlem av menigheten). Databasen
+     kontrollerer alt på nytt med lås – også at antall og samlet størrelse stemmer med det som ble bekreftet – og sletter
+     radene og legger nøklene i køen i én transaksjon. Ingen nøkler eller lenker sendes til nettleseren. */
+  async 'file.cleanup'(ctx) {
+    const b = ctx.body, church = String(b.church_id || '');
+    const ids = Array.isArray(b.ids) ? b.ids.map(String) : [];
+    if (!UUID.test(church) || !ids.length || ids.length > 200 || !ids.every(x => UUID.test(x))) return fail('invalid');
+    const count = Number(b.expected_count), bytes = Number(b.expected_bytes);
+    if (!Number.isInteger(count) || !Number.isInteger(bytes) || count < 1 || bytes < 0) return fail('invalid');
+    const r = await ctx.backend.rpcAsUser(ctx.token, 'cleanup_private_files', { p_church: church, p_ids: ids, p_expected_count: count, p_expected_bytes: bytes });
+    const s = await drainCleanup(ctx, (r && r.queue) || []);
+    return json({ ok: true, count: r.count, bytes: r.bytes, storage_done: s.done, storage_failed: s.failed });
+  },
+  async 'file.cleanup_retry'(ctx) {
+    const church = ctx.body.church_id ? String(ctx.body.church_id) : null;
+    if (church !== null && !UUID.test(church)) return fail('invalid');
+    const ids = await ctx.backend.rpcAsUser(ctx.token, 'cleanup_retry_ids', { p_church: church });
+    const s = await drainCleanup(ctx, ids || []);
+    return json({ ok: true, storage_done: s.done, storage_failed: s.failed });
   },
   async 'file.delete'(ctx) {
     const id = String(ctx.body.id || ''); if (!UUID.test(id)) return fail('invalid');
