@@ -7,6 +7,7 @@ const ERR = {
   invalid: 'Ugyldige opplysninger.', rate_limited: 'For mange forsøk. Vent litt.', network: 'Ingen forbindelse. Prøv igjen.',
   unauthorized: 'Økten er utløpt. Last siden på nytt.', timeout: 'Serveren svarte ikke i tide. Prøv igjen.', upstream_timeout: 'Databasen eller lagringen svarte ikke i tide. Prøv igjen.', not_found: 'Fant ikke det du lette etter.',
   video_not_allowed: 'Video kan aldri lastes opp. Videoer skal ligge i prosjektmappen på PC-en.', type_not_allowed: 'Bare bilder (PNG, JPG, WebP eller GIF) kan lastes opp.',
+  storage_full: 'Lagringsplassen i ConnectHub er full. Kontakt Developer.',
   too_large: 'Filen er for stor (maks 4 MB).', http_413: 'Filen er for stor (maks 4 MB).',
 };
 const CONFIG = { publishable_key_missing: 'Serveren mangler den offentlige nøkkelen.', secret_key_missing: 'Serveren mangler den hemmelige nøkkelen.' };

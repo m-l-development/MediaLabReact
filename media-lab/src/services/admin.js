@@ -46,6 +46,9 @@ export const admin = {
   /* Faktisk kvote for én menighet (Developer med MFA, loggført). 200 MB = standard, alt annet = egen kvote. Planene og
      abonnementene endrer den aldri (trinn 21). */
   setQuota: (churchId, mbQuota) => data().rpc('set_church_quota', { p_church: churchId, p_quota_mb: mbQuota }),
+  /* Trinn 20 – samlet lagringsgrense for hele ConnectHub (bare Developer med MFA; databasen avgjør og loggfører). */
+  storageOverview: () => data().rpc('storage_overview'),
+  setStorageLimit: mb => data().rpc('set_storage_limit', { p_mb: mb }),
   /* «Tilbakestill til standard (200 MB)». Loggført. */
   resetQuota: churchId => data().rpc('reset_church_quota', { p_church: churchId }),
   /* Developer: faktisk kvote, merke og brukt plass for alle menigheter (bare summer). */

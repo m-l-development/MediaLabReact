@@ -80,6 +80,14 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - Developer ser kvote, merke og brukt plass for alle menigheter via `church_quota_overview`.
   - Direkte skriving til kvoter og planer er stengt. Alt loggføres (`plans.update`, `churches.quota`) med gammel og ny verdi.
   - En lavere kvote stopper bare nye opplastinger.
+- Samlet lagringsgrense (trinn 20, `supabase/migrations/20261002200000_total_storage_limit.sql`):
+  - `storage_settings.total_limit_mb` (standard 1024 MB) gjelder alle filer i ConnectHub til sammen, også private filer og kopier.
+  - **Rekkefølge ved kontroll:** `app.upload_check` og `app.transfer_check` sjekker først menighetens kvote (54000) og så den samlede grensen (`app.total_check`, SQLSTATE 53100).
+  - **Feilkode:** serveren gir `507 storage_full` («Lagringsplassen i ConnectHub er full. Kontakt Developer.»).
+  - **Lås:** registrering av filer og kopier tar én felles lås (`files:all`).
+  - **Overbooking er tillatt:** summen av kvotene kan være større enn grensen.
+  - **Developer med MFA:** `storage_overview` og `set_storage_limit` (loggført `storage.limit`), kortet «Samlet lagringsplass» under Abonnement. Varsel (`storage`) ved 80 % og 90 %.
+  - **Medlemmer:** `storage_usage.system_free_bytes`. Måleren viser det minste av ledig kvote og ledig samlet plass.
 - Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`). Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
 - Ytelse:
   - `src/services/me-cache.js`: siden vises straks med forrige `whoami` for samme bruker, økt og MFA-nivå (localStorage `ch.me`). Porten kontrollerer mot databasen like etter og stopper eller laster siden på nytt ved avvik. Bufferen fjernes ved utlogging.

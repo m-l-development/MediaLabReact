@@ -714,6 +714,81 @@ set local role postgres;
 update public.plans p set storage_quota_mb = s.storage_quota_mb, price_nok_month = s.price_nok_month from t21p s where s.code = p.code;   -- startverdiene (rulles uansett tilbake)
 set local role authenticated;
 
+-- ---------- Samlet lagringsgrense (trinn 20): sperre for hele ConnectHub, egen feilkode 53100, bare Developer endrer ----------
+set local role postgres;
+create temp table t20 as select (select total_limit_mb from public.storage_settings where id) start_mb;
+grant select on t20 to authenticated;
+select ch_test.cnt('Samlet: grensen finnes (én rad, gyldig verdi)', $q$select 1 from public.storage_settings where id and total_limit_mb between 1 and 1048576$q$, 1);
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, uploaded_by, folder, visibility) values
+  ('aaaaaaaa-0000-4000-8000-00000000000a', 'test/t20-delt.png', 't20-delt.png', 'image/png', 10, '00000000-0000-4000-8000-000000000008', 'bilder', 'church');
+
+-- Tilgang: bare Developer med MFA
+set local role anon;
+select ch_test.err('Samlet: ikke innlogget kan ikke endre grensen', $q$select public.set_storage_limit(10)$q$, '42501');
+select ch_test.err('Samlet: ikke innlogget får ikke oversikten', $q$select public.storage_overview()$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Samlet: User kan ikke endre grensen', $q$select public.set_storage_limit(10)$q$, '42501');
+select ch_test.err('Samlet: User får ikke oversikten', $q$select public.storage_overview()$q$, '42501');
+select ch_test.err('Samlet: User kan ikke lese innstillingen direkte', $q$select total_limit_mb from public.storage_settings$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Samlet: Admin kan ikke endre grensen', $q$select public.set_storage_limit(10)$q$, '42501');
+select ch_test.err('Samlet: Admin får ikke oversikten', $q$select public.storage_overview()$q$, '42501');
+select ch_test.err('Samlet: Admin kan ikke skrive innstillingen direkte', $q$update public.storage_settings set total_limit_mb = 5$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Samlet: Moderator kan ikke endre grensen', $q$select public.set_storage_limit(10)$q$, '42501');
+select ch_test.err('Samlet: Moderator får ikke oversikten', $q$select public.storage_overview()$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Samlet: Developer uten MFA kan ikke endre grensen', $q$select public.set_storage_limit(10)$q$, '42501');
+select ch_test.err('Samlet: Developer uten MFA får ikke oversikten', $q$select public.storage_overview()$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Samlet: grense 0 avvises', $q$select public.set_storage_limit(0)$q$, '22023');
+select ch_test.err('Samlet: grense over 1 TB avvises', $q$select public.set_storage_limit(1048577)$q$, '22023');
+select ch_test.cnt('Samlet: Developer ser grense, bruk og summen av kvotene (overbooking)', $q$select 1 where (public.storage_overview() ->> 'limit_mb')::int = (select start_mb from t20) and (public.storage_overview() ->> 'used_bytes')::bigint > 0 and (public.storage_overview() ->> 'quota_sum_mb')::int >= 200$q$, 1);
+select ch_test.ok('Samlet: Developer setter grensen til 1 MB', $q$select public.set_storage_limit(1)$q$);
+set local role postgres;
+select ch_test.cnt('Samlet: endringen er loggført med gammel og ny verdi og hvem', $q$select 1 from public.audit_logs where action = 'storage.limit' and meta ->> 'old_mb' = (select start_mb::text from t20) and meta ->> 'new_mb' = '1' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
+
+-- Full samlet plass, men ledig kvote i menigheten
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility)
+  select '13131313-0000-4000-8000-000000000013', 'test/t20-fyll.png', 'fyll.png', 'image/png', greatest(1, 1048576 - (select coalesce(sum(file_size), 0) from public.files)), 'bilder', 'church';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.cnt('Samlet: medlemmet ser at ledig samlet plass er 0', $q$select 1 where (public.storage_usage('aaaaaaaa-0000-4000-8000-00000000000a') ->> 'system_free_bytes')::bigint = 0$q$, 1);
+select ch_test.cnt('Samlet: menigheten har fortsatt ledig kvote', $q$select 1 where (public.storage_usage('aaaaaaaa-0000-4000-8000-00000000000a') ->> 'used_bytes')::bigint < (public.storage_usage('aaaaaaaa-0000-4000-8000-00000000000a') ->> 'quota_bytes')::bigint$q$, 1);
+select ch_test.err('Samlet: opplasting stoppes med storage_full (53100) når samlet plass er full', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 10)$q$, '53100');
+select ch_test.err('Samlet: kopi til Samarbeidsfiler stoppes også', $q$select public.can_transfer((select id from public.files where file_name = 't20-delt.png'), (select ab from t18))$q$, '53100');
+select ch_test.atleast('Samlet: nedlasting virker fortsatt', $q$select 1 from public.file_keys(array(select id from public.files where file_name = 'ny.png'))$q$, 1);
+set local role postgres;
+update public.churches set storage_quota_mb = 0 where id = 'aaaaaaaa-0000-4000-8000-00000000000a';
+set local role authenticated;
+select ch_test.err('Samlet: menighetens kvote kontrolleres først (54000)', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 10)$q$, '54000');
+set local role postgres;
+update public.churches set storage_quota_mb = 200 where id = 'aaaaaaaa-0000-4000-8000-00000000000a';
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.err('Samlet: serveren kan heller ikke registrere filen', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-8', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'test/t20-x.png', 'x.png', 'image/png', 10, null)$q$, '53100');
+set local role postgres;
+select ch_test.cnt('Samlet: ingen rad er opprettet', $q$select 1 from public.files where storage_key = 'test/t20-x.png'$q$, 0);
+
+-- Sletting frigjør plass
+delete from public.files where storage_key = 'test/t20-fyll.png';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.ok('Samlet: opplasting virker igjen når det er plass', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 10)$q$);
+
+-- Varsel til Developer når 80 % passeres
+set local role postgres;
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility)
+  select '13131313-0000-4000-8000-000000000013', 'test/t20-fyll2.png', 'fyll2.png', 'image/png', greatest(1, 828375 - (select coalesce(sum(file_size), 0) from public.files)), 'bilder', 'church';
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.ok('Samlet: serveren registrerer en fil som passerer 80 %', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-8', 'aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 'test/t20-y.png', 'y.png', 'image/png', 20972, null)$q$);
+set local role postgres;
+select ch_test.cnt('Samlet: Developer fikk varsel om 80 %', $q$select 1 from public.notifications where kind = 'storage' and user_id = '00000000-0000-4000-8000-000000000001' and title like '%80 %%'$q$, 1);
+select ch_test.cnt('Samlet: andre roller fikk ikke varsel', $q$select 1 from public.notifications where kind = 'storage' and user_id in ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000008')$q$, 0);
+delete from public.files where storage_key in ('test/t20-fyll2.png', 'test/t20-y.png', 'test/t20-delt.png');
+update public.storage_settings set total_limit_mb = (select start_mb from t20) where id;   -- startverdien (rulles uansett tilbake)
+set local role authenticated;
+
 -- ---------- Menighetens livsløp (P10) ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
 select ch_test.err('Livsløp: admin kan ikke endre status direkte', $q$update public.churches set status = 'deleted'$q$, '42501');

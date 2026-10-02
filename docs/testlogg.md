@@ -451,3 +451,47 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 **Data:**
 - Øyeblikksbildet før og etter (planer, kvoter, menigheter, abonnementer, medlemskap, roller, brukere, filrader og lagringsobjekter med sjekksum, «12», kontoen din og skjermbildet ditt): **alle 14 felt er identiske**.
 - **Varige spor:** én avsluttet testkobling (CH-test A–B), loggrader og varsler til de syntetiske Admin-kontoene.
+
+## Trinn 20 – Samlet lagringsgrense for hele ConnectHub (2026-10-02, connecthub-dev)
+
+**Omfang:**
+- Grensen `storage_settings.total_limit_mb` er 1024 MB som standard og gjelder alle filer til sammen.
+- **Kontroll ved opplasting og kopi til Samarbeidsfiler:** først menighetens kvote (54000), så den samlede grensen (53100).
+- **Server:** `507 storage_full` med meldingen «Lagringsplassen i ConnectHub er full. Kontakt Developer.».
+- **Lås:** én felles lås ved registrering.
+- **Overbooking** er tillatt.
+- **Developer med MFA:** oversikt og endring (loggført), og varsel ved 80 % og 90 %.
+- **Måleren** viser det minste av ledig kvote og ledig samlet plass.
+
+**Tester:**
+
+| Kjøring | Resultat |
+|---|---|
+| `npm test` (kandidat: 6aca85c + trinn 20) | 88/88 |
+| RLS i PGlite | 411/411 |
+| RLS mot dev | 411/411 |
+| Bygg | OK. Sikkerhetssøket har ingen funn. |
+
+**Migreringen i dev:**
+- Tørrkjøringen viste bare `20261002200000_total_storage_limit.sql`.
+- Øyeblikksbildet før og etter: alle 14 felt er identiske.
+
+**RLS-testene for trinn 20 (30 nye) dekker:**
+- **Tilgang:** anon, User, Admin, Moderator og Developer uten MFA kan ikke endre grensen eller se oversikten, og direkte lesing og skriving avvises. Ugyldige verdier avvises. Endringen loggføres med gammel og ny verdi og hvem.
+- **Full samlet plass med ledig kvote:** medlemmet ser 0 ledig samlet plass. Opplasting, kopi til Samarbeidsfiler og serverregistrering gir 53100, og ingen rad opprettes. Nedlasting virker. Menighetens kvote kontrolleres først (54000).
+- **Sletting** frigjør plass.
+- **Varsel:** Developer får varsel ved 80 %, og andre roller får det ikke.
+
+**Nettleser** (lokal `vite preview` av kandidaten mot dev):
+
+| Steg | Resultat |
+|---|---|
+| Developer: Abonnement | Kortet «Samlet lagringsplass» viser «Brukt 0.1 MB av 1024 MB», «Summen av alle menighetenes kvoter: 1424 MB (3 menigheter) · Overbooket». |
+| Developer setter grensen til 1 MB (midlertidig) | Bekreftelsen viser «1024 MB → 1 MB … Ingen filer slettes». «Den samlede lagringsgrensen er endret.» Innstillingene for A viser varsel om overbooking. |
+| Medlem i A | Måleren viser «Ledig: 0.9 MB (begrenset av samlet lagringsplass i ConnectHub)». Opplasting av et bilde på 1,9 MB stoppes med «Lagringsplassen i ConnectHub er full. Kontakt Developer.» (507). |
+| Developer setter grensen tilbake til 1024 MB | OK |
+
+**Data:**
+- Grensen er tilbake på 1024 MB.
+- Alle 14 felt i øyeblikksbildet er identiske med tilstanden før migreringen.
+- **Varige spor:** to loggrader (`storage.limit` 1024 → 1 → 1024). Ingen varsler (80 % ble ikke passert).

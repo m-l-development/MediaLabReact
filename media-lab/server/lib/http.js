@@ -29,6 +29,7 @@ export function dbError(e) {
   if (code === '42501') return { status: 403, error: 'forbidden' };
   if (code === '23505') return { status: 409, error: 'conflict' };
   if (code === '54000') return { status: 429, error: 'rate_limited' };
+  if (code === '53100') return { status: 507, error: 'storage_full' };   // samlet lagringsplass i ConnectHub er brukt opp (trinn 20)
   if (code === '22023' || code === '23514' || code === '22P02') return { status: 400, error: 'invalid' };
   return { status: 502, error: 'backend_error' };
 }

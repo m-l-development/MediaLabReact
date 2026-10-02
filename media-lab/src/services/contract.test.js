@@ -119,3 +119,17 @@ test('trinn 21: plannavn og pris kan leses uten planenes lagring (den er bare fo
   assert.ok(plans.every(p => !('storage_quota_mb' in p)), 'ingen planlagring for Admin og User');
   useDataAdapter(null);
 });
+
+test('trinn 20: den samlede lagringsgrensen leses og endres bare via loggførte databasefunksjoner', async () => {
+  const calls = [];
+  const rpcs = { storage_overview: a => { calls.push(['storage_overview', a]); return { limit_mb: 1024, used_bytes: 1, quota_sum_mb: 1424, churches: 3 }; }, set_storage_limit: a => { calls.push(['set_storage_limit', a]); return null; } };
+  const fake = makeFakeData({ tables: { storage_settings: [{ id: true, total_limit_mb: 1024 }] }, rpcs });
+  const upd = fake.update.bind(fake); let direct = 0; fake.update = (...a) => { direct++; return upd(...a); };
+  useDataAdapter(fake);
+  assert.equal((await admin.storageOverview()).limit_mb, 1024);
+  await admin.setStorageLimit(2048);
+  assert.equal(direct, 0, 'ingen direkte skriving');
+  assert.deepEqual(calls.map(c => c[0]), ['storage_overview', 'set_storage_limit']);
+  assert.deepEqual(calls[1][1], { p_mb: 2048 });
+  useDataAdapter(null);
+});

@@ -19,7 +19,7 @@ const ACTIONS = {
   'links.create': 'Kobling opprettet', 'links.end': 'Kobling avsluttet', 'links.reopen': 'Kobling gjenåpnet',
   'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
   'church_subscriptions.insert': 'Abonnement satt', 'church_subscriptions.update': 'Abonnement endret',
-  'account.delete': 'Konto slettet', 'plans.update': 'Abonnementsplan endret', 'churches.quota': 'Lagringskvote endret', 'audit_logs.purge': 'Gammel logg slettet',
+  'account.delete': 'Konto slettet', 'plans.update': 'Abonnementsplan endret', 'churches.quota': 'Lagringskvote endret', 'storage.limit': 'Samlet lagringsgrense endret', 'audit_logs.purge': 'Gammel logg slettet',
 };
 export const actionName = a => ACTIONS[a] || a;
 
@@ -136,6 +136,8 @@ function ChurchSettings({ church }) {
   const [name, setName] = React.useState(church.name), [quota, setQuota] = React.useState(church.storage_quota_mb ?? DEFAULT_QUOTA_MB);
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await reload(); });
   const used = (useQuotaOverview(staff, church.storage_quota_mb)[church.id] || {}).used_bytes;
+  const [so, setSo] = React.useState(null);
+  React.useEffect(() => { if (staff) admin.storageOverview().then(setSo).catch(() => {}); }, [staff, church.storage_quota_mb]);
   return <div className="ch-grid">
     {staff && <Card title="Navn og lagring">
       <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.renameChurch(church.id, name), 'Navnet er endret.')(e); }}>
@@ -151,6 +153,7 @@ function ChurchSettings({ church }) {
       {isOwnQuota(church) && <div className="ch-row">
         <Btn small onClick={run(async () => { await admin.resetQuota(church.id); setQuota(DEFAULT_QUOTA_MB); }, 'Kvoten er tilbakestilt til standard (200 MB).')}>{T('Tilbakestill til standard (200 MB)')}</Btn></div>}
       <p className="ch-muted">{T('Standard er 200 MB. Mer plass gis bare som egen kvote for akkurat denne menigheten. Planer og abonnementer endrer aldri kvoten.')}</p>
+      {so && so.quota_sum_mb > so.limit_mb && <p className="ch-note warn" data-ch-overbooked>{T('Summen av alle menighetenes kvoter')} ({so.quota_sum_mb} MB) {T('er større enn den samlede lagringsplassen')} ({so.limit_mb} MB). {T('Det er lov, men opplasting stoppes for alle når den samlede plassen er brukt opp.')}</p>}
       <p className="ch-muted">{T('Alle kvoteendringer loggføres med gammel og ny verdi. Ingen filer slettes om kvoten senkes – bare nye opplastinger stoppes.')}</p>
     </Card>}
     {canManage(church.id) && <Card title="Eksport">
@@ -272,6 +275,9 @@ export function FilesView({ churchId }) {
     setFl(f => ({ ...f, list: f.list.filter(y => y.id !== x.id) })); await load(undefined, undefined, { usage: true });
   })();
   const u = fl.usage, pct = u && u.quota_bytes ? Math.min(100, Math.round(100 * u.used_bytes / u.quota_bytes)) : 0;
+  /* Trinn 20: ledig plass er det minste av menighetens ledige kvote og ledig samlet plass i ConnectHub. */
+  const quotaFree = u ? Math.max(0, u.quota_bytes - u.used_bytes) : 0, sysFree = u && u.system_free_bytes != null ? u.system_free_bytes : Infinity;
+  const free = Math.min(quotaFree, sysFree), bySystem = sysFree < quotaFree;
   const thumb = (x, extra) => <div key={x.id} className="ch-thumb">
     <Thumb id={x.id} />
     <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
@@ -286,7 +292,8 @@ export function FilesView({ churchId }) {
       {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={() => { if (fl.folder !== f) act(() => load(f))(); }}>{T(l)}</Btn>)}</div>}
       {collab && fl.links.length > 1 && <div className="ch-row">{fl.links.map(l => <Btn key={l.id} small kind={fl.link === l.id ? 'primary' : ''} onClick={() => { if (fl.link !== l.id) act(() => load('samarbeid', 'samarbeid', { link: l.id }))(); }}>{T('Med')} {other(l)}</Btn>)}</div>}
       {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
-        <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(Math.max(0, u.quota_bytes - u.used_bytes))}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
+        <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(free)}{bySystem ? ' (' + T('begrenset av samlet lagringsplass i ConnectHub') + ')' : ''}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
+      {u && sysFree === 0 && <p className="ch-note warn" data-ch-full>{T('Den samlede lagringsplassen i ConnectHub er full. Nye opplastinger er stoppet til det er frigjort plass. Nedlasting virker som før.')}</p>}
       {collab ? <p className="ch-muted" data-ch-link>{curLink ? <>{T('Delt mellom')} <b>{churchName(churchId)}</b> {T('og')} <b>{other(curLink)}</b>. {T('Kopiene teller i kvoten til menigheten som bidro.')}</> : null}</p>
       : canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
         onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); upload([...e.dataTransfer.files]); }}>
@@ -416,12 +423,37 @@ function PlanEditor({ plan, onCancel, onDone }) {
     <p className="ch-muted">{T('Endringen loggføres med gammel og ny verdi. Planens lagring er bare veiledende – menighetenes faktiske kvoter endres ikke. Ingen filer slettes.')}</p>
   </form>;
 }
+/* Trinn 20 – samlet lagringsplass for hele ConnectHub (bare Developer): bruk, grense, summen av kvotene og endring av
+   grensen. Overbooking er lov; den samlede sperren stopper opplasting når plassen er brukt opp. */
+function StorageCard() {
+  const { act, say } = useAdmin();
+  const [o, setO] = React.useState(null), [v, setV] = React.useState('');
+  const load = async () => { const r = await admin.storageOverview(); setO(r); setV(String(r.limit_mb)); };
+  React.useEffect(() => { act(load)(); }, []);
+  if (!o) return null;
+  const lim = o.limit_mb * 1048576, pct = lim ? Math.min(100, Math.round(100 * o.used_bytes / lim)) : 0, ok = /^\d{1,7}$/.test(v.trim()) && +v >= 1 && +v <= 1048576;
+  const save = act(async e => {
+    e.preventDefault(); if (!ok || +v === o.limit_mb) return;
+    if (!confirm(T('Endre den samlede lagringsgrensen') + ': ' + o.limit_mb + ' MB → ' + (+v) + ' MB?\n\n' + T('Ingen filer slettes. Er bruken over den nye grensen, stoppes nye opplastinger.'))) return;
+    await admin.setStorageLimit(+v); say(T('Den samlede lagringsgrensen er endret.')); await load();
+  });
+  return <Card title="Samlet lagringsplass">
+    <div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
+    <p data-ch-storage>{T('Brukt')}: {mb(o.used_bytes)} {T('av')} {o.limit_mb} MB ({pct} %) · {T('Ledig')}: {mb(Math.max(0, lim - o.used_bytes))}</p>
+    <p className="ch-muted">{T('Summen av alle menighetenes kvoter')}: {o.quota_sum_mb} MB ({o.churches} {T('menigheter')}){o.quota_sum_mb > o.limit_mb ? <> · <Badge tone="warn">{T('Overbooket')}</Badge></> : null}</p>
+    <form className="ch-form" onSubmit={save}>
+      <Field label="Samlet grense (MB)"><input className="ch-input" inputMode="numeric" value={v} onChange={e => setV(e.target.value)} aria-invalid={!ok} /></Field>
+      <Btn disabled={!ok || +v === o.limit_mb} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre grense')}</Btn>
+    </form>
+    <p className="ch-muted">{T('Grensen gjelder alle filer i ConnectHub til sammen. Kvotene kan til sammen være større (overbooking); da stoppes opplasting for alle når den samlede plassen er brukt opp. Du får varsel ved 80 % og 90 %. Endringer loggføres.')}</p>
+  </Card>;
+}
 /* Menighetens faktiske kvote, brukt og ledig plass (Admin for egen menighet; Developer ser det samme her). */
 function ChurchQuotaCard({ church, usage }) {
   const quota = usage ? usage.quota_bytes : church.storage_quota_mb * 1048576, used = usage ? usage.used_bytes : null;
   return <Card title="Menighetens lagring">
     <div className="ch-row" data-ch-quota><span>{T('Faktisk kvote')}: <b>{church.storage_quota_mb} MB</b></span><QuotaBadge church={church} /></div>
-    {used != null && <p className="ch-muted">{T('Brukt')}: {mb(used)} · {T('Ledig')}: {mb(Math.max(0, quota - used))}</p>}
+    {used != null && <p className="ch-muted">{T('Brukt')}: {mb(used)} · {T('Ledig')}: {mb(Math.min(Math.max(0, quota - used), usage && usage.system_free_bytes != null ? usage.system_free_bytes : Infinity))}{usage && usage.system_free_bytes != null && usage.system_free_bytes < quota - used ? ' (' + T('begrenset av samlet lagringsplass i ConnectHub') + ')' : ''}</p>}
     <p className="ch-muted">{T('Standard er 200 MB. Trenger menigheten mer plass, kan Developer tildele en egen kvote. Abonnementet endrer ikke kvoten.')}</p>
   </Card>;
 }
@@ -437,6 +469,7 @@ export function SubsView({ churchId }) {
   const quotaText = c => c && c.id ? <span className="ch-row"><span>{c.storage_quota_mb} MB</span><QuotaBadge church={c} /></span> : '–';
   return <div className="ch-grid">
     {churchId && churchOf(churchId).id && <ChurchQuotaCard church={churchOf(churchId)} usage={sub.usage} />}
+    {staff && !churchId && <StorageCard />}
     <Card title="Planer">
       <List cols={staff ? '1fr auto auto auto' : '1fr auto'} head={staff ? ['Plan', 'Planens lagring (veiledende)', 'Pris', ''] : ['Plan', 'Pris']} rows={sub.plans.map(p => ({ key: p.code, cells: [T(p.name),
         ...(staff ? [p.storage_quota_mb + ' MB'] : []), priceText(p.price_nok_month),
