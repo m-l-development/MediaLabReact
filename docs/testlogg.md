@@ -944,3 +944,19 @@ Plan: `docs/plan-samarbeidsgrupper.md` (godkjent). Migrering: `supabase/migratio
 **Kontrollspørringene:** `prod_postcheck.sql` er oppdatert til 8 migreringer, 16 funksjoner og regelen for ekstra Admin. Kontrollen for grupper tåler nå også grupper som er endret etter migreringen. Prøvekjørt mot dev: alt `ok`, bortsett fra `queue_empty`, som er riktig i dev, der køen har behandlede rader.
 
 **Merk:** i dev ble CH-test Menighet B lagt til i gruppen «CH-test Menighet A – 12» og fjernet igjen med din konto (21:01). Det er gyldige data og ikke en feil.
+
+## Undersøkelse av «Glemt passord» (2026-10-03, dev, bare lesing)
+
+Lokal preview mot dev, hodeløs nettleser uten tidligere økt. Ingen data er endret.
+
+| Tilfelle | Resultat i dag |
+|---|---|
+| Tilbakestillingslenke (PKCE-kode) åpnet i en annen nettleser enn den som ba om den (`?code=…&flow=recovery`) | «Noe gikk galt. Prøv igjen.», innloggingssiden, **ingen** passordskjema. Supabase-kode `pkce_code_verifier_not_found` mangler tekst. **Samme symptom som rapportert.** |
+| Utløpt eller brukt lenke (`#error_code=otp_expired`) | «Lenken er utløpt eller allerede brukt. Be om en ny.», men brukeren havner på innloggingssiden uten skjemaet for ny lenke. |
+| Manipulert `token_hash` | `verify` gir 403, med meldingen «Lenken er utløpt …». |
+
+**Årsak:**
+- Lenken virker bare i nettleseren som ba om den (PKCE-verifikatoren ligger i den nettleserens `localStorage`).
+- I tillegg krever Supabase en MFA-økt (`aal2`) for å lagre nytt passord når kontoen har MFA. Det gjelder Developer og Moderator, og den feilen (`insufficient_aal`) har heller ingen tekst.
+
+Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
