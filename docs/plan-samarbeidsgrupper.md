@@ -1,6 +1,6 @@
 # Plan: samarbeidsgrupper med tre eller flere menigheter
 
-Status: **forslag til godkjenning.** Ingenting er implementert. Alt skal gjøres i dev. Produksjonen, `main` og produksjonsdatabasen røres ikke.
+Status: **forslag til godkjenning, oppdatert med brukerens beslutninger 2026-10-02.** Ingenting er implementert. Alt skal gjøres i dev. Produksjonen, `main` og produksjonsdatabasen røres ikke.
 
 ## 1. Mål
 
@@ -20,7 +20,7 @@ Dagens tabell `church_links` beholdes som **gruppen**, og en ny tabell holder me
 
 **Regler:**
 - En aktiv gruppe har minst 2 aktive medlemsmenigheter, og alle må være aktive menigheter.
-- Ingen øvre grense. Forslag: høyst 20 per gruppe, for å holde oversikten.
+- **Høyst 20 aktive medlemsmenigheter per gruppe** (besluttet). Det håndheves i databasen ved oppretting og tillegg, med lås på gruppen, så to samtidige tillegg ikke kan gi 21.
 
 ## 3. Tilgang til felles Samarbeidsfiler
 
@@ -45,10 +45,12 @@ Dagens tabell `church_links` beholdes som **gruppen**, og en ny tabell holder me
 |---|---|---|---|---|
 | Opprette gruppe (navn og minst 2 menigheter) | ja | ja | nei | nei |
 | Endre navn og beskrivelse | ja | ja | nei | nei |
-| Legge til eller fjerne menighet | ja | ja | **beslutning** (forslag: nei nå) | nei |
+| Legge til eller fjerne menighet | ja | ja | nei | nei |
 | Avslutte og gjenåpne gruppe | ja | ja | nei | nei |
 | Slette avsluttet gruppe | ja | ja | nei | nei |
-| Se gruppen, medlemmene og filene | metadata | metadata | ja (egen gruppe) | ja (egen gruppe) |
+| Se gruppens navn og hvilke menigheter som er med | ja | ja | **ja** (besluttet) | ja (egen gruppe) |
+| Forlate gruppen selv | – | – | **nei i første versjon** (besluttet) | nei |
+| Se og laste ned Samarbeidsfiler | metadata | metadata | ja (egen gruppe) | ja (egen gruppe) |
 
 Alt krever MFA for Developer og Moderator, som i dag (`app.is_collab_admin`). Alle handlinger loggføres:
 - `groups.create`, `groups.update`, `groups.add_church`, `groups.remove_church`, `groups.end`, `groups.reopen`, `groups.delete`
@@ -60,10 +62,41 @@ Admin i alle medlemsmenigheter får varsel ved oppretting, tillegg, fjerning, av
 | Hendelse | Samarbeidsfilene |
 |---|---|
 | **Gruppen avsluttes** | Alt skjules for alle, og ingenting slettes (som i dag). Gjenåpning gjør alt synlig igjen. |
-| **En menighet fjernes fra gruppen** | Menigheten mister med en gang tilgang til hele gruppen. **Forslag:** kopiene den bidro med, **skjules** for de andre, men slettes ikke. Legges menigheten til igjen, kommer de tilbake. Alternativet er å slette kopiene; det krever din beslutning. |
+| **En menighet fjernes fra gruppen** | Kopiene den bidro med, **skjules** og slettes ikke (besluttet). Detaljer i kapittel 5a. |
 | **Færre enn 2 aktive medlemmer igjen** | Gruppen kan ikke være aktiv. Fjerning av nest siste menighet stoppes med forklaring: avslutt gruppen i stedet. |
 | **En menighet slettes for godt** (eksisterende `purge_church`) | Medlemskapet i gruppen og menighetens kopier fjernes med resten av menighetens data (som i dag). |
 | **Gruppen slettes** (bare avsluttede grupper) | Gruppen, medlemslisten og alle kopier slettes. Lagringsnøklene går via `file_cleanup_queue`, med registrert resultat. Originalene i menighetene røres ikke. Bekreftelsen viser antall kopier og størrelse. |
+
+## 5a. Fjerning og gjeninnmelding – kopier og tilgang
+
+Prinsipp: hver kopi har én **bidragsyter** (`files.church_id` = menigheten som delte den). Synlighet regnes ut ved hvert oppslag:
+- gruppen er aktiv
+- bidragsyteren er **aktivt medlem** av gruppen og kan bruke tjenesten
+- den som ser, er medlem av en menighet som også er aktivt medlem
+
+Ingen kopier endres, flyttes eller slettes ved fjerning eller gjeninnmelding. Bare medlemsraden i `church_link_members` endres.
+
+**Eksempel:** gruppe med A, B og C. A har delt a1, B har delt b1 og C har delt c1.
+
+| Tidspunkt | Medlemmer i A ser | Medlemmer i B ser | Medlemmer i C ser |
+|---|---|---|---|
+| Før | a1, b1, c1 | a1, b1, c1 | a1, b1, c1 |
+| **C fjernes** (medlemsrad → `left`, `left_by/at` settes) | a1, b1 | a1, b1 | **ingenting** i gruppen (gruppen vises ikke lenger) |
+| A deler a2 mens C er ute | a1, a2, b1 | a1, a2, b1 | ingenting |
+| **C legges til igjen** (samme rad → `active`, `joined_by/at` oppdateres) | a1, a2, b1, c1 | a1, a2, b1, c1 | a1, a2, b1, c1 |
+
+Det betyr:
+- **Andre menigheters kopier påvirkes ikke.** a1, a2 og b1 er synlige hele tiden for A og B. Filteret gjelder bare kopiene til den menigheten som er fjernet.
+- **Menigheten som fjernes**, mister med en gang all tilgang til gruppen: navnet, medlemslisten, andres kopier og egne kopier i gruppen. Originalene i egne mapper er urørt.
+- **Ved gjeninnmelding** kommer de skjulte kopiene tilbake uendret. Menigheten ser også det som ble delt mens den var ute (a2), fordi alle aktive medlemmer ser alle kopier i gruppen.
+- **Samme fil kan ikke deles på nytt** mens den gamle kopien finnes (unik `link_id` + `source_file_id`). Etter gjeninnmelding er den gamle kopien synlig igjen.
+- **Kvote:** skjulte kopier ligger fortsatt i lagringen og teller i bidragsyterens kvote. De forsvinner bare når gruppen slettes (bare avsluttede grupper). Se beslutning 1 i kapittel 10.
+- **Developer og Moderator** ser alle kopier som metadata, også de skjulte, merket «skjult – menigheten er ikke med i gruppen». De kan ikke se innhold eller slette.
+- **Varsler:** Admin i den fjernede menigheten får varsel om at menigheten er fjernet og at de delte kopiene er skjult. Admin i de andre menighetene får varsel om at menigheten er fjernet.
+- **Fjerning av nest siste menighet stoppes**, fordi en aktiv gruppe må ha minst to medlemmer. Da må gruppen avsluttes i stedet.
+- **Gjeninnmelding i en avsluttet gruppe** er lov, men ingenting vises før gruppen gjenåpnes.
+- **En midlertidig deaktivert menighet** (`church_service_ok` = usann) behandles som i dag: menighetens medlemmer får ikke tilgang, og kopiene den bidro med, er skjult til menigheten er aktiv igjen.
+- **Historikk:** medlemsraden har bare gjeldende tilstand. Hele historikken (hvem som fjernet eller la til, og når) står i revisjonsloggen (`groups.remove_church` / `groups.add_church`).
 
 ## 6. Videreføring av dagens koblinger
 
@@ -138,11 +171,16 @@ Samme fremgangsmåte som før:
 
 **Regresjon:** én menighet om gangen, fjerning av medlemskap, opprydning, tilbakemeldinger, kvoter og roller.
 
-**Testdata:** testen trenger en tredje testmenighet, «CH-test Menighet C», i dev. **Krever din godkjenning.** Den kan ryddes etterpå.
+**Testdata:** RLS-testene for tre menigheter bruker egne fixturer inne i testtransaksjonen, som alltid rulles tilbake. De trenger altså ingen varig testmenighet. Nettlesertesten med tre menigheter krever en tredje testmenighet i dev, «CH-test Menighet C». **Den opprettes ikke før du har godkjent det eksplisitt** (besluttet). Til da testes gruppe-funksjonene i nettleseren med to testmenigheter, og tre-menighetstilfellet dekkes av RLS-testene.
 
-## 10. Beslutninger før implementering
+## 10. Beslutninger
 
-1. **Når en menighet fjernes fra gruppen:** skal kopiene den bidro med, **skjules** (forslag, kan gjenopprettes) eller **slettes**?
-2. **Admin i en medlemsmenighet:** skal Admin kunne se medlemslisten og selv **forlate** gruppen? Forslag: kunne se den, men ikke forlate i første versjon.
-3. **Grense for antall menigheter per gruppe:** forslag 20.
-4. **Testmenigheten:** godkjenner du «CH-test Menighet C» i dev?
+**Tatt (2026-10-02):**
+1. Ved fjerning **skjules** kopiene menigheten har bidratt med, og de vises igjen ved gjeninnmelding. Andre menigheters kopier påvirkes ikke.
+2. Admin i en medlemsmenighet ser gruppens navn og hvilke menigheter som er med, men kan ikke forlate gruppen selv i første versjon.
+3. Høyst 20 menigheter per gruppe.
+4. «CH-test Menighet C» opprettes ikke uten eksplisitt godkjenning.
+
+**Gjenstår (kan avgjøres senere, påvirker ikke første versjon):**
+1. **Skjulte kopier og kvote:** skal Admin i en fjernet menighet kunne se og slette sine egne skjulte kopier for å frigjøre kvote? Forslag for første versjon: nei. De ryddes når gruppen slettes.
+2. **Vanlige medlemmer (User):** de ser gruppens navn og de andre menighetene, fordi kopiene vises som «Fra <menighet>». Forslag: som Admin.
