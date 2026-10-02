@@ -908,3 +908,39 @@ Plan: `docs/plan-samarbeidsgrupper.md` (godkjent). Migrering: `supabase/migratio
 - Fjerning av nest siste menighet stoppes også i avsluttede grupper.
 - Gjenåpning krever 2–20 aktive medlemmer som alle er aktive menigheter.
 - Fjerning og gjeninnmelding i nettleseren krever en tredje menighet. De er dekket av RLS-testene til «CH-test Menighet C» eventuelt godkjennes.
+
+## Generalprøve på tilbakeføring (steg B) og ekstra Admin (2026-10-02, bare connecthub-dev)
+
+**Steg B, gammel kode mot ny database:**
+- `4d878ac` ble bygget i en egen arbeidskopi (samme avhengigheter) og kjørt med `vite preview` mot dev, med alle de nye migreringene brukt. Kontrollen ble kjørt to ganger: med 7 migreringer, og på nytt etter den 8. (`20261009100000`).
+- **Gamle sider med endrede funksjoner, uten feil:**
+  - Samarbeid (Moderator): `my_links` og `link_files_meta`, gruppen A – «12» vises som kobling.
+  - Innboks: `feedback_list` uten argument, 12 saker.
+  - Filer → Samarbeidsfiler (User, mobil): `church_a`/`church_b`.
+  - `whoami`.
+- **Lesende regresjon (alle admin-sider og fem verktøy, PC og mobil, fire roller):** tilgangene er som i dagens produksjon.
+- **Avvik:** én 500 på `file.urls` (Admin) i første kjøring. Den lot seg ikke gjenskape (alle kall på admin-sidene og i fem verktøy gikk gjennom) og kom ikke igjen i andre kjøring. Ellers bare den kjente 404-en for `mockups/config.json`.
+- **Konklusjon:** tilbakeføring av koden til `4d878ac` virker med den nye databasen. Arbeidskopien er fjernet.
+
+**Ekstra Admin (`supabase/migrations/20261009100000_extra_admin.sql`, commit `6269992`):**
+- **Migrering i dev:** tørrkjøring viste bare denne migreringen. Fingeravtrykket før og etter var likt, bortsett fra migreringstallet.
+- **RLS:** 763/763 i PGlite og i dev, hvorav 28 nye.
+  - Admin, User og stab uten MFA avvises.
+  - Developer og Moderator legger seg til (medlemskap legges til). Å gjøre det to ganger er ufarlig.
+  - Den faste Admin er uendret, og en ny fast Admin gir fortsatt 23505. `assign_role` på seg selv avvises.
+  - Fast Admin varsles, og alt loggføres.
+  - Fast Admin kan ikke fjerne en ekstra Admin. Stab kan fjerne en ekstra Admin uten CH003, mens den faste fortsatt krever bekreftelsen.
+  - Fjerning av seg selv virker også uten MFA, og medlemskapet som kom med rollen, fjernes.
+  - Er man allerede medlem (B), beholdes medlemskapet.
+- **`npm test`:** 125/125.
+- **Nettleser:**
+  - Developer (PC) la seg til i CH-test Menighet A (allerede medlem), og `whoami` fikk Admin-rollen.
+  - Fast Admin (mobil) ser «Admin» + «ekstra» på Developer og fikk varsel.
+  - Developer (mobil) fjernet seg. Medlemskapet i A beholdes, og den faste Admin er uendret.
+  - Moderator (mobil) ser kortet.
+  - Ingen vannrett rulling.
+- **Testdata i dev:** én tilbakekalt ekstra Admin-rad for Developer i A, ett varsel til fast Admin og to loggrader.
+
+**Kontrollspørringene:** `prod_postcheck.sql` er oppdatert til 8 migreringer, 16 funksjoner og regelen for ekstra Admin. Kontrollen for grupper tåler nå også grupper som er endret etter migreringen. Prøvekjørt mot dev: alt `ok`, bortsett fra `queue_empty`, som er riktig i dev, der køen har behandlede rader.
+
+**Merk:** i dev ble CH-test Menighet B lagt til i gruppen «CH-test Menighet A – 12» og fjernet igjen med din konto (21:01). Det er gyldige data og ikke en feil.

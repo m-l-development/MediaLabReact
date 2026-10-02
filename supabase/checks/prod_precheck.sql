@@ -1,4 +1,4 @@
--- ConnectHub · BARE LESING. Forhåndskontroll før de sju migreringene 20261004100000–20261008100000 (dev → produksjon).
+-- ConnectHub · BARE LESING. Forhåndskontroll før de åtte migreringene 20261004100000–20261009100000 (dev → produksjon).
 -- Hvert felt under 'stopp' må være 0 (eller som angitt), ellers stopper vi og vurderer før noe kjøres. Endrer ingenting.
 select jsonb_build_object(
   'migrations', (select count(*) from supabase_migrations.schema_migrations),            -- forventet 21
