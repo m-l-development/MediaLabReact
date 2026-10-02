@@ -40,6 +40,16 @@ export function safeNext(v) {
   return /^\/(?!\/)[^\s\\]*$/.test(s) && !s.startsWith(LOGIN_PATH) ? s : '/media-lab.dc.html';
 }
 
+/* Passordkravene som enkeltpunkter (for løpende visning). Samme krav som passwordProblem og Supabase Auth. */
+export function passwordChecks(pw, pw2) {
+  const s = String(pw || '');
+  return [
+    { key: 'len', ok: s.length >= 10, text: 'Minst 10 tegn' },
+    { key: 'mix', ok: /[A-Za-zÆØÅæøå]/.test(s) && /\d/.test(s), text: 'Både bokstaver og tall' },
+    { key: 'same', ok: s.length > 0 && s === String(pw2 || ''), text: 'Passordene er like' },
+  ];
+}
+
 export function passwordProblem(pw) {
   const s = String(pw || '');
   if (s.length < 10) return 'Passordet må ha minst 10 tegn.';

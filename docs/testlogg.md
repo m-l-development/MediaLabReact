@@ -960,3 +960,44 @@ Lokal preview mot dev, hodeløs nettleser uten tidligere økt. Ingen data er end
 - I tillegg krever Supabase en MFA-økt (`aal2`) for å lagre nytt passord når kontoen har MFA. Det gjelder Developer og Moderator, og den feilen (`insufficient_aal`) har heller ingen tekst.
 
 Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
+
+## «Glemt passord» – klientdelen (steg 1a i plan-foresporsler-epost-konto.md, 2026-10-03, bare dev)
+
+**Endret:**
+- `src/pages/login/LoginPage.jsx`:
+  - egen visning for tilbakestillingslenker (først «Fortsett», så brukes lenken)
+  - MFA-steg før nytt passord (`aal2`)
+  - «Nytt passord» og «Bekreft nytt passord» med vis/skjul og løpende krav
+  - «Passordet er endret» (alle økter logges ut)
+  - «Lenken virker ikke lenger» med skjemaet «Send ny lenke»
+  - vis/skjul også på innloggingen
+  - norske og engelske tekster for alle Supabase-koder
+- `src/services/adapters/supabase/auth.js`: nettverksfeil gir `network`, og unntak fra lenkehåndteringen fanges.
+- `src/services/auth.js`: `passwordChecks`.
+- Ingen databaseendringer.
+
+**Lenkeformatet er uendret i denne delen.** «Glemt passord» bruker fortsatt PKCE, så en lenke åpnet i en annen nettleser gir nå en forklaring og skjemaet «Send ny lenke» i stedet for en ukjent feil. Lenker som virker i alle nettlesere, kommer med e-postsystemet (B1).
+
+**Nettleser (lokal preview mot dev):** ekte engangslenker laget med Admin API (`generate_link`, ingen e-post sendt). Lenker og passord ble aldri skrevet ut.
+- **User, PC (`token_hash`-lenke):**
+  - Lenken vises ikke i adresse eller lagring.
+  - Uten nett gir «Fortsett» «Fikk ikke kontakt …», og lenken er ikke brukt opp. Med nett virker den.
+  - Kravene oppdateres mens man skriver, og vis/skjul virker per felt.
+  - Ulike passord avvises.
+  - Etter lagring vises «Passordet er endret», og ingen økt er igjen.
+  - «Til innlogging» har e-posten fylt ut, og innlogging med nytt passord slipper brukeren inn i Media Lab.
+  - Samme lenke en gang til gir «Lenken virker ikke lenger» med skjemaet for ny lenke.
+  - API-kontroll: nytt passord virker, gammelt er avvist.
+- **User, mobil (Supabase-standardlenke, `#access_token`):** samme flyt, uten vannrett rulling. Nytt passord virker, gammelt er avvist.
+- **Developer med MFA, PC:**
+  - Etter «Fortsett» kommer «Bekreft at det er deg». Feil kode gir «Feil kode. Prøv igjen.», og riktig kode gir «Nytt passord».
+  - Lagret, logget ut, og ny innlogging med nytt passord og kode slipper inn i Media Lab.
+- **Feilsider (mobil):**
+  - PKCE-lenke åpnet i en annen nettleser (det rapporterte tilfellet) gir «Lenken må åpnes i samme nettleser …» med e-postfelt og «Send ny lenke».
+  - Utløpt eller brukt lenke (`otp_expired`) og manipulert lenke gir «Lenken er utløpt eller allerede brukt».
+  - «Send ny lenke» til ukjent adresse gir nøytralt svar.
+- **Innlogging:** øyeknappen ligger inne i feltet (`aria-pressed`, «Vis/Skjul passord»), og det er ingen vannrett rulling.
+
+**Tester:** `npm test` 125/125. Bygget går.
+
+**Testdata i dev:** nye passord for `ch-test-user` og `ch-test-dev`, lagret bare i testlegitimasjonen i scratchpad. MFA-faktoren til `ch-test-dev` er satt opp på nytt.
