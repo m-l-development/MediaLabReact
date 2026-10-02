@@ -10,9 +10,10 @@ export const supabaseUrl = target => `https://${REFS[target]}.supabase.co`;
 export const issuerOf = target => supabaseUrl(target) + '/auth/v1';
 
 /* Fast offentlig adresse per miljø for lenker i e-post (må stå i Auth sin liste over tillatte adresser).
-   Preview-deployments har ellers egne adresser per commit, som ikke er tillatt. Produksjon settes i P11.
+   Preview-deployments har ellers egne adresser per commit, som ikke er tillatt. Produksjon: Vercel-adressen til prosjektet
+   (fast adresse inntil videre; et eventuelt eget domene senere er bare til e-post).
    Lokalt (uten VERCEL_ENV) brukes forespørselens adresse, men bare localhost. */
-export const SITE = { production: null, preview: 'https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app' };
+export const SITE = { production: 'https://media-lab-react-vyef.vercel.app', preview: 'https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app' };
 export function publicOrigin(env, requestUrl) {
   if (env && env.VERCEL_ENV) return SITE[targetOf(env)];
   const u = new URL(requestUrl);
