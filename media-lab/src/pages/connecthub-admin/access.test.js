@@ -14,8 +14,10 @@ test('Developer som også er Moderator får Samarbeid gjennom Moderator-rollen',
 test('Admin: brukere, menigheter, invitasjoner, filer, abonnement og logg – IKKE samarbeid', () => {
   assert.deepEqual(sec({ adminOf: ['a'], churches: [A] }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt']);
 });
-test('Moderator: bare samarbeid (ingen admin- eller filfunksjoner)', () => {
-  assert.deepEqual(sec({ collab: true }), ['oversikt', 'samarbeid', 'tilbakemeldinger']);
+test('Moderator: samme systemadministrasjon som Developer, pluss Samarbeid', () => {
+  assert.deepEqual(sec({ collab: true }), ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt', 'samarbeid', 'tilbakemeldinger']);
+  const devOnly = sec({ dev: true }), modOnly = sec({ collab: true });
+  assert.deepEqual(modOnly.filter(k => !devOnly.includes(k)), ['samarbeid'], 'eneste forskjell i menyen er Samarbeid');
 });
 test('User: menigheter og filer (Samarbeidsfiler ligger under Filer) – ikke Samarbeid', () => {
   assert.deepEqual(sec({ churches: [A] }), ['filer', 'menigheter', 'oversikt']);

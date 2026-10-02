@@ -16,8 +16,9 @@ export const realView = me => has(me, 'developer') ? 'developer' : has(me, 'mode
 /* Hvilke visninger denne brukeren kan velge: bare roller man faktisk har (Developer dekker alle), pluss User. */
 export function allowedViews(me) {
   const dev = has(me, 'developer'), list = [];
-  if (dev) list.push('developer');
-  if (dev || has(me, 'moderator')) list.push('moderator');
+  /* Rollebytteren er et utviklerverktøy: Moderator får den ikke (Admin kan fortsatt se siden som User). */
+  if (!dev && has(me, 'moderator')) return [];
+  if (dev) list.push('developer', 'moderator');
   if (dev || has(me, 'church_admin')) list.push('admin');
   return list.length ? [...list, 'user'] : [];
 }

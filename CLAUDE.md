@@ -88,7 +88,17 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Overbooking er tillatt:** summen av kvotene kan være større enn grensen.
   - **Developer med MFA:** `storage_overview` og `set_storage_limit` (loggført `storage.limit`), kortet «Samlet lagringsplass» under Abonnement. Varsel (`storage`) ved 80 % og 90 %.
   - **Medlemmer:** `storage_usage.system_free_bytes`. Måleren viser det minste av ledig kvote og ledig samlet plass.
-- Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`). Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
+- Roller (fra `supabase/migrations/20261004100000_moderator_access.sql`, bare i dev så langt). Rettighetene er eksplisitte, uten arv:
+  - **Systemadministrasjon (`app.is_staff()` = Developer ELLER Moderator, begge med MFA):** brukere, menigheter, medlemskap, invitasjoner, logg, abonnement, kvoter, planer, samlet lagring, menighetens livsløp, systemstatus og tilbakemeldinger.
+  - **Bare Developer (`app.is_developer()`):**
+    - gi, fjerne og invitere Developer/Moderator
+    - deaktivere eller aktivere kontoer med de rollene
+    - Utvikler-kortet og «Åpne ConnectHub Dev»
+    - rollebytteren
+  - **Bare Moderator (`app.is_collab_admin()`):** samarbeid, det vil si koblinger mellom menigheter.
+  - **Filer:** begge rollene ser filer bare i menigheter der de selv er medlem (A1/A2). Moderator ser bare metadata for Samarbeidsfiler.
+  - **Grensesnittet:** `staff`, `dev` og `collab` i `connecthub-admin/AdminPage.jsx`, og `SECTIONS` i `access.js`.
+- Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`), og aldri for Moderator. Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
 - ConnectHub Dev og produksjon holdes adskilt: i alle bygg som ikke er produksjon viser ConnectHub Admin merket «UTVIKLING · connecthub-dev» i toppfeltet. I produksjon har Developer-kortet (Oversikt) merket «PRODUKSJON» og knappen «Åpne ConnectHub Dev», som åpner `DEV_SITE` (`build/env-guard.js` = `SITE.preview` i `server/lib/backend.js`, testet) i ny fane. Adressen legges inn ved bygging (`__CH_DEV_SITE__`); utviklingsprosjektets ID gjør aldri det i produksjon (`__CH_DEV_REF__` = null).
 - Tilbakemeldinger (trinn 8, `supabase/migrations/20261003100000_feedback.sql`):
   - **Knapp:** snakkeboble med «!» nede til høyre (ved kontoknappen) på alle innloggede sider. `src/shared/feedback-widget.js` monteres av `auth-gate.js`.

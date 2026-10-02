@@ -248,7 +248,7 @@ export function FilesView({ churchId }) {
     setFl(f => ({ ...f, area: 'faste', folder: 'faste', usage: null, links: [], link: null }));
     act(async () => { await Promise.all([load('faste', 'faste', { usage: true }), loadLinks()]); })();
   }, [churchId, member]);
-  if (!member) return <Card title="Filer"><p className="ch-note warn">{T('Du er ikke medlem av denne menigheten. Filer vises bare for medlemmer – også for Developer.')}</p></Card>;
+  if (!member) return <Card title="Filer"><p className="ch-note warn">{T('Du er ikke medlem av denne menigheten. Filer vises bare for medlemmer – også for Developer og Moderator.')}</p></Card>;
 
   const A = AREAS[fl.area], collab = fl.area === 'samarbeid', canUpload = !collab && (fl.area === 'delt' || admin_);
   const curLink = fl.links.find(l => l.id === fl.link), other = l => otherChurch(l, churchId);
@@ -454,7 +454,7 @@ function ChurchQuotaCard({ church, usage }) {
   return <Card title="Menighetens lagring">
     <div className="ch-row" data-ch-quota><span>{T('Faktisk kvote')}: <b>{church.storage_quota_mb} MB</b></span><QuotaBadge church={church} /></div>
     {used != null && <p className="ch-muted">{T('Brukt')}: {mb(used)} · {T('Ledig')}: {mb(Math.min(Math.max(0, quota - used), usage && usage.system_free_bytes != null ? usage.system_free_bytes : Infinity))}{usage && usage.system_free_bytes != null && usage.system_free_bytes < quota - used ? ' (' + T('begrenset av samlet lagringsplass i ConnectHub') + ')' : ''}</p>}
-    <p className="ch-muted">{T('Standard er 200 MB. Trenger menigheten mer plass, kan Developer tildele en egen kvote. Abonnementet endrer ikke kvoten.')}</p>
+    <p className="ch-muted">{T('Standard er 200 MB. Trenger menigheten mer plass, kan Developer eller Moderator tildele en egen kvote. Abonnementet endrer ikke kvoten.')}</p>
   </Card>;
 }
 export function SubsView({ churchId }) {
@@ -476,7 +476,7 @@ export function SubsView({ churchId }) {
         ...(staff ? [<div className="ch-end"><Btn small onClick={() => setEditing(editing === p.code ? null : p.code)}>{T(editing === p.code ? 'Lukk' : 'Endre')}</Btn></div>] : [])] }))} />
       {staff && editing && <PlanEditor key={editing} plan={sub.plans.find(p => p.code === editing)} onCancel={() => setEditing(null)} onDone={async () => { setEditing(null); await load(); await reload(); }} />}
       {staff && <p className="ch-muted">{T('Planens lagring er bare veiledende og gir ikke menigheten mer plass automatisk. Menighetens faktiske kvote er standard 200 MB, eller en egen kvote som du tildeler under Menigheter → Innstillinger.')}</p>}
-      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; Developer godkjenner. Abonnementet endrer ikke lagringskvoten.')}</p>
+      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; Developer eller Moderator godkjenner. Abonnementet endrer ikke lagringskvoten.')}</p>
     </Card>
     <Card title="Nåværende abonnement">
       <List cols="1fr auto auto auto" head={['Menighet', 'Plan', 'Gratis', 'Faktisk kvote']} empty="Ingen abonnement registrert. Kvoten er standard 200 MB." rows={sub.current.map(c => ({ key: c.church_id, cells: [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei'), quotaText(churchOf(c.church_id))] }))} />

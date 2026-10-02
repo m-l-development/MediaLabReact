@@ -23,7 +23,8 @@ test('rollebytter: kan bare senke rollen, aldri heve den', () => {
   assert.equal(realView(DEV), 'developer'); assert.equal(realView(ADM), 'admin'); assert.equal(realView(USR), 'user');
   assert.deepEqual(allowedViews(DEV), ['developer', 'moderator', 'admin', 'user']);
   assert.equal(realView(MOD), 'moderator');
-  assert.deepEqual(allowedViews(MOD), ['moderator', 'user'], 'Moderator kan ikke se siden som Admin eller Developer');
+  assert.deepEqual(allowedViews(MOD), [], 'Moderator har ikke rollebytteren (utviklerverktøy)');
+  assert.equal(effectiveMe(MOD, 'user'), MOD, 'Moderator kan ikke bytte visning');
   assert.equal(effectiveMe(MOD, 'admin'), MOD); assert.equal(effectiveMe(MOD, 'developer'), MOD);
   assert.equal(effectiveMe(ADM, 'moderator'), ADM, 'Admin kan ikke se siden som Moderator');
   assert.deepEqual(allowedViews(ADM), ['admin', 'user']);
@@ -36,7 +37,7 @@ test('rollebytter: kan bare senke rollen, aldri heve den', () => {
 test('rollebytter: Admin- og User-visning gir riktige roller i grensesnittet', () => {
   assert.deepEqual(effectiveMe(DEV, 'user').roles, []);
   assert.deepEqual(effectiveMe(DEV, 'moderator').roles, [{ role: 'moderator', church_id: null }]);
-  assert.deepEqual(effectiveMe(MOD, 'user').roles, []);
+  assert.deepEqual(effectiveMe(MOD, 'user').roles, MOD.roles, 'Moderator beholder sin ekte visning (ingen rollebytter)');
   assert.deepEqual(effectiveMe(DEV, 'admin').roles, [{ role: 'church_admin', church_id: 'c1' }], 'Developer ser siden som admin i egne menigheter');
   assert.deepEqual(effectiveMe(ADM, 'user').roles, []);
   assert.equal(effectiveMe(DEV, 'developer'), DEV); assert.equal(effectiveMe(DEV, 'tull'), DEV); assert.equal(effectiveMe(DEV, null), DEV);

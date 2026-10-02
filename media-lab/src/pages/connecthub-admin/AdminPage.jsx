@@ -21,8 +21,13 @@ export const Ctx = React.createContext(null);
 export const useAdmin = () => React.useContext(Ctx);
 
 export default function AdminPage({ me }) {
-  const dev = hasRole(me, 'developer') && me.mfa, staff = dev;                    // systemadministrasjon = Developer
-  const collab = hasRole(me, 'moderator') && me.mfa;                               // samarbeid (koblinger) = bare Moderator (trinn 18)
+  /* Rettigheter, eksplisitt per rolle (speiler databasen, migrering 20261004100000_moderator_access.sql):
+     - staff  = systemadministrasjon: Developer ELLER Moderator (som app.is_staff).
+     - dev    = bare Developer: utviklerkortet og «Åpne ConnectHub Dev», og å gi/fjerne/invitere Developer og Moderator.
+     - collab = bare Moderator: samarbeid (koblinger mellom menigheter). */
+  const dev = hasRole(me, 'developer') && me.mfa;
+  const collab = hasRole(me, 'moderator') && me.mfa;
+  const staff = dev || collab;
   const staffNoMfa = isStaff(me) && !me.mfa;
   const adminOf = (me.roles || []).filter(r => r.role === 'church_admin').map(r => r.church_id);
   const kind = dev ? 'developer' : collab ? 'moderator' : adminOf.length ? 'admin' : 'user';
@@ -84,9 +89,9 @@ export default function AdminPage({ me }) {
   else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser, delt mappe og Samarbeidsfiler. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
   else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Koblinger mellom to menigheter. Hver kobling har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
   else if (sec === 'tilbakemeldinger') body = <FeedbackView selected={id} />;
-  else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
+  else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer eller Moderator godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
-  else body = kind === 'user' ? <UserOverview /> : kind === 'moderator' && !adminOf.length ? <ModeratorOverview /> : <Overview pendingInvites={pendingInvites} />;
+  else body = kind === 'user' ? <UserOverview /> : <Overview pendingInvites={pendingInvites} />;
 
   const counts = { invitasjoner: allowed.has('invitasjoner') ? pendingInvites.length : 0, abonnement: d.pendingSubs };
   const brand = brandOf(kind);
@@ -123,22 +128,22 @@ function Forbidden() {
 }
 
 /* Oversikt for Moderator: koblinger mellom menigheter (bare metadata, aldri filinnhold). */
-function ModeratorOverview() {
-  const { me, act } = useAdmin();
+/* Samarbeid på oversikten (bare Moderator, som administrerer koblingene). */
+function CollabCard() {
+  const { act } = useAdmin();
   const [ls, setLs] = React.useState([]);
   React.useEffect(() => { act(async () => setLs(await LK.mine()))(); }, []);
   const active = ls.filter(l => l.status === 'active');
   const churches = new Set(active.flatMap(l => [l.church_a, l.church_b]).filter(Boolean));
-  return <>
-    <Head title="Oversikt" sub={(me.full_name || me.email) + ' · Moderator'} />
+  return <Card title="Samarbeid">
     <div className="ch-stats">
       <a className="ch-stat" href={href('samarbeid')}><b>{active.length}</b><span>{T('Aktive koblinger')}</span></a>
       <a className="ch-stat" href={href('samarbeid')}><b>{churches.size}</b><span>{T('Menigheter med kobling')}</span></a>
       <a className="ch-stat" href={href('samarbeid')}><b>{ls.length - active.length}</b><span>{T('Avsluttede koblinger')}</span></a>
     </div>
-    <Card title="Ditt ansvar"><p className="ch-muted">{T('Som Moderator kobler du sammen to og to menigheter. Hver kobling får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet. Brukere og filer håndteres av Admin.')}</p>
-      <div className="ch-row"><a className="ch-btn primary" href={href('samarbeid')}>{T('Gå til samarbeid')}</a></div></Card>
-  </>;
+    <p className="ch-muted">{T('Som Moderator kobler du sammen to og to menigheter. Hver kobling får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet.')}</p>
+    <div className="ch-row"><a className="ch-btn primary" href={href('samarbeid')}>{T('Gå til samarbeid')}</a></div>
+  </Card>;
 }
 
 export function Head({ title, sub, right, crumb }) {
@@ -150,7 +155,7 @@ export function Head({ title, sub, right, crumb }) {
 
 /* ---------- Oversikt ---------- */
 function Overview({ pendingInvites }) {
-  const { me, staff, dev, d, churchName, adminOf, act } = useAdmin();
+  const { me, staff, dev, collab, d, churchName, adminOf, act } = useAdmin();
   const [recent, setRecent] = React.useState([]);
   React.useEffect(() => { act(async () => {
     setRecent((await admin.audit(staff ? null : adminOf[0] || null)).slice(0, 8));
@@ -172,6 +177,7 @@ function Overview({ pendingInvites }) {
       {s && <a className="ch-stat" href={href('logg')}><b>{s.audit_last_24h}</b><span>{T('Hendelser siste døgn')}</span></a>}
     </div>
     {dev && <DevCard />}
+    {collab && <CollabCard />}
     <div className="ch-grid">
       <Card title="Krever handling" sub={todo.length || null}>
         {todo.length ? <List cols="1fr" rows={todo.map(x => ({ key: x.k, cells: [<a href={x.to}>{x.t} →</a>] }))} /> : <p className="ch-muted">{T('Ingenting venter på deg nå.')}</p>}
@@ -318,14 +324,16 @@ function UserDetail({ id, onClose }) {
         {!global.some(r => r.role === 'moderator') && <Btn small onClick={run(() => admin.assignRole(u.id, 'moderator', null, 'Admin-siden'), 'Brukeren er nå moderator.')}>{T('Gjør til moderator')}</Btn>}
         {!global.some(r => r.role === 'developer') && <Btn small onClick={run(() => { if (!confirm(T('Gi Developer-rollen? Developer har full tilgang til hele ConnectHub.'))) throw Object.assign(new Error(), { code: 'cancel' }); return admin.assignRole(u.id, 'developer', null, 'Admin-siden'); }, 'Brukeren er nå Developer.')}>{T('Gjør til Developer')}</Btn>}
       </div>}
+      {!dev && <p className="ch-muted" data-ch-devonly>{T('Bare Developer kan gi eller fjerne rollene Developer og Moderator.')}</p>}
       <p className="ch-muted">{T('Developer og Moderator må bruke totrinnsbekreftelse for at rollen skal virke.')}</p>
     </Card>}
 
     {staff && !self && <Card title="Konto">
+      {!dev && global.length > 0 ? <p className="ch-muted" data-ch-devonly>{T('Bare Developer kan deaktivere eller aktivere en Developer eller Moderator.')}</p> : <>
       <p className="ch-muted">{T(u.status === 'active' ? 'Deaktivering stenger brukeren ute med en gang, i alle menigheter. Ingenting slettes.' : 'Kontoen er deaktivert. Aktivering gir tilgang igjen.')}</p>
       <div className="ch-row">{u.status === 'active'
         ? <Btn kind="danger" onClick={run(() => admin.setUserStatus(u.id, 'disabled'), 'Kontoen er deaktivert. Brukeren mister tilgang med en gang.')}>{T('Deaktiver konto')}</Btn>
-        : <Btn onClick={run(() => admin.setUserStatus(u.id, 'active'), 'Kontoen er aktivert.')}>{T('Aktiver konto')}</Btn>}</div>
+        : <Btn onClick={run(() => admin.setUserStatus(u.id, 'active'), 'Kontoen er aktivert.')}>{T('Aktiver konto')}</Btn>}</div></>}
     </Card>}
 
     {invites.length > 0 && <Card title="Invitasjoner til denne adressen">

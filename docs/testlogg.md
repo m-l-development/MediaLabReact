@@ -673,3 +673,33 @@ Etter publisering:
 **Dev (`connecthub`), ikke publisert:**
 - Kopiknappene heter nå «Kopier sak», «Kopier alle saker» og «Kopier valgte saker» (`2e8f44c`).
 - Toppfeltet viser rollen: «CONNECTHUB · BRUKER / ADMIN / MODERATOR / DEVELOPER» (`brandOf` i `access.js`, testet). Kontrollert i nettleseren for alle fire rollene.
+
+## Moderator med systemadministrasjon (2026-10-02, connecthub-dev)
+
+**Migrering `20261004100000_moderator_access.sql` (dev):**
+- `app.is_staff()` = Developer eller Moderator.
+- `app.may_invite`: Admin-rollen kan inviteres av Developer eller Moderator, Developer/Moderator bare av Developer.
+- `set_user_status`: bare Developer kan endre kontoer med rollen Developer eller Moderator.
+- Kvote, planer og samlet lagring (`church_quota_overview`, `plans_admin`, `reset_church_quota`, `set_church_quota`, `set_storage_limit`, `storage_overview`, `update_plan`) godtar Developer eller Moderator. Funksjonskroppene er ellers uendret.
+- Ingen tabeller, data eller filregler er endret.
+- Tørrkjøring: bare denne filen.
+
+**RLS:** 462/462 i PGlite og i dev.
+- Tilpasset: Moderator-testene som nå skal godtas. De kjøres med den nye hjelperen `ch_test.ok_rb`, som ruller handlingen tilbake.
+- Nye: Moderator kan ikke tilbakekalle Developer, fjerne egen moderatorrolle, gi seg selv Developer, invitere Moderator/Developer, deaktivere Developer, endre egen status eller deaktivere en annen Moderator.
+- Filtestene A1/A2 er uendret: Moderator ser ingen filrader og får ingen nedlastingsnøkler.
+
+**`npm test`:** 112/112.
+- `access.test.js`: Moderator har samme meny som Developer, pluss Samarbeid.
+- `test-role.test.js`: Moderator har ikke rollebytteren.
+
+**Nettleser (lokal preview mot dev, egne syntetiske kontoer):**
+
+| Rolle | Resultat |
+|---|---|
+| Moderator | **Meny:** Oversikt, Brukere, Menigheter, Invitasjoner, Filer, Samarbeid, Abonnement, Tilbakemeldinger og Logg. Tittel «CONNECTHUB · MODERATOR». Oversikten har Samarbeid-kortet, men verken Utvikler-kortet, «Åpne ConnectHub Dev» eller Testrolle. `#/utvikler` viser Oversikt uten utviklerkort.<br>**Tilgang:** alle menigheter (med «Ny menighet»), innstillinger med kvoteskjema, Abonnement med «Samlet lagringsplass» og Endre, Logg, alle 9 brukere. Filer: «Du er ikke medlem … også for Developer og Moderator.» Ny invitasjon tilbyr bare `user` og `church_admin`. Koblingen A–B ble gjenåpnet og avsluttet igjen, og står som før. RPC `system_status`, `plans_admin`, `storage_overview` og `feedback_list` → 200.<br>**Avvist (403):** gjøre en bruker til Developer eller Moderator, gi seg selv Developer, fjerne Developer-rollen, deaktivere Developer («Bare Developer kan endre en Developer eller Moderator»), invitere Moderator eller Developer via serveren, skrive direkte i `user_roles`. Developer-kontoen viser ingen rolle- eller kontoknapper, bare forklaring. En vanlig konto viser «Deaktiver konto». Med developer-rolle lagt inn i `CH.me` → serveren svarer fortsatt 403. Med `ch.testRole=developer` i sessionStorage er visningen fortsatt Moderator uten utviklerverktøy. |
+| Developer | Meny uten Samarbeid (`#/samarbeid` → «Ingen tilgang», uendret). Utvikler-kortet, merknaden «Du er i ConnectHub Dev» og Testrolle vises. Moderator-kontoen viser «Fjern», «Gjør til Developer» og «Deaktiver konto». Ny invitasjon tilbyr `user`, `church_admin`, `moderator` og `developer`. `plans_admin` og `church_quota_overview` → 200. |
+| Admin | Menyen er uendret, uten Samarbeid og Tilbakemeldinger (direkte adresse → «Ingen tilgang»). Ny invitasjon tilbyr bare `user`. `system_status`, `plans_admin`, `assign_role`, `set_user_status` og `create_link` → 403. |
+| User | Oversikt, Menigheter, Filer. `#/brukere` og `#/abonnement` → «Ingen tilgang». `system_status` og å gi seg selv Moderator → 403. Ser bare Menighet B, og filene i A → `[]`. |
+
+**Merk:** brukerens egen Developer-konto slettet skjermbildet i menighet «12» i dev (`files.delete`, 2026-10-02 11:32 UTC) og endret kvoten der. Det skjedde under dette arbeidet, men ble ikke gjort av migreringen eller testene.
