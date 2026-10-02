@@ -373,7 +373,7 @@ select ch_test.ok('Kobling: Moderator kobler B og A (rekkefølgen spiller ingen 
 select ch_test.err('Kobling: bare én aktiv kobling per par', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '23505');
 select ch_test.err('Kobling: ikke med seg selv', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '22023');
 select ch_test.ok('Kobling: Moderator kobler A og K', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'cccccccc-0000-4000-8000-00000000000c')$q$);
-select ch_test.cnt('Kobling: Moderator ser begge koblingene', 'select 1 from public.my_links()', 2);
+select ch_test.cnt('Kobling: Moderator ser begge koblingene', $q$select 1 from public.my_links() where church_a in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c') and church_b in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c')$q$, 2);   -- bare testmenighetene (ekte koblinger i dev telles ikke)
 set local role postgres;
 create temp table t18 as select
   (select id from public.church_links where church_a = 'aaaaaaaa-0000-4000-8000-00000000000a' and church_b = 'bbbbbbbb-0000-4000-8000-00000000000b') ab,
