@@ -4,10 +4,12 @@
 
 export const VIEWS = ['developer', 'moderator', 'admin', 'user'];
 const KEY = 'ch.testRole';
-const DEV_REF = 'uatpdmhnwwjgzlxaucsx';
+/* Utviklingsprosjektets ID settes inn ved bygging (vite.config.js, __CH_DEV_REF__) og bare i bygg som ikke er produksjon.
+   Produksjonsbygget får null og inneholder aldri ID-en (byggevakten stopper bygget ellers). I testene settes den globalt. */
+const devRef = () => (typeof __CH_DEV_REF__ !== 'undefined' ? __CH_DEV_REF__ : null);
 
 /* Tillatt bare for bygg mot utviklingsprosjektet, aldri i produksjon (to uavhengige kontroller). */
-export const switcherAllowed = backend => !!backend && backend.target !== 'production' && backend.projectRef === DEV_REF;
+export const switcherAllowed = backend => !!backend && backend.target !== 'production' && !!devRef() && backend.projectRef === devRef();
 
 const has = (me, role) => !!me && (me.roles || []).some(r => r.role === role);
 export const realView = me => has(me, 'developer') ? 'developer' : has(me, 'moderator') ? 'moderator' : has(me, 'church_admin') ? 'admin' : 'user';

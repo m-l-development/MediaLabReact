@@ -8,6 +8,9 @@ const USR = { id: 'u', roles: [], churches: [{ id: 'c1', name: 'A' }] };
 const MOD = { id: 'm', roles: [{ role: 'moderator', church_id: null }], churches: [] };
 
 test('rollebytter: bare i lokal utvikling og Preview mot connecthub-dev – aldri i produksjon', () => {
+  globalThis.__CH_DEV_REF__ = null;   // som i produksjonsbygget: aldri tillatt
+  assert.equal(switcherAllowed({ target: 'preview', projectRef: 'uatpdmhnwwjgzlxaucsx' }), false, 'uten utviklings-ID i bygget');
+  globalThis.__CH_DEV_REF__ = 'uatpdmhnwwjgzlxaucsx';   // som i Preview- og lokale bygg (settes av vite.config.js)
   assert.equal(switcherAllowed({ target: 'preview', projectRef: 'uatpdmhnwwjgzlxaucsx' }), true);
   assert.equal(switcherAllowed({ target: 'local', projectRef: 'uatpdmhnwwjgzlxaucsx' }), true);
   assert.equal(switcherAllowed({ target: 'production', projectRef: 'cmuienhheklcgtfmpvbe' }), false);

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { resolveSupabaseEnv, scanText, SCAN_EXT } from './build/env-guard.js';
+import { resolveSupabaseEnv, scanText, SCAN_EXT, REFS } from './build/env-guard.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,7 +21,8 @@ const connecthubEnv = () => {
       target = r.target;
       r.warnings.forEach(w => console.warn('\x1b[33m' + w + '\x1b[0m'));
       if (r.public) console.log(`ConnectHub-backend: ${r.public.ref} (${r.target})`);
-      return { envPrefix: 'CONNECTHUB_NEVER_EXPOSED_', define: { __CH_BACKEND__: JSON.stringify(r.public) } };
+      /* Utviklingsprosjektets ID (for rollebytteren) bare i bygg som ikke er produksjon – produksjonsbygget får null. */
+      return { envPrefix: 'CONNECTHUB_NEVER_EXPOSED_', define: { __CH_BACKEND__: JSON.stringify(r.public), __CH_DEV_REF__: JSON.stringify(r.target === 'production' ? null : REFS.preview) } };
     },
     configResolved(c) { outDir = c.build.outDir; },
     closeBundle() {
