@@ -88,6 +88,12 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Overbooking er tillatt:** summen av kvotene kan være større enn grensen.
   - **Developer med MFA:** `storage_overview` og `set_storage_limit` (loggført `storage.limit`), kortet «Samlet lagringsplass» under Abonnement. Varsel (`storage`) ved 80 % og 90 %.
   - **Medlemmer:** `storage_usage.system_free_bytes`. Måleren viser det minste av ledig kvote og ledig samlet plass.
+- Knapper, tilbakemeldinger, navn, logo og koblinger (fra `supabase/migrations/20261007100000_feedback_archive_names_logo.sql` og `…100100_delete_ended_links.sql`, bare i dev):
+  - **Flytende knapper:** `src/shared/dock.js` er ett felt for tilbakemelding, konto og lys/mørk. Sider med egen knapp merker den `data-ch-dock-reserve`. Bare ett panel er åpent om gangen (`openOnly`/`onOtherOpen`).
+  - **Tilbakemeldinger:** «Fjern sak» betyr arkivering (`archive_feedback`/`restore_feedback`, `feedback_list(p_archived)`). Saken slettes aldri.
+  - **Navn:** `app_users.first_name/last_name`, der `full_name` avledes av en trigger. `set_user_name` brukes av Admin i egen menighet og av stab.
+  - **Logo:** `churches.logo_file_id` peker på en fil i Logoer-mappen (`set_church_logo`). Visningen ligger i `connecthub-admin/logos.jsx`, med velkomstområdet øverst på oversikten.
+  - **Koblinger:** avsluttede koblinger slettes med `delete_link` (server `link.delete`). Kopiene går via `file_cleanup_queue`, og originalene røres ikke.
 - Samarbeid, opprydning og rolleendring (fra `supabase/migrations/20261006100000_dev_collab_cleanup_roles.sql`, bare i dev):
   - **Samarbeid:** `app.is_collab_admin()` = Moderator ELLER Developer.
   - **Rolleendring:** triggeren `user_roles_global_guard` stopper fjerning av siste globale rolle ved flere aktive medlemskap (CH004), med samme lås per bruker som `single_church_guard`.
