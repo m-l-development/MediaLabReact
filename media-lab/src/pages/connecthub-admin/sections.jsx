@@ -8,6 +8,7 @@ import { useAdmin, Head } from './AdminPage.jsx';
 import { Thumb, downloadOriginal } from './thumbs.jsx';
 import { memberActions, fill } from './members.js';
 import { useLogos, ChurchLogo, forgetLogo } from './logos.jsx';
+import { clearMe } from '../../services/me-cache.js';
 
 const ACTIONS = {
   'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
@@ -19,6 +20,7 @@ const ACTIONS = {
   'spaces.create': 'Samarbeidsområde opprettet', 'spaces.invite': 'Invitert til samarbeid', 'spaces.membership': 'Samarbeid endret',
   'spaces.update': 'Samarbeidsområde endret', 'spaces.status': 'Samarbeidsområde arkivert eller åpnet', 'spaces.delete': 'Samarbeidsområde slettet',
   'links.create': 'Kobling opprettet', 'links.end': 'Kobling avsluttet', 'links.reopen': 'Kobling gjenåpnet',
+  'roles.extra_admin_add': 'Ekstra Admin lagt til', 'roles.extra_admin_remove': 'Ekstra Admin fjernet',
   'groups.create': 'Samarbeidsgruppe opprettet', 'groups.update': 'Samarbeidsgruppe endret', 'groups.add_church': 'Menighet lagt til i samarbeidsgruppe',
   'groups.remove_church': 'Menighet fjernet fra samarbeidsgruppe', 'groups.end': 'Samarbeidsgruppe avsluttet', 'groups.reopen': 'Samarbeidsgruppe gjenåpnet', 'groups.delete': 'Samarbeidsgruppe slettet',
   'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
@@ -98,6 +100,27 @@ export function ChurchDetail({ id, tab }) {
   </>;
 }
 
+/* Developer/Moderator: legg deg til eller fjern deg som EKSTRA Admin i menigheten. Den faste Admin er uendret. Databasen
+   kontrollerer rolle og MFA, varsler Admin og loggfører. Siden lastes på nytt etterpå, så egne rettigheter (whoami) oppdateres. */
+function ExtraAdminCard({ church }) {
+  const { me, d, act } = useAdmin();
+  const mine = d.roles.find(r => r.role === 'church_admin' && r.church_id === church.id && r.user_id === me.id);
+  if (mine && !mine.extra_admin) return null;   // fast Admin i menigheten
+  const done = () => { clearMe(); location.reload(); };
+  const add = act(async () => {
+    if (!confirm(fill(T('Legge deg til som ekstra Admin i «{church}»?'), { church: church.name }) + '\n\n' + T('Du får Admin-tilgang i menigheten (medlemmer, filer og Faste) i tillegg til menighetens faste Admin, som er uendret. Er du ikke medlem, blir du lagt til som medlem. Admin i menigheten varsles, og handlingen loggføres.'))) return;
+    await admin.addSelfAsAdmin(church.id); done();
+  });
+  const remove = act(async () => {
+    if (!confirm(fill(T('Fjerne deg som ekstra Admin i «{church}»?'), { church: church.name }) + '\n\n' + T('Ble du medlem da du la deg til, fjernes også medlemskapet. Den faste Admin er uendret.'))) return;
+    await admin.removeSelfAsAdmin(church.id); done();
+  });
+  return <Card title="Ekstra Admin"><div data-ch-extraadmin>
+    <p className="ch-muted">{T(mine ? 'Du er ekstra Admin i denne menigheten. Den faste Admin-rollen er uendret.' : 'Som Developer eller Moderator kan du legge deg til som ekstra Admin, for eksempel for å hjelpe menigheten. Den faste Admin-rollen er uendret.')}</p>
+    <div className="ch-row">{mine ? <Btn small kind="danger" onClick={remove}>{T('Fjern meg som ekstra Admin')}</Btn> : <Btn small kind="primary" onClick={add}>{T('Legg meg til som ekstra Admin')}</Btn>}</div>
+  </div></Card>;
+}
+
 function MembersView({ church }) {
   const { me, d, staff, canManage, act, say, reload, openInvite } = useAdmin();
   const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [msg, setMsg] = React.useState({ title: '', body: '' });
@@ -108,6 +131,7 @@ function MembersView({ church }) {
   const run = (fn, ok) => act(async () => { await fn(); say(T(ok)); await reload(); });
   const runMsg = fn => act(async () => { const m = await fn(); if (m) say(m); await reload(); });   // handlinger med bekreftelse (members.js)
   return <>
+    {staff && <ExtraAdminCard church={church} />}
     <div className="ch-row">
       <Search value={q} onChange={setQ} placeholder="Søk etter medlem …" />
       <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle'], ['active', 'Aktive'], ['disabled', 'Deaktiverte'], ['admin', 'Admin'], ['removed', 'Fjernet (tidligere medlemmer)']]} />
@@ -117,7 +141,7 @@ function MembersView({ church }) {
       onRow={r => go('brukere', r.key)}
       rows={rows.map(({ m, u, adm }) => ({ key: m.user_id, cells: [
         <div className="ch-who"><Avatar name={u ? (u.full_name || u.email) : '?'} /><div><b>{u ? (u.full_name || u.email) : T('Ukjent bruker')}</b><span>{u ? u.email : ''}</span></div></div>,
-        <div className="ch-row"><StatusBadge s={m.status} />{adm && <RoleBadge r="church_admin" />}{u && u.status !== 'active' && <Badge tone="bad">{T('Konto deaktivert')}</Badge>}</div>,
+        <div className="ch-row"><StatusBadge s={m.status} />{adm && <RoleBadge r="church_admin" />}{adm && adm.extra_admin && <Badge>{T('ekstra')}</Badge>}{u && u.status !== 'active' && <Badge tone="bad">{T('Konto deaktivert')}</Badge>}</div>,
         m.user_id === me.id ? <span className="ch-muted">{T('Deg')}</span> : m.status === 'removed' ? <span className="ch-muted">{T('Fjernet')} {fmtDate(m.updated_at)}</span> : (() => {
           const a = { userId: m.user_id, churchId: id, name: u ? (u.full_name || u.email) : T('Ukjent bruker'), church: church.name, isAdmin: !!adm, roleId: adm && adm.id };
           return <div className="ch-end" data-ch-memberactions>

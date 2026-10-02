@@ -114,7 +114,8 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
     - deaktivere eller aktivere kontoer med de rollene
     - Utvikler-kortet og «Åpne ConnectHub Dev»
     - rollebytteren
-  - **Bare Moderator (`app.is_collab_admin()`):** samarbeid, det vil si koblinger mellom menigheter.
+  - **Samarbeid (`app.is_collab_admin()` = Developer ELLER Moderator, med MFA):** samarbeidsgruppene (se Samarbeid).
+  - **Ekstra Admin (`supabase/migrations/20261009100000_extra_admin.sql`):** Developer/Moderator med MFA legger seg selv til i en menighet med `add_self_as_admin` og fjerner seg med `remove_self_as_admin` (kortet «Ekstra Admin» øverst i Medlemmer). Rollen merkes `user_roles.extra_admin`. Den unike regelen «én Admin per menighet» gjelder bare den faste Admin, som er uendret. Ble man medlem ved tillegget (`extra_membership`), fjernes medlemskapet sammen med rollen. Fast Admin varsles, og alt loggføres (`roles.extra_admin_add/remove`). En ekstra Admin kan fjernes uten CH003.
   - **Filer:** begge rollene ser filer bare i menigheter der de selv er medlem (A1/A2). Moderator ser bare metadata for Samarbeidsfiler.
   - **Grensesnittet:** `staff`, `dev` og `collab` i `connecthub-admin/AdminPage.jsx`, og `SECTIONS` i `access.js`.
 - Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`), og aldri for Moderator. Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
@@ -126,7 +127,7 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Innsending:** `submit_feedback` for alle aktive innloggede, høyst 20 per døgn.
   - **Innboks (bare Moderator og Developer med MFA):** `feedback_list`, `feedback_events_for`, `set_feedback_status` (avvist krever begrunnelse) og `add_feedback_note`. Ingen direkte tabelltilgang (RLS uten policyer).
   - **Rensing:** hemmeligheter (og e-post/telefon i brukertekst) fjernes i databasen (`app.feedback_scrub_*`) og i nettleseren (`src/shared/feedback-core.js`).
-  - **Admin-siden «Tilbakemeldinger»** (`connecthub-admin/feedback.jsx`) har filtre, saksdetaljer, status og notater, «Kopier sak til Claude» og «Kopier alle saker til Claude» (alle viste etter filter, eller avhukede). Store eksporter deles i deler.
+  - **Admin-siden «Tilbakemeldinger»** (`connecthub-admin/feedback.jsx`) har filtre, saksdetaljer, status og notater, «Kopier sak» og «Kopier alle saker» (alle viste etter filter, eller avhukede). Store eksporter deles i deler.
   - **Kopiformatet** (`formatCase`/`formatCases`) skiller brukerens opplysninger, automatisk kontekst og interne notater, og tar aldri med avsenderens navn eller e-post.
   - Tester: `feedback-core.test.js`, `contract.test.js` og RLS-blokken «Tilbakemeldinger».
 - Ytelse:

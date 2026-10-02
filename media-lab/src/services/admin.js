@@ -44,7 +44,11 @@ export const admin = {
 
   /* Oversikter for admin-grensesnittet (RLS avgjør hva som returneres). */
   allMemberships: () => data().select('memberships', { columns: 'user_id, church_id, status, created_at, updated_at' }),
-  allRoles: () => data().select('user_roles', { columns: 'id, user_id, role, church_id, assigned_at', isNull: ['revoked_at'] }),
+  allRoles: () => data().select('user_roles', { columns: 'id, user_id, role, church_id, assigned_at, extra_admin', isNull: ['revoked_at'] }),
+  /* Developer/Moderator (med MFA) legger seg selv til som EKSTRA Admin i en menighet – i tillegg til menighetens faste
+     Admin, som er uendret. Er man ikke medlem, legges medlemskapet til og fjernes igjen sammen med rollen. */
+  addSelfAsAdmin: churchId => data().rpc('add_self_as_admin', { p_church: churchId }),
+  removeSelfAsAdmin: churchId => data().rpc('remove_self_as_admin', { p_church: churchId }),
   /* Stab legger til (eller aktiverer igjen) et medlemskap. Én menighet om gangen for User/Admin håndheves i databasen. */
   addMembership: (userId, churchId) => data().rpc('add_membership', { p_user: userId, p_church: churchId }),
   /* Fjerner en bruker fra en menighet (status «fjernet», historikken beholdes). Er brukeren Admin der, må allowNoAdmin

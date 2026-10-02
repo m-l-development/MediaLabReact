@@ -1290,7 +1290,7 @@ select ch_test.cnt('Sletting av kobling: Developer sletter en avsluttet kobling 
 set local role postgres;
 select ch_test.cnt('Sletting av kobling: koblingen og kopien er borte, originalen er urørt', $q$select 1 from public.church_links where id = (select id from ch_test.dl) union all select 1 from public.files where file_name = 'kopi-m1m2.png' union all select 1 from public.files where file_name = 'm1-delt.png'$q$, 1);
 select ch_test.cnt('Sletting av kobling: kopien står i køen for lagringen', $q$select 1 from public.file_cleanup_queue where file_name = 'kopi-m1m2.png' and status = 'pending'$q$, 1);
-select ch_test.cnt('Sletting av kobling: loggført', $q$select 1 from public.audit_logs where action = 'groups.delete' and (meta ->> 'copies')::int = 1 and jsonb_array_length(meta -> 'members') = 2$q$, 1);
+select ch_test.cnt('Sletting av kobling: loggført', $q$select 1 from public.audit_logs where action = 'groups.delete' and target_id = (select id::text from ch_test.dl) and (meta ->> 'copies')::int = 1 and jsonb_array_length(meta -> 'members') = 2$q$, 1);
 
 -- ---------- Samarbeidsgrupper med tre eller flere menigheter ----------
 -- Egne fixturer: G1 (61 Admin, 62 medlem), G2 (63 Admin, 64 medlem), G3 (65 Admin, 66 medlem), G4 (67 Admin, utenfor
@@ -1545,6 +1545,54 @@ select ch_test.cnt('Livsløp i gruppe: slettingen er loggført med avsluttede gr
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
 select ch_test.cnt('Livsløp i gruppe: G2 ser fortsatt G1 sin kopi i Y', $q$select 1 from public.files where folder = 'samarbeid' and church_id = '61616161-0000-4000-8000-000000000061'$q$, 1);
+set local role postgres;
+
+-- ---------- Ekstra Admin: Developer og Moderator legger seg selv til / fjerner seg selv ----------
+-- Bruker N1 (41 = fast Admin, 42 = medlem) fra navneblokken. Developer (sub-1) og Moderator (sub-2) er ikke medlemmer i N1.
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.err('Ekstra Admin: Admin kan ikke bruke funksjonen', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.err('Ekstra Admin: medlem kan ikke bruke funksjonen', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Ekstra Admin: Moderator uten MFA avvises', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Ekstra Admin: Developer uten MFA avvises', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Ekstra Admin: ukjent menighet avvises', $q$select public.add_self_as_admin(gen_random_uuid())$q$, '22023');
+select ch_test.cnt('Ekstra Admin: Developer legger seg til i N1 (medlemskap legges til)', $q$select 1 where (public.add_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'membership_added')::boolean$q$, 1);
+select ch_test.cnt('Ekstra Admin: to ganger er ufarlig (allerede Admin)', $q$select 1 where (public.add_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'already')::boolean$q$, 1);
+select ch_test.cnt('Ekstra Admin: Developer er Admin i N1', $q$select 1 where app.is_church_admin('41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.ok('Ekstra Admin: Developer kan vedlikeholde Faste i N1', $q$select public.can_upload('41414141-0000-4000-8000-000000000041', 'faste', false, 10)$q$);
+select ch_test.err('Ekstra Admin: en ny FAST Admin kan fortsatt ikke legges til (én fast Admin)', $q$select public.assign_role('00000000-0000-4000-8000-000000000042', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, '23505');
+select ch_test.err('Ekstra Admin: ingen kan endre egne roller via assign_role', $q$select public.assign_role('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Ekstra Admin: Moderator legger seg også til', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$);
+set local role postgres;
+select ch_test.cnt('Ekstra Admin: den faste Admin er uendret, og to ekstra Admin er lagt til', $q$select 1 from public.user_roles where church_id = '41414141-0000-4000-8000-000000000041' and role = 'church_admin' and revoked_at is null and ((user_id = '00000000-0000-4000-8000-000000000041' and not extra_admin) or (user_id in ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002') and extra_admin and extra_membership))$q$, 3);
+select ch_test.cnt('Ekstra Admin: den faste Admin fikk varsel om begge', $q$select 1 from public.notifications where user_id = '00000000-0000-4000-8000-000000000041' and title = 'Ekstra Admin i menigheten'$q$, 2);
+select ch_test.cnt('Ekstra Admin: loggført', $q$select 1 from public.audit_logs where action = 'roles.extra_admin_add' and church_id = '41414141-0000-4000-8000-000000000041'$q$, 2);
+select ch_test.err('Ekstra Admin: kan ikke settes på andre roller enn Admin', $q$update public.user_roles set extra_admin = true where role = 'developer' and user_id = '00000000-0000-4000-8000-000000000001'$q$, '23514');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.cnt('Ekstra Admin: fast Admin ser de ekstra Admin-rollene', $q$select 1 from public.user_roles where church_id = '41414141-0000-4000-8000-000000000041' and extra_admin and revoked_at is null$q$, 2);
+select ch_test.err('Ekstra Admin: fast Admin kan ikke fjerne seg selv med funksjonen', $q$select public.remove_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '22023');
+select ch_test.err('Ekstra Admin: fast Admin kan ikke fjerne en ekstra Admin (bare stab)', $q$select public.remove_membership('00000000-0000-4000-8000-000000000002', '41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Ekstra Admin: stab fjerner en ekstra Admin uten «stå uten Admin»-bekreftelse', $q$select 1 where not (public.remove_membership('00000000-0000-4000-8000-000000000002', '41414141-0000-4000-8000-000000000041') ->> 'church_without_admin')::boolean$q$, 1);
+select ch_test.err('Ekstra Admin: den faste Admin krever fortsatt bekreftelsen (CH003)', $q$select public.remove_membership('00000000-0000-4000-8000-000000000041', '41414141-0000-4000-8000-000000000041')$q$, 'CH003');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.cnt('Ekstra Admin: Developer fjerner seg selv (også uten MFA), medlemskapet som kom med rollen fjernes', $q$select 1 where (public.remove_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'membership_removed')::boolean$q$, 1);
+select ch_test.err('Ekstra Admin: kan ikke fjernes to ganger', $q$select public.remove_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '22023');
+set local role postgres;
+select ch_test.cnt('Ekstra Admin: bare den faste Admin er igjen, og Developer er ikke lenger aktivt medlem', $q$select 1 from public.user_roles where church_id = '41414141-0000-4000-8000-000000000041' and role = 'church_admin' and revoked_at is null and user_id = '00000000-0000-4000-8000-000000000041' and not extra_admin union all select 1 from public.memberships where user_id = '00000000-0000-4000-8000-000000000001' and church_id = '41414141-0000-4000-8000-000000000041' and status = 'active'$q$, 1);
+select ch_test.cnt('Ekstra Admin: fjerningen er loggført', $q$select 1 from public.audit_logs where action = 'roles.extra_admin_remove' and church_id = '41414141-0000-4000-8000-000000000041'$q$, 1);
+-- Developer som allerede er medlem (B): medlemskapet beholdes når den ekstra Admin-rollen fjernes
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Ekstra Admin: Developer som allerede er medlem av B får ingen nytt medlemskap', $q$select 1 where not (public.add_self_as_admin('bbbbbbbb-0000-4000-8000-00000000000b') ->> 'membership_added')::boolean$q$, 1);
+select ch_test.cnt('Ekstra Admin: fjerning i B melder at medlemskapet beholdes', $q$select 1 where not (public.remove_self_as_admin('bbbbbbbb-0000-4000-8000-00000000000b') ->> 'membership_removed')::boolean$q$, 1);
+select ch_test.cnt('Ekstra Admin: Developer er fortsatt medlem av B, men ikke Admin', $q$select 1 where app.is_member('bbbbbbbb-0000-4000-8000-00000000000b') and not app.is_church_admin('bbbbbbbb-0000-4000-8000-00000000000b')$q$, 1);
 set local role postgres;
 
 -- ---------- Logging ----------
