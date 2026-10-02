@@ -9,6 +9,7 @@ const ERR = {
   video_not_allowed: 'Video kan aldri lastes opp. Videoer skal ligge i prosjektmappen på PC-en.', type_not_allowed: 'Bare bilder (PNG, JPG, WebP eller GIF) kan lastes opp.',
   storage_full: 'Lagringsplassen i ConnectHub er full. Kontakt Developer.',
   already_member_elsewhere: 'Brukeren er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen – fjern brukeren fra den andre menigheten først.',
+  link_exists: 'Det finnes allerede en aktiv kobling mellom disse menighetene. Avslutt den før du gjenåpner en eldre kobling.',
   last_admin: 'Brukeren er Admin i menigheten. Bekreft at menigheten kan stå uten Admin, eller utnevn en ny Admin først.',
   too_large: 'Filen er for stor (maks 4 MB).', http_413: 'Filen er for stor (maks 4 MB).',
 };

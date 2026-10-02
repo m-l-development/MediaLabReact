@@ -88,6 +88,14 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Overbooking er tillatt:** summen av kvotene kan være større enn grensen.
   - **Developer med MFA:** `storage_overview` og `set_storage_limit` (loggført `storage.limit`), kortet «Samlet lagringsplass» under Abonnement. Varsel (`storage`) ved 80 % og 90 %.
   - **Medlemmer:** `storage_usage.system_free_bytes`. Måleren viser det minste av ledig kvote og ledig samlet plass.
+- Medlemskap (fra `supabase/migrations/20261005100000_single_church.sql` og `…100100_removed_member_files.sql`, bare i dev så langt):
+  - **Én menighet om gangen:** User og Admin kan ha høyst ett aktivt medlemskap. Developer og Moderator er unntatt.
+  - **Håndheving:** triggeren `memberships_single_church` (lås per bruker, SQLSTATE `CH001`), så alle veier stoppes. `create_invitation` og `accept_invitation` gir `already_member_elsewhere`.
+  - **Status:** `active`, `disabled` (midlertidig) og `removed` (fjernet; raden og loggen beholdes).
+  - **Fjerning:** bare via `remove_membership`. Stab kan fjerne alle. Admin kan fjerne andre medlemmer i egen menighet. Ingen kan fjerne seg selv. Fjerning av Admin krever `p_allow_no_admin` (ellers `CH003`), og Admin-rollen fjernes da også.
+  - **Etter fjerning:** ingen tilgang til menighetens filer, heller ikke egne private filer der (`app.removed_from`).
+  - **Legge til / gjenopprette:** stab bruker `add_membership`, og dette gjenoppretter også fjernede eller deaktiverte rader.
+  - **Grensesnitt:** `connecthub-admin/members.js` (regler, tekster med `{plassholdere}`, bekreftelser), brukerskuffen («Oversikt», «Menighet og medlemskap») og `MembersView`.
 - Roller (fra `supabase/migrations/20261004100000_moderator_access.sql`, bare i dev så langt). Rettighetene er eksplisitte, uten arv:
   - **Systemadministrasjon (`app.is_staff()` = Developer ELLER Moderator, begge med MFA):** brukere, menigheter, medlemskap, invitasjoner, logg, abonnement, kvoter, planer, samlet lagring, menighetens livsløp, systemstatus og tilbakemeldinger.
   - **Bare Developer (`app.is_developer()`):**

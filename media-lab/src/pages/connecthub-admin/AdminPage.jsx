@@ -7,7 +7,7 @@ import { isStaff, hasRole } from '../../services/data/me.js';
 import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor, brandOf } from './access.js';
-import { roleSummary, canJoinAnother, memberActions } from './members.js';
+import { roleSummary, canJoinAnother, memberActions, fill } from './members.js';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 import { FeedbackView } from './feedback.jsx';
 import { noteError } from '../../shared/feedback-errors.js';
@@ -351,7 +351,7 @@ function UserDetail({ id, onClose }) {
       {!dev && global.length > 0 ? <p className="ch-muted" data-ch-devonly>{T('Bare Developer kan deaktivere eller aktivere en Developer eller Moderator.')}</p> : <>
       <p className="ch-muted">{T(u.status === 'active' ? 'Deaktivering stenger brukeren ute med en gang, i alle menigheter. Ingenting slettes.' : 'Kontoen er deaktivert. Aktivering gir tilgang igjen.')}</p>
       <div className="ch-row">{u.status === 'active'
-        ? <Btn kind="danger" onClick={run(() => { if (!confirm(T('Deaktivere kontoen til') + ' ' + nm + '?\n\n' + T('Brukeren stenges ute med en gang, i alle menigheter. Ingenting slettes, og kontoen kan aktiveres igjen.'))) throw Object.assign(new Error(), { code: 'cancel' }); return admin.setUserStatus(u.id, 'disabled'); }, 'Kontoen er deaktivert. Brukeren mister tilgang med en gang.')}>{T('Deaktiver konto')}</Btn>
+        ? <Btn kind="danger" onClick={run(() => { if (!confirm(fill(T('Deaktivere kontoen til {name}?'), { name: nm }) + '\n\n' + T('Brukeren stenges ute med en gang, i alle menigheter. Ingenting slettes, og kontoen kan aktiveres igjen.'))) throw Object.assign(new Error(), { code: 'cancel' }); return admin.setUserStatus(u.id, 'disabled'); }, 'Kontoen er deaktivert. Brukeren mister tilgang med en gang.')}>{T('Deaktiver konto')}</Btn>
         : <Btn onClick={run(() => admin.setUserStatus(u.id, 'active'), 'Kontoen er aktivert.')}>{T('Aktiver konto')}</Btn>}</div></>}
     </Card>}
 

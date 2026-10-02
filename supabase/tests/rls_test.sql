@@ -962,6 +962,116 @@ set local connecthub.audit_purge_before to '2000-01-01';
 select ch_test.err('Logg: innstillingen kan ikke brukes til å slette nyere hendelser', 'delete from public.audit_logs', '42501');
 set local connecthub.audit_purge_before to '';
 
+-- ---------- Én menighet om gangen og fjerning av medlemskap (User/Admin) ----------
+-- Egne fixturer: menighetene M1/M2 og brukerne 21 (User i M1), 22 (Admin i M1), 23 (User i M2), 24 (uten menighet).
+set local role postgres;
+insert into public.churches (id, name) values ('31313131-0000-4000-8000-000000000031', 'Testmenighet M1'), ('32323232-0000-4000-8000-000000000032', 'Testmenighet M2');
+insert into public.app_users (id, email, full_name, status) values
+  ('00000000-0000-4000-8000-000000000021', 'm-user@test.invalid', 'M Bruker', 'active'),
+  ('00000000-0000-4000-8000-000000000022', 'm-admin@test.invalid', 'M Admin', 'active'),
+  ('00000000-0000-4000-8000-000000000023', 'm-other@test.invalid', 'M Annen', 'active'),
+  ('00000000-0000-4000-8000-000000000024', 'm-free@test.invalid', 'M Fri', 'active');
+insert into public.user_identities (provider, subject, user_id) values
+  ('https://test.invalid/auth/v1', 'sub-m21', '00000000-0000-4000-8000-000000000021'), ('https://test.invalid/auth/v1', 'sub-m22', '00000000-0000-4000-8000-000000000022'),
+  ('https://test.invalid/auth/v1', 'sub-m23', '00000000-0000-4000-8000-000000000023'), ('https://test.invalid/auth/v1', 'sub-m24', '00000000-0000-4000-8000-000000000024');
+insert into public.memberships (user_id, church_id) values
+  ('00000000-0000-4000-8000-000000000021', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000022', '31313131-0000-4000-8000-000000000031'),
+  ('00000000-0000-4000-8000-000000000023', '32323232-0000-4000-8000-000000000032');
+insert into public.user_roles (user_id, role, church_id) values ('00000000-0000-4000-8000-000000000022', 'church_admin', '31313131-0000-4000-8000-000000000031');
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size) values ('31313131-0000-4000-8000-000000000031', 'test/m1.png', 'm1.png', 'image/png', 10);
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, uploaded_by, folder, visibility) values
+  ('31313131-0000-4000-8000-000000000031', 'test/m1-privat.png', 'm1-privat.png', 'image/png', 10, '00000000-0000-4000-8000-000000000021', 'bilder', 'private'),
+  ('31313131-0000-4000-8000-000000000031', 'test/m1-delt.png', 'm1-delt.png', 'image/png', 10, '00000000-0000-4000-8000-000000000021', 'bilder', 'church');
+create table ch_test.m_files as select id, file_name from public.files where church_id = '31313131-0000-4000-8000-000000000031';
+grant select on ch_test.m_files to authenticated;
+
+-- Databasen (også eier/drift) og strukturen
+select ch_test.err('Én menighet: User kan ikke settes inn i en annen menighet (også direkte i databasen)', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032')$q$, 'CH001');
+select ch_test.err('Én menighet: Admin kan ikke settes inn i en annen menighet', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000022', '32323232-0000-4000-8000-000000000032')$q$, 'CH001');
+select ch_test.ok_rb('Én menighet: et deaktivert medlemskap i en annen menighet er lov', $q$insert into public.memberships (user_id, church_id, status) values ('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032', 'disabled')$q$);
+select ch_test.ok_rb('Én menighet: Developer kan være medlem av flere menigheter', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000001', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000001', '32323232-0000-4000-8000-000000000032') on conflict do nothing$q$);
+select ch_test.ok_rb('Én menighet: Moderator kan være medlem av flere menigheter', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000002', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000002', '32323232-0000-4000-8000-000000000032') on conflict do nothing$q$);
+select ch_test.cnt('Én menighet: triggeren tar en lås per bruker (samtidige forsøk køes)', $q$select 1 from pg_proc where proname = 'single_church_guard' and prosrc like '%pg_advisory_xact_lock%'$q$, 1);
+select ch_test.cnt('Én menighet: triggeren gjelder både innsetting og statusendring', $q$select 1 from pg_trigger where tgname = 'memberships_single_church' and tgrelid = 'public.memberships'::regclass$q$, 1);
+
+-- Stab (Developer med MFA)
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Én menighet: stab kan ikke legge en User til i en annen menighet', $q$select public.add_membership('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032')$q$, 'CH001');
+select ch_test.err('Én menighet: stab kan ikke legge en Admin til i en annen menighet', $q$select public.add_membership('00000000-0000-4000-8000-000000000022', '32323232-0000-4000-8000-000000000032')$q$, 'CH001');
+select ch_test.err('Én menighet: direkte innsetting via API stoppes', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032')$q$, 'CH001');
+select ch_test.ok_rb('Én menighet: stab kan legge til en bruker uten menighet', $q$select public.add_membership('00000000-0000-4000-8000-000000000024', '32323232-0000-4000-8000-000000000032')$q$);
+select ch_test.err('Invitasjon: avvist for en User som er medlem i en annen menighet', $q$select public.create_invitation('m-user@test.invalid', '32323232-0000-4000-8000-000000000032', 'user', repeat('7', 64))$q$, 'CH001');
+select ch_test.err('Invitasjon: avvist som Admin for en som er medlem i en annen menighet', $q$select public.create_invitation('m-admin@test.invalid', '32323232-0000-4000-8000-000000000032', 'church_admin', repeat('8', 64))$q$, 'CH001');
+
+-- Admin i M1
+set local role postgres;
+insert into public.memberships (user_id, church_id, status) values ('00000000-0000-4000-8000-000000000023', '31313131-0000-4000-8000-000000000031', 'disabled');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-m22","aal":"aal1"}';
+select ch_test.err('Én menighet: Admin kan ikke aktivere et medlem som er aktivt i en annen menighet', $q$update public.memberships set status = 'active' where user_id = '00000000-0000-4000-8000-000000000023' and church_id = '31313131-0000-4000-8000-000000000031'$q$, 'CH001');
+select ch_test.err('Invitasjon: Admin kan ikke invitere en som er medlem i en annen menighet', $q$select public.create_invitation('m-other@test.invalid', '31313131-0000-4000-8000-000000000031', 'user', repeat('9', 64))$q$, 'CH001');
+select ch_test.err('Én menighet: Admin kan ikke bruke add_membership', $q$select public.add_membership('00000000-0000-4000-8000-000000000024', '31313131-0000-4000-8000-000000000031')$q$, '42501');
+
+-- Samtidige invitasjoner til to menigheter: bare én kan godtas (serveren)
+set local role postgres;
+insert into public.invitations (email, church_id, role, token_hash, expires_at, created_by) values
+  ('m-free@test.invalid', '31313131-0000-4000-8000-000000000031', 'user', repeat('5', 64), now() + interval '1 day', '00000000-0000-4000-8000-000000000022'),
+  ('m-free@test.invalid', '32323232-0000-4000-8000-000000000032', 'user', repeat('6', 64), now() + interval '1 day', '00000000-0000-4000-8000-000000000001');
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.cnt('Samtidige invitasjoner: den første godtas', $q$select 1 where (public.accept_invitation(repeat('5', 64), 'https://test.invalid/auth/v1', 'sub-m24', 'm-free@test.invalid') ->> 'ok')::boolean$q$, 1);
+select ch_test.cnt('Samtidige invitasjoner: den andre avvises med tydelig feil', $q$select 1 where public.accept_invitation(repeat('6', 64), 'https://test.invalid/auth/v1', 'sub-m24', 'm-free@test.invalid') ->> 'error' = 'already_member_elsewhere'$q$, 1);
+set local role postgres;
+select ch_test.cnt('Samtidige invitasjoner: den andre står fortsatt som ventende', $q$select 1 from public.invitations where token_hash = repeat('6', 64) and status = 'pending'$q$, 1);
+select ch_test.cnt('Samtidige invitasjoner: brukeren har bare ett aktivt medlemskap', $q$select 1 from public.memberships where user_id = '00000000-0000-4000-8000-000000000024' and status = 'active'$q$, 1);
+
+-- Før fjerning: eieren ser sin private fil
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-m21","aal":"aal1"}';
+select ch_test.cnt('Fjerning (før): medlemmet ser egen privat fil og Delt mappe', $q$select 1 from public.files where church_id = '31313131-0000-4000-8000-000000000031'$q$, 3);
+
+-- Fjerning: Admin i M1
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-m22","aal":"aal1"}';
+select ch_test.err('Fjerning: Admin kan ikke fjerne seg selv', $q$select public.remove_membership('00000000-0000-4000-8000-000000000022', '31313131-0000-4000-8000-000000000031')$q$, '42501');
+select ch_test.err('Fjerning: Admin kan ikke fjerne medlemmer i en annen menighet', $q$select public.remove_membership('00000000-0000-4000-8000-000000000023', '32323232-0000-4000-8000-000000000032')$q$, '42501');
+select ch_test.ok('Fjerning: Admin fjerner et medlem i egen menighet', $q$select public.remove_membership('00000000-0000-4000-8000-000000000021', '31313131-0000-4000-8000-000000000031', 'test')$q$);
+select ch_test.cnt('Fjerning: raden beholdes med status «fjernet»', $q$select 1 from public.memberships where user_id = '00000000-0000-4000-8000-000000000021' and church_id = '31313131-0000-4000-8000-000000000031' and status = 'removed'$q$, 1);
+select ch_test.atleast('Fjerning: handlingen er loggført', $q$select 1 from public.audit_logs where action = 'memberships.remove' and church_id = '31313131-0000-4000-8000-000000000031'$q$, 1);
+select ch_test.rows('Fjerning: et fjernet medlemskap kan ikke aktiveres direkte', $q$update public.memberships set status = 'active' where user_id = '00000000-0000-4000-8000-000000000021' and church_id = '31313131-0000-4000-8000-000000000031'$q$, 0);
+select ch_test.err('Fjerning: Admin kan ikke sette «fjernet» direkte (bare via funksjonen)', $q$update public.memberships set status = 'removed' where user_id = '00000000-0000-4000-8000-000000000024' and church_id = '31313131-0000-4000-8000-000000000031'$q$, '42501');
+
+-- Tidligere medlem mister tilgangen
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-m21","aal":"aal1"}';
+select ch_test.cnt('Fjerning: tidligere medlem ser ikke menigheten', $q$select 1 from public.churches where id = '31313131-0000-4000-8000-000000000031'$q$, 0);
+select ch_test.cnt('Fjerning: tidligere medlem ser ikke menighetens filer', $q$select 1 from public.files where church_id = '31313131-0000-4000-8000-000000000031'$q$, 0);
+select ch_test.cnt('Fjerning: whoami viser ingen menighet (kontoen finnes fortsatt)', $q$select 1 where jsonb_array_length(public.whoami() -> 'churches') = 0 and public.whoami() ->> 'id' = '00000000-0000-4000-8000-000000000021'$q$, 1);
+select ch_test.cnt('Fjerning: egen privat fil er skjult etter fjerning', $q$select 1 from public.files where file_name = 'm1-privat.png'$q$, 0);
+select ch_test.cnt('Fjerning: får ingen nedlastingsnøkler til egne filer i menigheten', $q$select 1 from public.file_keys(array(select id from ch_test.m_files))$q$, 0);
+select ch_test.err('Fjerning: kan ikke slette egen privat fil etter fjerning', $q$select public.delete_file((select id from ch_test.m_files where file_name = 'm1-privat.png'))$q$, '42501');
+select ch_test.err('Fjerning: kan ikke slette eget bilde i Delt mappe etter fjerning', $q$select public.delete_file((select id from ch_test.m_files where file_name = 'm1-delt.png'))$q$, '42501');
+select ch_test.err('Fjerning: vanlig bruker kan ikke fjerne andre', $q$select public.remove_membership('00000000-0000-4000-8000-000000000024', '31313131-0000-4000-8000-000000000031')$q$, '42501');
+
+-- Admin fjernes: bare stab, og bare med bekreftelse om at menigheten står uten Admin
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Fjerning: Moderator uten MFA kan ikke fjerne', $q$select public.remove_membership('00000000-0000-4000-8000-000000000024', '31313131-0000-4000-8000-000000000031')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Fjerning av Admin: stoppes uten bekreftelse (menigheten ville stått uten Admin)', $q$select public.remove_membership('00000000-0000-4000-8000-000000000022', '31313131-0000-4000-8000-000000000031')$q$, 'CH003');
+select ch_test.cnt('Fjerning av Admin: med bekreftelse fjernes medlemskapet og Admin-rollen', $q$select 1 where (public.remove_membership('00000000-0000-4000-8000-000000000022', '31313131-0000-4000-8000-000000000031', 'test', true) ->> 'admin_role_revoked')::boolean$q$, 1);
+select ch_test.cnt('Fjerning av Admin: menigheten har ingen aktiv Admin', $q$select 1 from public.user_roles where church_id = '31313131-0000-4000-8000-000000000031' and role = 'church_admin' and revoked_at is null$q$, 0);
+select ch_test.err('Fjerning: Moderator kan ikke fjerne seg selv', $q$select public.remove_membership('00000000-0000-4000-8000-000000000002', '31313131-0000-4000-8000-000000000031')$q$, '42501');
+select ch_test.cnt('Fjerning av Admin: stab kan fortsatt administrere menigheten', $q$select 1 from public.memberships where church_id = '31313131-0000-4000-8000-000000000031'$q$, 4);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-m22","aal":"aal1"}';
+select ch_test.cnt('Fjerning av Admin: tidligere Admin har ikke lenger Admin-tilgang', $q$select 1 where app.is_church_admin('31313131-0000-4000-8000-000000000031')$q$, 0);
+select ch_test.rows('Fjerning av Admin: tidligere Admin kan ikke endre medlemskap', $q$update public.memberships set status = 'disabled' where church_id = '31313131-0000-4000-8000-000000000031'$q$, 0);
+
+-- Etter fjerning kan brukeren bli medlem et annet sted
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Fjerning: etter fjerning kan brukeren legges til i en annen menighet', $q$select public.add_membership('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032')$q$);
+select ch_test.ok('Fjerning: Developer kan fjerne et medlem', $q$select public.remove_membership('00000000-0000-4000-8000-000000000021', '32323232-0000-4000-8000-000000000032', 'test')$q$);
+select ch_test.ok('Fjerning: fjernet medlem kan legges til igjen av stab (raden gjenbrukes)', $q$select public.add_membership('00000000-0000-4000-8000-000000000021', '31313131-0000-4000-8000-000000000031')$q$);
+select ch_test.cnt('Fjerning: igjen aktiv i M1, fjernet i M2', $q$select 1 from public.memberships where user_id = '00000000-0000-4000-8000-000000000021' and ((church_id = '31313131-0000-4000-8000-000000000031' and status = 'active') or (church_id = '32323232-0000-4000-8000-000000000032' and status = 'removed'))$q$, 2);
+set local role postgres;
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);

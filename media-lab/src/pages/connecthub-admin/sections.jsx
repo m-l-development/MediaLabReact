@@ -359,8 +359,16 @@ export function LinksView() {
   const cur = s.list.find(l => l.id === s.sel);
   const cname = id => cur && id === cur.church_a ? cur.church_a_name : cur && id === cur.church_b ? cur.church_b_name : (s.dir.find(d => d.id === id) || {}).name || T('Menighet');
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await load(); });
+  /* Finnes det allerede en kobling for paret? (aktiv: ingen ny; avsluttet: gjenåpne den i stedet for å lage en ny) */
+  const pairLink = (x, y) => x && y ? s.list.filter(l => (l.church_a === x && l.church_b === y) || (l.church_a === y && l.church_b === x))
+    .sort((p, q) => (p.status === 'active' ? -1 : 0) - (q.status === 'active' ? -1 : 0))[0] || null : null;
+  const existing = pairLink(s.a, s.b);
+  const reopen = l => run(async () => {
+    try { await LK.reopen(l.id); } catch (e) { if (e && e.code === 'conflict') throw Object.assign(new Error(), { code: 'link_exists' }); throw e; }
+  }, 'Koblingen er gjenåpnet. Filene er synlige igjen.');
   const create = act(async e => {
     e.preventDefault();
+    if (existing) return;
     const id = await LK.create(s.a, s.b); setS(p => ({ ...p, a: '', b: '' }));
     say(T('Koblingen er opprettet. Admin i begge menighetene er varslet.')); await load(id);
   });
@@ -374,16 +382,20 @@ export function LinksView() {
           <option value="">{T('Velg menighet …')}</option>{s.dir.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
         <Field label="Menighet 2"><select className="ch-select" value={s.b} onChange={e => { const v = e.target.value; setS(p => ({ ...p, b: v })); }} required>
           <option value="">{T('Velg menighet …')}</option>{s.dir.filter(d => d.id !== s.a).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>
-        <div className="ch-row"><Btn kind="primary" disabled={!s.a || !s.b || s.a === s.b} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett kobling')}</Btn></div>
+        {existing && existing.status === 'active' && <p className="ch-note" data-ch-linkexists>{T('Disse menighetene er allerede koblet sammen.')}</p>}
+        {existing && existing.status !== 'active' && <p className="ch-note" data-ch-linkexists>{T('Det finnes en avsluttet kobling mellom disse menighetene. Gjenåpne den, så kommer de tidligere Samarbeidsfilene tilbake.')}</p>}
+        <div className="ch-row">{existing && existing.status !== 'active'
+          ? <Btn kind="primary" onClick={reopen(existing)}>{T('Gjenåpne koblingen')}</Btn>
+          : <Btn kind="primary" disabled={!s.a || !s.b || s.a === s.b || !!existing} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Opprett kobling')}</Btn>}</div>
       </form>
     </Card>
     <Card title="Koblinger" sub={active.length + ' ' + T('aktive')}>
-      <List cols="minmax(160px,1fr) auto auto" empty={s.loading ? 'Laster …' : 'Ingen koblinger ennå.'} onRow={r => act(() => load(r.key))()} rows={s.list.map(l => ({ key: l.id, cells: [
-        <div><b>{linkName(l)}</b><div className="ch-muted">{l.status === 'active' ? T('Opprettet') + ' ' + fmtDate(l.created_at) : T('Avsluttet') + ' ' + fmtDate(l.ended_at)}</div></div>,
-        <span className="ch-row">{l.status === 'active' ? <Badge tone="ok">{T('Aktiv')}</Badge> : <Badge>{T('Avsluttet')}</Badge>}{l.id === s.sel && <Badge>{T('Valgt')}</Badge>}</span>,
+      <List cols="minmax(0,1fr) auto" empty={s.loading ? 'Laster …' : 'Ingen koblinger ennå.'} onRow={r => act(() => load(r.key))()} rows={s.list.map(l => ({ key: l.id, cells: [
+        <div><b>{linkName(l)}</b><div className="ch-muted">{l.status === 'active' ? T('Opprettet') + ' ' + fmtDate(l.created_at) : T('Avsluttet') + ' ' + fmtDate(l.ended_at)}</div>
+          <span className="ch-row">{l.status === 'active' ? <Badge tone="ok">{T('Aktiv')}</Badge> : <Badge>{T('Avsluttet')}</Badge>}{l.id === s.sel && <Badge>{T('Valgt')}</Badge>}</span></div>,
         <div className="ch-end">{l.status === 'active'
           ? <Btn small kind="danger" onClick={end(l)}>{T('Avslutt')}</Btn>
-          : <Btn small onClick={run(() => LK.reopen(l.id), 'Koblingen er gjenåpnet. Filene er synlige igjen.')}>{T('Gjenåpne')}</Btn>}</div>] }))} />
+          : <Btn small onClick={reopen(l)}>{T('Gjenåpne')}</Btn>}</div>] }))} />
     </Card>
     {cur && <Card title={linkName(cur)} sub={s.meta.length}>
       <p className="ch-muted">{T('Filene i koblingens Samarbeidsfiler. Som Moderator ser du bare filnavn og opplysninger – ikke innholdet – og du kan ikke laste ned eller slette.')}</p>

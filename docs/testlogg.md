@@ -703,3 +703,40 @@ Etter publisering:
 | User | Oversikt, Menigheter, Filer. `#/brukere` og `#/abonnement` → «Ingen tilgang». `system_status` og å gi seg selv Moderator → 403. Ser bare Menighet B, og filene i A → `[]`. |
 
 **Merk:** brukerens egen Developer-konto slettet skjermbildet i menighet «12» i dev (`files.delete`, 2026-10-02 11:32 UTC) og endret kvoten der. Det skjedde under dette arbeidet, men ble ikke gjort av migreringen eller testene.
+
+## Én menighet om gangen, fjerning av medlemskap og samarbeid (2026-10-02, connecthub-dev)
+
+**Migreringer (dev):**
+- **`20261005100000_single_church.sql`:**
+  - Ny status `removed` på medlemskap.
+  - Triggeren `memberships_single_church` (lås per bruker, SQLSTATE `CH001`).
+  - Policyen `memberships_update` endrer bare mellom `active` og `disabled`.
+  - `add_membership`, `remove_membership` (`CH003` når menigheten ville stått uten Admin) og `memberships.remove` i loggen.
+  - `create_invitation` og `accept_invitation` gir `already_member_elsewhere`.
+- **`20261005100100_removed_member_files.sql`:** etter fjerning ser eller sletter eieren ikke lenger egne filer i den menigheten (`app.can_see_file`, `delete_file`).
+- Begge er tørrkjørt (bare én fil hver gang), og alle 14 kontrollfelt er like før og etter.
+
+**Eksisterende medlemskap:** ingen konflikter, ingen bruker uten global rolle er aktiv i mer enn én menighet.
+- `ch-test-user2` er aktiv i «12» (som Admin) og har et deaktivert medlemskap i B. Det er lov, men B kan ikke aktiveres igjen så lenge «12» er aktiv.
+- Produksjonen har én bruker (Developer) og er ikke lest.
+
+**RLS:** 510/510 i PGlite og i dev, hvorav 48 nye: User og Admin i en annen menighet (direkte i databasen, via API, `add_membership`, invitasjon, godkjenning, ny aktivering av deaktivert medlemskap), Developer og Moderator unntatt, samtidige invitasjoner (bare én godtas, den andre står fortsatt som ventende), fjerning av Admin og vanlig medlem, rettigheter, logg, at fjernet medlemskap ikke kan aktiveres direkte, tilgang etter fjerning (menighet, filer, egne filer, nedlastingsnøkler, sletting, whoami), og at medlemskapet kan legges til igjen.
+
+**Samtidighet (ekte, to databaseøkter mot dev):** økt 1 la `ch-test-reg…` inn i B og holdt transaksjonen åpen i 5 s. Økt 2 prøvde å aktivere A og ventet 3,9 s på låsen. Deretter: «AVVIST CH001». Testbrukeren er satt tilbake: aktiv i A, med en ny rad «fjernet» i B.
+
+**`npm test`:** 116/116 (`members.test.js`: 4 nye).
+
+**Nettleser (lokal preview mot dev):**
+
+| Rolle | Resultat |
+|---|---|
+| Admin (A) | Brukerskuffen viser Bruker, Konto, Rolle og Menighet. Handlinger: «Deaktiver midlertidig» og «Fjern fra menigheten». Avbryt i bekreftelsen endrer ingenting. Invitasjon av en som er medlem i en annen menighet → 409 `already_member_elsewhere`, og skjemaet viser forklaringen. Fjerning bekreftet: «User Test er fjernet fra CH-test Menighet A. Brukeren har nå ingen aktiv menighet.» Etterpå vises «Ingen aktiv menighet» og «Tidligere medlem av: CH-test Menighet A». |
+| User (fjernet) | `CH.me.churches` = []. Oversikten: «Du er ikke medlem av noen menighet ennå». Menighet A og filene der → [] (også egen private fil, etter tilleggsmigreringen). Opplasting → 403. |
+| Moderator | Brukerlisten viser «Ingen aktiv menighet». Brukeren ble lagt tilbake i A, med melding. `add_membership` til B → `CH001`. Admin-kontoen viser «Fjern admin-rollen», «Deaktiver midlertidig» og «Fjern fra menigheten». Bekreftelsen varsler at menigheten står uten Admin, og avbryt endrer ingenting. Medlemslisten har filteret «Fjernet (tidligere medlemmer)». |
+| Developer | Samme brukerskuff, med «Gjør til admin» i tillegg. Samarbeid er fortsatt «Ingen tilgang» (uendret). |
+
+**Samarbeid:** feilen er gjenskapt og rettet i grensesnittet.
+- Knappene ble kuttet i Koblinger-kortet. Nå er alle innenfor.
+- Man kunne opprette en ny kobling for et par med en avsluttet kobling, og «Gjenåpne» på den gamle ga en misvisende feil. Nå tilbys «Gjenåpne koblingen», og konflikten gir en presis melding.
+- Under feilsøkingen ble det opprettet én ekstra kobling A–B. Den er avsluttet igjen.
+- **Gjenstår (beslutning):** Developer har ikke tilgang til Samarbeid.
