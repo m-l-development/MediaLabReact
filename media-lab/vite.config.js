@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { resolveSupabaseEnv, scanText, SCAN_EXT, REFS, DEV_SITE } from './build/env-guard.js';
+import { readVercel, cspByHost, localCsp } from './build/csp.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,8 +41,10 @@ const connecthubEnv = () => {
 };
 const PUBLIC = path.join(ROOT, 'public');
 const PAGES = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
-/* samme CSP lokalt som på Vercel (uten upgrade-insecure-requests, som krever https), så det som ville blitt blokkert, vises med en gang */
-const CSP = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')).headers.flatMap(h => h.headers).find(h => h.key === 'Content-Security-Policy').value.replace(/;\s*upgrade-insecure-requests/, ''); } catch { return ''; } })();
+/* samme CSP lokalt som på Vercel for alle verter utenom produksjonsadressen (build/csp.js; uten upgrade-insecure-requests, som
+   krever https), så det som ville blitt blokkert, vises med en gang */
+const CSPS = (() => { try { return cspByHost(readVercel(ROOT)); } catch { return null; } })();
+const CSP = CSPS ? localCsp(CSPS.other) : '';
 const csp = () => {
   const add = s => { s.middlewares.use((req, res, next) => { if (CSP) res.setHeader('Content-Security-Policy', CSP); next(); }); };
   return { name: 'media-lab-csp', configureServer: add, configurePreviewServer: add };
@@ -133,12 +136,12 @@ const vendorAssets = () => {
     async closeBundle() {
       if (!fs.existsSync(path.join(ROOT, 'dist'))) return;
       const V = await import('./build/vendor.js'); V.writeOut(await load(), path.join(ROOT, 'dist'));
-      const csp = CSP, missing = [];
+      const csps = CSPS ? [CSPS.production, CSPS.other] : [''], missing = [];
       for (const f of fs.readdirSync(path.join(ROOT, 'dist')).filter(f => f.endsWith('.html'))) {
         const h = fs.readFileSync(path.join(ROOT, 'dist', f), 'utf8');
         for (const m of h.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
           const k = "'sha256-" + crypto.createHash('sha256').update(m[1]).digest('base64') + "'";
-          if (!csp.includes(k)) missing.push(f + ': ' + k);
+          if (!csps.every(c => c.includes(k))) missing.push(f + ': ' + k);
         }
       }
       if (missing.length) throw new Error('ConnectHub: inline-skript mangler i CSP (vercel.json script-src):\n  ' + missing.join('\n  '));

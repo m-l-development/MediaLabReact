@@ -26,3 +26,32 @@ enable_signup = true
 enable_confirmations = true
 double_confirm_changes = true
 secure_password_change = true
+
+# Norske e-postmaler (HTML i supabase/templates/, lenkene bruker fortsatt {{ .ConfirmationURL }}, så innloggingsflyten er uendret).
+# AV for connecthub-dev: Supabase avviser malendringer på gratisplanen når prosjektet bruker Supabase sin egen e-posttjeneste
+# («Email template modification is not available for free tier projects using the default email provider», testet 2026-10-02).
+# Slås på her når dev får egen SMTP. Produksjonen (Gmail-SMTP) får malene i et eget, godkjent steg – se docs/testlogg.md
+# («Norske e-postmaler»); denne filen pushes aldri mot produksjon.
+# [auth.email.template.invite]
+# subject = "Du er invitert til ConnectHub"
+# content_path = "./supabase/templates/invite.html"
+
+# [auth.email.template.magic_link]
+# subject = "Logg inn i ConnectHub"
+# content_path = "./supabase/templates/magic_link.html"
+
+# [auth.email.template.recovery]
+# subject = "Velg nytt passord i ConnectHub"
+# content_path = "./supabase/templates/recovery.html"
+
+# [auth.email.template.confirmation]
+# subject = "Bekreft e-postadressen din i ConnectHub"
+# content_path = "./supabase/templates/confirmation.html"
+
+# [auth.email.template.email_change]
+# subject = "Bekreft ny e-postadresse i ConnectHub"
+# content_path = "./supabase/templates/email_change.html"
+
+# [auth.email.template.reauthentication]
+# subject = "Bekreftelseskode for ConnectHub"
+# content_path = "./supabase/templates/reauthentication.html"

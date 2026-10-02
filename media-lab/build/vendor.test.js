@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fontCss, PACKAGES, FONTS, verify } from './vendor.js';
+import { cspByHost } from './csp.js';
 
 const lock = JSON.parse(fs.readFileSync(new URL('./vendor-lock.json', import.meta.url), 'utf8'));
 const vercel = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
-const CSP = vercel.headers.flatMap(h => h.headers).find(h => h.key === 'Content-Security-Policy').value;
+const { production, other } = cspByHost(vercel), CSPS = [production, other];
 
 test('fontCss: beholder latin/latin-ext, gir vanlig familienavn og egne adresser', () => {
   const css = `/* x */\n@font-face {\n  font-family: 'Archivo Variable';\n  font-style: normal;\n  font-weight: 100 900;\n  src: url(./files/archivo-latin-wdth-normal.woff2) format('woff2-variations');\n  unicode-range: U+0000-00FF;\n}\n@font-face {\n  font-family: 'Archivo Variable';\n  src: url(./files/archivo-cyrillic-wdth-normal.woff2) format('woff2-variations');\n}`;
@@ -22,8 +23,10 @@ test('låsen dekker alle pakker og fonter, og alle verdier er SHA-384', () => {
 });
 
 test('CSP: ingen CDN for skript eller fonter, ingen unsafe-inline for skript, ingen unsafe-eval', () => {
+  for (const CSP of CSPS) {
   const dir = n => (CSP.split(';').map(s => s.trim()).find(s => s.startsWith(n + ' ')) || '');
   for (const d of ['script-src', 'worker-src', 'style-src', 'font-src', 'connect-src']) assert.doesNotMatch(dir(d), /jsdelivr|unpkg|googleapis|gstatic|projectnaptha/, d);
   assert.doesNotMatch(dir('script-src'), /'unsafe-inline'|'unsafe-eval'/);
   assert.match(dir('object-src'), /'none'/); assert.match(dir('frame-ancestors'), /'self'/);
+  }
 });

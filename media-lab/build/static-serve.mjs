@@ -6,10 +6,11 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { ruleApplies, localCsp } from './csp.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
 const DIST = path.join(ROOT, 'dist');
-const RULES = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')).headers.map(h => ({ re: new RegExp('^' + h.source + '$'), headers: h.headers }));
+const RULES = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')).headers.map(h => ({ re: new RegExp('^' + h.source + '$'), rule: h, headers: h.headers }));
 const TYPES = { html: 'text/html; charset=utf-8', js: 'text/javascript', mjs: 'text/javascript', css: 'text/css', json: 'application/json', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml', ico: 'image/x-icon', woff2: 'font/woff2', wasm: 'application/wasm', gz: 'application/gzip', webmanifest: 'application/manifest+json', txt: 'text/plain', md: 'text/plain' };
 
 export function serve(port = 4180) {
@@ -18,7 +19,8 @@ export function serve(port = 4180) {
     if (p.endsWith('/')) p += 'index.html';
     const file = path.normalize(path.join(DIST, p));
     if (!file.startsWith(DIST) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode = 404; return res.end('404'); }
-    for (const r of RULES) if (r.re.test(p)) for (const h of r.headers) res.setHeader(h.key, h.key === 'Content-Security-Policy' ? h.value.replace(/;\s*upgrade-insecure-requests/, '') : h.value);
+    const host = String(req.headers.host || '').replace(/:\d+$/, '');
+    for (const r of RULES) if (r.re.test(p) && ruleApplies(r.rule, host)) for (const h of r.headers) res.setHeader(h.key, h.key === 'Content-Security-Policy' ? localCsp(h.value) : h.value);
     res.setHeader('content-type', TYPES[p.split('.').pop()] || 'application/octet-stream');
     fs.createReadStream(file).pipe(res);
   }).listen(port);

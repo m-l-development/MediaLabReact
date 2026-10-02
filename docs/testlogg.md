@@ -583,3 +583,55 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 | Developer | «Trenger mer informasjon». Avvisning uten begrunnelse stoppes med melding. Avvisning med begrunnelse lagres med historikk. |
 
 **Testdata i dev:** 11 syntetiske tilbakemeldinger fra testkontoene.
+
+## Planverdier, CSP per miljø, e-postmaler og regresjon (2026-10-02, connecthub-dev)
+
+**Planverdier i dev:**
+- Standard er endret fra 1024 til 200 MB i nettleseren av den syntetiske Developer-kontoen med MFA (Abonnement → Endre). Endringen er loggført som `plans.update`.
+- Gratis var allerede 200 MB / 0 kr. Utvidet (5120 MB, opprettet av den første migreringen) er ikke rørt.
+- Øyeblikksbildet før og etter viser bare endringen i `plans`. Menighetenes kvoter er uendret.
+
+**Kvoten håndheves:**
+- Menighet A fikk midlertidig 1 MB egen kvote.
+- En liten opplasting (0,02 MB) ble godtatt.
+- En stor opplasting (2,8 MB) ble stoppet med «ch-test-reg-stor.png: Lagringskvoten er brukt opp.». Den samme opplastingen direkte mot serveren gir `413 quota_exceeded`.
+- Menighet A er satt tilbake til egen kvote 1024 MB, som var startverdien.
+
+**CSP per vert (`vercel.json` + `build/csp.js`):**
+- Produksjonsadressen får CSP uten `uatpdmhnwwjgzlxaucsx`. Alle andre verter får begge prosjektene. Nøyaktig én CSP per svar.
+- `build/csp.test.js` (3 tester), og lokalt med `static-serve`:
+  - produksjonsverten: uten dev-ref
+  - ConnectHub Dev-verten og localhost: med dev-ref
+- Bygget sjekker at alle inline-skript står i begge CSP-ene.
+
+**Norske e-postmaler (`supabase/templates/`):**
+- `config push` til dev ble avvist av Supabase: «Email template modification is not available for free tier projects using the default email provider». Ingenting ble endret, og `config diff` er som før.
+- Malene er derfor kommentert ut i `supabase/config.toml` til dev får egen SMTP. Produksjonen (Gmail-SMTP): se `docs/produksjonsplan-trinn8.md` §5.
+
+**Sikkerhetskopi og lekkede passord (bare lesing):**
+- `supabase backups list` for dev og produksjon: `backups: []` og `pitr_enabled: false`.
+- Beskyttelse mot lekkede passord krever Supabase Pro.
+
+**Vercel-variabler (bare navn, ingen verdier lest):**
+- Ubrukte variabler: 19 i Production (`VITE_SUPABASE_*` / `NEXT_PUBLIC_VITE_SUPABASE_*`) og 14 i Preview. Ingen er fjernet; listen står i produksjonsplanen §7.
+- Produksjonens offentlige filer er søkt gjennom uten funn av nøkler, JWT med service_role eller database-URL med passord.
+
+**Regresjon (lokal preview av arbeidskopien mot dev, syntetiske kontoer):**
+
+| Område | Resultat |
+|---|---|
+| Innlogging og MFA | User, User2 og Admin med passord. Developer og Moderator med TOTP gir `aal2`. |
+| Roller | User: Oversikt, Menigheter, Filer. Innboksen gir «Ingen tilgang», og invitasjon gir 403. Admin: uten Tilbakemeldinger. Developer: alt utenom Samarbeid. Moderator: Oversikt, Samarbeid, Tilbakemeldinger. Moderator får 403 på `set_church_quota` og `update_plan`. |
+| Filtilgang | User2 (Menighet B) leser Menighet A sine filer → `[]`. Opplasting til A → 403. `MLCloud.files` viser bare egen menighet. |
+| Invitasjon | Admin inviterer → e-post til testpostkassen. Invitasjon til annen menighet eller som Developer → 403. Lenken → «Invitasjonen er godtatt. Velg passord» → innlogget som medlem av Menighet A. Tokenet er fjernet fra fanen. Samme lenke på nytt → 400 (kan ikke brukes igjen). |
+| Gammel admin | `/admin.dc.html` og `/api/ml` → 404. |
+| Dev-merke | «UTVIKLING · connecthub-dev» vises. «Åpne ConnectHub Dev» vises ikke utenfor produksjon (som forventet). |
+| Tilbakemeldinger på mobil (390×844, berøring) | Ikonet er 30×30. Trykkflaten når 6 px ut til venstre og oppover. Mot kontoknappen deler de mellomrommet, og begge kan trykkes. Panelet åpnes med berøring, og innsending gir referanse. |
+| Automatiske tester | `npm test` 111/111. RLS mot dev 455/455. |
+
+**Testdata lagt til i dev:**
+- Filen `ch-test-reg-liten.png` (Delt mappe, Menighet A).
+- Den syntetiske brukeren `ch-test-reg…@example.com` (medlem av Menighet A).
+- 1 tilbakemelding, til sammen 12. Alle 12 er fra testkontoer, og 4 hendelser er knyttet til dem. Bare `feedback_events` peker på `feedback`, og loggradene (`feedback.*`) kan ikke slettes.
+
+Dine data (konto, menighet «12» og skjermbildet) er uendret.
