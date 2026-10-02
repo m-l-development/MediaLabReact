@@ -635,3 +635,41 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 - 1 tilbakemelding, til sammen 12. Alle 12 er fra testkontoer, og 4 hendelser er knyttet til dem. Bare `feedback_events` peker på `feedback`, og loggradene (`feedback.*`) kan ikke slettes.
 
 Dine data (konto, menighet «12» og skjermbildet) er uendret.
+
+## Produksjon: tilbakemeldingssystemet publisert (2026-10-02)
+
+**Databaseendringen:** `20261003100000_feedback.sql` ble kjørt av brukeren med `db push` (bare den, kontrollert med tørrkjøring). Kontroll etterpå, bare lesing:
+- 21/21 databaseendringer registrert.
+- Alle 14 kontrollfeltene er like før og etter.
+- Strukturen er identisk med dev: tabeller, kolonner, rettigheter, RLS-regler, 98 funksjoner og triggere.
+- `feedback` og `feedback_events` var tomme, med RLS og uten regler eller tabelltilgang for klienter.
+
+**Publiseringen:** `main` ble spolt fram til `4d878ac`:
+- gammel admin fjernet
+- «Åpne ConnectHub Dev»
+- tilbakemeldinger
+
+Ikke med: CSP, e-postmaler og `2e8f44c`.
+
+Før publisering ble `4d878ac` bygget lokalt som produksjonsbygg:
+- sikkerhetssøket hadde ingen funn
+- ingen dev-ID i bygget
+- 108/108 tester
+
+Etter publisering:
+- Vercel-bygget er grønt, og `version.json` = `4d878ac…`.
+- `/api/ml` → 404.
+- `/admin.dc.html` → 307 til innlogging uten økt (sperren gjør det samme for alle sider). Filen finnes ikke i bygget.
+
+**Test B (uten innlogging, offentlig nøkkel og falskt token):**
+- `feedback_list`, `feedback_events_for`, `set_feedback_status`, `add_feedback_note` og `submit_feedback`, kalt med ugyldige verdier → 401 `permission denied`.
+- Direkte lesing av `feedback` og `feedback_events` → 401.
+- Falskt token → 401 `PGRST301`.
+- ConnectHub Admin → 307 til innlogging.
+- Øyeblikksbildet før og etter: ingen felt endret (1 tilbakemelding, 0 hendelser, 1 loggrad `feedback.*`, alt fra brukerens egen test).
+
+**RLS-testsettet mot produksjon: ikke kjørt.** Testene skriver loggrader som rulles tilbake, men telleren for `audit_logs.id` (identity) går ikke tilbake. Revisjonsloggen ville få hull i nummereringen. Venter på brukerens beslutning.
+
+**Dev (`connecthub`), ikke publisert:**
+- Kopiknappene heter nå «Kopier sak», «Kopier alle saker» og «Kopier valgte saker» (`2e8f44c`).
+- Toppfeltet viser rollen: «CONNECTHUB · BRUKER / ADMIN / MODERATOR / DEVELOPER» (`brandOf` i `access.js`, testet). Kontrollert i nettleseren for alle fire rollene.

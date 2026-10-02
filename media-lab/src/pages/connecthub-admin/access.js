@@ -19,3 +19,7 @@ export function sectionsFor({ dev, collab, adminOf, churches }) {
   if (churches.length) ['menigheter', 'filer'].forEach(k => s.add(k));
   return s;
 }
+
+/* Tittelen i toppfeltet viser den innloggede rollen (den effektive rollen, så rollebytteren i dev vises også). */
+const BRAND = { developer: 'DEVELOPER', moderator: 'MODERATOR', admin: 'ADMIN', user: 'BRUKER' };
+export const brandOf = kind => 'CONNECTHUB · ' + (BRAND[kind] || BRAND.user);

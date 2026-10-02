@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sectionsFor } from './access.js';
+import { sectionsFor, brandOf } from './access.js';
 
 const sec = o => [...sectionsFor({ dev: false, collab: false, adminOf: [], churches: [], ...o })].sort();
 const A = { id: 'a' }, B = { id: 'b' };
@@ -31,4 +31,12 @@ test('Tilbakemeldinger (innboks): bare Developer og Moderator – aldri Admin el
 });
 test('Uten menighet og uten rolle: bare oversikt', () => {
   assert.deepEqual(sec({}), ['oversikt']);
+});
+
+test('Toppfeltet viser rollen: Developer, Moderator, Admin eller Bruker', () => {
+  assert.equal(brandOf('developer'), 'CONNECTHUB · DEVELOPER');
+  assert.equal(brandOf('moderator'), 'CONNECTHUB · MODERATOR');
+  assert.equal(brandOf('admin'), 'CONNECTHUB · ADMIN');
+  assert.equal(brandOf('user'), 'CONNECTHUB · BRUKER');
+  assert.equal(brandOf(undefined), 'CONNECTHUB · BRUKER', 'ukjent rolle viser aldri mer enn Bruker');
 });

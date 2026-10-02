@@ -6,7 +6,7 @@ import { admin } from '../../services/admin.js';
 import { isStaff, hasRole } from '../../services/data/me.js';
 import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
-import { NAV, sectionsFor } from './access.js';
+import { NAV, sectionsFor, brandOf } from './access.js';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 import { FeedbackView } from './feedback.jsx';
 import { noteError } from '../../shared/feedback-errors.js';
@@ -89,7 +89,7 @@ export default function AdminPage({ me }) {
   else body = kind === 'user' ? <UserOverview /> : kind === 'moderator' && !adminOf.length ? <ModeratorOverview /> : <Overview pendingInvites={pendingInvites} />;
 
   const counts = { invitasjoner: allowed.has('invitasjoner') ? pendingInvites.length : 0, abonnement: d.pendingSubs };
-  const brand = kind === 'user' ? 'CONNECTHUB' : kind === 'moderator' && !adminOf.length ? 'CONNECTHUB · SAMARBEID' : 'CONNECTHUB · ADMIN';
+  const brand = brandOf(kind);
   return <Ctx.Provider value={ctx}>
     <div data-ml-theme="admin" data-ml-bg="static">
       <header className="ch-top" data-ml-bar="1">
