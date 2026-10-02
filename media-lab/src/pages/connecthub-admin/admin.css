@@ -21,6 +21,8 @@ html[data-ml-mode="light"] [data-ml-theme="admin"] {
 [data-ml-theme="admin"] .ch-top { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
 [data-ml-theme="admin"] .ch-top a.ch-back { text-decoration: none; font-weight: 700; font-size: 14px; white-space: nowrap; }
 [data-ml-theme="admin"] .ch-brand { font-size: 12px; font-weight: 800; letter-spacing: .14em; color: var(--muted); }
+/* Tydelig merke i utviklingsmiljøet (aldri i produksjon), så dev og produksjon ikke forveksles. */
+[data-ml-theme="admin"] .ch-env { font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 3px 8px; border-radius: 999px; background: #f5b301; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
 [data-ml-theme="admin"] .ch-top .ch-spacer { flex: 1; }
 [data-ml-theme="admin"] .ch-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
 [data-ml-theme="admin"] .ch-nav { position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px); overflow: auto; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; border-right: 1px solid var(--line); }

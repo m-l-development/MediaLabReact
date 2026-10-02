@@ -5,6 +5,11 @@
 /* Prosjekt-ID-er er offentlige (de står i URL-en som uansett sendes til nettleseren). */
 export const REFS = { preview: 'uatpdmhnwwjgzlxaucsx', production: 'cmuienhheklcgtfmpvbe' };
 
+/* Fast adresse til ConnectHub Dev (siste versjon av grenen connecthub på Vercel Preview, mot connecthub-dev).
+   Samme adresse som SITE.preview i server/lib/backend.js (testet). Brukes av knappen «Åpne ConnectHub Dev» for Developer.
+   Inneholder ingen prosjekt-ID, så den er tillatt i produksjonsbygget. */
+export const DEV_SITE = 'https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app';
+
 /* Hvilke miljøvariabler som leses per mål. Vercel-integrasjonen setter databasens navn foran variabelnavnet.
    Lokalt (og hos en annen vert) brukes nøytrale navn i .env.local. Bytte av vert = bytte av denne tabellen. */
 export const ENV_NAMES = {

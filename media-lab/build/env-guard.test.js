@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { REFS, ENV_NAMES, targetOf, refFromUrl, classifyKey, resolveSupabaseEnv, scanText } from './env-guard.js';
+import { REFS, ENV_NAMES, DEV_SITE, targetOf, refFromUrl, classifyKey, resolveSupabaseEnv, scanText } from './env-guard.js';
+import { SITE } from '../server/lib/backend.js';
+
+test('ConnectHub Dev-adressen: samme som serverens Preview-adresse, ikke produksjon, uten prosjekt-ID', () => {
+  assert.equal(DEV_SITE, SITE.preview);
+  assert.notEqual(DEV_SITE, SITE.production);
+  assert.match(DEV_SITE, /^https:\/\/[a-z0-9-]+\.vercel\.app$/);
+  assert.deepEqual(scanText(DEV_SITE, { target: 'production' }), [], 'byggevakten godtar adressen i produksjonsbygget');
+  assert.ok(!DEV_SITE.includes(REFS.preview) && !DEV_SITE.includes(REFS.production));
+});
 
 const PUB = 'sb_publishable_TESTtestTEST1234567890';
 const url = ref => `https://${ref}.supabase.co`;
