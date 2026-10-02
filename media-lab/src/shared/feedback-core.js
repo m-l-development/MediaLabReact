@@ -1,5 +1,5 @@
 /* Tilbakemeldinger – felles logikk uten DOM (testes i feedback-core.test.js):
-   rensing av hemmeligheter, applikasjon/side, nettleser/enhet, og tekstformatet for «Kopier sak til Claude».
+   rensing av hemmeligheter, applikasjon/side, nettleser/enhet, og tekstformatet for «Kopier sak» (til bruk i Claude Code).
    Samme rensing kjøres i databasen ved lagring (app.feedback_scrub_*), i nettleseren før sending og ved kopiering. */
 
 /* ---------- Rensing ---------- */

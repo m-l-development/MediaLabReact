@@ -1,6 +1,6 @@
 /* ConnectHub admin – Tilbakemeldinger (innboks for Moderator og Developer). Databasen avgjør tilgangen
    (feedback_list m.fl. krever Moderator eller Developer med MFA); siden vises bare for de samme rollene.
-   «Kopier sak til Claude» og «Kopier alle saker til Claude» lager strukturert tekst i nettleseren (feedback-core.js)
+   «Kopier sak» og «Kopier alle saker» lager strukturert tekst i nettleseren (feedback-core.js)
    og endrer aldri saken. Tekst renses for hemmeligheter på nytt ved kopiering. */
 import React from 'react';
 import { feedback as FB } from '../../services/feedback.js';
@@ -61,10 +61,10 @@ export function FeedbackView({ selected }) {
       <label className="ch-row ch-muted" style={{ gap: 6 }}>{T('Fra')}<input className="ch-input" type="date" value={f.from} onChange={e => set('from')(e.target.value)} style={{ width: 150 }} /></label>
       <label className="ch-row ch-muted" style={{ gap: 6 }}>{T('Til')}<input className="ch-input" type="date" value={f.to} onChange={e => set('to')(e.target.value)} style={{ width: 150 }} /></label>
     </div>
-    <Card title="Kopier til Claude Code" sub={rows.length + ' ' + T('saker vises')}>
+    <Card title="Kopier saker" sub={rows.length + ' ' + T('saker vises')}>
       <div className="ch-row" data-fb-copybar>
-        <Btn kind="primary" onClick={() => copyMany(rows, 'alle viste saker med gjeldende filter (' + rows.length + ')')} disabled={!rows.length}>{T('Kopier alle saker til Claude')}</Btn>
-        {chosen.length > 0 && <Btn onClick={() => copyMany(chosen, 'valgte saker (' + chosen.length + ')')}>{T('Kopier valgte saker til Claude')} ({chosen.length})</Btn>}
+        <Btn kind="primary" onClick={() => copyMany(rows, 'alle viste saker med gjeldende filter (' + rows.length + ')')} disabled={!rows.length}>{T('Kopier alle saker')}</Btn>
+        {chosen.length > 0 && <Btn onClick={() => copyMany(chosen, 'valgte saker (' + chosen.length + ')')}>{T('Kopier valgte saker')} ({chosen.length})</Btn>}
         {chosen.length > 0 && <Btn small onClick={() => setPick(new Set())}>{T('Fjern utvalg')}</Btn>}
       </div>
       <p className="ch-muted">{T('«Kopier alle saker» tar med alle saker som vises med gjeldende filter og søk. Huk av saker for å kopiere bare et utvalg. Kopiering endrer ikke status eller notater. Hemmeligheter fjernes, og avsenderens navn og e-post tas ikke med.')}</p>
@@ -82,7 +82,7 @@ export function FeedbackView({ selected }) {
           <div className="ch-muted">{T('Fra')} {c.submitter_name || T('ukjent')}{c.church_name ? ' · ' + c.church_name : ''}{c.marked ? ' · 📍 ' + T('markering') : ''}{(c.context && c.context.errors && c.context.errors.length) ? ' · ⚠ ' + c.context.errors.length + ' ' + T('feilmeldinger') : ''}{c.note_count ? ' · ' + c.note_count + ' ' + T('notater') : ''}</div></div>,
         <div><span>{c.app_name || c.app || '–'}</span><div className="ch-muted">{c.page}{c.view ? ' ' + c.view : ''} · {T(ENV_NAME[(c.context || {}).env] || '')}</div></div>,
         <Badge tone={TONE[c.status]}>{T(STATUS[c.status] || c.status)}</Badge>,
-        <div className="ch-end"><Btn small onClick={e => { e && e.stopPropagation && e.stopPropagation(); copyOne(c); }}>{T('Kopier sak til Claude')}</Btn></div>] }))} />
+        <div className="ch-end"><Btn small onClick={e => { e && e.stopPropagation && e.stopPropagation(); copyOne(c); }}>{T('Kopier sak')}</Btn></div>] }))} />
     {cur && <CaseDrawer c={cur} onClose={() => go('tilbakemeldinger')} onCopy={() => copyOne(cur)} reload={load} />}
     {selected && list && !cur && <Drawer title={T('Sak')} onClose={() => go('tilbakemeldinger')}><Empty>{T('Fant ikke saken, eller du har ikke tilgang.')}</Empty></Drawer>}
     {manual && <Dialog title={T('Kopier teksten')} onClose={() => setManual(null)}>
@@ -108,7 +108,7 @@ function CaseDrawer({ c, onClose, onCopy, reload }) {
   const addNote = act(async e => { e.preventDefault(); if (!st.note.trim()) return; await FB.addNote(c.id, st.note.trim()); setSt(s => ({ ...s, note: '' })); say(T('Notatet er lagret.')); await reload(); await loadEv(); });
   const kv = (k, v) => v ? <><dt>{T(k)}</dt><dd>{v}</dd></> : null;
   return <Drawer title={c.ref + ' · ' + T(KIND[c.kind] || c.kind)} sub={fmt(c.created_at)} onClose={onClose}>
-    <div className="ch-row"><Badge tone={TONE[c.status]}>{T(STATUS[c.status] || c.status)}</Badge><Btn kind="primary" onClick={onCopy}>{T('Kopier sak til Claude')}</Btn></div>
+    <div className="ch-row"><Badge tone={TONE[c.status]}>{T(STATUS[c.status] || c.status)}</Badge><Btn kind="primary" onClick={onCopy}>{T('Kopier sak')}</Btn></div>
     <Card title="Oppgitt av brukeren">
       {c.title && <p><b>{c.title}</b></p>}
       <p style={{ whiteSpace: 'pre-wrap' }} data-fb-desc>{c.description}</p>
