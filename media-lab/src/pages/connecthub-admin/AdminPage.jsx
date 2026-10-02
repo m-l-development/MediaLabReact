@@ -93,7 +93,6 @@ export default function AdminPage({ me }) {
       <div className="ch-shell">
         <nav className="ch-nav" aria-label={T('Admin')}>
           {nav.map(([k, l]) => <a key={k} href={href(k)} className={sec === k ? 'on' : ''}>{T(l)}{counts[k] > 0 && <span className="ch-count">{counts[k]}</span>}</a>)}
-          {dev && <div className="ch-navfoot">{T('Gammel admin er beholdt til den kan fjernes:')} <a href="admin.dc.html">admin.dc.html</a></div>}
         </nav>
         <main className="ch-main">
           {staffNoMfa && <p className="ch-note warn">{T('Rollen din krever totrinnsbekreftelse. Logg ut og inn igjen og sett opp autentiseringsappen for å bruke stab-rettighetene.')}</p>}
@@ -187,7 +186,7 @@ function DevCard() {
       <dt>{T('Totrinn (MFA)')}</dt><dd>{T(me.mfa ? 'Aktiv i denne økten' : 'Ikke aktiv')}</dd>
       <dt>{T('Testrolle')}</dt><dd>{T(window.CH && window.CH.switcher ? 'Tilgjengelig i kontomenyen' : 'Ikke tilgjengelig her')}</dd>
     </dl>
-    <div className="ch-row"><a className="ch-btn small" href={href('logg')}>{T('Logg')}</a><a className="ch-btn small" href="admin.dc.html">{T('Gammel admin')}</a></div>
+    <div className="ch-row"><a className="ch-btn small" href={href('logg')}>{T('Logg')}</a></div>
   </Card>;
 }
 

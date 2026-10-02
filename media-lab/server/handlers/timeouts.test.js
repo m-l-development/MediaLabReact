@@ -4,15 +4,12 @@ import { withTimeout } from '../../src/services/timeout.js';
 import { getJwks } from '../lib/jwt.js';
 import { handle } from './ch.js';
 
-test('gammel api/ml.js: Web-standard GET/POST (ingen standard-eksport som Vercel tolker som (req, res)) og svarer straks', async () => {
-  const m = await import('../../api/ml.js');
-  assert.equal(m.default, undefined, 'standard-eksport ville gitt hengende forespørsler på Vercel');
-  assert.equal(typeof m.GET, 'function'); assert.equal(typeof m.POST, 'function');
-  const t0 = Date.now();
-  const r = await m.GET(new Request('https://x.example/api/ml?a=status'));
-  assert.ok(r instanceof Response, 'returnerer et Response-objekt');
-  assert.equal(r.status, 401, 'uten ConnectHub-innlogging: 401 med en gang');
-  assert.ok(Date.now() - t0 < 2000);
+test('gammel admin er fjernet: ingen admin.dc.html, api/ml.js, ml-cloud.js eller Vercel Blob', async () => {
+  const fs = await import('node:fs');
+  const root = new URL('../../', import.meta.url);
+  for (const f of ['admin.dc.html', 'api/ml.js', 'src/legacy/ml-cloud.js', 'src/pages/admin']) assert.equal(fs.existsSync(new URL(f, root)), false, f + ' skal ikke finnes');
+  const pkg = JSON.parse(fs.readFileSync(new URL('package.json', root), 'utf8'));
+  assert.equal((pkg.dependencies || {})['@vercel/blob'], undefined, '@vercel/blob brukes ikke lenger');
 });
 
 test('withTimeout: gir ServiceError «timeout» i stedet for å vente for alltid', async () => {
