@@ -89,6 +89,16 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Medlemmer:** `storage_usage.system_free_bytes`. Måleren viser det minste av ledig kvote og ledig samlet plass.
 - Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`). Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
 - ConnectHub Dev og produksjon holdes adskilt: i alle bygg som ikke er produksjon viser ConnectHub Admin merket «UTVIKLING · connecthub-dev» i toppfeltet. I produksjon har Developer-kortet (Oversikt) merket «PRODUKSJON» og knappen «Åpne ConnectHub Dev», som åpner `DEV_SITE` (`build/env-guard.js` = `SITE.preview` i `server/lib/backend.js`, testet) i ny fane. Adressen legges inn ved bygging (`__CH_DEV_SITE__`); utviklingsprosjektets ID gjør aldri det i produksjon (`__CH_DEV_REF__` = null).
+- Tilbakemeldinger (trinn 8, `supabase/migrations/20261003100000_feedback.sql`):
+  - **Knapp:** snakkeboble med «!» nede til høyre (ved kontoknappen) på alle innloggede sider. `src/shared/feedback-widget.js` monteres av `auth-gate.js`.
+  - **Skjema:** fire kategorier med egne spørsmål, obligatorisk beskrivelse, «Marker et område på skjermen» (mus og berøring, element eller dratt område) og teknisk kontekst (miljø, bygg, commit/gren, nettleser, OS, enhet, skjerm, tidssone og de siste feilene fra `feedback-errors.js`).
+  - **Ikke med i førsteversjonen:** skjermbilde.
+  - **Innsending:** `submit_feedback` for alle aktive innloggede, høyst 20 per døgn.
+  - **Innboks (bare Moderator og Developer med MFA):** `feedback_list`, `feedback_events_for`, `set_feedback_status` (avvist krever begrunnelse) og `add_feedback_note`. Ingen direkte tabelltilgang (RLS uten policyer).
+  - **Rensing:** hemmeligheter (og e-post/telefon i brukertekst) fjernes i databasen (`app.feedback_scrub_*`) og i nettleseren (`src/shared/feedback-core.js`).
+  - **Admin-siden «Tilbakemeldinger»** (`connecthub-admin/feedback.jsx`) har filtre, saksdetaljer, status og notater, «Kopier sak til Claude» og «Kopier alle saker til Claude» (alle viste etter filter, eller avhukede). Store eksporter deles i deler.
+  - **Kopiformatet** (`formatCase`/`formatCases`) skiller brukerens opplysninger, automatisk kontekst og interne notater, og tar aldri med avsenderens navn eller e-post.
+  - Tester: `feedback-core.test.js`, `contract.test.js` og RLS-blokken «Tilbakemeldinger».
 - Ytelse:
   - `src/services/me-cache.js`: siden vises straks med forrige `whoami` for samme bruker, økt og MFA-nivå (localStorage `ch.me`). Porten kontrollerer mot databasen like etter og stopper eller laster siden på nytt ved avvik. Bufferen fjernes ved utlogging.
   - `src/shared/prefetch.js`: henter neste sides skript ved hover eller berøring.

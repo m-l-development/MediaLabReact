@@ -551,3 +551,35 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 2. Sett passord via «Glemt passordet?».
 3. Første innlogging med totrinnsbekreftelse.
 4. Opprett menigheter og send invitasjoner.
+
+## Tilbakemeldinger (trinn 8), førsteversjon (2026-10-02, connecthub-dev)
+
+**Implementert:**
+- **Knapp på alle innloggede sider.** Kontrollert på Photo Design, Mockups, forsiden og ConnectHub Admin.
+- **Skjema:**
+  - fire kategorier med tilpassede spørsmål
+  - markering av element eller område med mus og berøring
+  - automatisk teknisk kontekst og feilfangst
+- **Innboks for Moderator og Developer:** filtre, saksdetaljer, status og notater med historikk, «Kopier sak til Claude» og «Kopier alle saker til Claude» (alle viste eller avhukede, med oppdeling av store eksporter).
+- **Ikke med:** skjermbilde. Det er utsatt fordi det krever et tredjepartsbibliotek eller nettleser-API med samtykke.
+
+**Tester:**
+
+| Kjøring | Resultat |
+|---|---|
+| `npm test` | 108/108 (`feedback-core.test.js` 8, tjenestetest 1, menytilgang 1 ny) |
+| RLS (PGlite og dev) | 455/455. 44 nye: tilgang for alle roller, MFA, direkte tabelltilgang, validering, rensing, menighet bare ved medlemskap, statusflyt, avvisning med begrunnelse, historikk, logg og grense på 20 per døgn. |
+| Bygg | OK. Sikkerhetssøket har ingen funn. |
+| Migrering i dev | Bare `20261003100000_feedback.sql`. Alle 14 felt i øyeblikksbildet er like før og etter. |
+
+**Nettleser (lokal preview mot dev, syntetiske kontoer):**
+
+| Rolle | Resultat |
+|---|---|
+| User, PC | Ikonet står ved kontoknappen uten overlapp. Spørsmålene tilpasses kategorien. Markering med mus identifiserer knappen «Instagram 1:1 …», og klikket går ikke gjennom til siden. Teknisk kontekst inneholder miljø, bygg, commit/gren, nettleser og skjerm. Ved nettverksfeil vises en melding, og teksten beholdes. Bekreftelse og referanse vises først etter lagring. Feil, forbedring og ny funksjon er sendt inn. For kort beskrivelse gir en melding. Lukking med tekst krever bekreftelse. Innboksen er avvist via API og tabell (403). |
+| User, mobil (390×844, berøring) | Skjemaet fyller skjermen. Område markert med berøring, «velg på nytt», «fjern markering» og innsending virker. |
+| Admin | Menyen har ikke Tilbakemeldinger. Direkte adresse gir «Ingen tilgang». API-et gir 403. Admin kan sende inn. |
+| Moderator | Nyeste øverst. Filtrene for kategori, applikasjon, miljø og dato virker. «Kopier sak» gir 6 seksjoner uten e-post, nøkkel eller navn. «Kopier alle» og utvalg gir riktig antall. Kopiering endrer ingen data. Mislykket kopiering viser et reservevindu. Status og notat lagres med historikk. Innboksen virker på mobil. |
+| Developer | «Trenger mer informasjon». Avvisning uten begrunnelse stoppes med melding. Avvisning med begrunnelse lagres med historikk. |
+
+**Testdata i dev:** 11 syntetiske tilbakemeldinger fra testkontoene.

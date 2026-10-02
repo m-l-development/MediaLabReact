@@ -10,6 +10,8 @@ import { switcherAllowed, readView, effectiveMe, mountTestBanner } from './test-
 import { whoami } from '../services/data/me.js';
 import { installLocalUser, legacyStatus, shouldAsk, rememberAnswer, adoptLegacy } from './local-user.js';
 import { mountAccountMenu } from './account-menu.js';
+import { mountFeedback } from './feedback-widget.js';
+import { installErrorCapture } from './feedback-errors.js';
 import { withTimeout } from '../services/timeout.js';
 import { readMe, writeMe, clearMe, sameMe } from '../services/me-cache.js';
 
@@ -61,6 +63,7 @@ async function askLegacy(me) {
 
 /* Returnerer innlogget bruker (eller null i lokal utvikling uten backend). Omdirigerer ellers – løses aldri da. */
 export async function ensureLoggedIn() {
+  installErrorCapture();   /* de siste feilene på siden kan følge en tilbakemelding (bare i minnet, renset) */
   if (!hasBackend()) {
     if (import.meta.env && import.meta.env.DEV) { devBanner(); return null; }
     block('ConnectHub er ikke konfigurert for dette bygget. Kontakt administrator.');
@@ -92,6 +95,7 @@ export async function ensureLoggedIn() {
   window.CH = Object.freeze({ me: eff, realMe: me, testRole, switcher: allowed, backend: backend ? Object.freeze({ target: backend.target, projectRef: backend.projectRef }) : null });
   await askLegacy(me);
   mountAccountMenu(eff, me, allowed);
+  mountFeedback(eff);
   if (testRole) mountTestBanner(me, testRole);
   return eff;
 }

@@ -133,3 +133,19 @@ test('trinn 20: den samlede lagringsgrensen leses og endres bare via loggførte 
   assert.deepEqual(calls[1][1], { p_mb: 2048 });
   useDataAdapter(null);
 });
+
+test('tilbakemeldinger: innsending, innboks og behandling bare via databasefunksjoner – aldri direkte mot tabellene', async () => {
+  const calls = [];
+  const rpcs = Object.fromEntries(['submit_feedback', 'feedback_list', 'feedback_events_for', 'set_feedback_status', 'add_feedback_note'].map(fn => [fn, a => { calls.push([fn, a]); return fn === 'submit_feedback' ? { id: 'f1', ref: 'TB-ABC123' } : []; }]));
+  const fake = makeFakeData({ tables: { feedback: [] }, rpcs });
+  let direct = 0; for (const m of ['select', 'insert', 'update']) { const o = fake[m].bind(fake); fake[m] = (...a) => { direct++; return o(...a); }; }
+  useDataAdapter(fake);
+  const { feedback } = await import('./feedback.js');
+  assert.deepEqual(await feedback.submit({ kind: 'bug', description: 'Feil', app: 'photo-design', churchId: 'c1' }), { id: 'f1', ref: 'TB-ABC123' });
+  await feedback.list(); await feedback.events('f1'); await feedback.setStatus('f1', 'rejected', 'Duplikat'); await feedback.addNote('f1', 'Notat');
+  assert.equal(direct, 0, 'ingen direkte lesing eller skriving');
+  assert.deepEqual(calls.map(c => c[0]), ['submit_feedback', 'feedback_list', 'feedback_events_for', 'set_feedback_status', 'add_feedback_note']);
+  assert.equal(calls[0][1].p_kind, 'bug'); assert.equal(calls[0][1].p_church, 'c1'); assert.deepEqual(calls[0][1].p_answers, {});
+  assert.deepEqual(calls[3][1], { p_id: 'f1', p_status: 'rejected', p_reason: 'Duplikat' });
+  useDataAdapter(null);
+});

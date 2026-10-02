@@ -8,6 +8,8 @@ import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor } from './access.js';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
+import { FeedbackView } from './feedback.jsx';
+import { noteError } from '../../shared/feedback-errors.js';
 
 /* global __CH_DEV_SITE__ */
 /* ConnectHub Dev (utviklingsmiljøet): adressen legges inn ved bygging (build/env-guard.js, DEV_SITE). */
@@ -40,7 +42,7 @@ export default function AdminPage({ me }) {
     if (form) { if (form.getAttribute('aria-busy') === 'true') return; form.setAttribute('aria-busy', 'true'); }
     if (form || (t && t.nodeType === 1)) setNote(null);
     setPending(n => n + 1);
-    try { return await fn(...a); } catch (e) { if (!(e && e.code === 'cancel')) say(errText(e), false); }
+    try { return await fn(...a); } catch (e) { if (!(e && e.code === 'cancel')) { say(errText(e), false); noteError(e && e.code, errText(e)); } }
     finally { setPending(n => n - 1); if (form) form.removeAttribute('aria-busy'); }
   };
 
@@ -81,6 +83,7 @@ export default function AdminPage({ me }) {
   else if (sec === 'invitasjoner') body = <InvitesView />;
   else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser, delt mappe og Samarbeidsfiler. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
   else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Koblinger mellom to menigheter. Hver kobling har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
+  else if (sec === 'tilbakemeldinger') body = <FeedbackView selected={id} />;
   else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
   else body = kind === 'user' ? <UserOverview /> : kind === 'moderator' && !adminOf.length ? <ModeratorOverview /> : <Overview pendingInvites={pendingInvites} />;

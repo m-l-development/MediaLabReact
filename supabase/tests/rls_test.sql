@@ -789,6 +789,76 @@ delete from public.files where storage_key in ('test/t20-fyll2.png', 'test/t20-y
 update public.storage_settings set total_limit_mb = (select start_mb from t20) where id;   -- startverdien (rulles uansett tilbake)
 set local role authenticated;
 
+-- ---------- Tilbakemeldinger (trinn 8): alle innloggede sender inn; bare Moderator og Developer (MFA) leser og behandler ----------
+set local role anon;
+select ch_test.err('Tilbakemelding: ikke innlogget kan ikke sende inn', $q$select public.submit_feedback('bug', null, 'RLS-test anon', '{}', 'photo-design', 'Photo Design', '/photo-design.dc.html', null, null, '{}', null)$q$, '42501');
+select ch_test.err('Tilbakemelding: ikke innlogget får ikke innboksen', $q$select * from public.feedback_list()$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.ok('Tilbakemelding: User sender inn en feil (med menighet A)', $q$select public.submit_feedback('bug', 'Knappen virker ikke', 'RLS-test feil: eksport stopper', '{"expected":"PNG lastes ned","steps":"1. Åpne 2. Eksporter","severity":"high","ukjent":"x","importance":"tull"}', 'photo-design', 'Photo Design', '/photo-design.dc.html', '#/editor/:id', '{"mode":"element","rect":{"x":10,"y":20,"w":30,"h":5}}', '{"env":"local","build":"test"}', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
+select ch_test.ok('Tilbakemelding: User foreslår en forbedring', $q$select public.submit_feedback('improvement', null, 'RLS-test forbedring', '{"improve":"Større knapper","importance":"medium"}', 'media-lab', 'Media Lab', '/media-lab.dc.html', null, null, '{}', null)$q$);
+select ch_test.ok('Tilbakemelding: User foreslår en ny funksjon (menighet B – ikke medlem)', $q$select public.submit_feedback('feature', null, 'RLS-test ny funksjon', '{"feature":"Mørk modus i eksport"}', 'mockups', 'Mockups', '/mockups.dc.html', null, null, '{}', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$);
+select ch_test.ok('Tilbakemelding: hemmeligheter og personopplysninger renses', $q$select public.submit_feedback('other', null, 'RLS-test hemmelig eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop sb_secret_abcdefghij1234 ola.nordmann@example.com passord: Hemmelig123 ring 912 34 567 Bearer abcdefghijklmnopqrstuv', '{}', 'connecthub-admin', 'ConnectHub Admin', '/connecthub-admin.dc.html', null, null, '{"url":"/login.dc.html?token=abc123hemmelig&x=1","error":"feilkode: 500"}', null)$q$);
+select ch_test.err('Tilbakemelding: ukjent kategori avvises', $q$select public.submit_feedback('spam', null, 'RLS-test', '{}', null, null, null, null, null, '{}', null)$q$, '22023');
+select ch_test.err('Tilbakemelding: for kort beskrivelse avvises', $q$select public.submit_feedback('bug', null, ' x ', '{}', null, null, null, null, null, '{}', null)$q$, '22023');
+select ch_test.err('Tilbakemelding: ugyldig applikasjons-ID avvises', $q$select public.submit_feedback('bug', null, 'RLS-test app', '{}', '../etc', null, null, null, null, '{}', null)$q$, '22023');
+select ch_test.err('Tilbakemelding: User får ikke innboksen', $q$select * from public.feedback_list()$q$, '42501');
+select ch_test.err('Tilbakemelding: User kan ikke lese tabellen direkte', $q$select id from public.feedback$q$, '42501');
+select ch_test.err('Tilbakemelding: User kan ikke skrive direkte', $q$insert into public.feedback (ref, kind, description) values ('TB-HACK', 'bug', 'hack')$q$, '42501');
+select ch_test.err('Tilbakemelding: User kan ikke endre status', $q$select public.set_feedback_status((select id from public.feedback limit 1), 'resolved', null)$q$, '42501');
+select ch_test.err('Tilbakemelding: User kan ikke skrive notat', $q$select public.add_feedback_note(gen_random_uuid(), 'x')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Tilbakemelding: Admin kan sende inn', $q$select public.submit_feedback('bug', null, 'RLS-test fra admin', '{}', 'connecthub-admin', 'ConnectHub Admin', '/connecthub-admin.dc.html', '#/filer', null, '{}', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
+select ch_test.err('Tilbakemelding: Admin får ikke innboksen', $q$select * from public.feedback_list()$q$, '42501');
+select ch_test.err('Tilbakemelding: Admin får ikke hendelsene', $q$select * from public.feedback_events_for(gen_random_uuid())$q$, '42501');
+select ch_test.err('Tilbakemelding: Admin kan ikke lese tabellen direkte', $q$select id from public.feedback$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-7","aal":"aal1"}';
+select ch_test.err('Tilbakemelding: deaktivert bruker kan ikke sende inn', $q$select public.submit_feedback('bug', null, 'RLS-test deaktivert', '{}', null, null, null, null, null, '{}', null)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Tilbakemelding: Moderator uten MFA får ikke innboksen', $q$select * from public.feedback_list()$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Tilbakemelding: Developer uten MFA får ikke innboksen', $q$select * from public.feedback_list()$q$, '42501');
+
+-- Lagret innhold (som eier)
+set local role postgres;
+select ch_test.cnt('Tilbakemelding: lagret med referanse, rolle og menighet (bare når medlem)', $q$select 1 from public.feedback where description = 'RLS-test feil: eksport stopper' and ref ~ '^TB-[0-9A-F]{6}$' and role = 'user' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and status = 'new' and created_by = '00000000-0000-4000-8000-000000000008'$q$, 1);
+select ch_test.cnt('Tilbakemelding: menighet som brukeren ikke er medlem av, lagres ikke', $q$select 1 from public.feedback where description = 'RLS-test ny funksjon' and church_id is null$q$, 1);
+select ch_test.cnt('Tilbakemelding: bare kjente svarfelt og gyldige verdier lagres', $q$select 1 from public.feedback where description = 'RLS-test feil: eksport stopper' and answers = '{"expected":"PNG lastes ned","steps":"1. Åpne 2. Eksporter","severity":"high"}'::jsonb$q$, 1);
+select ch_test.cnt('Tilbakemelding: token, nøkkel, e-post, passord, telefon og Bearer er fjernet', $q$select 1 from public.feedback where description like 'RLS-test hemmelig%' and description !~ '(eyJhbGci|sb_secret_|ola\.nordmann|Hemmelig123|912 34 567|abcdefghijklmnopqrstuv)' and description like '%[fjernet: token]%' and description like '%[e-post fjernet]%' and description like '%[telefon fjernet]%'$q$, 1);
+select ch_test.cnt('Tilbakemelding: hemmelige adresseparametere fjernes i teknisk kontekst, feilkoder beholdes', $q$select 1 from public.feedback where description like 'RLS-test hemmelig%' and context ->> 'url' = '/login.dc.html?token=[fjernet]&x=1' and context ->> 'error' = 'feilkode: 500'$q$, 1);
+select ch_test.cnt('Tilbakemelding: Admin-rollen registreres', $q$select 1 from public.feedback where description = 'RLS-test fra admin' and role = 'admin'$q$, 1);
+select ch_test.atleast('Tilbakemelding: opprettelse loggføres uten innhold', $q$select 1 from public.audit_logs where action = 'feedback.create' and meta ? 'ref' and not meta ? 'description'$q$, 5);
+create temp table t8 as select (select id from public.feedback where description = 'RLS-test feil: eksport stopper') bug_id;
+grant select on t8 to authenticated;
+
+-- Behandling (Moderator med MFA)
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Tilbakemelding: Moderator ser innsendte saker med avsender og menighet', $q$select 1 from public.feedback_list() where description like 'RLS-test%' and submitter_name is not null$q$, 5);
+select ch_test.cnt('Tilbakemelding: menighetens navn følger saken når avsender er medlem', $q$select 1 from public.feedback_list() where description = 'RLS-test feil: eksport stopper' and church_name = 'Testmenighet A'$q$, 1);
+select ch_test.ok('Tilbakemelding: Moderator setter «Under behandling»', $q$select public.set_feedback_status((select bug_id from t8), 'in_progress', null)$q$);
+select ch_test.err('Tilbakemelding: avvisning uten begrunnelse avvises', $q$select public.set_feedback_status((select bug_id from t8), 'rejected', ' ')$q$, '22023');
+select ch_test.err('Tilbakemelding: ukjent status avvises', $q$select public.set_feedback_status((select bug_id from t8), 'slettet', null)$q$, '22023');
+select ch_test.ok('Tilbakemelding: Moderator skriver internt notat', $q$select public.add_feedback_note((select bug_id from t8), 'Gjenskapt i Chrome. Kontakt ola@example.com')$q$);
+select ch_test.err('Tilbakemelding: tomt notat avvises', $q$select public.add_feedback_note((select bug_id from t8), '   ')$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Tilbakemelding: Developer avviser med begrunnelse', $q$select public.set_feedback_status((select bug_id from t8), 'rejected', 'Duplikat av TB-000000')$q$);
+select ch_test.cnt('Tilbakemelding: Developer ser historikken (status, notat, status)', $q$select 1 from public.feedback_events_for((select bug_id from t8))$q$, 3);
+select ch_test.cnt('Tilbakemelding: statusendring lagrer gammel og ny status, hvem og begrunnelse', $q$select 1 from public.feedback_events_for((select bug_id from t8)) where kind = 'status' and old_status = 'in_progress' and new_status = 'rejected' and text = 'Duplikat av TB-000000' and actor_role = 'developer'$q$, 1);
+select ch_test.cnt('Tilbakemelding: notatet er renset for e-post', $q$select 1 from public.feedback_events_for((select bug_id from t8)) where kind = 'note' and text like '%[e-post fjernet]%' and actor_role = 'moderator'$q$, 1);
+select ch_test.cnt('Tilbakemelding: saken har ny status, begrunnelse og ett notat', $q$select 1 from public.feedback_list() where id = (select bug_id from t8) and status = 'rejected' and status_reason = 'Duplikat av TB-000000' and note_count = 1$q$, 1);
+set local role postgres;
+select ch_test.cnt('Tilbakemelding: statusendringer og notat er loggført', $q$select 1 from public.audit_logs where target_id = (select bug_id::text from t8) and action in ('feedback.status', 'feedback.note')$q$, 3);
+select ch_test.err('Tilbakemelding: avvist uten begrunnelse stoppes også i tabellen', $q$update public.feedback set status_reason = null where id = (select bug_id from t8)$q$, '23514');
+
+-- Grense mot misbruk: 20 per bruker per døgn
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-9","aal":"aal1"}';
+select ch_test.cnt('Tilbakemelding: 20 innsendinger samme døgn godtas', $q$select public.submit_feedback('other', null, 'RLS-test grense ' || g, '{}', null, null, null, null, null, '{}', null) from generate_series(1, 20) g$q$, 20);
+select ch_test.err('Tilbakemelding: nummer 21 samme døgn avvises', $q$select public.submit_feedback('other', null, 'RLS-test grense 21', '{}', null, null, null, null, null, '{}', null)$q$, '54000');
+set local role postgres;
+set local role authenticated;
+
 -- ---------- Menighetens livsløp (P10) ----------
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
 select ch_test.err('Livsløp: admin kan ikke endre status direkte', $q$update public.churches set status = 'deleted'$q$, '42501');

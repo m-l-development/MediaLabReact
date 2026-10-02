@@ -19,7 +19,7 @@ const ACTIONS = {
   'links.create': 'Kobling opprettet', 'links.end': 'Kobling avsluttet', 'links.reopen': 'Kobling gjenåpnet',
   'subscription_requests.insert': 'Abonnement forespurt', 'subscription_requests.update': 'Abonnementsforespørsel endret',
   'church_subscriptions.insert': 'Abonnement satt', 'church_subscriptions.update': 'Abonnement endret',
-  'account.delete': 'Konto slettet', 'plans.update': 'Abonnementsplan endret', 'churches.quota': 'Lagringskvote endret', 'storage.limit': 'Samlet lagringsgrense endret', 'audit_logs.purge': 'Gammel logg slettet',
+  'account.delete': 'Konto slettet', 'plans.update': 'Abonnementsplan endret', 'churches.quota': 'Lagringskvote endret', 'storage.limit': 'Samlet lagringsgrense endret', 'feedback.create': 'Tilbakemelding sendt inn', 'feedback.status': 'Tilbakemelding: status endret', 'feedback.note': 'Tilbakemelding: notat', 'audit_logs.purge': 'Gammel logg slettet',
 };
 export const actionName = a => ACTIONS[a] || a;
 

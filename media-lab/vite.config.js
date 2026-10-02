@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import { resolveSupabaseEnv, scanText, SCAN_EXT, REFS, DEV_SITE } from './build/env-guard.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -70,7 +71,11 @@ const buildVersion = () => {
     name: 'media-lab-version',
     config(_, { command }) {
       if (command === 'build') id = (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 10) + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      return { define: { __ML_BUILD__: JSON.stringify(id) } };
+      /* Commit og gren for tilbakemeldinger (teknisk kontekst): fra Vercel, ellers fra git lokalt. */
+      const git = a => { try { return execSync('git ' + a, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch (e) { return ''; } };
+      const commit = (process.env.VERCEL_GIT_COMMIT_SHA || git('rev-parse HEAD')).slice(0, 12) || null;
+      const branch = process.env.VERCEL_GIT_COMMIT_REF || git('rev-parse --abbrev-ref HEAD') || null;
+      return { define: { __ML_BUILD__: JSON.stringify(id), __ML_COMMIT__: JSON.stringify(commit), __ML_BRANCH__: JSON.stringify(branch) } };
     },
     generateBundle() { if (id !== 'dev') this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ v: id }) + '\n' }); },
   };
