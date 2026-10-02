@@ -39,10 +39,13 @@ export const admin = {
   revokeInvitation: id => data().rpc('revoke_invitation', { p_id: id }),
 
   /* Oversikter for admin-grensesnittet (RLS avgjør hva som returneres). */
-  allMemberships: () => data().select('memberships', { columns: 'user_id, church_id, status, created_at' }),
+  allMemberships: () => data().select('memberships', { columns: 'user_id, church_id, status, created_at, updated_at' }),
   allRoles: () => data().select('user_roles', { columns: 'id, user_id, role, church_id, assigned_at', isNull: ['revoked_at'] }),
-  /* Stab kan legge en eksisterende bruker til i en menighet (eksisterende RLS-regel memberships_insert_staff). */
-  addMembership: (userId, churchId) => data().insert('memberships', { user_id: userId, church_id: churchId }, 'user_id, church_id, status'),
+  /* Stab legger til (eller aktiverer igjen) et medlemskap. Én menighet om gangen for User/Admin håndheves i databasen. */
+  addMembership: (userId, churchId) => data().rpc('add_membership', { p_user: userId, p_church: churchId }),
+  /* Fjerner en bruker fra en menighet (status «fjernet», historikken beholdes). Er brukeren Admin der, må allowNoAdmin
+     være true – da fjernes også Admin-rollen. Databasen avgjør hvem som får lov (stab, eller Admin for andre medlemmer). */
+  removeMembership: (userId, churchId, reason, allowNoAdmin) => data().rpc('remove_membership', { p_user: userId, p_church: churchId, p_reason: reason || null, p_allow_no_admin: !!allowNoAdmin }),
   /* Faktisk kvote for én menighet (Developer med MFA, loggført). 200 MB = standard, alt annet = egen kvote. Planene og
      abonnementene endrer den aldri (trinn 21). */
   setQuota: (churchId, mbQuota) => data().rpc('set_church_quota', { p_church: churchId, p_quota_mb: mbQuota }),

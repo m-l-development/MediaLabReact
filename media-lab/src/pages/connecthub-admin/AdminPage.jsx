@@ -7,6 +7,7 @@ import { isStaff, hasRole } from '../../services/data/me.js';
 import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor, brandOf } from './access.js';
+import { roleSummary, canJoinAnother, memberActions } from './members.js';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 import { FeedbackView } from './feedback.jsx';
 import { noteError } from '../../shared/feedback-errors.js';
@@ -235,7 +236,7 @@ function UsersView({ selected }) {
   const { d, churchName, staff } = useAdmin();
   const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [role, setRole] = React.useState('all'), [ch, setCh] = React.useState('all');
   const rolesOf = id => d.roles.filter(r => r.user_id === id);
-  const memsOf = id => d.memberships.filter(m => m.user_id === id);
+  const memsOf = id => d.memberships.filter(m => m.user_id === id && m.status !== 'removed');
   const list = d.users.filter(u => {
     if (q && !norm(u.full_name + ' ' + u.email + ' ' + (u.phone || '')).includes(norm(q))) return false;
     if (st !== 'all' && u.status !== st) return false;
@@ -259,7 +260,7 @@ function UsersView({ selected }) {
       rows={list.map(u => ({ key: u.id, cells: [
         <div className="ch-who"><Avatar name={u.full_name || u.email} /><div><b>{u.full_name || u.email}</b><span>{u.email}</span></div></div>,
         <div className="ch-row">{rolesOf(u.id).length ? rolesOf(u.id).map(r => <RoleBadge key={r.id} r={r.role} />) : <span className="ch-muted">{T('Bruker')}</span>}</div>,
-        <span className="ch-muted">{memsOf(u.id).map(m => churchName(m.church_id) + (m.status !== 'active' ? ' (' + T('deaktivert') + ')' : '')).join(', ') || '–'}</span>,
+        <span className="ch-muted">{memsOf(u.id).filter(m => m.status !== 'removed').map(m => churchName(m.church_id) + (m.status !== 'active' ? ' (' + T('deaktivert') + ')' : '')).join(', ') || T('Ingen aktiv menighet')}</span>,
         <div className="ch-end"><StatusBadge s={u.status} /></div>] }))} />
     {selected && <UserDetail id={selected} onClose={() => go('brukere')} />}
   </>;
@@ -275,11 +276,25 @@ function UserDetail({ id, onClose }) {
   if (!u) return <Drawer title={T('Bruker')} onClose={onClose}><Empty>{T('Fant ikke brukeren, eller du har ikke tilgang.')}</Empty></Drawer>;
   const self = u.id === me.id;
   const roles = d.roles.filter(r => r.user_id === u.id), global = roles.filter(r => !r.church_id);
-  const mems = d.memberships.filter(m => m.user_id === u.id);
+  const allMems = d.memberships.filter(m => m.user_id === u.id);
+  const mems = allMems.filter(m => m.status !== 'removed'), gone = allMems.filter(m => m.status === 'removed');
+  const active = mems.filter(m => m.status === 'active');
+  const join = canJoinAnother(roles, d.memberships, u.id, churchName);
   const invites = d.invites.filter(i => norm(i.email) === norm(u.email));
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await reload(); });
-  return <Drawer title={u.full_name || u.email} sub={u.email} onClose={onClose}>
-    <div className="ch-row"><StatusBadge s={u.status} />{roles.map(r => <RoleBadge key={r.id} r={r.role} church={r.church_id ? churchName(r.church_id) : ''} />)}</div>
+  const runMsg = fn => act(async () => { const m = await fn(); if (m) say(m); await reload(); });   // handlinger med bekreftelse (members.js)
+  const nm = u.full_name || u.email;
+  return <Drawer title={nm} sub={u.email} onClose={onClose}>
+    <Card title="Oversikt">
+      <dl className="ch-kv" data-ch-usersummary>
+        <dt>{T('Bruker')}</dt><dd><b>{nm}</b> <span className="ch-muted">{u.email}</span>{self && <> · {T('Deg')}</>}</dd>
+        <dt>{T('Konto')}</dt><dd><StatusBadge s={u.status} /></dd>
+        <dt>{T('Rolle')}</dt><dd>{roleSummary(roles, churchName)}</dd>
+        <dt>{T('Menighet')}</dt><dd>{active.length ? active.map((m, i) => <React.Fragment key={m.church_id}>{i ? ', ' : ''}<a href={href('menigheter', m.church_id)}>{churchName(m.church_id)}</a></React.Fragment>)
+          : <Badge tone="warn">{T('Ingen aktiv menighet')}</Badge>}</dd>
+      </dl>
+      <p className="ch-muted">{T('Endringer lagres med en gang. Handlinger som fjerner tilgang, ber om bekreftelse først.')}</p>
+    </Card>
 
     <Card title="Opplysninger">
       {self ? <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.updateMyProfile(u.id, prof.name, prof.phone), 'Opplysningene er lagret.')(e); }}>
@@ -295,27 +310,31 @@ function UserDetail({ id, onClose }) {
       {!self && <p className="ch-muted">{T('Navn og telefon endres av brukeren selv.')}</p>}
     </Card>
 
-    <Card title="Menigheter" sub={mems.length}>
+    <Card title="Menighet og medlemskap" sub={mems.length || null}>
       {mems.length ? <List cols="1fr auto auto" rows={mems.map(m => {
         const adm = roles.find(r => r.role === 'church_admin' && r.church_id === m.church_id);
+        const a = { userId: u.id, churchId: m.church_id, name: nm, church: churchName(m.church_id), isAdmin: !!adm, roleId: adm && adm.id };
         return { key: m.church_id, cells: [
-          <a href={href('menigheter', m.church_id)}>{churchName(m.church_id)}</a>,
+          <div><a href={href('menigheter', m.church_id)}><b>{churchName(m.church_id)}</b></a><div className="ch-muted">{T('Medlem siden')} {fmtDate(m.created_at)}</div></div>,
           <div className="ch-row"><StatusBadge s={m.status} />{adm && <RoleBadge r="church_admin" />}</div>,
-          <div className="ch-end">
-            {!self && canManage(m.church_id) && (m.status === 'active'
-              ? <Btn small kind="danger" onClick={run(() => admin.setMembershipStatus(u.id, m.church_id, 'disabled'), 'Medlemskapet er deaktivert.')}>{T('Deaktiver')}</Btn>
-              : <Btn small onClick={run(() => admin.setMembershipStatus(u.id, m.church_id, 'active'), 'Medlemskapet er aktivert.')}>{T('Aktiver')}</Btn>)}
+          <div className="ch-end" data-ch-memberactions>
             {!self && staff && m.status === 'active' && !adm && <Btn small onClick={run(() => admin.assignRole(u.id, 'church_admin', m.church_id, 'Admin-siden'), 'Brukeren er nå admin.')}>{T('Gjør til admin')}</Btn>}
-            {!self && staff && adm && <Btn small onClick={run(() => admin.revokeRole(adm.id, 'Admin-siden'), 'Admin-rollen er fjernet.')}>{T('Fjern admin')}</Btn>}
+            {!self && staff && adm && <Btn small onClick={runMsg(() => memberActions.revokeAdmin(a))}>{T('Fjern admin-rollen')}</Btn>}
+            {!self && canManage(m.church_id) && (m.status === 'active'
+              ? <Btn small onClick={runMsg(() => memberActions.disable(a))}>{T('Deaktiver midlertidig')}</Btn>
+              : <Btn small onClick={run(() => admin.setMembershipStatus(u.id, m.church_id, 'active'), 'Medlemskapet er aktivert.')}>{T('Aktiver igjen')}</Btn>)}
+            {!self && (staff || (canManage(m.church_id) && !adm)) && <Btn small kind="danger" data-ch-removemember onClick={runMsg(() => memberActions.remove(a))}>{T('Fjern fra menigheten')}</Btn>}
           </div>] };
-      })} /> : <p className="ch-muted">{T('Ikke medlem av noen menighet.')}</p>}
-      {staff && <div className="ch-row">
+      })} /> : <p className="ch-muted">{T('Brukeren har ingen aktiv menighet. Kontoen finnes fortsatt, men gir ikke tilgang til noen menighets filer eller data.')}</p>}
+      {gone.length > 0 && <p className="ch-muted" data-ch-formermember>{T('Tidligere medlem av')}: {gone.map(m => churchName(m.church_id)).join(', ')}</p>}
+      {staff && (join.ok ? <div className="ch-row">
         <select className="ch-select" value={addCh} onChange={e => setAddCh(e.target.value)} aria-label={T('Legg til i menighet')}>
           <option value="">{T('Legg til i menighet …')}</option>
-          {d.churches.filter(c => c.status === 'active' && !mems.some(m => m.church_id === c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {d.churches.filter(c => c.status === 'active' && !mems.some(m => m.church_id === c.id && m.status === 'active')).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <Btn disabled={!addCh} onClick={run(async () => { await admin.addMembership(u.id, addCh); setAddCh(''); }, 'Brukeren er lagt til i menigheten.')}>{T('Legg til')}</Btn>
-      </div>}
+      </div> : <p className="ch-note" data-ch-onechurch>{join.reason}</p>)}
+      <p className="ch-muted">{T('«Deaktiver midlertidig» stenger tilgangen til medlemskapet aktiveres igjen. «Fjern fra menigheten» avslutter medlemskapet – brukeren må inviteres på nytt for å komme tilbake.')}</p>
     </Card>
 
     {staff && <Card title="Globale roller">
@@ -332,7 +351,7 @@ function UserDetail({ id, onClose }) {
       {!dev && global.length > 0 ? <p className="ch-muted" data-ch-devonly>{T('Bare Developer kan deaktivere eller aktivere en Developer eller Moderator.')}</p> : <>
       <p className="ch-muted">{T(u.status === 'active' ? 'Deaktivering stenger brukeren ute med en gang, i alle menigheter. Ingenting slettes.' : 'Kontoen er deaktivert. Aktivering gir tilgang igjen.')}</p>
       <div className="ch-row">{u.status === 'active'
-        ? <Btn kind="danger" onClick={run(() => admin.setUserStatus(u.id, 'disabled'), 'Kontoen er deaktivert. Brukeren mister tilgang med en gang.')}>{T('Deaktiver konto')}</Btn>
+        ? <Btn kind="danger" onClick={run(() => { if (!confirm(T('Deaktivere kontoen til') + ' ' + nm + '?\n\n' + T('Brukeren stenges ute med en gang, i alle menigheter. Ingenting slettes, og kontoen kan aktiveres igjen.'))) throw Object.assign(new Error(), { code: 'cancel' }); return admin.setUserStatus(u.id, 'disabled'); }, 'Kontoen er deaktivert. Brukeren mister tilgang med en gang.')}>{T('Deaktiver konto')}</Btn>
         : <Btn onClick={run(() => admin.setUserStatus(u.id, 'active'), 'Kontoen er aktivert.')}>{T('Aktiver konto')}</Btn>}</div></>}
     </Card>}
 

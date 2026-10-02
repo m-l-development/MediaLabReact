@@ -8,6 +8,8 @@ const ERR = {
   unauthorized: 'Økten er utløpt. Last siden på nytt.', timeout: 'Serveren svarte ikke i tide. Prøv igjen.', upstream_timeout: 'Databasen eller lagringen svarte ikke i tide. Prøv igjen.', not_found: 'Fant ikke det du lette etter.',
   video_not_allowed: 'Video kan aldri lastes opp. Videoer skal ligge i prosjektmappen på PC-en.', type_not_allowed: 'Bare bilder (PNG, JPG, WebP eller GIF) kan lastes opp.',
   storage_full: 'Lagringsplassen i ConnectHub er full. Kontakt Developer.',
+  already_member_elsewhere: 'Brukeren er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen – fjern brukeren fra den andre menigheten først.',
+  last_admin: 'Brukeren er Admin i menigheten. Bekreft at menigheten kan stå uten Admin, eller utnevn en ny Admin først.',
   too_large: 'Filen er for stor (maks 4 MB).', http_413: 'Filen er for stor (maks 4 MB).',
 };
 const CONFIG = { publishable_key_missing: 'Serveren mangler den offentlige nøkkelen.', secret_key_missing: 'Serveren mangler den hemmelige nøkkelen.' };
@@ -16,8 +18,8 @@ export const errText = e => {
   return T(ERR[e && e.code] || 'Noe gikk galt. Prøv igjen.');
 };
 export const ROLE = { user: 'Bruker', church_admin: 'Admin', moderator: 'Moderator', developer: 'Developer' };
-export const STATUS = { active: 'Aktiv', disabled: 'Deaktivert', pending: 'Venter', accepted: 'Godtatt', revoked: 'Trukket tilbake', expired: 'Utløpt', invited: 'Invitert', left: 'Har forlatt', declined: 'Avslått', approved: 'Godkjent', rejected: 'Avslått', withdrawn: 'Trukket tilbake', cancelled: 'Avsluttet', temporarily_disabled: 'Midlertidig deaktivert', pending_deletion: 'Venter på sletting', deleted: 'Slettet' };
-const TONE = { active: 'ok', accepted: 'ok', approved: 'ok', pending: 'warn', invited: 'warn', temporarily_disabled: 'warn', pending_deletion: 'bad', disabled: 'bad', revoked: '', expired: '', rejected: 'bad', declined: '', left: '', withdrawn: '' };
+export const STATUS = { active: 'Aktiv', disabled: 'Deaktivert', removed: 'Fjernet', pending: 'Venter', accepted: 'Godtatt', revoked: 'Trukket tilbake', expired: 'Utløpt', invited: 'Invitert', left: 'Har forlatt', declined: 'Avslått', approved: 'Godkjent', rejected: 'Avslått', withdrawn: 'Trukket tilbake', cancelled: 'Avsluttet', temporarily_disabled: 'Midlertidig deaktivert', pending_deletion: 'Venter på sletting', deleted: 'Slettet' };
+const TONE = { removed: '', active: 'ok', accepted: 'ok', approved: 'ok', pending: 'warn', invited: 'warn', temporarily_disabled: 'warn', pending_deletion: 'bad', disabled: 'bad', revoked: '', expired: '', rejected: 'bad', declined: '', left: '', withdrawn: '' };
 export const fmt = d => d ? new Date(d).toLocaleString(document.documentElement.lang === 'en' ? 'en-GB' : 'nb-NO', { dateStyle: 'short', timeStyle: 'short' }) : '';
 export const fmtDate = d => d ? new Date(d).toLocaleDateString(document.documentElement.lang === 'en' ? 'en-GB' : 'nb-NO', { dateStyle: 'medium' }) : '';
 export const mb = n => (Number(n || 0) / 1048576).toFixed(1) + ' MB';

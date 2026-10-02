@@ -4,5 +4,5 @@ export class ServiceError extends Error {
 }
 /* PostgreSQL SQLSTATE (felles for alle PostgreSQL-baserte leverandører) → nøytral kode. */
 export function fromSqlState(state) {
-  return { '42501': 'forbidden', '23505': 'conflict', '22023': 'invalid', '23514': 'invalid', '22P02': 'invalid', '54000': 'rate_limited', PGRST116: 'not_found', PGRST202: 'not_found', PGRST205: 'not_found', '42P01': 'not_found', '42883': 'not_found' }[state] || 'unknown';
+  return { '42501': 'forbidden', '23505': 'conflict', CH001: 'already_member_elsewhere', CH003: 'last_admin', '22023': 'invalid', '23514': 'invalid', '22P02': 'invalid', '54000': 'rate_limited', PGRST116: 'not_found', PGRST202: 'not_found', PGRST205: 'not_found', '42P01': 'not_found', '42883': 'not_found' }[state] || 'unknown';
 }

@@ -6,10 +6,11 @@ import { spaces as SP, links as LK, linkName, otherChurch, subscriptions as SUB,
 import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Dialog, href, go } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
 import { Thumb, downloadOriginal } from './thumbs.jsx';
+import { memberActions } from './members.js';
 
 const ACTIONS = {
   'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
-  'memberships.insert': 'Medlem lagt til', 'memberships.update': 'Medlemskap endret', 'memberships.delete': 'Medlemskap fjernet',
+  'memberships.insert': 'Medlem lagt til', 'memberships.update': 'Medlemskap endret', 'memberships.delete': 'Medlemskap fjernet', 'memberships.remove': 'Fjernet fra menighet',
   'user_roles.insert': 'Rolle gitt', 'user_roles.update': 'Rolle endret eller fjernet', 'user_roles.delete': 'Rolle slettet',
   'invitations.insert': 'Invitasjon laget', 'invitations.update': 'Invitasjon endret', 'invitations.delete': 'Invitasjon slettet',
   'app_users.insert': 'Bruker opprettet', 'app_users.update': 'Bruker endret', 'app_users.delete': 'Bruker slettet',
@@ -98,14 +99,15 @@ function MembersView({ church }) {
   const { me, d, staff, canManage, act, say, reload, openInvite } = useAdmin();
   const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [msg, setMsg] = React.useState({ title: '', body: '' });
   const id = church.id, manage = canManage(id);
-  const rows = d.memberships.filter(m => m.church_id === id).map(m => ({ m, u: d.users.find(u => u.id === m.user_id), adm: d.roles.find(r => r.role === 'church_admin' && r.church_id === id && r.user_id === m.user_id) }))
-    .filter(x => (!q || norm((x.u && (x.u.full_name + ' ' + x.u.email)) || '').includes(norm(q))) && (st === 'all' || x.m.status === st || (st === 'admin' && x.adm)))
+  const rows = d.memberships.filter(m => m.church_id === id).map(m => ({ m, u: d.users.find(u => u.id === m.user_id), adm: d.roles.find(r => r.role === 'church_admin' && r.church_id === id && r.user_id === m.user_id && !r.revoked_at) }))
+    .filter(x => (!q || norm((x.u && (x.u.full_name + ' ' + x.u.email)) || '').includes(norm(q))) && (st === 'removed' ? x.m.status === 'removed' : x.m.status !== 'removed' && (st === 'all' || x.m.status === st || (st === 'admin' && x.adm))))
     .sort((a, b) => String(a.u && (a.u.full_name || a.u.email)).localeCompare(String(b.u && (b.u.full_name || b.u.email)), 'no'));
   const run = (fn, ok) => act(async () => { await fn(); say(T(ok)); await reload(); });
+  const runMsg = fn => act(async () => { const m = await fn(); if (m) say(m); await reload(); });   // handlinger med bekreftelse (members.js)
   return <>
     <div className="ch-row">
       <Search value={q} onChange={setQ} placeholder="Søk etter medlem …" />
-      <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle'], ['active', 'Aktive'], ['disabled', 'Deaktiverte'], ['admin', 'Admin']]} />
+      <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle'], ['active', 'Aktive'], ['disabled', 'Deaktiverte'], ['admin', 'Admin'], ['removed', 'Fjernet (tidligere medlemmer)']]} />
       {manage && <Btn kind="primary" onClick={() => openInvite({ church: id })}>+ {T('Inviter medlem')}</Btn>}
     </div>
     <List cols="minmax(220px,2fr) auto auto" head={['Medlem', 'Status', '']} empty="Ingen medlemmer passer med søket."
@@ -113,13 +115,16 @@ function MembersView({ church }) {
       rows={rows.map(({ m, u, adm }) => ({ key: m.user_id, cells: [
         <div className="ch-who"><Avatar name={u ? (u.full_name || u.email) : '?'} /><div><b>{u ? (u.full_name || u.email) : T('Ukjent bruker')}</b><span>{u ? u.email : ''}</span></div></div>,
         <div className="ch-row"><StatusBadge s={m.status} />{adm && <RoleBadge r="church_admin" />}{u && u.status !== 'active' && <Badge tone="bad">{T('Konto deaktivert')}</Badge>}</div>,
-        m.user_id === me.id ? <span className="ch-muted">{T('Deg')}</span> : <div className="ch-end">
-          {manage && (m.status === 'active'
-            ? <Btn small kind="danger" onClick={run(() => admin.setMembershipStatus(m.user_id, id, 'disabled'), 'Medlemskapet er deaktivert.')}>{T('Deaktiver')}</Btn>
-            : <Btn small onClick={run(() => admin.setMembershipStatus(m.user_id, id, 'active'), 'Medlemskapet er aktivert.')}>{T('Aktiver')}</Btn>)}
-          {staff && m.status === 'active' && !adm && <Btn small onClick={run(() => admin.assignRole(m.user_id, 'church_admin', id, 'Admin-siden'), 'Brukeren er nå admin.')}>{T('Gjør til admin')}</Btn>}
-          {staff && adm && <Btn small onClick={run(() => admin.revokeRole(adm.id, 'Admin-siden'), 'Admin-rollen er fjernet.')}>{T('Fjern admin')}</Btn>}
-        </div>] }))} />
+        m.user_id === me.id ? <span className="ch-muted">{T('Deg')}</span> : m.status === 'removed' ? <span className="ch-muted">{T('Fjernet')} {fmtDate(m.updated_at)}</span> : (() => {
+          const a = { userId: m.user_id, churchId: id, name: u ? (u.full_name || u.email) : T('Ukjent bruker'), church: church.name, isAdmin: !!adm, roleId: adm && adm.id };
+          return <div className="ch-end" data-ch-memberactions>
+            {staff && m.status === 'active' && !adm && <Btn small onClick={run(() => admin.assignRole(m.user_id, 'church_admin', id, 'Admin-siden'), 'Brukeren er nå admin.')}>{T('Gjør til admin')}</Btn>}
+            {staff && adm && <Btn small onClick={runMsg(() => memberActions.revokeAdmin(a))}>{T('Fjern admin-rollen')}</Btn>}
+            {manage && (m.status === 'active'
+              ? <Btn small onClick={runMsg(() => memberActions.disable(a))}>{T('Deaktiver midlertidig')}</Btn>
+              : <Btn small onClick={run(() => admin.setMembershipStatus(m.user_id, id, 'active'), 'Medlemskapet er aktivert.')}>{T('Aktiver igjen')}</Btn>)}
+            {(staff || (manage && !adm)) && <Btn small kind="danger" data-ch-removemember onClick={runMsg(() => memberActions.remove(a))}>{T('Fjern fra menigheten')}</Btn>}
+          </div>; })()] }))} />
     {manage && <Card title="Melding til alle medlemmer">
       <form className="ch-form" onSubmit={act(async e => { e.preventDefault(); const n = await NOTI.sendToChurch(id, msg.title, msg.body); setMsg({ title: '', body: '' }); say(T('Meldingen er sendt til') + ' ' + n + ' ' + T('medlemmer.')); })}>
         <Field label="Tittel"><input className="ch-input" value={msg.title} onChange={e => setMsg(m => ({ ...m, title: e.target.value }))} maxLength={160} required /></Field>
