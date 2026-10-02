@@ -13,6 +13,9 @@ const ERR = {
   cleanup_not_ready: 'En eller flere av filene kan ikke ryddes (de er i bruk, eller eieren er medlem igjen). Ingenting ble slettet. Last siden på nytt.',
   cleanup_changed: 'Utvalget er endret siden du bekreftet. Ingenting ble slettet. Last siden på nytt og velg igjen.',
   link_exists:'Det finnes allerede en aktiv kobling mellom disse menighetene. Avslutt den før du gjenåpner en eldre kobling.',
+  group_min_members: 'En samarbeidsgruppe må ha minst to menigheter. Avslutt gruppen i stedet.',
+  group_full: 'En samarbeidsgruppe kan ha høyst 20 menigheter.',
+  group_member_exists: 'Menigheten er allerede med i gruppen.',
   last_admin: 'Brukeren er Admin i menigheten. Bekreft at menigheten kan stå uten Admin, eller utnevn en ny Admin først.',
   too_large: 'Filen er for stor (maks 4 MB).', http_413: 'Filen er for stor (maks 4 MB).',
 };

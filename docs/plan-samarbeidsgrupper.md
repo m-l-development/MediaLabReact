@@ -1,6 +1,6 @@
 # Plan: samarbeidsgrupper med tre eller flere menigheter
 
-Status: **forslag til godkjenning, oppdatert med brukerens beslutninger 2026-10-02.** Ingenting er implementert. Alt skal gjøres i dev. Produksjonen, `main` og produksjonsdatabasen røres ikke.
+Status: **godkjent og implementert i dev 2026-10-02** (migrering `20261008100000_collab_groups.sql`, se `docs/testlogg.md`). Ikke i produksjon – det krever egen godkjenning.
 
 ## 1. Mål
 

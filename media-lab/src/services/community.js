@@ -18,23 +18,34 @@ export const spaces = {
   share: (fileId, spaceId, on = true) => data().rpc('share_file_to_space', { p_file: fileId, p_space: spaceId, p_share: on }),
 };
 
-/* Koblinger mellom nøyaktig to menigheter med egen Samarbeidsfiler-mappe (trinn 18). Bare Moderator oppretter, avslutter
-   og gjenåpner; medlemmer ser koblinger for egne menigheter. Databasen avgjør alt (RLS og funksjoner). */
+/* Samarbeidsgrupper med 2–20 menigheter og felles Samarbeidsfiler-mappe (tidligere koblinger mellom to; samme ID-er).
+   Developer/Moderator (med MFA) oppretter, endrer, legger til/fjerner menigheter, avslutter, gjenåpner og sletter.
+   Medlemmer ser gruppenavnet og de aktive menighetene i egne grupper. Databasen avgjør alt (RLS og funksjoner). */
+export const MAX_GROUP_CHURCHES = 20;
 export const links = {
-  /* [{ id, church_a, church_a_name, church_b, church_b_name, status, created_at, ended_at, my_church }] */
-  mine: () => data().rpc('my_links'),
+  /* [{ id, name, description, status, created_at, ended_at, my_church, members: [{ church_id, name, status: 'active'|'left',
+     joined_at, left_at, copies?, bytes? }], copies?, bytes?, hidden_copies? }] – tallene og fjernede medlemmer bare for stab. */
+  mine: () => data().rpc('my_groups'),
   directory: () => data().rpc('church_directory'),
-  create: (church1, church2) => data().rpc('create_link', { p_church1: church1, p_church2: church2 }),
+  create: (name, description, churches) => data().rpc('create_group', { p_name: String(name || '').trim(), p_description: String(description || '').trim() || null, p_churches: churches }),
+  update: (id, name, description) => data().rpc('update_group', { p_link: id, p_name: String(name || '').trim(), p_description: String(description || '').trim() || null }),
+  /* Legger til en menighet, eller melder den inn igjen (kopiene den delte før, vises igjen). */
+  addChurch: (id, churchId) => data().rpc('add_group_church', { p_link: id, p_church: churchId }),
+  /* Fjerner en menighet: kopiene den har delt, skjules (slettes ikke). Minst to menigheter må bli igjen. */
+  removeChurch: (id, churchId) => data().rpc('remove_group_church', { p_link: id, p_church: churchId }),
   end: id => data().rpc('end_link', { p_link: id }),
   reopen: id => data().rpc('reopen_link', { p_link: id }),
-  /* Bare Developer/Moderator: filnavn og metadata, aldri innhold. */
+  /* Bare Developer/Moderator: filnavn og metadata, aldri innhold. hidden = menigheten som bidro, er ikke med nå. */
   filesMeta: id => data().rpc('link_files_meta', { p_link: id }),
-  /* Sletter en AVSLUTTET kobling og kopiene i den (via serveren, som også fjerner kopiene fra lagringen). */
+  /* Sletter en AVSLUTTET gruppe og alle kopiene i den (via serveren, som også fjerner kopiene fra lagringen). */
   remove: id => callServer('link.delete', { link_id: id }),
 };
-/* Visningsnavn for en kobling: «Menighet A – Menighet B» (eller den andre menigheten sett fra egen menighet). */
-export const linkName = l => [l.church_a_name, l.church_b_name].map(n => n || '(slettet menighet)').join(' – ');
-export const otherChurch = (l, mine) => (l.church_a === mine ? l.church_b_name : l.church_a_name) || '(slettet menighet)';
+/* Gruppens navn (migrerte koblinger heter «Menighet A – Menighet B»). */
+export const linkName = l => (l && l.name) || '(uten navn)';
+/* Aktive medlemsmenigheter, og de andre enn egen menighet. */
+export const activeMembers = l => ((l && l.members) || []).filter(m => m.status === 'active');
+export const otherChurches = (l, mine) => activeMembers(l).filter(m => m.church_id !== mine);
+export const memberName = (l, churchId) => ((l && l.members || []).find(m => m.church_id === churchId) || {}).name || '(slettet menighet)';
 
 export const subscriptions = {
   /* Plannavn og pris (alle innloggede). Planenes veiledende lagring kan bare Developer lese (plansAdmin). */

@@ -405,14 +405,14 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.err('Kobling: Moderator uten MFA kan ikke opprette kobling', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
 select ch_test.ok('Kobling: Moderator kobler B og A (rekkefølgen spiller ingen rolle)', $q$select public.create_link('bbbbbbbb-0000-4000-8000-00000000000b', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$);
-select ch_test.err('Kobling: bare én aktiv kobling per par', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$, '23505');
+select ch_test.ok_rb('Kobling: samme to menigheter kan være med i flere grupper', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b')$q$);
 select ch_test.err('Kobling: ikke med seg selv', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'aaaaaaaa-0000-4000-8000-00000000000a')$q$, '22023');
 select ch_test.ok('Kobling: Moderator kobler A og K', $q$select public.create_link('aaaaaaaa-0000-4000-8000-00000000000a', 'cccccccc-0000-4000-8000-00000000000c')$q$);
 select ch_test.cnt('Kobling: Moderator ser begge koblingene', $q$select 1 from public.my_links() where church_a in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c') and church_b in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c')$q$, 2);   -- bare testmenighetene (ekte koblinger i dev telles ikke)
 set local role postgres;
 create temp table t18 as select
-  (select id from public.church_links where church_a = 'aaaaaaaa-0000-4000-8000-00000000000a' and church_b = 'bbbbbbbb-0000-4000-8000-00000000000b') ab,
-  (select id from public.church_links where church_a = 'aaaaaaaa-0000-4000-8000-00000000000a' and church_b = 'cccccccc-0000-4000-8000-00000000000c') ak;
+  (select m1.link_id from public.church_link_members m1 join public.church_link_members m2 on m2.link_id = m1.link_id where m1.church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and m2.church_id = 'bbbbbbbb-0000-4000-8000-00000000000b') ab,
+  (select m1.link_id from public.church_link_members m1 join public.church_link_members m2 on m2.link_id = m1.link_id where m1.church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and m2.church_id = 'cccccccc-0000-4000-8000-00000000000c') ak;
 grant select on t18 to authenticated;
 do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on t18 to service_role'; end if; end $$;
 select ch_test.atleast('Kobling: Admin i begge menighetene fikk varsel', $q$select 1 from public.notifications where kind = 'church_link'$q$, 2);
@@ -424,7 +424,8 @@ select ch_test.cnt('Kobling: medlem i B ser bare koblingen A–B', 'select 1 fro
 select ch_test.cnt('Kobling: medlem i B ser navnet på A gjennom koblingen', $q$select 1 from public.my_links() where church_a_name = 'Testmenighet A'$q$, 1);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
 select ch_test.cnt('Kobling: Developer ser alle koblinger (som Moderator), også uten medlemskap', $q$select 1 from public.my_links() where church_a in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c')$q$, 2);
-select ch_test.cnt('Kobling: Developer leser koblingene (som Moderator)', $q$select 1 from public.church_links where church_a in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'cccccccc-0000-4000-8000-00000000000c')$q$, 2);
+select ch_test.cnt('Kobling: Developer leser koblingene (som Moderator)', $q$select 1 from public.church_links where id in (select ab from t18 union select ak from t18)$q$, 2);
+select ch_test.cnt('Kobling: koblingen er en gruppe med to medlemmer og navnet «A – B»', $q$select 1 from public.my_groups() where id = (select ab from t18) and name = 'Testmenighet A – Testmenighet B' and jsonb_array_length(members) = 2$q$, 1);
 
 -- Overføring (kopi): Delt mappe for alle medlemmer, Faste bare Admin, aldri private eller andres filer
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
@@ -557,7 +558,7 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.err('Gammel modell: sletting krever riktig navn', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Feil')$q$, '22023');
 select ch_test.ok('Gammel modell: Moderator sletter området', $q$select public.delete_space((select id from public.spaces where name = 'Nytt navn'), 'Nytt navn')$q$);
 set local role postgres;
-select ch_test.atleast('Logg: koblinger og endringer er loggført', $q$select 1 from public.audit_logs where action in ('links.create', 'links.end', 'links.reopen', 'spaces.update', 'spaces.delete')$q$, 5);
+select ch_test.atleast('Logg: koblinger og endringer er loggført', $q$select 1 from public.audit_logs where action in ('groups.create', 'groups.end', 'groups.reopen', 'spaces.update', 'spaces.delete')$q$, 5);
 set local role authenticated;
 
 -- ---------- Abonnement (P10) ----------
@@ -1271,11 +1272,12 @@ delete from public.files where id = (select id from ch_test.logos where file_nam
 select ch_test.cnt('Logo: slettes logofilen, blir logoen tom (ingen ødelagt peker)', $q$select 1 from public.churches where id = '41414141-0000-4000-8000-000000000041' and logo_file_id is null$q$, 1);
 
 -- ---------- Sletting av avsluttede koblinger ----------
-insert into public.church_links (church_a, church_b, status, ended_at) values ('31313131-0000-4000-8000-000000000031', '32323232-0000-4000-8000-000000000032', 'ended', now());
+insert into public.church_links (name, status, ended_at) values ('M1 – M2 test', 'ended', now());
+insert into public.church_link_members (link_id, church_id) select l.id, c from public.church_links l, unnest(array['31313131-0000-4000-8000-000000000031', '32323232-0000-4000-8000-000000000032']::uuid[]) c where l.name = 'M1 – M2 test';
 insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility, link_id, source_folder, source_file_id)
   select '31313131-0000-4000-8000-000000000031', 'test/kopi-m1m2.png', 'kopi-m1m2.png', 'image/png', 25, 'samarbeid', 'church', l.id, 'bilder', (select id from public.files where file_name = 'm1-delt.png')
-  from public.church_links l where l.church_a = '31313131-0000-4000-8000-000000000031' and l.church_b = '32323232-0000-4000-8000-000000000032';
-create table ch_test.dl as select id from public.church_links where church_a = '31313131-0000-4000-8000-000000000031' and church_b = '32323232-0000-4000-8000-000000000032';
+  from public.church_links l where l.name = 'M1 – M2 test';
+create table ch_test.dl as select id from public.church_links where name = 'M1 – M2 test';
 grant select on ch_test.dl to authenticated;
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
@@ -1288,7 +1290,262 @@ select ch_test.cnt('Sletting av kobling: Developer sletter en avsluttet kobling 
 set local role postgres;
 select ch_test.cnt('Sletting av kobling: koblingen og kopien er borte, originalen er urørt', $q$select 1 from public.church_links where id = (select id from ch_test.dl) union all select 1 from public.files where file_name = 'kopi-m1m2.png' union all select 1 from public.files where file_name = 'm1-delt.png'$q$, 1);
 select ch_test.cnt('Sletting av kobling: kopien står i køen for lagringen', $q$select 1 from public.file_cleanup_queue where file_name = 'kopi-m1m2.png' and status = 'pending'$q$, 1);
-select ch_test.cnt('Sletting av kobling: loggført', $q$select 1 from public.audit_logs where action = 'links.delete' and (meta ->> 'copies')::int = 1$q$, 1);
+select ch_test.cnt('Sletting av kobling: loggført', $q$select 1 from public.audit_logs where action = 'groups.delete' and (meta ->> 'copies')::int = 1 and jsonb_array_length(meta -> 'members') = 2$q$, 1);
+
+-- ---------- Samarbeidsgrupper med tre eller flere menigheter ----------
+-- Egne fixturer: G1 (61 Admin, 62 medlem), G2 (63 Admin, 64 medlem), G3 (65 Admin, 66 medlem), G4 (67 Admin, utenfor
+-- gruppen), G5 (ingen brukere). Rulles tilbake med resten.
+set local role postgres;
+insert into public.churches (id, name) values
+  ('61616161-0000-4000-8000-000000000061', 'Gruppetest G1'), ('62626262-0000-4000-8000-000000000062', 'Gruppetest G2'),
+  ('63636363-0000-4000-8000-000000000063', 'Gruppetest G3'), ('64646464-0000-4000-8000-000000000064', 'Gruppetest G4'),
+  ('65656565-0000-4000-8000-000000000065', 'Gruppetest G5');
+insert into public.app_users (id, email, full_name, status) select ('00000000-0000-4000-8000-0000000000' || n)::uuid, 'g' || n || '@test.invalid', 'G ' || n, 'active' from generate_series(61, 67) n;
+insert into public.user_identities (provider, subject, user_id) select 'https://test.invalid/auth/v1', 'sub-g' || n, ('00000000-0000-4000-8000-0000000000' || n)::uuid from generate_series(61, 67) n;
+insert into public.memberships (user_id, church_id) values
+  ('00000000-0000-4000-8000-000000000061', '61616161-0000-4000-8000-000000000061'), ('00000000-0000-4000-8000-000000000062', '61616161-0000-4000-8000-000000000061'),
+  ('00000000-0000-4000-8000-000000000063', '62626262-0000-4000-8000-000000000062'), ('00000000-0000-4000-8000-000000000064', '62626262-0000-4000-8000-000000000062'),
+  ('00000000-0000-4000-8000-000000000065', '63636363-0000-4000-8000-000000000063'), ('00000000-0000-4000-8000-000000000066', '63636363-0000-4000-8000-000000000063'),
+  ('00000000-0000-4000-8000-000000000067', '64646464-0000-4000-8000-000000000064');
+insert into public.user_roles (user_id, role, church_id) values
+  ('00000000-0000-4000-8000-000000000061', 'church_admin', '61616161-0000-4000-8000-000000000061'), ('00000000-0000-4000-8000-000000000063', 'church_admin', '62626262-0000-4000-8000-000000000062'),
+  ('00000000-0000-4000-8000-000000000065', 'church_admin', '63636363-0000-4000-8000-000000000063'), ('00000000-0000-4000-8000-000000000067', 'church_admin', '64646464-0000-4000-8000-000000000064');
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, uploaded_by, folder, visibility) values
+  ('61616161-0000-4000-8000-000000000061', 'test/g1-delt.png', 'g1-delt.png', 'image/png', 11, '00000000-0000-4000-8000-000000000062', 'bilder', 'church'),
+  ('61616161-0000-4000-8000-000000000061', 'test/g1-ny.png', 'g1-ny.png', 'image/png', 12, '00000000-0000-4000-8000-000000000062', 'bilder', 'church'),
+  ('62626262-0000-4000-8000-000000000062', 'test/g2-delt.png', 'g2-delt.png', 'image/png', 21, '00000000-0000-4000-8000-000000000064', 'bilder', 'church'),
+  ('63636363-0000-4000-8000-000000000063', 'test/g3-delt.png', 'g3-delt.png', 'image/png', 30, '00000000-0000-4000-8000-000000000066', 'bilder', 'church'),
+  ('63636363-0000-4000-8000-000000000063', 'test/g3-faste.png', 'g3-faste.png', 'image/png', 40, '00000000-0000-4000-8000-000000000065', 'faste', 'church'),
+  ('63636363-0000-4000-8000-000000000063', 'test/g3-privat.png', 'g3-privat.png', 'image/png', 50, '00000000-0000-4000-8000-000000000066', 'bilder', 'private'),
+  ('63636363-0000-4000-8000-000000000063', 'test/g3-ny.png', 'g3-ny.png', 'image/png', 60, '00000000-0000-4000-8000-000000000066', 'bilder', 'church'),
+  ('64646464-0000-4000-8000-000000000064', 'test/g4-delt.png', 'g4-delt.png', 'image/png', 70, '00000000-0000-4000-8000-000000000067', 'bilder', 'church');
+create table ch_test.gf as select id, file_name, church_id from public.files where storage_key like 'test/g_-%';
+create table ch_test.grp (name text primary key, id uuid);
+grant select on ch_test.gf, ch_test.grp to anon, authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on ch_test.gf, ch_test.grp to service_role'; end if; end $$;
+
+-- Opprettelse: bare Developer/Moderator med MFA
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.err('Gruppe: Admin kan ikke opprette gruppe', $q$select public.create_group('Admin-gruppe', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Gruppe: medlem kan ikke opprette gruppe', $q$select public.create_group('Bruker-gruppe', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Gruppe: Moderator uten MFA avvises', $q$select public.create_group('Uten MFA', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Gruppe: Developer uten MFA avvises', $q$select public.create_group('Uten MFA', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok_rb('Gruppe: Developer med MFA kan opprette gruppe', $q$select public.create_group('Developer-gruppe', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062', '63636363-0000-4000-8000-000000000063']::uuid[])$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Gruppe: for kort navn avvises', $q$select public.create_group('x', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '22023');
+select ch_test.err('Gruppe: navn med kontrolltegn avvises', $q$select public.create_group(E'Navn\nlinje', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '22023');
+select ch_test.err('Gruppe: for lang beskrivelse avvises', $q$select public.create_group('Gruppe', repeat('x', 501), array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$, '22023');
+select ch_test.err('Gruppe: én menighet avvises', $q$select public.create_group('Alene', null, array['61616161-0000-4000-8000-000000000061']::uuid[])$q$, '22023');
+select ch_test.err('Gruppe: samme menighet to ganger teller som én', $q$select public.create_group('Dobbel', null, array['61616161-0000-4000-8000-000000000061', '61616161-0000-4000-8000-000000000061']::uuid[])$q$, '22023');
+select ch_test.err('Gruppe: 21 menigheter avvises (høyst 20)', $q$select public.create_group('For stor', null, array(select gen_random_uuid() from generate_series(1, 21)))$q$, 'CH008');
+select ch_test.err('Gruppe: menighet som ikke finnes eller ikke er aktiv avvises', $q$select public.create_group('Ukjent', null, array['61616161-0000-4000-8000-000000000061', gen_random_uuid()])$q$, '22023');
+select ch_test.ok('Gruppe: Moderator oppretter «Påskeprosjekt» med G1, G2 og G3', $q$select public.create_group('  Påskeprosjekt ', 'Felles bilder til påske', array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062', '63636363-0000-4000-8000-000000000063']::uuid[])$q$);
+set local role postgres;
+insert into ch_test.grp select name, id from public.church_links where name = 'Påskeprosjekt';
+select ch_test.cnt('Gruppe: navnet er trimmet, og gruppen har tre aktive medlemmer', $q$select 1 from public.church_link_members where link_id = (select id from ch_test.grp where name = 'Påskeprosjekt') and status = 'active'$q$, 3);
+select ch_test.cnt('Gruppe: Admin i alle tre menighetene fikk varsel', $q$select 1 from public.notifications where kind = 'church_link' and title = 'Ny samarbeidsgruppe' and user_id in ('00000000-0000-4000-8000-000000000061', '00000000-0000-4000-8000-000000000063', '00000000-0000-4000-8000-000000000065')$q$, 3);
+select ch_test.cnt('Gruppe: opprettelsen er loggført', $q$select 1 from public.audit_logs where action = 'groups.create' and meta ->> 'name' = 'Påskeprosjekt' and jsonb_array_length(meta -> 'churches') = 3$q$, 1);
+set local role authenticated;
+
+-- Hvem ser gruppen
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.cnt('Gruppe: medlem i G3 ser gruppen med navn og alle tre menighetene', $q$select 1 from public.my_groups() where name = 'Påskeprosjekt' and jsonb_array_length(members) = 3 and my_church = '63636363-0000-4000-8000-000000000063'$q$, 1);
+select ch_test.cnt('Gruppe: medlem ser ingen tall for kopier (bare stab)', $q$select 1 from public.my_groups() where copies is null and bytes is null and hidden_copies is null$q$, 1);
+select ch_test.cnt('Gruppe: medlem leser gruppen i church_links', $q$select 1 from public.church_links where id = (select id from ch_test.grp where name = 'Påskeprosjekt')$q$, 1);
+select ch_test.cnt('Gruppe: medlemslisten kan ikke leses direkte', $q$select 1 from public.church_link_members$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.cnt('Gruppe: Admin i G1 ser gruppen og menighetene', $q$select 1 from public.my_groups() where name = 'Påskeprosjekt' and jsonb_array_length(members) = 3$q$, 1);
+select ch_test.err('Gruppe: Admin kan ikke endre navn', $q$select public.update_group((select id from ch_test.grp where name = 'Påskeprosjekt'), 'Nytt navn', null)$q$, '42501');
+select ch_test.err('Gruppe: Admin kan ikke legge til menighet', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '64646464-0000-4000-8000-000000000064')$q$, '42501');
+select ch_test.err('Gruppe: Admin kan ikke fjerne menighet (heller ikke egen – kan ikke forlate gruppen)', $q$select public.remove_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '61616161-0000-4000-8000-000000000061')$q$, '42501');
+select ch_test.err('Gruppe: Admin kan ikke avslutte', $q$select public.end_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '42501');
+select ch_test.err('Gruppe: Admin får ikke metadata-oversikten', $q$select public.link_files_meta((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '42501');
+select ch_test.err('Gruppe: Admin kan ikke skrive i medlemslisten', $q$insert into public.church_link_members (link_id, church_id) values ((select id from ch_test.grp where name = 'Påskeprosjekt'), '64646464-0000-4000-8000-000000000064')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Gruppe: medlem kan ikke legge til menighet', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '64646464-0000-4000-8000-000000000064')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g67","aal":"aal1"}';
+select ch_test.cnt('Gruppe: menighet utenfor (G4) ser ingen grupper', $q$select 1 from public.my_groups()$q$, 0);
+select ch_test.cnt('Gruppe: menighet utenfor (G4) leser ingen grupper i church_links', $q$select 1 from public.church_links where id = (select id from ch_test.grp where name = 'Påskeprosjekt')$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Gruppe: Moderator endrer navn og beskrivelse', $q$select public.update_group((select id from ch_test.grp where name = 'Påskeprosjekt'), 'Påskeprosjekt 2026', 'Bilder til påske')$q$);
+select ch_test.err('Gruppe: Moderator kan ikke skrive direkte i medlemslisten', $q$insert into public.church_link_members (link_id, church_id) values ((select id from ch_test.grp where name = 'Påskeprosjekt'), '64646464-0000-4000-8000-000000000064')$q$, '42501');
+select ch_test.err('Gruppe: Moderator kan ikke endre gruppen direkte', $q$update public.church_links set name = 'Direkte' where id = (select id from ch_test.grp where name = 'Påskeprosjekt')$q$, '42501');
+select ch_test.cnt('Gruppe: Moderator ser gruppen med nytt navn', $q$select 1 from public.my_groups() where id = (select id from ch_test.grp where name = 'Påskeprosjekt') and name = 'Påskeprosjekt 2026' and description = 'Bilder til påske'$q$, 1);
+set local role postgres;
+select ch_test.cnt('Gruppe: navneendringen er loggført med gammelt og nytt navn', $q$select 1 from public.audit_logs where action = 'groups.update' and meta ->> 'old_name' = 'Påskeprosjekt' and meta ->> 'new_name' = 'Påskeprosjekt 2026'$q$, 1);
+
+-- Kopier inn: Delt mappe (alle medlemmer), Faste (bare Admin), aldri private, ikke fra menigheter utenfor
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.ok('Gruppekopi: medlem i G1 deler fra Delt mappe', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.gf where file_name = 'g1-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-g1.png')$q$);
+select ch_test.ok('Gruppekopi: medlem i G2 deler fra Delt mappe', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g64', (select id from ch_test.gf where file_name = 'g2-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-g2.png')$q$);
+select ch_test.ok('Gruppekopi: medlem i G3 deler fra Delt mappe', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g66', (select id from ch_test.gf where file_name = 'g3-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-g3.png')$q$);
+select ch_test.err('Gruppekopi: medlem kan ikke dele fra Faste', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g66', (select id from ch_test.gf where file_name = 'g3-faste.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-x.png')$q$, '42501');
+select ch_test.ok('Gruppekopi: Admin i G3 deler fra Faste', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g65', (select id from ch_test.gf where file_name = 'g3-faste.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-g3f.png')$q$);
+select ch_test.err('Gruppekopi: private filer kan aldri deles', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g66', (select id from ch_test.gf where file_name = 'g3-privat.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-x.png')$q$, '42501');
+select ch_test.err('Gruppekopi: samme fil kan ikke deles to ganger til samme gruppe', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.gf where file_name = 'g1-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-x.png')$q$, '23505');
+select ch_test.err('Gruppekopi: menighet utenfor gruppen kan ikke dele', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g67', (select id from ch_test.gf where file_name = 'g4-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-x.png')$q$, '42501');
+select ch_test.err('Gruppekopi: kan ikke dele en annen menighets fil', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.gf where file_name = 'g2-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-x.png')$q$, '42501');
+set local role postgres;
+create table ch_test.gk as select id, file_name, church_id, storage_key from public.files where storage_key like 'test/gk-%';
+grant select on ch_test.gk to anon, authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on ch_test.gk to service_role'; end if; end $$;
+select ch_test.cnt('Gruppekopi: fire kopier, hver med menigheten som bidro', $q$select 1 from ch_test.gk k join ch_test.gf o on o.file_name = k.file_name and o.church_id = k.church_id$q$, 4);
+select ch_test.cnt('Gruppekopi: originalene er urørt', $q$select 1 from public.files where id in (select id from ch_test.gf) and link_id is null$q$, 8);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g65","aal":"aal1"}';
+select ch_test.cnt('Gruppekopi: kopiene teller i kvoten til menigheten som bidro (G3: 180 + 70)', $q$select 1 where (public.storage_usage('63636363-0000-4000-8000-000000000063') ->> 'used_bytes')::bigint = 250$q$, 1);
+
+-- Synlighet og nedlastingslenker
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.cnt('Gruppefiler: medlem i G1 ser alle fire kopiene', $q$select 1 from public.files where folder = 'samarbeid'$q$, 4);
+select ch_test.cnt('Gruppefiler: medlem i G1 får nøkler til alle fire kopiene', $q$select 1 from public.file_keys(array(select id from ch_test.gk))$q$, 4);
+select ch_test.cnt('Gruppefiler: medlem i G1 ser ingen av originalene i G2 og G3', $q$select 1 from public.files where id in (select id from ch_test.gf where church_id <> '61616161-0000-4000-8000-000000000061')$q$, 0);
+select ch_test.cnt('Gruppefiler: medlem i G1 får ingen nøkler til originalene i G2 og G3', $q$select 1 from public.file_keys(array(select id from ch_test.gf where church_id <> '61616161-0000-4000-8000-000000000061'))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.cnt('Gruppefiler: medlem i G3 ser kopiene fra G1 og G2', $q$select 1 from public.files where folder = 'samarbeid' and church_id in ('61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062')$q$, 2);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g67","aal":"aal1"}';
+select ch_test.cnt('Gruppefiler: medlem i G4 (utenfor) ser ingenting', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+select ch_test.cnt('Gruppefiler: medlem i G4 får ingen nøkler', $q$select 1 from public.file_keys(array(select id from ch_test.gk))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Gruppefiler: Moderator ser ingen filrader', $q$select 1 from public.files where id in (select id from ch_test.gk)$q$, 0);
+select ch_test.cnt('Gruppefiler: Moderator får ingen nøkler', $q$select 1 from public.file_keys(array(select id from ch_test.gk))$q$, 0);
+select ch_test.cnt('Gruppefiler: Moderator får metadata for alle fire (ingen skjult)', $q$select 1 from public.link_files_meta((select id from ch_test.grp where name = 'Påskeprosjekt')) where not hidden and church_name like 'Gruppetest G_'$q$, 4);
+select ch_test.err('Gruppefiler: Moderator kan ikke slette kopier', $q$select public.delete_file((select id from ch_test.gk where file_name = 'g1-delt.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Gruppefiler: Developer uten medlemskap ser ingenting og får ingen nøkler', $q$select 1 from public.files where id in (select id from ch_test.gk) union all select 1 from public.file_keys(array(select id from ch_test.gk))$q$, 0);
+select ch_test.cnt('Gruppefiler: Developer ser antall kopier og størrelse', $q$select 1 from public.my_groups() where id = (select id from ch_test.grp where name = 'Påskeprosjekt') and copies = 4 and bytes = 102 and hidden_copies = 0$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g63","aal":"aal1"}';
+select ch_test.err('Gruppefiler: Admin i G2 kan ikke fjerne G1 sin kopi', $q$select public.delete_file((select id from ch_test.gk where file_name = 'g1-delt.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Gruppefiler: medlem kan ikke fjerne kopier (heller ikke egne)', $q$select public.delete_file((select id from ch_test.gk where file_name = 'g1-delt.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g63","aal":"aal1"}';
+select ch_test.ok_rb('Gruppefiler: Admin i G2 kan fjerne egen kopi', $q$select public.delete_file((select id from ch_test.gk where file_name = 'g2-delt.png'))$q$);
+
+-- Fjerning av G3: kopiene skjules (ikke slettet), andres kopier påvirkes ikke
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Fjerning fra gruppe: Moderator fjerner G3', $q$select public.remove_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '63636363-0000-4000-8000-000000000063')$q$);
+select ch_test.err('Fjerning fra gruppe: G3 er ikke lenger med', $q$select public.remove_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '63636363-0000-4000-8000-000000000063')$q$, '22023');
+select ch_test.err('Fjerning fra gruppe: nest siste menighet kan ikke fjernes', $q$select public.remove_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '62626262-0000-4000-8000-000000000062')$q$, 'CH007');
+select ch_test.cnt('Fjerning fra gruppe: Moderator ser fortsatt alle fire kopiene, to merket skjult', $q$select 1 from public.link_files_meta((select id from ch_test.grp where name = 'Påskeprosjekt')) where hidden = (church_id = '63636363-0000-4000-8000-000000000063')$q$, 4);
+select ch_test.cnt('Fjerning fra gruppe: Moderator ser G3 som fjernet i medlemslisten', $q$select 1 from public.my_groups() g, jsonb_array_elements(g.members) m where g.id = (select id from ch_test.grp where name = 'Påskeprosjekt') and m ->> 'name' = 'Gruppetest G3' and m ->> 'status' = 'left' and g.hidden_copies = 2$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.cnt('Fjerning fra gruppe: medlem i G3 ser ingen kopier i gruppen (heller ikke egne)', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+select ch_test.cnt('Fjerning fra gruppe: medlem i G3 får ingen nøkler', $q$select 1 from public.file_keys(array(select id from ch_test.gk))$q$, 0);
+select ch_test.cnt('Fjerning fra gruppe: medlem i G3 ser ikke gruppen', $q$select 1 from public.my_groups() union all select 1 from public.church_links where id = (select id from ch_test.grp where name = 'Påskeprosjekt')$q$, 0);
+select ch_test.err('Fjerning fra gruppe: medlem i G3 kan ikke dele nye kopier', $q$select public.can_transfer((select id from ch_test.gf where file_name = 'g3-ny.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '42501');
+select ch_test.cnt('Fjerning fra gruppe: originalene i G3 er urørt og synlige for G3', $q$select 1 from public.files where id in (select id from ch_test.gf where church_id = '63636363-0000-4000-8000-000000000063' and file_name <> 'g3-privat.png')$q$, 3);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g65","aal":"aal1"}';
+select ch_test.err('Fjerning fra gruppe: Admin i G3 kan ikke slette sine skjulte kopier (v1)', $q$select public.delete_file((select id from ch_test.gk where file_name = 'g3-delt.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.cnt('Fjerning fra gruppe: medlem i G1 ser fortsatt G1 og G2 sine kopier, ikke G3 sine', $q$select 1 from public.files where folder = 'samarbeid' and church_id <> '63636363-0000-4000-8000-000000000063' union all select 1 from public.files where folder = 'samarbeid' and church_id = '63636363-0000-4000-8000-000000000063'$q$, 2);
+select ch_test.cnt('Fjerning fra gruppe: medlem i G1 får ikke nøkler til G3 sine kopier', $q$select 1 from public.file_keys(array(select id from ch_test.gk where church_id = '63636363-0000-4000-8000-000000000063'))$q$, 0);
+select ch_test.cnt('Fjerning fra gruppe: medlem i G1 ser to menigheter i gruppen', $q$select 1 from public.my_groups() where jsonb_array_length(members) = 2$q$, 1);
+set local role postgres;
+select ch_test.cnt('Fjerning fra gruppe: ingen kopier er slettet', $q$select 1 from public.files where id in (select id from ch_test.gk)$q$, 4);
+select ch_test.cnt('Fjerning fra gruppe: medlemsraden er markert med tidspunkt og hvem', $q$select 1 from public.church_link_members where church_id = '63636363-0000-4000-8000-000000000063' and status = 'left' and left_at is not null and left_by = '00000000-0000-4000-8000-000000000002'$q$, 1);
+select ch_test.cnt('Fjerning fra gruppe: Admin i G3 fikk varsel om skjulte kopier', $q$select 1 from public.notifications where user_id = '00000000-0000-4000-8000-000000000065' and title = 'Fjernet fra samarbeidsgruppe'$q$, 1);
+select ch_test.cnt('Fjerning fra gruppe: Admin i G1 og G2 fikk varsel', $q$select 1 from public.notifications where user_id in ('00000000-0000-4000-8000-000000000061', '00000000-0000-4000-8000-000000000063') and title = 'Samarbeidsgruppe: menighet fjernet'$q$, 2);
+select ch_test.cnt('Fjerning fra gruppe: loggført med antall skjulte kopier', $q$select 1 from public.audit_logs where action = 'groups.remove_church' and church_id = '63636363-0000-4000-8000-000000000063' and (meta ->> 'copies_hidden')::int = 2$q$, 1);
+
+-- Deling mens G3 er ute, og gjeninnmelding
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.ok('Gjeninnmelding: G1 deler en ny kopi mens G3 er ute', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.gf where file_name = 'g1-ny.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'), 'test/gk-g1ny.png')$q$);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Gjeninnmelding: Moderator legger G3 til igjen', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '63636363-0000-4000-8000-000000000063')$q$);
+select ch_test.err('Gjeninnmelding: kan ikke legges til to ganger', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '63636363-0000-4000-8000-000000000063')$q$, 'CH009');
+select ch_test.err('Gjeninnmelding: inaktiv eller ukjent menighet avvises', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), gen_random_uuid())$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.cnt('Gjeninnmelding: G3 ser alle fem kopiene (også den som ble delt mens G3 var ute)', $q$select 1 from public.files where folder = 'samarbeid'$q$, 5);
+select ch_test.cnt('Gjeninnmelding: G3 får nøkler til alle fem', $q$select 1 from public.file_keys(array(select id from public.files where folder = 'samarbeid'))$q$, 5);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.cnt('Gjeninnmelding: G2 ser G3 sine kopier igjen', $q$select 1 from public.files where folder = 'samarbeid' and church_id = '63636363-0000-4000-8000-000000000063'$q$, 2);
+set local role postgres;
+select ch_test.cnt('Gjeninnmelding: samme medlemsrad er aktiv igjen (ingen ny rad)', $q$select 1 from public.church_link_members where church_id = '63636363-0000-4000-8000-000000000063' and status = 'active' and left_at is null$q$, 1);
+select ch_test.cnt('Gjeninnmelding: loggført med antall kopier som vises igjen', $q$select 1 from public.audit_logs where action = 'groups.add_church' and church_id = '63636363-0000-4000-8000-000000000063' and (meta ->> 'rejoin')::boolean and (meta ->> 'copies_shown')::int = 2$q$, 1);
+
+-- Midlertidig deaktivert menighet: bidragene skjules, ingenting slettes
+update public.churches set status = 'temporarily_disabled' where id = '62626262-0000-4000-8000-000000000062';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.cnt('Deaktivert i gruppe: G1 ser ikke G2 sin kopi', $q$select 1 from public.files where folder = 'samarbeid' and church_id = '62626262-0000-4000-8000-000000000062'$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.cnt('Deaktivert i gruppe: G2 ser ingenting', $q$select 1 from public.files where folder = 'samarbeid'$q$, 0);
+set local role postgres;
+update public.churches set status = 'active' where id = '62626262-0000-4000-8000-000000000062';
+
+-- Høyst 20 menigheter (lås på gruppen)
+insert into public.churches (name) select 'Grensetest ' || lpad(n::text, 2, '0') from generate_series(1, 18) n;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Grense: 17 menigheter til gir 20 i alt', $q$select count(public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), c.id)) from public.churches c where c.name between 'Grensetest 01' and 'Grensetest 17'$q$);
+select ch_test.err('Grense: menighet nr. 21 avvises', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), (select id from public.churches where name = 'Grensetest 18'))$q$, 'CH008');
+select ch_test.ok_rb('Grense: en gruppe kan opprettes med nøyaktig 20', $q$select public.create_group('Tjue', null, array(select id from public.churches where name like 'Grensetest %' order by name limit 20))$q$);
+select ch_test.ok('Grense: etter fjerning av én er det plass igjen', $q$select public.remove_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), (select id from public.churches where name = 'Grensetest 17'))$q$);
+select ch_test.ok('Grense: nr. 20 kan legges til', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), (select id from public.churches where name = 'Grensetest 18'))$q$);
+set local role postgres;
+select ch_test.cnt('Grense: gruppen har 20 aktive medlemmer', $q$select 1 from public.church_link_members where link_id = (select id from ch_test.grp where name = 'Påskeprosjekt') and status = 'active'$q$, 20);
+select ch_test.cnt('Grense: låsen er på gruppen (add_group_church tar FOR UPDATE)', $q$select 1 from pg_proc where proname = 'add_group_church' and prosrc like '%for update%' and prosrc like '%>= 20%'$q$, 1);
+
+-- Avslutning skjuler alt; gjeninnmelding er lov i avsluttet gruppe; gjenåpning viser igjen
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Avsluttet gruppe: Moderator fjerner G2 (20 → 19)', $q$select public.remove_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '62626262-0000-4000-8000-000000000062')$q$);
+select ch_test.ok('Avsluttet gruppe: Moderator avslutter', $q$select public.end_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$);
+select ch_test.ok('Avsluttet gruppe: G2 kan legges til igjen mens gruppen er avsluttet', $q$select public.add_group_church((select id from ch_test.grp where name = 'Påskeprosjekt'), '62626262-0000-4000-8000-000000000062')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.cnt('Avsluttet gruppe: G2 ser ingenting før gjenåpning', $q$select 1 from public.files where folder = 'samarbeid' union all select 1 from public.my_groups()$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.cnt('Avsluttet gruppe: G1 ser ingenting', $q$select 1 from public.files where folder = 'samarbeid' union all select 1 from public.file_keys(array(select id from public.files where storage_key like 'test/gk-%'))$q$, 0);
+select ch_test.err('Avsluttet gruppe: ingen nye kopier', $q$select public.can_transfer((select id from ch_test.gf where file_name = 'g1-delt.png'), (select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.err('Avsluttet gruppe: Admin kan ikke gjenåpne', $q$select public.reopen_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '42501');
+select ch_test.err('Avsluttet gruppe: Admin kan ikke slette', $q$select public.delete_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Avsluttet gruppe: Moderator gjenåpner', $q$select public.reopen_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.cnt('Gjenåpnet gruppe: G2 ser alle fem kopiene igjen', $q$select 1 from public.files where folder = 'samarbeid'$q$, 5);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Sletting av gruppe: aktiv gruppe kan ikke slettes', $q$select public.delete_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '22023');
+select ch_test.ok('Sletting av gruppe: Moderator avslutter igjen', $q$select public.end_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Sletting av gruppe: Developer uten MFA avvises', $q$select public.delete_link((select id from ch_test.grp where name = 'Påskeprosjekt'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Sletting av gruppe: Developer sletter, alle fem kopiene (også tidligere skjulte) går til køen', $q$select 1 where (public.delete_link((select id from ch_test.grp where name = 'Påskeprosjekt')) ->> 'copies')::int = 5$q$, 1);
+set local role postgres;
+select ch_test.cnt('Sletting av gruppe: gruppen, medlemslisten og kopiene er borte', $q$select 1 from public.church_links where id = (select id from ch_test.grp where name = 'Påskeprosjekt') union all select 1 from public.church_link_members where link_id = (select id from ch_test.grp where name = 'Påskeprosjekt') union all select 1 from public.files where storage_key like 'test/gk-%'$q$, 0);
+select ch_test.cnt('Sletting av gruppe: originalene er urørt', $q$select 1 from public.files where id in (select id from ch_test.gf)$q$, 8);
+select ch_test.cnt('Sletting av gruppe: fem lagringsnøkler venter i køen', $q$select 1 from public.file_cleanup_queue where storage_key like 'test/gk-%' and status = 'pending'$q$, 5);
+select ch_test.cnt('Sletting av gruppe: loggført med navn og medlemmer', $q$select 1 from public.audit_logs where action = 'groups.delete' and meta ->> 'name' = 'Påskeprosjekt 2026' and jsonb_array_length(meta -> 'members') = 21 and (meta ->> 'copies')::int = 5$q$, 1);
+
+-- Endelig sletting av en menighet i grupper: medlemskapet og menighetens kopier forsvinner; grupper med færre enn to igjen avsluttes
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Livsløp i gruppe: gruppe X med G4 og G5', $q$select public.create_group('Gruppe X', null, array['64646464-0000-4000-8000-000000000064', '65656565-0000-4000-8000-000000000065']::uuid[])$q$);
+select ch_test.ok('Livsløp i gruppe: gruppe Y med G1, G2 og G4', $q$select public.create_group('Gruppe Y', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062', '64646464-0000-4000-8000-000000000064']::uuid[])$q$);
+set local role postgres;
+insert into ch_test.grp select name, id from public.church_links where name in ('Gruppe X', 'Gruppe Y');
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.ok('Livsløp i gruppe: G4 deler en kopi i Y', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g67', (select id from ch_test.gf where file_name = 'g4-delt.png'), (select id from ch_test.grp where name = 'Gruppe Y'), 'test/gy-g4.png')$q$);
+select ch_test.ok('Livsløp i gruppe: G1 deler en kopi i Y', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.gf where file_name = 'g1-delt.png'), (select id from ch_test.grp where name = 'Gruppe Y'), 'test/gy-g1.png')$q$);
+set local role postgres;
+update public.churches set status = 'pending_deletion' where id = '64646464-0000-4000-8000-000000000064';
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.ok('Livsløp i gruppe: server sletter G4 for Developer med MFA', $q$select public.purge_church('64646464-0000-4000-8000-000000000064', 'https://test.invalid/auth/v1', 'sub-1', 'aal2')$q$);
+set local role postgres;
+select ch_test.cnt('Livsløp i gruppe: gruppe X (bare G5 igjen) er avsluttet', $q$select 1 from public.church_links where id = (select id from ch_test.grp where name = 'Gruppe X') and status = 'ended'$q$, 1);
+select ch_test.cnt('Livsløp i gruppe: gruppe Y er fortsatt aktiv med G1 og G2', $q$select 1 from public.church_links l where l.id = (select id from ch_test.grp where name = 'Gruppe Y') and l.status = 'active' and app.group_active_count(l.id) = 2$q$, 1);
+select ch_test.cnt('Livsløp i gruppe: G4 sin kopi er slettet med menigheten, G1 sin er igjen', $q$select 1 from public.files where storage_key = 'test/gy-g1.png' union all select 1 from public.files where storage_key = 'test/gy-g4.png'$q$, 1);
+select ch_test.cnt('Livsløp i gruppe: slettingen er loggført med avsluttede grupper', $q$select 1 from public.audit_logs where action = 'churches.purge' and church_id = '64646464-0000-4000-8000-000000000064' and jsonb_array_length(meta -> 'groups_ended') = 1$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.cnt('Livsløp i gruppe: G2 ser fortsatt G1 sin kopi i Y', $q$select 1 from public.files where folder = 'samarbeid' and church_id = '61616161-0000-4000-8000-000000000061'$q$, 1);
+set local role postgres;
 
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);

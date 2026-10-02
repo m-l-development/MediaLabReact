@@ -39,6 +39,9 @@ export function dbError(e) {
   if (code === 'CH004') return { status: 409, error: 'role_blocked_memberships' };   // global rolle kan ikke fjernes (flere aktive medlemskap)
   if (code === 'CH005') return { status: 409, error: 'cleanup_not_ready' };          // fil kan ikke ryddes (referanse, aktivt medlem …)
   if (code === 'CH006') return { status: 409, error: 'cleanup_changed' };            // utvalget er endret siden bekreftelsen   // samlet lagringsplass i ConnectHub er brukt opp (trinn 20)
+  if (code === 'CH007') return { status: 409, error: 'group_min_members' };          // samarbeidsgruppe må ha minst to menigheter
+  if (code === 'CH008') return { status: 409, error: 'group_full' };                 // høyst 20 menigheter per samarbeidsgruppe
+  if (code === 'CH009') return { status: 409, error: 'group_member_exists' };        // menigheten er allerede med i gruppen
   if (code === '22023' || code === '23514' || code === '22P02') return { status: 400, error: 'invalid' };
   return { status: 502, error: 'backend_error' };
 }

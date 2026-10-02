@@ -4,7 +4,7 @@ import React from 'react';
 import './admin.css';
 import { admin } from '../../services/admin.js';
 import { isStaff, hasRole } from '../../services/data/me.js';
-import { subscriptions as SUB, links as LK } from '../../services/community.js';
+import { subscriptions as SUB, links as LK, activeMembers } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor, brandOf } from './access.js';
 import { roleSummary, canJoinAnother, memberActions, fill, roleBlocked, splitName, nameError, welcomeName, mainRole } from './members.js';
@@ -90,7 +90,7 @@ export default function AdminPage({ me }) {
   else if (sec === 'menigheter') body = id ? <ChurchDetail id={id} tab={sub || (canManage(id) ? 'medlemmer' : 'filer')} /> : <ChurchesView />;
   else if (sec === 'invitasjoner') body = <InvitesView />;
   else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser, delt mappe og Samarbeidsfiler. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
-  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Koblinger mellom to menigheter. Hver kobling har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
+  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Samarbeidsgrupper med to eller flere menigheter. Hver gruppe har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
   else if (sec === 'tilbakemeldinger') body = <FeedbackView selected={id} />;
   else if (sec === 'opprydning') body = <CleanupView churchId={id} />;
   else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer eller Moderator godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
@@ -131,21 +131,20 @@ function Forbidden() {
       <div className="ch-row"><a className="ch-btn" href={href('oversikt')}>{T('Til oversikten')}</a></div></Card></>;
 }
 
-/* Oversikt for Moderator: koblinger mellom menigheter (bare metadata, aldri filinnhold). */
-/* Samarbeid på oversikten (bare Moderator, som administrerer koblingene). */
+/* Samarbeid på oversikten (Developer og Moderator, som administrerer samarbeidsgruppene; bare metadata, aldri filinnhold). */
 function CollabCard() {
   const { act } = useAdmin();
   const [ls, setLs] = React.useState([]);
   React.useEffect(() => { act(async () => setLs(await LK.mine()))(); }, []);
   const active = ls.filter(l => l.status === 'active');
-  const churches = new Set(active.flatMap(l => [l.church_a, l.church_b]).filter(Boolean));
+  const churches = new Set(active.flatMap(l => activeMembers(l).map(m => m.church_id)));
   return <Card title="Samarbeid">
     <div className="ch-stats">
-      <a className="ch-stat" href={href('samarbeid')}><b>{active.length}</b><span>{T('Aktive koblinger')}</span></a>
-      <a className="ch-stat" href={href('samarbeid')}><b>{churches.size}</b><span>{T('Menigheter med kobling')}</span></a>
-      <a className="ch-stat" href={href('samarbeid')}><b>{ls.length - active.length}</b><span>{T('Avsluttede koblinger')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{active.length}</b><span>{T('Aktive samarbeidsgrupper')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{churches.size}</b><span>{T('Menigheter i grupper')}</span></a>
+      <a className="ch-stat" href={href('samarbeid')}><b>{ls.length - active.length}</b><span>{T('Avsluttede grupper')}</span></a>
     </div>
-    <p className="ch-muted">{T('Som Developer eller Moderator kobler du sammen to og to menigheter. Hver kobling får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet.')}</p>
+    <p className="ch-muted">{T('Som Developer eller Moderator samler du to eller flere menigheter (høyst 20) i samarbeidsgrupper. Hver gruppe får sin egen Samarbeidsfiler-mappe der menighetene deler kopier av bilder. Du ser bare filnavn og opplysninger om filene – aldri innholdet.')}</p>
     <div className="ch-row"><a className="ch-btn primary" href={href('samarbeid')}>{T('Gå til samarbeid')}</a></div>
   </Card>;
 }

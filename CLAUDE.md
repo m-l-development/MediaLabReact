@@ -55,10 +55,11 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 - `vercel.json`: `buildCommand: npm run build`, `outputDirectory: dist`, CSP uten CDN og uten `unsafe-inline` for skript (inline-skript tillates med SHA-256 – bygget stopper hvis et mangler; `wasm-unsafe-eval` beholdes for onnxruntime), `assets/` hurtigbufres lenge (filnavn med hash). CSP-en står i to regler som utelukker hverandre (`has`/`missing` host = produksjonsadressen): produksjonsadressen får CSP uten utviklingsprosjektet, alle andre verter (Dev, deployment-adresser, lokalt) får begge. Leses via `build/csp.js` (vite-serveren, kontroll av inline-skript i begge, `static-serve.mjs`), testet i `build/csp.test.js`.
 - P10: `src/services/community.js` (samarbeidsområder, abonnement uten betaling, varsler, personvern, menighetens livsløp), serverhandlinger i `server/handlers/privacy.js` (`privacy.delete_me`, `church.export`, `church.purge`), varsler og personvern i kontomenyen (`src/shared/account-menu.js`), fanene Samarbeid/Abonnement i admin.
 - Tester: `npm test` (inkl. RLS-testsettet i PGlite), `npm run drill`, `node build/static-serve.mjs`; RLS mot dev: `supabase db query --linked --project-ref uatpdmhnwwjgzlxaucsx -f supabase/tests/rls_test.sql`.
-- Samarbeid (trinn 18, `supabase/migrations/20261001190000_church_links.sql` + `…190100_link_source_folder.sql`):
+- Samarbeid (trinn 18, `supabase/migrations/20261001190000_church_links.sql` + `…190100_link_source_folder.sql`; grupper: `20261008100000_collab_groups.sql`, plan i `docs/plan-samarbeidsgrupper.md`):
   - Grunnkrav: menigheter ser aldri hverandres filer.
-  - **Koblinger:** en kobling (`church_links`) gjelder nøyaktig to menigheter. Bare Moderator med MFA oppretter, avslutter og gjenåpner (`create_link`, `end_link`, `reopen_link`; Samarbeid-siden `LinksView`). Navnet vises som «Menighet A – Menighet B».
-  - **Samarbeidsfiler:** hver kobling har en egen mappe (`files.folder = 'samarbeid'`, `link_id`, `source_file_id`, `source_folder`).
+  - **Samarbeidsgrupper:** `church_links` er gruppen (`name`, `description`), og `church_link_members` holder 2–20 menigheter (`status` active/left). `church_a`/`church_b` står igjen bare for bakoverkompatibilitet. Developer/Moderator med MFA oppretter og endrer (`create_group`, `update_group`, `add_group_church`, `remove_group_church`, `end_link`, `reopen_link`, `delete_link`; Samarbeid-siden `LinksView`). Grensene håndheves i databasen med lås på gruppen (CH007 = minst to, CH008 = høyst 20, CH009 = allerede med). Medlemmer og Admin ser gruppenavn og aktive menigheter (`my_groups`), men kan ikke forlate gruppen selv. `my_links`/`create_link` er tynne kompatibilitetsfunksjoner.
+  - **Fjerning av menighet:** kopiene den har delt, skjules (`app.can_see_file` krever at bidragsyteren er aktivt medlem: `app.group_access` + `app.group_member_ok`). Ingenting slettes, og gjeninnmelding (samme rad) viser dem igjen. Admin i en fjernet menighet kan ikke slette de skjulte kopiene (v1); de ryddes når gruppen slettes.
+  - **Samarbeidsfiler:** hver gruppe har en egen mappe (`files.folder = 'samarbeid'`, `link_id`, `source_file_id`, `source_folder`). I Filer vises én gruppe om gangen, med «Fra oss» og «Fra <menighet>».
   - **Kopiering inn:** filer kommer bare inn som KOPI via `file.copy_to_link`: `can_transfer` → `storageCopy`, kontroll mot SHA-256, og `register_link_copy` med lås og kvote. Originalen røres aldri.
     - Delt mappe: alle medlemmer kan kopiere.
     - Faste: bare Admin.
@@ -67,8 +68,8 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
   - **Moderator** ser bare metadata (`link_files_meta`), aldri innhold.
   - **Developer** ser filer bare i menigheter der Developer er medlem (A1).
   - **Faste** forvaltes bare av Admin (M1).
-  - **Avsluttet kobling:** alt skjules for begge, og ingenting slettes.
-  - **Verktøyene:** `MLCloud.collab()` i `ch-cloud.js` gir Samarbeidsfiler i et eget, merket område (Photo Design-biblioteket, Mockups-kategorien «Samarbeidsfiler»). `files(mappe)` gir bare egne menigheters filer.
+  - **Avsluttet gruppe:** alt skjules for alle, og ingenting slettes. Bare avsluttede grupper kan slettes (kopiene via `file_cleanup_queue`).
+  - **Verktøyene:** `MLCloud.collab()` i `ch-cloud.js` gir Samarbeidsfiler i et eget, merket område med gruppenavnet som tittel (Photo Design-biblioteket, Mockups-kategorien «Samarbeidsfiler»). `files(mappe)` gir bare egne menigheters filer.
   - **De gamle samarbeidsområdene** (`spaces`) er beholdt i databasen, men vises ikke lenger. Deling gjennom dem er skrudd av.
 - Lagringskvote (trinn 19 + 21, `supabase/migrations/20261001200000_plan_editing.sql` og `20261002100000_church_quota_standard.sql`):
   - Menighetens faktiske kvote er `churches.storage_quota_mb`. Den er fast standard 200 MB (`app.default_quota_mb()`, `DEFAULT_QUOTA_MB`), eller en egen kvote som Developer med MFA tildeler per menighet (`set_church_quota`).

@@ -18,9 +18,9 @@ import { links as L, linkName } from '../services/community.js';
       return (cache[folder] = { files: list.filter(f => urls[f.id]).map(f => ({ url: urls[f.id], name: f.file_name, id: f.id })), hidden: new Set() });
     } catch (e) { return empty; }
   }
-  /* Samarbeidsfiler: kopier i aktive koblinger for brukerens menigheter, gruppert per kobling og merket med begge
-     menighetenes navn. folders = bare kopier med originalmappe i lista (f.eks. ['mockups']); tom = alle.
-     → [{ link, title: 'Menighet A – Menighet B', files: [{ url, name, id, folder }] }] */
+  /* Samarbeidsfiler: kopier i aktive samarbeidsgrupper for brukerens menighet, gruppert per gruppe med gruppenavnet som
+     tittel. Databasen gir bare kopier fra menigheter som er aktive medlemmer. folders = bare kopier med originalmappe i
+     lista (f.eks. ['mockups']); tom = alle. → [{ link, title: 'Påskeprosjekt', files: [{ url, name, id, folder }] }] */
   async function collab(folders) {
     const k = 'collab:' + (folders || []).join(',');
     if (cache[k]) return cache[k];

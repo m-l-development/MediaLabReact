@@ -846,3 +846,65 @@ Begge er tørrkjørt (bare disse to filene), og alle 14 kontrollfelt er like fø
 - Loggrader.
 
 **Testdata slettet i dev:** to avsluttede A–B-koblinger. Begge var testkoblinger, og ingen av dem hadde filer.
+
+## Samarbeidsgrupper med tre eller flere menigheter (2026-10-02, bare connecthub-dev)
+
+Plan: `docs/plan-samarbeidsgrupper.md` (godkjent). Migrering: `supabase/migrations/20261008100000_collab_groups.sql`. Produksjonen og `main` er ikke rørt.
+
+**Migrering i dev:**
+- Tørrkjøring viste bare denne migreringen. Den ble brukt med `db push` mot `uatpdmhnwwjgzlxaucsx`.
+- Kontrollen i migreringen (antall koblinger = grupper, riktige medlemmer) gikk gjennom.
+- Den eneste koblingen (A – «12») er nå gruppen «CH-test Menighet A – 12». Den har samme ID, 2 aktive medlemmer og bevart `created_at`.
+- Øyeblikksbildet før og etter (14 felt + koblinger, kopier og logg) var likt. Eneste forskjell: +1 migrering.
+- Parkontrollen og den unike par-indeksen er fjernet. `church_link_members` har RLS uten policyer og uten rettigheter for `anon`/`authenticated`.
+
+**Tester:**
+- **RLS:** 735/735 i PGlite og i dev, hvorav 129 nye. Eksisterende koblingstester er tilpasset: samme par kan nå være i flere grupper, og loggnavnene er `groups.*`.
+  - **Tre menigheter:** kopier fra alle, G4 utenfor ser ingenting (rader og nedlastingsnøkler), og stab ser bare metadata.
+  - **Kopiering og sletting:** Faste bare for Admin, private filer aldri, ingen dobbel kopi, og kopien teller i bidragsyterens kvote. Bare Admin hos bidragsyteren kan fjerne en kopi.
+  - **Fjerning:** kopiene til G3 skjules for alle (også nøklene), G3 mister gruppen, og ingenting slettes. Admin i G3 kan ikke slette de skjulte kopiene. Nest siste menighet stoppes (CH007).
+  - **Gjeninnmelding:** samme rad blir aktiv igjen, og alle kopier vises, også den som ble delt mens G3 var ute. Dobbel innmelding gir CH009.
+  - **Grense:** høyst 20 menigheter (CH008) ved oppretting og tillegg. Det er plass igjen etter en fjerning, og låsen er på gruppen.
+  - **Avslutning og gjenåpning:** avsluttet gruppe skjuler alt. Innmelding er lov i en avsluttet gruppe, og gjenåpning viser alt igjen.
+  - **Sletting:** bare avsluttede grupper. Alle kopiene, også de som har vært skjult, går til køen, og originalene er urørt.
+  - **Endelig sletting av en menighet:** en gruppe med færre enn to medlemmer igjen avsluttes. Andre grupper fortsetter, og bare den slettede menighetens kopier forsvinner.
+  - **Deaktivert menighet:** bidragene skjules.
+  - **Avvisning:** Admin, User og stab uten MFA avvises i all administrasjon og direkte skriving.
+- **`npm test`:** 125/125. Nye servertester:
+  - `copy_to_link` der menigheten fjernes før registreringen gir 403, og kopien ryddes bort.
+  - `link.delete` med gruppe tømmer køen og sender aldri nøkler til nettleseren.
+  - Feilkodene CH007–CH009.
+
+**Nettleser (lokal preview mot dev, bare menighet A og B – ingen «CH-test Menighet C»):**
+- **Moderator (PC):**
+  - «Opprett gruppe» er av uten valg. Gruppen «CH-test Gruppe E2E» ble opprettet med A og B, og navn og beskrivelse ble endret.
+  - «Fjern» er av med bare to menigheter, og det står en forklaring.
+  - Ingen vannrett rulling.
+- **User i A (mobil):** «Del i Samarbeidsfiler» → valg av gruppe. Teksten viser gruppen og begge menighetene. Kopien ble delt, og Samarbeidsfiler viste gruppevelger, «Fra oss 1» og «Fra CH-test Menighet B 0». `#/samarbeid` gir «Ingen tilgang».
+- **User i B (PC og mobil):**
+  - Ser bare sin egen gruppe, ikke A – «12».
+  - Ser «Fra CH-test Menighet A 1», og miniatyren lastes, altså går nedlastingslenken gjennom.
+  - Verktøyene (`MLCloud.collab()` i Photo Design): «CH-test Gruppe E2E 2: 1 fil(er)».
+- **Admin i A (mobil):** ser gruppen og menighetene, og har «Fjern fra Samarbeidsfiler» bare på egen kopi. `#/samarbeid` gir «Ingen tilgang».
+- **Developer (mobil):** ser lista med antall kopier, og metadata gruppert per menighet uten miniatyrer. Developer avsluttet gruppen. B så deretter ingen Samarbeidsfiler.
+- **Moderator gjenåpnet:** B så kopien igjen.
+- **Moderator avsluttet og slettet:** bekreftelsen viste «1 kopier … medregnet kopier som er skjult». Gruppen og kopien er borte, køoppføringen er «done», og originalen er urørt. Loggen viser opprettet / endret / avsluttet / gjenåpnet / avsluttet / slettet.
+- **Funnet og rettet under testen:**
+  - Søkefeltet i «Ny samarbeidsgruppe» ble en høy boks (`flex-basis` i kolonne).
+  - Gammel undertittel «Koblinger mellom to menigheter».
+  - Lista ble oppdatert etter meldingen i stedet for før.
+- **Regresjon (lesende):** alle admin-sider og fem verktøysider for Developer, Moderator, Admin og User på PC 1440 og mobil 390. Riktig tilgang og avvisning, ingen feilmeldinger og ingen vannrett rulling. Eneste konsollfeil er den kjente 404-en for den valgfrie `mockups/config.json`.
+
+**Testdata i dev:**
+- Ny syntetisk konto `ch-test-userb@example.com` (User i CH-test Menighet B). B hadde ingen testkonto med kjent passord. Den kan fjernes etter godkjenning.
+- Testgruppen «CH-test Gruppe E2E 2» ble opprettet og slettet igjen, sammen med sin ene kopi.
+- Loggrader og varsler.
+- Gruppen «CH-test Menighet A – 12», menigheten «12», kontoen din og skjermbildet ditt er urørt.
+
+**Avvik fra planen:**
+- `church_directory` trengte ingen endring.
+- `export_church` er endret (format `/3`, `groups` i stedet for `links`), siden den brukte `church_a`/`church_b`.
+- `delete_file` krever nå at en kopi i Samarbeidsfiler er synlig (aktiv gruppe, bidragsyteren er med). Det håndhever beslutningen om at skjulte kopier ikke kan slettes i v1, og gjelder også kopier i avsluttede grupper.
+- Fjerning av nest siste menighet stoppes også i avsluttede grupper.
+- Gjenåpning krever 2–20 aktive medlemmer som alle er aktive menigheter.
+- Fjerning og gjeninnmelding i nettleseren krever en tredje menighet. De er dekket av RLS-testene til «CH-test Menighet C» eventuelt godkjennes.

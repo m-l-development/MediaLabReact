@@ -153,6 +153,37 @@ test('file.copy_to_link: kopi som ikke er identisk, eller feil ved registrering,
   assert.deepEqual(dobbel.log.find(x => x[0] === 'del')[1], [dobbel.log.find(x => x[0] === 'copy')[2]]);
 });
 
+test('file.copy_to_link (gruppe): fjernes menigheten før registreringen, avvises kopien med 403 og ryddes bort', async () => {
+  const sha = await shaHex(PNG);
+  const b = linkFake({ can_transfer: () => ({ storage_key: 'c/' + CH + '/o.png', church_id: CH, sha256: sha }), register_link_copy: () => { throw Object.assign(new Error(), { code: '42501' }); } });
+  const r = await copy({ file_id: SRC, link_id: LINK }, b);
+  assert.equal(r.status, 403);
+  assert.deepEqual(b.log.find(x => x[0] === 'del')[1], [b.log.find(x => x[0] === 'copy')[2]], 'kopien fjernes fra lagringen');
+  assert.equal(b.log.find(x => x[1] === 'can_transfer')[0], 'user', 'forhåndskontrollen går med brukerens token');
+});
+
+/* --- Sletting av avsluttet samarbeidsgruppe --- */
+test('link.delete (gruppe): databasen sletter med brukerens token, alle kopiene (også skjulte) fjernes fra lagringen', async () => {
+  const b = fake({ delete_link: () => ({ ok: true, copies: 2, bytes: 30, queue: [Q1, Q2] }),
+    cleanup_queue_claim: a => a.p_ids.map(id => ({ id, storage_key: 'c/' + id + '.png' })), cleanup_queue_done: () => null });
+  b.storageDelete = async keys => { b.log.push(['del', keys]); };
+  const r = await clean('link.delete', { link_id: LINK }, b);
+  assert.equal(r.status, 200); assert.deepEqual([r.body.copies, r.body.storage_done, r.body.storage_failed], [2, 2, 0]);
+  assert.equal(b.log.find(x => x[1] === 'delete_link')[0], 'user');
+  assert.ok(!JSON.stringify(r.body).includes('c/'), 'ingen lagringsnøkler til nettleseren');
+  for (const [code, err] of [['22023', 'invalid'], ['42501', 'forbidden']]) {
+    const bb = fake({ delete_link: () => { throw Object.assign(new Error('db'), { code }); } });
+    const x = await clean('link.delete', { link_id: LINK }, bb);
+    assert.equal(x.body.error, err); assert.ok(!bb.log.some(y => y[1] === 'cleanup_queue_claim'), 'ingenting fjernes når databasen avviser');
+  }
+  assert.equal((await clean('link.delete', { link_id: 'x' }, fake())).status, 400);
+});
+test('feilkoder for grupper: minst to, høyst 20 og allerede med gir 409 med egen kode', async () => {
+  const { dbError } = await import('../lib/http.js');
+  assert.deepEqual(['CH007', 'CH008', 'CH009'].map(code => dbError({ code })), [
+    { status: 409, error: 'group_min_members' }, { status: 409, error: 'group_full' }, { status: 409, error: 'group_member_exists' }]);
+});
+
 /* --- Opprydning av private filer fra fjernede medlemmer --- */
 const Q1 = '77777777-7777-4777-8777-777777777777', Q2 = '88888888-8888-4888-8888-888888888888';
 const clean = async (a, body, backend) => { const r = await handle(new Request('https://x/api/ch?a=' + a, { method: 'POST', headers: { authorization: 'Bearer ' + await token(), 'content-type': 'application/json' }, body: JSON.stringify(body) }), ENV, { fetchFn, backend }); return { status: r.status, body: await r.json() }; };
