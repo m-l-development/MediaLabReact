@@ -524,3 +524,30 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 - Grensen er tilbake på 1024 MB.
 - Alle 14 felt i øyeblikksbildet er identiske med tilstanden før migreringen.
 - **Varige spor:** to loggrader (`storage.limit` 1024 → 1 → 1024). Ingen varsler (80 % ble ikke passert).
+
+## P11 – ConnectHub i produksjon (2026-10-02)
+
+**Godkjent med «Ja, start siste ting».** Nettadressen er `https://media-lab-react-vyef.vercel.app` (fast Vercel-adresse), og regionen er `arn1`.
+
+| Steg | Resultat |
+|---|---|
+| `main` (hastefiks `9c536f9`) slått inn i `connecthub` | `d3b3d13`. Konflikten i `api/ml.js` er løst med `connecthub`-versjonen, uten innholdsendring. |
+| Produksjonsadresse og region | `e74abc5`: `SITE.production` er satt, og `vercel.json` har `"regions": ["arn1"]`. |
+| Lokalt produksjonsbygg før publisering | **Avdekket feil:** rollebytteren hadde utviklingsprosjektets ID i koden, og byggevakten stoppet bygget. Rettet i `c6757e8`: ID-en settes bare inn i bygg som ikke er produksjon. Produksjonsbygget har 0 treff på dev-ID og er godkjent av vakten. 97/97 tester. |
+| Supabase-produksjon (`cmuienhheklcgtfmpvbe`), migreringer | Databasen var tom før kjøring. Tørrkjøringen viste nøyaktig 20 migreringer, og alle 20 er kjørt. 17 tabeller, alle med RLS. Bøtta `ch-files` er privat, med 4 MB grense og bare bildetyper. Planene er 200/1024/5120 og samlet grense 1024 MB. |
+| RLS mot produksjon | **411/411.** Transaksjonen rulles tilbake, og ingen data ble igjen. |
+| Auth-innstillinger | Lagt inn med en egen produksjonskonfigurasjon, ikke repoets dev-fil. **Endret (6 innstillinger):** Site URL `https://media-lab-react-vyef.vercel.app`, Redirect URL `https://media-lab-react-vyef.vercel.app/**`, registrering av, minst 10 tegn med bokstaver og tall, og sikker passordendring. TOTP er på. Ikke-deklarerte innstillinger (SSL, tilkoblingsgrenser) er urørt. |
+| Vercel Production | `connecthubSUPABASE_URL` og `connecthubSUPABASE_PUBLISHABLE_KEY` er lagt inn (Config), og `connecthubSUPABASE_SECRET_KEY` som **Secret**. Verdiene gikk direkte fra Supabase CLI til Vercel og ble aldri vist. Integrasjonens `VITE_SUPABASE_*`-variabler er ikke slettet (se merknad). |
+| Publisering | `main` er spolt fram til `c6757e8`. Produksjonsbygget ble «Ready». |
+| Røyktest uten innlogging | Alle sider gir 307 til `/login.dc.html?next=…`. Innloggingssiden gir 200, med CSP og HSTS. `X-Vercel-Id` er `arn1`, og `version.json` er `c6757e8`. `/api/ch` og `/api/ml` gir 401 uten gyldig innlogging. Nettleserkoden peker bare mot produksjonsprosjektet (0 treff på dev-ID, ingen nøkler). |
+| Første Developer | Innloggingskontoen er opprettet med bekreftet e-post og **uten passord**. Den er koblet med `app.bootstrap_developer` (rolle `developer`, loggført). Produksjonen har 1 bruker, 0 menigheter og 0 filer. |
+
+**Merknad om `VITE_SUPABASE_*`:**
+- Variablene fra Supabase-integrasjonen (blant annet hemmelige nøkler) finnes fortsatt i Vercel Production. De blir aldri med i bygget, fordi `vite.config.js` låser Vite-eksponeringen til et prefiks ingen variabel bruker, og byggevakten søker etter nøkler.
+- De er ikke slettet, fordi de styres av integrasjonen. Fjerning bør gjøres i integrasjonsinnstillingene ved en senere anledning.
+
+**Gjenstår (brukeren):**
+1. Legg inn SMTP for Gmail i Supabase.
+2. Sett passord via «Glemt passordet?».
+3. Første innlogging med totrinnsbekreftelse.
+4. Opprett menigheter og send invitasjoner.
