@@ -2,7 +2,7 @@
 
 Brukeren skriver norsk. Svar kort og direkte på norsk.
 
-GitHub: `zoefredrikstad-maker/MediaLabReact`. `main` = produksjon (Vercel Production). `connecthub` = ConnectHub-utvikling (Vercel Preview → Supabase `connecthub-dev`).
+GitHub: `m-l-development/MediaLabReact` (tidligere `zoefredrikstad-maker/MediaLabReact`, offentlig repo). `main` = produksjon (Vercel Production). `connecthub` = ConnectHub-utvikling (Vercel Preview → Supabase `connecthub-dev`).
 
 ## ConnectHub (videreutvikling av Media Lab) – faste regler
 - Arbeid skjer på grenen `connecthub` og mot `connecthub-dev` (`uatpdmhnwwjgzlxaucsx`). **Aldri** endringer i `main`, produksjonsdatabasen `connecthub` (`cmuienhheklcgtfmpvbe`), Vercel-innstillinger eller miljøvariabler uten uttrykkelig godkjenning. Produksjon (P11) og kostnader godkjennes alltid separat.
