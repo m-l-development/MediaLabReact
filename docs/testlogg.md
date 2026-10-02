@@ -1001,3 +1001,57 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 **Tester:** `npm test` 125/125. Bygget går.
 
 **Testdata i dev:** nye passord for `ch-test-user` og `ch-test-dev`, lagret bare i testlegitimasjonen i scratchpad. MFA-faktoren til `ch-test-dev` er satt opp på nytt.
+
+## E-postsystemet og Mail-fanen (2026-10-03, dev; plan-foresporsler-epost-konto.md kapittel 1.3 A og 3)
+
+**Innhold:**
+- **E-post fra serveren:** ConnectHub sender selv e-post via SMTP (`server/lib/mail.js` og `server/adapters/smtp.js`, nodemailer 10.0.13 uten kjente sårbarheter).
+- **Lenker:** «Glemt passord» (`auth.recover`, tilgjengelig før innlogging, med grenser) og invitasjoner (`invite.create`/`resend`) bruker engangslenker fra `generate_link`, med `token_hash` til vår side. Lenkene virker i alle nettlesere og brukes først ved «Fortsett».
+- **Maler:** blokker, felles gjengivelse (`src/shared/mail-render.js`), logo som innebygd vedlegg.
+- **Mail-fanen:** bare Developer og Moderator med MFA.
+- **Database:** migrering `20261010100000_mail.sql`.
+- **Uten SMTP-oppsett:** som før (Supabase sender), se `docs/epostoppsett.md`.
+
+**Tester:**
+- **RLS:** 802/802 i PGlite og i dev, hvorav 39 nye.
+  - Admin, User og stab uten MFA avvises.
+  - Ugyldige maler avvises: ingen eller to lenkebokser, ukjent blokk, linjeskift i emnet, for lang tekst og ukjent mal.
+  - Ukjente felt (`href`) fjernes.
+  - Standardmalen kan gjenopprettes, og logo kan settes, byttes og tilbakestilles.
+  - Alt loggføres med gammel og ny verdi.
+  - Bare serveren kan hente maler, registrere utsendinger og bruke grensetelleren.
+- **`npm test`:** 142/142, hvorav 17 nye:
+  - **Gjengivelse:** escaping, lenke bare fra systemet, og bare trygge adresser.
+  - **`auth.recover`:** nøytrale svar, grenser med hasher, reserveløsning, og e-postfeil registreres uten lenke.
+  - **Innlogging:** bare «Glemt passord» er åpen før innlogging.
+  - **Invitasjon:** `invite`- og `magiclink`-lenker, og reserveløsning.
+  - **Logo:** rettighet først, PNG/JPG under 512 kB, og SVG/GIF avvist.
+  - **Status og testutsending.**
+  - **SMTP-protokoll:** mot en lokal testserver, med innlogging, avsender, HTML/tekst og innebygd logo.
+  - **Byggevakten:** stopper ved SMTP-passord i nettleserkoden.
+
+**Nettleser (lokal preview mot dev, testpostkasse – ingen ekte e-post):**
+- **«Glemt passord»:**
+  - Kvittering, og e-posten har riktig emne, logo og lenke til vår side.
+  - Lenken åpnet i **en annen nettleser** (mobil): «Nytt passord», «Fortsett», nytt passord og innlogging. Det gamle passordet er avvist.
+- **Mail-fanen, Developer (PC):**
+  - Status «sendes fra testpostkasse». Malene og blokkene vises, og lenkeboksen har bare knappetekst.
+  - Forhåndsvisningen oppdateres mens man skriver. Den escaper HTML og ligger i en sandkasse uten skript.
+  - Tomt emne stopper lagring, og lagring virker.
+  - Logo kan lastes opp, og forhåndsvisningen bruker den.
+  - Testutsending er registrert i «Siste utsendinger».
+  - Ingen vannrett rulling.
+- **Invitasjon av ny bruker** (`ch-test-mail1@example.com`, User i CH-test Menighet A):
+  - Velkomstmailen har den redigerte malen og egen logo.
+  - Lenken åpnet i en ny nettleser: «Velkommen til ConnectHub», så «Fortsett», så «Velg passord». Brukeren er innlogget og medlem av A, og passordet virker.
+- **Moderator (mobil):** forhåndsvisning i mobilbredde. Pilene flytter blokker. Standardmalen og standardlogoen gjenopprettes. Ingen vannrett rulling.
+- **Admin og User:** `#/mail` gir «Ingen tilgang», det er ingen Mail-meny, og `mail.status`, `mail.test` og `mail.logo_reset` gir 403.
+- **Reserveløsning uten SMTP:** serveren svarer `fallback: true`, og nettleseren bruker Supabase sin «Glemt passord» som før. Mail-fanen viser «ikke satt opp», og testknappen er av.
+
+**Ikke testet:** ekte levering via Gmail-SMTP. Det krever variablene i Vercel (`docs/epostoppsett.md`, punkt 3).
+
+**Testdata i dev:**
+- ny bruker `ch-test-mail1@example.com` (User i A)
+- nytt passord for `ch-test-user`
+- rader i utsendingsloggen og grensetelleren
+- loggrader for Mail

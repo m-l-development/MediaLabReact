@@ -71,11 +71,13 @@ export function resolveSupabaseEnv(env) {
 
 /* Søk etter hemmeligheter i ferdig bygget tekst. Returnerer liste med funn (uten selve verdiene).
    Begrensning: finner bare kjente mønstre, ikke vilkårlige hemmeligheter. */
-export function scanText(text, { target } = {}) {
+export function scanText(text, { target, secrets = [] } = {}) {
   const t = String(text), found = [];
   if (/sb_secret_[A-Za-z0-9_-]{10,}/.test(t)) found.push('sb_secret_-nøkkel');
   if (/postgres(?:ql)?:\/\/[^\s:'"`/@]+:[^\s@'"`]+@/i.test(t)) found.push('PostgreSQL-URL med passord');
-  for (const n of ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_JWT_SECRET', 'SUPABASE_SECRET_KEY', 'POSTGRES_PASSWORD']) if (t.includes(n)) found.push('variabelnavn ' + n);
+  for (const n of ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_JWT_SECRET', 'SUPABASE_SECRET_KEY', 'POSTGRES_PASSWORD', 'CONNECTHUB_SMTP_PASSWORD']) if (t.includes(n)) found.push('variabelnavn ' + n);
+  /* Kjente hemmelige verdier fra byggemiljøet (f.eks. SMTP-passordet) – navnet på funnet oppgis, aldri verdien. */
+  for (const [name, v] of secrets) if (v && String(v).length >= 8 && t.includes(String(v))) found.push('verdien av ' + name);
   for (const m of t.matchAll(/eyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]{8,}/g)) { const p = jwtPayload(m[0]); if (p && p.role === 'service_role') { found.push('JWT med service_role'); break; } }
   if (target === 'preview' && t.includes(REFS.production)) found.push('produksjonens prosjekt-ID i et Preview-bygg');
   if (target === 'production' && t.includes(REFS.preview)) found.push('utviklingsprosjektets ID i et produksjonsbygg');

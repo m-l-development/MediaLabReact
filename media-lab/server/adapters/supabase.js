@@ -33,6 +33,15 @@ export function supabaseServer(cfg, fetchFn = fetch) {
         return { kind: 'magiclink' };
       }
     },
+    /* Engangslenke uten e-post (ConnectHub sender e-posten selv). type: 'invite' (oppretter innloggingskonto ved behov),
+       'magiclink' eller 'recovery'. Gir bare den hashede koden (token_hash) – den brukes i vår egen lenke og verifiseres i
+       nettleseren. Finnes ikke kontoen (recovery/magiclink) eller finnes den allerede (invite), kastes feilen videre. */
+    async generateLink(type, email, redirectTo) {
+      const r = await call('/auth/v1/admin/generate_link', { method: 'POST', headers: asServer, body: { type, email, redirect_to: redirectTo } });
+      const p = (r && r.properties) || r || {};
+      if (!/^[0-9a-f]{20,}$/.test(String(p.hashed_token || ''))) { const e = new Error('generate_link'); e.code = 'link_missing'; throw e; }
+      return { hashedToken: p.hashed_token, type: p.verification_type || type };
+    },
     /* Fillagring (privat bøtte, bare serveren). Nøkler lages av serveren (c/<menighet>/<uuid>.<ext>). */
     storagePut: (key, bytes, mime) => call('/storage/v1/object/' + BUCKET + '/' + key, { method: 'POST', headers: { ...asServer, 'content-type': mime, 'x-upsert': 'false', 'cache-control': 'max-age=3600' }, body: bytes, raw: true }),
     async storageSign(keys, expiresIn) {

@@ -5,7 +5,7 @@ import { sectionsFor, brandOf } from './access.js';
 const sec = o => [...sectionsFor({ dev: false, collab: false, adminOf: [], churches: [], ...o })].sort();
 const A = { id: 'a' }, B = { id: 'b' };
 
-const STAFF = ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger'];
+const STAFF = ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'mail', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger'];
 test('Developer: systemadministrasjon, Samarbeid og Opprydning', () => {
   assert.deepEqual(sec({ dev: true }), STAFF);
 });
@@ -33,6 +33,12 @@ test('Tilbakemeldinger (innboks): bare Developer og Moderator – aldri Admin el
   assert.ok(sectionsFor({ dev: false, collab: true, adminOf: [], churches: [] }).has('tilbakemeldinger'));
   assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A, B] }).has('tilbakemeldinger'));
   assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: [], churches: [A] }).has('tilbakemeldinger'));
+});
+test('Mail (e-postmaler og logo): bare Developer og Moderator – aldri Admin eller User', () => {
+  assert.ok(sectionsFor({ dev: true, collab: false, adminOf: [], churches: [] }).has('mail'));
+  assert.ok(sectionsFor({ dev: false, collab: true, adminOf: [], churches: [] }).has('mail'));
+  assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A] }).has('mail'));
+  assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: [], churches: [A] }).has('mail'));
 });
 test('Uten menighet og uten rolle: bare oversikt', () => {
   assert.deepEqual(sec({}), ['oversikt']);

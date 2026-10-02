@@ -24,8 +24,22 @@ export const auth = {
   async session() { if (!hasBackend()) return null; watch(); const s = await A.getSession(); writeCookie(s); return s; },
   signIn: (email, pw) => A.signIn(String(email || '').trim(), String(pw || '')),
   async signOut() { clearMe(); const r = await A.signOut(); writeCookie(null); return r; },
-  /* Svarer alltid «ok» utad, så det ikke avsløres om e-posten finnes. */
-  async requestPasswordReset(email) { await A.requestPasswordReset(String(email || '').trim(), location.origin + LOGIN_PATH + '?flow=recovery'); return { ok: true }; },
+  /* Svarer alltid «ok» utad, så det ikke avsløres om e-posten finnes. ConnectHub sender e-posten selv (lenke som virker i
+     alle nettlesere) når e-postsystemet er satt opp på serveren; ellers – eller hvis serveren ikke svarer – brukes
+     leverandørens e-post som før. Serveren har grenser per IP og e-post (da sendes ingenting, men svaret er det samme). */
+  async requestPasswordReset(email) {
+    const e = String(email || '').trim();
+    let fallback = true;
+    try {
+      const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 15000);
+      const r = await fetch('/api/ch?a=auth.recover', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: e }), signal: ac.signal });
+      clearTimeout(tm);
+      const j = await r.json().catch(() => null);
+      if (r.ok && j && j.ok) fallback = !!j.fallback;
+    } catch (x) { fallback = true; }
+    if (fallback) await A.requestPasswordReset(e, location.origin + LOGIN_PATH + '?flow=recovery');
+    return { ok: true };
+  },
   completeFromUrl: url => A.completeFromUrl(url),
   setPassword: pw => A.setPassword(pw),
   mfaStatus: () => A.mfaStatus(),

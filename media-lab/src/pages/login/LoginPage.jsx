@@ -103,6 +103,7 @@ export default function LoginPage() {
   const [mfa, setMfa] = React.useState(null);
   const [enroll, setEnroll] = React.useState(null);
   const [recovery, setRecovery] = React.useState(false);   // nytt passord via «Glemt passord» (ikke invitasjon)
+  const [linkKind, setLinkKind] = React.useState(null);     // 'recovery' | 'invite' | 'magiclink' – hvilken lenke som er åpnet
   /* Tilbakestillingslenken holdes bare i minnet til brukeren trykker «Fortsett» (adressen renskes med en gang). Da kan
      ikke e-postskannere som åpner siden, bruke opp lenken, og den havner aldri i historikk, logg eller lagring. */
   const linkRef = React.useRef(null);
@@ -141,10 +142,13 @@ export default function LoginPage() {
     const hasLink = q.get('code') || q.get('token_hash') || /access_token=|error_description=/.test(location.hash) || q.get('error_description');
     if (hasLink) {
       const href = location.href, isRecovery = q.get('flow') === 'recovery' || q.get('type') === 'recovery';
+      /* Lenker fra ConnectHubs egne e-poster (token_hash) brukes også først ved «Fortsett» (vern mot e-postskannere). */
+      const kind = isRecovery ? 'recovery' : q.get('token_hash') ? (q.get('type') === 'invite' ? 'invite' : 'magiclink') : null;
+      setLinkKind(isRecovery ? 'recovery' : q.get('invite') || readInvite() ? 'invite' : null);
       cleanUrl(q);
       const linkErr = linkErrorOf(href);
       if (linkErr) { setErr(msg(linkErr)); setMode('linkerr'); return; }
-      if (isRecovery) { linkRef.current = href; setMode('recovery-start'); return; }
+      if (kind) { linkRef.current = href; setLinkKind(kind); setMode('recovery-start'); return; }
       const r = await auth.completeFromUrl(href);
       if (!r.ok) { setErr(msg(r.error)); setMode(LINK_ERRORS.has(r.error) ? 'linkerr' : 'login'); return; }
       await auth.session();
@@ -196,6 +200,9 @@ export default function LoginPage() {
     }
     linkRef.current = null;
     const s = await auth.session().catch(() => null); if (s && s.email) setEmail(s.email);
+    /* Invitasjon (ny konto): godta invitasjonen og velg passord. Eksisterende konto (magiclink): godta og gå videre. */
+    if (r.type === 'invite') { if (await acceptPending() !== true) { setMode('inviteerr'); return; } setMode('setpw'); return; }
+    if (r.type === 'magiclink' || r.type === 'email') { await proceed(); return; }
     setRecovery(true); await toPassword();
   });
   const onRecoveryMfa = run(async () => {
@@ -261,8 +268,10 @@ export default function LoginPage() {
     <button type="button" style={S.link} onClick={() => setMode('login')}>{T('Tilbake til innlogging')}</button>
   </>;
   if (mode === 'recovery-start') body = <form onSubmit={onContinue} style={{ display: 'contents' }} data-recovery-start>
-    <h1 style={S.h}>{T('Nytt passord')}</h1>
-    <p style={S.p}>{T('Trykk «Fortsett» for å bekrefte lenken og velge et nytt passord. Lenken kan bare brukes én gang.')}</p>
+    <h1 style={S.h}>{T(linkKind === 'invite' ? 'Velkommen til ConnectHub' : linkKind === 'magiclink' ? 'Logg inn' : 'Nytt passord')}</h1>
+    <p style={S.p}>{T(linkKind === 'invite' ? 'Trykk «Fortsett» for å godta invitasjonen og velge passord. Lenken kan bare brukes én gang.'
+      : linkKind === 'magiclink' ? 'Trykk «Fortsett» for å logge inn og godta invitasjonen. Lenken kan bare brukes én gang.'
+      : 'Trykk «Fortsett» for å bekrefte lenken og velge et nytt passord. Lenken kan bare brukes én gang.')}</p>
     <button type="submit" style={S.primary} disabled={busy}>{T(busy ? 'Kontrollerer lenken …' : 'Fortsett')}</button>
     <button type="button" style={S.link} onClick={cancelRecovery}>{T('Tilbake til innlogging')}</button>
   </form>;
@@ -287,7 +296,11 @@ export default function LoginPage() {
     <p style={S.p} data-pw-done>{T('Du er logget ut på alle enheter. Logg inn med det nye passordet.')}</p>
     <button type="button" style={S.primary} onClick={() => { setErr(null); setInfo(null); setMode('login'); }}>{T('Til innlogging')}</button>
   </>;
-  if (mode === 'linkerr') body = <form onSubmit={onForgot} style={{ display: 'contents' }} data-linkerr>
+  if (mode === 'linkerr') body = linkKind === 'invite' || linkKind === 'magiclink' ? <div style={{ display: 'contents' }} data-linkerr>
+    <h1 style={S.h}>{T('Lenken virker ikke lenger')}</h1>
+    <p style={S.p}>{T('Invitasjonslenken kan bare brukes én gang og utløper etter en tid. Be den som inviterte deg om å sende invitasjonen på nytt. Har du allerede valgt passord, kan du logge inn som vanlig.')}</p>
+    <button type="button" style={S.primary} onClick={() => { setErr(null); setLinkKind(null); setMode('login'); }}>{T('Til innlogging')}</button>
+  </div> : <form onSubmit={onForgot} style={{ display: 'contents' }} data-linkerr>
     <h1 style={S.h}>{T('Lenken virker ikke lenger')}</h1>
     <p style={S.p}>{T('Be om en ny lenke for å velge nytt passord. Lenken kan bare brukes én gang og utløper etter kort tid.')}</p>
     <Field label="E-post" type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} />

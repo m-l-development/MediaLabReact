@@ -20,6 +20,7 @@ const ACTIONS = {
   'spaces.create': 'Samarbeidsområde opprettet', 'spaces.invite': 'Invitert til samarbeid', 'spaces.membership': 'Samarbeid endret',
   'spaces.update': 'Samarbeidsområde endret', 'spaces.status': 'Samarbeidsområde arkivert eller åpnet', 'spaces.delete': 'Samarbeidsområde slettet',
   'links.create': 'Kobling opprettet', 'links.end': 'Kobling avsluttet', 'links.reopen': 'Kobling gjenåpnet',
+  'mail.template_update': 'E-postmal endret', 'mail.template_reset': 'E-postmal gjenopprettet til standard', 'mail.logo_update': 'E-postlogo byttet', 'mail.logo_reset': 'Standard e-postlogo gjenopprettet',
   'roles.extra_admin_add': 'Ekstra Admin lagt til', 'roles.extra_admin_remove': 'Ekstra Admin fjernet',
   'groups.create': 'Samarbeidsgruppe opprettet', 'groups.update': 'Samarbeidsgruppe endret', 'groups.add_church': 'Menighet lagt til i samarbeidsgruppe',
   'groups.remove_church': 'Menighet fjernet fra samarbeidsgruppe', 'groups.end': 'Samarbeidsgruppe avsluttet', 'groups.reopen': 'Samarbeidsgruppe gjenåpnet', 'groups.delete': 'Samarbeidsgruppe slettet',

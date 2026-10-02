@@ -31,7 +31,7 @@ const connecthubEnv = () => {
       const dir = path.resolve(ROOT, outDir); if (!building || !fs.existsSync(dir)) return;
       const hits = [], walk = d => fs.readdirSync(d, { withFileTypes: true }).forEach(e => {
         const p = path.join(d, e.name);
-        if (e.isDirectory()) walk(p); else if (SCAN_EXT.test(e.name)) scanText(fs.readFileSync(p, 'utf8'), { target }).forEach(f => hits.push(path.relative(dir, p) + ': ' + f));
+        if (e.isDirectory()) walk(p); else if (SCAN_EXT.test(e.name)) scanText(fs.readFileSync(p, 'utf8'), { target, secrets: [['CONNECTHUB_SMTP_PASSWORD', process.env.CONNECTHUB_SMTP_PASSWORD]] }).forEach(f => hits.push(path.relative(dir, p) + ': ' + f));
       });
       walk(dir);
       if (hits.length) throw new Error('ConnectHub: mulige hemmeligheter i bygget – bygget stoppes:\n' + hits.join('\n'));
@@ -96,7 +96,8 @@ const selfHeal = () => ({ name: 'media-lab-self-heal', apply: 'build', transform
 
 /* ConnectHub-API-et lokalt (vite dev/preview), med samme kode som på Vercel (server/handlers/ch.js).
    Den hemmelige nøkkelen leses BARE fra skallets miljø (CONNECTHUB_SUPABASE_SECRET_KEY), aldri fra .env-filer.
-   CH_TEST_MAILBOX (bare lokalt, for tester): invitasjonslenker skrives til denne filen i stedet for å sendes på e-post. */
+   CH_TEST_MAILBOX (bare lokalt, for tester): e-poster (invitasjoner, «Glemt passord», testutsending) skrives til denne
+   filen i stedet for å sendes. */
 const chApiLocal = () => {
   const add = s => { s.middlewares.use(async (req, res, next) => {
     if (!req.url.startsWith('/api/ch')) return next();
@@ -106,7 +107,8 @@ const chApiLocal = () => {
       const env = { ...fileEnv, ...process.env }; delete env.VERCEL_ENV;
       const chunks = []; for await (const c of req) chunks.push(c);
       const request = new Request('http://' + req.headers.host + req.url, { method: req.method, headers: req.headers, body: req.method === 'POST' ? Buffer.concat(chunks) : undefined });
-      const deps = process.env.CH_TEST_MAILBOX ? { deliver: async (email, link) => { fs.appendFileSync(process.env.CH_TEST_MAILBOX, JSON.stringify({ email, link }) + '\n'); return { kind: 'test' }; } } : {};
+      /* Testpostkasse: e-poster fra ConnectHubs eget e-postsystem (samme maler, lenker og logo) skrives til fila i stedet for å sendes. */
+      const deps = process.env.CH_TEST_MAILBOX ? { mailer: { sender: 'testpostkasse', send: async m => { fs.appendFileSync(process.env.CH_TEST_MAILBOX, JSON.stringify({ to: m.to, subject: m.subject, text: m.text, html: m.html, attachments: (m.attachments || []).map(x => ({ cid: x.cid, type: x.contentType, bytes: x.content.length })) }) + '\n'); } } } : {};
       const r = await handle(request, env, deps);
       res.statusCode = r.status; r.headers.forEach((v, k) => res.setHeader(k, v)); res.end(Buffer.from(await r.arrayBuffer()));
     } catch (e) { res.statusCode = 500; res.end('{"ok":false,"error":"local_api"}'); }

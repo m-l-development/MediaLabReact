@@ -81,6 +81,9 @@ test('scanText finner kjente hemmelighetsmønstre', () => {
   assert.deepEqual(scanText('const a = "hei";'), []);
   assert.ok(scanText('x="sb_secret_abcdefghijklmnop"').includes('sb_secret_-nøkkel'));
   assert.ok(scanText('postgres://user:pass@db.example.com:5432/x').includes('PostgreSQL-URL med passord'));
+  assert.ok(scanText('x="CONNECTHUB_SMTP_PASSWORD"').includes('variabelnavn CONNECTHUB_SMTP_PASSWORD'));
+  const hit = scanText('a="abcd-efgh-ijkl-mnop"', { secrets: [['CONNECTHUB_SMTP_PASSWORD', 'abcd-efgh-ijkl-mnop']] });
+  assert.deepEqual(hit, ['verdien av CONNECTHUB_SMTP_PASSWORD']); assert.ok(!hit.join().includes('abcd'), 'verdien vises aldri i funnet');
   assert.ok(scanText('k="' + jwt({ role: 'service_role', iss: 'supabase' }) + '"').includes('JWT med service_role'));
   assert.deepEqual(scanText('k="' + jwt({ role: 'anon', iss: 'supabase' }) + '"'), []);
   assert.ok(scanText('SUPABASE_SERVICE_ROLE_KEY').length === 1);

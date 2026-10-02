@@ -1,5 +1,6 @@
 /* ConnectHub API (Web-standard: Request → Response). Leverandørnøytral; api/ch.js er bare en tynn inngang.
-   Alle handlinger krever gyldig innlogging (Bearer-token, verifisert mot JWKS). Ingen cookies brukes, så
+   Alle handlinger krever gyldig innlogging (Bearer-token, verifisert mot JWKS), unntatt de som er eksplisitt merket
+   anonymous (bare «Glemt passord», med grenser). Ingen cookies brukes, så
    forespørsler fra andre nettsteder (CSRF) kan ikke utføre handlinger. */
 import { json, fail, readJson, bearer, UUID, EMAIL, dbError } from '../lib/http.js';
 import { verifyToken } from '../lib/gate.js';
@@ -7,6 +8,8 @@ import { serverConfig, publicOrigin } from '../lib/backend.js';
 import { supabaseServer } from '../adapters/supabase.js';
 import { routes as fileRoutes } from './files.js';
 import { routes as privacyRoutes } from './privacy.js';
+import { routes as mailRoutes } from './mail.js';
+import { mailer, sendTemplated, inviteLink } from '../lib/mail.js';
 
 const enc = new TextEncoder();
 const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -15,11 +18,24 @@ export const newToken = () => { const b = crypto.getRandomValues(new Uint8Array(
 const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 const ROLES = ['user', 'church_admin', 'moderator', 'developer'];
 
-/* Sender lenken (via leverandørens e-post, eller deps.deliver i tester). Feil i e-post gir svar uten å kaste. */
-async function deliver(ctx, email, token) {
+const ROLE_NAME = { user: 'Bruker', church_admin: 'Admin', moderator: 'Moderator', developer: 'Developer' };
+/* Sender lenken. Med ConnectHubs e-post satt opp: engangslenke uten e-post fra Supabase (invite – eller magiclink hvis
+   kontoen finnes), og velkomstmalen fra Mail-fanen. Ellers som før: leverandørens e-post (eller deps.deliver i tester).
+   Feil i e-post gir svar uten å kaste – invitasjonen er lagret og kan sendes på nytt. */
+async function deliver(ctx, email, token, inv) {
   const origin = publicOrigin(ctx.env, ctx.request.url);
   if (!origin) return { sent: false, error: 'no_public_origin' };
   const redirectTo = origin + '/login.dc.html?invite=' + token;
+  if (!ctx.deps.deliver && mailer(ctx)) {
+    try {
+      let g;
+      try { g = await ctx.backend.generateLink('invite', email, redirectTo); }
+      catch (e) { if (e.status !== 422 && e.code !== 'email_exists') throw e; g = await ctx.backend.generateLink('magiclink', email, redirectTo); }
+      const r = await sendTemplated(ctx, { kind: 'invite', key: 'welcome', to: email, link: inviteLink(origin, token, g.hashedToken, g.type),
+        vars: { epost: email, menighet: (inv && inv.church_name) || '', rolle: ROLE_NAME[inv && inv.role] || '' }, related: (inv && inv.id) || null });
+      return r.sent ? { sent: true, kind: g.type } : { sent: false, error: r.error };
+    } catch (e) { return { sent: false, error: e.code || 'email_failed' }; }
+  }
   try {
     const r = ctx.deps.deliver ? await ctx.deps.deliver(email, redirectTo) : await ctx.backend.sendInvite(email, redirectTo);
     return { sent: true, kind: r && r.kind };
@@ -33,7 +49,7 @@ const routes = {
     if (!EMAIL.test(email) || email.length > 254 || !ROLES.includes(role) || (church !== null && !UUID.test(church))) return fail('invalid');
     const token = newToken();
     const inv = await ctx.backend.rpcAsUser(ctx.token, 'create_invitation', { p_email: email, p_church: church, p_role: role, p_token_hash: await sha256hex(token), p_days: 7 });
-    const mail = await deliver(ctx, email, token);
+    const mail = await deliver(ctx, email, token, inv);
     return json({ ok: true, invitation: inv, email_sent: mail.sent, email_error: mail.error || null });
   },
   /* Ny lenke til en ventende invitasjon (den gamle slutter å virke). */
@@ -41,7 +57,7 @@ const routes = {
     if (!UUID.test(String(ctx.body.id || ''))) return fail('invalid');
     const token = newToken();
     const inv = await ctx.backend.rpcAsUser(ctx.token, 'reissue_invitation', { p_id: ctx.body.id, p_token_hash: await sha256hex(token) });
-    const mail = await deliver(ctx, inv.email, token);
+    const mail = await deliver(ctx, inv.email, token, inv);
     return json({ ok: true, invitation: inv, email_sent: mail.sent, email_error: mail.error || null });
   },
   /* Godkjenning: innlogget konto må ha bekreftet e-post lik invitasjonens (sjekkes i databasen). */
@@ -55,6 +71,7 @@ const routes = {
   },
   ...fileRoutes,
   ...privacyRoutes,
+  ...mailRoutes,
 };
 
 export async function handle(request, env, deps = {}) {
@@ -65,12 +82,14 @@ export async function handle(request, env, deps = {}) {
     if (!route) return fail('unknown_action', 404);
     const cfg = serverConfig(env);
     if (cfg.error) return json({ ok: false, error: 'not_configured', detail: cfg.error }, 503);   /* bare navnet på feilen, aldri verdier */
+    const backend = deps.backend || supabaseServer(cfg, deps.fetchFn);
+    /* Handlinger før innlogging (eksplisitt merket, f.eks. «Glemt passord») får ingen token og ingen brukerrettigheter. */
+    if (route.anonymous) return await route({ request, env, deps, cfg, backend, token: null, claims: null, body: await readJson(request) });
     const token = bearer(request);
     const v = await verifyToken(token, { env, fetchFn: deps.fetchFn });
     if (v.unavailable) return fail('unavailable', 503);
     if (!v.claims) return fail('unauthorized', 401);
     const body = route.raw ? null : await readJson(request);
-    const backend = deps.backend || supabaseServer(cfg, deps.fetchFn);
     return await route({ request, env, deps, cfg, backend, token, claims: v.claims, body });
   } catch (e) {
     if (e && e.status && e.error) return fail(e.error, e.status);
