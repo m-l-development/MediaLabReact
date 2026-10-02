@@ -410,6 +410,35 @@ Målt med Edge (headless) mot lokal `vite preview` og `connecthub-dev`. «Kald»
 
 **Gjenstår:** ingenting for trinn 19 utover avvik 1, som krever egen godkjenning.
 
+### Feilretting av avvik 1: egen melding når lagringskvoten er brukt opp (2026-10-02)
+
+**Retting:**
+- 54000 med kvotemelding fra databasen gir `413 quota_exceeded` og meldingen «Lagringskvoten er brukt opp.» (EN: «The storage quota has been used up.»).
+- Andre 54000-feil gir fortsatt `429 rate_limited` med «For mange forsøk. Vent litt.».
+- Ingen databaseendring.
+
+**Tester:** `server/handlers/quota-error.test.js` har 9 tester, alle bestått:
+- `dbError` for menighetens og den private kvoten
+- uendret svar for hastighetsgrenser, feil uten melding og andre SQLSTATE
+- alle 54000-meldinger i migreringene klassifiseres riktig
+- serveradapteren tar med databasens melding
+- opplasting avvist i `can_upload` og i `register_file` (lagret fil ryddes)
+- databasens melding sendes ikke til nettleseren
+- nedlasting påvirkes ikke
+- tekst og engelsk oversettelse
+
+**Resultater:**
+
+| Kjøring | Resultat |
+|---|---|
+| `npm test` i arbeidskopien (med trinn 18-filene) | 91/91 |
+| Isolert: `d7bd755` + bare denne rettingen, `npm test` | 87/87 |
+| Isolert: `npm run build` | OK. Sikkerhetssøket i bygget har ingen funn, og alle inline-skript står i CSP. |
+
+**Siste kontroll før commit** (etter trinn 18, 20 og 21): `npm test` 97/97 (`quota-error.test.js` og `storage-full.test.js` 13/13), RLS i PGlite 411/411, bygg OK. Den samlede grensen (trinn 20, SQLSTATE 53100 → `storage_full`) påvirkes ikke: bare 54000 med kvotemelding blir `quota_exceeded`.
+
+**Ikke prøvd mot dev:** kvotefeilen kan ikke utløses der uten å endre kvoter eller laste opp mye, siden filer er maks 4 MB og kvotene er minst 200 MB. Enhetstestene bruker PostgREST sitt feilformat (`{code, details, hint, message}`).
+
 ## Trinn 18 – Koblinger og Samarbeidsfiler mellom to menigheter (2026-10-02, connecthub-dev)
 
 **Omfang:**

@@ -23,12 +23,16 @@ export const bearer = request => {
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const EMAIL = /^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$/;
 
+/* Kvotesperrene i databasen (app.upload_check) bruker samme SQLSTATE som hastighetsgrensene (54000), så meldingen skiller dem:
+   «Menighetens lagringskvote er brukt opp» og «Din private kvote (50 MB) er brukt opp». Meldingen sendes aldri videre til nettleseren. */
+export const QUOTA_MESSAGE = /kvote\b.*\bbrukt opp\b/i;
+
 /* Databasefeil (PostgreSQL SQLSTATE) → HTTP-status og nøytral kode. */
 export function dbError(e) {
   const code = e && e.code;
   if (code === '42501') return { status: 403, error: 'forbidden' };
   if (code === '23505') return { status: 409, error: 'conflict' };
-  if (code === '54000') return { status: 429, error: 'rate_limited' };
+  if (code === '54000') return QUOTA_MESSAGE.test((e && e.dbMessage) || '') ? { status: 413, error: 'quota_exceeded' } : { status: 429, error: 'rate_limited' };
   if (code === '53100') return { status: 507, error: 'storage_full' };   // samlet lagringsplass i ConnectHub er brukt opp (trinn 20)
   if (code === '22023' || code === '23514' || code === '22P02') return { status: 400, error: 'invalid' };
   return { status: 502, error: 'backend_error' };

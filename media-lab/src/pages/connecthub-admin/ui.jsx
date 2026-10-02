@@ -4,7 +4,7 @@ import React from 'react';
 export const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const ERR = {
   forbidden: 'Du har ikke tilgang til dette.', conflict: 'Finnes allerede (eller menigheten har allerede en admin).',
-  invalid: 'Ugyldige opplysninger.', rate_limited: 'For mange forsøk. Vent litt.', network: 'Ingen forbindelse. Prøv igjen.',
+  invalid: 'Ugyldige opplysninger.', rate_limited: 'For mange forsøk. Vent litt.', quota_exceeded: 'Lagringskvoten er brukt opp.', network: 'Ingen forbindelse. Prøv igjen.',
   unauthorized: 'Økten er utløpt. Last siden på nytt.', timeout: 'Serveren svarte ikke i tide. Prøv igjen.', upstream_timeout: 'Databasen eller lagringen svarte ikke i tide. Prøv igjen.', not_found: 'Fant ikke det du lette etter.',
   video_not_allowed: 'Video kan aldri lastes opp. Videoer skal ligge i prosjektmappen på PC-en.', type_not_allowed: 'Bare bilder (PNG, JPG, WebP eller GIF) kan lastes opp.',
   storage_full: 'Lagringsplassen i ConnectHub er full. Kontakt Developer.',
