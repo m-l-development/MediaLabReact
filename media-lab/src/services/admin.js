@@ -5,6 +5,8 @@ import { data } from './port.js';
 import { callServer } from './server.js';
 
 const USER_COLS = 'id, email, full_name, phone, status, created_at';
+/* Fast standardkvote per menighet (samme som app.default_quota_mb() i databasen). Alt annet er egen kvote. */
+export const DEFAULT_QUOTA_MB = 200;
 
 export const admin = {
   churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after, storage_quota_mb, quota_custom', order: 'name' }),
@@ -41,10 +43,13 @@ export const admin = {
   allRoles: () => data().select('user_roles', { columns: 'id, user_id, role, church_id, assigned_at', isNull: ['revoked_at'] }),
   /* Stab kan legge en eksisterende bruker til i en menighet (eksisterende RLS-regel memberships_insert_staff). */
   addMembership: (userId, churchId) => data().insert('memberships', { user_id: userId, church_id: churchId }, 'user_id, church_id, status'),
-  /* Egen kvote for én menighet (Developer med MFA, loggført; beskyttes mot automatiske planendringer). */
+  /* Faktisk kvote for én menighet (Developer med MFA, loggført). 200 MB = standard, alt annet = egen kvote. Planene og
+     abonnementene endrer den aldri (trinn 21). */
   setQuota: (churchId, mbQuota) => data().rpc('set_church_quota', { p_church: churchId, p_quota_mb: mbQuota }),
-  /* Menigheten følger planens kvote igjen (eller standarden uten abonnement). Loggført. */
-  followPlanQuota: churchId => data().rpc('follow_plan_quota', { p_church: churchId }),
+  /* «Tilbakestill til standard (200 MB)». Loggført. */
+  resetQuota: churchId => data().rpc('reset_church_quota', { p_church: churchId }),
+  /* Developer: faktisk kvote, merke og brukt plass for alle menigheter (bare summer). */
+  quotaOverview: () => data().rpc('church_quota_overview'),
   /* Egne opplysninger (RLS: bare seg selv, bare navn og telefon). */
   updateMyProfile: (id, fullName, phone) => data().update('app_users', { id }, { full_name: String(fullName || '').trim() || null, phone: String(phone || '').trim() || null }),
   userActivity: userId => data().select('audit_logs', { columns: 'id, action, target_type, church_id, meta, created_at', eq: { actor_user_id: userId }, order: 'created_at', desc: true, limit: 25 }),

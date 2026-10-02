@@ -19,16 +19,18 @@ export const spaces = {
 };
 
 export const subscriptions = {
-  plans: () => data().select('plans', { columns: 'code, name, storage_quota_mb, price_nok_month, active', order: 'storage_quota_mb' }),
+  /* Plannavn og pris (alle innloggede). Planenes veiledende lagring kan bare Developer lese (plansAdmin). */
+  plans: () => data().select('plans', { columns: 'code, name, price_nok_month, active', order: 'code' }),
+  /* Trinn 21 – bare Developer med MFA: planene med veiledende lagring. Den gir aldri menighetene mer plass. */
+  plansAdmin: () => data().rpc('plans_admin'),
   current: churchId => data().select('church_subscriptions', { columns: 'church_id, plan, free_of_charge, status, updated_at', ...(churchId ? { eq: { church_id: churchId } } : {}) }),
   requests: churchId => data().select('subscription_requests', { columns: 'id, church_id, plan, free_of_charge, reason, status, decision_note, created_at, decided_at', ...(churchId ? { eq: { church_id: churchId } } : {}), order: 'created_at', desc: true, limit: 100 }),
   request: (churchId, plan, free, reason) => data().rpc('request_subscription', { p_church: churchId, p_plan: plan, p_free: !!free, p_reason: reason || null }),
   withdraw: id => data().rpc('withdraw_subscription_request', { p_id: id }),
   decide: (id, approve, note) => data().rpc('decide_subscription_request', { p_id: id, p_approve: !!approve, p_note: note || null }),
-  /* Trinn 19 – bare Developer med MFA (databasen avgjør). Pris tom/null = «Avtales». Alt loggføres med gammel og ny verdi. */
-  updatePlan: (code, quotaMb, priceNokMonth, updateChurches) => data().rpc('update_plan', { p_plan: code, p_quota_mb: quotaMb, p_price_nok_month: priceNokMonth == null || priceNokMonth === '' ? null : Number(priceNokMonth), p_update_churches: !!updateChurches }),
-  /* Hvilke menigheter en ny kvote vil berøre, og hvilke som hoppes over og hvorfor (bare lesing). */
-  planPreview: (code, quotaMb) => data().rpc('plan_change_preview', { p_plan: code, p_new_quota_mb: quotaMb }),
+  /* Trinn 19/21 – bare Developer med MFA (databasen avgjør). Endrer bare planen (veiledende lagring og pris), aldri
+     menighetenes kvote. Pris tom/null = «Avtales». Alt loggføres med gammel og ny verdi. */
+  updatePlan: (code, quotaMb, priceNokMonth) => data().rpc('update_plan', { p_plan: code, p_quota_mb: quotaMb, p_price_nok_month: priceNokMonth == null || priceNokMonth === '' ? null : Number(priceNokMonth), p_update_churches: false }),
 };
 
 export const notifications = {

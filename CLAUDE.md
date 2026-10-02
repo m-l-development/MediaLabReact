@@ -56,7 +56,16 @@ All kode ligger i `media-lab/` (React 18 + Vite, deployes til Vercel). Navnene u
 - P10: `src/services/community.js` (samarbeidsområder, abonnement uten betaling, varsler, personvern, menighetens livsløp), serverhandlinger i `server/handlers/privacy.js` (`privacy.delete_me`, `church.export`, `church.purge`), varsler og personvern i kontomenyen (`src/shared/account-menu.js`), fanene Samarbeid/Abonnement i admin.
 - Tester: `npm test` (inkl. RLS-testsettet i PGlite), `npm run drill`, `node build/static-serve.mjs`; RLS mot dev: `supabase db query --linked --project-ref uatpdmhnwwjgzlxaucsx -f supabase/tests/rls_test.sql`.
 - Samarbeid (Moderator, Developer teknisk): opprette, endre navn og beskrivelse (`update_space`), arkivere og åpne igjen (`set_space_status`), slette (`delete_space`, krever navnet som bekreftelse; fjerner område, deltakere og delinger, men ikke filene), gi og fjerne menigheters tilgang, og velge delte bilder. Admin har ingen tilgang. Alt loggføres.
-- Abonnement, trinn 19 (`supabase/migrations/20261001200000_plan_editing.sql`): Developer med MFA endrer kvote og pris per plan via `update_plan`, med forhåndsvisning (`plan_change_preview`). Egen kvote per menighet settes via `set_church_quota` og merkes `churches.quota_custom`; den overskrives aldri automatisk, heller ikke ved godkjenning av abonnement. `follow_plan_quota` lar menigheten følge planen igjen. Direkte skriving til kvoter og planer er stengt. Alt loggføres (`plans.update`, `churches.quota`) med gammel og ny verdi. Ingen kobling til Gratis-planen for menigheter uten abonnement (G1). En lavere kvote stopper bare nye opplastinger.
+- Lagringskvote (trinn 19 + 21, `supabase/migrations/20261001200000_plan_editing.sql` og `20261002100000_church_quota_standard.sql`):
+  - Menighetens faktiske kvote er `churches.storage_quota_mb`. Den er fast standard 200 MB (`app.default_quota_mb()`, `DEFAULT_QUOTA_MB`), eller en egen kvote som Developer med MFA tildeler per menighet (`set_church_quota`).
+  - «Tilbakestill til standard (200 MB)» bruker `reset_church_quota`.
+  - `churches.quota_custom` utledes alltid av kvoten med trigger (≠ 200 = egen kvote).
+  - Planene er bare veiledende. Developer endrer lagring og pris via `update_plan`, og leser planenes lagring via `plans_admin`. Andre roller ser bare plannavn og pris.
+  - Verken planendring eller godkjenning av abonnement endrer kvoten.
+  - `follow_plan_quota` og `plan_change_preview` er stengt for alle roller, men ikke slettet.
+  - Developer ser kvote, merke og brukt plass for alle menigheter via `church_quota_overview`.
+  - Direkte skriving til kvoter og planer er stengt. Alt loggføres (`plans.update`, `churches.quota`) med gammel og ny verdi.
+  - En lavere kvote stopper bare nye opplastinger.
 - Testrolle/rollebytter: `src/shared/test-role.js` – bare når bygget er mot connecthub-dev og ikke produksjon (`switcherAllowed`). Kan bare SENKE rollen (Developer → Admin/User, Admin → User); endrer bare grensesnittet (`window.CH.me` = effektiv, `CH.realMe` = ekte). Serveren/RLS bruker alltid ekte innlogging. Valg i sessionStorage `ch.testRole`, banner nederst, valg i kontomenyen.
 - Ytelse:
   - `src/services/me-cache.js`: siden vises straks med forrige `whoami` for samme bruker, økt og MFA-nivå (localStorage `ch.me`). Porten kontrollerer mot databasen like etter og stopper eller laster siden på nytt ved avvik. Bufferen fjernes ved utlogging.

@@ -87,21 +87,35 @@ test('files.upload: video, feil type og for store filer stoppes før noe sendes'
   await rejects(files.upload(f('x.png', 'image/png', 5 * 1024 * 1024), { churchId: 'c1' }), 'too_large');
 });
 
-test('trinn 19: kvote og pris endres bare via loggførte databasefunksjoner – aldri ved direkte skriving', async () => {
+test('trinn 19/21: kvote og plan endres bare via loggførte databasefunksjoner – aldri ved direkte skriving', async () => {
   const calls = [];
-  const rpcs = Object.fromEntries(['update_plan', 'plan_change_preview', 'set_church_quota', 'follow_plan_quota'].map(fn => [fn, a => { calls.push([fn, a]); return fn === 'update_plan' ? { ok: true, churches_updated: 0 } : []; }]));
+  const rpcs = Object.fromEntries(['update_plan', 'set_church_quota', 'reset_church_quota', 'church_quota_overview', 'plans_admin'].map(fn => [fn, a => { calls.push([fn, a]); return fn === 'update_plan' ? { ok: true, churches_updated: 0 } : fn === 'reset_church_quota' ? 200 : []; }]));
   const fake = makeFakeData({ tables: { churches: [{ id: 'c1', storage_quota_mb: 200 }], plans: [] }, rpcs });
   const upd = fake.update.bind(fake); let direct = 0; fake.update = (...a) => { direct++; return upd(...a); };
   useDataAdapter(fake);
   const { subscriptions } = await import('./community.js');
   await admin.setQuota('c1', 777);
-  await admin.followPlanQuota('c1');
-  await subscriptions.updatePlan('standard', 2048, '', true);
-  await subscriptions.updatePlan('utvidet', 5120, '990', false);
-  await subscriptions.planPreview('standard', 2048);
+  await admin.resetQuota('c1');
+  await admin.quotaOverview();
+  await subscriptions.plansAdmin();
+  await subscriptions.updatePlan('standard', 2048, '');
+  await subscriptions.updatePlan('utvidet', 5120, '990');
   assert.equal(direct, 0, 'ingen direkte oppdatering av tabeller');
-  assert.deepEqual(calls.map(c => c[0]), ['set_church_quota', 'follow_plan_quota', 'update_plan', 'update_plan', 'plan_change_preview']);
-  assert.deepEqual(calls[2][1], { p_plan: 'standard', p_quota_mb: 2048, p_price_nok_month: null, p_update_churches: true }, 'tom pris = «Avtales» (null)');
-  assert.equal(calls[3][1].p_price_nok_month, 990);
+  assert.deepEqual(calls.map(c => c[0]), ['set_church_quota', 'reset_church_quota', 'church_quota_overview', 'plans_admin', 'update_plan', 'update_plan']);
+  assert.deepEqual(calls[4][1], { p_plan: 'standard', p_quota_mb: 2048, p_price_nok_month: null, p_update_churches: false }, 'tom pris = «Avtales» (null); planen oppdaterer aldri menighetene');
+  assert.equal(calls[5][1].p_price_nok_month, 990);
+  assert.equal(calls[5][1].p_update_churches, false);
+  assert.equal(admin.followPlanQuota, undefined, '«Følg planen igjen» finnes ikke lenger i tjenestelaget');
+  assert.equal(subscriptions.planPreview, undefined, 'forhåndsvisningen av planendring er fjernet');
+  useDataAdapter(null);
+});
+
+test('trinn 21: plannavn og pris kan leses uten planenes lagring (den er bare for Developer)', async () => {
+  const fake = makeFakeData({ tables: { plans: [{ code: 'standard', name: 'Standard', storage_quota_mb: 1024, price_nok_month: null, active: true }, { code: 'gratis', name: 'Gratis', storage_quota_mb: 200, price_nok_month: 0, active: true }] }, hiddenColumns: ['plans.storage_quota_mb'] });
+  useDataAdapter(fake);
+  const { subscriptions } = await import('./community.js');
+  const plans = await subscriptions.plans();
+  assert.deepEqual(plans.map(p => p.code), ['gratis', 'standard']);
+  assert.ok(plans.every(p => !('storage_quota_mb' in p)), 'ingen planlagring for Admin og User');
   useDataAdapter(null);
 });

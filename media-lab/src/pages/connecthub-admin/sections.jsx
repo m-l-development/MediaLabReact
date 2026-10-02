@@ -1,6 +1,6 @@
 /* ConnectHub admin – Menigheter, Invitasjoner, Filer, Samarbeid, Abonnement og Logg. */
 import React from 'react';
-import { admin } from '../../services/admin.js';
+import { admin, DEFAULT_QUOTA_MB } from '../../services/admin.js';
 import { files as FS, FOLDERS } from '../../services/files.js';
 import { spaces as SP, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, href, go } from './ui.jsx';
@@ -31,9 +31,21 @@ export function ChurchPicker() {
 }
 
 /* ---------- Menigheter ---------- */
+/* Trinn 21: menighetens faktiske kvote er standard 200 MB eller en egen kvote (alt annet enn 200 MB) som Developer tildeler.
+   Planene er bare veiledende og endrer den aldri. */
+const isOwnQuota = c => !!c && c.storage_quota_mb !== DEFAULT_QUOTA_MB;
+const QuotaBadge = ({ church }) => <Badge tone={isOwnQuota(church) ? 'warn' : ''}>{T(isOwnQuota(church) ? 'Egen kvote' : 'Standard')}</Badge>;
+/* Developer: faktisk kvote, merke og brukt plass for alle menigheter (bare summer). */
+function useQuotaOverview(on, dep) {
+  const [o, setO] = React.useState({});
+  React.useEffect(() => { if (on) admin.quotaOverview().then(r => setO(Object.fromEntries((r || []).map(x => [x.church_id, x])))).catch(() => {}); }, [on, dep]);
+  return o;
+}
+
 export function ChurchesView() {
   const { d, staff, isUser, act, say, reload, userName } = useAdmin();
   const [q, setQ] = React.useState(''), [st, setSt] = React.useState('all'), [name, setName] = React.useState('');
+  const qo = useQuotaOverview(staff, d.churches);
   const list = d.churches.filter(c => (!q || norm(c.name).includes(norm(q))) && (st === 'all' || c.status === st));
   const count = id => d.memberships.filter(m => m.church_id === id && m.status === 'active').length;
   const admins = id => d.roles.filter(r => r.role === 'church_admin' && r.church_id === id).map(r => userName(r.user_id));
@@ -51,12 +63,14 @@ export function ChurchesView() {
     </div>
     {isUser ? <List cols="minmax(200px,1fr) auto" head={['Menighet', 'Status']} empty="Du er ikke medlem av noen menighet ennå." onRow={r => go('menigheter', r.key)}
       rows={list.map(c => ({ key: c.id, cells: [<div className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{T('Du er medlem')}</span></div></div>, <div className="ch-end"><StatusBadge s={c.status} /></div>] }))} /> :
-    <List cols="minmax(200px,2fr) auto minmax(140px,1.5fr) auto" head={['Menighet', 'Medlemmer', 'Admin', 'Status']} empty="Ingen menigheter passer med søket."
+    <List cols={staff ? 'minmax(200px,2fr) auto minmax(140px,1.5fr) auto auto' : 'minmax(200px,2fr) auto minmax(140px,1.5fr) auto'}
+      head={staff ? ['Menighet', 'Medlemmer', 'Admin', 'Lagring', 'Status'] : ['Menighet', 'Medlemmer', 'Admin', 'Status']} empty="Ingen menigheter passer med søket."
       onRow={r => go('menigheter', r.key)}
       rows={list.map(c => ({ key: c.id, cells: [
         <div className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{T('Opprettet')} {fmtDate(c.created_at)}</span></div></div>,
         <span>{count(c.id)} <span className="ch-muted">{T('medlemmer')}</span></span>,
         <span className="ch-muted">{admins(c.id).join(', ') || '–'}</span>,
+        ...(staff ? [<span className="ch-row"><QuotaBadge church={c} /><span className="ch-muted">{qo[c.id] ? mb(qo[c.id].used_bytes) + ' / ' : ''}{c.storage_quota_mb} MB</span></span>] : []),
         <div className="ch-end"><StatusBadge s={c.status} /></div>] }))} />}
   </>;
 }
@@ -118,22 +132,24 @@ function MembersView({ church }) {
 
 function ChurchSettings({ church }) {
   const { staff, act, say, reload, canManage } = useAdmin();
-  const [name, setName] = React.useState(church.name), [quota, setQuota] = React.useState(church.storage_quota_mb || 200);
+  const [name, setName] = React.useState(church.name), [quota, setQuota] = React.useState(church.storage_quota_mb ?? DEFAULT_QUOTA_MB);
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await reload(); });
+  const used = (useQuotaOverview(staff, church.storage_quota_mb)[church.id] || {}).used_bytes;
   return <div className="ch-grid">
     {staff && <Card title="Navn og lagring">
       <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.renameChurch(church.id, name), 'Navnet er endret.')(e); }}>
         <Field label="Navn"><input className="ch-input" value={name} onChange={e => setName(e.target.value)} minLength={2} maxLength={120} required /></Field>
         <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre navn')}</Btn>
       </form>
+      <div className="ch-row" data-ch-quota><span>{T('Faktisk kvote')}: <b>{church.storage_quota_mb} MB</b></span><QuotaBadge church={church} />
+        {used != null && <span className="ch-muted">{T('Brukt')}: {mb(used)}</span>}</div>
       <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.setQuota(church.id, Math.max(0, Math.min(10240, parseInt(quota, 10) || 0))), 'Lagringskvoten er endret.')(e); }}>
-        <Field label="Lagringskvote (MB)"><input className="ch-input" type="number" min={0} max={10240} value={quota} onChange={e => setQuota(e.target.value)} /></Field>
+        <Field label="Egen kvote (MB, 0–10240)"><input className="ch-input" type="number" min={0} max={10240} value={quota} onChange={e => setQuota(e.target.value)} /></Field>
         <Btn onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre egen kvote')}</Btn>
       </form>
-      {church.quota_custom
-        ? <div className="ch-row"><Badge tone="warn">{T('Egen kvote')}</Badge><span className="ch-muted">{T('Beskyttet: endres ikke av planendringer eller når et abonnement godkjennes.')}</span>
-            <Btn small onClick={run(() => admin.followPlanQuota(church.id), 'Menigheten følger planens kvote igjen.')}>{T('Følg planen igjen')}</Btn></div>
-        : <p className="ch-muted">{T('Kvoten følger planen og settes når et abonnement godkjennes. Lagrer du en egen kvote, beskyttes den mot automatiske endringer.')}</p>}
+      {isOwnQuota(church) && <div className="ch-row">
+        <Btn small onClick={run(async () => { await admin.resetQuota(church.id); setQuota(DEFAULT_QUOTA_MB); }, 'Kvoten er tilbakestilt til standard (200 MB).')}>{T('Tilbakestill til standard (200 MB)')}</Btn></div>}
+      <p className="ch-muted">{T('Standard er 200 MB. Mer plass gis bare som egen kvote for akkurat denne menigheten. Planer og abonnementer endrer aldri kvoten.')}</p>
       <p className="ch-muted">{T('Alle kvoteendringer loggføres med gammel og ny verdi. Ingen filer slettes om kvoten senkes – bare nye opplastinger stoppes.')}</p>
     </Card>}
     {canManage(church.id) && <Card title="Eksport">
@@ -225,7 +241,7 @@ export function FilesView({ churchId }) {
       <p className="ch-muted">{T(A.info)}</p>
       {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={() => { if (fl.folder !== f) act(() => load(f))(); }}>{T(l)}</Btn>)}</div>}
       {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
-        <p className="ch-muted">{T('Brukt')}: {mb(u.used_bytes)} / {mb(u.quota_bytes)}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
+        <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(Math.max(0, u.quota_bytes - u.used_bytes))}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
       {canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
         onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); upload([...e.dataTransfer.files]); }}>
         <div className="ch-row" style={{ justifyContent: 'center' }}>
@@ -355,77 +371,69 @@ function SpaceSettings({ space, members, shared, onSaved, onDeleted }) {
 /* ---------- Abonnement ---------- */
 const priceText = v => v === 0 ? T('Gratis') : v ? v + ' kr/mnd' : T('Avtales');
 
-/* Developer endrer kvote og pris for en plan (trinn 19). Databasen krever MFA og loggfører gammel og ny verdi.
-   Endres kvoten, må forhåndsvisningen av berørte menigheter hentes før lagring. Egne kvoter, menigheter uten abonnement og
-   avsluttede abonnementer endres aldri automatisk. Ingen filer slettes. */
+/* Developer endrer planens veiledende lagring og pris (trinn 19/21). Databasen krever MFA og loggfører gammel og ny verdi.
+   Planen endrer aldri menighetenes faktiske kvote (standard 200 MB eller egen kvote). Ingen filer slettes. */
 function PlanEditor({ plan, onCancel, onDone }) {
   const { act, say } = useAdmin();
-  const [f, setF] = React.useState({ quota: String(plan.storage_quota_mb), price: plan.price_nok_month == null ? '' : String(plan.price_nok_month), upd: true });
-  const [pv, setPv] = React.useState(null);
+  const [f, setF] = React.useState({ quota: String(plan.storage_quota_mb), price: plan.price_nok_month == null ? '' : String(plan.price_nok_month) });
   const qs = f.quota.trim(), ps = f.price.trim();
   const okQ = /^\d{1,5}$/.test(qs) && +qs <= 10240, okP = ps === '' || /^\d{1,7}$/.test(ps);
   const q = okQ ? +qs : null, price = ps === '' ? null : +ps;
   const quotaChanged = okQ && q !== plan.storage_quota_mb, priceChanged = okP && price !== plan.price_nok_month;
-  const needPreview = quotaChanged && f.upd;
-  React.useEffect(() => { setPv(null); }, [qs, f.upd]);
-  const preview = act(async () => setPv(await SUB.planPreview(plan.code, q)));
-  const changing = (pv || []).filter(r => r.will_change), over = changing.filter(r => r.over_after);
   const save = act(async e => {
     e.preventDefault();
     if (!okQ || !okP || (!quotaChanged && !priceChanged)) return;
-    if (needPreview && !pv) throw Object.assign(new Error(), { code: 'invalid' });
     const lines = [T('Lagre endringen for') + ' «' + T(plan.name) + '»?'];
-    if (quotaChanged) lines.push(T('Lagring') + ': ' + plan.storage_quota_mb + ' MB → ' + q + ' MB');
+    if (quotaChanged) lines.push(T('Planens lagring (veiledende)') + ': ' + plan.storage_quota_mb + ' MB → ' + q + ' MB');
     if (priceChanged) lines.push(T('Pris') + ': ' + priceText(plan.price_nok_month) + ' → ' + priceText(price));
-    if (needPreview) lines.push(changing.length + ' ' + T('menigheter får ny kvote.') + (over.length ? ' ' + over.length + ' ' + T('kommer over kvoten – nye opplastinger stoppes, ingen filer slettes.') : ''));
-    else if (quotaChanged) lines.push(T('Menighetenes kvoter endres ikke.'));
+    lines.push(T('Menighetenes faktiske kvoter endres ikke.'));
     if (!confirm(lines.join('\n'))) return;
-    const r = await SUB.updatePlan(plan.code, q, price, f.upd && quotaChanged);
-    say(T('Planen er endret.') + (r && r.churches_updated ? ' ' + r.churches_updated + ' ' + T('menigheter fikk ny kvote.') : ''));
+    await SUB.updatePlan(plan.code, q, price);
+    say(T('Planen er endret.'));
     await onDone();
   });
   return <form className="ch-form ch-plan-edit" onSubmit={save} aria-label={T('Endre plan') + ' ' + T(plan.name)}>
-    <Field label="Lagring (MB, 0–10240)"><input className="ch-input" inputMode="numeric" value={f.quota} onChange={e => setF(x => ({ ...x, quota: e.target.value }))} aria-invalid={!okQ} /></Field>
+    <Field label="Planens lagring (MB, veiledende, 0–10240)"><input className="ch-input" inputMode="numeric" value={f.quota} onChange={e => setF(x => ({ ...x, quota: e.target.value }))} aria-invalid={!okQ} /></Field>
     <Field label="Pris (kr/mnd, tom = Avtales)"><input className="ch-input" inputMode="numeric" value={f.price} onChange={e => setF(x => ({ ...x, price: e.target.value }))} aria-invalid={!okP} /></Field>
-    {quotaChanged && <label className="ch-row ch-muted"><input type="checkbox" checked={f.upd} onChange={e => setF(x => ({ ...x, upd: e.target.checked }))} /> {T('Oppdater også menighetene på planen (ikke egne kvoter)')}</label>}
     {(!okQ || !okP) && <p className="ch-note bad">{T('Lagring må være et helt tall mellom 0 og 10240. Pris må være et helt tall (eller tom).')}</p>}
-    {needPreview && <div className="ch-row"><Btn small onClick={preview}>{T('Vis berørte menigheter')}</Btn></div>}
-    {needPreview && pv && <>
-      <p className="ch-muted">{changing.length} {T('endres')} · {pv.length - changing.length} {T('endres ikke')}{over.length ? ' · ' + over.length + ' ' + T('over kvoten etter endring') : ''}</p>
-      <List cols="minmax(140px,1fr) auto auto" head={['Menighet', 'Kvote', 'Merknad']} empty="Ingen menigheter er knyttet til planen."
-        rows={pv.map(r => ({ key: r.church_id, cells: [<b>{r.church_name}</b>,
-          <span>{r.will_change ? r.current_mb + ' → ' + r.new_mb + ' MB' : r.current_mb + ' MB'}</span>,
-          <span className="ch-row">{r.will_change ? <Badge tone="ok">{T('Endres')}</Badge> : <span className="ch-muted">{T(PREVIEW_REASON[r.reason] || r.reason)}</span>}
-            {r.over_after && <Badge tone="bad">{T('Over kvoten')}</Badge>}</span>] }))} />
-    </>}
     <div className="ch-row">
-      <Btn kind="primary" disabled={!okQ || !okP || (!quotaChanged && !priceChanged) || (needPreview && !pv)} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre plan')}</Btn>
+      <Btn kind="primary" disabled={!okQ || !okP || (!quotaChanged && !priceChanged)} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre plan')}</Btn>
       <Btn onClick={onCancel}>{T('Avbryt')}</Btn>
     </div>
-    <p className="ch-muted">{T('Endringen loggføres med gammel og ny verdi. Egne kvoter, menigheter uten abonnement og avsluttede abonnementer endres ikke. Ingen filer slettes.')}</p>
+    <p className="ch-muted">{T('Endringen loggføres med gammel og ny verdi. Planens lagring er bare veiledende – menighetenes faktiske kvoter endres ikke. Ingen filer slettes.')}</p>
   </form>;
 }
-const PREVIEW_REASON = {
-  'uten registrert abonnement (endres ikke)': 'Uten registrert abonnement (endres ikke)', 'avsluttet abonnement (endres ikke)': 'Avsluttet abonnement (endres ikke)',
-  'egen kvote (beskyttet)': 'Egen kvote (beskyttet)', 'kvoten avviker fra planen (endres ikke)': 'Kvoten avviker fra planen (endres ikke)', 'uendret kvote': 'Uendret kvote', 'endres': 'Endres',
-};
+/* Menighetens faktiske kvote, brukt og ledig plass (Admin for egen menighet; Developer ser det samme her). */
+function ChurchQuotaCard({ church, usage }) {
+  const quota = usage ? usage.quota_bytes : church.storage_quota_mb * 1048576, used = usage ? usage.used_bytes : null;
+  return <Card title="Menighetens lagring">
+    <div className="ch-row" data-ch-quota><span>{T('Faktisk kvote')}: <b>{church.storage_quota_mb} MB</b></span><QuotaBadge church={church} /></div>
+    {used != null && <p className="ch-muted">{T('Brukt')}: {mb(used)} · {T('Ledig')}: {mb(Math.max(0, quota - used))}</p>}
+    <p className="ch-muted">{T('Standard er 200 MB. Trenger menigheten mer plass, kan Developer tildele en egen kvote. Abonnementet endrer ikke kvoten.')}</p>
+  </Card>;
+}
 export function SubsView({ churchId }) {
   const { staff, canManage, churchName, act, say, reload, d } = useAdmin();
-  const [sub, setSub] = React.useState({ plans: [], current: [], reqs: [], plan: 'standard', free: true, reason: '', note: '' });
+  const [sub, setSub] = React.useState({ plans: [], current: [], reqs: [], usage: null, plan: 'standard', free: true, reason: '', note: '' });
   const [editing, setEditing] = React.useState(null);   // plankode som redigeres (bare Developer)
   const churchOf = id => d.churches.find(c => c.id === id) || {};
-  const load = async () => { const [plans, current, reqs] = await Promise.all([SUB.plans(), SUB.current(churchId), SUB.requests(churchId)]); setSub(p => ({ ...p, plans, current, reqs })); };
-  React.useEffect(() => { act(load)(); }, [churchId]);
+  /* Planenes veiledende lagring kan bare Developer lese; Admin og User får plannavn og pris. */
+  const load = async () => { const [plans, current, reqs, usage] = await Promise.all([staff ? SUB.plansAdmin() : SUB.plans(), SUB.current(churchId), SUB.requests(churchId), churchId ? FS.usage(churchId).catch(() => null) : null]); setSub(p => ({ ...p, plans, current, reqs, usage })); };
+  React.useEffect(() => { act(load)(); }, [churchId, staff]);
   const run = (fn, ok) => act(async () => { await fn(); say(T(ok)); await load(); await reload(); });
+  const quotaText = c => c && c.id ? <span className="ch-row"><span>{c.storage_quota_mb} MB</span><QuotaBadge church={c} /></span> : '–';
   return <div className="ch-grid">
+    {churchId && churchOf(churchId).id && <ChurchQuotaCard church={churchOf(churchId)} usage={sub.usage} />}
     <Card title="Planer">
-      <List cols={staff ? '1fr auto auto auto' : '1fr auto auto'} head={staff ? ['Plan', 'Lagring', 'Pris', ''] : ['Plan', 'Lagring', 'Pris']} rows={sub.plans.map(p => ({ key: p.code, cells: [T(p.name), p.storage_quota_mb + ' MB', priceText(p.price_nok_month),
+      <List cols={staff ? '1fr auto auto auto' : '1fr auto'} head={staff ? ['Plan', 'Planens lagring (veiledende)', 'Pris', ''] : ['Plan', 'Pris']} rows={sub.plans.map(p => ({ key: p.code, cells: [T(p.name),
+        ...(staff ? [p.storage_quota_mb + ' MB'] : []), priceText(p.price_nok_month),
         ...(staff ? [<div className="ch-end"><Btn small onClick={() => setEditing(editing === p.code ? null : p.code)}>{T(editing === p.code ? 'Lukk' : 'Endre')}</Btn></div>] : [])] }))} />
       {staff && editing && <PlanEditor key={editing} plan={sub.plans.find(p => p.code === editing)} onCancel={() => setEditing(null)} onDone={async () => { setEditing(null); await load(); await reload(); }} />}
-      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; Developer godkjenner. Abonnementet bestemmer lagringskvoten.')}</p>
+      {staff && <p className="ch-muted">{T('Planens lagring er bare veiledende og gir ikke menigheten mer plass automatisk. Menighetens faktiske kvote er standard 200 MB, eller en egen kvote som du tildeler under Menigheter → Innstillinger.')}</p>}
+      <p className="ch-muted">{T('Det tas ikke betalt i ConnectHub ennå. Menigheter kan be om et abonnement eller om gratis abonnement; Developer godkjenner. Abonnementet endrer ikke lagringskvoten.')}</p>
     </Card>
     <Card title="Nåværende abonnement">
-      <List cols="1fr auto auto" head={['Menighet', 'Plan', 'Gratis']} empty="Ingen abonnement registrert (standard: Gratis, 200 MB)." rows={sub.current.map(c => ({ key: c.church_id, cells: [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei')] }))} />
+      <List cols="1fr auto auto auto" head={['Menighet', 'Plan', 'Gratis', 'Faktisk kvote']} empty="Ingen abonnement registrert. Kvoten er standard 200 MB." rows={sub.current.map(c => ({ key: c.church_id, cells: [churchName(c.church_id), c.plan, T(c.free_of_charge ? 'Ja' : 'Nei'), quotaText(churchOf(c.church_id))] }))} />
       {churchId && canManage(churchId) && !staff && <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => SUB.request(churchId, sub.plan, sub.free, sub.reason), 'Forespørselen er sendt.')(e); }}>
         <Field label="Plan"><select className="ch-select" value={sub.plan} onChange={e => setSub(p => ({ ...p, plan: e.target.value }))}>{sub.plans.map(p => <option key={p.code} value={p.code}>{T(p.name)}</option>)}</select></Field>
         <Field label="Begrunnelse (valgfritt)"><input className="ch-input" value={sub.reason} onChange={e => setSub(p => ({ ...p, reason: e.target.value }))} maxLength={1000} /></Field>
@@ -437,7 +445,7 @@ export function SubsView({ churchId }) {
       {staff && <Field label="Merknad til avgjørelsen (valgfritt)"><input className="ch-input" value={sub.note} onChange={e => setSub(p => ({ ...p, note: e.target.value }))} maxLength={500} /></Field>}
       <List cols="minmax(140px,1fr) auto auto auto" head={['Menighet og plan', 'Gratis', 'Status', '']} empty="Ingen forespørsler." rows={sub.reqs.map(r => ({ key: r.id, cells: [
         <div><b>{churchName(r.church_id)}</b><div className="ch-muted">{r.plan}{r.reason ? ' · ' + r.reason : ''}{r.decision_note ? ' · ' + r.decision_note : ''}</div>
-          {staff && r.status === 'pending' && churchOf(r.church_id).quota_custom && <div className="ch-muted"><Badge tone="warn">{T('Egen kvote beholdes')} ({churchOf(r.church_id).storage_quota_mb} MB)</Badge></div>}</div>,
+          {staff && r.status === 'pending' && churchOf(r.church_id).id && <div className="ch-row ch-muted">{T('Nåværende kvote')}: {quotaText(churchOf(r.church_id))} · {T('endres ikke ved godkjenning')}</div>}</div>,
         T(r.free_of_charge ? 'Ja' : 'Nei'), <StatusBadge s={r.status} />,
         r.status === 'pending' ? (staff ? <div className="ch-end">
           <Btn small kind="primary" onClick={run(() => SUB.decide(r.id, true, sub.note), 'Forespørselen er godkjent.')}>{T('Godkjenn')}</Btn>
