@@ -443,6 +443,9 @@ insert into public.church_subscriptions (church_id, plan, free_of_charge, status
   ('ffffffff-0000-4000-8000-00000000000f', 'standard', true, 'cancelled'), ('12121212-0000-4000-8000-000000000012', 'standard', true, 'active');
 create temp table t19 as select (select count(*) from public.files where church_id = 'aaaaaaaa-0000-4000-8000-00000000000a') a_files;
 grant select on t19 to authenticated;
+-- Planenes verdier ved start (testene forventer ikke faste verdier, og alt settes tilbake til disse)
+create temp table t21p as select code, storage_quota_mb, price_nok_month from public.plans;
+grant select on t21p to authenticated;
 
 -- Standard og merke (utledes alltid av kvoten)
 select ch_test.cnt('Kvote: ny menighet får standard 200 MB uten egen kvote', $q$select 1 from public.churches where id = '13131313-0000-4000-8000-000000000013' and storage_quota_mb = 200 and not quota_custom$q$, 1);
@@ -514,7 +517,7 @@ select ch_test.err('Plan: ukjent plan avvises', $q$select public.update_plan('fi
 select ch_test.err('Kvote: egen kvote over 10240 MB avvises', $q$select public.set_church_quota('dddddddd-0000-4000-8000-00000000000d', 20000)$q$, '22023');
 select ch_test.err('Kvote: negativ kvote avvises', $q$select public.set_church_quota('dddddddd-0000-4000-8000-00000000000d', -1)$q$, '22023');
 select ch_test.err('Kvote: ukjent menighet avvises', $q$select public.reset_church_quota('99999999-9999-4999-8999-999999999999')$q$, '22023');
-select ch_test.atleast('Plan: Developer ser planenes veiledende lagring', $q$select 1 from public.plans_admin() where (code, storage_quota_mb) in (('gratis', 200), ('standard', 1024), ('utvidet', 5120))$q$, 3);
+select ch_test.cnt('Plan: Developer ser planenes veiledende lagring (alle planer, med verdiene i databasen)', $q$select 1 where (select count(*) from public.plans_admin() a join t21p p on p.code = a.code and p.storage_quota_mb = a.storage_quota_mb) = (select count(*) from t21p) and (select count(*) from t21p) >= 3$q$, 1);
 select ch_test.atleast('Kvote: Developer ser faktisk kvote, merke og brukt plass for alle menigheter', $q$select 1 from public.church_quota_overview() o where (o.church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and o.storage_quota_mb = 200 and not o.quota_custom and o.used_bytes > 0) or (o.church_id = 'dddddddd-0000-4000-8000-00000000000d' and o.quota_custom and o.used_bytes = 0)$q$, 2);
 
 -- Egen kvote per menighet
@@ -540,20 +543,20 @@ select ch_test.cnt('Plan: Developer endrer Standard til 2048 MB – ingen menigh
 set local role postgres;
 select ch_test.cnt('Plan: planen har ny veiledende lagring', $q$select 1 from public.plans where code = 'standard' and storage_quota_mb = 2048$q$, 1);
 select ch_test.cnt('Plan: menighetene på Standard har uendret kvote (A, Q, R, S, T)', $q$select 1 from public.churches where (id, storage_quota_mb) in (('aaaaaaaa-0000-4000-8000-00000000000a', 200), ('dddddddd-0000-4000-8000-00000000000d', 1024), ('eeeeeeee-0000-4000-8000-00000000000e', 200), ('ffffffff-0000-4000-8000-00000000000f', 200), ('12121212-0000-4000-8000-000000000012', 999))$q$, 5);
-select ch_test.cnt('Plan: planendringen er loggført med gammel og ny verdi og hvem', $q$select 1 from public.audit_logs where action = 'plans.update' and target_id = 'standard' and meta -> 'old' ->> 'quota_mb' = '1024' and meta -> 'new' ->> 'quota_mb' = '2048' and meta ->> 'churches_updated' = '0' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
-select ch_test.cnt('Plan: ingen kvoteendring er loggført av planendringen', $q$select 1 from public.audit_logs where action = 'churches.quota' and meta ->> 'reason' like 'plan %'$q$, 0);
+select ch_test.cnt('Plan: planendringen er loggført med gammel og ny verdi og hvem', $q$select 1 from public.audit_logs where action = 'plans.update' and target_id = 'standard' and meta -> 'old' ->> 'quota_mb' = (select storage_quota_mb::text from t21p where code = 'standard') and meta -> 'new' ->> 'quota_mb' = '2048' and meta ->> 'churches_updated' = '0' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
+select ch_test.cnt('Plan: ingen kvoteendring er loggført av planendringen', $q$select 1 from public.audit_logs where action = 'churches.quota' and meta ->> 'reason' like 'plan %' and church_id in ('aaaaaaaa-0000-4000-8000-00000000000a', 'bbbbbbbb-0000-4000-8000-00000000000b', 'dddddddd-0000-4000-8000-00000000000d', 'eeeeeeee-0000-4000-8000-00000000000e', 'ffffffff-0000-4000-8000-00000000000f', '12121212-0000-4000-8000-000000000012', '13131313-0000-4000-8000-000000000013')$q$, 0);   -- bare testmenighetene (ekte logger i dev telles ikke)
 select ch_test.err('Plan: loggen kan ikke endres', $q$update public.audit_logs set meta = '{}' where action = 'plans.update'$q$, '42501');
 set local role authenticated;
 select ch_test.cnt('Plan: Gratis-planen endrer heller ingen menigheter', $q$select 1 where (public.update_plan('gratis', 300, 0, true) ->> 'churches_updated') = '0'$q$, 1);
 set local role postgres;
 select ch_test.cnt('Plan: B og U beholder standard 200 MB', $q$select 1 from public.churches where id in ('bbbbbbbb-0000-4000-8000-00000000000b', '13131313-0000-4000-8000-000000000013') and storage_quota_mb = 200 and not quota_custom$q$, 2);
 set local role authenticated;
-select ch_test.ok('Pris: Developer setter pris for Utvidet', $q$select public.update_plan('utvidet', 5120, 990, false)$q$);
+select ch_test.ok('Pris: Developer setter pris for Utvidet', $q$select public.update_plan('utvidet', (select storage_quota_mb from t21p where code = 'utvidet'), 990, false)$q$);
 set local role postgres;
-select ch_test.cnt('Pris: ny pris er lagret, veiledende lagring er uendret', $q$select 1 from public.plans p where p.code = 'utvidet' and p.price_nok_month = 990 and p.storage_quota_mb = 5120$q$, 1);
+select ch_test.cnt('Pris: ny pris er lagret, veiledende lagring er uendret', $q$select 1 from public.plans p join t21p s on s.code = p.code where p.code = 'utvidet' and p.price_nok_month = 990 and p.storage_quota_mb = s.storage_quota_mb$q$, 1);
 set local role authenticated;
-select ch_test.ok('Pris: tom pris («Avtales») er lov', $q$select public.update_plan('utvidet', 5120, null, false)$q$);
-select ch_test.ok('Plan: Developer setter Standard tilbake til 1024 MB', $q$select public.update_plan('standard', 1024, null, false)$q$);
+select ch_test.ok('Pris: tom pris («Avtales») er lov', $q$select public.update_plan('utvidet', (select storage_quota_mb from t21p where code = 'utvidet'), null, false)$q$);
+select ch_test.ok('Plan: Developer setter Standard tilbake til startverdiene', $q$select public.update_plan('standard', (select storage_quota_mb from t21p where code = 'standard'), (select price_nok_month from t21p where code = 'standard'), false)$q$);
 
 -- Godkjenning av abonnement endrer ikke kvoten (verken standard eller egen kvote)
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
@@ -595,7 +598,7 @@ select ch_test.err('Sperre: 199 MB brukt + 2 MB stoppes ved standard 200 MB, ikk
 set local role postgres;
 delete from public.files where storage_key like 'test/stor-%';
 set local role postgres;
-update public.plans set storage_quota_mb = 200, price_nok_month = 0 where code = 'gratis';
+update public.plans p set storage_quota_mb = s.storage_quota_mb, price_nok_month = s.price_nok_month from t21p s where s.code = p.code;   -- startverdiene (rulles uansett tilbake)
 set local role authenticated;
 
 -- ---------- Menighetens livsløp (P10) ----------
