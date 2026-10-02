@@ -35,6 +35,33 @@ export function canJoinAnother(roles, memberships, userId, churchName) {
 export const roleBlocked = (globalRoles, r, activeCount) =>
   !(globalRoles || []).some(g => g.id !== r.id && !g.revoked_at && (g.role === 'developer' || g.role === 'moderator')) && activeCount > 1;
 
+/* Fornavn/etternavn til skjemaet: de lagrede feltene, ellers et forslag ut fra visningsnavnet (siste ord = etternavn). */
+export function splitName(u) {
+  if (!u) return { first: '', last: '' };
+  if (u.first_name || u.last_name) return { first: u.first_name || '', last: u.last_name || '' };
+  const parts = String(u.full_name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] } : { first: parts[0] || '', last: '' };
+}
+/* Samme regler som databasen (set_user_name): minst ett av feltene, høyst 60 tegn, ingen kontrolltegn eller < >. */
+export function nameError(first, last) {
+  const f = String(first || '').trim(), l = String(last || '').trim();
+  if (!f && !l) return 'Skriv fornavn eller etternavn.';
+  if (f.length > 60 || l.length > 60) return 'Navnet er for langt (maks 60 tegn).';
+  if (/[\u0000-\u001f\u007f<>]/.test(f + l)) return 'Navnet inneholder ugyldige tegn.';
+  return null;
+}
+/* «Velkommen, …»: fornavn + etternavn, ellers visningsnavnet, ellers delen av e-posten før @. */
+export function welcomeName(me) {
+  if (!me) return '';
+  const fl = [me.first_name, me.last_name].map(x => String(x || '').trim()).filter(Boolean).join(' ');
+  return fl || String(me.full_name || '').trim() || String(me.email || '').split('@')[0];
+}
+/* Hovedrollen til visning: Developer > Moderator > Admin > Bruker. */
+export function mainRole(roles) {
+  const rs = (roles || []).filter(r => !r.revoked_at);
+  return rs.some(r => r.role === 'developer') ? 'Developer' : rs.some(r => r.role === 'moderator') ? 'Moderator' : rs.some(r => r.role === 'church_admin') ? 'Admin' : 'Bruker';
+}
+
 export function removeConfirmText({ name, church, isAdmin }) {
   const lines = [fill(tr('Fjerne {name} fra {church}?'), { name, church }), '',
     tr('Brukeren mister med en gang tilgang til menighetens filer, data og funksjoner. Kontoen slettes ikke, og historikken beholdes. Brukeren kan inviteres på nytt senere.')];

@@ -790,3 +790,59 @@ Etter publisering:
 - Loggrader.
 
 Ingen eksisterende filer er slettet.
+
+## Knapper, tilbakemeldingsvinduet, fjerning av saker, navn, logo, velkomst og sletting av koblinger (2026-10-02, connecthub-dev)
+
+**Migreringer (dev):**
+- **`20261007100000_feedback_archive_names_logo.sql`:**
+  - `feedback.archived_at/archived_by/archive_reason` og hendelsestypene `archive`/`restore`.
+  - `feedback_list(p_archived)`, `archive_feedback` og `restore_feedback` (Moderator/Developer med MFA, loggført).
+  - `app_users.first_name/last_name`, der triggeren `app_users_name` avleder `full_name`, og `set_user_name` (Admin i brukerens menighet, eller stab, loggført `users.name`).
+  - `churches.logo_file_id`, som peker på en fil i Logoer-mappen og blir tom om filen slettes, og `set_church_logo` (Admin, eller stab som er medlem, loggført `churches.logo`).
+  - `whoami` med navn og logo-ID.
+- **`20261007100100_delete_ended_links.sql`:** `delete_link`. Bare avsluttede koblinger kan slettes. Kopiene i koblingen slettes og legges i køen for lagringen, originalene røres ikke, og hendelsen loggføres som `links.delete`.
+
+Begge er tørrkjørt (bare disse to filene), og alle 14 kontrollfelt er like før og etter.
+
+**Valg:** «Fjern sak» betyr *arkivering*, ikke sletting. Historikk og revisjonslogg kan da ikke brytes, og saken kan gjenopprettes under «Fjernede saker».
+
+**Grensesnitt:**
+- **Knappene:** tilbakemelding, konto og lys/mørk ligger i ett felles felt (`src/shared/dock.js`), så de aldri overlapper. Forsidens egen lys/mørk-knapp får plass (`data-ch-dock-reserve`). Sider som ruller, får luft nederst, og bare én meny eller ett panel er åpent om gangen.
+- **Tilbakemeldingsvinduet:** tydelig X (36 px), bakgrunn som lukker ved trykk utenfor, og Escape. Med innhold eller markering spør det først. Trykk inne i vinduet lukker aldri.
+- **Innboksen:** valget «Innboks / Fjernede saker», og feltet «Fjern saken» med bekreftelse og «Gjenopprett».
+- **Velkomstområdet** øverst på oversikten: «Velkommen, …», hovedrolle og menighet(er) med logo. Uten navn, logo eller menighet brukes reservevisning. Det samme gjelder på mobil.
+- **Brukerskuffen:** fornavn og etternavn, med «Du redigerer navnet til …». Brukeren redigerer sitt eget navn, og Admin eller stab andres.
+- **Innstillinger:** kortet «Logo» med forhåndsvisning, «Last opp / Bytt logo» og «Fjern logo». Opplastingen bruker den vanlige, kontrollerte filopplastingen.
+- **Samarbeid:** «Slett» på avsluttede koblinger, med antall kopier i bekreftelsen.
+
+**Tester:**
+- **RLS:** 606/606 i PGlite og i dev, hvorav 40 nye. Dekker arkivering og avvisning for Admin, User og uten MFA, navn (egen og annen menighet, validering, logg, whoami, ingen rolleendring), logo (egen eller annen menighets fil, mappe, medlem eller ikke-medlem, tom etter sletting av filen) og sletting av kobling (Admin og uten MFA avvises, aktiv kobling kan ikke slettes, kopi slettet, original urørt, kø og logg).
+- **`npm test`:** 122/122 (`members.test.js`: navn, velkomst og rolle; `contract.test.js`: arkivering).
+
+**Nettleser (lokal preview mot dev):**
+- **Knapper (8 sider × PC 1440 og mobil 390):** ingen overlapp, og ingen knapper over innhold når siden er rullet helt ned.
+- **Tilbakemeldingsvinduet på PC:**
+  - Tomt skjema: trykk utenfor lukker uten spørsmål.
+  - Kategori, skriving og markering lukker ikke vinduet, og teksten beholdes etter markering.
+  - Med tekst spør trykk utenfor, Escape og X «Forkaste teksten du har skrevet?». «Avbryt» beholder teksten.
+  - Kontomenyen og tilbakemeldingen er aldri åpne samtidig.
+- **Tilbakemeldingsvinduet på mobil:** 390×844 fullskjerm, X lukker med berøring, og trykk inne i boksen lukker ikke.
+- **Moderator:** fjernet TB-05A5AF med bekreftelse (avbryt beholdt saken). Saken lå i «Fjernede saker» med historikk og ble gjenopprettet. Statusendring fjerner ikke saken.
+- **Admin:**
+  - Navneskjema for `ch-test-user`: `<x>` ga «Navnet inneholder ugyldige tegn.», og lagring ga «Navnet er lagret.». Annen menighet → 403.
+  - Logo: tekst forkledd som PNG ble avvist («Bare bilder …»), og en ekte PNG ble lagret med forhåndsvisning. Logo for B → 403.
+  - Velkomstområdet viser logoen med en gang.
+- **Velkomst:**
+  - User (mobil): «Velkommen, User Test | Bruker | CH-test Menighet A», med logo som bilde.
+  - Moderator: ingen menighet, og meldingen vises.
+  - Developer: «Developer | CH-test Menighet A».
+- **Developer, Samarbeid:** «Slett» bare på avsluttede koblinger. De to avsluttede A–B-testkoblingene er slettet (én via UI, én via direkte kall). Koblingen A – «12» (brukerens egen) er urørt.
+- **Rolle-regresjon** for alle fire roller: grønn.
+
+**Testdata lagt til i dev:**
+- To logofiler i Menighet A (Logoer). A har nå logo.
+- Navnefeltene til `ch-test-user` er satt (User/Test, uendret visningsnavn).
+- Historikk for arkivering og gjenoppretting på TB-05A5AF.
+- Loggrader.
+
+**Testdata slettet i dev:** to avsluttede A–B-koblinger. Begge var testkoblinger, og ingen av dem hadde filer.

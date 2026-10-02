@@ -6,7 +6,8 @@ import { spaces as SP, links as LK, linkName, otherChurch, subscriptions as SUB,
 import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Dialog, href, go } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
 import { Thumb, downloadOriginal } from './thumbs.jsx';
-import { memberActions } from './members.js';
+import { memberActions, fill } from './members.js';
+import { useLogos, ChurchLogo, forgetLogo } from './logos.jsx';
 
 const ACTIONS = {
   'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
@@ -136,14 +137,47 @@ function MembersView({ church }) {
   </>;
 }
 
+/* Logo: Admin i menigheten (eller stab som er medlem) laster opp et bilde til Faste → Logoer med den vanlige, kontrollerte
+   opplastingen (bare bilder, 4 MB, innholdet sjekkes på serveren) og velger det som logo. Gamle logoer slettes aldri. */
+function LogoCard({ church }) {
+  const { act, say, reload } = useAdmin();
+  const logos = useLogos([church.logo_file_id]), url = logos[church.logo_file_id];
+  const input = React.useRef(null);
+  const upload = act(async e => {
+    const file = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    const f = await FS.upload(file, { churchId: church.id, folder: 'logoer' });
+    await admin.setChurchLogo(church.id, f.id); forgetLogo(church.logo_file_id);
+    say(T('Logoen er lagret. Den vises på oversikten for alle i menigheten.')); await reload();
+  });
+  const clear = act(async () => {
+    if (!confirm(T('Fjerne logoen?') + '\n\n' + T('Menigheten vises med forbokstaver i stedet. Bildet blir liggende i Faste → Logoer.'))) return;
+    await admin.setChurchLogo(church.id, null); say(T('Logoen er fjernet.')); await reload();
+  });
+  return <Card title="Logo">
+    <div className="ch-logo-preview" data-ch-logocard>
+      <ChurchLogo url={url} name={church.name} size={72} />
+      <div><b>{church.name}</b><div className="ch-muted">{T(church.logo_file_id ? 'Denne logoen vises på oversikten.' : 'Ingen logo ennå – forbokstavene vises i stedet.')}</div></div>
+    </div>
+    <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={upload} data-ch-logoinput />
+    <div className="ch-row">
+      <Btn kind="primary" onClick={() => input.current && input.current.click()}>{T(church.logo_file_id ? 'Bytt logo' : 'Last opp logo')}</Btn>
+      {church.logo_file_id && <Btn onClick={clear}>{T('Fjern logo')}</Btn>}
+    </div>
+    <p className="ch-muted">{T('PNG, JPG, WebP eller GIF, høyst 4 MB. Kvadratiske logoer blir finest.')}</p>
+  </Card>;
+}
+
 function ChurchSettings({ church }) {
-  const { staff, act, say, reload, canManage } = useAdmin();
+  const { staff, act, say, reload, canManage, adminOf, me } = useAdmin();
+  const logoOk = (adminOf || []).includes(church.id) || (staff && (me.churches || []).some(c => c.id === church.id));
   const [name, setName] = React.useState(church.name), [quota, setQuota] = React.useState(church.storage_quota_mb ?? DEFAULT_QUOTA_MB);
   const run = (fn, ok) => act(async () => { await fn(); if (ok) say(T(ok)); await reload(); });
   const used = (useQuotaOverview(staff, church.storage_quota_mb)[church.id] || {}).used_bytes;
   const [so, setSo] = React.useState(null);
   React.useEffect(() => { if (staff) admin.storageOverview().then(setSo).catch(() => {}); }, [staff, church.storage_quota_mb]);
   return <div className="ch-grid">
+    {logoOk && <LogoCard church={church} />}
     {staff && <Card title="Navn og lagring">
       <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.renameChurch(church.id, name), 'Navnet er endret.')(e); }}>
         <Field label="Navn"><input className="ch-input" value={name} onChange={e => setName(e.target.value)} minLength={2} maxLength={120} required /></Field>
@@ -366,6 +400,19 @@ export function LinksView() {
   const reopen = l => run(async () => {
     try { await LK.reopen(l.id); } catch (e) { if (e && e.code === 'conflict') throw Object.assign(new Error(), { code: 'link_exists' }); throw e; }
   }, 'Koblingen er gjenåpnet. Filene er synlige igjen.');
+  /* Sletting av en AVSLUTTET kobling: koblingen og kopiene i Samarbeidsfiler slettes (originalene i menighetene røres
+     ikke). Antall kopier vises i bekreftelsen. Databasen godtar bare avsluttede koblinger og loggfører. */
+  const removeLink = l => act(async () => {
+    const meta = await LK.filesMeta(l.id).catch(() => []);
+    const n = (meta || []).length, bytes = (meta || []).reduce((s, f) => s + Number(f.file_size || 0), 0);
+    if (!confirm(fill(T('Slette den avsluttede koblingen «{name}» permanent?'), { name: linkName(l) }) + '\n\n' +
+      (n ? fill(T('{n} kopier i Samarbeidsfiler ({size}) slettes også. Originalene i menighetene røres ikke.'), { n, size: mb(bytes) }) : T('Koblingen har ingen Samarbeidsfiler.')) + '\n' +
+      T('Kan ikke angres. Handlingen loggføres.'))) return;
+    const r = await LK.remove(l.id);
+    say(fill(T('Koblingen «{name}» er slettet.'), { name: linkName(l) }) + (r.copies ? ' ' + fill(T('{n} kopier er fjernet.'), { n: r.copies }) : '') +
+      (r.storage_failed ? ' ' + fill(T('{n} filer kunne ikke fjernes fra lagringen ennå – prøv igjen.'), { n: r.storage_failed }) : ''), !r.storage_failed);
+    await load(null);
+  });
   const create = act(async e => {
     e.preventDefault();
     if (existing) return;
@@ -395,7 +442,7 @@ export function LinksView() {
           <span className="ch-row">{l.status === 'active' ? <Badge tone="ok">{T('Aktiv')}</Badge> : <Badge>{T('Avsluttet')}</Badge>}{l.id === s.sel && <Badge>{T('Valgt')}</Badge>}</span></div>,
         <div className="ch-end">{l.status === 'active'
           ? <Btn small kind="danger" onClick={end(l)}>{T('Avslutt')}</Btn>
-          : <Btn small onClick={reopen(l)}>{T('Gjenåpne')}</Btn>}</div>] }))} />
+          : <><Btn small onClick={reopen(l)}>{T('Gjenåpne')}</Btn><Btn small kind="danger" data-ch-deletelink onClick={removeLink(l)}>{T('Slett')}</Btn></>}</div>] }))} />
     </Card>
     {cur && <Card title={linkName(cur)} sub={s.meta.length}>
       <p className="ch-muted">{T('Filene i koblingens Samarbeidsfiler. Som Developer eller Moderator ser du bare filnavn og opplysninger – ikke innholdet – og du kan ikke laste ned eller slette.')}</p>

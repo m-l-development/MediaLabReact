@@ -313,7 +313,7 @@ export default function template(v) {
       {"\n\n  "}
       <footer data-dc-tpl="101" style={{"position":"relative","flexShrink":"0","marginTop":"auto","height":"56px","paddingBottom":"env(safe-area-inset-bottom)","display":"flex","alignItems":"center","justifyContent":"center"}}>
         {"\n  "}
-        <button data-dc-tpl="102" onClick={v.toggleTheme} title={v.themeTitle} aria-label={v.themeTitle} style={{"position":"fixed","right":"12px","bottom":"calc(12px + env(safe-area-inset-bottom))","zIndex":"60","width":"32px","height":"32px","padding":"0","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid var(--ml-line-soft, rgba(255,255,255,0.1))","borderRadius":"999px","background":"var(--ml-chip, rgba(0,0,0,0.3))","backdropFilter":"blur(10px)","color":"var(--ml-dim, #8a867e)","cursor":"pointer"}} className="scp4">
+        <button data-dc-tpl="102" data-ch-dock-reserve="1" onClick={v.toggleTheme} title={v.themeTitle} aria-label={v.themeTitle} style={{"position":"fixed","right":"12px","bottom":"calc(12px + env(safe-area-inset-bottom))","zIndex":"60","width":"32px","height":"32px","padding":"0","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid var(--ml-line-soft, rgba(255,255,255,0.1))","borderRadius":"999px","background":"var(--ml-chip, rgba(0,0,0,0.3))","backdropFilter":"blur(10px)","color":"var(--ml-dim, #8a867e)","cursor":"pointer"}} className="scp4">
           {"\n    "}
           <svg data-dc-tpl="103" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle data-dc-tpl="104" cx="12" cy="12" r="9" />

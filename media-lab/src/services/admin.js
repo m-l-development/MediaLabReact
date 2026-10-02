@@ -4,12 +4,16 @@
 import { data } from './port.js';
 import { callServer } from './server.js';
 
-const USER_COLS = 'id, email, full_name, phone, status, created_at';
+const USER_COLS = 'id, email, full_name, first_name, last_name, phone, status, created_at';
 /* Fast standardkvote per menighet (samme som app.default_quota_mb() i databasen). Alt annet er egen kvote. */
 export const DEFAULT_QUOTA_MB = 200;
 
 export const admin = {
-  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after, storage_quota_mb, quota_custom', order: 'name' }),
+  churches: () => data().select('churches', { columns: 'id, name, status, created_at, delete_after, storage_quota_mb, quota_custom, logo_file_id', order: 'name' }),
+  /* Logo: en fil i menighetens Logoer-mappe (null = ingen logo). Admin i menigheten, eller stab som er medlem. */
+  setChurchLogo: (churchId, fileId) => data().rpc('set_church_logo', { p_church: churchId, p_file: fileId || null }),
+  /* Fornavn/etternavn på en annen bruker: Admin i brukerens menighet, eller stab. Visningsnavnet avledes i databasen. */
+  setUserName: (userId, first, last) => data().rpc('set_user_name', { p_user: userId, p_first: first, p_last: last }),
   createChurch: name => data().insert('churches', { name: String(name || '').trim() }, 'id, name, status'),
   renameChurch: (id, name) => data().update('churches', { id }, { name: String(name || '').trim() }),
 
@@ -57,7 +61,8 @@ export const admin = {
   /* Developer: faktisk kvote, merke og brukt plass for alle menigheter (bare summer). */
   quotaOverview: () => data().rpc('church_quota_overview'),
   /* Egne opplysninger (RLS: bare seg selv, bare navn og telefon). */
-  updateMyProfile: (id, fullName, phone) => data().update('app_users', { id }, { full_name: String(fullName || '').trim() || null, phone: String(phone || '').trim() || null }),
+  /* Egen profil: fornavn, etternavn og telefon (visningsnavnet avledes av fornavn + etternavn i databasen). */
+  updateMyProfile: (id, first, last, phone) => data().update('app_users', { id }, { first_name: String(first || '').trim() || null, last_name: String(last || '').trim() || null, phone: String(phone || '').trim() || null }),
   userActivity: userId => data().select('audit_logs', { columns: 'id, action, target_type, church_id, meta, created_at', eq: { actor_user_id: userId }, order: 'created_at', desc: true, limit: 25 }),
   audit: churchId => data().select('audit_logs', { columns: 'id, actor_user_id, action, target_type, target_id, church_id, reason, meta, created_at', ...(churchId ? { eq: { church_id: churchId } } : {}), order: 'created_at', desc: true, limit: 200 }),
   systemStatus: () => data().rpc('system_status'),

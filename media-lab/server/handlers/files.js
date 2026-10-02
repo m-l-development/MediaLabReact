@@ -107,6 +107,14 @@ export const routes = {
     const s = await drainCleanup(ctx, ids || []);
     return json({ ok: true, storage_done: s.done, storage_failed: s.failed });
   },
+  /* Sletting av en avsluttet samarbeidskobling (Developer/Moderator). Databasen sletter koblingen og kopiene og legger
+     lagringsnøklene i køen i én transaksjon; originalene i menighetene røres ikke. */
+  async 'link.delete'(ctx) {
+    const link = String(ctx.body.link_id || ''); if (!UUID.test(link)) return fail('invalid');
+    const r = await ctx.backend.rpcAsUser(ctx.token, 'delete_link', { p_link: link });
+    const s = await drainCleanup(ctx, (r && r.queue) || []);
+    return json({ ok: true, copies: r.copies, bytes: r.bytes, storage_done: s.done, storage_failed: s.failed });
+  },
   async 'file.delete'(ctx) {
     const id = String(ctx.body.id || ''); if (!UUID.test(id)) return fail('invalid');
     const key = await ctx.backend.rpcAsUser(ctx.token, 'delete_file', { p_id: id });

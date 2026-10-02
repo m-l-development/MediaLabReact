@@ -1,6 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isGlobal, activeOf, roleSummary, canJoinAnother, removeConfirmText, roleBlocked } from './members.js';
+import { isGlobal, activeOf, roleSummary, canJoinAnother, removeConfirmText, roleBlocked, splitName, nameError, welcomeName, mainRole } from './members.js';
+
+test('navn: forslag fra visningsnavnet, validering og velkomstnavn med reservevisning', () => {
+  assert.deepEqual(splitName({ full_name: 'Ola Kristian Nordmann' }), { first: 'Ola Kristian', last: 'Nordmann' });
+  assert.deepEqual(splitName({ first_name: 'Kari', last_name: null, full_name: 'X Y' }), { first: 'Kari', last: '' });
+  assert.deepEqual(splitName({ full_name: '' }), { first: '', last: '' });
+  assert.equal(nameError(' ', ''), 'Skriv fornavn eller etternavn.');
+  assert.equal(nameError('x'.repeat(61), ''), 'Navnet er for langt (maks 60 tegn).');
+  assert.equal(nameError('<b>', 'N'), 'Navnet inneholder ugyldige tegn.');
+  assert.equal(nameError('Kari', ''), null);
+  assert.equal(welcomeName({ first_name: 'Kari', last_name: 'Nordmann', full_name: 'K' }), 'Kari Nordmann');
+  assert.equal(welcomeName({ full_name: 'Ola N' }), 'Ola N');
+  assert.equal(welcomeName({ email: 'ola.nordmann@example.com' }), 'ola.nordmann');
+  assert.equal(mainRole([{ role: 'church_admin', church_id: 'a' }, { role: 'moderator', church_id: null }]), 'Moderator');
+  assert.equal(mainRole([]), 'Bruker');
+});
 
 const name = id => ({ a: 'Menighet A', b: 'Menighet B' }[id] || '–');
 const M = [{ user_id: 'u', church_id: 'a', status: 'active' }, { user_id: 'u', church_id: 'b', status: 'removed' }, { user_id: 'v', church_id: 'b', status: 'disabled' }];

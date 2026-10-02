@@ -7,6 +7,7 @@ import { feedback as FB } from '../../services/feedback.js';
 import { formatCase, formatCases, KIND, STATUS, LEVEL, scrubText } from '../../shared/feedback-core.js';
 import { T, errText, fmt, Btn, Badge, Card, Empty, Field, Search, Select, List, Drawer, Dialog, go, href } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
+import { fill } from './members.js';
 
 const TONE = { new: 'warn', in_progress: 'role', needs_info: 'warn', resolved: 'ok', rejected: 'bad' };
 const ENVS = [['all', 'Alle miljøer'], ['production', 'Produksjon'], ['preview', 'ConnectHub Dev'], ['local', 'Lokal utvikling']];
@@ -31,8 +32,9 @@ export function FeedbackView({ selected }) {
   const [pick, setPick] = React.useState(() => new Set());
   const [parts, setParts] = React.useState(null);     // store eksporter delt opp
   const [manual, setManual] = React.useState(null);   // reserve når kopiering ikke virker
-  const load = React.useCallback(async () => setList(await FB.list()), []);
-  React.useEffect(() => { act(load)(); }, []);
+  const [archived, setArchived] = React.useState(false);   // «Fjernede saker» (arkiverte) i stedet for innboksen
+  const load = React.useCallback(async () => setList(await FB.list(archived)), [archived]);
+  React.useEffect(() => { setList(null); act(load)(); }, [archived]);
   const rows = (list || []).filter(c => (f.kind === 'all' || c.kind === f.kind) && (f.app === 'all' || c.app === f.app) && (f.status === 'all' || c.status === f.status)
     && (f.env === 'all' || (c.context || {}).env === f.env) && (!f.from || c.created_at >= f.from) && (!f.to || c.created_at.slice(0, 10) <= f.to)
     && (!f.q || norm(c.ref + ' ' + c.title + ' ' + c.description + ' ' + c.submitter_name).includes(norm(f.q))));
@@ -53,6 +55,7 @@ export function FeedbackView({ selected }) {
   return <>
     <Head title="Tilbakemeldinger" sub="Feil, forbedringsforslag og ønsker fra brukerne. Bare Moderator og Developer ser og behandler sakene." />
     <div className="ch-row">
+      <Select label="Visning" value={archived ? 'archived' : 'inbox'} onChange={v => { setArchived(v === 'archived'); setPick(new Set()); }} options={[['inbox', 'Innboks'], ['archived', 'Fjernede saker']]} />
       <Search value={f.q} onChange={set('q')} placeholder="Søk i referanse, tekst eller avsender …" />
       <Select label="Kategori" value={f.kind} onChange={set('kind')} options={[['all', 'Alle kategorier'], ...Object.entries(KIND)]} />
       <Select label="Applikasjon" value={f.app} onChange={set('app')} options={[['all', 'Alle applikasjoner'], ...apps.map(a => [a, a])]} />
@@ -74,7 +77,7 @@ export function FeedbackView({ selected }) {
       <div className="ch-row">{parts.map((p, i) => <Btn key={i} onClick={() => act(async () => copied(await copyText(p), 'Del ' + (i + 1) + ' er kopiert og klar til å limes inn i Claude Code.', p))()}>{T('Kopier del')} {i + 1}</Btn>)}<Btn small onClick={() => setParts(null)}>{T('Lukk')}</Btn></div>
     </Card>}
     <List cols="28px minmax(90px,auto) minmax(180px,2fr) minmax(120px,1fr) auto auto" head={['', 'Referanse', 'Sak', 'Applikasjon og side', 'Status', '']}
-      empty={list === null ? 'Laster …' : 'Ingen tilbakemeldinger passer med filteret.'} onRow={r => go('tilbakemeldinger', r.key)}
+      empty={list === null ? 'Laster …' : archived ? 'Ingen fjernede saker.' : 'Ingen tilbakemeldinger passer med filteret.'} onRow={r => go('tilbakemeldinger', r.key)}
       rows={rows.map(c => ({ key: c.id, cells: [
         <input type="checkbox" aria-label={T('Velg') + ' ' + c.ref} checked={pick.has(c.id)} onClick={e => e.stopPropagation()} onChange={() => togglePick(c.id)} />,
         <div><b>{c.ref}</b><div className="ch-muted">{fmt(c.created_at)}</div></div>,
@@ -84,6 +87,7 @@ export function FeedbackView({ selected }) {
         <Badge tone={TONE[c.status]}>{T(STATUS[c.status] || c.status)}</Badge>,
         <div className="ch-end"><Btn small onClick={e => { e && e.stopPropagation && e.stopPropagation(); copyOne(c); }}>{T('Kopier sak')}</Btn></div>] }))} />
     {cur && <CaseDrawer c={cur} onClose={() => go('tilbakemeldinger')} onCopy={() => copyOne(cur)} reload={load} />}
+    {selected && list && !cur && !archived && <p className="ch-muted">{T('Finner du ikke saken? Den kan være fjernet – se «Fjernede saker».')}</p>}
     {selected && list && !cur && <Drawer title={T('Sak')} onClose={() => go('tilbakemeldinger')}><Empty>{T('Fant ikke saken, eller du har ikke tilgang.')}</Empty></Drawer>}
     {manual && <Dialog title={T('Kopier teksten')} onClose={() => setManual(null)}>
       <p className="ch-muted">{T('Merk all teksten (Ctrl/Cmd + A) og kopier den (Ctrl/Cmd + C).')}</p>
@@ -106,6 +110,13 @@ function CaseDrawer({ c, onClose, onCopy, reload }) {
     await FB.setStatus(c.id, st.status, st.reason.trim()); say(T('Statusen er lagret.')); await reload(); await loadEv();
   });
   const addNote = act(async e => { e.preventDefault(); if (!st.note.trim()) return; await FB.addNote(c.id, st.note.trim()); setSt(s => ({ ...s, note: '' })); say(T('Notatet er lagret.')); await reload(); await loadEv(); });
+  const archive = act(async e => {
+    e.preventDefault();
+    const what = c.ref + (c.title || c.description ? ' «' + String(c.title || c.description).slice(0, 80) + '»' : '');
+    if (!confirm(fill(T('Fjerne sak {what} fra innboksen?'), { what }) + '\n\n' + T('Saken arkiveres: den vises ikke lenger i innboksen, men historikken beholdes, og den kan gjenopprettes under «Fjernede saker».'))) return;
+    await FB.archive(c.id, (st.archiveReason || '').trim()); say(fill(T('Sak {ref} er fjernet fra innboksen.'), { ref: c.ref })); onClose(); await reload();
+  });
+  const restore = act(async () => { await FB.restore(c.id); say(fill(T('Sak {ref} er gjenopprettet til innboksen.'), { ref: c.ref })); onClose(); await reload(); });
   const kv = (k, v) => v ? <><dt>{T(k)}</dt><dd>{v}</dd></> : null;
   return <Drawer title={c.ref + ' · ' + T(KIND[c.kind] || c.kind)} sub={fmt(c.created_at)} onClose={onClose}>
     <div className="ch-row"><Badge tone={TONE[c.status]}>{T(STATUS[c.status] || c.status)}</Badge><Btn kind="primary" onClick={onCopy}>{T('Kopier sak')}</Btn></div>
@@ -140,7 +151,21 @@ function CaseDrawer({ c, onClose, onCopy, reload }) {
         <Btn disabled={!st.note.trim()} onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre notat')}</Btn>
       </form>
       {ev.length ? <List cols="auto 1fr" rows={ev.map(e => ({ key: e.id, cells: [<span className="ch-muted">{fmt(e.created_at)}</span>,
-        <span>{e.kind === 'note' ? <><b>{T('Notat')}</b> ({e.actor_name || '–'}): {e.text}</> : <><b>{T(STATUS[e.old_status] || e.old_status)} → {T(STATUS[e.new_status] || e.new_status)}</b> ({e.actor_name || '–'}){e.text ? ': ' + e.text : ''}</>}</span>] }))} /> : <p className="ch-muted">{T('Ingen statusendringer eller notater ennå.')}</p>}
+        <span>{e.kind === 'note' ? <><b>{T('Notat')}</b> ({e.actor_name || '–'}): {e.text}</>
+          : e.kind === 'archive' ? <><b>{T('Fjernet fra innboksen')}</b> ({e.actor_name || '–'}){e.text ? ': ' + e.text : ''}</>
+          : e.kind === 'restore' ? <><b>{T('Gjenopprettet til innboksen')}</b> ({e.actor_name || '–'})</>
+          : <><b>{T(STATUS[e.old_status] || e.old_status)} → {T(STATUS[e.new_status] || e.new_status)}</b> ({e.actor_name || '–'}){e.text ? ': ' + e.text : ''}</>}</span>] }))} /> : <p className="ch-muted">{T('Ingen statusendringer eller notater ennå.')}</p>}
+    </Card>
+    {/* Eget felt, adskilt fra statusbehandlingen, så en sak aldri fjernes ved et uhell. Fjerning = arkivering. */}
+    <Card title={c.archived_at ? 'Saken er fjernet fra innboksen' : 'Fjern saken'}>
+      {c.archived_at ? <div data-fb-archived>
+        <p className="ch-muted">{T('Fjernet')} {fmt(c.archived_at)}{c.archive_reason ? ' · ' + c.archive_reason : ''}</p>
+        <Btn onClick={restore}>{T('Gjenopprett til innboksen')}</Btn>
+      </div> : <form className="ch-form" onSubmit={archive} data-fb-archive>
+        <p className="ch-muted">{T('For saker som ikke skal behandles (f.eks. duplikater eller tester). Saken forsvinner fra innboksen, men historikken og loggen beholdes, og den kan gjenopprettes under «Fjernede saker».')}</p>
+        <Field label="Begrunnelse (valgfritt)"><input className="ch-input" value={st.archiveReason || ''} maxLength={500} onChange={e => { const v = e.target.value; setSt(s => ({ ...s, archiveReason: v })); }} /></Field>
+        <Btn kind="danger" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Fjern saken fra innboksen')}</Btn>
+      </form>}
     </Card>
   </Drawer>;
 }

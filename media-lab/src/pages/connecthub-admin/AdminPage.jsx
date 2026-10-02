@@ -7,7 +7,8 @@ import { isStaff, hasRole } from '../../services/data/me.js';
 import { subscriptions as SUB, links as LK } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Drawer, Dialog, useRoute, go, href } from './ui.jsx';
 import { NAV, sectionsFor, brandOf } from './access.js';
-import { roleSummary, canJoinAnother, memberActions, fill, roleBlocked } from './members.js';
+import { roleSummary, canJoinAnother, memberActions, fill, roleBlocked, splitName, nameError, welcomeName, mainRole } from './members.js';
+import { useLogos, ChurchLogo, forgetLogo } from './logos.jsx';
 import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView, LogView, ChurchPicker, actionName } from './sections.jsx';
 import { FeedbackView } from './feedback.jsx';
 import { CleanupView } from './cleanup.jsx';
@@ -170,7 +171,7 @@ function Overview({ pendingInvites }) {
     ...d.churches.filter(c => c.status === 'pending_deletion').map(c => ({ k: 'del' + c.id, t: c.name + ': ' + T('venter på sletting') + ' (' + fmtDate(c.delete_after) + ')', to: href('menigheter', c.id, 'innstillinger') })),
   ];
   return <>
-    <Head title="Oversikt" sub={(me.full_name || me.email) + ' · ' + ((me.roles || []).map(r => T(ROLE[r.role] || r.role) + (r.church_id ? ' (' + churchName(r.church_id) + ')' : '')).join(', ') || T('Bruker'))} />
+    <Welcome />
     <div className="ch-stats">
       <a className="ch-stat" href={href('brukere')}><b>{s ? s.users : d.users.filter(u => u.status === 'active').length}</b><span>{T('Aktive brukere')}</span></a>
       <a className="ch-stat" href={href('menigheter')}><b>{d.churches.filter(c => c.status === 'active').length}</b><span>{T('Aktive menigheter')}</span></a>
@@ -214,16 +215,35 @@ function DevCard() {
   </Card>;
 }
 
+/* ---------- Velkomstområdet øverst på oversikten (alle roller) ----------
+   Navn, hovedrolle og menighet(er) med logo fra brukerens egne data (whoami). Reservevisning når navn, logo eller
+   menighet mangler. */
+function Welcome() {
+  const { me, d } = useAdmin();
+  /* Logoen hentes fra de ferske menighetsdataene (oppdateres straks Admin bytter logo), ellers fra innloggingen. */
+  const churches = (me.churches || []).map(c => { const f = d.churches.find(x => x.id === c.id); return f && 'logo_file_id' in f ? { ...c, logo_file_id: f.logo_file_id } : c; });
+  const logos = useLogos(churches.map(c => c.logo_file_id));
+  return <section className="ch-welcome" data-ch-welcome>
+    <p className="ch-welcome-kicker">{T('Oversikt')}</p>
+    <h1 data-ch-welcome-name>{fill(T('Velkommen, {name}'), { name: welcomeName(me) })}</h1>
+    <p className="ch-welcome-role" data-ch-welcome-role>{T(mainRole(me.roles))}</p>
+    {churches.length ? <div className="ch-welcome-churches">{churches.map(c => <a key={c.id} className="ch-welcome-church" href={href('menigheter', c.id)} data-ch-welcome-church>
+        <ChurchLogo url={logos[c.logo_file_id]} name={c.name} size={44} /><b>{c.name}</b></a>)}</div>
+      : <p className="ch-note" data-ch-welcome-nochurch>{T('Du er ikke medlem av noen menighet ennå. Du får en invitasjon fra menighetens admin.')}</p>}
+  </section>;
+}
+
 /* ---------- Oversikt for vanlige brukere ---------- */
 function UserOverview() {
   const { me, d } = useAdmin();
   const mine = d.churches.filter(c => (me.churches || []).some(x => x.id === c.id));
+  const logos = useLogos(mine.map(c => c.logo_file_id));
   return <>
-    <Head title="Oversikt" sub="Velkommen til ConnectHub." />
+    <Welcome />
     {window.CH && window.CH.testRole === 'admin' && <p className="ch-note warn">{T('Admin-visningen viser menighetene du er medlem av. Legg deg til i en menighet (som Developer) for å teste den.')}</p>}
     <Card title="Mine menigheter" sub={mine.length}>
       {mine.length ? <div className="ch-grid">{mine.map(c => <a key={c.id} className="ch-stat" href={href('menigheter', c.id)}>
-        <div className="ch-row"><span className="ch-avatar">{c.name.slice(0, 2).toUpperCase()}</span><b style={{ fontSize: 16 }}>{c.name}</b></div>
+        <div className="ch-row"><ChurchLogo url={logos[c.logo_file_id]} name={c.name} size={36} /><b style={{ fontSize: 16 }}>{c.name}</b></div>
         <span>{T('Du er medlem')} · {T('Åpne')} →</span></a>)}</div> : <Empty>{T('Du er ikke medlem av noen menighet ennå. Du får en invitasjon fra menighetens admin.')}</Empty>}
     </Card>
     <div className="ch-grid">
@@ -269,17 +289,19 @@ function UsersView({ selected }) {
 }
 
 function UserDetail({ id, onClose }) {
-  const { me, d, staff, dev, act, say, reload, churchName, canManage } = useAdmin();
+  const { me, d, staff, dev, act, say, reload, churchName, canManage, adminOf } = useAdmin();
   const u = d.users.find(x => x.id === id);
   const [activity, setActivity] = React.useState([]);
-  const [prof, setProf] = React.useState({ name: '', phone: '' });
+  const [prof, setProf] = React.useState({ first: '', last: '', phone: '' });
   const [addCh, setAddCh] = React.useState('');
   const [roleBlock, setRoleBlock] = React.useState(null);   // global rolle som ikke kan fjernes ennå (flere aktive medlemskap)
-  React.useEffect(() => { if (u) setProf({ name: u.full_name || '', phone: u.phone || '' }); if (staff && u) admin.userActivity(u.id).then(setActivity).catch(() => {}); }, [id, u && u.updated_at]);
+  React.useEffect(() => { if (u) setProf({ ...splitName(u), phone: u.phone || '' }); if (staff && u) admin.userActivity(u.id).then(setActivity).catch(() => {}); }, [id, u && u.updated_at]);
   if (!u) return <Drawer title={T('Bruker')} onClose={onClose}><Empty>{T('Fant ikke brukeren, eller du har ikke tilgang.')}</Empty></Drawer>;
   const self = u.id === me.id;
   const roles = d.roles.filter(r => r.user_id === u.id), global = roles.filter(r => !r.church_id);
   const allMems = d.memberships.filter(m => m.user_id === u.id);
+  /* Navn på andre: stab, eller Admin i en menighet brukeren er (aktivt eller deaktivert) medlem av – som i databasen (set_user_name). */
+  const canEditName = !self && (staff || allMems.some(m => m.status !== 'removed' && (adminOf || []).includes(m.church_id)));
   const mems = allMems.filter(m => m.status !== 'removed'), gone = allMems.filter(m => m.status === 'removed');
   const active = mems.filter(m => m.status === 'active');
   const join = canJoinAnother(roles, d.memberships, u.id, churchName);
@@ -300,17 +322,23 @@ function UserDetail({ id, onClose }) {
     </Card>
 
     <Card title="Opplysninger">
-      {self ? <form className="ch-form" onSubmit={e => { e.preventDefault(); run(() => admin.updateMyProfile(u.id, prof.name, prof.phone), 'Opplysningene er lagret.')(e); }}>
-        <Field label="Navn"><input className="ch-input" value={prof.name} maxLength={120} onChange={e => setProf(p => ({ ...p, name: e.target.value }))} /></Field>
-        <Field label="Telefon"><input className="ch-input" value={prof.phone} maxLength={40} onChange={e => setProf(p => ({ ...p, phone: e.target.value }))} /></Field>
-        <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre')}</Btn>
-      </form> : <dl className="ch-kv">
-        <dt>{T('Navn')}</dt><dd>{u.full_name || '–'}</dd>
+      {(self || canEditName) ? <form className="ch-form" data-ch-nameform onSubmit={e => { e.preventDefault();
+        const err = nameError(prof.first, prof.last); if (err) { say(T(err), false); return; }
+        if (self) run(() => admin.updateMyProfile(u.id, prof.first, prof.last, prof.phone), 'Opplysningene er lagret.')(e);
+        else run(() => admin.setUserName(u.id, prof.first.trim(), prof.last.trim()), 'Navnet er lagret.')(e); }}>
+        {!self && <p className="ch-muted">{fill(T('Du redigerer navnet til {email}.'), { email: u.email })}</p>}
+        <Field label="Fornavn"><input className="ch-input" name="first_name" value={prof.first} maxLength={60} autoComplete="off" onChange={e => { const v = e.target.value; setProf(p => ({ ...p, first: v })); }} /></Field>
+        <Field label="Etternavn"><input className="ch-input" name="last_name" value={prof.last} maxLength={60} autoComplete="off" onChange={e => { const v = e.target.value; setProf(p => ({ ...p, last: v })); }} /></Field>
+        {self && <Field label="Telefon"><input className="ch-input" value={prof.phone} maxLength={40} onChange={e => { const v = e.target.value; setProf(p => ({ ...p, phone: v })); }} /></Field>}
+        <Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T(self ? 'Lagre' : 'Lagre navn')}</Btn>
+      </form> : null}
+      {!self && <dl className="ch-kv">
+        {!canEditName && <><dt>{T('Navn')}</dt><dd>{u.full_name || '–'}</dd></>}
         <dt>{T('E-post')}</dt><dd>{u.email}</dd>
         <dt>{T('Telefon')}</dt><dd>{u.phone || '–'}</dd>
         <dt>{T('Opprettet')}</dt><dd>{fmtDate(u.created_at)}</dd>
       </dl>}
-      {!self && <p className="ch-muted">{T('Navn og telefon endres av brukeren selv.')}</p>}
+      {!self && <p className="ch-muted">{T(canEditName ? 'Telefon endres av brukeren selv. Navnefeltene endrer aldri rolle eller tilgang.' : 'Navn og telefon endres av brukeren selv.')}</p>}
     </Card>
 
     <div data-ch-membercard><Card title="Menighet og medlemskap" sub={mems.length || null}>

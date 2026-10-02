@@ -1198,6 +1198,98 @@ select ch_test.ok('Opprydning: Developer får oversikten', 'select * from public
 select ch_test.err('Opprydning: Developer uten medlemskap får ikke fillisten', $q$select * from public.cleanup_candidates('31313131-0000-4000-8000-000000000031')$q$, '42501');
 set local role postgres;
 
+-- ---------- Tilbakemeldinger: fjerne (arkivere) saker ----------
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Arkivering: Admin kan ikke fjerne saker', $q$select public.archive_feedback((select bug_id from t8), 'x')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-4","aal":"aal1"}';
+select ch_test.err('Arkivering: User kan ikke fjerne saker', $q$select public.archive_feedback((select bug_id from t8), 'x')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Arkivering: Moderator uten MFA avvises', $q$select public.archive_feedback((select bug_id from t8), 'x')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Arkivering: Moderator fjerner en sak fra innboksen', $q$select public.archive_feedback((select bug_id from t8), 'Duplikat av en annen sak')$q$);
+select ch_test.cnt('Arkivering: saken vises ikke lenger i innboksen', $q$select 1 from public.feedback_list() where id = (select bug_id from t8)$q$, 0);
+select ch_test.cnt('Arkivering: saken vises under «Arkiverte» med begrunnelse', $q$select 1 from public.feedback_list(true) where id = (select bug_id from t8) and archive_reason like 'Duplikat%'$q$, 1);
+select ch_test.cnt('Arkivering: historikken har hendelsen', $q$select 1 from public.feedback_events_for((select bug_id from t8)) where kind = 'archive'$q$, 1);
+select ch_test.atleast('Arkivering: loggført', $q$select 1 from public.audit_logs where action = 'feedback.archive'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Arkivering: Developer gjenoppretter saken', $q$select public.restore_feedback((select bug_id from t8))$q$);
+select ch_test.cnt('Arkivering: saken er tilbake i innboksen med hele historikken', $q$select 1 from public.feedback_list() where id = (select bug_id from t8) union all select 1 from public.feedback_events_for((select bug_id from t8)) where kind in ('archive', 'restore')$q$, 3);
+set local role postgres;
+select ch_test.cnt('Arkivering: saken slettes aldri (raden finnes)', $q$select 1 from public.feedback where id = (select bug_id from t8)$q$, 1);
+
+-- ---------- Fornavn og etternavn ----------
+-- Egne fixturer: N1 (41 Admin, 42 medlem), N2 (43 medlem).
+set local role postgres;
+insert into public.churches (id, name) values ('41414141-0000-4000-8000-000000000041', 'Testmenighet N1'), ('42424242-0000-4000-8000-000000000042', 'Testmenighet N2');
+insert into public.app_users (id, email, full_name, status) values ('00000000-0000-4000-8000-000000000041', 'n-admin@test.invalid', 'N Admin', 'active'),
+  ('00000000-0000-4000-8000-000000000042', 'n-medlem@test.invalid', 'N Medlem', 'active'), ('00000000-0000-4000-8000-000000000043', 'n-annen@test.invalid', 'N Annen', 'active');
+insert into public.user_identities (provider, subject, user_id) values ('https://test.invalid/auth/v1', 'sub-n41', '00000000-0000-4000-8000-000000000041'),
+  ('https://test.invalid/auth/v1', 'sub-n42', '00000000-0000-4000-8000-000000000042'), ('https://test.invalid/auth/v1', 'sub-n43', '00000000-0000-4000-8000-000000000043');
+insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000041', '41414141-0000-4000-8000-000000000041'), ('00000000-0000-4000-8000-000000000042', '41414141-0000-4000-8000-000000000041'), ('00000000-0000-4000-8000-000000000043', '42424242-0000-4000-8000-000000000042');
+insert into public.user_roles (user_id, role, church_id) values ('00000000-0000-4000-8000-000000000041', 'church_admin', '41414141-0000-4000-8000-000000000041');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.ok('Navn: Admin setter fornavn og etternavn på et medlem i egen menighet', $q$select public.set_user_name('00000000-0000-4000-8000-000000000042', 'Kari', 'Nordmann')$q$);
+select ch_test.cnt('Navn: visningsnavnet er fornavn + etternavn', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and full_name = 'Kari Nordmann' and first_name = 'Kari' and last_name = 'Nordmann'$q$, 1);
+select ch_test.err('Navn: Admin kan ikke endre navn i en annen menighet', $q$select public.set_user_name('00000000-0000-4000-8000-000000000043', 'Ola', 'B')$q$, '42501');
+select ch_test.err('Navn: tomt navn avvises', $q$select public.set_user_name('00000000-0000-4000-8000-000000000042', ' ', '')$q$, '22023');
+select ch_test.err('Navn: for langt navn avvises', $q$select public.set_user_name('00000000-0000-4000-8000-000000000042', repeat('x', 61), 'N')$q$, '22023');
+select ch_test.err('Navn: ugyldige tegn avvises', $q$select public.set_user_name('00000000-0000-4000-8000-000000000042', '<script>', 'N')$q$, '22023');
+select ch_test.atleast('Navn: loggført med gammelt og nytt navn', $q$select 1 from public.audit_logs where action = 'users.name' and meta ->> 'new' = 'Kari Nordmann'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.cnt('Navn: whoami gir fornavn og etternavn', $q$select 1 where public.whoami() ->> 'first_name' = 'Kari' and public.whoami() ->> 'last_name' = 'Nordmann'$q$, 1);
+select ch_test.err('Navn: vanlig bruker kan ikke endre andres navn', $q$select public.set_user_name('00000000-0000-4000-8000-000000000041', 'X', 'Y')$q$, '42501');
+select ch_test.ok_rb('Navn: bruker kan endre sitt eget navn', $q$update public.app_users set first_name = 'Kari Anne' where id = '00000000-0000-4000-8000-000000000042'$q$);
+select ch_test.rows('Navn: bruker kan ikke endre andres navn direkte', $q$update public.app_users set first_name = 'X' where id = '00000000-0000-4000-8000-000000000041'$q$, 0);
+select ch_test.cnt('Navn: navnefeltene endrer ikke roller', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000042' and revoked_at is null$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok_rb('Navn: Moderator kan endre navn på brukere', $q$select public.set_user_name('00000000-0000-4000-8000-000000000043', 'Ola', 'Bruker')$q$);
+
+-- ---------- Logo per menighet ----------
+set local role postgres;
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility) values
+  ('41414141-0000-4000-8000-000000000041', 'test/logo-a.png', 'logo-n1.png', 'image/png', 10, 'logoer', 'church'),
+  ('42424242-0000-4000-8000-000000000042', 'test/logo-b.png', 'logo-n2.png', 'image/png', 10, 'logoer', 'church'),
+  ('41414141-0000-4000-8000-000000000041', 'test/ikke-logo.png', 'ikke-logo-n1.png', 'image/png', 10, 'bilder', 'church');
+create table ch_test.logos as select id, file_name from public.files where file_name in ('logo-n1.png', 'logo-n2.png', 'ikke-logo-n1.png');
+grant select on ch_test.logos to authenticated;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.ok('Logo: Admin velger logo for egen menighet', $q$select public.set_church_logo('41414141-0000-4000-8000-000000000041', (select id from ch_test.logos where file_name = 'logo-n1.png'))$q$);
+select ch_test.err('Logo: Admin kan ikke bruke en annen menighets fil', $q$select public.set_church_logo('41414141-0000-4000-8000-000000000041', (select id from ch_test.logos where file_name = 'logo-n2.png'))$q$, '22023');
+select ch_test.err('Logo: Admin kan ikke endre logoen til en annen menighet', $q$select public.set_church_logo('42424242-0000-4000-8000-000000000042', (select id from ch_test.logos where file_name = 'logo-n2.png'))$q$, '42501');
+select ch_test.err('Logo: bare filer i Logoer-mappen', $q$select public.set_church_logo('41414141-0000-4000-8000-000000000041', (select id from ch_test.logos where file_name = 'ikke-logo-n1.png'))$q$, '22023');
+select ch_test.atleast('Logo: loggført', $q$select 1 from public.audit_logs where action = 'churches.logo' and church_id = '41414141-0000-4000-8000-000000000041'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.err('Logo: vanlig medlem kan ikke endre logoen', $q$select public.set_church_logo('41414141-0000-4000-8000-000000000041', null)$q$, '42501');
+select ch_test.cnt('Logo: medlemmet ser logoen (whoami og fil)', $q$select 1 from jsonb_array_elements(public.whoami() -> 'churches') c where c ->> 'logo_file_id' = (select id::text from ch_test.logos where file_name = 'logo-n1.png') union all select 1 from public.file_keys(array(select id from ch_test.logos where file_name = 'logo-n1.png'))$q$, 2);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n43","aal":"aal1"}';
+select ch_test.cnt('Logo: medlem i en annen menighet får ikke logofilen', $q$select 1 from public.file_keys(array(select id from ch_test.logos where file_name = 'logo-n1.png'))$q$, 0);
+set local role postgres;
+delete from public.files where id = (select id from ch_test.logos where file_name = 'logo-n1.png');
+select ch_test.cnt('Logo: slettes logofilen, blir logoen tom (ingen ødelagt peker)', $q$select 1 from public.churches where id = '41414141-0000-4000-8000-000000000041' and logo_file_id is null$q$, 1);
+
+-- ---------- Sletting av avsluttede koblinger ----------
+insert into public.church_links (church_a, church_b, status, ended_at) values ('31313131-0000-4000-8000-000000000031', '32323232-0000-4000-8000-000000000032', 'ended', now());
+insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility, link_id, source_folder, source_file_id)
+  select '31313131-0000-4000-8000-000000000031', 'test/kopi-m1m2.png', 'kopi-m1m2.png', 'image/png', 25, 'samarbeid', 'church', l.id, 'bilder', (select id from public.files where file_name = 'm1-delt.png')
+  from public.church_links l where l.church_a = '31313131-0000-4000-8000-000000000031' and l.church_b = '32323232-0000-4000-8000-000000000032';
+create table ch_test.dl as select id from public.church_links where church_a = '31313131-0000-4000-8000-000000000031' and church_b = '32323232-0000-4000-8000-000000000032';
+grant select on ch_test.dl to authenticated;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.err('Sletting av kobling: Admin avvises', $q$select public.delete_link((select id from ch_test.dl))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('Sletting av kobling: Moderator uten MFA avvises', $q$select public.delete_link((select id from ch_test.dl))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Sletting av kobling: en aktiv kobling kan ikke slettes', $q$select public.delete_link((select id from public.church_links where status = 'active' limit 1))$q$, '22023');
+select ch_test.cnt('Sletting av kobling: Developer sletter en avsluttet kobling med én kopi', $q$select 1 where (public.delete_link((select id from ch_test.dl)) ->> 'copies')::int = 1$q$, 1);
+set local role postgres;
+select ch_test.cnt('Sletting av kobling: koblingen og kopien er borte, originalen er urørt', $q$select 1 from public.church_links where id = (select id from ch_test.dl) union all select 1 from public.files where file_name = 'kopi-m1m2.png' union all select 1 from public.files where file_name = 'm1-delt.png'$q$, 1);
+select ch_test.cnt('Sletting av kobling: kopien står i køen for lagringen', $q$select 1 from public.file_cleanup_queue where file_name = 'kopi-m1m2.png' and status = 'pending'$q$, 1);
+select ch_test.cnt('Sletting av kobling: loggført', $q$select 1 from public.audit_logs where action = 'links.delete' and (meta ->> 'copies')::int = 1$q$, 1);
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);

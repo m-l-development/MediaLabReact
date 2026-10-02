@@ -136,15 +136,18 @@ test('trinn 20: den samlede lagringsgrensen leses og endres bare via loggførte 
 
 test('tilbakemeldinger: innsending, innboks og behandling bare via databasefunksjoner – aldri direkte mot tabellene', async () => {
   const calls = [];
-  const rpcs = Object.fromEntries(['submit_feedback', 'feedback_list', 'feedback_events_for', 'set_feedback_status', 'add_feedback_note'].map(fn => [fn, a => { calls.push([fn, a]); return fn === 'submit_feedback' ? { id: 'f1', ref: 'TB-ABC123' } : []; }]));
+  const rpcs = Object.fromEntries(['submit_feedback', 'feedback_list', 'feedback_events_for', 'set_feedback_status', 'add_feedback_note', 'archive_feedback', 'restore_feedback'].map(fn => [fn, a => { calls.push([fn, a]); return fn === 'submit_feedback' ? { id: 'f1', ref: 'TB-ABC123' } : []; }]));
   const fake = makeFakeData({ tables: { feedback: [] }, rpcs });
   let direct = 0; for (const m of ['select', 'insert', 'update']) { const o = fake[m].bind(fake); fake[m] = (...a) => { direct++; return o(...a); }; }
   useDataAdapter(fake);
   const { feedback } = await import('./feedback.js');
   assert.deepEqual(await feedback.submit({ kind: 'bug', description: 'Feil', app: 'photo-design', churchId: 'c1' }), { id: 'f1', ref: 'TB-ABC123' });
   await feedback.list(); await feedback.events('f1'); await feedback.setStatus('f1', 'rejected', 'Duplikat'); await feedback.addNote('f1', 'Notat');
+  await feedback.archive('f1', 'Test'); await feedback.list(true); await feedback.restore('f1');
   assert.equal(direct, 0, 'ingen direkte lesing eller skriving');
-  assert.deepEqual(calls.map(c => c[0]), ['submit_feedback', 'feedback_list', 'feedback_events_for', 'set_feedback_status', 'add_feedback_note']);
+  assert.deepEqual(calls.map(c => c[0]), ['submit_feedback', 'feedback_list', 'feedback_events_for', 'set_feedback_status', 'add_feedback_note', 'archive_feedback', 'feedback_list', 'restore_feedback']);
+  assert.deepEqual(calls[1][1], {}, 'innboksen: uten arkiverte'); assert.deepEqual(calls[6][1], { p_archived: true }, '«Fjernede saker»');
+  assert.deepEqual(calls[5][1], { p_id: 'f1', p_reason: 'Test' }, 'fjerning = arkivering, aldri sletting');
   assert.equal(calls[0][1].p_kind, 'bug'); assert.equal(calls[0][1].p_church, 'c1'); assert.deepEqual(calls[0][1].p_answers, {});
   assert.deepEqual(calls[3][1], { p_id: 'f1', p_status: 'rejected', p_reason: 'Duplikat' });
   useDataAdapter(null);

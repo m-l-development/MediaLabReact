@@ -4,6 +4,7 @@
 import { feedback as FB } from '../services/feedback.js';
 import { appOf, cleanPath, cleanView, browserOf, deviceOf, scrubText, scrubSecrets, scrubDeep, KIND } from './feedback-core.js';
 import { recentErrors } from './feedback-errors.js';
+import { dockButton, openOnly, onOtherOpen } from './dock.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const Z = 2147482000;
@@ -30,6 +31,9 @@ const STYLE = `
 @media (max-width:600px){.chfb-panel{right:0;left:0;bottom:0;top:0;width:auto;max-width:none;max-height:none;border-radius:0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}}
 /* Ikonet er 30 px som kontoknappen, men trykkflaten er 44 px på berøringsskjermer. */
 .chfb-fab::after{content:'';position:absolute;inset:-7px}
+.chfb-backdrop{position:fixed;inset:0;z-index:${Z + 1};background:rgba(0,0,0,.22);touch-action:manipulation}
+.chfb-x{flex:0 0 auto;width:36px;height:36px;display:grid;place-items:center;border-radius:999px;border:1px solid rgba(0,0,0,.2);background:#fff;color:#111;font:600 22px/1 Archivo,Helvetica,sans-serif;cursor:pointer;padding:0}
+.chfb-x:hover,.chfb-x:focus-visible{background:#ece9e2;outline:2px solid #9b1c3c;outline-offset:1px}
 .chfb-pick{position:fixed;inset:0;z-index:${Z + 3};cursor:crosshair;touch-action:none;background:rgba(0,0,0,.04)}
 .chfb-box{position:fixed;z-index:${Z + 4};pointer-events:none;border:2px solid #f5b301;background:rgba(245,179,1,.18);border-radius:4px;box-shadow:0 0 0 9999px rgba(0,0,0,.12)}
 .chfb-bar{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:${Z + 5};display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 20px);padding:10px 12px;border-radius:14px;background:#111;color:#f3f1ec;font:600 13px/1.4 Archivo,Helvetica,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -143,29 +147,41 @@ export function mountFeedback(me) {
   const dark = () => document.documentElement.getAttribute('data-ml-mode') !== 'light';
   const btn = el('button', { type: 'button', class: 'chfb-fab', 'data-ch-feedback': '1', 'data-chfb': '1', 'data-keep-color': '1', title: T('Send tilbakemelding'), 'aria-label': T('Send tilbakemelding') });
   btn.innerHTML = ICON;
-  const paint = () => { const d = dark(); btn.style.cssText = `position:fixed;right:88px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:${Z};width:30px;height:30px;padding:0;display:grid;place-items:center;border-radius:999px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:.85;border:1px solid ` + (d ? 'rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#e9e7e2' : 'rgba(0,0,0,.14);background:rgba(228,225,218,.85);color:#3b3934'); };
+  const paint = () => { const d = dark(); btn.style.cssText = `position:relative;pointer-events:auto;order:1;flex:0 0 auto;width:30px;height:30px;padding:0;display:grid;place-items:center;border-radius:999px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:.85;border:1px solid ` + (d ? 'rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#e9e7e2' : 'rgba(0,0,0,.14);background:rgba(228,225,218,.85);color:#3b3934'); };
   paint(); window.addEventListener('medialab-theme', paint);
-  document.body.appendChild(btn);
+  dockButton(btn, 'feedback');
 
-  /* Skjemaet beholdes mens siden er åpen (lukking med tekst krever bekreftelse). */
+  /* Skjemaet beholdes mens siden er åpen. Lukking (X, Avbryt, Escape eller trykk utenfor boksen) spør først hvis noe
+     er fylt inn eller markert, så ingenting forsvinner ved et uhell. Trykk inne i boksen lukker den aldri. */
   const st = { kind: null, title: '', description: '', answers: {}, where: '', marked: null, sending: false, sent: null, error: '', showTech: false };
-  let panel = null;
-  const typed = () => (st.description + st.title + Object.values(st.answers).join('') + st.where).trim().length;
+  let panel = null, backdrop = null;
+  const typed = () => (st.description + st.title + Object.values(st.answers).join('') + st.where).trim().length + (st.marked ? 1 : 0);
   const close = (force) => {
     if (!panel) return;
-    if (!force && !st.sent && typed() > 30 && !confirm(T('Forkaste teksten du har skrevet?'))) return;
-    panel.remove(); panel = null; document.removeEventListener('keydown', onKey, true); btn.focus();
+    if (!force && !st.sent && typed() > 0 && !confirm(T('Forkaste teksten du har skrevet?'))) return;
+    panel.remove(); panel = null; if (backdrop) { backdrop.remove(); backdrop = null; }
+    document.removeEventListener('keydown', onKey, true); btn.focus();
     if (st.sent || force === 'reset') Object.assign(st, { kind: null, title: '', description: '', answers: {}, where: '', marked: null, sent: null, error: '' });
   };
+  onOtherOpen('feedback', () => close());
   const onKey = e => { if (e.key === 'Escape' && panel) { e.stopPropagation(); close(); } };
   const here = () => { const a = appOf(location.pathname); return { app: a.id, appName: a.name, page: cleanPath(location.pathname), view: cleanView(location.hash) }; };
 
   const render = () => {
     const h = here();
-    if (!panel) { panel = el('div', { class: 'chfb-panel', 'data-chfb': '1', 'data-ml-theme': '1', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'chfb-title' }); document.body.appendChild(panel); document.addEventListener('keydown', onKey, true); }
+    if (!panel) {
+      openOnly('feedback');
+      /* Bakgrunn bak boksen: et trykk som både starter og slutter utenfor boksen lukker (dra fra boksen og ut lukker ikke). */
+      backdrop = el('div', { class: 'chfb-backdrop', 'data-chfb': '1', 'data-chfb-backdrop': '1', 'aria-hidden': 'true' });
+      let downOnBackdrop = false;
+      backdrop.addEventListener('pointerdown', e => { downOnBackdrop = e.target === backdrop; });
+      backdrop.addEventListener('click', e => { if (e.target === backdrop && downOnBackdrop) close(); downOnBackdrop = false; });
+      panel = el('div', { class: 'chfb-panel', 'data-chfb': '1', 'data-ml-theme': '1', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'chfb-title' });
+      document.body.append(backdrop, panel); document.addEventListener('keydown', onKey, true);
+    }
     panel.textContent = '';
-    const head = el('div', { class: 'chfb-row', style: 'justify-content:space-between' }, el('h2', { id: 'chfb-title', text: T('Send tilbakemelding') }),
-      el('button', { type: 'button', class: 'chfb-btn light', style: 'min-height:32px;padding:0 12px', 'aria-label': T('Lukk'), text: '×', onclick: () => close() }));
+    const head = el('div', { class: 'chfb-row', style: 'justify-content:space-between;flex-wrap:nowrap' }, el('h2', { id: 'chfb-title', text: T('Send tilbakemelding') }),
+      el('button', { type: 'button', class: 'chfb-x', 'data-chfb-close': '1', title: T('Lukk'), 'aria-label': T('Lukk'), onclick: () => close() }, el('span', { 'aria-hidden': 'true', text: '×' })));
     panel.append(head);
     if (st.sent) {
       panel.append(el('p', { class: 'chfb-ok', 'data-chfb-ok': '1', text: T('Takk! Tilbakemeldingen er sendt inn.') }),
@@ -210,8 +226,8 @@ export function mountFeedback(me) {
   };
   function startPick() {
     if (!panel) return;
-    panel.style.display = 'none'; btn.style.visibility = 'hidden';
-    pickArea(m => { if (m) st.marked = m; btn.style.visibility = ''; if (panel) { panel.style.display = ''; render(); } });
+    panel.style.display = 'none'; btn.style.visibility = 'hidden'; if (backdrop) backdrop.style.display = 'none';
+    pickArea(m => { if (m) st.marked = m; btn.style.visibility = ''; if (backdrop) backdrop.style.display = ''; if (panel) { panel.style.display = ''; render(); } });
   }
   async function submit() {
     if (st.sending) return;

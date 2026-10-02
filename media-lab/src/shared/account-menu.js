@@ -3,6 +3,7 @@ import { auth } from '../services/auth.js';
 import { clearMyLocalData } from './local-user.js';
 import { notifications as N, privacy, downloadJson } from '../services/community.js';
 import { allowedViews, realView, setView, VIEW_LABEL } from './test-role.js';
+import { dockButton, openOnly, onOtherOpen } from './dock.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const ROLE = { developer: 'Developer', moderator: 'Moderator', church_admin: 'Admin' };
@@ -26,7 +27,7 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
   btn.textContent = init;
   const badge = document.createElement('span'); badge.setAttribute('data-ch-unread', '1');
   badge.style.cssText = 'position:absolute;top:-4px;right:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:#9b1c3c;color:#fff;font:700 9px/15px Archivo,Helvetica,sans-serif;display:none';
-  const paint = () => { const d = dark(); btn.style.cssText = 'position:fixed;right:50px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147482000;width:30px;height:30px;padding:0;border-radius:999px;font:700 11px Archivo,Helvetica,sans-serif;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:.85;border:1px solid ' + (d ? 'rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#e9e7e2' : 'rgba(0,0,0,.14);background:rgba(228,225,218,.85);color:#3b3934'); };
+  const paint = () => { const d = dark(); btn.style.cssText = 'position:relative;pointer-events:auto;order:2;flex:0 0 auto;width:30px;height:30px;padding:0;border-radius:999px;font:700 11px Archivo,Helvetica,sans-serif;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:.85;border:1px solid ' + (d ? 'rgba(255,255,255,.18);background:rgba(0,0,0,.45);color:#e9e7e2' : 'rgba(0,0,0,.14);background:rgba(228,225,218,.85);color:#3b3934'); };
   const paint0 = paint; const paintT = () => { paint0(); if (window.CH && window.CH.testRole) btn.style.boxShadow = '0 0 0 2px #2f4fd8'; };
   paintT(); window.addEventListener('medialab-theme', paintT);
 
@@ -42,6 +43,7 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
   const close = () => { if (menu) { menu.remove(); menu = null; } };
   btn.onclick = () => {
     if (menu) { close(); return; }
+    openOnly('account');
     menu = document.createElement('div'); menu.setAttribute('data-ml-theme', '1'); menu.setAttribute('role', 'menu');
     menu.style.cssText = 'position:fixed;right:12px;bottom:calc(52px + env(safe-area-inset-bottom));z-index:2147482001;width:300px;max-height:calc(100vh - 80px);overflow:auto;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;background:#f3f1ec;color:#111;font:500 13px/1.45 Archivo,Helvetica,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.45)';
     const name = document.createElement('strong'); name.textContent = me.full_name || me.email;
@@ -109,5 +111,6 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
     setTimeout(() => document.addEventListener('pointerdown', function h(e) { if (menu && !menu.contains(e.target) && e.target !== btn) { close(); document.removeEventListener('pointerdown', h); } }), 0);
   };
   btn.appendChild(badge);
-  document.body.appendChild(btn);
+  dockButton(btn, 'account');
+  onOtherOpen('account', close);
 }

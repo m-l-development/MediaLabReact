@@ -154,3 +154,15 @@ html[data-ml-mode="light"] [data-ml-theme="admin"] {
 /* Trinn 19: redigering av abonnementsplan (Developer) – lister, forhåndsvisning og knapper over hele bredden. */
 [data-ml-theme="admin"] .ch-plan-edit { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 [data-ml-theme="admin"] .ch-plan-edit > .ch-list, [data-ml-theme="admin"] .ch-plan-edit > p, [data-ml-theme="admin"] .ch-plan-edit > .ch-row, [data-ml-theme="admin"] .ch-plan-edit > label { grid-column: 1 / -1; }
+
+/* Velkomstområdet øverst på oversikten: navn, rolle og menighet med logo (PC og mobil). */
+[data-ml-theme="admin"] .ch-welcome { display: flex; flex-direction: column; gap: 6px; padding: 20px 22px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); }
+[data-ml-theme="admin"] .ch-welcome-kicker { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+[data-ml-theme="admin"] .ch-welcome h1 { margin: 0; font-size: clamp(22px, 4.6vw, 30px); line-height: 1.15; overflow-wrap: anywhere; }
+[data-ml-theme="admin"] .ch-welcome-role { margin: 0; font-weight: 700; color: var(--accent-text); }
+[data-ml-theme="admin"] .ch-welcome-churches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+[data-ml-theme="admin"] .ch-welcome-church { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 12px 6px 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); text-decoration: none; }
+[data-ml-theme="admin"] .ch-welcome-church b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 600px) { [data-ml-theme="admin"] .ch-welcome { padding: 16px; } [data-ml-theme="admin"] .ch-welcome-church { flex: 1 1 100%; } }
+/* Logo i menighetens innstillinger */
+[data-ml-theme="admin"] .ch-logo-preview { display: flex; align-items: center; gap: 14px; }

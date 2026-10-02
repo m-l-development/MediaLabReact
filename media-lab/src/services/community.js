@@ -27,8 +27,10 @@ export const links = {
   create: (church1, church2) => data().rpc('create_link', { p_church1: church1, p_church2: church2 }),
   end: id => data().rpc('end_link', { p_link: id }),
   reopen: id => data().rpc('reopen_link', { p_link: id }),
-  /* Bare Moderator: filnavn og metadata, aldri innhold. */
+  /* Bare Developer/Moderator: filnavn og metadata, aldri innhold. */
   filesMeta: id => data().rpc('link_files_meta', { p_link: id }),
+  /* Sletter en AVSLUTTET kobling og kopiene i den (via serveren, som også fjerner kopiene fra lagringen). */
+  remove: id => callServer('link.delete', { link_id: id }),
 };
 /* Visningsnavn for en kobling: «Menighet A – Menighet B» (eller den andre menigheten sett fra egen menighet). */
 export const linkName = l => [l.church_a_name, l.church_b_name].map(n => n || '(slettet menighet)').join(' – ');
