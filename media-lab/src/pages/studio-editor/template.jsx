@@ -14,7 +14,7 @@ export default function template(v) {
         {"\n    "}
         <div data-dc-tpl="10" style={{"position":"sticky","top":"0","zIndex":"52","display":"flex","alignItems":"center","gap":"10px","padding":"calc(8px + env(safe-area-inset-top)) 12px 8px","background":"rgba(0,0,0,0.94)","backdropFilter":"blur(10px)","WebkitBackdropFilter":"blur(10px)","borderBottom":"1px solid #262626"}}>
           {"\n      "}
-          <a data-dc-tpl="11" href="loop-studio.dc.html" title="Tilbake til malene" aria-label="Tilbake til malene" style={{"flex":"0 0 auto","width":"44px","height":"44px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid rgba(255,255,255,0.25)","borderRadius":"999px","color":"#f3f1ec","textDecoration":"none"}}>
+          <a data-dc-tpl="11" href="/loopstudio" title="Tilbake til malene" aria-label="Tilbake til malene" style={{"flex":"0 0 auto","width":"44px","height":"44px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid rgba(255,255,255,0.25)","borderRadius":"999px","color":"#f3f1ec","textDecoration":"none"}}>
             <svg data-dc-tpl="12" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path data-dc-tpl="13" d="M15 5 8 12l7 7" />
             </svg>
@@ -63,7 +63,7 @@ export default function template(v) {
           {"\n      "}
           <div data-dc-tpl="28" style={css(`display:${v.asideBackDisp ?? ""}; align-items:center; gap:12px; min-width:0;`, "display:{{ asideBackDisp }}; align-items:center; gap:12px; min-width:0;")}>
             {"\n        "}
-            <a data-dc-tpl="29" href="loop-studio.dc.html" title="Tilbake til malene" aria-label="Tilbake til malene" style={{"flex":"0 0 auto","width":"38px","height":"38px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","color":"#f3f1ec","fontSize":"17px"}} className="scp0">
+            <a data-dc-tpl="29" href="/loopstudio" title="Tilbake til malene" aria-label="Tilbake til malene" style={{"flex":"0 0 auto","width":"38px","height":"38px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","color":"#f3f1ec","fontSize":"17px"}} className="scp0">
               ←
             </a>
             {"\n        "}

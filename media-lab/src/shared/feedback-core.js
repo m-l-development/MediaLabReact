@@ -34,10 +34,12 @@ export const APPS = {
   'thumbnail-studio': 'Thumbnail Studio', 'loop-studio': 'Loop Studio', 'loop-editor': 'Loop Studio – editor', 'studio-editor': 'Loop Studio – studio-editor',
   'isolate-subject': 'Isolate Subject', mockups: 'Mockups', login: 'Innlogging',
 };
+import { fileFor } from '../../build/routes.js';
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-/* Applikasjon fra stien: /photo-design.dc.html → photo-design. */
+/* Applikasjon fra stien: /photo-design.dc.html eller den korte /photodesign → photo-design. */
 export function appOf(pathname) {
-  const m = /\/([a-z0-9-]+)(?:\.dc)?\.html$/i.exec(String(pathname || '')) || [];
+  const f = fileFor(pathname);
+  const m = /\/([a-z0-9-]+)(?:\.dc)?\.html$/i.exec(f ? '/' + f : String(pathname || '')) || [];
   const id = (m[1] || (String(pathname || '/') === '/' ? 'media-lab' : 'ukjent')).toLowerCase().slice(0, 60).replace(/[^a-z0-9-]/g, '') || 'ukjent';
   return { id, name: APPS[id] || id };
 }
@@ -61,7 +63,7 @@ export const deviceOf = (w, coarse) => (w < 600 ? 'mobil' : w < 1024 && coarse ?
 export const KIND = { bug: 'Feil eller teknisk problem', improvement: 'Forslag til forbedring', feature: 'Ønske om ny funksjon', other: 'Annet' };
 export const STATUS = { new: 'Ny', in_progress: 'Under behandling', needs_info: 'Trenger mer informasjon', resolved: 'Løst', rejected: 'Avvist' };
 export const LEVEL = { low: 'Lav', medium: 'Middels', high: 'Høy', critical: 'Kritisk' };
-const ENV = { production: 'Produksjon (main, https://media-lab-react-vyef.vercel.app)', preview: 'ConnectHub Dev (grenen connecthub, Vercel Preview)', local: 'Lokal utvikling (connecthub-dev)' };
+const ENV = { production: 'Produksjon (main)', preview: 'ConnectHub Dev (grenen connecthub, Vercel Preview)', local: 'Lokal utvikling (connecthub-dev)' };
 const NA = 'Ikke tilgjengelig';
 const val = v => (v == null || v === '' ? NA : String(v));
 const quote = t => String(t || '').split('\n').map(l => '> ' + l).join('\n');

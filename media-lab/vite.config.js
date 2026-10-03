@@ -1,3 +1,4 @@
+import { localRoutes } from './build/routes.js';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
@@ -98,6 +99,11 @@ const selfHeal = () => ({ name: 'media-lab-self-heal', apply: 'build', transform
    Den hemmelige nøkkelen leses BARE fra skallets miljø (CONNECTHUB_SUPABASE_SECRET_KEY), aldri fra .env-filer.
    CH_TEST_MAILBOX (bare lokalt, for tester): e-poster (invitasjoner, «Glemt passord», testutsending) skrives til denne
    filen i stedet for å sendes. */
+/* Korte nettadresser lokalt (samme som vercel.json, se build/routes.js). */
+const cleanRoutes = () => {
+  const add = s => { s.middlewares.use(localRoutes); };
+  return { name: 'connecthub-routes', configureServer: add, configurePreviewServer: add };
+};
 const chApiLocal = () => {
   const add = s => { s.middlewares.use(async (req, res, next) => {
     if (!req.url.startsWith('/api/ch')) return next();
@@ -153,7 +159,7 @@ const vendorAssets = () => {
 };
 
 export default defineConfig({
-  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv(), chApiLocal(), vendorAssets()],
+  plugins: [react(), csp(), mockupIndex(), buildVersion(), selfHeal(), connecthubEnv(), chApiLocal(), cleanRoutes(), vendorAssets()],
   appType: 'mpa',
   publicDir: 'public',
   resolve: { alias: { '@ml': path.join(ROOT, 'src/legacy') } },

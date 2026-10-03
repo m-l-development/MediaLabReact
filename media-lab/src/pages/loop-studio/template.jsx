@@ -28,7 +28,7 @@ export default function template(v) {
       {"\n\n  "}
       <div data-dc-tpl="16" data-ml-bar="1" style={{"position":"sticky","top":"0","zIndex":"50","padding":"28px 28px 10px","display":"flex","alignItems":"center","justifyContent":"space-between","gap":"12px"}}>
         {"\n    "}
-        <a data-dc-tpl="17" href="media-lab.dc.html" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"40px","padding":"0 20px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"rgba(0,0,0,0.55)","backdropFilter":"blur(12px)","WebkitBackdropFilter":"blur(12px)","fontSize":"13px","fontWeight":"600","letterSpacing":"0.12em","textTransform":"uppercase","color":"#f3f1ec"}} className="scp0">
+        <a data-dc-tpl="17" href="/home" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"40px","padding":"0 20px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"rgba(0,0,0,0.55)","backdropFilter":"blur(12px)","WebkitBackdropFilter":"blur(12px)","fontSize":"13px","fontWeight":"600","letterSpacing":"0.12em","textTransform":"uppercase","color":"#f3f1ec"}} className="scp0">
           <span data-dc-tpl="18" style={{"fontSize":"16px","letterSpacing":"0"}}>
             ←
           </span>
@@ -74,7 +74,7 @@ export default function template(v) {
           <h1 data-dc-tpl="30" data-ml-title="1" style={{"margin":"0","textAlign":"center","fontSize":"clamp(40px, 8.5vw, 104px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
             {I(v.pageTitle)}
           </h1>
-          <a href="studio-editor.dc.html?mal=week&demo=1" data-ch-demo-link="1" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"36px","padding":"0 16px","border":"1px solid rgba(245,184,44,0.6)","borderRadius":"999px","color":"#f5d38f","fontSize":"12.5px","fontWeight":"600","letterSpacing":"0.06em","textDecoration":"none"}}>Se demo (lagres ikke)</a>
+          <a href="/loopeditor?mal=week&demo=1" data-ch-demo-link="1" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"36px","padding":"0 16px","border":"1px solid rgba(245,184,44,0.6)","borderRadius":"999px","color":"#f5d38f","fontSize":"12.5px","fontWeight":"600","letterSpacing":"0.06em","textDecoration":"none"}}>Se demo (lagres ikke)</a>
           {"\n    "}
         </> : null}
         {"\n    "}

@@ -111,7 +111,7 @@ export default function AdminPage({ me }) {
   return <Ctx.Provider value={ctx}>
     <div data-ml-theme="admin" data-ml-bg="static">
       <header className="ch-top" data-ml-bar="1">
-        <a className="ch-back" href="media-lab.dc.html">← Media Lab</a>
+        <a className="ch-back" href="/home">← Media Lab</a>
         <span className="ch-brand">{brand}</span>
         {!isProduction() && <span className="ch-env" data-ch-env title={T('Utviklingsmiljø – egen database og egne kontoer. Endringer her påvirker ikke produksjon.')}>{T('UTVIKLING')} · connecthub-dev</span>}
         <span className="ch-spacer" />
@@ -218,7 +218,7 @@ function DevCard() {
     <div className="ch-row"><a className="ch-btn small" href={href('logg')}>{T('Logg')}</a></div>
     {isProduction()
       ? <><div className="ch-row"><Badge tone="bad">{T('PRODUKSJON')}</Badge>
-          {DEV_SITE && <a className="ch-btn primary" data-ch-devlink href={DEV_SITE + '/connecthub-admin.dc.html'} target="_blank" rel="noopener noreferrer">{T('Åpne ConnectHub Dev')} ↗</a>}</div>
+          {DEV_SITE && <a className="ch-btn primary" data-ch-devlink href={DEV_SITE + '/admin'} target="_blank" rel="noopener noreferrer">{T('Åpne ConnectHub Dev')} ↗</a>}</div>
         <p className="ch-muted">{T('Åpner utviklingsmiljøet i en ny fane. Det har egen database og egne kontoer, så du logger inn der på nytt. Endringer der påvirker ikke produksjon.')}</p></>
       : <p className="ch-note warn" data-ch-devhere>{T('Du er i ConnectHub Dev (utvikling). Egen database og egne kontoer – endringer her påvirker ikke produksjon.')}</p>}
   </Card>;

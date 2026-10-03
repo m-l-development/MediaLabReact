@@ -6,8 +6,8 @@ import { verifyJwt, getJwks, kidOf } from './jwt.js';
 import { targetOf, issuerOf } from './backend.js';
 
 export const COOKIE = 'ch_at';
-export const LOGIN = '/login.dc.html';
-const PUBLIC = /^\/(assets\/|images\/|mockups\/|api\/|vendor\/|fonts\/|login\.dc\.html$|version\.json$|manifest\.webmanifest$|favicon\.ico$|robots\.txt$)/;
+export const LOGIN = '/login';   // kort adresse (build/routes.js); /login.dc.html sendes hit
+const PUBLIC = /^\/(assets\/|images\/|mockups\/|api\/|vendor\/|fonts\/|login\.dc\.html$|login$|version\.json$|manifest\.webmanifest$|favicon\.ico$|robots\.txt$)/;
 
 export const isPublicPath = p => PUBLIC.test(p);
 

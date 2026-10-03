@@ -179,7 +179,7 @@ class Component extends DCLogic {
     const q = st.corners || [];
     const im = m && this.imgs[m.id];
     return {
-      isGallery: S.view !== 'edit', isEdit: S.view === 'edit', backHref: (deploy ? 'media-lab.dc.html' : 'media-lab.dc.html') + '#tools',
+      isGallery: S.view !== 'edit', isEdit: S.view === 'edit', backHref: (deploy ? '/home' : '/home') + '#tools',
       mockRef: this.mockRef, onMockFiles: this.onMockFiles, pickMocks: this.pickMocks, fileRef: this.fileRef, onFile: this.onFile, pickFile: this.pickFile, pickShared: this.pickShared, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop, dragOver: S.dragOver && S.view === 'edit',
       uploadLabel: S.design ? 'Bytt design' : 'Last opp design', hasDesign: !!S.design, designCss: css(S.designUrl), designName: S.designName, designLabel: S.design ? S.designName : 'Ingen design valgt ennå',
       clearDesign: () => { if (S.designUrl) URL.revokeObjectURL(S.designUrl); this.dirtyCards = true; this.setState({ design: null, designUrl: '', designName: '' }); },

@@ -48,8 +48,8 @@ test('verifyJwt: token signert med annen nøkkel avvises', async () => {
 });
 
 test('isPublicPath: bare innlogging og statiske filer er åpne', () => {
-  for (const p of ['/login.dc.html', '/assets/x.js', '/images/a.png', '/version.json', '/api/ch', '/manifest.webmanifest', '/favicon.ico']) assert.equal(isPublicPath(p), true, p);
-  for (const p of ['/', '/media-lab.dc.html', '/photo-design.dc.html', '/admin.dc.html', '/login.dc.html.evil', '/x/login.dc.html', '/assetsx/a.js']) assert.equal(isPublicPath(p), false, p);
+  for (const p of ['/login.dc.html', '/login', '/assets/x.js', '/images/a.png', '/version.json', '/api/ch', '/manifest.webmanifest', '/favicon.ico']) assert.equal(isPublicPath(p), true, p);
+  for (const p of ['/', '/media-lab.dc.html', '/photo-design.dc.html', '/admin.dc.html', '/login.dc.html.evil', '/x/login.dc.html', '/assetsx/a.js', '/home', '/admin', '/fellesmappe', '/loopeditor', '/loginx', '/login/x']) assert.equal(isPublicPath(p), false, p);
 });
 
 test('readCookie finner riktig cookie', () => {
@@ -62,7 +62,7 @@ test('decide: uten cookie → innlogging med next, gyldig → slipp gjennom', as
   const k = await keys(), fetchFn = async () => ({ ok: true, json: async () => ({ keys: [k.jwk] }) });
   const env = { VERCEL_ENV: 'preview' };
   const r1 = await decide({ url: 'https://x.test/photo-design.dc.html?a=1', cookieHeader: '', env, fetchFn, now: NOW });
-  assert.deepEqual(r1, { action: 'redirect', location: '/login.dc.html?next=' + encodeURIComponent('/photo-design.dc.html?a=1') });
+  assert.deepEqual(r1, { action: 'redirect', location: '/login?next=' + encodeURIComponent('/photo-design.dc.html?a=1') });
   const t = await sign(k.priv, 'k1', good());
   assert.deepEqual(await decide({ url: 'https://x.test/photo-design.dc.html', cookieHeader: 'ch_at=' + t, env, fetchFn, now: NOW }), { action: 'next' });
   assert.deepEqual(await decide({ url: 'https://x.test/login.dc.html', cookieHeader: '', env, fetchFn, now: NOW }), { action: 'next' });

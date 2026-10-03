@@ -14,8 +14,14 @@ export const issuerOf = target => supabaseUrl(target) + '/auth/v1';
    (fast adresse inntil videre; et eventuelt eget domene senere er bare til e-post).
    Lokalt (uten VERCEL_ENV) brukes forespørselens adresse, men bare localhost. */
 export const SITE = { production: 'https://media-lab-react-vyef.vercel.app', preview: 'https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app' };
+/* Eget domene senere (docs/domenebytte.md): CONNECTHUB_SITE_URL i miljøet overstyrer adressen for miljøet. Bare https og et
+   rent vertsnavn godtas (ingen sti, bruker, jokertegn eller spørring); ellers brukes standardadressen over. */
+export function siteUrl(env) {
+  const v = String((env && env.CONNECTHUB_SITE_URL) || '').trim().toLowerCase().replace(/\/+$/, '');
+  return /^https:\/\/(?!-)[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v) ? v : SITE[targetOf(env)];
+}
 export function publicOrigin(env, requestUrl) {
-  if (env && env.VERCEL_ENV) return SITE[targetOf(env)];
+  if (env && env.VERCEL_ENV) return siteUrl(env);
   const u = new URL(requestUrl);
   return /^(localhost|127\.0\.0\.1)$/.test(u.hostname) ? u.origin : null;
 }

@@ -7,6 +7,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ruleApplies, localCsp } from './csp.js';
+import { localRoutes } from './routes.js';
+import { localRoutes } from './routes.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -14,7 +16,7 @@ const RULES = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')
 const TYPES = { html: 'text/html; charset=utf-8', js: 'text/javascript', mjs: 'text/javascript', css: 'text/css', json: 'application/json', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml', ico: 'image/x-icon', woff2: 'font/woff2', wasm: 'application/wasm', gz: 'application/gzip', webmanifest: 'application/manifest+json', txt: 'text/plain', md: 'text/plain' };
 
 export function serve(port = 4180) {
-  return http.createServer((req, res) => {
+  return http.createServer((req, res) => localRoutes(req, res, () => {
     const url = new URL(req.url, 'http://x'); let p = decodeURIComponent(url.pathname);
     if (p.endsWith('/')) p += 'index.html';
     const file = path.normalize(path.join(DIST, p));
@@ -23,7 +25,7 @@ export function serve(port = 4180) {
     for (const r of RULES) if (r.re.test(p) && ruleApplies(r.rule, host)) for (const h of r.headers) res.setHeader(h.key, h.key === 'Content-Security-Policy' ? localCsp(h.value) : h.value);
     res.setHeader('content-type', TYPES[p.split('.').pop()] || 'application/octet-stream');
     fs.createReadStream(file).pipe(res);
-  }).listen(port);
+  })).listen(port);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]).endsWith(path.join('build', 'static-serve.mjs'))) {

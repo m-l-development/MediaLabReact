@@ -23,7 +23,7 @@ export default function FolderLinks() {
   }, [member]);
   if (!member) return null;
   return <nav aria-label="Mapper" data-ch-home-folders style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', width: '100%', maxWidth: '1000px' }}>
-    <a href="connecthub-admin.dc.html#/filer/felles" data-ch-folder="felles" style={pill('#e0a43a')}><Icon />Fellesmappe</a>
-    {collab && <a href="connecthub-admin.dc.html#/filer/samarbeid" data-ch-folder="samarbeid" style={pill('#3fb8a8')}><Icon collab />Samarbeidsmappe</a>}
+    <a href="/fellesmappe" data-ch-folder="felles" style={pill('#e0a43a')}><Icon />Fellesmappe</a>
+    {collab && <a href="/samarbeidsmappe" data-ch-folder="samarbeid" style={pill('#3fb8a8')}><Icon collab />Samarbeidsmappe</a>}
   </nav>;
 }

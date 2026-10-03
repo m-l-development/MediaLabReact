@@ -2,8 +2,125 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": null,
-  "regions": ["arn1"],
+  "regions": [
+    "arn1"
+  ],
   "cleanUrls": false,
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/home",
+      "permanent": false
+    },
+    {
+      "source": "/media-lab.dc.html",
+      "destination": "/home",
+      "permanent": false
+    },
+    {
+      "source": "/login.dc.html",
+      "destination": "/login",
+      "permanent": false
+    },
+    {
+      "source": "/loop-studio.dc.html",
+      "destination": "/loopstudio",
+      "permanent": false
+    },
+    {
+      "source": "/studio-editor.dc.html",
+      "destination": "/loopeditor",
+      "permanent": false
+    },
+    {
+      "source": "/thumbnail-studio.dc.html",
+      "destination": "/thumbnailstudio",
+      "permanent": false
+    },
+    {
+      "source": "/photo-design.dc.html",
+      "destination": "/photodesign",
+      "permanent": false
+    },
+    {
+      "source": "/motion-design.dc.html",
+      "destination": "/motiondesign",
+      "permanent": false
+    },
+    {
+      "source": "/isolate-subject.dc.html",
+      "destination": "/isolate",
+      "permanent": false
+    },
+    {
+      "source": "/mockups.dc.html",
+      "destination": "/mockup",
+      "permanent": false
+    },
+    {
+      "source": "/connecthub-admin.dc.html",
+      "destination": "/admin",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/home",
+      "destination": "/media-lab.dc.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login.dc.html"
+    },
+    {
+      "source": "/loopstudio",
+      "destination": "/loop-studio.dc.html"
+    },
+    {
+      "source": "/loopeditor",
+      "destination": "/studio-editor.dc.html"
+    },
+    {
+      "source": "/thumbnailstudio",
+      "destination": "/thumbnail-studio.dc.html"
+    },
+    {
+      "source": "/photodesign",
+      "destination": "/photo-design.dc.html"
+    },
+    {
+      "source": "/motiondesign",
+      "destination": "/motion-design.dc.html"
+    },
+    {
+      "source": "/isolate",
+      "destination": "/isolate-subject.dc.html"
+    },
+    {
+      "source": "/mockup",
+      "destination": "/mockups.dc.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/connecthub-admin.dc.html"
+    },
+    {
+      "source": "/fellesmappe",
+      "destination": "/connecthub-admin.dc.html"
+    },
+    {
+      "source": "/samarbeidsmappe",
+      "destination": "/connecthub-admin.dc.html"
+    },
+    {
+      "source": "/fastebilder",
+      "destination": "/connecthub-admin.dc.html"
+    },
+    {
+      "source": "/ressurser",
+      "destination": "/connecthub-admin.dc.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

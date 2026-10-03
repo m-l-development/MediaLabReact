@@ -36,7 +36,7 @@ export function pickFromFellesmappe({ title = 'Velg bilde fra Fellesmappe', star
     const msg = el('p', 'margin:0;font-size:13px;color:#b3afa6;flex:1;min-width:200px'); msg.setAttribute('role', 'status'); msg.setAttribute('data-ch-picker-msg', '1');
     const up = el('label', BTN + ';display:inline-flex;align-items:center;background:#f3f1ec;color:#111;border-color:#f3f1ec', T('Last opp og del i Fellesmappe'));
     const inp = el('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif'; inp.style.display = 'none'; up.append(inp); up.setAttribute('data-ch-picker-upload', '1');
-    const open = el('a', 'font-size:13px;color:#b3afa6', T('Åpne Fellesmappe')); open.href = 'connecthub-admin.dc.html#/filer/felles'; open.target = '_blank'; open.rel = 'noopener';
+    const open = el('a', 'font-size:13px;color:#b3afa6', T('Åpne Fellesmappe')); open.href = '/fellesmappe'; open.target = '_blank'; open.rel = 'noopener';
     bar.append(msg, up, open);
     const grid = el('div', 'flex:1;min-height:160px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;align-content:start');
     box.append(head, tabs, bar, grid); ov.append(box); document.body.append(ov);

@@ -4,10 +4,12 @@
    Hoppes over ved «spar data» eller svært treg forbindelse. */
 const done = new Set();
 
+import { fileFor } from '../../build/routes.js';
+
 export function pageOf(href, here = location) {
   if (!href || /^(#|javascript:|mailto:|tel:|blob:|data:)/i.test(href)) return null;
   let u; try { u = new URL(href, here.href); } catch (e) { return null; }
-  return u.origin === here.origin && /\.dc\.html$/.test(u.pathname) && u.pathname !== here.pathname ? u.pathname : null;
+  return u.origin === here.origin && (/\.dc\.html$/.test(u.pathname) || fileFor(u.pathname)) && u.pathname !== here.pathname ? u.pathname : null;
 }
 
 /* Skript og stil fra en bygget HTML-side (bare egne /assets/-filer). */

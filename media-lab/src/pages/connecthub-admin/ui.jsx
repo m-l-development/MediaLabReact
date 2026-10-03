@@ -96,8 +96,10 @@ export function Dialog({ title, onClose, children }) {
 }
 
 /* Liten ruter på adressens #-del: #/brukere/<id>, #/menigheter/<id>/<fane> */
+import { SHORTCUTS } from '../../../build/routes.js';
 export function useRoute() {
-  const read = () => (location.hash.replace(/^#\/?/, '') || 'oversikt').split('/').map(decodeURIComponent);
+  /* Uten #-rute: snarveiene /fellesmappe, /samarbeidsmappe, /fastebilder og /ressurser åpner riktig visning (build/routes.js). */
+  const read = () => (location.hash.replace(/^#\/?/, '') || (SHORTCUTS.find(([p]) => p === location.pathname.replace(/\/+$/, '')) || [])[1] || 'oversikt').split('/').map(decodeURIComponent);
   const [r, setR] = React.useState(read);
   React.useEffect(() => { const f = () => setR(read()); window.addEventListener('hashchange', f); return () => window.removeEventListener('hashchange', f); }, []);
   return r;

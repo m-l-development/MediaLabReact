@@ -448,7 +448,7 @@ class Component extends DCLogic {
     const b = document.createElement('div'); b.setAttribute('data-ch-demo-banner', '1'); b.setAttribute('role', 'status');
     b.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147480000;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px);padding:8px 10px 8px 16px;border:1px solid #f5b82c;border-radius:999px;background:#1b1607;color:#f5d38f;font:600 13px Archivo,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)';
     const t = document.createElement('span'); t.textContent = TT('DEMO – eksempel med genererte bakgrunner. Ingenting lagres.');
-    const a = document.createElement('a'); a.href = 'studio-editor.dc.html?mal=' + encodeURIComponent(tpl || 'week'); a.textContent = TT('Avslutt demo'); a.setAttribute('data-ch-demo-exit', '1');
+    const a = document.createElement('a'); a.href = '/loopeditor?mal=' + encodeURIComponent(tpl || 'week'); a.textContent = TT('Avslutt demo'); a.setAttribute('data-ch-demo-exit', '1');
     a.style.cssText = 'height:30px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;background:#f5b82c;color:#111;text-decoration:none';
     b.append(t, a); document.body.append(b);
   }

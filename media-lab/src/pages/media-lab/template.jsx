@@ -50,7 +50,7 @@ export default function template(v) {
           {"\n    "}
           <div data-dc-tpl="22" style={{"width":"100%","maxWidth":"1000px","display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(260px, 1fr))","gap":"18px"}}>
             {"\n      "}
-            <a data-dc-tpl="23" href="loop-studio.dc.html" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
+            <a data-dc-tpl="23" href="/loopstudio" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
               {"\n        "}
               <div data-dc-tpl="24" style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"var(--ml-label, #9d998f)"}}>
                 Video
@@ -72,7 +72,7 @@ export default function template(v) {
               {"\n      "}
             </a>
             {"\n\n      "}
-            <a data-dc-tpl="29" href="thumbnail-studio.dc.html" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
+            <a data-dc-tpl="29" href="/thumbnailstudio" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
               {"\n        "}
               <div data-dc-tpl="30" style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"var(--ml-label, #9d998f)"}}>
                 Bilde
@@ -185,7 +185,7 @@ export default function template(v) {
             {"\n\n      "}
             <div data-dc-tpl="65" style={{"width":"100%","maxWidth":"1000px","display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(260px, 1fr))","gap":"18px"}}>
               {"\n      "}
-              <a data-dc-tpl="66" href="motion-design.dc.html" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
+              <a data-dc-tpl="66" href="/motiondesign" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
                 {"\n        "}
                 <div data-dc-tpl="67" style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"var(--ml-label, #9d998f)"}}>
                   Video
@@ -207,7 +207,7 @@ export default function template(v) {
                 {"\n      "}
               </a>
               {"\n\n      "}
-              <a data-dc-tpl="72" href="photo-design.dc.html" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp3">
+              <a data-dc-tpl="72" href="/photodesign" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp3">
                 {"\n        "}
                 <div data-dc-tpl="73" style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"var(--ml-label, #9d998f)"}}>
                   Bilde
@@ -261,7 +261,7 @@ export default function template(v) {
             {"\n\n      "}
             <div data-dc-tpl="88" style={{"width":"100%","maxWidth":"1000px","display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(260px, 1fr))","gap":"18px"}}>
               {"\n      "}
-              <a data-dc-tpl="89" href="isolate-subject.dc.html" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
+              <a data-dc-tpl="89" href="/isolate" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp1">
                 {"\n        "}
                 <div data-dc-tpl="90" style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"var(--ml-label, #9d998f)"}}>
                   Bilde
@@ -283,7 +283,7 @@ export default function template(v) {
                 {"\n      "}
               </a>
               {"\n\n      "}
-              <a data-dc-tpl="95" href="mockups.dc.html" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp3">
+              <a data-dc-tpl="95" href="/mockup" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"220px","padding":"28px","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"22px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-fg, #f3f1ec)"}} className="scp3">
                 {"\n        "}
                 <div data-dc-tpl="96" style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"var(--ml-label, #9d998f)"}}>
                   Bilde
@@ -330,7 +330,7 @@ export default function template(v) {
         {"\n  "}
       </footer>
       {"\n  "}
-      {canAdmin(window.CH && window.CH.me) && <a data-dc-tpl="107" href="connecthub-admin.dc.html" title="Admin" aria-label="Admin" style={{"position":"fixed","left":"18px","bottom":"calc(18px + env(safe-area-inset-bottom))","zIndex":"60","width":"40px","height":"40px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"999px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-muted, #b3afa6)"}} className="scp5">
+      {canAdmin(window.CH && window.CH.me) && <a data-dc-tpl="107" href="/admin" title="Admin" aria-label="Admin" style={{"position":"fixed","left":"18px","bottom":"calc(18px + env(safe-area-inset-bottom))","zIndex":"60","width":"40px","height":"40px","display":"flex","alignItems":"center","justifyContent":"center","border":"1px solid var(--ml-line, rgba(255,255,255,0.16))","borderRadius":"999px","background":"var(--ml-card, rgba(12,12,12,0.55))","backdropFilter":"blur(14px)","color":"var(--ml-muted, #b3afa6)"}} className="scp5">
         <svg data-dc-tpl="108" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path data-dc-tpl="109" d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z" />
           <circle data-dc-tpl="110" cx="12" cy="10.5" r="2.3" />

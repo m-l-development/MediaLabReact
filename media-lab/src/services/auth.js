@@ -7,7 +7,10 @@ import { supabaseAuth as A } from './adapters/supabase/auth.js';
 import { clearMe } from './me-cache.js';
 
 export const COOKIE = 'ch_at';
-export const LOGIN_PATH = '/login.dc.html';
+export const LOGIN_PATH = '/login';
+/* Adresse som sendes til innloggingsleverandøren (e-postlenker for «Glemt passord» uten egen e-post). Beholdes som det
+   gamle filnavnet fordi det står i leverandørens liste over tillatte adresser; /login.dc.html sendes videre til /login. */
+export const RECOVERY_PATH = '/login.dc.html';
 
 function writeCookie(s) {
   if (typeof document === 'undefined') return;
@@ -37,7 +40,7 @@ export const auth = {
       const j = await r.json().catch(() => null);
       if (r.ok && j && j.ok) fallback = !!j.fallback;
     } catch (x) { fallback = true; }
-    if (fallback) await A.requestPasswordReset(e, location.origin + LOGIN_PATH + '?flow=recovery');
+    if (fallback) await A.requestPasswordReset(e, location.origin + RECOVERY_PATH + '?flow=recovery');
     return { ok: true };
   },
   completeFromUrl: url => A.completeFromUrl(url),
@@ -49,10 +52,11 @@ export const auth = {
   loginUrl(next) { return LOGIN_PATH + (next ? '?next=' + encodeURIComponent(next) : ''); },
 };
 
-/* Bare interne stier godtas som «next», ellers forsiden. Hindrer åpen omdirigering. */
+/* Bare interne stier godtas som «next», ellers startsiden. Hindrer åpen omdirigering. Innloggingssiden (/login og det gamle
+   /login.dc.html) godtas aldri som mål. */
 export function safeNext(v) {
   const s = String(v || '');
-  return /^\/(?!\/)[^\s\\]*$/.test(s) && !s.startsWith(LOGIN_PATH) ? s : '/media-lab.dc.html';
+  return /^\/(?!\/)[^\s\\]*$/.test(s) && !/^\/login(?:[/?#.]|$)/.test(s) ? s : '/home';
 }
 
 /* Passordkravene som enkeltpunkter (for løpende visning). Samme krav som passwordProblem og Supabase Auth. */

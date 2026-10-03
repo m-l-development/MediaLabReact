@@ -552,7 +552,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const S = this.state, PD = window.PD, deploy = /^[a-z0-9-]+\.dc\.html$/.test(decodeURIComponent(location.pathname.split('/').pop() || ''));
-    const base = { backHref: (deploy ? 'media-lab.dc.html' : 'media-lab.dc.html') + '#some', isHome: S.view !== 'edit', isEdit: S.view === 'edit', fileRef: this.fileRef, onFile: this.onFile, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop, hasToast: !!S.toast, toast: S.toast };
+    const base = { backHref: (deploy ? '/home' : '/home') + '#some', isHome: S.view !== 'edit', isEdit: S.view === 'edit', fileRef: this.fileRef, onFile: this.onFile, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop, hasToast: !!S.toast, toast: S.toast };
     if (!PD) return { ...base, formats: [], tpls: [], projects: [], hasProjects: false };
     if (S.view !== 'edit') {
       const fm = PD.FORMATS.concat([{ k: 'custom', l: 'Egendefinert', w: +S.cw || 1200, h: +S.ch || 800 }]);

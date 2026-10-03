@@ -7,11 +7,11 @@
   var kindOf = function (t) { return /^image\//.test(t) ? 'image' : /^video\//.test(t) ? 'video' : /^audio\//.test(t) ? 'audio' : ''; };
   var deploy = /^[a-z0-9-]+\.dc\.html$/.test(decodeURIComponent(location.pathname.split('/').pop() || ''));
   var APPS = [
-    { k: 'thumb', name: 'Thumbnail Studio', url: deploy ? 'thumbnail-studio.dc.html' : 'Thumbnail Studio.dc.html', accept: ['image'] },
-    { k: 'photo', name: 'Photo design', url: deploy ? 'photo-design.dc.html' : 'Photo Design.dc.html', accept: ['image'] },
-    { k: 'motion', name: 'Motion design', url: deploy ? 'motion-design.dc.html' : 'Motion Design.dc.html', accept: ['image', 'video', 'audio'] },
-    { k: 'isolate', name: 'Isolate Subject', url: deploy ? 'isolate-subject.dc.html' : 'Isolate Subject.dc.html', accept: ['image'] },
-    { k: 'mockups', name: 'Mockups', url: deploy ? 'mockups.dc.html' : 'Mockups.dc.html', accept: ['image'] }
+    { k: 'thumb', name: 'Thumbnail Studio', url: deploy ? '/thumbnailstudio' : 'Thumbnail Studio.dc.html', accept: ['image'] },
+    { k: 'photo', name: 'Photo design', url: deploy ? '/photodesign' : 'Photo Design.dc.html', accept: ['image'] },
+    { k: 'motion', name: 'Motion design', url: deploy ? '/motiondesign' : 'Motion Design.dc.html', accept: ['image', 'video', 'audio'] },
+    { k: 'isolate', name: 'Isolate Subject', url: deploy ? '/isolate' : 'Isolate Subject.dc.html', accept: ['image'] },
+    { k: 'mockups', name: 'Mockups', url: deploy ? '/mockup' : 'Mockups.dc.html', accept: ['image'] }
   ];
   var dbp = null;
   function db() { if (dbp) return dbp; dbp = new Promise(function (res, rej) { var r = indexedDB.open(DB, 1); r.onupgradeneeded = function () { r.result.createObjectStore(ST, { keyPath: 'id' }); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); return dbp; }

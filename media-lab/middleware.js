@@ -3,7 +3,7 @@
 import { decide } from './server/lib/gate.js';
 
 export const config = {
-  matcher: ['/((?!assets/|images/|mockups/|api/|vendor/|fonts/|login\\.dc\\.html|version\\.json|manifest\\.webmanifest|favicon\\.ico|robots\\.txt).*)'],
+  matcher: ['/((?!assets/|images/|mockups/|api/|vendor/|fonts/|login\\.dc\\.html|login$|version\\.json|manifest\\.webmanifest|favicon\\.ico|robots\\.txt).*)'],
 };
 
 export default async function middleware(request) {
