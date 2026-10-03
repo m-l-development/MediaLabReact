@@ -1178,3 +1178,10 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 - **`npm test`:** 147/147.
 
 **Testdata:** nye passord for `ch-test-user` og `ch-test-dev`, bare i testlegitimasjonen.
+
+## Regresjon etter kontofunksjonene (2026-10-03, dev)
+Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, Moderator, Admin og User, på PC 1440 og mobil 390.
+- Tilgang og avvisning er riktige.
+- Ingen feilmeldinger og ingen vannrett rulling.
+- Eneste konsollfeil er den kjente 404-en for den valgfrie `mockups/config.json`.
+- De nye sidene («Forespørsler», «Mail») og menyen er testet i egne kjøringer over.

@@ -1,6 +1,6 @@
 # Plan: «Glemt passord», forespørsler om konto, e-post og Mail-fanen, kontovelger og passordbytte
 
-Status: **godkjent 2026-10-03.** Ferdig i dev: «Glemt passord» (kapittel 1) og e-postsystemet med Mail-fanen (kapittel 3, uten forespørsler og varslingsadresser). Gjenstår: forespørsler (kapittel 2), varsler til stab, kontovelger (4) og «Bytt passord» (5).
+Status: **ferdig i dev 2026-10-03** (alle kapitler: «Glemt passord», forespørsler, e-post og Mail-fanen, kontovelger og «Bytt passord»). Ikke i produksjon utover e-postsystemet (`25216f4`); resten krever egen godkjenning for publisering. Ekte e-postlevering krever SMTP-oppsettet (`docs/epostoppsett.md`).
 
 Rekkefølgen følger prioriteringen din (kapittel 1–6). Kapittel 7 har det tekniske felles grunnlaget, kapittel 8 testene, og kapittel 9 beslutningene som må tas før start.
 
