@@ -56,10 +56,16 @@ async function prepare(ctx, key) {
 /* Sender en mal og registrerer resultatet (uten lenke eller innhold). Kaster aldri: { sent, error }. */
 /* Nøyaktig én mottaker: ingen komma, semikolon, vinkelparenteser, anførselstegn eller mellomrom (kan ellers gi flere). */
 export const singleRecipient = s => /^[^@\s,;<>"'()]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,}$/.test(String(s || ''));
-export async function sendTemplated(ctx, { kind, key, to, link, vars, related = null, actor = null }) {
+/* optional: true for valgfrie e-poster (f.eks. varsler) – sendes ikke når mottakeren har slått dem av. Nødvendige e-poster
+   (invitasjon, «Glemt passord», sikkerhet) sendes alltid. */
+export async function sendTemplated(ctx, { kind, key, to, link, vars, related = null, actor = null, optional = false }) {
   const m = mailer(ctx);
   if (!m) return { sent: false, error: 'mail_not_configured' };
   if (!singleRecipient(to)) return { sent: false, error: 'invalid_recipient' };
+  if (optional && (await ctx.backend.rpcAsServer('mail_optional_allowed', { p_email: to }).catch(() => false)) !== true) {
+    await ctx.backend.rpcAsServer('register_mail', { p_kind: kind, p_template: key, p_to: to, p_related: related, p_actor: actor, p_status: 'skipped', p_error: 'opted_out' }).catch(() => {});
+    return { sent: false, error: 'opted_out' };
+  }
   let error = null;
   try {
     const { tpl, logo } = await prepare(ctx, key);

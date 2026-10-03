@@ -1648,6 +1648,23 @@ select ch_test.atleast('Mail: Moderator ser utsendingsloggen', $q$select 1 from 
 select ch_test.cnt('Mail: Moderator leser ikke tabellene direkte', $q$select 1 from public.email_outbox union all select 1 from public.anon_rate_limits$q$, 0);
 set local role postgres;
 
+-- ---------- Valgfrie e-poster på/av (egen innstilling) ----------
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.cnt('E-postvalg: standard er På', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and email_optional$q$, 1);
+select ch_test.ok('E-postvalg: brukeren slår av egne valgfrie e-poster', $q$select public.set_my_email_optional(false)$q$);
+select ch_test.cnt('E-postvalg: valget er lagret', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and not email_optional$q$, 1);
+select ch_test.err('E-postvalg: kan ikke skrive kolonnen direkte (heller ikke egen rad)', $q$update public.app_users set email_optional = true where id = '00000000-0000-4000-8000-000000000042'$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('E-postvalg: stab kan ikke endre andres valg direkte', $q$update public.app_users set email_optional = true where id = '00000000-0000-4000-8000-000000000042'$q$, '42501');
+select ch_test.ok('E-postvalg: stab endrer bare sitt eget valg med funksjonen', $q$select public.set_my_email_optional(false)$q$);
+select ch_test.cnt('E-postvalg: den andre brukerens valg er uendret', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and not email_optional$q$, 1);
+select ch_test.err('E-postvalg: klient kan ikke spørre om andres valg (bare server)', $q$select public.mail_optional_allowed('n-medlem@test.invalid')$q$, '42501');
+set local role postgres;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.cnt('E-postvalg: serveren ser Av for brukeren og På for ukjent adresse', $q$select 1 where not public.mail_optional_allowed('N-Medlem@test.invalid') and public.mail_optional_allowed('ukjent@test.invalid')$q$, 1);
+set local role postgres;
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);

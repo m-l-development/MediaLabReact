@@ -133,7 +133,7 @@ export function MailView() {
       <List cols="minmax(0,1.4fr) auto auto" head={['Mottaker', 'Type', 'Status']} empty="Ingen utsendinger ennå." rows={outbox.map(o => ({ key: o.id, cells: [
         <div><span style={{ wordBreak: 'break-all' }}>{o.to_email}</span><div className="ch-muted">{fmt(o.created_at)}</div></div>,
         <span className="ch-muted">{T(KIND[o.kind] || o.kind)}</span>,
-        o.status === 'sent' ? <Badge tone="ok">{T('Sendt')}</Badge> : <Badge tone="bad">{T('Feilet')}{o.error_code ? ' · ' + o.error_code : ''}</Badge>] }))} />
+        o.status === 'sent' ? <Badge tone="ok">{T('Sendt')}</Badge> : o.status === 'skipped' ? <Badge>{T('Hoppet over (valgfrie e-poster er av)')}</Badge> : <Badge tone="bad">{T('Feilet')}{o.error_code ? ' · ' + o.error_code : ''}</Badge>] }))} />
     </Card>
   </>;
 }

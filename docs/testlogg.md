@@ -1077,3 +1077,18 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 - Innloggingssiden lastes i en ekte nettleser uten feil, med vis/skjul og «Glemt passord».
 
 **Ikke verifisert:** ekte levering via Gmail-SMTP. Det krever variablene i Vercel (`docs/epostoppsett.md`).
+
+## Valgfrie e-poster på/av (2026-10-03, dev)
+
+**Løsning:**
+- **Database:** `app_users.email_optional` (standard På). Brukeren endrer bare sitt eget valg (`set_my_email_optional`); ingen kan skrive kolonnen direkte, heller ikke stab.
+- **Server:** `mail_optional_allowed` brukes før valgfrie e-poster. Er valget Av, registreres e-posten som «skipped». Nødvendige e-poster (invitasjon, «Glemt passord», sikkerhet) sendes alltid.
+- **Grensesnitt:** bryter i kontomenyen under «Konto».
+- **Migrering:** `20261011100000_email_optional.sql`.
+
+**Tester:**
+- **RLS:** 811/811 i PGlite og i dev, hvorav 9 nye.
+- **`npm test`:** 1 ny servertest. Valgfri e-post hoppes over når valget er Av, og «Glemt passord» sendes likevel.
+- **Nettleser (User, mobil):** standard På. Av lagres, og etter ny innlogging i en ny nettleser står den fortsatt på Av. Satt tilbake til På. Ingen vannrett rulling.
+
+**Merk:** i dag finnes ingen valgfrie e-poster ennå. Valget gjelder for varsler som kommer, f.eks. varsler om forespørsler.

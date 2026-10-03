@@ -62,6 +62,13 @@ export const subscriptions = {
   updatePlan: (code, quotaMb, priceNokMonth) => data().rpc('update_plan', { p_plan: code, p_quota_mb: quotaMb, p_price_nok_month: priceNokMonth == null || priceNokMonth === '' ? null : Number(priceNokMonth), p_update_churches: false }),
 };
 
+/* Brukerens eget valg: valgfrie e-poster på/av (standard På). Bare egen innstilling kan endres (databasen avgjør).
+   Nødvendige e-poster (invitasjon, «Glemt passord», sikkerhet) sendes alltid. */
+export const emailPrefs = {
+  get: async userId => { const r = await data().select('app_users', { columns: 'email_optional', eq: { id: userId } }); return !r || !r[0] || r[0].email_optional !== false; },
+  set: on => data().rpc('set_my_email_optional', { p_on: !!on }),
+};
+
 export const notifications = {
   list: () => data().select('notifications', { columns: 'id, kind, title, body, link, church_id, read_at, created_at', order: 'created_at', desc: true, limit: 50 }),
   markRead: id => data().update('notifications', { id }, { read_at: new Date().toISOString() }),

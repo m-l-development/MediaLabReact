@@ -148,6 +148,16 @@ test('mottaker: nøyaktig én adresse – komma, semikolon og navn med vinkelpar
   assert.equal(r.body.email_sent, false); assert.equal(m.sent.length, 0, 'ingenting sendt');
 });
 
+test('valgfrie e-poster: hoppes over og registreres som skipped når mottakeren har slått dem av; nødvendige sendes alltid', async () => {
+  const { sendTemplated } = await import('../lib/mail.js');
+  const b = fake({ mail_optional_allowed: () => false }), m = box();
+  const ctx = { deps: { mailer: m }, env: ENV, backend: b };
+  assert.deepEqual(await sendTemplated(ctx, { kind: 'test', key: 'welcome', to: 'a@example.com', link: 'https://x.test/l', optional: true }), { sent: false, error: 'opted_out' });
+  assert.equal(m.sent.length, 0); assert.equal(b.log.find(x => x[1] === 'register_mail')[2].p_status, 'skipped');
+  assert.deepEqual(await sendTemplated(ctx, { kind: 'recovery', key: 'password', to: 'a@example.com', link: 'https://x.test/l' }), { sent: true });
+  assert.equal(m.sent.length, 1, 'nødvendig e-post (Glemt passord) sendes uansett valg');
+});
+
 /* --- SMTP-protokollen mot en lokal testserver (ingen ekte e-post) --- */
 test('SMTP-adapter: sender HTML, tekst og logo som innebygd vedlegg; avsender er SMTP-kontoen', async () => {
   let data = '', authed = false;

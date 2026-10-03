@@ -1,7 +1,7 @@
 /* Kontoknapp (nede til høyre, ved siden av tema-knappen) med navn, roller, varsler, personvern og utlogging. */
 import { auth } from '../services/auth.js';
 import { clearMyLocalData } from './local-user.js';
-import { notifications as N, privacy, downloadJson } from '../services/community.js';
+import { notifications as N, privacy, downloadJson, emailPrefs } from '../services/community.js';
 import { allowedViews, realView, setView, VIEW_LABEL } from './test-role.js';
 import { dockButton, openOnly, onOtherOpen } from './dock.js';
 
@@ -70,6 +70,23 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
     };
     showN(); if (!at) refresh().then(() => { if (menu) showN(); });
 
+    /* Valgfrie e-poster på/av (egen innstilling, lagres i databasen). Nødvendige e-poster sendes alltid. */
+    const pref = document.createElement('div'); pref.setAttribute('data-ch-emailpref', '1'); pref.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+    const sw = document.createElement('button'); sw.type = 'button'; sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', 'true'); sw.disabled = true;
+    sw.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:10px;background:transparent;color:#111;font:600 13px Archivo,Helvetica,sans-serif;cursor:pointer;text-align:left';
+    const swLabel = document.createElement('span'); swLabel.style.cssText = 'flex:1'; swLabel.textContent = T('Valgfrie e-poster');
+    const track = document.createElement('span'); track.setAttribute('aria-hidden', 'true');
+    const knob = document.createElement('span'); track.appendChild(knob);
+    const state = document.createElement('span'); state.style.cssText = 'min-width:24px;font-size:12px;color:#5a5750;text-align:right';
+    const paintSw = on => { sw.setAttribute('aria-checked', on ? 'true' : 'false'); state.textContent = T(on ? 'På' : 'Av');
+      track.style.cssText = 'position:relative;width:34px;height:20px;border-radius:999px;flex:0 0 auto;transition:background .15s;background:' + (on ? '#2a9d8f' : '#b9b5ac');
+      knob.style.cssText = 'position:absolute;top:2px;left:' + (on ? '16px' : '2px') + ';width:16px;height:16px;border-radius:999px;background:#fff;transition:left .15s'; };
+    sw.append(swLabel, state, track); paintSw(true);
+    const swNote = document.createElement('span'); swNote.style.cssText = 'padding:0 8px;color:#6b675f;font-size:11.5px;line-height:1.4'; swNote.textContent = T('Av: du får ikke valgfrie e-poster, som varsler. Glemt passord, invitasjoner og sikkerhetsmeldinger sendes alltid.');
+    pref.append(sw, swNote);
+    emailPrefs.get(realMe.id).then(on => { paintSw(on); sw.disabled = false; }).catch(() => { sw.disabled = false; });
+    sw.onclick = async () => { const on = sw.getAttribute('aria-checked') !== 'true'; sw.disabled = true; paintSw(on);
+      try { await emailPrefs.set(on); } catch (e) { paintSw(!on); alert(T('Valget kunne ikke lagres. Prøv igjen.')); } sw.disabled = false; };
     const out = mk('Logg ut', false), wipe = mk('Logg ut og fjern mine lokale data', true);
     out.onclick = async () => { out.disabled = true; await auth.signOut(); location.replace(auth.loginUrl()); };
     wipe.onclick = async () => {
@@ -106,7 +123,7 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
       note.textContent = T('Bytt rolle for å teste ulike grensesnitt og tilgangsrettigheter. Dette påvirker ikke dine faktiske tilgangsrettigheter.');
       tbox.appendChild(note);
     }
-    menu.append(name, mail, info, ...(tbox ? [tbox] : []), head('Varsler'), nbox, head('Konto'), out, wipe, head('Personvern'), exp, del);
+    menu.append(name, mail, info, ...(tbox ? [tbox] : []), head('Varsler'), nbox, head('Konto'), pref, out, wipe, head('Personvern'), exp, del);
     document.body.appendChild(menu);
     setTimeout(() => document.addEventListener('pointerdown', function h(e) { if (menu && !menu.contains(e.target) && e.target !== btn) { close(); document.removeEventListener('pointerdown', h); } }), 0);
   };
