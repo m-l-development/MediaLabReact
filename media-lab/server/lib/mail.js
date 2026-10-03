@@ -66,6 +66,8 @@ export async function sendTemplated(ctx, { kind, key, to, link, vars, related = 
     await ctx.backend.rpcAsServer('register_mail', { p_kind: kind, p_template: key, p_to: to, p_related: related, p_actor: actor, p_status: 'skipped', p_error: 'opted_out' }).catch(() => {});
     return { sent: false, error: 'opted_out' };
   }
+  /* Valgfrie e-poster går til brukerens valgte varselsadresse (hvis satt); nødvendige alltid til kontoens adresse. */
+  if (optional) { const a = await ctx.backend.rpcAsServer('mail_optional_address', { p_email: to }).catch(() => null); if (singleRecipient(a)) to = a; }
   let error = null;
   try {
     const { tpl, logo } = await prepare(ctx, key);

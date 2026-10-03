@@ -1120,3 +1120,34 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 **Testdata i dev:**
 - én forespørsel og én ventende invitasjon for `ch-test-req1@example.com` (User i A)
 - varslingsadressen `stab-varsel@example.com`
+
+## Kontomenyen: E-postvarsler, Varsler og Konto og sikkerhet (2026-10-03, dev)
+
+**Løsning:**
+- **E-postvarsler, bare for Developer og Moderator:**
+  - Av/på og egen mottakeradresse for valgfrie e-poster (`app_users.notify_email`).
+  - Bare via `my_email_prefs`, `set_my_email_optional` og `set_my_notify_email` på egen rad, og de krever Developer eller Moderator med MFA. Ingen kolonnerettigheter.
+  - Adressen valideres og vises alltid, og lagring gir en bekreftelse.
+  - Innloggingsadressen endres aldri. Valgfrie e-poster går til valgt adresse (`mail_optional_address`), mens «Glemt passord» og sikkerhet alltid går til kontoens adresse.
+- **Menyen** (`src/shared/account-menu.js`) har visninger:
+  - **Hovedmenyen:** navn og rolle, «Varsler» med tall, E-postvarsler (bare stab), «Logg ut» (ett trykk) og «Konto og sikkerhet».
+  - **Varsler:** egen visning. Trykk merker varselet som lest og åpner siden hvis varselet har lenke, og «Merk alle som lest» finnes fortsatt.
+  - **Konto og sikkerhet:** «Last ned mine data», «Logg ut og fjern mine lokale data» (bekreftelse som forklarer hva som fjernes og hva som blir liggende), og en faresone med «Slett kontoen min». Sletting krever avkrysning før knappen virker, og «Avbryt» er lett tilgjengelig.
+- **Migreringer:** `20261013100000_notify_email.sql` og `20261014100000_email_prefs_staff.sql`.
+
+**Tester:**
+- **RLS:** 863/863 i PGlite og i dev.
+  - User og Admin avvises, og stab uten MFA avvises.
+  - Ugyldige og flere adresser avvises, og innloggingsadressen er uendret.
+  - Ingen direkte skriving, og andre kan ikke lese adressen.
+  - Serveren bruker valgt adresse.
+- **`npm test`:** 147/147.
+- **Nettleser (User, mobil og PC):**
+  - Hovedmenyen viser ikke sletting eller lokale data direkte.
+  - Varsler er en egen visning.
+  - Fjern lokale data: bekreftelse, så «Avbryt».
+  - Slett konto: knappen er av til avkrysning, så «Avbryt». Ingenting ble slettet.
+  - «Logg ut» virker med ett trykk, og det er ingen vannrett rulling.
+- **Nettleser (roller):**
+  - User ser ikke E-postvarsler.
+  - Moderator (mobil, MFA) lagret egen adresse og slo av, med bekreftelse. Etter ny innlogging står begge deler, og de er satt tilbake til standard.

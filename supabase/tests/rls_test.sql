@@ -1649,23 +1649,6 @@ select ch_test.atleast('Mail: Moderator ser utsendingsloggen', $q$select 1 from 
 select ch_test.cnt('Mail: Moderator leser ikke tabellene direkte', $q$select 1 from public.email_outbox union all select 1 from public.anon_rate_limits$q$, 0);
 set local role postgres;
 
--- ---------- Valgfrie e-poster på/av (egen innstilling) ----------
-set local role authenticated;
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
-select ch_test.cnt('E-postvalg: standard er På', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and email_optional$q$, 1);
-select ch_test.ok('E-postvalg: brukeren slår av egne valgfrie e-poster', $q$select public.set_my_email_optional(false)$q$);
-select ch_test.cnt('E-postvalg: valget er lagret', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and not email_optional$q$, 1);
-select ch_test.err('E-postvalg: kan ikke skrive kolonnen direkte (heller ikke egen rad)', $q$update public.app_users set email_optional = true where id = '00000000-0000-4000-8000-000000000042'$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.err('E-postvalg: stab kan ikke endre andres valg direkte', $q$update public.app_users set email_optional = true where id = '00000000-0000-4000-8000-000000000042'$q$, '42501');
-select ch_test.ok('E-postvalg: stab endrer bare sitt eget valg med funksjonen', $q$select public.set_my_email_optional(false)$q$);
-select ch_test.cnt('E-postvalg: den andre brukerens valg er uendret', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000042' and not email_optional$q$, 1);
-select ch_test.err('E-postvalg: klient kan ikke spørre om andres valg (bare server)', $q$select public.mail_optional_allowed('n-medlem@test.invalid')$q$, '42501');
-set local role postgres;
-do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
-select ch_test.cnt('E-postvalg: serveren ser Av for brukeren og På for ukjent adresse', $q$select 1 where not public.mail_optional_allowed('N-Medlem@test.invalid') and public.mail_optional_allowed('ukjent@test.invalid')$q$, 1);
-set local role postgres;
-
 -- ---------- Forespørsler om brukerkonto ----------
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
@@ -1725,6 +1708,40 @@ select ch_test.err('Varslingsadresser: Admin kan ikke endre', $q$select public.s
 set local role postgres;
 do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
 select ch_test.cnt('Varslingsadresser: serveren leser de normaliserte adressene', $q$select 1 where public.mail_notify_extra() @> array['varsel@example.com', 'stab@example.com']$q$, 1);
+set local role postgres;
+
+-- ---------- E-postvarsler (valgfrie e-poster på/av og egen adresse) – bare Developer og Moderator ----------
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.err('E-postvarsler: User kan ikke lese innstillingen', $q$select public.my_email_prefs()$q$, '42501');
+select ch_test.err('E-postvarsler: User kan ikke slå av', $q$select public.set_my_email_optional(false)$q$, '42501');
+select ch_test.err('E-postvarsler: User kan ikke sette adresse', $q$select public.set_my_notify_email('x@example.com')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.err('E-postvarsler: Admin kan ikke lese innstillingen', $q$select public.my_email_prefs()$q$, '42501');
+select ch_test.err('E-postvarsler: Admin kan ikke sette adresse', $q$select public.set_my_notify_email('x@example.com')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
+select ch_test.err('E-postvarsler: Moderator uten MFA avvises', $q$select public.set_my_email_optional(false)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('E-postvarsler: standard er På og kontoens adresse', $q$select 1 where (public.my_email_prefs() ->> 'on')::boolean and public.my_email_prefs() ->> 'notify_email' is null and public.my_email_prefs() ->> 'account_email' = 'mod@test.invalid'$q$, 1);
+select ch_test.ok('E-postvarsler: Moderator slår av', $q$select public.set_my_email_optional(false)$q$);
+select ch_test.err('E-postvarsler: ugyldig adresse avvises', $q$select public.set_my_notify_email('ikke en adresse')$q$, '22023');
+select ch_test.err('E-postvarsler: flere adresser avvises', $q$select public.set_my_notify_email('a@b.no,c@d.no')$q$, '22023');
+select ch_test.cnt('E-postvarsler: ny adresse lagres normalisert', $q$select 1 where public.set_my_notify_email(' Privat@Example.COM ') = 'privat@example.com'$q$, 1);
+select ch_test.cnt('E-postvarsler: valget og adressen er lagret', $q$select 1 where not (public.my_email_prefs() ->> 'on')::boolean and public.my_email_prefs() ->> 'notify_email' = 'privat@example.com'$q$, 1);
+select ch_test.cnt('E-postvarsler: innloggingsadressen er uendret', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000002' and email = 'mod@test.invalid'$q$, 1);
+select ch_test.err('E-postvarsler: kolonnene kan ikke skrives direkte', $q$update public.app_users set notify_email = 'x@y.no', email_optional = true where id = '00000000-0000-4000-8000-000000000002'$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('E-postvarsler: Developer endrer bare sitt eget valg', $q$select public.set_my_notify_email('dev-varsel@example.com')$q$);
+select ch_test.cnt('E-postvarsler: Developer kan ikke lese Moderators adresse', $q$select notify_email from public.app_users where id = '00000000-0000-4000-8000-000000000002'$q$, 0);
+select ch_test.err('E-postvarsler: klient kan ikke slå opp (bare server)', $q$select public.mail_optional_address('mod@test.invalid')$q$, '42501');
+set local role postgres;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; end if; end $$;
+select ch_test.cnt('E-postvarsler: serveren ser Av for Moderator og På for ukjent adresse', $q$select 1 where not public.mail_optional_allowed('MOD@test.invalid') and public.mail_optional_allowed('ukjent@test.invalid')$q$, 1);
+select ch_test.cnt('E-postvarsler: valgfrie e-poster går til varselsadressen, ukjent uendret', $q$select 1 where public.mail_optional_address('mod@test.invalid') = 'privat@example.com' and public.mail_optional_address('ukjent@test.invalid') = 'ukjent@test.invalid'$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('E-postvarsler: kontoens egen adresse lagres som standard', $q$select 1 where public.set_my_notify_email('mod@test.invalid') = 'mod@test.invalid'$q$, 1);
+select ch_test.cnt('E-postvarsler: tilbake til kontoens adresse', $q$select 1 where public.my_email_prefs() ->> 'notify_email' is null$q$, 1);
 set local role postgres;
 
 -- ---------- Logging ----------
