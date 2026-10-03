@@ -257,7 +257,7 @@ function UserOverview() {
         <span>{T('Du er medlem')} · {T('Åpne')} →</span></a>)}</div> : <Empty>{T('Du er ikke medlem av noen menighet ennå. Du får en invitasjon fra menighetens admin.')}</Empty>}
     </Card>
     <div className="ch-grid">
-      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens Fellesmappe, ha dine egne private bilder, og del bilder i Samarbeidsmappen med menigheter dere samarbeider med.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer', 'felles')}>{T('Åpne filer')}</a></div></Card>
+      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens Fellesmappe, og del bilder i Samarbeidsmappen med menigheter dere samarbeider med.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer', 'felles')}>{T('Åpne filer')}</a></div></Card>
       <Card title="Profil og varsler"><p className="ch-muted">{T('Navn, telefon, varsler og personvern finner du i kontomenyen nede til høyre.')}</p></Card>
     </div>
   </>;

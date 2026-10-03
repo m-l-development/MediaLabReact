@@ -1,6 +1,7 @@
 /* ConnectHub – Filer: Fellesmappe, Samarbeidsmappe og Faste.
    - Fellesmappe (mappen 'bilder' i databasen, før «Delt mappe»): bilder som deles i menigheten. Alle medlemmer ser, laster
-     ned og laster opp; egne filer kan slettes, Admin rydder i alt. Private bilder (bare meg) ligger også her.
+     ned og laster opp; egne filer kan slettes, Admin rydder i alt. Ingen «Privat (bare meg)» her (eldre private
+     bilder vises fortsatt for eieren, merket Privat).
    - Samarbeidsmappe (mappen 'samarbeid', før «Samarbeidsfiler»): én per aktiv samarbeidsgruppe. Vises bare når menigheten
      er aktivt medlem av en aktiv gruppe. Alle medlemmer i menighetene i gruppen ser, laster ned og laster opp (direkte, eller
      en kopi fra Fellesmappe/Faste – originalen blir liggende). Den som lastet opp direkte, kan slette filen; Admin kan slette
@@ -137,7 +138,7 @@ export function FilesView({ churchId, area: routeArea }) {
   const admin_ = adminOf.includes(churchId);   // M1: Faste og sletting av alt menigheten har bidratt med i Samarbeidsmappen
   const routed = routeArea !== undefined;      // i Filer-seksjonen styrer adressen fanen; i menighetsdetaljene en lokal fane
   const want = URL_AREA[routeArea] || 'delt';
-  const [fl, setFl] = React.useState({ area: want, folder: AREAS[want].folders[0][0], list: [], loading: true, usage: null, priv: false, over: false, links: [], linksReady: false, link: null, copy: null });
+  const [fl, setFl] = React.useState({ area: want, folder: AREAS[want].folders[0][0], list: [], loading: true, usage: null, over: false, links: [], linksReady: false, link: null, copy: null });
   const [sel, setSel] = React.useState(() => new Set());
   const [pv, setPv] = React.useState(null);        // id til bildet som forhåndsvises
   const [ask, setAsk] = React.useState(null);      // bekreftelse før sletting
@@ -210,7 +211,7 @@ export function FilesView({ churchId, area: routeArea }) {
       setJob(fill(T('Laster opp {i} av {n} …'), { i: i + 1, n: list.length }));
       try {
         if (collab) await FS.uploadToLink(file, { linkId: fl.link, churchId });
-        else await FS.upload(file, { churchId, folder: fl.folder, priv: fl.area === 'delt' && fl.priv });
+        else await FS.upload(file, { churchId, folder: fl.folder, priv: false });   // ingen «Privat (bare meg)» i Fellesmappe og Faste
         n++;
       } catch (err) { bad.push(file.name + ': ' + errText(err)); }
     }
@@ -305,13 +306,12 @@ export function FilesView({ churchId, area: routeArea }) {
       {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={() => { if (fl.folder !== f) { setSel(new Set()); act(() => load(f))(); } }}>{T(l)}</Btn>)}</div>}
       {collab && fl.links.length > 1 && <div className="ch-row" data-ch-groups>{fl.links.map(l => <Btn key={l.id} small kind={fl.link === l.id ? 'primary' : ''} onClick={() => { if (fl.link !== l.id) { setSel(new Set()); act(() => load('samarbeid', 'samarbeid', { link: l.id }))(); } }}>{linkName(l)}</Btn>)}</div>}
       {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
-        <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(free)}{bySystem ? ' (' + T('begrenset av samlet lagringsplass i ConnectHub') + ')' : ''}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
+        <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(free)}{bySystem ? ' (' + T('begrenset av samlet lagringsplass i ConnectHub') + ')' : ''}{fl.area === 'delt' && u.my_private_bytes > 0 ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
       {u && sysFree === 0 && <p className="ch-note warn" data-ch-full>{T('Den samlede lagringsplassen i ConnectHub er full. Nye opplastinger er stoppet til det er frigjort plass. Nedlasting virker som før.')}</p>}
       {canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} data-ch-drop onDragOver={e => { e.preventDefault(); if (!fl.over) setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
         onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); if (!busy) upload([...e.dataTransfer.files]); }}>
         <div className="ch-row" style={{ justifyContent: 'center' }}>
           <label className={'ch-btn primary' + (busy ? ' busy' : '')} data-ch-upload>{T('Last opp')}<input type="file" multiple disabled={busy} accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={e => { const l = [...e.target.files]; e.target.value = ''; upload(l); }} /></label>
-          {fl.area === 'delt' && <label className="ch-row ch-muted"><input type="checkbox" checked={fl.priv} onChange={e => setFl(f => ({ ...f, priv: e.target.checked }))} /> {T('Privat (bare meg)')}</label>}
         </div>
         <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {folderLabel}. {T('Bare bilder (PNG, JPG, WebP eller GIF), høyst 4 MB. Video kan aldri lastes opp.')}</p>
       </div> : fl.area === 'faste' && <p className="ch-note warn">{T('Faste-mappen vedlikeholdes av Admin. Du kan se og laste ned filene.')}</p>}
