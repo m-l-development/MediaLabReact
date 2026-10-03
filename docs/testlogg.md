@@ -1055,3 +1055,25 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 - nytt passord for `ch-test-user`
 - rader i utsendingsloggen og grensetelleren
 - loggrader for Mail
+
+## Produksjon: e-postsystemet (2026-10-03)
+
+| Steg | Resultat |
+|---|---|
+| **C** Lesende kontroll | 29 migreringer, siste `20261009100000`. `main` er `cfbecc4`. `25216f4` er en ren fremspoling. |
+| **D** Sikkerhetskopi | JSON-kopi av alle 21 tabeller, med antall likt fingeravtrykket (49 loggrader, 9 filer, 2 brukere, 2 medlemskap). Ligger utenfor repoet. |
+| **E** Tørrkjøring | Nøyaktig `20261010100000_mail.sql`. |
+| **F** Migrering | Brukt uten feil. |
+| **G** Etterkontroll | `prod_postcheck_mail.sql`: alle 6 `ok`, 30 migreringer. Fingeravtrykket er uendret, bortsett fra migreringstallet. Kommandolinjeverktøyet er tilbake på dev. |
+| **H** Kode | `git push origin 25216f4:main`. Vercel: «Deployment has completed», og `version.json` viser `25216f4`. |
+| **I** Røyktest | Se under. |
+
+**Røyktest (steg I):**
+- Én CSP-header, uten dev-prosjektet.
+- Sidene gir 307 til innlogging.
+- `mail.*`, `invite.create` og `file.urls` gir 401 uten innlogging.
+- `auth.recover` svarer `fallback: true`. Produksjonen har ikke SMTP-oppsett, så den bruker Supabase som før.
+- Ingen nettleserfiler inneholder dev-prosjektet eller SMTP-navn.
+- Innloggingssiden lastes i en ekte nettleser uten feil, med vis/skjul og «Glemt passord».
+
+**Ikke verifisert:** ekte levering via Gmail-SMTP. Det krever variablene i Vercel (`docs/epostoppsett.md`).
