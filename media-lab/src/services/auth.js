@@ -42,6 +42,7 @@ export const auth = {
   },
   completeFromUrl: url => A.completeFromUrl(url),
   setPassword: pw => A.setPassword(pw),
+  signOutOthers: () => A.signOutOthers(),
   mfaStatus: () => A.mfaStatus(),
   mfaEnroll: () => A.mfaEnroll(),
   mfaVerify: (id, code) => A.mfaVerify(id, code),

@@ -1,7 +1,8 @@
 /* Kontoknapp (nede til høyre, ved siden av tema-knappen). Hovedmenyen: navn, roller, Varsler (egen visning), E-postvarsler,
    «Logg ut» og «Konto og sikkerhet». Lokale data og sletting av konto ligger skjermet i egen visning, med bekreftelse. */
-import { auth } from '../services/auth.js';
+import { auth, passwordChecks, passwordProblem } from '../services/auth.js';
 import { clearMyLocalData } from './local-user.js';
+import { forgetAccount } from './saved-accounts.js';
 import { notifications as N, privacy, downloadJson, emailPrefs } from '../services/community.js';
 import { allowedViews, realView, setView, VIEW_LABEL } from './test-role.js';
 import { dockButton, openOnly, onOtherOpen } from './dock.js';
@@ -134,7 +135,58 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
       const zone = el('div', 'display:flex;flex-direction:column;gap:6px;margin-top:6px;padding-top:10px;border-top:1px solid rgba(155,28,60,.25)');
       const del = mk('Slett kontoen min', 'dangerline'); del.setAttribute('data-ch-delete', '1'); del.onclick = () => show('delete');
       zone.append(el('span', 'font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9b1c3c', T('Faresone')), note('Sletting av kontoen kan ikke angres.'), del);
-      return [back(), head('Konto og sikkerhet'), exp, note('Får du en kopi av opplysningene ConnectHub har om deg (JSON-fil).', 'font-size:11.5px'), wipe, note('Fjerner prosjekter og innstillinger lagret i denne nettleseren på denne enheten, og logger deg ut.', 'font-size:11.5px'), zone];
+      const pwc = mk('Bytt passord', 'light'); pwc.setAttribute('data-ch-pwchange', '1'); pwc.onclick = () => show('password');
+      return [back(), head('Konto og sikkerhet'), pwc, exp, note('Får du en kopi av opplysningene ConnectHub har om deg (JSON-fil).', 'font-size:11.5px'), wipe, note('Fjerner prosjekter og innstillinger lagret i denne nettleseren på denne enheten, og logger deg ut.', 'font-size:11.5px'), zone];
+    };
+    /* «Bytt passord» (alle roller): gammelt passord kontrolleres med en ny innlogging (også Supabase sitt krav om fersk
+       innlogging), kode fra autentiseringsappen når kontoen har MFA (aal2 kreves), og andre enheter logges ut etterpå. */
+    const EYE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>';
+    const pwInput = (label, ac) => {
+      const wrap = el('label', 'display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#3b3934'); wrap.append(el('span', '', T(label)));
+      const row = el('span', 'position:relative;display:flex');
+      const i = el('input', 'flex:1;min-width:0;height:38px;padding:0 44px 0 10px;border:1px solid rgba(0,0,0,.25);border-radius:10px;font:inherit;font-size:14px;background:#fff;color:#111'); i.type = 'password'; i.autocomplete = ac; i.spellcheck = false; i.setAttribute('autocapitalize', 'off');
+      const t = el('button', 'position:absolute;right:4px;top:50%;transform:translateY(-50%);width:34px;height:30px;border:0;border-radius:8px;background:transparent;cursor:pointer;color:#5a5750;display:flex;align-items:center;justify-content:center'); t.type = 'button'; t.setAttribute('data-pw-toggle', '1');
+      const paint = () => { const on = i.type === 'text'; t.setAttribute('aria-pressed', on ? 'true' : 'false'); t.setAttribute('aria-label', T(on ? 'Skjul passord' : 'Vis passord')); t.title = t.getAttribute('aria-label'); t.innerHTML = EYE + (on ? '<path d="M4 4l16 16"/>' : '') + '</svg>'; };
+      t.onclick = () => { i.type = i.type === 'password' ? 'text' : 'password'; paint(); }; paint();
+      row.append(i, t); wrap.append(row); return { wrap, i };
+    };
+    const showPassword = () => {
+      const old = pwInput('Gammelt passord', 'current-password'), n1 = pwInput('Nytt passord', 'new-password'), n2 = pwInput('Bekreft nytt passord', 'new-password');
+      const codeWrap = el('label', 'display:none;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#3b3934'); codeWrap.append(el('span', '', T('Kode fra autentiseringsappen')));
+      const code = el('input', 'height:38px;padding:0 10px;border:1px solid rgba(0,0,0,.25);border-radius:10px;font:inherit;font-size:14px;background:#fff;color:#111'); code.inputMode = 'numeric'; code.autocomplete = 'one-time-code'; code.maxLength = 7; codeWrap.append(code);
+      let factor = null; auth.mfaStatus().then(st => { if (st && st.factors && st.factors.length) { factor = st.factors[0].id; codeWrap.style.display = 'flex'; } }).catch(() => {});
+      const checks = el('ul', 'margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px;font-size:12px'); checks.setAttribute('data-pw-checks', '1');
+      const paintChecks = () => { checks.textContent = ''; for (const c of passwordChecks(n1.i.value, n2.i.value)) checks.append(el('li', 'color:' + (c.ok ? '#1d5c55' : '#6b675f'), (c.ok ? '✓ ' : '• ') + T(c.text))); };
+      n1.i.oninput = n2.i.oninput = paintChecks; paintChecks();
+      const err = el('p', 'display:none;margin:0;padding:6px 8px;border-radius:8px;background:rgba(155,28,60,.12);color:#9b1c3c;font-size:12px'); err.setAttribute('role', 'alert');
+      const fail = t => { err.textContent = T(t); err.style.display = 'block'; };
+      const go = mk('Bytt passord'), no = mk('Avbryt', 'light'); no.onclick = () => show('account');
+      const ERR = { invalid_credentials: 'Det gamle passordet er feil.', same_password: 'Velg et annet passord enn det gamle.', weak_password: 'Passordet er for svakt.', over_request_rate_limit: 'For mange forsøk. Vent litt og prøv igjen.', network: 'Fikk ikke kontakt med serveren. Prøv igjen.' };
+      go.onclick = async () => {
+        err.style.display = 'none';
+        if (!old.i.value) return fail('Skriv det gamle passordet.');
+        const p = passwordProblem(n1.i.value); if (p) return fail(p);
+        if (n1.i.value !== n2.i.value) return fail('Passordene er ikke like.');
+        if (factor && !/^\d{6}$/.test(code.value.replace(/\s/g, ''))) return fail('Skriv den 6-sifrede koden fra autentiseringsappen.');
+        go.disabled = true; no.disabled = true;
+        try {
+          const r = await auth.signIn(realMe.email, old.i.value);
+          if (!r.ok) return fail(ERR[r.error] || 'Passordet kunne ikke endres. Prøv igjen.');
+          if (factor) { const v = await auth.mfaVerify(factor, code.value); if (!v.ok) return fail('Feil kode. Prøv igjen.'); }
+          const u = await auth.setPassword(n1.i.value);
+          if (!u.ok) return fail(ERR[u.error] || 'Passordet kunne ikke endres. Prøv igjen.');
+          await auth.signOutOthers().catch(() => {}); await auth.session().catch(() => {});
+          old.i.value = n1.i.value = n2.i.value = code.value = '';
+          menu.textContent = ''; menu.setAttribute('data-ch-view', 'password-done');
+          const ok = mk('Ferdig'); ok.onclick = () => show('main');
+          const msg = el('p', 'margin:0;padding:8px 10px;border-radius:10px;background:rgba(42,157,143,.15);color:#1d5c55;font-size:12.5px', T('Passordet er endret. Du er fortsatt logget inn her, og andre enheter er logget ut.')); msg.setAttribute('role', 'status');
+          menu.append(head('Bytt passord'), msg, ok);
+        } finally { go.disabled = false; no.disabled = false; }
+      };
+      const form = el('div', 'display:flex;flex-direction:column;gap:8px'); form.setAttribute('data-ch-pwform', '1');
+      form.onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); go.click(); } };
+      form.append(old.wrap, n1.wrap, n2.wrap, checks, codeWrap, err, go, no);
+      return [back(), head('Bytt passord'), form];
     };
     const showWipe = () => {
       const go = mk('Fjern lokale data og logg ut', 'danger'), no = mk('Avbryt', 'light');
@@ -153,7 +205,7 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
         if (!ok.checked) return;
         go.disabled = true; no.disabled = true;
         try { await privacy.deleteMe(); } catch (e) { alert(T(e && e.code === 'invalid' ? 'Kontoen kan ikke slettes nå. Er du den eneste Developer, må rollen først gis til en annen.' : 'Kontoen kunne ikke slettes. Prøv igjen.')); no.disabled = false; ok.onchange(); return; }
-        await clearMyLocalData().catch(() => {}); await auth.signOut().catch(() => {}); location.replace(auth.loginUrl());
+        forgetAccount(realMe.email); await clearMyLocalData().catch(() => {}); await auth.signOut().catch(() => {}); location.replace(auth.loginUrl());
       };
       return [head('Slette kontoen?'), note('Kontoen din slettes permanent: navn, e-post, medlemskap, roller, varsler og private filer. Bilder du har lagt i menighetens fellesmapper blir liggende uten navnet ditt. Prosjekter på denne enheten slettes også.'),
         lab, no, go];
@@ -193,7 +245,7 @@ export function mountAccountMenu(me, realMe = me, testAllowed = false) {
       tbox.appendChild(n);
       return [tbox];
     };
-    const VIEWS = { main: showMain, notifications: showNotifications, account: showAccount, wipe: showWipe, delete: showDelete };
+    const VIEWS = { main: showMain, notifications: showNotifications, account: showAccount, password: showPassword, wipe: showWipe, delete: showDelete };
     const show = v => { if (!menu) return; menu.textContent = ''; menu.setAttribute('data-ch-view', v); menu.append(...VIEWS[v]()); menu.scrollTop = 0; };
     document.body.appendChild(menu);
     show('main');

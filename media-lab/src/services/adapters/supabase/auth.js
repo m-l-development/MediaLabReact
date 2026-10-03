@@ -25,6 +25,8 @@ export const supabaseAuth = {
     } catch (e) { return fail(e); }   // f.eks. manglende PKCE-verifikator (lenken åpnet i en annen nettleser) eller nettverksfeil
     return { ok: true, type: null };
   },
+  /* Logger ut alle andre økter for brukeren (denne beholdes) – brukes etter passordbytte. */
+  async signOutOthers() { try { const { error } = await getClient().auth.signOut({ scope: 'others' }); return error ? fail(error) : { ok: true }; } catch (e) { return fail(e); } },
   async setPassword(password) { try { const { error } = await getClient().auth.updateUser({ password }); return error ? fail(error) : { ok: true }; } catch (e) { return fail(e); } },
   async mfaStatus() {
     const c = getClient().auth, [{ data: lvl }, { data: f }] = await Promise.all([c.mfa.getAuthenticatorAssuranceLevel(), c.mfa.listFactors()]);

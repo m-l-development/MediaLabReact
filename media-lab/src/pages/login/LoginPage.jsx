@@ -4,6 +4,7 @@ import { whoami, isStaff } from '../../services/data/me.js';
 import { writeMe } from '../../services/me-cache.js';
 import { acceptInvitation } from '../../services/admin.js';
 import RequestPanel from './RequestPanel.jsx';
+import { savedAccounts, rememberAccount, forgetAccount } from '../../shared/saved-accounts.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const ERR = {
@@ -104,7 +105,12 @@ export default function LoginPage() {
   const [mfa, setMfa] = React.useState(null);
   const [enroll, setEnroll] = React.useState(null);
   const [recovery, setRecovery] = React.useState(false);   // nytt passord via «Glemt passord» (ikke invitasjon)
-  const [linkKind, setLinkKind] = React.useState(null);     // 'recovery' | 'invite' | 'magiclink' – hvilken lenke som er åpnet
+  const [linkKind, setLinkKind] = React.useState(null);
+  /* Kontovelger: lagrede kontoer på denne enheten (bare e-post og navn – aldri passord eller innlogging). */
+  const [accounts, setAccounts] = React.useState(() => savedAccounts());
+  const [sel, setSel] = React.useState(null);
+  const [remember, setRemember] = React.useState(false);
+  const rememberRef = React.useRef(false);     // 'recovery' | 'invite' | 'magiclink' – hvilken lenke som er åpnet
   /* Tilbakestillingslenken holdes bare i minnet til brukeren trykker «Fortsett» (adressen renskes med en gang). Da kan
      ikke e-postskannere som åpner siden, bruke opp lenken, og den havner aldri i historikk, logg eller lagring. */
   const linkRef = React.useRef(null);
@@ -134,6 +140,7 @@ export default function LoginPage() {
     let me = null; try { me = await whoami(); } catch (e) { setErr('Kunne ikke kontakte ConnectHub. Prøv igjen.'); setMode('login'); return; }
     if (!me) { setMode('notlinked'); return; }
     writeMe(await auth.session().catch(() => null), me);   /* første side etter innlogging vises straks */
+    if (rememberRef.current) { rememberAccount({ email: me.email, name: me.full_name }); rememberRef.current = false; }
     if (isStaff(me) && st && !st.factors.length) { setMode('enroll'); return; }
     go();
   }, []);
@@ -168,6 +175,7 @@ export default function LoginPage() {
   const run = fn => async e => { e && e.preventDefault(); if (busy) return; setBusy(true); setErr(null); setInfo(null); try { await fn(); } finally { setBusy(false); } };
 
   const onLogin = run(async () => {
+    rememberRef.current = remember || !!sel;   // valgt fra lista: hold den oppdatert
     const r = await auth.signIn(email, pw); setPw('');
     if (!r.ok) { setErr(msg(r.error)); return; }
     await auth.session(); await proceed();
@@ -227,13 +235,32 @@ export default function LoginPage() {
   });
   const cancelRecovery = run(async () => { linkRef.current = null; setRecovery(false); setPw(''); setPw2(''); await auth.signOut().catch(() => null); setMode('login'); });
   const onLogout = run(async () => { await auth.signOut(); setMode('login'); });
+  const pickAccount = a => { setSel(a.email); setEmail(a.email); setPw(''); setErr(null); setTimeout(() => { const i = document.querySelector('input[autocomplete=current-password]'); if (i) i.focus(); }, 30); };
+  const removeAccount = a => { if (!confirm(T('Fjerne kontoen fra denne enheten?') + '\n\n' + a.name + ' – ' + a.email + '\n' + T('Kontoen slettes ikke. Bare snarveien på denne enheten fjernes.'))) return;
+    forgetAccount(a.email); setAccounts(savedAccounts()); if (sel === a.email) { setSel(null); setEmail(''); } };
 
   let body = null;
   if (mode === 'loading') body = <p style={S.p}>{T('Laster …')}</p>;
   if (mode === 'login') body = <form onSubmit={onLogin} style={{ display: 'contents' }}>
     <h1 style={S.h}>{T('Logg inn')}</h1>
-    <Field label="E-post" type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} />
+    {accounts.length > 0 && <div data-ch-accounts style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <span style={S.label}>{T('Kontoer på denne enheten')}</span>
+      <div role="radiogroup" aria-label={T('Velg konto')} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {accounts.map(a => { const on = sel === a.email; return <span key={a.email} style={{ position: 'relative', display: 'inline-flex' }}>
+          <button type="button" role="radio" aria-checked={on} title={a.email} data-ch-account-chip={a.email} onClick={() => pickAccount(a)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '100%', padding: '6px 30px 6px 6px', borderRadius: '999px', cursor: 'pointer', font: 'inherit', fontSize: '13px', fontWeight: 600,
+              border: on ? '2px solid #f3f1ec' : '1px solid #2b2b2b', background: on ? 'rgba(243,241,236,0.14)' : '#0e0e0e', color: '#f3f1ec' }}>
+            <span aria-hidden="true" style={{ width: '28px', height: '28px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? '#f3f1ec' : '#2b2b2b', color: on ? '#000' : '#f3f1ec', fontSize: '11px', fontWeight: 800 }}>{a.initials}</span>
+            <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span></button>
+          <button type="button" aria-label={T('Fjern fra denne enheten') + ': ' + a.name} title={T('Fjern fra denne enheten')} onClick={() => removeAccount(a)}
+            style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '24px', border: 0, borderRadius: '999px', background: 'transparent', color: '#9d998f', cursor: 'pointer', fontSize: '15px', lineHeight: 1 }}>×</button>
+        </span>; })}
+      </div>
+      {sel && <p style={S.p} data-ch-selected>{T('Logger inn som')} <b>{(accounts.find(a => a.email === sel) || {}).name}</b> – {sel}. <button type="button" style={{ ...S.link, display: 'inline' }} onClick={() => { setSel(null); setEmail(''); }}>{T('Bruk en annen konto')}</button></p>}
+    </div>}
+    <Field label="E-post" type="email" autoComplete="username" required value={email} onChange={e => { const v = e.target.value; setEmail(v); if (sel && v.trim().toLowerCase() !== sel) setSel(null); }} />
     <PwField label="Passord" autoComplete="current-password" required value={pw} onChange={e => setPw(e.target.value)} />
+    {!sel && <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12.5px', color: '#b3afa6', cursor: 'pointer' }}><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} data-ch-remember /> {T('Husk denne kontoen på denne enheten')}</label>}
     <button type="submit" style={S.primary} disabled={busy}>{T(busy ? 'Logger inn …' : 'Logg inn')}</button>
     <button type="button" style={S.link} onClick={() => { setErr(null); setMode('forgot'); }}>{T('Glemt passordet?')}</button>
   </form>;

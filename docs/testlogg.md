@@ -1151,3 +1151,30 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 - **Nettleser (roller):**
   - User ser ikke E-postvarsler.
   - Moderator (mobil, MFA) lagret egen adresse og slo av, med bekreftelse. Etter ny innlogging står begge deler, og de er satt tilbake til standard.
+
+## Kontovelger og «Bytt passord» (2026-10-03, dev; plan kapittel 4 og 5)
+
+**Kontovelger** (`src/shared/saved-accounts.js` og innloggingssiden):
+- **Lagring:** «Husk denne kontoen på denne enheten» (av som standard) lagrer bare e-post, navn og initialer i `localStorage` `ch.accounts`, høyst 5. Aldri passord, tokens eller roller.
+- **Visning:** kontoene vises som ikoner. Valgt konto markeres tydelig, e-posten fylles inn, og markøren settes i passordfeltet. «Bruk en annen konto» tømmer valget.
+- **Fjerning:** × fjerner snarveien med bekreftelse. Kontoen slettes ikke.
+- **Sletting av konto** fjerner den fra lista på enheten.
+
+**«Bytt passord»** (kontomenyen → Konto og sikkerhet, alle roller):
+- **Felt:** gammelt, nytt og bekreft, hver med vis/skjul, og løpende krav.
+- **Gammelt passord:** kontrolleres med en ny innlogging, som også oppfyller kravet om fersk innlogging.
+- **MFA:** kode fra autentiseringsappen når kontoen har MFA (`aal2` kreves).
+- **Etter byttet:** andre økter logges ut (`signOut({ scope: 'others' })`).
+- Ingen databaseendringer.
+
+**Tester (nettleser, lokal preview mot dev):**
+- **Kontovelger (mobil):**
+  - To kontoer ble husket. Valg fyller e-post og flytter fokus, og markeringen flyttes ved bytte.
+  - Tomt passord stopper innlogging.
+  - Lagringen har bare nøklene `email`, `initials`, `last` og `name`, uten token eller passord.
+  - × fjerner én konto, og innlogging via valgt konto virker. Ingen vannrett rulling.
+- **«Bytt passord», User (PC):** feil gammelt passord gir «Det gamle passordet er feil.», ulike nye passord gir «Passordene er ikke like.», vis/skjul virker, og byttet gir bekreftelse. API-kontroll: nytt passord virker, gammelt er avvist.
+- **«Bytt passord», Developer med MFA (mobil):** det samme, med kode fra appen. Byttet lyktes, og det krever `aal2` hos Supabase. Nytt passord virker, gammelt er avvist.
+- **`npm test`:** 147/147.
+
+**Testdata:** nye passord for `ch-test-user` og `ch-test-dev`, bare i testlegitimasjonen.
