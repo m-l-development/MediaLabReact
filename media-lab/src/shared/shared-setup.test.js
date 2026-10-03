@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { merge3, SharedSetup } from './shared-setup.js';
+import { merge3, SharedSetup, same } from './shared-setup.js';
 import { useDataAdapter } from '../services/port.js';
 import { ServiceError } from '../services/errors.js';
 
@@ -59,5 +59,20 @@ test('SharedSetup: refresh henter nyere versjon fra andre, men ikke når det fin
   assert.equal(await u.refresh(), false, 'ingen ny versjon');
   u.pending = { header: 'ulagret' }; db.row.version = 3;
   assert.equal(await u.refresh(), false, 'ulagrede endringer overskrives ikke');
+  useDataAdapter(null);
+});
+
+test('same: feltrekkefølge betyr ikke noe; innhold gjør det', () => {
+  assert.equal(same({ a: 1, b: { x: [1, { p: 1, q: 2 }] } }, { b: { x: [1, { q: 2, p: 1 }] }, a: 1 }), true);
+  assert.equal(same({ a: 1 }, { a: 2 }), false);
+  assert.equal(same([1, 2], [2, 1]), false, 'rekkefølge i lister teller');
+  assert.equal(same({ a: 1, b: undefined }, { a: 1 }), true);
+});
+test('SharedSetup: samme innhold i annen rekkefølge lagres ikke (ingen ny versjon)', async () => {
+  const db = fakeDb({ header: 'A', accent: '#111', imgRules: [] });
+  const u = new SharedSetup('loopstudio:week', { church: CH }); await u.load();
+  assert.equal(await u.save({ imgRules: [], accent: '#111', header: 'A' }, 0), true);
+  assert.equal(db.row.version, 1);
+  assert.ok(!db.calls.includes('church_settings_save'), 'ingen lagring');
   useDataAdapter(null);
 });

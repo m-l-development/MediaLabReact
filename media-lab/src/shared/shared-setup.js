@@ -9,7 +9,9 @@
    - Nyere versjoner hentes når fanen blir synlig og hvert 30. sekund, og vises når det ikke ligger ulagrede endringer. */
 import { churchSettings as CS } from '../services/church-settings.js';
 
-const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
+/* Sammenligning uavhengig av feltrekkefølge (samme innhold i annen rekkefølge er ikke en endring). */
+const canon = v => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { if (v[k] !== undefined) o[k] = canon(v[k]); return o; }, {}) : v === undefined ? null : v;
+export const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
 /* Tre-veis sammenslåing på toppnivå. → { data, conflicts: [nøkler] } */
 export function merge3(base, mine, theirs) {
