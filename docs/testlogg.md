@@ -1299,3 +1299,13 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - Loop Studio-demo → «Lagre som grunnoppsett» (navn; personlig eller felles for menigheten): genererte bakgrunner lagres som varige referanser `gen:N` (ingen filer). Test: demoen lagrer ingenting før valget; personlig og felles lagret; startsiden viser dem; «Ny serie fra dette» lager eget prosjekt (grunnoppsett 7 slides, serie 8 etter endring); serien er lagret ved ny åpning; «Oppdater grunnoppsettet» bare bevisst med bekreftelse; Admin i A ser det felles, ikke Users personlige (mobil, uten vannrett rulling); User i B ser ingen; sletting med bekreftelse; felles data uten lokale referanser. `loop-bases.test.js`: sanering, ny ID, samtidige tillegg uten tap.
 - Regresjon etter adressene: Fellesmappe/Samarbeidsmappe (opplasting via `/fellesmappe`, ZIP, eksport, sletting, API-sperrer), private opplastinger stengt, gammelt eksempelprosjekt/«Hent tilbake», Thumbnail-grunnoppsett per kategori, Faste bilder (User legger til → 403). To avvik undersøkt og avklart som testfeil (tidlig steg; uendret liste er lovlig). 0 testfiler igjen.
 - `npm test` 174/174, bygg OK.
+
+## Produksjon: Loop Studio-retting, grunnoppsett fra demoen, korte nettadresser og filer i bruk (2026-10-03)
+- Godkjent av brukeren (publisering med nødvendige produksjonssteg og sikkerhetskopi).
+- Før: `main` e6947a8; prod 37 migreringer (sist 20261016100000), `church_settings` finnes, `20261017100000` ikke kjørt. Merk: 1 fil i prod (9 ved forrige sikkerhetskopi) og 1 grunnoppsett – endret av brukere i prod, ikke av publiseringen.
+- Sikkerhetskopi (logisk JSON, 28 tabeller, 88 rader) av `cmuienhheklcgtfmpvbe` tatt 2026-10-03 13:15:58 UTC; radantall lik databasen.
+- Tørrkjøring: nøyaktig `20261017100000_file_in_use.sql`; migrert; CLI tilbake til dev. Etterkontroll `prod_postcheck_file_in_use.sql` ok; `prod_postcheck_settings.sql` og `prod_postcheck_folders.sql` fortsatt ok; radantall i alle 28 tabeller lik sikkerhetskopien.
+- `main` fast-forward e6947a8 → 2a1484b; Vercel Production `version.json` = 2a1484b.
+- Røyktest (uten innlogging; ingen testkontoer i prod): `/` → `/home`; alle korte sider → 307 til `/login?next=…`; `/login` 200; gamle `.dc.html` (også e-postlenke med `token_hash`) → 307 til kort adresse med spørring; filhandlinger 401; innloggingssiden og forespørselsskjemaet som før.
+- Tilbakeføring: Vercel «Promote» av forrige deployment (e6947a8) eller `git revert`; database: `supabase/checks/rollback_20261017100000.sql` (gjenoppretter forrige `delete_file`, ingen data endres).
+- Ikke testet i prod: innlogget bruk (krever konto) – dekket i dev.
