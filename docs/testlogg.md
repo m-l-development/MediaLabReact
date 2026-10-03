@@ -1092,3 +1092,31 @@ Løsningen står i `docs/plan-foresporsler-epost-konto.md`, kapittel 1.
 - **Nettleser (User, mobil):** standard På. Av lagres, og etter ny innlogging i en ny nettleser står den fortsatt på Av. Satt tilbake til På. Ingen vannrett rulling.
 
 **Merk:** i dag finnes ingen valgfrie e-poster ennå. Valget gjelder for varsler som kommer, f.eks. varsler om forespørsler.
+
+## Forespørsler om brukerkonto (2026-10-03, dev; plan kapittel 2 og 3.2)
+
+**Løsning:**
+- **Innloggingssiden:** knappen «Send forespørsel om opprettelse av bruker» åpner et panel under innloggingen (`RequestPanel.jsx`).
+- **Serveren:** `request.form` og `request.submit` virker før innlogging, med signert skjemanøkkel (3 sekunder–2 timer), felle-felt, grenser per IP (5/time) og per e-post (3/døgn), og samme svar uansett.
+- **Database:** `account_requests`. Duplikater teller i den åpne forespørselen, det er et tak på 200 per døgn, og Developer og Moderator får varsel i ConnectHub.
+- **E-post:** kvittering til avsenderen og varsel til stab. Stab får bare navn og menighet, og varselet er en valgfri e-post. Varslingsadresser settes i Mail-fanen.
+- **Innboksen «Forespørsler»:** for Developer og Moderator med MFA. Status, notat, historikk, avslag med begrunnelse og sletting.
+- **«Opprett bruker»:** A ny menighet, B eksisterende menighet, C uten menighet (bare Developer/Moderator-roller, gitt av Developer). Alt skjer i én transaksjon via `create_invitation`, med velkomstmail.
+- **Eksisterende konto:** gir CH010, og det lages ingen ny konto.
+- **Oppbevaring:** `app.purge_account_requests`.
+- **Migrering:** `20261012100000_account_requests.sql`.
+
+**Tester:**
+- **RLS:** 851/851 i PGlite og i dev, hvorav 40 nye. Mail-testen for logo er gjort uavhengig av logoen som tilfeldigvis ligger i dev.
+- **`npm test`:** 147/147, hvorav 3 nye servertester. De dekker skjemanøkkel, felle-felt, duplikat, grenser, rekkefølgen «lagre før e-post», at varselet er uten telefon og e-post, godkjenning med invitasjonslenke, og CH010 → 409.
+- **Nettleser (lokal preview mot dev, testpostkasse):**
+  - Moderator lagret en varslingsadresse.
+  - En besøkende på mobil fikk feltvalidering, sendte inn og fikk «Takk!». Avsenderen fikk kvittering, og varselet til stab hadde bare navn og menighet.
+  - Moderator på PC så forespørselen i innboksen og satte «Under behandling», la til et notat og opprettet brukeren (B, menighet A, Bruker). Velkomstmailen fikk invitasjonslenke, og historikken ble fullstendig.
+  - Admin og User: «Ingen tilgang», og API-et gir 403.
+
+**Valget «A. Ny menighet»** er testet bare i RLS, som rulles tilbake. Det er ikke opprettet noen ny varig menighet i dev.
+
+**Testdata i dev:**
+- én forespørsel og én ventende invitasjon for `ch-test-req1@example.com` (User i A)
+- varslingsadressen `stab-varsel@example.com`

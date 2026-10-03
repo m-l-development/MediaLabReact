@@ -3,6 +3,7 @@ import { auth, safeNext, passwordProblem, passwordChecks } from '../../services/
 import { whoami, isStaff } from '../../services/data/me.js';
 import { writeMe } from '../../services/me-cache.js';
 import { acceptInvitation } from '../../services/admin.js';
+import RequestPanel from './RequestPanel.jsx';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const ERR = {
@@ -235,7 +236,6 @@ export default function LoginPage() {
     <PwField label="Passord" autoComplete="current-password" required value={pw} onChange={e => setPw(e.target.value)} />
     <button type="submit" style={S.primary} disabled={busy}>{T(busy ? 'Logger inn …' : 'Logg inn')}</button>
     <button type="button" style={S.link} onClick={() => { setErr(null); setMode('forgot'); }}>{T('Glemt passordet?')}</button>
-    <p style={S.p}>{T('Kontoer opprettes bare ved invitasjon. Kontakt administrator i menigheten din hvis du trenger tilgang.')}</p>
   </form>;
   if (mode === 'mfa') body = <form onSubmit={onMfa} style={{ display: 'contents' }}>
     <h1 style={S.h}>{T('Totrinnsbekreftelse')}</h1>
@@ -324,6 +324,7 @@ export default function LoginPage() {
       {err && <p role="alert" style={S.err}>{T(err)}</p>}
       {info && <p role="status" style={S.ok}>{info}</p>}
       {body}
+      {mode === 'login' && <RequestPanel S={S} T={T} Field={Field} />}
     </div>
   </main>;
 }

@@ -16,6 +16,7 @@ const ERR = {
   group_min_members: 'En samarbeidsgruppe må ha minst to menigheter. Avslutt gruppen i stedet.',
   group_full: 'En samarbeidsgruppe kan ha høyst 20 menigheter.',
   group_member_exists: 'Menigheten er allerede med i gruppen.',
+  account_exists: 'E-postadressen har allerede en konto.',
   last_admin: 'Brukeren er Admin i menigheten. Bekreft at menigheten kan stå uten Admin, eller utnevn en ny Admin først.',
   too_large: 'Filen er for stor (maks 4 MB).', http_413: 'Filen er for stor (maks 4 MB).',
 };

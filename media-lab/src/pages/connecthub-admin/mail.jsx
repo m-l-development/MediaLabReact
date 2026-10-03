@@ -4,12 +4,13 @@
    systemet ved utsending. Databasen kontrollerer rolle, MFA og malens innhold på nytt, og loggfører alle endringer. */
 import React from 'react';
 import { mail } from '../../services/mail.js';
+import { requests as RQ } from '../../services/requests.js';
 import { renderMail, templateProblem, DEFAULT_TEMPLATES, TEMPLATE_KEYS, TEMPLATE_NAMES } from '../../shared/mail-render.js';
 import { T, errText, fmt, Btn, Badge, Card, Empty, Field, List } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
 
 const BLOCK_NAME = { logo: 'Logo', h: 'Overskrift', p: 'Avsnitt', small: 'Liten tekst', hr: 'Skillelinje', link: 'Lenkeboks' };
-const KIND = { invite: 'Invitasjon', recovery: 'Nytt passord', test: 'Test' };
+const KIND = { invite: 'Invitasjon', recovery: 'Nytt passord', test: 'Test', request_received: 'Forespørsel mottatt', request_notify: 'Ny forespørsel (til stab)' };
 const copy = t => JSON.parse(JSON.stringify(t));
 const toDataUrl = blob => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
 
@@ -23,6 +24,7 @@ export function MailView() {
   const [logo, setLogo] = React.useState(null);      // data:-adresse til logoen i forhåndsvisningen
   const [outbox, setOutbox] = React.useState([]);
   const [width, setWidth] = React.useState(600);
+  const [extra, setExtra] = React.useState(['', '', '']);
   const drag = React.useRef(null);
 
   const current = k => (saved[k] ? { subject: saved[k].subject, blocks: saved[k].blocks } : DEFAULT_TEMPLATES[k]);
@@ -35,6 +37,7 @@ export function MailView() {
     const [list, st, se, ob] = await Promise.all([mail.templates(), mail.status().catch(e => ({ configured: false, error: e.code })), mail.settings(), mail.outbox().catch(() => [])]);
     const m = Object.fromEntries((list || []).map(t => [t.key, t]));
     setSaved(m); setStatus(st); setSettings(se); setOutbox(ob || []);
+    const ex = (se && se.notify_extra) || []; setExtra([0, 1, 2].map(i => ex[i] || ''));
     setDraft(copy(m[k] ? { subject: m[k].subject, blocks: m[k].blocks } : DEFAULT_TEMPLATES[k]));
   };
   React.useEffect(() => { act(async () => { await load(); await loadLogo(); })(); }, []);
@@ -66,7 +69,7 @@ export function MailView() {
   });
 
   let preview = null, previewErr = null;
-  try { preview = renderMail(draft, { link: location.origin + '/login.dc.html?eksempel=1', vars: { epost: 'ola.nordmann@example.com', menighet: 'Eksempelmenighet', rolle: 'Bruker' }, logoSrc: logo || 'data:,' }); }
+  try { preview = renderMail(draft, { link: location.origin + '/login.dc.html?eksempel=1', vars: { navn: 'Ola Nordmann', epost: 'ola.nordmann@example.com', menighet: 'Eksempelmenighet', rolle: 'Bruker' }, logoSrc: logo || 'data:,' }); }
   catch (e) { previewErr = e.message; }
   const meta = saved[key];
 
@@ -81,7 +84,7 @@ export function MailView() {
     <div className="ch-mail" data-ch-mail>
       <Card title={TEMPLATE_NAMES[key]} sub={meta ? T('Endret') + ' ' + fmt(meta.updated_at) + (meta.updated_by_name ? ' · ' + meta.updated_by_name : '') : T('Standardmal')}>
         <Field label="Emne"><input className="ch-input" value={draft.subject} maxLength={150} onChange={e => { const v = e.target.value.replace(/[\r\n]/g, ''); setDraft(d => ({ ...d, subject: v })); }} /></Field>
-        <p className="ch-muted" style={{ margin: '10px 0' }}>{T('Skriv **fet** eller *kursiv*. Flettefelt:')} <code>{'{epost}'}</code> <code>{'{menighet}'}</code> <code>{'{rolle}'}</code>. {T('Dra blokkene, eller bruk pilene, for å flytte dem.')}</p>
+        <p className="ch-muted" style={{ margin: '10px 0' }}>{T('Skriv **fet** eller *kursiv*. Flettefelt:')} <code>{'{navn}'}</code> <code>{'{epost}'}</code> <code>{'{menighet}'}</code> <code>{'{rolle}'}</code>. {T('Dra blokkene, eller bruk pilene, for å flytte dem.')}</p>
         <ol className="ch-blocks" data-ch-blocks>
           {draft.blocks.map((b, i) => <li key={i} className={'ch-block' + (b.t === 'link' ? ' link' : '')} draggable
             onDragStart={() => { drag.current = i; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (drag.current !== null) move(drag.current, i); drag.current = null; }}>
@@ -128,6 +131,13 @@ export function MailView() {
         {settings && settings.custom_logo && <Btn onClick={resetLogo}>{T('Bruk standardlogo')}</Btn>}
       </div>
       <p className="ch-muted" style={{ marginTop: 8 }}>{T('PNG eller JPG, høyst 512 kB. Logoen legges inn i e-posten som vedlegg, så den vises uten lenke til ConnectHub. Gjelder e-poster som sendes etter endringen.')}</p>
+    </Card>
+    <Card title="Varslingsadresser" sub={T('Nye forespørsler om konto')}>
+      <form className="ch-form" data-ch-notify onSubmit={act(async e => { e.preventDefault(); await RQ.setNotifyExtra(extra.map(x => x.trim()).filter(Boolean)); say(T('Varslingsadressene er lagret.')); setSettings(await mail.settings()); })}>
+        <p className="ch-muted">{T('Varsel om nye forespørsler sendes til ConnectHubs avsenderadresse')}{status && status.sender ? ' (' + status.sender + ')' : ''} {T('og til ekstra adresser under (høyst 3). Varselet inneholder bare navn og menighet – telefon og e-post vises bare i ConnectHub.')}</p>
+        {extra.map((v, i) => <input key={i} className="ch-input" type="email" placeholder={T('Ekstra adresse') + ' ' + (i + 1)} value={v} maxLength={254} onChange={e => { const x = e.target.value; setExtra(a => a.map((y, j) => (j === i ? x : y))); }} />)}
+        <div className="ch-row"><Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Lagre adresser')}</Btn></div>
+      </form>
     </Card>
     <Card title="Siste utsendinger" sub={outbox.length}>
       <List cols="minmax(0,1.4fr) auto auto" head={['Mottaker', 'Type', 'Status']} empty="Ingen utsendinger ennå." rows={outbox.map(o => ({ key: o.id, cells: [

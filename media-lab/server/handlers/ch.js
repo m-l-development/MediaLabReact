@@ -1,6 +1,6 @@
 /* ConnectHub API (Web-standard: Request → Response). Leverandørnøytral; api/ch.js er bare en tynn inngang.
    Alle handlinger krever gyldig innlogging (Bearer-token, verifisert mot JWKS), unntatt de som er eksplisitt merket
-   anonymous (bare «Glemt passord», med grenser). Ingen cookies brukes, så
+   anonymous («Glemt passord» og forespørsel om konto, med grenser). Ingen cookies brukes, så
    forespørsler fra andre nettsteder (CSRF) kan ikke utføre handlinger. */
 import { json, fail, readJson, bearer, UUID, EMAIL, dbError } from '../lib/http.js';
 import { verifyToken } from '../lib/gate.js';
@@ -9,6 +9,7 @@ import { supabaseServer } from '../adapters/supabase.js';
 import { routes as fileRoutes } from './files.js';
 import { routes as privacyRoutes } from './privacy.js';
 import { routes as mailRoutes } from './mail.js';
+import { routes as requestRoutes } from './requests.js';
 import { mailer, sendTemplated, inviteLink } from '../lib/mail.js';
 
 const enc = new TextEncoder();
@@ -60,6 +61,17 @@ const routes = {
     const mail = await deliver(ctx, inv.email, token, inv);
     return json({ ok: true, invitation: inv, email_sent: mail.sent, email_error: mail.error || null });
   },
+  /* Opprett bruker fra en forespørsel (Developer/Moderator med MFA – databasen avgjør, i én transaksjon via create_invitation).
+     mode: 'new' (ny menighet), 'existing' (eksisterende menighet) eller 'none' (uten menighet – bare Developer/Moderator-roller).
+     Velkomstmailen sendes som ved vanlige invitasjoner; feiler den, er invitasjonen likevel laget og kan sendes på nytt. */
+  async 'request.approve'(ctx) {
+    const b = ctx.body, mode = String(b.mode || ''), role = String(b.role || ''), church = b.church_id || null;
+    if (!UUID.test(String(b.id || '')) || !['new', 'existing', 'none'].includes(mode) || !ROLES.includes(role) || (church !== null && !UUID.test(church))) return fail('invalid');
+    const token = newToken();
+    const inv = await ctx.backend.rpcAsUser(ctx.token, 'approve_account_request', { p_id: b.id, p_mode: mode, p_church_name: b.church_name ? String(b.church_name).slice(0, 100) : null, p_church: church, p_role: role, p_token_hash: await sha256hex(token) });
+    const mail = await deliver(ctx, inv.email, token, inv);
+    return json({ ok: true, invitation: inv, email_sent: mail.sent, email_error: mail.error || null });
+  },
   /* Godkjenning: innlogget konto må ha bekreftet e-post lik invitasjonens (sjekkes i databasen). */
   async 'invite.accept'(ctx) {
     const token = String(ctx.body.token || '');
@@ -72,6 +84,7 @@ const routes = {
   ...fileRoutes,
   ...privacyRoutes,
   ...mailRoutes,
+  ...requestRoutes,
 };
 
 export async function handle(request, env, deps = {}) {

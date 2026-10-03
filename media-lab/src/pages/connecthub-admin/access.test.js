@@ -5,7 +5,7 @@ import { sectionsFor, brandOf } from './access.js';
 const sec = o => [...sectionsFor({ dev: false, collab: false, adminOf: [], churches: [], ...o })].sort();
 const A = { id: 'a' }, B = { id: 'b' };
 
-const STAFF = ['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'mail', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger'];
+const STAFF = ['abonnement', 'brukere', 'filer', 'foresporsler', 'invitasjoner', 'logg', 'mail', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger'];
 test('Developer: systemadministrasjon, Samarbeid og Opprydning', () => {
   assert.deepEqual(sec({ dev: true }), STAFF);
 });
@@ -39,6 +39,7 @@ test('Mail (e-postmaler og logo): bare Developer og Moderator – aldri Admin el
   assert.ok(sectionsFor({ dev: false, collab: true, adminOf: [], churches: [] }).has('mail'));
   assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A] }).has('mail'));
   assert.ok(!sectionsFor({ dev: false, collab: false, adminOf: [], churches: [A] }).has('mail'));
+  for (const o of [{ adminOf: ['a'], churches: [A] }, { adminOf: [], churches: [A] }]) assert.ok(!sectionsFor({ dev: false, collab: false, ...o }).has('foresporsler'), 'Forespørsler aldri for Admin/User');
 });
 test('Uten menighet og uten rolle: bare oversikt', () => {
   assert.deepEqual(sec({}), ['oversikt']);

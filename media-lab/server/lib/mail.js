@@ -79,10 +79,13 @@ export async function sendTemplated(ctx, { kind, key, to, link, vars, related = 
 
 /* Grenser for handlinger før innlogging. Nøkkelen hashes med en daglig salt fra servernøkkelen, så verken IP-adresser
    eller e-postadresser kan leses ut av tabellen. true = tillatt. Feil i telleren stopper handlingen (sikker side). */
-export async function allowAnon(ctx, key, limit, windowSeconds) {
+export async function anonHash(ctx, key) {
   const day = new Date().toISOString().slice(0, 10);
   const data = new TextEncoder().encode(String(ctx.cfg.secretKey).slice(-24) + '|' + day + '|' + key);
-  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(b => b.toString(16).padStart(2, '0')).join('');
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+export async function allowAnon(ctx, key, limit, windowSeconds) {
+  const hash = await anonHash(ctx, key);
   try { return (await ctx.backend.rpcAsServer('anon_rate_hit', { p_key_hash: hash, p_limit: limit, p_window_seconds: windowSeconds })) === true; }
   catch (e) { return false; }
 }

@@ -2,7 +2,7 @@
 export const NAV = [
   ['oversikt', 'Oversikt'], ['brukere', 'Brukere'], ['menigheter', 'Menigheter'], ['invitasjoner', 'Invitasjoner'],
   ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['tilbakemeldinger', 'Tilbakemeldinger'],
-  ['opprydning', 'Opprydning'], ['mail', 'Mail'], ['logg', 'Logg'],
+  ['opprydning', 'Opprydning'], ['foresporsler', 'Forespørsler'], ['mail', 'Mail'], ['logg', 'Logg'],
 ];
 /* Hvilke seksjoner rollen ser – eksplisitt per rolle, ingen arv. Grensesnittet speiler databasen
    (migreringene 20261004100000_moderator_access.sql og 20261006100000_dev_collab_cleanup_roles.sql):
@@ -13,7 +13,7 @@ export const NAV = [
    - Admin: brukere, menigheter, invitasjoner, filer (inkl. Samarbeidsfiler), abonnement og logg i egen menighet.
    - User: egne menigheter og filer (inkl. Samarbeidsfiler i koblinger menigheten er med i).
    Rettighetene håndheves uansett av RLS og serveren. */
-const SYSTEM = ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'samarbeid', 'abonnement', 'tilbakemeldinger', 'opprydning', 'mail', 'logg'];
+const SYSTEM = ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'samarbeid', 'abonnement', 'tilbakemeldinger', 'opprydning', 'foresporsler', 'mail', 'logg'];
 export const SECTIONS = {
   developer: SYSTEM,
   moderator: SYSTEM,

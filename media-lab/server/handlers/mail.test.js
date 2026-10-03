@@ -188,3 +188,49 @@ test('SMTP-adapter: sender HTML, tekst og logo som innebygd vedlegg; avsender er
   assert.match(data, /From: ConnectHub <avsender@example\.com>/); assert.match(data, /To: mottaker@example\.com/);
   assert.match(data, /Subject: Velg nytt passord/); assert.match(data, /Content-ID: <medialab-logo>/); assert.match(data, /text\/plain/); assert.match(data, /text\/html/);
 });
+
+/* --- Forespørsler om brukerkonto (før innlogging) --- */
+const formToken = async (ageMs) => {
+  const ts = String(Date.now() - ageMs), te = new TextEncoder();
+  const k = await crypto.subtle.importKey('raw', te.encode('sb_secret_testtesttesttest'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return ts + '.' + [...new Uint8Array(await crypto.subtle.sign('HMAC', k, te.encode('request-form|' + ts)))].map(b => b.toString(16).padStart(2, '0')).join('');
+};
+const REQ = { name: 'Kari Testesen', phone: '+47 400 00 000', email: 'Kari@Example.com', church: 'Testmenighet' };
+test('request.form/submit: uten innlogging; lagres før e-post; kvittering til avsender og varsel til stab (valgfri)', async () => {
+  const f = await call('request.form', {}, { backend: fake() }, { anon: true });
+  assert.match(f.body.token, /^\d{13}\.[0-9a-f]{64}$/);
+  const b = fake({ submit_account_request: () => ({ id: 'r1', duplicate: false }), mail_notify_extra: () => ['ekstra@example.com'], mail_optional_allowed: () => true }), m = box();
+  const r = await call('request.submit', { ...REQ, token: await formToken(5000) }, { backend: b, mailer: m }, { anon: true });
+  assert.deepEqual(r.body, { ok: true });
+  const s = b.log.find(x => x[1] === 'submit_account_request'); assert.equal(s[2].p_email, 'kari@example.com'); assert.match(s[2].p_ip_hash, /^[0-9a-f]{64}$/);
+  assert.ok(b.log.indexOf(s) < b.log.findIndex(x => x[1] === 'register_mail'), 'forespørselen lagres før e-post');
+  assert.deepEqual(m.sent.map(x => x.to), ['kari@example.com', 'test@example.com', 'ekstra@example.com']);
+  assert.match(m.sent[1].text, /Kari Testesen/); assert.ok(!m.sent[1].text.includes('400 00 000') && !m.sent[1].text.includes('kari@example.com'), 'telefon og e-post står ikke i varselet');
+  assert.ok(b.log.filter(x => x[1] === 'mail_optional_allowed').length === 2, 'varsel til stab er valgfri e-post');
+});
+test('request.submit: felle-felt, utløpt/for rask/falsk skjemanøkkel, ugyldige felt, duplikat og grenser', async () => {
+  const b = fake(), m = box();
+  assert.deepEqual((await call('request.submit', { ...REQ, website: 'http://spam', token: await formToken(5000) }, { backend: b, mailer: m }, { anon: true })).body, { ok: true });
+  assert.ok(!b.log.some(x => x[1] === 'submit_account_request'), 'robot: ingenting lagres');
+  for (const t of [await formToken(500), await formToken(3 * 3600 * 1000), '1234567890123.' + 'a'.repeat(64), ''])
+    assert.equal((await call('request.submit', { ...REQ, token: t }, { backend: fake(), mailer: m }, { anon: true })).body.error, 'form_expired');
+  assert.equal((await call('request.submit', { ...REQ, email: 'ikke-epost', token: await formToken(5000) }, { backend: fake(), mailer: m }, { anon: true })).status, 400);
+  const dup = fake({ submit_account_request: () => ({ id: 'r1', duplicate: true }) }), md = box();
+  assert.deepEqual((await call('request.submit', { ...REQ, token: await formToken(5000) }, { backend: dup, mailer: md }, { anon: true })).body, { ok: true });
+  assert.equal(md.sent.length, 0, 'duplikat: ingen nye e-poster');
+  const full = fake({ anon_rate_hit: () => false });
+  assert.deepEqual((await call('request.submit', { ...REQ, token: await formToken(5000) }, { backend: full, mailer: box() }, { anon: true })).body, { ok: true });
+  assert.ok(!full.log.some(x => x[1] === 'submit_account_request'), 'over grensen: ingenting lagres');
+});
+test('request.approve: krever innlogging; databasen avgjør; velkomstmail med invitasjonslenke; eksisterende konto gir 409', async () => {
+  assert.equal((await call('request.approve', { id: '33333333-3333-4333-8333-333333333333', mode: 'existing', role: 'user' }, { backend: fake() }, { anon: true })).status, 401);
+  const b = fake({ approve_account_request: a => ({ id: 'inv9', email: 'kari@example.com', church_name: 'Testmenighet', role: a.p_role }) }), m = box();
+  const r = await call('request.approve', { id: '33333333-3333-4333-8333-333333333333', mode: 'existing', church_id: '22222222-2222-4222-8222-222222222222', role: 'user' }, { backend: b, mailer: m });
+  assert.equal(r.status, 200); assert.equal(r.body.email_sent, true);
+  assert.match(b.log.find(x => x[1] === 'approve_account_request')[2].p_token_hash, /^[0-9a-f]{64}$/);
+  assert.match(m.sent[0].text, /invite=[A-Za-z0-9_-]{43}&token_hash=/);
+  const ex = fake({ approve_account_request: () => { throw Object.assign(new Error('x'), { code: 'CH010' }); } });
+  const e = await call('request.approve', { id: '33333333-3333-4333-8333-333333333333', mode: 'existing', church_id: '22222222-2222-4222-8222-222222222222', role: 'user' }, { backend: ex, mailer: box() });
+  assert.deepEqual([e.status, e.body.error], [409, 'account_exists']);
+  assert.equal((await call('request.approve', { id: 'x', mode: 'existing', role: 'user' }, { backend: fake() })).status, 400);
+});

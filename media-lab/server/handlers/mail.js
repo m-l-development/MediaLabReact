@@ -4,6 +4,7 @@ import { json, fail, EMAIL } from '../lib/http.js';
 import { publicOrigin } from '../lib/backend.js';
 import { mailer, mailStatus, sendTemplated, recoveryLink, allowAnon, clientIp } from '../lib/mail.js';
 import { sniffImage } from '../lib/sniff.js';
+import { TEMPLATE_KEYS } from '../../src/shared/mail-render.js';
 
 export const LOGO_MAX = 512 * 1024;
 
@@ -60,14 +61,14 @@ export const routes = {
   /* Testutsending av en mal til egen adresse, med en eksempellenke (ingen innloggingslenke). */
   async 'mail.test'(ctx) {
     const key = String((ctx.body && ctx.body.key) || '');
-    if (!['welcome', 'password'].includes(key)) return fail('invalid');
+    if (!TEMPLATE_KEYS.includes(key)) return fail('invalid');
     await ctx.backend.rpcAsUser(ctx.token, 'mail_settings_get', {});
     if (!mailer(ctx)) return fail('mail_not_configured', 409);
     const origin = publicOrigin(ctx.env, ctx.request.url);
     const u = await ctx.backend.getAuthUser(ctx.claims.sub);
     if (!u.email || !origin) return fail('invalid');
     const me = await ctx.backend.rpcAsUser(ctx.token, 'whoami', {}).catch(() => null);
-    const r = await sendTemplated(ctx, { kind: 'test', key, to: u.email, link: origin + '/login.dc.html?eksempel=1', vars: { epost: u.email, menighet: 'Eksempelmenighet', rolle: 'Bruker' }, actor: me && me.id });
+    const r = await sendTemplated(ctx, { kind: 'test', key, to: u.email, link: origin + '/login.dc.html?eksempel=1', vars: { navn: 'Ola Nordmann', epost: u.email, menighet: 'Eksempelmenighet', rolle: 'Bruker' }, actor: me && me.id });
     return r.sent ? json({ ok: true, to: u.email }) : fail(r.error === 'mail_not_configured' ? 'mail_not_configured' : 'email_failed', 502);
   },
 };

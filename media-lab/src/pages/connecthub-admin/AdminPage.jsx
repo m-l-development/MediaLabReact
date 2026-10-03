@@ -13,6 +13,7 @@ import { ChurchesView, ChurchDetail, InvitesView, FilesView, LinksView, SubsView
 import { FeedbackView } from './feedback.jsx';
 import { CleanupView } from './cleanup.jsx';
 import { MailView } from './mail.jsx';
+import { RequestsView } from './requests.jsx';
 import { noteError } from '../../shared/feedback-errors.js';
 
 /* global __CH_DEV_SITE__ */
@@ -95,6 +96,7 @@ export default function AdminPage({ me }) {
   else if (sec === 'tilbakemeldinger') body = <FeedbackView selected={id} />;
   else if (sec === 'opprydning') body = <CleanupView churchId={id} />;
   else if (sec === 'mail') body = <MailView />;
+  else if (sec === 'foresporsler') body = <RequestsView selected={id} />;
   else if (sec === 'abonnement') body = <><Head title="Abonnement" sub="Ingen betaling ennå – Developer eller Moderator godkjenner forespørsler." right={!staff && <ChurchPicker />} /><SubsView churchId={staff ? null : ctxChurch} /></>;
   else if (sec === 'logg') body = <><Head title="Logg" sub="Kan ikke endres eller slettes." right={!staff && <ChurchPicker />} /><LogView churchId={staff ? null : ctxChurch} /></>;
   else body = kind === 'user' ? <UserOverview /> : <Overview pendingInvites={pendingInvites} />;

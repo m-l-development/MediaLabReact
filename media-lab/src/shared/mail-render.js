@@ -1,12 +1,12 @@
 /* E-postmaler for ConnectHub: strukturerte blokker → trygg HTML og ren tekst. Samme kode brukes av serveren ved utsending
    og av Mail-fanen til forhåndsvisning, så forhåndsvisningen er nøyaktig det som sendes.
    Sikkerhet: all tekst escapes. Bare **fet**, *kursiv* og linjeskift tolkes, og bare de faste flettefeltene {epost},
-   {menighet} og {rolle} settes inn (også de escapes). Lenken skrives aldri i malen – systemet setter den inn i lenkeboksen.
+   {menighet}, {rolle} og {navn} settes inn (også de escapes). Lenken skrives aldri i malen – systemet setter den inn i lenkeboksen.
    Ingen avhengigheter (kjører både i nettleseren og i Node). */
 
-export const TEMPLATE_KEYS = ['welcome', 'password'];
+export const TEMPLATE_KEYS = ['welcome', 'password', 'request_received', 'request_notify'];
 export const BLOCK_TYPES = ['logo', 'h', 'p', 'link', 'small', 'hr'];
-export const VAR_NAMES = ['epost', 'menighet', 'rolle'];
+export const VAR_NAMES = ['navn', 'epost', 'menighet', 'rolle'];
 export const LIMITS = { blocks: 30, text: 2000, heading: 200, subject: 150, label: 60 };
 export const LOGO_CID = 'medialab-logo';
 
@@ -32,7 +32,7 @@ export function templateProblem(t) {
 }
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fill = (s, vars) => String(s == null ? '' : s).replace(/\{(epost|menighet|rolle)\}/g, (_, k) => (vars && vars[k] != null ? String(vars[k]) : ''));
+const fill = (s, vars) => String(s == null ? '' : s).replace(/\{(navn|epost|menighet|rolle)\}/g, (_, k) => (vars && vars[k] != null ? String(vars[k]) : ''));
 /* Tekst → HTML: escape først, så **fet** og *kursiv*, og linjeskift. */
 const inline = s => esc(s).replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\n]+)\*/g, '<em>$1</em>').replace(/\r?\n/g, '<br>');
 const plain = s => String(s).replace(/\*\*([^*\n]+)\*\*/g, '$1').replace(/\*([^*\n]+)\*/g, '$1');
@@ -84,6 +84,26 @@ export const DEFAULT_TEMPLATES = {
       { t: 'small', text: 'Lenken er personlig og kan bare brukes én gang. Virker den ikke lenger, kan den som inviterte deg sende en ny. Har du ikke ventet denne e-posten, kan du se bort fra den.' },
     ],
   },
+  request_received: {
+    subject: 'Vi har mottatt forespørselen din – ConnectHub',
+    blocks: [
+      { t: 'logo' },
+      { t: 'h', text: 'Takk for forespørselen!' },
+      { t: 'p', text: 'Vi har mottatt forespørselen din om en brukerkonto i ConnectHub. En administrator behandler den, og du får en e-post med en invitasjon hvis den blir godkjent.' },
+      { t: 'link', label: 'Gå til ConnectHub' },
+      { t: 'small', text: 'Du trenger ikke gjøre noe nå. Har du ikke sendt en forespørsel, kan du se bort fra denne e-posten.' },
+    ],
+  },
+  request_notify: {
+    subject: 'Ny forespørsel om brukerkonto – ConnectHub',
+    blocks: [
+      { t: 'logo' },
+      { t: 'h', text: 'Ny forespørsel om brukerkonto' },
+      { t: 'p', text: 'En ny forespørsel venter på behandling: **{navn}** ({menighet}).' },
+      { t: 'link', label: 'Åpne Forespørsler' },
+      { t: 'small', text: 'Telefon og e-post vises bare i ConnectHub.' },
+    ],
+  },
   password: {
     subject: 'Velg nytt passord – ConnectHub',
     blocks: [
@@ -95,4 +115,4 @@ export const DEFAULT_TEMPLATES = {
     ],
   },
 };
-export const TEMPLATE_NAMES = { welcome: 'Velkomstmail (invitasjon)', password: 'Nytt passord' };
+export const TEMPLATE_NAMES = { welcome: 'Velkomstmail (invitasjon)', password: 'Nytt passord', request_received: 'Forespørsel mottatt', request_notify: 'Ny forespørsel (til stab)' };

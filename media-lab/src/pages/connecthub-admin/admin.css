@@ -177,3 +177,8 @@ html[data-ml-mode="light"] [data-ml-theme="admin"] {
 [data-ml-theme="admin"] .ch-block-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
 [data-ml-theme="admin"] .ch-block-head .ch-end { margin-left: auto; display: flex; gap: 4px; }
 [data-ml-theme="admin"] .ch-grip { cursor: grab; color: var(--muted); letter-spacing: -2px; user-select: none; }
+/* Forespørsler: opplysninger i detaljen. */
+[data-ml-theme="admin"] .ch-dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; }
+[data-ml-theme="admin"] .ch-dl dt { color: var(--muted); }
+[data-ml-theme="admin"] .ch-dl dd { margin: 0; }
+@media (max-width: 900px) { [data-ml-theme="admin"] [data-ch-requests] { grid-template-columns: minmax(0, 1fr) !important; } }
