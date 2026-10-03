@@ -1642,6 +1642,49 @@ select ch_test.cnt('Privat: Admin ser ikke medlemmets private bilde og får inge
 set local role postgres;
 select ch_test.cnt('Privat: ingen private bilder er endret eller slettet', $q$select 1 from public.files where file_name = 'g3-privat.png' and visibility = 'private'$q$, 1);
 
+-- ---------- Felles grunnoppsett per menighet (church_settings) ----------
+-- G1 (61 Admin, 62 medlem), G2 (63 Admin, 64 medlem). Moderator (sub-2) er ikke medlem.
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.cnt('Grunnoppsett: finnes ikke ennå (null)', $q$select 1 where public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week') is null$q$, 1);
+select ch_test.ok('Grunnoppsett: medlem lagrer første versjon', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"A"}', 0)$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.cnt('Grunnoppsett: Admin i samme menighet ser medlemmets versjon', $q$select 1 where public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week') @> '{"version":1,"data":{"header":"A"},"can_admin":true}'$q$, 1);
+select ch_test.err('Grunnoppsett: lagring på utdatert versjon avvises (CH011)', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"X"}', 0)$q$, 'CH011');
+select ch_test.ok('Grunnoppsett: Admin lagrer på riktig versjon', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"B"}', 1)$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.cnt('Grunnoppsett: medlemmet ser Admins endring', $q$select 1 where public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week') @> '{"version":2,"data":{"header":"B"},"can_admin":false}'$q$, 1);
+select ch_test.err('Grunnoppsett: eldre versjon kan ikke overskrive nyere', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"gammel"}', 1)$q$, 'CH011');
+select ch_test.err('Grunnoppsett: medlem kan ikke endre Faste bilder (imgRules)', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"B","imgRules":[{"id":"r1","kw":"Bønn"}]}', 2)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.ok('Grunnoppsett: Admin endrer Faste bilder med referanse til egen fellesfil', format($q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"B","imgRules":[{"id":"r1","kw":"Bønn","bg":"ch:%s"}]}', 2)$q$, (select id from ch_test.gf where file_name = 'g1-delt.png')));
+select ch_test.err('Grunnoppsett: referanse til en annen menighets fil avvises', format($q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"B","imgRules":[{"id":"r1","kw":"Bønn","bg":"ch:%s"}]}', 3)$q$, (select id from ch_test.gf where file_name = 'g2-delt.png')), '42501');
+select ch_test.err('Grunnoppsett: referanse til fil som ikke finnes avvises', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"logoSrc":"ch:00000000-0000-4000-8000-0000000000ff"}', 3)$q$, '42501');
+select ch_test.err('Grunnoppsett: for stort oppsett avvises', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', jsonb_build_object('x', repeat('a', 600000)), 3)$q$, '22023');
+select ch_test.err('Grunnoppsett: ugyldig område avvises', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'Loop Studio', '{}', 0)$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.ok('Grunnoppsett: medlem endrer andre felt og beholder Faste bilder', format($q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"C","imgRules":[{"id":"r1","kw":"Bønn","bg":"ch:%s"}]}', 3)$q$, (select id from ch_test.gf where file_name = 'g1-delt.png')));
+select ch_test.ok('Grunnoppsett: Thumbnail Studio-oppsett er et eget område (ingen Admin-felt)', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'thumbstudio:cats', '{"cats":[{"id":"sunday","name":"Søndag"}]}', 0)$q$);
+-- Andre menigheter, stab uten medlemskap, ikke innlogget, direkte tabelltilgang
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.err('Grunnoppsett: annen menighet kan ikke lese', $q$select public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week')$q$, '42501');
+select ch_test.err('Grunnoppsett: annen menighet kan ikke lagre', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"inntrenger"}', 4)$q$, '42501');
+select ch_test.cnt('Grunnoppsett: hver menighet har sitt eget (G2 har ikke noe ennå)', $q$select 1 where public.church_settings_get('62626262-0000-4000-8000-000000000062', 'loopstudio:week') is null$q$, 1);
+select ch_test.cnt('Grunnoppsett: ingen direkte tabelltilgang', $q$select 1 from public.church_settings$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Grunnoppsett: Moderator uten medlemskap kan ikke lese', $q$select public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week')$q$, '42501');
+set local role anon;
+select ch_test.err('Grunnoppsett: ikke innlogget avvises', $q$select public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week')$q$, '42501');
+set local role postgres;
+update public.memberships set status = 'disabled' where user_id = '00000000-0000-4000-8000-000000000062' and church_id = '61616161-0000-4000-8000-000000000061';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Grunnoppsett: deaktivert medlem kan ikke lese', $q$select public.church_settings_get('61616161-0000-4000-8000-000000000061', 'loopstudio:week')$q$, '42501');
+set local role postgres;
+update public.memberships set status = 'active' where user_id = '00000000-0000-4000-8000-000000000062' and church_id = '61616161-0000-4000-8000-000000000061';
+select ch_test.cnt('Grunnoppsett: én rad per menighet og område, versjon 4', $q$select 1 from public.church_settings where church_id = '61616161-0000-4000-8000-000000000061' and scope = 'loopstudio:week' and version = 4 and data ->> 'header' = 'C'$q$, 1);
+select ch_test.cnt('Grunnoppsett: hver lagring er loggført (uten innholdet)', $q$select 1 from public.audit_logs where action = 'settings.update' and church_id = '61616161-0000-4000-8000-000000000061' and not (meta ? 'data')$q$, 5);
+
 -- ---------- Ekstra Admin: Developer og Moderator legger seg selv til / fjerner seg selv ----------
 -- Bruker N1 (41 = fast Admin, 42 = medlem) fra navneblokken. Developer (sub-1) og Moderator (sub-2) er ikke medlemmer i N1.
 set local role authenticated;

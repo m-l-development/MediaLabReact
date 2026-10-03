@@ -10,7 +10,8 @@ const css = u => u ? 'url("' + String(u).replace(/["\\\n]/g, '') + '")' : 'none'
 const hex = c => /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#000000';
 const tog = on => ({ track: on ? '#e9e7e2' : '#333333', knob: on ? '15px' : '2px', knobBg: on ? '#000000' : '#9d998f' });
 const chip = on => ({ bg: on ? '#e9e7e2' : 'transparent', fg: on ? '#000000' : '#9d998f' });
-const LOGOS = [['images/logo-symbol.png', 'Livets Ord-symbol'], ['images/logo-kbs.png', 'Kveldsbibelskole'], ['images/logo-wol.png', 'Word of Life']];
+/* Ingen forhåndsinnlagte logoer: menigheten legger inn egne (Fellesmappe / Felles ressurser → Logoer i ConnectHub). */
+const LOGOS = [];
 
 class Component extends DCLogic {
   state = { view: 'home', projects: [], fmt: 'sq', cw: 1200, ch: 800, doc: null, sel: null, multi: [], tool: 'move', tab: 'layer', brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false,
@@ -400,6 +401,12 @@ class Component extends DCLogic {
     /* Samarbeidsfiler (trinn 18): eget, merket område per kobling – aldri blandet med menighetens egne filer (A4). */
     if (window.MLCloud && window.MLCloud.collab) { const groups = await window.MLCloud.collab(); this.setState({ libCollab: groups }); }
   }
+  /* Logo eller bilde fra «Fellesmappe» (menighetens filer i ConnectHub). */
+  logoFromFelles = async () => {
+    if (!window.MLCloud || !window.MLCloud.pick) return;
+    const r = await window.MLCloud.pick({ start: 'ressurser', title: 'Velg logo fra Fellesmappe' }); if (!r) return;
+    this.setState({ logoOpen: false }); this.addBlob(r.blob, r.name);
+  };
   async fromLib(it) { try { const r = await fetch(it.src, { credentials: 'same-origin' }); if (!r.ok) throw 0; const b = await r.blob(); this.addBlob(b, it.name); } catch (e) { this.flash('Bildet kunne ikke hentes.'); } }
 
   /* ---------- scene ---------- */
@@ -595,7 +602,7 @@ class Component extends DCLogic {
       addBtns: [['Bilde', () => this.fileRef.current && this.fileRef.current.click()], ['Tekst', this.addText], ['Form', () => this.addShape('rect')], ['Sirkel', () => this.addShape('ellipse')], ['Former', () => this.setState({ shapesOpen: !S.shapesOpen }), S.shapesOpen],['Toning', this.addGrad], ['Lys', this.addGlow], ['Logo', () => this.setState({ logoOpen: !S.logoOpen }), S.logoOpen], ['Delt mappe', () => window.MLShare && window.MLShare.pick((b, n) => this.addBlob(b, n), { accept: ['image'] })], ['Bibliotek', () => { const o = !S.libOpen; this.setState({ libOpen: o }); if (o && !S.lib) this.loadLib(); }, S.libOpen]]
         .map(([l, click, on]) => ({ l, click, border: on ? '#e9e7e2' : '#2b2b2b', bg: on ? '#1c1c1c' : '#121212' })),
       shapesOpen: !!S.shapesOpen, shapeItems: S.shapesOpen ? ['rect', 'rounded'].concat(PD.SHAPES.map(x => x[0]).filter(k => k !== 'rect')).map(k => ({ name: T(k === 'rounded' ? 'Avrundet rektangel' : (PD.SHAPES.find(x => x[0] === k) || [0, k])[1]), css: css(this.shapeIcon(k)), click: () => this.addShape(k) })) : [],
-      logoOpen: S.logoOpen, logoItems: LOGOS.map(([src, name]) => ({ name, css: css(src), click: () => this.fromLib({ src, name }) })),
+      logoFromFelles: this.logoFromFelles, logoOpen: S.logoOpen, logoItems: LOGOS.map(([src, name]) => ({ name, css: css(src), click: () => this.fromLib({ src, name }) })),
       lTabs: [['lag', 'Lag'], ['stil', 'Stil'], ['fx', 'Effekter']].map(([k, l]) => ({ l, ...chip((S.ltab || 'lag') === k), click: () => this.setState({ ltab: k }) })), ltLag: (S.ltab || 'lag') === 'lag', ltStil: S.ltab === 'stil', ltFx: S.ltab === 'fx',
       libOpen: S.libOpen, libEmpty: !!S.lib && !lib.length, libItems: lib.map(it => ({ name: it.name, css: css(it.src), click: () => this.fromLib(it) })),
       libCollab: (S.libCollab || []).map(g => ({ title: ' – ' + g.title, items: g.files.map(it => ({ name: it.name, css: css(it.url), click: () => this.fromLib({ src: it.url, name: it.name }) })) })),

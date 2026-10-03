@@ -642,6 +642,8 @@ export default function template(v) {
                       {"\n                "}
                     </> : null}
                     {"\n                "}
+                    {v.sharedNote ? <span data-ch-shared-note="1" style={{"fontSize":"12px","color":"#9d998f","textWrap":"pretty"}}>{I(v.sharedNote)}</span> : null}
+                    {v.rulesReadOnly ? <span data-ch-rules-readonly="1" style={{"fontSize":"12px","color":"#f5d38f","textWrap":"pretty"}}>{I(v.rulesReadOnlyNote)}</span> : null}
                     {list(v.rules).map(($it1, $i1) => {
                       const v1 = { ...v, "r": $it1, $index: $i1 };
                       return <React.Fragment key={$i1}>
@@ -662,17 +664,17 @@ export default function template(v) {
                             {"\n                      "}
                             <div data-dc-tpl="195" style={{"display":"flex","flexDirection":"column","gap":"4px","flex":"1","minWidth":"0"}}>
                               {"\n                        "}
-                              <input data-dc-tpl="196" value={val(v1.r?.kw)} onChange={v1.r?.onKw} placeholder="Møtenavn, f.eks. Seniortreff" style={{"height":"34px","padding":"0 10px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"13.5px","fontWeight":"600","outline":"none","minWidth":"0"}} className="scp3" />
+                              <input data-dc-tpl="196" value={val(v1.r?.kw)} onChange={v1.r?.onKw} readOnly={!v1.rulesEdit} placeholder="Møtenavn, f.eks. Seniortreff" style={{"height":"34px","padding":"0 10px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"13.5px","fontWeight":"600","outline":"none","minWidth":"0"}} className="scp3" />
                               {"\n                        "}
                               <div data-dc-tpl="197" style={{"display":"flex","alignItems":"center","justifyContent":"space-between","gap":"8px"}}>
                                 {"\n                          "}
                                 <div data-dc-tpl="198" style={{"display":"flex","alignItems":"center","gap":"12px","flexWrap":"wrap"}}>
                                   {"\n                            "}
-                                  <button data-dc-tpl="199" onClick={v1.r?.toggleGallery} style={{"border":"0","padding":"0","background":"transparent","color":"#e9e7e2","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}} className="scp9">
+                                  {v1.rulesEdit ? <button data-dc-tpl="199" onClick={v1.r?.toggleGallery} style={{"border":"0","padding":"0","background":"transparent","color":"#e9e7e2","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}} className="scp9">
                                     {I(v1.r?.galleryLabel)}
-                                  </button>
+                                  </button> : null}
                                   {"\n                            "}
-                                  {v1.r?.hasImg ? <>
+                                  {v1.r?.hasImg && v1.rulesEdit ? <>
                                     <button data-dc-tpl="201" onClick={v1.r?.clearImg} style={{"border":"0","padding":"0","background":"transparent","color":"#9d998f","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}} className="scpa">
                                       Fjern bilde
                                     </button>
@@ -688,9 +690,9 @@ export default function template(v) {
                               {"\n                      "}
                             </div>
                             {"\n                      "}
-                            <button data-dc-tpl="203" onClick={v1.r?.del} title="Fjern fast bilde" aria-label="Fjern fast bilde" style={{"width":"28px","height":"28px","flex":"0 0 auto","border":"0","borderRadius":"999px","background":"transparent","color":"#9d998f","font":"inherit","fontSize":"16px","cursor":"pointer","alignSelf":"flex-start"}} className="scpb">
+                            {v1.rulesEdit ? <button data-dc-tpl="203" onClick={v1.r?.del} data-ch-rule-del="1" title="Fjern fast bilde" aria-label="Fjern fast bilde" style={{"width":"28px","height":"28px","flex":"0 0 auto","border":"0","borderRadius":"999px","background":"transparent","color":"#9d998f","font":"inherit","fontSize":"16px","cursor":"pointer","alignSelf":"flex-start"}} className="scpb">
                               ×
-                            </button>
+                            </button> : null}
                             {"\n                    "}
                           </div>
                           {"\n                    "}
@@ -710,6 +712,9 @@ export default function template(v) {
                               <button data-dc-tpl="208" onClick={v1.r?.upload} style={css(`aspect-ratio:${v1.galAspect ?? ""}; padding:0; border:1px dashed #555; border-radius:5px; background:transparent; color:#f3f1ec; font:inherit; font-size:11px; font-weight:600; cursor:pointer;`, "aspect-ratio:{{ galAspect }}; padding:0; border:1px dashed #555; border-radius:5px; background:transparent; color:#f3f1ec; font:inherit; font-size:11px; font-weight:600; cursor:pointer;")} className="scp1">
                                 + Last opp
                               </button>
+                              <button onClick={v1.r?.fromShared} data-ch-rule-shared="1" style={css(`aspect-ratio:${v1.galAspect ?? ""}; padding:0; border:1px dashed #555; border-radius:5px; background:transparent; color:#f3f1ec; font:inherit; font-size:11px; font-weight:600; cursor:pointer;`, "")}>
+                                Fellesmappe
+                              </button>
                               {"\n                      "}
                             </div>
                             {"\n                    "}
@@ -720,9 +725,9 @@ export default function template(v) {
                       </React.Fragment>;
                     })}
                     {"\n                "}
-                    <button data-dc-tpl="209" onClick={v.addRule} style={{"alignSelf":"flex-start","height":"34px","padding":"0 12px","border":"1px dashed #444","borderRadius":"999px","background":"transparent","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp1">
+                    {v.rulesEdit ? <button data-dc-tpl="209" onClick={v.addRule} style={{"alignSelf":"flex-start","height":"34px","padding":"0 12px","border":"1px dashed #444","borderRadius":"999px","background":"transparent","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp1">
                       + Legg til møte
-                    </button>
+                    </button> : null}
                     {"\n                "}
                     <div data-dc-tpl="210" style={{"display":"flex","gap":"8px","flexWrap":"wrap","alignItems":"center"}}>
                       {"\n                  "}
@@ -1667,6 +1672,10 @@ export default function template(v) {
                     {I(v.pickBgLabel)}
                   </button>
                   {"\n              "}
+                  <button onClick={v.pickBgShared} data-ch-shared-bg="1" style={{"height":"34px","padding":"0 14px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp2">
+                    Fellesmappe
+                  </button>
+                  {"\n              "}
                   <button data-dc-tpl="542" onClick={v.pickSharedImg} style={{"height":"34px","padding":"0 14px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp2">
                     Fra delt mappe
                   </button>
@@ -2579,6 +2588,10 @@ export default function template(v) {
                           Bytt logo…
                         </button>
                         {"\n                    "}
+                        <button onClick={v.pickLogoShared} data-ch-shared-logo="1" style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp2">
+                          Fellesmappe
+                        </button>
+                        {"\n                    "}
                         <button data-dc-tpl="817" onClick={v.removeLogo} style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"transparent","color":"#9d998f","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp4">
                           Fjern
                         </button>
@@ -2695,8 +2708,8 @@ export default function template(v) {
                       Legg til logo…
                     </button>
                     {"\n                "}
-                    <button data-dc-tpl="850" onClick={v.useDefaultLogo} style={{"height":"34px","padding":"0 12px","border":"0","background":"transparent","color":"#9d998f","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer","textDecoration":"underline","textUnderlineOffset":"3px"}} className="scp4">
-                      Bruk Livets Ord-logoen
+                    <button onClick={v.pickLogoShared} data-ch-shared-logo="1" style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer","display":"inline-flex","alignItems":"center","gap":"6px"}} className="scp2">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" /></svg>Fellesmappe
                     </button>
                     {"\n              "}
                   </div>

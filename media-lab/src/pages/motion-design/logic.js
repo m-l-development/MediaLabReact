@@ -17,7 +17,8 @@ const PRESETS = [
   { l: 'Sitat', d: 'Skrives frem bokstav for bokstav', o: { text: '«Sitat her»', font: 'Playfair Display', italic: true, weight: 500, size: 80, maxW: 0.78, anim: 'type', dur: 6 } },
   { l: 'Nedtelling', d: 'Teller ned sekunder', o: { text: '10', countdown: true, cdFrom: 10, font: 'Bebas Neue', weight: 400, size: 300, anim: 'none', dur: 10 } }
 ];
-const LOGOS = [['images/logo-symbol.png', 'Symbol'], ['images/logo.png', 'Logo'], ['images/logo-kbs.png', 'KBS'], ['images/logo-wol.png', 'WOL']];
+/* Ingen forhåndsinnlagte logoer: menigheten legger inn egne (Fellesmappe / Felles ressurser → Logoer i ConnectHub). */
+const LOGOS = [];
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), r = s - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
 const fmtD = s => { s = Math.round(s || 0); const m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; };
@@ -448,6 +449,15 @@ class Component extends DCLogic {
       }
     });
   }
+  /* Logo fra «Fellesmappe»: bildet legges i prosjektets medier (som en vanlig opplasting) og brukes som logo. */
+  logoFromFelles = async () => {
+    if (!window.MLCloud || !window.MLCloud.pick || !this.state.proj) return;
+    const r = await window.MLCloud.pick({ start: 'ressurser', title: 'Velg logo fra Fellesmappe' }); if (!r || !this.state.proj) return;
+    const before = new Set(this.state.proj.media.map(m => m.id));
+    await this.addFiles([new File([r.blob], r.name || 'logo.png', { type: r.blob.type || 'image/png' })]);
+    const m = ((this.state.proj || {}).media || []).find(x => !before.has(x.id) && x.kind === 'image');
+    if (m) this.patchLogo({ src: m.id, on: true });
+  };
   async addFiles(files, mode) {
     const VF = window.VF; if (!this.state.proj) return;
     const added = []; let bad = 0, big = 0;
@@ -1240,7 +1250,7 @@ class Component extends DCLogic {
       pickMusic: () => this.pickFiles('music', 'audio/*'), hasMusic: p.music.length > 0,
       musicList: p.music.map(m => ({ name: m.name || media(m.media).name || 'Lydspor', meta: fmtD(m.start) + ' – ' + fmtD(m.start + (m.loop ? T - m.start : m.out - m.in)), border: selId === m.id ? '#e9e7e2' : '#2b2b2b', click: () => this.setState({ sel: { type: 'music', id: m.id } }) })),
       hasAudioLib: p.media.some(m => m.kind === 'audio'), audioLib: p.media.filter(m => m.kind === 'audio').map(m => ({ name: m.name, meta: fmtD(m.dur), add: () => this.addMusic(m), drag: e => this.medDown(e, m) })),
-      logoFields, logoOpts, noLogo: () => this.patchLogo({ on: false, src: '' }), noLogoBorder: !lg.on || !lg.src ? '#e9e7e2' : 'transparent', pickLogo: () => this.pickFiles('logo', 'image/png,image/jpeg,image/webp'),
+      logoFields, logoOpts, logoFromFelles: this.logoFromFelles, noLogo: () => this.patchLogo({ on: false, src: '' }), noLogoBorder: !lg.on || !lg.src ? '#e9e7e2' : 'transparent', pickLogo: () => this.pickFiles('logo', 'image/png,image/jpeg,image/webp'),
       stageRef: this.stageRef, canvasRef: this.canvasRef, cvW: S.pv.cw, cvH: S.pv.ch, cvCssW: S.pv.w + 'px', cvCssH: S.pv.h + 'px', canvasDown: this.canvasDown,
       dragOver: S.dragOver, onDragOver: this.onDragOver, onDragLeave: this.onDragLeave, onDrop: this.onDrop,
       toStart: () => this.seek(0), togglePlay: this.togglePlay, isPlaying: S.playing, isPaused: !S.playing, playLabel: S.playing ? 'Pause' : 'Spill av',

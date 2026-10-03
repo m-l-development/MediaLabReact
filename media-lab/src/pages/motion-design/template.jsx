@@ -945,6 +945,8 @@ export default function template(v) {
                       </React.Fragment>;
                     })}
                     {"\n                "}
+                    <button onClick={v.logoFromFelles} data-ch-felles-logo="1" style={{"aspectRatio":"1","border":"1px dashed #555","borderRadius":"10px","background":"transparent","color":"#f3f1ec","font":"inherit","fontSize":"11.5px","fontWeight":"600","cursor":"pointer"}}>Fellesmappe</button>
+                    {"\n                "}
                     <button data-dc-tpl="301" onClick={v.pickLogo} style={{"aspectRatio":"1","border":"1px dashed #555","borderRadius":"10px","background":"transparent","color":"#f3f1ec","font":"inherit","fontSize":"11.5px","fontWeight":"600","cursor":"pointer"}} className="scp3">
                       + Last opp
                     </button>

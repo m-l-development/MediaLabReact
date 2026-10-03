@@ -6,6 +6,8 @@
     ['Bebas Neue', [400]], ['Montserrat', [400, 500, 600, 700, 800, 900]], ['League Spartan', [400, 500, 600, 700, 800, 900]],
     ['Anton', [400]], ['Oswald', [400, 500, 600, 700]], ['Archivo', [400, 500, 600, 700, 800, 900]], ['Playfair Display', [400, 500, 600, 700, 800, 900]]
   ];
+  /* Gamle innebygde logoer: tilbys ikke lenger og brukes ikke i grunnoppsettene, men eksisterende maler som
+     allerede bruker dem, vises fortsatt. Menigheten legger inn egne logoer (Fellesmappe / Felles ressurser). */
   var ASSETS = {
     'logo-symbol': { url: 'images/logo-symbol.png', label: 'Livets Ord-symbol' },
     'logo-kbs': { url: 'images/logo-kbs.png', label: 'Kveldsbibelskole-logo' },
@@ -49,6 +51,7 @@
     var e = imgs.get(src); if (e) return e.p;
     e = {}; imgs.set(src, e);
     var urlP = src.indexOf('asset:') === 0 ? Promise.resolve(ASSETS[src.slice(6)] ? ASSETS[src.slice(6)].url : null)
+      : src.indexOf('ch:') === 0 ? (window.MLCloud && window.MLCloud.url ? window.MLCloud.url(src).catch(function () { return null; }) : Promise.resolve(null))
       : idb.get('img', src.slice(3)).then(function (b) { return b ? (e.own = URL.createObjectURL(b)) : null; }).catch(function () { return null; });
     e.p = urlP.then(function (url) {
       return new Promise(function (res) {
@@ -128,7 +131,6 @@
         L('glow', { x: -560, y: -620, w: 1500, h: 1300, color: '#f5b800', op: 0.5, soft: 0.6, lock: true }),
         L('glow', { x: 1480, y: 320, w: 1000, h: 1000, color: '#f5b800', op: 0.42, soft: 0.6, lock: true }),
         L('image', { x: 960, y: 40, w: 960, h: 1040, fit: 'contain', px: 0.5, py: 1, role: 'person' }),
-        L('image', { src: 'asset:logo-symbol', x: 150, y: 100, w: 172, h: 130, fit: 'contain', px: 0, py: 0.5, tint: '#f5b800' }),
         L('text', { text: 'Søndagsmøte', x: 150, y: 262, w: 880, h: 50, font: 'Montserrat', weight: 700, size: 40, color: '#f5b800', upper: true, ls: 0.12, role: 'theme' }),
         L('text', { text: 'Fornavn\nEtternavn', x: 150, y: 335, w: 860, h: 620, font: 'Bebas Neue', weight: 400, size: 330, lh: 0.9, upper: true, bar: true, barColor: '#f5b800', barH: 7, role: 'name' })
       ];
@@ -140,8 +142,7 @@
         L('image', { x: -626, y: -158, w: 1516, h: 1516, shape: 'ellipse', fit: 'cover', px: 0.62, py: 0.3, role: 'person' }),
         L('shape', { x: 830, y: 300, w: 900, h: 430, kind: 'rounded', radius: 64, fill: '#ffffff', shadow: 0.45 }),
         L('text', { text: 'Fornavn\nEtternavn', x: 880, y: 335, w: 800, h: 360, font: 'Montserrat', weight: 500, size: 150, lh: 1.0, color: '#111111', align: 'center', valign: 'middle', role: 'name' }),
-        L('text', { text: 'Åpen bibelskolekveld', x: 830, y: 765, w: 900, h: 60, font: 'Montserrat', weight: 700, size: 46, color: '#ffffff', align: 'center', upper: true, ls: 0.06, role: 'theme' }),
-        L('image', { src: 'asset:logo-kbs', x: 935, y: 860, w: 690, h: 223, fit: 'contain', px: 0.5 })
+        L('text', { text: 'Åpen bibelskolekveld', x: 830, y: 765, w: 900, h: 60, font: 'Montserrat', weight: 700, size: 46, color: '#ffffff', align: 'center', upper: true, ls: 0.06, role: 'theme' })
       ];
       return d;
     },
@@ -153,8 +154,7 @@
         L('image', { x: 940, y: 60, w: 980, h: 1020, fit: 'contain', px: 0.5, py: 1, role: 'person', shadow: 0.35 }),
         L('text', { text: 'Ungdomsmøte', x: 120, y: 150, w: 800, h: 44, font: 'Montserrat', weight: 800, size: 38, color: '#e0d2ff', upper: true, ls: 0.3 }),
         L('text', { text: 'Kveldens\ntema', x: 120, y: 225, w: 880, h: 540, font: 'Bebas Neue', weight: 400, size: 290, lh: 0.9, upper: true, role: 'theme' }),
-        L('text', { text: 'Fornavn Etternavn', x: 120, y: 810, w: 820, h: 70, font: 'Montserrat', weight: 700, size: 54, role: 'name' }),
-        L('image', { src: 'asset:logo-symbol', x: 120, y: 925, w: 106, h: 80, fit: 'contain', px: 0, tint: '#ffffff' })
+        L('text', { text: 'Fornavn Etternavn', x: 120, y: 810, w: 820, h: 70, font: 'Montserrat', weight: 700, size: 54, role: 'name' })
       ];
       return d;
     },
@@ -699,7 +699,9 @@
     });
     return dst;
   }
-  function cleanSrc(v, keys) { return typeof v === 'string' && ((v.indexOf('asset:') === 0 && ASSETS[v.slice(6)]) || (v.indexOf('db:') === 0 && keys.has(v.slice(3)))) ? v : null; }
+  function cleanSrc(v, keys) { return typeof v === 'string' && ((v.indexOf('asset:') === 0 && ASSETS[v.slice(6)]) || (v.indexOf('db:') === 0 && keys.has(v.slice(3))) || /^ch:[0-9a-f-]{36}$/i.test(v)) ? v : null; }
+  /* Lokalt bilde (db:<nøkkel>) som Blob – brukes når grunnoppsettet deles med menigheten. */
+  function blobOf(src) { return src && src.indexOf('db:') === 0 ? idb.get('img', src.slice(3)).catch(function () { return null; }) : Promise.resolve(null); }
   function cleanDoc(doc, keys) {
     if (!doc || typeof doc !== 'object' || !Array.isArray(doc.layers) || !doc.bg) return null;
     var d = emptyDoc(); cleanObj(d.bg, doc.bg); cleanObj(d.vig, doc.vig); if (typeof doc.lay === 'string' && /^[a-z]{1,20}$/.test(doc.lay)) d.lay = doc.lay;
@@ -821,7 +823,7 @@
     return doc;
   }
   window.TS = {
-    W: W, H: H, MAX_IMG: MAX_IMG, MAX_TPL: MAX_TPL, FONTS: FONTS, ASSETS: ASSETS, PALETTE: PALETTE, BASE_LABELS: BASE_LABELS, COMBOS: COMBOS, recolor: recolor,
+    blobOf: blobOf, W: W, H: H, MAX_IMG: MAX_IMG, MAX_TPL: MAX_TPL, FONTS: FONTS, ASSETS: ASSETS, PALETTE: PALETTE, BASE_LABELS: BASE_LABELS, COMBOS: COMBOS, recolor: recolor,
     uid: uid, clone: clone, L: L, base: base, layout: layout, loadState: loadState, saveCats: saveCats, saveTpls: saveTpls,
     render: render, fitSize: fitSize, barBox: barBox, hit: hit, snapshot: snapshot, exportBlob: exportBlob, ensureFonts: ensureFonts, loadSrc: loadSrc,
     backup: backup, restore: restore, alphaBox: alphaBox, url: url, getImg: getImg, putImage: putImage, blobOf: blobOf, refs: refs, countImgs: countImgs, gc: gc, okFile: okFile, cutout: cutout,

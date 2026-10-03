@@ -503,6 +503,7 @@ export default function template(v) {
                     {"\n              "}
                     <div data-dc-tpl="158" style={{"display":"grid","gridTemplateColumns":"repeat(3, 1fr)","gap":"6px","padding":"10px","border":"1px solid #1c1c1c","borderRadius":"12px","background":"#0e0e0e"}}>
                       {"\n                "}
+                      <button onClick={v.logoFromFelles} data-ch-felles-logo="1" style={{"gridColumn":"1 / -1","height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"12.5px","fontWeight":"600","cursor":"pointer","display":"inline-flex","alignItems":"center","justifyContent":"center","gap":"6px"}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" /></svg>Fellesmappe</button>
                       {list(v.logoItems).map(($it1, $i1) => {
                         const v1 = { ...v, "it": $it1, $index: $i1 };
                         return <React.Fragment key={$i1}>

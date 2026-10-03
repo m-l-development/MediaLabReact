@@ -2,18 +2,16 @@
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
 import { onUpdate } from '../../shared/ml-update.js';
+import { SharedSetup } from '../../shared/shared-setup.js';
+import { files as CHF } from '../../services/files.js';
+const TT = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
+const toast = s => { if (window.MLShare && window.MLShare.toast) window.MLShare.toast(TT(s)); };
 class Component extends DCLogic {
   state = {
     ready: false, tab: 'program', programText: '', slides: [],
-    cfg: { accent: '#f5b82c', header: 'Ukentlige møter', topLabel: 'Program for uken', overlay: 1, rail: true, defDur: 5, res: '1080', logoSrc: 'images/logo.png', logoOn: true, logoSize: 90, logoX: 0.93, logoY: 0.85, logoOpacity: 1,
+    cfg: { accent: '#f5b82c', header: 'Ukentlige møter', topLabel: 'Program for uken', overlay: 1, rail: true, defDur: 5, res: '1080', logoSrc: null, logoOn: true, logoSize: 90, logoX: 0.93, logoY: 0.85, logoOpacity: 1,
       transFx: 'fade', textFx: 'reveal', overlayFx: 'none', fxAmount: 0.6, fxSpeed: 1, kenBurns: true, sweep: true, font: 'Archivo', titleScale: 1, textScale: 1, beatPulse: 0.6, beatText: true, beatNudge: 0, bpm: null, beatExtras: [], beatReframe: true, beatPolish: true, beatLevel: 1, beatStyle: 'auto', beatBars: 0, beatEvery: 8,
-      imgRules: [
-        { id: 'r-kveldsmat', kw: 'Kveldsmat', bg: 'images/tirsdag.png' },
-        { id: 'r-bonn', kw: 'Bønn', bg: 'images/torsdag.png' },
-        { id: 'r-ungdom', kw: 'Ungdom', bg: 'images/fredag.jpeg' },
-        { id: 'r-ungsdom', kw: 'Ungsdom', bg: 'images/fredag.jpeg' },
-        { id: 'r-sondag', kw: 'Søndagsmøte', bg: 'images/sondag.jpeg' }
-      ] },
+      imgRules: [] },
     videoName: '', selected: null, playing: true, playIdx: 0, urls: {}, parseMsg: '', parseOk: true, rec: null, busy: '', beatInfo: null
   };
   fileLib = React.createRef(); timeRef = React.createRef(); stripRef = React.createRef(); trackRef = React.createRef(); fillRef = React.createRef(); headRef = React.createRef();
@@ -376,7 +374,7 @@ class Component extends DCLogic {
     const sel = this.state.slides.find(x => x.id === this.state.selected); if (!sel) return;
     const cur = sel[this.bgField()] || (this.portrait() ? sel.bg : null); if (!cur) return;
     let b = null;
-    try { b = cur.startsWith('img-') ? await window.UkeLoop.store.get(cur) : this.safeSrc(cur) ? await (await fetch(cur)).blob() : null; } catch (e) {}
+    try { b = await this.blobOf(cur); } catch (e) {}
     if (!b) return;
     const ext = /png/i.test(b.type) ? '.png' : /webp/i.test(b.type) ? '.webp' : '.jpg';
     this._nextCropEdit = true;
@@ -414,7 +412,105 @@ class Component extends DCLogic {
     const x = c.getContext('2d'); x.drawImage(g.canvas, 0, 0, sw, sh); const d = x.getImageData(0, 0, sw, sh).data;
     for (let i = 3; i < d.length; i += 4) if (d[i] < 250) return true; return false;
   }
-  defImages() { return { tirsdag: 'images/tirsdag.png', torsdag: 'images/torsdag.png', fredag: 'images/fredag.jpeg', sondag: 'images/sondag.jpeg' }; }
+  /* Ingen forhåndsinnlagte standardbilder: menigheten legger inn egne (Faste bilder eller Fellesmappe). */
+  /* ---------- Felles grunnoppsett for menigheten (ConnectHub) ----------
+     Malene Ukeprogram, Søndagsmøte, Ungdomsmøte og Tom mal har ett felles grunnoppsett per menighet (cfg: farger, tekst,
+     logo, effekter, standarduken og Faste bilder), lagret sentralt (church_settings, område «loopstudio:<mal>»). Det
+     enkelte prosjektet (programtekst, slides, video og musikk) er fortsatt personlig. Egne maler er personlige som før.
+     Bilder i grunnoppsettet er referanser til menighetens filer i ConnectHub («ch:<id>»); lokale bilder lastes opp ved
+     lagring (logo → Logoer for Admin, ellers Fellesmappe; Faste bilder → Faste, bare Admin). Standardbilder tas aldri med.
+     Faste bilder kan bare endres av Admin – grensesnittet er skrivebeskyttet for andre, og databasen avviser det uansett. */
+  isStored(b) { return typeof b === 'string' && (b.startsWith('img-') || b.startsWith('ch:')); }
+  async blobOf(b) {
+    if (!b) return null;
+    if (b.startsWith('img-')) return window.UkeLoop.store.get(b);
+    if (b.startsWith('ch:')) return window.MLCloud && window.MLCloud.blob ? window.MLCloud.blob(b) : null;
+    return this.safeSrc(b) ? (await fetch(b)).blob() : null;
+  }
+  sharedOn() { return !!(this.shared && this.shared.available && this.state.sharedReady && !this.state.sharedErr); }
+  canEditRules() { return !this.sharedOn() || this.shared.canAdmin; }
+  sharedCfg(cfg) {
+    const ok = v => typeof v === 'string' && v.startsWith('ch:') ? v : null;
+    return { ...cfg, logoSrc: ok(cfg.logoSrc), imgRules: (cfg.imgRules || []).map(r => ({ ...r, bg: ok(r.bg), bgPort: ok(r.bgPort) })) };
+  }
+  async initShared(tpl) {
+    if (this.customId || this.diskId || !window.CH || !window.CH.me) return;
+    const sh = new SharedSetup('loopstudio:' + tpl, { onRemote: d => this.applyShared(d, false), onStatus: st => this.sharedStatus(st) });
+    if (!sh.available) return;
+    this.shared = sh;
+    try {
+      const d = await sh.load();
+      if (d) this.applyShared(d, true);
+      this._sharedAt = performance.now();
+      this.setState({ sharedReady: true, sharedExists: !!d });
+      sh.watch();
+    } catch (e) { this.setState({ sharedReady: true, sharedErr: true }); toast('Menighetens grunnoppsett kunne ikke hentes. Du ser ditt eget oppsett på denne enheten.'); }
+  }
+  applyShared(d, initial) {
+    this._sharedAt = performance.now();
+    this.setState(s => ({ cfg: { ...this.baseCfg, ...(this.tplCfg || {}), ...d } }), () => { this.setRules(r => r, true); (d.imgRules || []).forEach(r => { r.bg && this.ensureImg(r.bg); r.bgPort && this.ensureImg(r.bgPort); }); if (d.logoSrc) this.ensureImg(d.logoSrc); });
+    if (!initial) toast('Grunnoppsettet er oppdatert med endringer fra menigheten.');
+  }
+  sharedStatus(st) {
+    if (st.state === 'error' || st.state === 'conflict' || st.state === 'merged') toast(st.text);
+    if (this.alive) this.setState({ sharedState: st.state });
+  }
+  queueShared() {
+    if (!this.sharedOn() || performance.now() - (this._sharedAt || 0) < 1500) return;
+    clearTimeout(this._shT);
+    this._shT = setTimeout(async () => {
+      try { await this.uploadLocalRefs(); } catch (e) {}
+      const first = !this.shared.exists, ok = await this.shared.save(this.sharedCfg(this.state.cfg), 0);
+      if (ok && first && this.shared.exists) { this.setState({ sharedExists: true }); toast('Grunnoppsettet er nå felles for menigheten. Andre i menigheten ser endringene.'); }
+    }, 900);
+  }
+  /* Bilder under 4 MB i et format serveren godtar. */
+  async fitUpload(b, name) {
+    if (b.size <= 4 * 1048576 && /^image\/(png|jpeg|webp|gif)$/.test(b.type)) return new File([b], name, { type: b.type });
+    const bmp = await createImageBitmap(b), k = Math.min(1, 3200 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();
+    const out = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
+    return new File([out], name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  }
+  /* Lokale bilder i grunnoppsettet lastes opp til ConnectHub én gang og erstattes med referanser. */
+  async uploadLocalRefs() {
+    const sh = this.shared, map = this._refMap || (this._refMap = {});
+    const conv = async (ref, folder, name) => {
+      if (!ref || !ref.startsWith('img-')) return ref;
+      if (map[ref]) return map[ref];
+      const b = await window.UkeLoop.store.get(ref).catch(() => null); if (!b) return ref;
+      const f = await CHF.upload(await this.fitUpload(b, name + (/png/.test(b.type) ? '.png' : '.jpg')), { churchId: sh.church.id, folder });
+      const nr = 'ch:' + f.id; map[ref] = nr;
+      if (this.media.images[ref]) this.media.images[nr] = this.media.images[ref];
+      this.setState(s => ({ urls: { ...s.urls, [nr]: s.urls[ref] } }));
+      return nr;
+    };
+    const c = this.state.cfg, upd = {};
+    if (c.logoSrc && c.logoSrc.startsWith('img-')) upd.logoSrc = await conv(c.logoSrc, sh.canAdmin ? 'logoer' : 'bilder', 'Logo');
+    if (sh.canAdmin && (c.imgRules || []).some(r => (r.bg || '').startsWith('img-') || (r.bgPort || '').startsWith('img-'))) {
+      const rules = [];
+      for (const r of c.imgRules) rules.push({ ...r, bg: await conv(r.bg, 'faste', r.kw || 'Fast bilde'), bgPort: await conv(r.bgPort, 'faste', (r.kw || 'Fast bilde') + ' stående') });
+      upd.imgRules = rules;
+    }
+    if (Object.keys(upd).length) await new Promise(res => this.setState(s => ({ cfg: { ...s.cfg, ...upd } }), res));
+  }
+  /* Velgeren «Fellesmappe»: referanse til originalen i ConnectHub (ingen kopi). */
+  async pickShared(start, apply) {
+    if (!window.MLCloud || !window.MLCloud.pick) return;
+    const r = await window.MLCloud.pick({ start, title: 'Velg bilde fra Fellesmappe' }); if (!r || !this.alive) return;
+    const url = URL.createObjectURL(r.blob), im = new Image(); im.src = url; this.media.images[r.ref] = im;
+    this.setState(s => ({ urls: { ...s.urls, [r.ref]: url } }), () => apply(r.ref));
+  }
+  setSlideBg(ref) {
+    const sid = this.state.selected; if (!sid) return;
+    const F = this.bgField(), old = (this.state.slides.find(x => x.id === sid) || {})[F];
+    this.setF(sid, F, ref);
+    const me = this.state.slides.find(x => x.id === sid);
+    if (me && me.type === 'day' && me.title && !me.ruleId) this.rememberTitle(me.title, ref, F);
+    this.gcImg(old);
+  }
+  defImages() { return {}; }
   daySlides(p, old) {
     const U = window.UkeLoop, DEF = this.defImages(), olds = old.filter(s => s.type === 'day'), out = [];
     p.days.forEach(d => d.events.forEach(e => {
@@ -492,26 +588,26 @@ class Component extends DCLogic {
   defaults(tpl) {
     const U = window.UkeLoop;
     if (tpl === 'sunday') return { programText: '', cfg: { header: 'Søndagsmøte', topLabel: 'Velkommen' }, slides: [
-      { id: 'sun-velkommen', type: 'text', kicker: 'Velkommen', pill: 'Kl 11:00', body: 'Velkommen til søndagsmøte! Finn deg en plass, så begynner vi om litt.', sub: 'Møtet sendes også direkte på nett', bg: 'images/sondag.jpeg', bgOpacity: 1, dur: 6 },
-      { id: 'sun-idag', type: 'text', kicker: 'I dag', pill: '', body: 'Tale ved Navn Navnesen', sub: 'Tema: Skriv tema her', bg: 'images/sondag.jpeg', bgOpacity: 0.7, dur: 6 },
-      { id: 'sun-nett', type: 'text', kicker: 'Følg oss', pill: '', body: 'Abonner på YouTube-kanalen og følg Facebook-siden for å få med deg alt som skjer.', sub: '', bg: 'images/online.png', bgOpacity: 1, dur: 6 },
-      { id: 'sun-outro', type: 'outro', title: 'Søndagsmøte', sub: 'Alle er velkommen', bg: 'images/sondag.jpeg', bgOpacity: 1, dur: 3.5 }
+      { id: 'sun-velkommen', type: 'text', kicker: 'Velkommen', pill: 'Kl 11:00', body: 'Velkommen til søndagsmøte! Finn deg en plass, så begynner vi om litt.', sub: 'Møtet sendes også direkte på nett', bg: null, bgOpacity: 1, dur: 6 },
+      { id: 'sun-idag', type: 'text', kicker: 'I dag', pill: '', body: 'Tale ved Navn Navnesen', sub: 'Tema: Skriv tema her', bg: null, bgOpacity: 0.7, dur: 6 },
+      { id: 'sun-nett', type: 'text', kicker: 'Følg oss', pill: '', body: 'Abonner på YouTube-kanalen og følg Facebook-siden for å få med deg alt som skjer.', sub: '', bg: null, bgOpacity: 1, dur: 6 },
+      { id: 'sun-outro', type: 'outro', title: 'Søndagsmøte', sub: 'Alle er velkommen', bg: null, bgOpacity: 1, dur: 3.5 }
     ] };
     if (tpl === 'youth') return { programText: '', cfg: { header: 'Ungdomsmøte', topLabel: 'Fredag kl 19', accent: '#8fe3cf', font: 'Oswald', titleScale: 1.15, style: 'promo', duotone: true, kickerStyle: 'box', kickerLine: false, transFx: 'panels', textFx: 'glitch', overlayFx: 'grain', fxAmount: 0.45, sweep: false, kenBurns: true, overlay: 0.8, beatExtras: ['step', 'vig'], beatEvery: 4, beatLevel: 1.3, beatPulse: 0.7 }, slides: [
       { id: 'ung-velkommen', type: 'text', kicker: 'Fredag', pill: 'Kl 19:00', body: 'Velkommen til ungdomsmøte!', sub: 'Vi starter snart – finn en plass', bg: null, bgOpacity: 1, dur: 5 },
-      { id: 'ung-ikveld', type: 'text', kicker: 'I kveld', pill: '', body: 'Lovsang · Tale · Kiosk', sub: 'Skriv inn kveldens taler her', bg: 'images/fredag.jpeg', bgOpacity: 1, dur: 5 },
+      { id: 'ung-ikveld', type: 'text', kicker: 'I kveld', pill: '', body: 'Lovsang · Tale · Kiosk', sub: 'Skriv inn kveldens taler her', bg: null, bgOpacity: 1, dur: 5 },
       { id: 'ung-etterpa', type: 'text', kicker: 'Etterpå', pill: '', body: 'Henge, spill og kiosk', sub: 'Ta med en venn neste gang', bg: null, bgOpacity: 1, dur: 4.5 },
       { id: 'ung-folg', type: 'contact', kicker: 'Følg oss', pill: '', headline: 'Følg ungdommen på Instagram', text: 'Skann koden eller søk etter', email: '@brukernavn', phone: '', qrUrl: 'https://instagram.com/', bg: null, bgOpacity: 1, dur: 5 },
-      { id: 'ung-outro', type: 'outro', title: 'Ungdomsmøte', sub: 'Alle er velkommen', bg: 'images/fredag.jpeg', bgOpacity: 1, dur: 3.5 }
+      { id: 'ung-outro', type: 'outro', title: 'Ungdomsmøte', sub: 'Alle er velkommen', bg: null, bgOpacity: 1, dur: 3.5 }
     ] };
     if (tpl === 'blank') return { programText: '', cfg: { header: '', topLabel: '' }, slides: [
       { id: 'tom-1', type: 'text', kicker: 'Overskrift', pill: '', body: 'Skriv teksten din her', sub: '', bg: null, bgOpacity: 1, dur: 5 }
     ] };
     return { programText: U.SAMPLE, cfg: { header: 'Ukentlige møter', topLabel: 'Program for uken' }, slides: [
       ...this.daySlides(U.parse(U.SAMPLE), []),
-      { id: 'txt-velkommen', type: 'text', kicker: 'Velkommen', pill: 'Søndag kl 11', body: 'Vi ønsker deg hjertelig velkommen til å ta del i fellesskapet, enten du følger oss på nett eller tar turen innom. Abonner gjerne på YouTube-kanalen og følg Facebook-siden!', sub: 'Vi sender møtet direkte hver søndag kl 11', bg: 'images/online.png', bgOpacity: 1, dur: 6 },
-      { id: 'kontakt-teknisk', type: 'contact', kicker: 'Teknisk team', pill: '', headline: 'Ønsker du å være en del av teknisk team?', text: 'Ta kontakt – skann koden eller send e-post til', email: 'post@kirken.no', phone: '', qrUrl: 'mailto:post@kirken.no', bg: 'images/fredag.jpeg', bgOpacity: 0.5, dur: 5 },
-      { id: 'outro', type: 'outro', title: 'Ukentlige møter', sub: 'Alle er velkommen', bg: 'images/sondag.jpeg', bgOpacity: 1, dur: 3.5 }
+      { id: 'txt-velkommen', type: 'text', kicker: 'Velkommen', pill: 'Søndag kl 11', body: 'Vi ønsker deg hjertelig velkommen til å ta del i fellesskapet, enten du følger oss på nett eller tar turen innom. Abonner gjerne på YouTube-kanalen og følg Facebook-siden!', sub: 'Vi sender møtet direkte hver søndag kl 11', bg: null, bgOpacity: 1, dur: 6 },
+      { id: 'kontakt-teknisk', type: 'contact', kicker: 'Teknisk team', pill: '', headline: 'Ønsker du å være en del av teknisk team?', text: 'Ta kontakt – skann koden eller send e-post til', email: 'post@kirken.no', phone: '', qrUrl: 'mailto:post@kirken.no', bg: null, bgOpacity: 0.5, dur: 5 },
+      { id: 'outro', type: 'outro', title: 'Ukentlige møter', sub: 'Alle er velkommen', bg: null, bgOpacity: 1, dur: 3.5 }
     ] };
   }
   async init() {
@@ -532,7 +628,7 @@ class Component extends DCLogic {
       else if (card && typeof card.title === 'string' && card.title.trim() && card.title !== this.tplNames()[tpl]) this.customName = card.title.slice(0, 60);
     } catch (e) {}
     try { localStorage.setItem('ukeloop.tpl', tpl); } catch (e) {}
-    this.baseCfg = this.state.cfg;
+    this.baseCfg = this.state.cfg; this.tplCfg = (this.defaults(tpl) || {}).cfg || {};
     const dd = this.diskData && Array.isArray(this.diskData.slides) && this.diskData.slides.length ? { ...this.diskData, slides: this.diskData.slides.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && ['day', 'text', 'contact', 'outro'].includes(x.type)) } : null;
     const base = dd || this.loadSaved(tpl) || this.defaults(tpl);
     this._initAt = performance.now();
@@ -564,6 +660,7 @@ class Component extends DCLogic {
     this.t0 = performance.now();
     this.loop();
     this.loadVideo();
+    this.initShared(tpl);
     this.waitQR(0);
   }
   past = []; future = [];
@@ -609,6 +706,7 @@ class Component extends DCLogic {
     if (L.slides !== S.slides) S.slides.forEach(s => { if (s.bg) this.ensureImg(s.bg); if (s.bgPort) this.ensureImg(s.bgPort); (s.pips || []).forEach(p => p && p.src && this.ensureImg(p.src)); });
     if (L.cfg !== S.cfg && S.cfg.logoSrc) this.ensureImg(S.cfg.logoSrc);
     if (L.cfg !== S.cfg) (S.cfg.imgRules || []).forEach(r => { r.bg && this.ensureImg(r.bg); r.bgPort && this.ensureImg(r.bgPort); });
+    if (L.cfg && L.cfg !== S.cfg) this.queueShared();
     if (L.slides !== S.slides || L.cfg !== S.cfg || L.programText !== S.programText || L.videoName !== S.videoName || L.audioName !== S.audioName) {
       this._last = { slides: S.slides, cfg: S.cfg, programText: S.programText, videoName: S.videoName, audioName: S.audioName };
       clearTimeout(this._sv);
@@ -621,11 +719,14 @@ class Component extends DCLogic {
   }
   async ensureImg(id) {
     if (this.media.images[id] || this.loading[id]) return;
-    if (!id.startsWith('img-') && !this.safeSrc(id)) return;
+    if (!this.isStored(id) && !this.safeSrc(id)) return;
     this.loading[id] = 1;
     let url = id;
     if (id.startsWith('img-')) {
       try { const b = await window.UkeLoop.store.get(id); if (!b) return; url = URL.createObjectURL(b); } catch (e) { return; }
+    } else if (id.startsWith('ch:')) {
+      const u = window.MLCloud && window.MLCloud.url ? await window.MLCloud.url(id).catch(() => null) : null;
+      if (!u) { delete this.loading[id]; return; } url = u;
     }
     const im = new Image(); im.onerror = () => {}; im.src = url; this.media.images[id] = im;
     if (this.alive) this.setState(s => ({ urls: { ...s.urls, [id]: url } }));
@@ -691,7 +792,7 @@ class Component extends DCLogic {
   cleanPips(a) {
     if (!Array.isArray(a) || !a.length) return null;
     const n = (v, lo, hi, d) => { v = Number(v); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
-    const r = a.filter(p => p && typeof p.src === 'string' && (p.src.startsWith('img-') || this.safeSrc(p.src))).slice(0, 8)
+    const r = a.filter(p => p && typeof p.src === 'string' && (this.isStored(p.src) || this.safeSrc(p.src))).slice(0, 8)
       .map(p => ({ src: p.src, x: n(p.x, -0.2, 1.2, 0.72), y: n(p.y, -0.2, 1.2, 0.4), w: n(p.w, 0.03, 1.5, 0.3), r: n(p.r, 0, 200, 18), op: n(p.op, 0, 1, 1), border: !!p.border, borderColor: /^#[0-9a-f]{6}$/i.test(p.borderColor || '') ? p.borderColor : null, shadow: p.shadow !== false }));
     return r.length ? r : null;
   }
@@ -1094,7 +1195,7 @@ class Component extends DCLogic {
       event: { id, type: 'text', kicker: 'Fredag', pill: 'Kl 19:00', body: 'Navn på arrangementet', sub: 'Sted', bg: null, bgOpacity: 1, dur: d },
       quote: { id, type: 'text', kicker: 'Dagens ord', pill: '', body: '«Skriv sitatet her»', sub: 'Kilde', bg: null, bgOpacity: 1, dur: d + 1 },
       qr: { id, type: 'contact', kicker: 'Følg oss', pill: '', headline: 'Skann koden', text: 'Eller besøk', email: 'nettside.no', phone: '', qrUrl: 'https://', bg: null, bgOpacity: 1, dur: d },
-      image: { id, type: 'text', kicker: '', pill: '', body: '', sub: '', bg: 'images/online.png', bgOpacity: 1, dur: d }
+      image: { id, type: 'text', kicker: '', pill: '', body: '', sub: '', bg: null, bgOpacity: 1, dur: d }
     }[kind];
     if (!T) return;
     this.setState(s => {
@@ -1966,11 +2067,11 @@ class Component extends DCLogic {
       const U = window.UkeLoop, data = this.payload(), images = {};
       for (const s of data.slides) {
         if (!s.bg || images[s.bg]) continue;
-        try { const b = s.bg.startsWith('img-') ? await U.store.get(s.bg) : this.safeSrc(s.bg) ? await (await fetch(s.bg)).blob() : null; if (b) images[s.bg] = await U.toDataURL(b); } catch (e) {}
+        try { const b = await this.blobOf(s.bg); if (b) images[s.bg] = await U.toDataURL(b); } catch (e) {}
       }
       const ls = data.cfg.logoSrc;
       if (ls && data.cfg.logoOn !== false && !images[ls]) {
-        try { const b = ls.startsWith('img-') ? await U.store.get(ls) : this.safeSrc(ls) ? await (await fetch(ls)).blob() : null; if (b) images[ls] = await U.toDataURL(b); } catch (e) {}
+        try { const b = await this.blobOf(ls); if (b) images[ls] = await U.toDataURL(b); } catch (e) {}
       }
       let video = null;
       try { const vb = await U.store.get(this.vKey()); if (vb) video = await U.toDataURL(vb); else if (this.defVideo()) video = await U.toDataURL(await (await fetch(this.defVideo())).blob()); } catch (e) {}
@@ -2511,26 +2612,32 @@ class Component extends DCLogic {
       rulesOrientNote: PT ? 'Stående format: bildene her brukes bare når videoen er stående. Uten stående bilde brukes det liggende.' : '',
       hasRulesOrientNote: PT,
       rules: (S.rulesDraft || []).map(r => ({
-        kw: r.kw, thumb: (() => { const b = PT ? r.bgPort : r.bg; return b && (S.urls[b] || !b.startsWith('img-')) ? this.cssUrl(S.urls[b] || b) : 'none'; })(),
+        kw: r.kw, thumb: (() => { const b = PT ? r.bgPort : r.bg; return b && (S.urls[b] || !this.isStored(b)) ? this.cssUrl(S.urls[b] || b) : 'none'; })(),
         noImg: !(PT ? r.bgPort : r.bg), hasImg: !!(PT ? r.bgPort : r.bg), clearImg: () => { const F = PT ? 'bgPort' : 'bg'; this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, [F]: null } : x)); }, galleryOpen: S.galleryFor === r.id, thumbBorder: S.galleryFor === r.id ? '#e9e7e2' : '#2b2b2b',
         galleryLabel: S.galleryFor === r.id ? 'Lukk bildevalg' : ((PT ? r.bgPort : r.bg) ? (PT ? 'Bytt stående bilde' : 'Bytt bilde') : (PT ? 'Velg stående bilde' : 'Velg bilde')),
-        toggleGallery: () => this.setState(s => ({ galleryFor: s.galleryFor === r.id ? null : r.id })),
+        toggleGallery: () => { if (this.canEditRules()) this.setState(s => ({ galleryFor: s.galleryFor === r.id ? null : r.id })); },
         upload: () => { this._ruleTarget = r.id; this.fileRule.current && this.fileRule.current.click(); },
         gallery: S.galleryFor !== r.id ? [] : (() => {
           const seen = new Set(), list = [];
-          const add = b => { if (!b || seen.has(b)) return; if (b.startsWith('img-') && !S.urls[b]) return; seen.add(b); list.push(b); };
+          const add = b => { if (!b || seen.has(b)) return; if (this.isStored(b) && !S.urls[b]) return; seen.add(b); list.push(b); };
           const F = PT ? 'bgPort' : 'bg';
-          if (!PT) ['images/tirsdag.png', 'images/torsdag.png', 'images/fredag.jpeg', 'images/sondag.jpeg', 'images/online.png'].forEach(add);
           S.slides.forEach(x => add(x[F])); (S.cfg.imgRules || []).forEach(x => add(x[F])); (S.rulesDraft || []).forEach(x => add(x[F]));
           return list.map(b => ({ thumb: this.cssUrl((S.urls[b] || b)), border: b === r[F] ? '#e9e7e2' : 'transparent',
             pick: () => { this.setState({ galleryFor: null }); this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, [F]: b } : x)); } }));
         })(),
         hits: (() => { const n = S.slides.filter(x => x.ruleId === r.id || (!x.ruleId && x.type === 'day' && r.kw && r.kw.trim() && String(x.title || '').toLowerCase().includes(r.kw.trim().toLowerCase()))).length; return n ? n + (n === 1 ? ' slide' : ' slides') : ''; })(),
-        onKw: e => { const v = e.target.value; clearTimeout(this._kwT); this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, kw: v } : x), false); this._kwT = setTimeout(() => this.setRules(rs => rs, true), 900); },
+        onKw: e => { if (!this.canEditRules()) return; const v = e.target.value; clearTimeout(this._kwT); this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, kw: v } : x), false); this._kwT = setTimeout(() => this.setRules(rs => rs, true), 900); },
         pick: () => { this._ruleTarget = r.id; this.fileRule.current && this.fileRule.current.click(); },
-        del: () => this.draftRules(ds => ds.filter(x => x.id !== r.id), false)
+        del: () => {
+          if (!this.canEditRules()) return;
+          if ((r.bg || r.bgPort || r.kw) && !confirm(TT('Slette det faste bildet') + (r.kw ? ' «' + r.kw + '»' : '') + '?\n\n' + TT('Det fjernes fra Faste bilder i Loop Studio for hele menigheten når du trykker Ferdig. Originalbildet i Felles ressurser eller Fellesmappe blir liggende.'))) return;
+          this.draftRules(ds => ds.filter(x => x.id !== r.id), false);
+        },
+        fromShared: () => { if (!this.canEditRules()) return; const F = PT ? 'bgPort' : 'bg'; this.pickShared('ressurser', ref => { this.setState({ galleryFor: null }); this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, [F]: ref } : x)); }); }
       })),
-      addRule: () => this.draftRules(ds => [...ds, { id: 'r-' + Date.now().toString(36), kw: '', bg: null }], false),
+      addRule: () => { if (this.canEditRules()) this.draftRules(ds => [...ds, { id: 'r-' + Date.now().toString(36), kw: '', bg: null }], false); },
+      rulesEdit: this.canEditRules(), rulesReadOnly: !this.canEditRules(),
+      rulesReadOnlyNote: 'Faste bilder forvaltes av Admin i menigheten. Du kan bruke dem på slidene, men ikke endre dem.',
       isDayBg: !!sel && sel.type === 'day' && !!sel.title,
       titleImgNote: sel && sel.type === 'day' && sel.title ? (hasBg
         ? 'Huskes for «' + sel.title + '». Neste gang «' + sel.title + '» står i programmet, får den dette bildet automatisk. Bytt bilde for å endre det.'
@@ -2746,10 +2853,12 @@ class Component extends DCLogic {
       },
       fileLogo: this.fileLogo, onLogoFile: this.onLogoFile, pickLogo: () => this.fileLogo.current && this.fileLogo.current.click(),
       hasLogo: !!S.cfg.logoSrc, noLogo: !S.cfg.logoSrc,
-      logoPreviewCss: S.cfg.logoSrc && (S.urls[S.cfg.logoSrc] || !S.cfg.logoSrc.startsWith('img-')) ? this.cssUrl((S.urls[S.cfg.logoSrc] || S.cfg.logoSrc)) : 'none',
+      logoPreviewCss: S.cfg.logoSrc && (S.urls[S.cfg.logoSrc] || !this.isStored(S.cfg.logoSrc)) ? this.cssUrl((S.urls[S.cfg.logoSrc] || S.cfg.logoSrc)) : 'none',
       logoOn: S.cfg.logoOn !== false, onLogoOn: e => this.setCfg('logoOn', e.target.checked),
       removeLogo: () => this.setCfg('logoSrc', null),
-      useDefaultLogo: () => this.setState(s => ({ cfg: { ...s.cfg, logoSrc: 'images/logo.png', logoOn: true } })),
+      pickLogoShared: () => this.pickShared('ressurser', ref => this.setState(s => ({ cfg: { ...s.cfg, logoSrc: ref, logoOn: true } }))),
+      pickBgShared: () => this.pickShared('ressurser', ref => this.setSlideBg(ref)),
+      sharedNote: !this.sharedOn() ? '' : this.state.sharedExists ? 'Grunnoppsettet (farger, tekst, logo, effekter og Faste bilder) er felles for hele menigheten.' : 'Menigheten har ikke et felles grunnoppsett for denne malen ennå. Første endring du gjør, blir menighetens felles grunnoppsett.',
       logoSize: S.cfg.logoSize || 90, onLogoSize: e => this.setCfg('logoSize', Number(e.target.value)),
       logoOpacityPct: Math.round((S.cfg.logoOpacity == null ? 1 : S.cfg.logoOpacity) * 100), onLogoOpacity: e => this.setCfg('logoOpacity', Number(e.target.value) / 100),
       logoCorners: [['↖', 0.07, 0.15], ['↗', 0.93, 0.15], ['↙', 0.07, 0.85], ['↘', 0.93, 0.85]].map(([l, x, y]) => ({ label: l, onClick: () => {
@@ -2975,7 +3084,7 @@ class Component extends DCLogic {
         const upd = (i, patch) => this.setState(st => ({ slides: st.slides.map(x => x.id === sl.id ? { ...x, pips: (x.pips || []).map((p, j) => j === i ? { ...p, ...patch } : p) } : x) }));
         return {
           pipRows: list.map((p, i) => {
-            const url = p.src.startsWith('img-') ? S.urls[p.src] : p.src, on = S.selEl && S.selEl.kind === 'pip' && S.selEl.id === sl.id && S.selEl.i === i;
+            const url = this.isStored(p.src) ? S.urls[p.src] : p.src, on = S.selEl && S.selEl.kind === 'pip' && S.selEl.id === sl.id && S.selEl.i === i;
             return {
               thumb: url ? this.cssUrl(url) : 'none', border: on ? '#8a867e' : '#2b2b2b',
               sizePct: Math.round((p.w || 0.3) * 100), radius: Math.round(p.r == null ? 18 : p.r), opPct: Math.round((p.op == null ? 1 : p.op) * 100),

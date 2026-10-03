@@ -1,12 +1,95 @@
 /* Konvertert fra den gamle dc-siden thumbnail-studio.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { DCLogic } from '../../shared/dc.jsx';
+import { SharedSetup } from '../../shared/shared-setup.js';
+import { files as CHF } from '../../services/files.js';
+import { fitUpload } from '../../shared/upload-fit.js';
 import { onUpdate } from '../../shared/ml-update.js';
 import { hereGet, hereSet } from '../../shared/here.js';
 class Component extends DCLogic {
   state = { zoom: 1, cropId: null, cropBox: null, multi: [], narrow: false, expT: false, expSize: null, backupBusy: false, ready: false, view: 'home', cats: [], tpls: [], catId: null, editCats: false, doc: null, tplId: null, tplName: '', dirty: false, sel: null, hist: [], fut: [], gx: [], gy: [], msg: '', ai: null, exp: false, expRes: '1080', expFmt: 'png', expBusy: false, save: false, logoOpen: false, busyImg: false, tick: 0, numEd: null, barSel: null, shapeOpen: false, addColor: null, autoAt: '', autoSave: (() => { try { return localStorage.getItem('thumbstudio.autosave') === '1'; } catch (e) { return false; } })() };
   canvasRef = React.createRef(); zoomRef = React.createRef(); ovRef = React.createRef(); fileRef = React.createRef(); taRef = React.createRef(); restoreRef = React.createRef(); cropRef = React.createRef();
   WN = { 400: 'Vanlig', 500: 'Medium', 600: 'Halvfet', 700: 'Fet', 800: 'Ekstra fet', 900: 'Svart' };
+  /* ---------- Felles grunnoppsett for menigheten (ConnectHub) ----------
+     Kategoriene og grunnoppsettet deres (navn, beskrivelse, standard og lagret grunnoppsett) er felles for menigheten
+     (church_settings «thumbstudio:cats»). Malene (maks 5 per kategori) er personlige som før. Lokale bilder i et delt
+     grunnoppsett lastes opp til Fellesmappe og erstattes med referanser («ch:<id>»); gamle innebygde logoer tas ikke med. */
+  initShared = async () => {
+    if (!window.CH || !window.CH.me) return;
+    const sh = new SharedSetup('thumbstudio:cats', { onRemote: d => this.applyShared(d, false), onStatus: st => { if (st.state !== 'saving' && st.state !== 'saved') this.flash(st.text); } });
+    if (!sh.available) return;
+    this.shared = sh;
+    try { const d = await sh.load(); if (d) this.applyShared(d, true); this._sharedAt = Date.now(); this.setState({ sharedReady: true, sharedExists: !!d }); sh.watch(); }
+    catch (e) { this.flash('Menighetens grunnoppsett kunne ikke hentes. Du ser ditt eget oppsett på denne enheten.'); }
+  };
+  applyShared(d, initial) {
+    this._sharedAt = Date.now();
+    const sharedCats = Array.isArray(d.cats) ? d.cats.filter(c => c && typeof c.id === 'string').slice(0, 30) : [];
+    const ids = new Set(sharedCats.map(c => c.id));
+    /* Egne kategorier som har maler, men ikke finnes i det felles oppsettet, beholdes (de deles ved neste endring). */
+    const keep = this.state.cats.filter(c => !ids.has(c.id) && this.state.tpls.some(t => t.catId === c.id));
+    const cats = sharedCats.concat(keep);
+    cats.forEach(c => { if (c.baseDoc) TS.loadAll(c.baseDoc).catch(() => {}); });
+    this.setState({ cats }, () => TS.saveCats(cats).catch(() => {}));
+    if (!initial) this.flash('Grunnoppsettet er oppdatert med endringer fra menigheten.');
+  }
+  sharedDoc(doc) {
+    if (!doc) return null;
+    const ok = v => typeof v === 'string' && v.indexOf('ch:') === 0 ? v : null;
+    const d = TS.clone(doc);
+    d.layers = d.layers.filter(l => !(l.src && l.src.indexOf('asset:') === 0)).map(l => l.src || l.orig ? Object.assign({}, l, { src: ok(l.src), orig: null }) : l);
+    if (d.bg) d.bg = Object.assign({}, d.bg, { src: ok(d.bg.src), orig: null });
+    return d;
+  }
+  sharedData(cats) { return { cats: cats.map(c => ({ id: c.id, name: c.name, desc: c.desc || '', base: c.base, baseDoc: this.sharedDoc(c.baseDoc) })) }; }
+  async uploadLocalRefs(cats) {
+    const map = this._refMap || (this._refMap = {}), sh = this.shared;
+    const conv = async v => {
+      if (!v || v.indexOf('db:') !== 0) return v;
+      if (map[v]) return map[v];
+      const b = await TS.blobOf(v); if (!b) return v;
+      const f = await CHF.upload(await fitUpload(b, 'Grunnoppsett' + (b.type === 'image/png' ? '.png' : '.jpg')), { churchId: sh.church.id, folder: 'bilder' });
+      map[v] = 'ch:' + f.id; await TS.loadSrc(map[v]).catch(() => {}); return map[v];
+    };
+    let changed = false;
+    const out = [];
+    for (const c of cats) {
+      if (!c.baseDoc) { out.push(c); continue; }
+      const d = TS.clone(c.baseDoc);
+      for (const l of d.layers) { if (l.src && l.src.indexOf('db:') === 0) { const n = await conv(l.src); if (n !== l.src) { l.src = n; l.orig = null; changed = true; } } }
+      if (d.bg && d.bg.src && d.bg.src.indexOf('db:') === 0) { const n = await conv(d.bg.src); if (n !== d.bg.src) { d.bg = Object.assign({}, d.bg, { src: n, orig: null }); changed = true; } }
+      out.push(Object.assign({}, c, { baseDoc: d }));
+    }
+    if (changed) { this.setState({ cats: out }); await TS.saveCats(out).catch(() => {}); }
+    return out;
+  }
+  queueShared() {
+    const sh = this.shared; if (!sh || !this.state.sharedReady || Date.now() - (this._sharedAt || 0) < 800) return;
+    clearTimeout(this._shT);
+    this._shT = setTimeout(async () => {
+      let cats = this.state.cats;
+      try { cats = await this.uploadLocalRefs(cats); } catch (e) { this.flash('Et bilde i grunnoppsettet kunne ikke deles. Det vises bare på denne enheten.'); }
+      const first = !sh.exists, ok = await sh.save(this.sharedData(cats), 0);
+      if (ok && first && sh.exists) { this.setState({ sharedExists: true }); this.flash('Grunnoppsettet er nå felles for menigheten. Andre i menigheten ser endringene.'); }
+    }, 900);
+  }
+  /* Bilde eller logo fra «Fellesmappe» (referanse til originalen i ConnectHub, ingen kopi). */
+  pickFelles = async (t = { mode: 'add' }) => {
+    if (!window.MLCloud || !window.MLCloud.pick) return;
+    this.setState({ logoOpen: false });
+    const r = await window.MLCloud.pick({ start: 'ressurser', title: t.logo ? 'Velg logo fra Fellesmappe' : 'Velg bilde fra Fellesmappe' }); if (!r || !this.alive) return;
+    const probe = TS.clone(this.state.doc);
+    if (t.mode === 'add' && TS.countImgs(probe) >= TS.MAX_IMG) { this.flash('Maks 5 bilder per mal. Fjern et bilde først.'); return; }
+    await TS.loadSrc(r.ref); if (!this.alive) return;
+    this.placeSrc(r.ref, t);
+  };
+  placeSrc(src, t) {
+    if (t.mode === 'add') {
+      const en = TS.getImg(src), iw = en ? en.img.naturalWidth : 4, ih = en ? en.img.naturalHeight : 3, k = Math.min((t.logo ? 520 : 900) / iw, (t.logo ? 300 : 700) / ih), w = Math.round(iw * k), h = Math.round(ih * k);
+      this.addLayer(TS.L('image', { src, x: Math.round(960 - w / 2), y: Math.round(540 - h / 2), w, h, fit: t.logo ? 'contain' : 'cover' }));
+    } else if (t.mode === 'replace') this.setL(t.id, { src, orig: null });
+    else this.setBg({ src, orig: null, type: 'image' });
+  }
   componentDidMount() {
     onUpdate({ save: () => this.saveForUpdate() });
     this.alive = true;
@@ -78,7 +161,7 @@ class Component extends DCLogic {
     this.offImg = TS.onImage(() => { this.sched(); clearTimeout(this._bt); this._bt = setTimeout(() => this.alive && this.setState(s => ({ tick: s.tick + 1 })), 80); });
     const st = await TS.loadState();
     if (!this.alive) return;
-    this.setState({ ready: true, cats: st.cats, tpls: st.tpls }, () => { this.gcAll(); this.restoreHere(); });
+    this.setState({ ready: true, cats: st.cats, tpls: st.tpls }, () => { this.gcAll(); this.restoreHere(); this.initShared(); });
     if (st.noDb) this.flash('Nettleseren tillater ikke lagring her, så maler blir ikke lagret.');
   }
   sched() { cancelAnimationFrame(this._raf); this._raf = requestAnimationFrame(() => this.draw()); }
@@ -91,7 +174,7 @@ class Component extends DCLogic {
   flash(msg) { this.setState({ msg }); clearTimeout(this._mt); this._mt = setTimeout(() => this.alive && this.setState({ msg: '' }), 4200); }
   cat() { return this.state.cats.find(c => c.id === this.state.catId) || null; }
   tplsOf(id) { return this.state.tpls.filter(t => t.catId === id); }
-  persistCats(cats) { this.setState({ cats }); return TS.saveCats(cats).catch(() => this.flash('Klarte ikke å lagre.')); }
+  persistCats(cats) { this.setState({ cats }, () => this.queueShared()); return TS.saveCats(cats).catch(() => this.flash('Klarte ikke å lagre.')); }
   persistTpls(tpls) { this.setState({ tpls }); return TS.saveTpls(tpls).catch(() => this.flash('Klarte ikke å lagre. Lagringsplassen kan være full.')); }
   gcAll() {
     if (!window.TS) return; const keep = new Set(), add = d => TS.refs(d).forEach(k => keep.add(k));
@@ -104,7 +187,7 @@ class Component extends DCLogic {
   editBase = () => { const c = this.cat(); if (c) this.enterEdit(this.catBase(c), null, '', true); };
   resetBase = () => {
     const c = this.cat(); if (!c || !confirm('Tilbakestille grunnoppsettet til standard?')) return;
-    this.setState({ cats: this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { baseDoc: null }) : x) }, () => { TS.saveCats(this.state.cats).catch(() => this.flash('Klarte ikke å lagre.')); this.gcAll(); });
+    this.setState({ cats: this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { baseDoc: null }) : x) }, () => { TS.saveCats(this.state.cats).catch(() => this.flash('Klarte ikke å lagre.')); this.gcAll(); this.queueShared(); });
   };
   async saveBase(quiet) {
     const c = this.cat(); if (!c) return;
@@ -689,11 +772,7 @@ class Component extends DCLogic {
     this.setState({ busyImg: true });
     let src; try { src = await TS.putImage(f); await TS.loadSrc(src); } catch (err) { this.setState({ busyImg: false }); this.flash('Klarte ikke å lese bildet. Prøv JPG eller PNG.'); return; }
     if (!this.alive) return; this.setState({ busyImg: false });
-    if (t.mode === 'add') {
-      const en = TS.getImg(src), iw = en ? en.img.naturalWidth : 4, ih = en ? en.img.naturalHeight : 3, k = Math.min((t.logo ? 520 : 900) / iw, (t.logo ? 300 : 700) / ih), w = Math.round(iw * k), h = Math.round(ih * k);
-      this.addLayer(TS.L('image', { src, x: Math.round(960 - w / 2), y: Math.round(540 - h / 2), w, h, fit: t.logo ? 'contain' : 'cover' }));
-    } else if (t.mode === 'replace') this.setL(t.id, { src, orig: null });
-    else this.setBg({ src, orig: null, type: 'image' });
+    this.placeSrc(src, t);
   }
   onDragOver = e => { e.preventDefault(); };
   onDrop = e => {
@@ -831,7 +910,7 @@ class Component extends DCLogic {
     try {
       const r = await TS.restore(f); if (!this.alive) return;
       await Promise.all([TS.saveCats(r.cats), TS.saveTpls(r.tpls)]);
-      this.setState({ cats: r.cats, tpls: r.tpls }, () => this.gcAll());
+      this.setState({ cats: r.cats, tpls: r.tpls }, () => { this.gcAll(); this.queueShared(); });
       this.flash('Gjenopprettet: ' + r.cats.length + ' kategorier og ' + r.tpls.length + ' maler.');
     } catch (err) { this.flash('Filen kunne ikke leses. Velg en sikkerhetskopi fra Thumbnail Studio.'); }
   };
@@ -1075,6 +1154,7 @@ class Component extends DCLogic {
         addBtns: [
           { k: 'text', label: 'Tekst', onClick: () => this.addText() },
           { k: 'image', label: 'Bilde', onClick: () => this.pick({ mode: 'add' }) },
+          { k: 'felles', label: 'Fellesmappe', onClick: () => this.pickFelles({ mode: 'add' }) },
           { k: 'shared', label: 'Delt mappe', onClick: () => this.pickShared() },
           { k: 'shape', label: 'Form', onClick: () => this.setState({ shapeOpen: !S.shapeOpen, logoOpen: false, libOpen: false }) },
           { k: 'line', label: 'Strek', onClick: () => this.addShape('line') },
@@ -1095,7 +1175,7 @@ class Component extends DCLogic {
             onAddPick: e => { const v = e.target.value; if (/^#[0-9a-f]{6}$/i.test(v)) this.setState({ addColor: v.toLowerCase() }); }
           };
         })(),
-        logoOpts: Object.keys(TS.ASSETS).map(k => ({ label: TS.ASSETS[k].label, onClick: () => { const sym = k === 'logo-symbol'; this.addLayer(TS.L('image', { src: 'asset:' + k, x: 80, y: 80, w: sym ? 200 : 600, h: sym ? 152 : 194, fit: 'contain', px: 0 })); } }))
+        logoOpts: [{ label: 'Fra Fellesmappe …', onClick: () => this.pickFelles({ mode: 'add', logo: true }) }]
           .concat([{ label: 'Last opp egen logo …', onClick: () => { this.setState({ logoOpen: false }); this.pick({ mode: 'add', logo: true }); } }]),
         layerRows: [].concat.apply([], this.rowOrder(d).map(([l, isKid]) => {
           const act = l.id === S.sel || multi.indexOf(l.id) >= 0, logo = l.type === 'image' && l.src && l.src.indexOf('asset:') === 0;
