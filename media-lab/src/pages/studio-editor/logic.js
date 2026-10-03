@@ -614,9 +614,55 @@ class Component extends DCLogic {
     if (vb) v.src = URL.createObjectURL(vb); else if (this.defVideo()) v.src = this.defVideo(); else { v.removeAttribute('src'); v.load(); return; }
     v.play().catch(() => {});
   }
+  /* Tidligere versjoner lagret eksempelinnholdet automatisk som brukerens prosjekt første gang Loop Studio ble åpnet.
+     Et lagret prosjekt som fortsatt er helt likt eksempelinnholdet (samme slides og tekster, bare gamle innebygde
+     bilder), legges til side (ukeloop.arkiv.*) – aldri slettet – og brukeren starter med en tom serie, med mulighet for å
+     hente det tilbake. Prosjekter brukeren har endret, lastes som før. */
+  /* «Hent tilbake» merker prosjektet som brukerens eget, så det ikke legges til side igjen. */
+  keepKey(t) { return 'ukeloop.keepsample.' + this.storeKey(t).replace(/^ukeloop\./, ''); }
+  isLegacySample(saved, t) {
+    try { if (localStorage.getItem(this.keepKey(t)) === '1') return false; } catch (e) {}
+    if (!saved || !Array.isArray(saved.slides) || !saved.slides.length) return false;
+    const U = window.UkeLoop, prog = String(saved.programText || '').trim();
+    if (prog && (!U || prog !== String(U.SAMPLE).trim())) return false;
+    const sample = this.sampleData(t || 'week').slides, K = ['type', 'title', 'day', 'time', 'place', 'kicker', 'pill', 'body', 'sub', 'headline', 'text', 'email', 'phone', 'qrUrl'];
+    if (saved.slides.length !== sample.length) return false;
+    const pick = x => JSON.stringify(K.map(k => x[k] == null ? '' : x[k]));
+    return saved.slides.every(x => { const o = sample.find(y => y.id === x.id); return o && pick(o) === pick(x) && (!x.bg || /^images\//.test(x.bg)) && !x.bgPort && !x.vid && !(x.pips || []).length; });
+  }
+  archiveLegacy(t, raw) {
+    const key = 'ukeloop.arkiv.' + this.storeKey(t).replace(/^ukeloop\./, '') + '.' + Date.now();
+    try { localStorage.setItem(key, raw); localStorage.removeItem(this.storeKey(t)); } catch (e) { return false; }
+    this._archived = { key, t };
+    return true;
+  }
+  legacyNotice() {
+    const a = this._archived; if (!a || document.querySelector('[data-ch-legacy-notice]')) return;
+    const b = document.createElement('div'); b.setAttribute('data-ch-legacy-notice', '1'); b.setAttribute('role', 'status');
+    b.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147480000;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px);padding:10px 12px 10px 16px;border:1px solid #2b2b2b;border-radius:16px;background:#121212;color:#f3f1ec;font:500 13px Archivo,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)';
+    const txt = document.createElement('span'); txt.textContent = TT('Det gamle eksempelinnholdet er lagt til side, og du starter med en tom serie.');
+    const back = document.createElement('button'); back.type = 'button'; back.textContent = TT('Hent tilbake'); back.setAttribute('data-ch-legacy-restore', '1');
+    back.style.cssText = 'height:30px;padding:0 14px;border:1px solid #f3f1ec;border-radius:999px;background:transparent;color:#f3f1ec;font:inherit;font-weight:700;cursor:pointer';
+    back.onclick = () => { try { const raw = localStorage.getItem(a.key); if (raw) { localStorage.setItem(this.storeKey(a.t), raw); localStorage.setItem(this.keepKey(a.t), '1'); localStorage.removeItem(a.key); } } catch (e) {} location.reload(); };
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', TT('Lukk'));
+    x.style.cssText = 'width:30px;height:30px;border:0;border-radius:999px;background:transparent;color:#9d998f;font:inherit;cursor:pointer'; x.onclick = () => b.remove();
+    b.append(txt, back, x); document.body.append(b);
+  }
+  /* Gamle innebygde standardbilder og -logo i et lokalt oppsett er standardinnhold, ikke brukerens: de tas bort. */
+  cleanLegacyCfg(cfg) {
+    if (!cfg || typeof cfg !== 'object') return cfg;
+    const OLD = new Set(['r-kveldsmat', 'r-bonn', 'r-ungdom', 'r-ungsdom', 'r-sondag']), legacy = v => typeof v === 'string' && /^images\//.test(v);
+    const out = { ...cfg };
+    if (legacy(out.logoSrc)) out.logoSrc = null;
+    if (Array.isArray(out.imgRules)) out.imgRules = out.imgRules.filter(r => !(r && OLD.has(r.id) && legacy(r.bg) && !r.bgPort)).map(r => legacy(r.bg) ? { ...r, bg: null } : r).filter(r => r.kw || r.bg || r.bgPort);
+    if (out.standard && String(out.standard).trim() === 'Tirsdag kl 19 Kveldsmat i kafeen\nTorsdag kl 11 Bønn\nFredag kl 19 Ungsdomsmøte\nSøndag Kl 11:00 Søndagsmøte') delete out.standard;
+    return out;
+  }
   loadSaved(t) {
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(this.storeKey(t)) || 'null'); } catch (e) {}
+    let saved = null, raw = null;
+    try { raw = localStorage.getItem(this.storeKey(t)); saved = JSON.parse(raw || 'null'); } catch (e) {}
+    if (saved && !this.customId && this.isLegacySample(saved, t) && this.archiveLegacy(t, raw)) return null;
+    if (saved && saved.cfg) saved.cfg = this.cleanLegacyCfg(saved.cfg);
     if (saved && (typeof saved !== 'object' || !Array.isArray(saved.slides) || (saved.cfg && typeof saved.cfg !== 'object'))) saved = null;
     if (saved) saved.slides = saved.slides.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && ['day', 'text', 'contact', 'outro'].includes(x.type));
     return saved && saved.slides.length ? saved : null;
@@ -675,7 +721,7 @@ class Component extends DCLogic {
     const dd = this.diskData && Array.isArray(this.diskData.slides) && this.diskData.slides.length ? { ...this.diskData, slides: this.diskData.slides.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && ['day', 'text', 'contact', 'outro'].includes(x.type)) } : null;
     this.demo = new URLSearchParams(location.search).get('demo') === '1' && !this.customId && !this.diskId;
     const base = this.demo ? await this.demoData(tpl) : dd || this.loadSaved(tpl) || this.defaults(tpl);
-    if (this.demo) this.demoBanner(tpl);
+    if (this.demo) this.demoBanner(tpl); else this.legacyNotice();
     this._initAt = performance.now();
     this.setState({ ready: true, tpl, programText: base.programText || '', slides: base.slides, cfg: { ...this.state.cfg, ...(base.cfg || {}) }, videoName: base.videoName || '', audioName: base.audioName || '', selected: (base.slides[0] || {}).id || null });
     /* only one sound engine per page: close every earlier context (reload / remount / live code updates) */
@@ -1333,10 +1379,7 @@ class Component extends DCLogic {
   applyProgram = () => {
     const U = window.UkeLoop; if (!U) return;
     if (!String(this.state.programText || '').trim()) {
-      this.setState({ programText: this.standardText() }, () => {
-        this.applyProgram();
-        this.setState(s => ({ parseMsg: 'Tekstboksen var tom, så standarduken er brukt. ' + s.parseMsg }));
-      });
+      this.setState({ parseMsg: 'Skriv ukens program først (én linje per møte), eller trykk «Standard uke» for å hente menighetens standarduke.', parseOk: false });
       return;
     }
     const p = U.parse(this.state.programText), n = p.days.reduce((a, d) => a + d.events.length, 0);
@@ -1359,8 +1402,14 @@ class Component extends DCLogic {
     const txt = String(this.state.programText || '').replace(/\s+$/, '');
     this.setState({ programText: (txt ? txt + '\n' : '') + line, addForm: { day: a.day || '' } }, () => this.applyProgram());
   };
-  standardText() { return this.state.cfg.standard || 'Tirsdag kl 19 Kveldsmat i kafeen\nTorsdag kl 11 Bønn\nFredag kl 19 Ungsdomsmøte\nSøndag Kl 11:00 Søndagsmøte'; }
-  loadStandard = () => this.setState({ programText: this.standardText(), parseMsg: 'Standarduken er lagt inn. Endre eller legg til linjer, og trykk «Oppdater videoen».', parseOk: true });
+  /* Standarduken er menighetens eget, lagrede program (cfg.standard i det felles grunnoppsettet). Det finnes ingen
+     innebygd eksempeltekst, og den hentes bare når brukeren trykker «Standard uke». */
+  standardText() { return String(this.state.cfg.standard || ''); }
+  loadStandard = () => {
+    const t = this.standardText().trim();
+    if (!t) { this.setState({ parseMsg: 'Ingen standarduke er lagret ennå. Skriv ukens program og trykk «Lagre som standard uke».', parseOk: false }); return; }
+    this.setState({ programText: t, parseMsg: 'Standarduken er lagt inn. Endre eller legg til linjer, og trykk «Oppdater videoen».', parseOk: true });
+  };
   saveStandard = () => {
     const t = String(this.state.programText || '').trim();
     if (!t) return;
@@ -2692,7 +2741,7 @@ class Component extends DCLogic {
       closeStd: () => this.setState({ stdOpen: false, stdDraft: null }),
       onStdDraft: e => this.setState({ stdDraft: e.target.value }),
       saveStdDraft: () => { const t = String(this.state.stdDraft || '').trim(); if (!t) return; this.setCfg('standard', t); this.setState({ stdOpen: false, stdDraft: null, parseMsg: 'Standarduken er oppdatert.', parseOk: true }); },
-      resetStd: () => this.setState({ stdDraft: 'Tirsdag kl 19 Kveldsmat i kafeen\nTorsdag kl 11 Bønn\nFredag kl 19 Ungsdomsmøte\nSøndag Kl 11:00 Søndagsmøte' }),
+      resetStd: () => this.setState({ stdDraft: '' }),
       loadStandard: this.loadStandard, saveStandard: this.saveStandard, clearText: () => this.setState({ programText: '', parseMsg: '' }),
       pickOcr: () => this.fileOcr.current && this.fileOcr.current.click(), fileOcr: this.fileOcr, onOcrFile: this.onOcrFile,
       ocrLabel: S.busy === 'ocr' ? 'Leser …' : 'Fra bilde',
@@ -2867,7 +2916,7 @@ class Component extends DCLogic {
       recNote: (recMime === null ? 'Opptak krever Chrome eller Edge.' : recMime.includes('mp4') ? 'Lagres som MP4.' : 'Lagres som WebM. Gjør den om til MP4 hvis sendeprogrammet ikke spiller WebM.') + (S.audioName && S.cfg.exportAudio !== false ? ' Lydsporet «' + S.audioName + '» blir med.' : ''),
       htmlNote: [S.audioName && S.cfg.exportAudio !== false ? 'Lydsporet blir med. Sjekk at lyden fra kilden er slått på i sendeprogrammet.' : '', S.slides.some(x => x.vid && !x.hidden) ? 'Videoer på slidene blir ikke med i HTML-spilleren (bakgrunnsbildet vises i stedet). Bruk MP4-eksport for å få dem med.' : ''].filter(Boolean).join(' '),
 
-      statusLine: S.rec ? 'Tar opp video … ' + S.rec.pct + ' %' : !active.length ? 'Ingen slides ennå – skriv ukens program til venstre, eller trykk «Legg til».' : live ? 'Spiller slide ' + (S.playIdx + 1) + ' av ' + active.length + ' · ' + loopLen + ' per runde · ' + this.fmtLabel() : S.tst ? 'Tester effekten på slide ' + (idx + 1) + ' · ' + this.fmtLabel() : (sel ? 'Pause · viser slide ' + (idx + 1) + (activeIdx < 0 ? ' (skjult i loopen)' : '') : 'Pause'),
+      statusLine: S.rec ? 'Tar opp video … ' + S.rec.pct + ' %' : !active.length ? 'Ingen slides ennå – skriv ukens program, eller trykk «Legg til».' : live ? 'Spiller slide ' + (S.playIdx + 1) + ' av ' + active.length + ' · ' + loopLen + ' per runde · ' + this.fmtLabel() : S.tst ? 'Tester effekten på slide ' + (idx + 1) + ' · ' + this.fmtLabel() : (sel ? 'Pause · viser slide ' + (idx + 1) + (activeIdx < 0 ? ' (skjult i loopen)' : '') : 'Pause'),
       onCanvasDown: this.onCanvasDown, onCanvasMove: this.onCanvasMove, onCanvasDbl: this.onCanvasDbl,
       hasInline: !!S.inlineEd, inlineRef: this.inlineRef, inlineVal: S.inlineEd ? S.inlineEd.value : '',
       inlineL: S.inlineEd ? S.inlineEd.left + 'px' : '0px', inlineT: S.inlineEd ? S.inlineEd.top + 'px' : '0px', inlineW: S.inlineEd ? S.inlineEd.width + 'px' : '0px',

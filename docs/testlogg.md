@@ -1272,3 +1272,12 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
   - Thumbnail Studio: User i A lager «Grunnoppsett 2/3» og gjør et til standard (bare Søndagsmøte endres); Admin i A ser dem og sletter; standard faller tilbake til «Grunnoppsett». Testoppsett ryddet. Feil funnet og rettet: forhåndslasting av et delt oppsett kunne kaste feil, slik at siden falt tilbake til lokalt oppsett.
   - Nettbrett (820 px): Loop Studio-demo, Thumbnail Studio og Fellesmappe uten vannrett rulling (visuelt kontrollert).
   - Regresjon: Fellesmappe/Samarbeidsmappe (ZIP, eksport, sletting, API-sperrer) og stengte private opplastinger som før; 0 e2e-filer igjen.
+
+## Loop Studio: gammelt eksempelinnhold og «Standard uke» (2026-10-03, dev)
+- Årsak:
+  1. Tidligere versjoner autolagret eksempelinnholdet (eksempeluke, tekstslides, gamle innebygde bilder) som brukerens prosjekt første gang Loop Studio ble åpnet; det ble lastet som aktiv serie ved hver innlasting, innlogging og på mobil.
+  2. «Standard uke» brukte en innebygd eksempeltekst når menigheten ikke hadde lagret en, og «Oppdater videoen» med tom tekstboks fylte den inn automatisk.
+  3. Gamle standardbilder og -logo (`images/…`) lå i lokalt oppsett og ble satt på møteslidene.
+- Retting (`studio-editor/logic.js`): et lagret prosjekt som er helt likt eksempelinnholdet, legges til side (`ukeloop.arkiv.*`, aldri slettet) med «Hent tilbake» (merkes da som brukerens eget); endrede prosjekter lastes som før. Standarduken er bare menighetens egen (`cfg.standard`), hentes bare ved trykk, og tom tekst fyller aldri inn noe. Gamle standardbilder/-logo fjernes fra lokalt oppsett; egne Faste bilder beholdes.
+- Tester (preview mot dev, gammelt prosjekt bygget slik den gamle versjonen lagret det): PC (User i A) og mobil (User i B): tom serie og melding ved første åpning, fortsatt tom etter oppdatering; «Standard uke» uten lagret uke gir melding; «Oppdater videoen» med tom tekst gir melding; «Hent tilbake» gir de 7 slidene tilbake og de blir værende etter ny oppdatering; endret prosjekt beholdes uendret; gamle standardbilder borte fra Faste bilder, eget beholdt. Ny bruker: tom serie; demo merket, lagrer ingenting; «Avslutt demo» → tom serie. `npm test` 160/160, bygg OK. Testdata ryddet.
+- Merk: produksjonen (e6947a8) har fortsatt den eldre versjonen uten tom start; rettingen krever publisering.
