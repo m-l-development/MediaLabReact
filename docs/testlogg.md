@@ -1249,3 +1249,14 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
   - Thumbnail Studio: User i A endrer kategorinavn → felles (thumbstudio:cats), Admin i A ser det, User i B ser sitt eget; ingen gamle innebygde logoer i det delte grunnoppsettet. Testendringer tilbakestilt.
   - Velgeren på mobil (User i B): bare B sine filer (tom-meldinger), Esc lukker, ingen vannrett rulling.
   - Regresjon Fellesmappe/Samarbeidsmappe og private opplastinger: som før, 0 e2e-filer igjen.
+
+## Produksjon: felles grunnoppsett og Fellesmappe i verktøyene (2026-10-03)
+- Godkjent av brukeren. `connecthub` = e6947a8, ren arbeidskopi; c7163dd..e6947a8 = 3 commits, 22 filer, én migrering (`20261016100000_church_settings.sql`), tidligere migreringer uendret.
+- Før: prod 36 migreringer (sist 20261015100100), `church_settings` fantes ikke, avhengigheter (churches, app_users, files, audit_logs, app.is_member/is_church_admin/current_user_id) på plass.
+- Sikkerhetskopi (logisk JSON, alle 27 public-tabeller, 85 rader) av `cmuienhheklcgtfmpvbe` tatt 2026-10-03 11:28:08 UTC; lesbar og radantall lik databasen.
+- Gjennomgang: bare `create table public.church_settings` + 3 nye funksjoner; ingen drop/delete/update/truncate eller endring av eksisterende tabeller. FK churches (cascade) og app_users (set null), PK (church_id, scope), RLS uten policyer, ingen klientrettigheter.
+- Tørrkjøring: nøyaktig `20261016100000_church_settings.sql`. Migrert uten feil; CLI koblet tilbake til dev.
+- Etterkontroll (`prod_postcheck_settings.sql`): 37 migreringer, alle ok-felt true, 0 grunnoppsett. Ekstra: registrert, medlemskontroll i get/save, versjonskontroll (CH011), Admin-felt, bare egne fellesfiler, security definer, FK/PK. Radantall i alle 27 tabeller lik sikkerhetskopien. Forrige etterkontroll (Fellesmappe) fortsatt true.
+- `main` fast-forward c7163dd → e6947a8. Vercel Production: `version.json` = e6947a8.
+- Røyktest uten innlogging: forsiden, Filer og Loop Studio → 307 til innlogging; `file.upload_link`, `file.upload`, `file.urls`, `file.delete` → 401; `church_settings_get/save` og tabellen som anonym → 42501; innloggingssiden som før.
+- Ikke testet i prod (ingen testkontoer): innlogget bruk av felles grunnoppsett, «Fellesmappe»-velgeren, isolasjon mellom menigheter i praksis og Fellesmappe/Samarbeidsmappe i grensesnittet. Dekket i dev (RLS 935/935 og E2E).
