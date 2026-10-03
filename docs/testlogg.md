@@ -1260,3 +1260,15 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - `main` fast-forward c7163dd → e6947a8. Vercel Production: `version.json` = e6947a8.
 - Røyktest uten innlogging: forsiden, Filer og Loop Studio → 307 til innlogging; `file.upload_link`, `file.upload`, `file.urls`, `file.delete` → 401; `church_settings_get/save` og tabellen som anonym → 42501; innloggingssiden som før.
 - Ikke testet i prod (ingen testkontoer): innlogget bruk av felles grunnoppsett, «Fellesmappe»-velgeren, isolasjon mellom menigheter i praksis og Fellesmappe/Samarbeidsmappe i grensesnittet. Dekket i dev (RLS 935/935 og E2E).
+
+## Tom start, demo, bildekilder, filer i bruk og grunnoppsett per kategori (2026-10-03, dev)
+- Migrering `20261017100000_file_in_use.sql` kjørt i dev: `delete_file` avviser felles filer som brukes i menighetens grunnoppsett (`church_settings`) eller som menighetens logo (CH012 `file_in_use`); tilgangskontrollen først. Ingen data endret.
+- RLS 942/942 (PGlite og dev; 7 nye). `npm test` 160/160. `npm run build` OK, sikkerhetssøk uten funn.
+- E2E (preview mot dev):
+  - Loop Studio, ny bruker (tømt nettleser): tom lysbildeserie, ingen programtekst, ingen standardbilder; status «Ingen slides ennå …».
+  - Demo («Se demo (lagres ikke)» på startsiden, `?demo=1`): merket banner, eksempelslides med genererte bakgrunner (ingen fotografier/logoer), endringer lagres ikke (prosjektdata uendret), «Avslutt demo» → egen tom serie.
+  - Bildekilder: velgeren har Faste bilder / Felles ressurser / Fellesmappe; valgt bilde viser «Kilde: menighetens filer i ConnectHub …» og er der etter ny innlasting.
+  - Filer i bruk: Admin legger et Faste-bilde i Loop Studios Faste bilder → sletting av originalen gir 409 `file_in_use`; User 403; etter at bildet er tatt ut, finnes filen fortsatt.
+  - Thumbnail Studio: User i A lager «Grunnoppsett 2/3» og gjør et til standard (bare Søndagsmøte endres); Admin i A ser dem og sletter; standard faller tilbake til «Grunnoppsett». Testoppsett ryddet. Feil funnet og rettet: forhåndslasting av et delt oppsett kunne kaste feil, slik at siden falt tilbake til lokalt oppsett.
+  - Nettbrett (820 px): Loop Studio-demo, Thumbnail Studio og Fellesmappe uten vannrett rulling (visuelt kontrollert).
+  - Regresjon: Fellesmappe/Samarbeidsmappe (ZIP, eksport, sletting, API-sperrer) og stengte private opplastinger som før; 0 e2e-filer igjen.

@@ -20,7 +20,7 @@ class Component extends DCLogic {
     if (!sh.available) return;
     this.shared = sh;
     try { const d = await sh.load(); if (d) this.applyShared(d, true); this._sharedAt = Date.now(); this.setState({ sharedReady: true, sharedExists: !!d }); sh.watch(); }
-    catch (e) { this.flash('Menighetens grunnoppsett kunne ikke hentes. Du ser ditt eget oppsett på denne enheten.'); }
+    catch (e) { console.warn('[ConnectHub] grunnoppsett', e); this.flash('Menighetens grunnoppsett kunne ikke hentes. Du ser ditt eget oppsett på denne enheten.'); }
   };
   applyShared(d, initial) {
     this._sharedAt = Date.now();
@@ -29,7 +29,8 @@ class Component extends DCLogic {
     /* Egne kategorier som har maler, men ikke finnes i det felles oppsettet, beholdes (de deles ved neste endring). */
     const keep = this.state.cats.filter(c => !ids.has(c.id) && this.state.tpls.some(t => t.catId === c.id));
     const cats = sharedCats.concat(keep);
-    cats.forEach(c => { if (c.baseDoc) TS.loadAll(c.baseDoc).catch(() => {}); (c.layouts || []).forEach(l => l.doc && TS.loadAll(l.doc).catch(() => {})); });
+    const pre = doc => { try { if (doc && doc.bg && Array.isArray(doc.layers)) TS.loadAll(doc).catch(() => {}); } catch (e) {} };
+    cats.forEach(c => { pre(c.baseDoc); (c.layouts || []).forEach(l => pre(l.doc)); });
     this.setState({ cats }, () => TS.saveCats(cats).catch(() => {}));
     if (!initial) this.flash('Grunnoppsettet er oppdatert med endringer fra menigheten.');
   }
