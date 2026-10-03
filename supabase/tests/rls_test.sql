@@ -1685,6 +1685,25 @@ update public.memberships set status = 'active' where user_id = '00000000-0000-4
 select ch_test.cnt('Grunnoppsett: én rad per menighet og område, versjon 4', $q$select 1 from public.church_settings where church_id = '61616161-0000-4000-8000-000000000061' and scope = 'loopstudio:week' and version = 4 and data ->> 'header' = 'C'$q$, 1);
 select ch_test.cnt('Grunnoppsett: hver lagring er loggført (uten innholdet)', $q$select 1 from public.audit_logs where action = 'settings.update' and church_id = '61616161-0000-4000-8000-000000000061' and not (meta ? 'data')$q$, 5);
 
+-- ---------- Filer i bruk kan ikke slettes (grunnoppsett og menighetens logo) ----------
+-- G1 sitt grunnoppsett «loopstudio:week» refererer g1-delt.png (blokken over). G2 får g2-delt.png som logo.
+set local role postgres;
+update public.churches set logo_file_id = (select id from ch_test.gf where file_name = 'g2-delt.png') where id = '62626262-0000-4000-8000-000000000062';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.err('I bruk: Admin kan ikke slette bilde brukt i menighetens grunnoppsett (CH012)', $q$select public.delete_file((select id from ch_test.gf where file_name = 'g1-delt.png'))$q$, 'CH012');
+select ch_test.ok_rb('I bruk: ubrukt bilde kan fortsatt slettes', $q$select public.delete_file((select id from ch_test.gf where file_name = 'g1-ny.png'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.err('I bruk: uvedkommende får ingen tilgang (avslører ikke bruk)', $q$select public.delete_file((select id from ch_test.gf where file_name = 'g1-delt.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g63","aal":"aal1"}';
+select ch_test.err('I bruk: Admin kan ikke slette menighetens logo', $q$select public.delete_file((select id from ch_test.gf where file_name = 'g2-delt.png'))$q$, 'CH012');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.ok('I bruk: Admin fjerner bildet fra grunnoppsettet', $q$select public.church_settings_save('61616161-0000-4000-8000-000000000061', 'loopstudio:week', '{"header":"C","imgRules":[]}', 4)$q$);
+select ch_test.ok_rb('I bruk: etterpå kan bildet slettes', $q$select public.delete_file((select id from ch_test.gf where file_name = 'g1-delt.png'))$q$);
+set local role postgres;
+select ch_test.cnt('I bruk: ingen filer slettet av de avviste forsøkene', $q$select 1 from public.files where id in (select id from ch_test.gf where file_name in ('g1-delt.png', 'g2-delt.png'))$q$, 2);
+update public.churches set logo_file_id = null where id = '62626262-0000-4000-8000-000000000062';
+
 -- ---------- Ekstra Admin: Developer og Moderator legger seg selv til / fjerner seg selv ----------
 -- Bruker N1 (41 = fast Admin, 42 = medlem) fra navneblokken. Developer (sub-1) og Moderator (sub-2) er ikke medlemmer i N1.
 set local role authenticated;

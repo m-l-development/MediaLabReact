@@ -1666,6 +1666,7 @@ export default function template(v) {
                   {"\n            "}
                 </div>
                 {"\n\n            "}
+                {v.bgSourceNote ? <span data-ch-bg-source="1" style={{"fontSize":"12px","color":"#9d998f"}}>{I(v.bgSourceNote)}</span> : null}
                 <div data-dc-tpl="540" style={{"display":"flex","gap":"8px","flexWrap":"wrap"}}>
                   {"\n              "}
                   <button data-dc-tpl="541" onClick={v.pickImg} style={{"height":"34px","padding":"0 14px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className="scp2">

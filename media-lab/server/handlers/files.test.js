@@ -193,6 +193,7 @@ test('link.delete (gruppe): databasen sletter med brukerens token, alle kopiene 
 });
 test('feilkoder for grupper: minst to, høyst 20 og allerede med gir 409 med egen kode', async () => {
   const { dbError } = await import('../lib/http.js');
+  assert.deepEqual(dbError({ code: 'CH012' }), { status: 409, error: 'file_in_use' }, 'fil i bruk');
   assert.deepEqual(['CH007', 'CH008', 'CH009'].map(code => dbError({ code })), [
     { status: 409, error: 'group_min_members' }, { status: 409, error: 'group_full' }, { status: 409, error: 'group_member_exists' }]);
 });

@@ -29,7 +29,7 @@ class Component extends DCLogic {
     /* Egne kategorier som har maler, men ikke finnes i det felles oppsettet, beholdes (de deles ved neste endring). */
     const keep = this.state.cats.filter(c => !ids.has(c.id) && this.state.tpls.some(t => t.catId === c.id));
     const cats = sharedCats.concat(keep);
-    cats.forEach(c => { if (c.baseDoc) TS.loadAll(c.baseDoc).catch(() => {}); });
+    cats.forEach(c => { if (c.baseDoc) TS.loadAll(c.baseDoc).catch(() => {}); (c.layouts || []).forEach(l => l.doc && TS.loadAll(l.doc).catch(() => {})); });
     this.setState({ cats }, () => TS.saveCats(cats).catch(() => {}));
     if (!initial) this.flash('Grunnoppsettet er oppdatert med endringer fra menigheten.');
   }
@@ -41,7 +41,8 @@ class Component extends DCLogic {
     if (d.bg) d.bg = Object.assign({}, d.bg, { src: ok(d.bg.src), orig: null });
     return d;
   }
-  sharedData(cats) { return { cats: cats.map(c => ({ id: c.id, name: c.name, desc: c.desc || '', base: c.base, baseDoc: this.sharedDoc(c.baseDoc) })) }; }
+  sharedData(cats) { return { cats: cats.map(c => ({ id: c.id, name: c.name, desc: c.desc || '', base: c.base, baseDoc: this.sharedDoc(c.baseDoc),
+    baseName: c.baseName || '', defaultLayout: c.defaultLayout || '', layouts: (c.layouts || []).map(l => ({ id: l.id, name: l.name, doc: this.sharedDoc(l.doc) })) })) }; }
   async uploadLocalRefs(cats) {
     const map = this._refMap || (this._refMap = {}), sh = this.shared;
     const conv = async v => {
@@ -53,12 +54,17 @@ class Component extends DCLogic {
     };
     let changed = false;
     const out = [];
-    for (const c of cats) {
-      if (!c.baseDoc) { out.push(c); continue; }
-      const d = TS.clone(c.baseDoc);
+    const convDoc = async doc => {
+      if (!doc) return doc;
+      const d = TS.clone(doc);
       for (const l of d.layers) { if (l.src && l.src.indexOf('db:') === 0) { const n = await conv(l.src); if (n !== l.src) { l.src = n; l.orig = null; changed = true; } } }
       if (d.bg && d.bg.src && d.bg.src.indexOf('db:') === 0) { const n = await conv(d.bg.src); if (n !== d.bg.src) { d.bg = Object.assign({}, d.bg, { src: n, orig: null }); changed = true; } }
-      out.push(Object.assign({}, c, { baseDoc: d }));
+      return d;
+    };
+    for (const c of cats) {
+      const layouts = [];
+      for (const l of (c.layouts || [])) layouts.push(Object.assign({}, l, { doc: await convDoc(l.doc) }));
+      out.push(Object.assign({}, c, { baseDoc: await convDoc(c.baseDoc) }, c.layouts ? { layouts } : {}));
     }
     if (changed) { this.setState({ cats: out }); await TS.saveCats(out).catch(() => {}); }
     return out;
@@ -77,7 +83,7 @@ class Component extends DCLogic {
   pickFelles = async (t = { mode: 'add' }) => {
     if (!window.MLCloud || !window.MLCloud.pick) return;
     this.setState({ logoOpen: false });
-    const r = await window.MLCloud.pick({ start: 'ressurser', title: t.logo ? 'Velg logo fra Fellesmappe' : 'Velg bilde fra Fellesmappe' }); if (!r || !this.alive) return;
+    const r = await window.MLCloud.pick({ start: t.logo ? 'ressurser' : 'faste', title: t.logo ? 'Velg logo fra Fellesmappe' : 'Velg bilde fra Fellesmappe' }); if (!r || !this.alive) return;
     const probe = TS.clone(this.state.doc);
     if (t.mode === 'add' && TS.countImgs(probe) >= TS.MAX_IMG) { this.flash('Maks 5 bilder per mal. Fjern et bilde først.'); return; }
     await TS.loadSrc(r.ref); if (!this.alive) return;
@@ -112,7 +118,7 @@ class Component extends DCLogic {
     const c = this.state.cats.find(x => x.id === h.cat); if (!c) return;
     this.setState({ view: 'cat', catId: c.id });
     if (h.v !== 'edit') return;
-    if (h.base) { this.enterEdit(this.catBase(c), null, '', true); return; }
+    if (h.base) { this.editBase(h.layout || 'main'); return; }
     const t = h.tpl && this.state.tpls.find(x => x.id === h.tpl && x.catId === c.id); if (t) this.enterEdit(TS.clone(t.doc), t.id, t.name);
   }
   /* ny versjon publisert: lagre det som er åpent. Ny mal i full kategori kan ikke lagres (false) */
@@ -125,7 +131,7 @@ class Component extends DCLogic {
   }
   saveHere() {
     const S = this.state; if (!S.ready) return;
-    const v = S.view === 'edit' ? { v: 'edit', cat: S.catId, tpl: S.tplId || null, base: !!S.baseEdit } : S.view === 'cat' ? { v: 'cat', cat: S.catId } : null, k = JSON.stringify(v);
+    const v = S.view === 'edit' ? { v: 'edit', cat: S.catId, tpl: S.tplId || null, base: !!S.baseEdit, layout: S.baseEdit ? S.layoutId || 'main' : null } : S.view === 'cat' ? { v: 'cat', cat: S.catId } : null, k = JSON.stringify(v);
     if (k !== this._hk) { this._hk = k; hereSet('thumb', v); }
   }
   componentDidUpdate() { this.saveHere(); if (this.state.view === 'edit') { this.sched(); this.autoTick(); if (this._pendImg && this.state.doc) { const f = this._pendImg; this._pendImg = null; this.useFile(f, { mode: 'add' }); } } }
@@ -178,21 +184,46 @@ class Component extends DCLogic {
   persistTpls(tpls) { this.setState({ tpls }); return TS.saveTpls(tpls).catch(() => this.flash('Klarte ikke å lagre. Lagringsplassen kan være full.')); }
   gcAll() {
     if (!window.TS) return; const keep = new Set(), add = d => TS.refs(d).forEach(k => keep.add(k));
-    this.state.tpls.forEach(t => add(t.doc)); this.state.cats.forEach(c => { if (c.baseDoc) add(c.baseDoc); }); if (this.state.doc) add(this.state.doc); { const cl = this.getClip(); if (cl.length) add({ bg: {}, layers: cl }); } this.state.hist.forEach(h => add(JSON.parse(h))); this.state.fut.forEach(h => add(JSON.parse(h)));
+    this.state.tpls.forEach(t => add(t.doc)); this.state.cats.forEach(c => { if (c.baseDoc) add(c.baseDoc); (c.layouts || []).forEach(l => l.doc && add(l.doc)); }); if (this.state.doc) add(this.state.doc); { const cl = this.getClip(); if (cl.length) add({ bg: {}, layers: cl }); } this.state.hist.forEach(h => add(JSON.parse(h))); this.state.fut.forEach(h => add(JSON.parse(h)));
     TS.gc(keep);
   }
   /* ----- categories & templates ----- */
   openCat(id) { this.setState({ view: 'cat', catId: id, editCats: false }); window.scrollTo(0, 0); }
-  catBase(c) { return c && c.baseDoc ? TS.clone(c.baseDoc) : TS.base(c ? c.base : 'blank'); }
-  editBase = () => { const c = this.cat(); if (c) this.enterEdit(this.catBase(c), null, '', true); };
+  /* Grunnoppsett per kategori: «main» (baseDoc, som før) og ekstra navngitte oppsett (layouts, høyst 5). Ett av dem er
+     kategoriens standard (defaultLayout). Alt dette er felles for menigheten (thumbstudio:cats); malene er personlige.
+     Å redigere en mal endrer aldri grunnoppsettet, og å redigere ett grunnoppsett endrer ikke andre kategorier. */
+  layoutsOf(c) { return c ? [{ id: 'main', name: c.baseName || this.t('Grunnoppsett'), doc: c.baseDoc || null }].concat((c.layouts || []).filter(l => l && l.id && l.doc)) : []; }
+  defaultLayoutId(c) { return c && c.defaultLayout && (c.layouts || []).some(l => l.id === c.defaultLayout) ? c.defaultLayout : 'main'; }
+  layoutDoc(c, id) { if (id && id !== 'main') { const l = (c.layouts || []).find(x => x.id === id); if (l && l.doc) return TS.clone(l.doc); } return c && c.baseDoc ? TS.clone(c.baseDoc) : TS.base(c ? c.base : 'blank'); }
+  catBase(c) { return this.layoutDoc(c, this.defaultLayoutId(c)); }
+  editBase = (id) => { const c = this.cat(); if (!c) return; const lid = typeof id === 'string' ? id : 'main'; this.setState({ layoutId: lid }); this.enterEdit(this.layoutDoc(c, lid), null, (this.layoutsOf(c).find(l => l.id === lid) || {}).name || '', true); };
+  addLayout = () => {
+    const c = this.cat(); if (!c) return;
+    if ((c.layouts || []).length >= 4) { this.flash('Høyst 5 grunnoppsett per kategori. Slett et først.'); return; }
+    const id = 'l' + TS.uid(), name = this.t('Grunnoppsett') + ' ' + ((c.layouts || []).length + 2);
+    this.persistCats(this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { layouts: (x.layouts || []).concat([{ id, name, doc: this.catBase(c) }]) }) : x));
+    this.flash('Nytt grunnoppsett er laget som en kopi av standardoppsettet. Trykk «Rediger» for å tilpasse det.');
+  };
+  renameLayout(c, l) {
+    const v = prompt(this.t('Nytt navn på grunnoppsettet:'), l.name); if (v == null) return;
+    const name = String(v).trim().slice(0, 40); if (!name) return;
+    this.persistCats(this.state.cats.map(x => x.id !== c.id ? x : l.id === 'main' ? Object.assign({}, x, { baseName: name }) : Object.assign({}, x, { layouts: (x.layouts || []).map(y => y.id === l.id ? Object.assign({}, y, { name }) : y) })));
+  }
+  setDefaultLayout(c, id) { this.persistCats(this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { defaultLayout: id === 'main' ? '' : id }) : x)); this.flash('Standard grunnoppsett for kategorien er endret. Nye maler starter fra det.'); }
+  delLayout(c, l) {
+    if (l.id === 'main' || !confirm(this.t('Slette grunnoppsettet') + ' «' + l.name + '»?\n\n' + this.t('Det slettes for hele menigheten. Maler som allerede er laget fra det, beholdes.'))) return;
+    this.persistCats(this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { layouts: (x.layouts || []).filter(y => y.id !== l.id), defaultLayout: x.defaultLayout === l.id ? '' : x.defaultLayout }) : x));
+    this.gcAll();
+  }
   resetBase = () => {
     const c = this.cat(); if (!c || !confirm('Tilbakestille grunnoppsettet til standard?')) return;
     this.setState({ cats: this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { baseDoc: null }) : x) }, () => { TS.saveCats(this.state.cats).catch(() => this.flash('Klarte ikke å lagre.')); this.gcAll(); this.queueShared(); });
   };
   async saveBase(quiet) {
     const c = this.cat(); if (!c) return;
-    const ref = this.state.doc, doc = TS.clone(ref);
-    await this.persistCats(this.state.cats.map(x => x.id === c.id ? Object.assign({}, x, { baseDoc: doc }) : x));
+    const ref = this.state.doc, doc = TS.clone(ref), lid = this.state.layoutId || 'main';
+    await this.persistCats(this.state.cats.map(x => x.id !== c.id ? x : lid === 'main' ? Object.assign({}, x, { baseDoc: doc })
+      : Object.assign({}, x, { layouts: (x.layouts || []).map(y => y.id === lid ? Object.assign({}, y, { doc }) : y) })));
     if (!this.alive) return;
     if (this.state.doc === ref) this.setState({ dirty: false });
     if (!quiet) this.flash('Grunnoppsettet er lagret. Nye maler starter herfra.');
@@ -214,7 +245,7 @@ class Component extends DCLogic {
     const lay = k => () => { const d = TS.layout(k); d.layers.forEach(l => { if (l.type === 'text' && String(l.text).indexOf('Kategori') === 0) l.text = c.name + l.text.slice(8); }); return d; };
     const pal = this.state.newPal || 'default';
     return [
-      { k: 'base', name: 'Grunnoppsett', desc: 'Kategoriens eget oppsett', doc: () => this.catBase(c) },
+      ...(() => { const def = this.defaultLayoutId(c), ls = this.layoutsOf(c); return ls.filter(l => l.id === def).concat(ls.filter(l => l.id !== def)).map(l => ({ k: 'base:' + l.id, name: l.name + (l.id === def ? ' · ' + this.t('standard') : ''), desc: this.t('Felles grunnoppsett for kategorien'), doc: () => this.layoutDoc(c, l.id) })); })(),
       { k: 'blank', name: 'Blank', desc: 'Helt tom flate', doc: lay('blank') },
       { k: 'shorthook', name: 'Stor krok', desc: 'Stor tekst på en gul stripe over personen', doc: lay('shorthook') },
       { k: 'shortsplit', name: 'Delt i høyden', desc: 'Bilde øverst, farget tekstfelt nederst', doc: lay('shortsplit') },
@@ -1128,7 +1159,10 @@ class Component extends DCLogic {
       const list = this.tplsOf(c.id), full = list.length >= TS.MAX_TPL;
       Object.assign(v, {
         catCount: list.length + ' av 5 maler', catFull: full, newSub: full ? 'Full (5 av 5). Slett en mal først.' : 'Velg grunnoppsett, standard eller blank', newFromBase: this.newFromBase, ...this.newVals(c), editBase: this.editBase, resetBase: this.resetBase, hasCustomBase: !!c.baseDoc,
-        baseSub: c.baseDoc ? 'Nye maler starter fra ditt lagrede oppsett.' : 'Farger, bakgrunn, fonter og plassering som alle nye maler starter med.',
+        baseSub: 'Grunnoppsettene er felles for menigheten. Malene dine er personlige.',
+        layoutRows: (() => { const def = this.defaultLayoutId(c); return this.layoutsOf(c).map(l => ({ name: l.name, isDefault: l.id === def, notDefault: l.id !== def, canDel: l.id !== 'main',
+          edit: () => this.editBase(l.id), rename: () => this.renameLayout(c, l), makeDefault: () => this.setDefaultLayout(c, l.id), del: () => this.delLayout(c, l) })); })(),
+        addLayout: this.addLayout,
         tplCards: list.map(t => ({ name: t.name, thumb: t.thumb || '', date: 'Endret ' + new Date(t.updated).toLocaleDateString(window.MLI18N && MLI18N.lang === 'en' ? 'en-GB' : 'nb-NO', { day: 'numeric', month: 'short', year: 'numeric' }), open: () => this.enterEdit(TS.clone(t.doc), t.id, t.name), dup: () => this.dupTpl(t), dupOp: full ? 0.4 : 1, dupDis: full, del: () => this.delTpl(t) }))
       });
     }

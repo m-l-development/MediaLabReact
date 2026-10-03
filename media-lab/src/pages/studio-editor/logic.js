@@ -420,6 +420,46 @@ class Component extends DCLogic {
      Bilder i grunnoppsettet er referanser til menighetens filer i ConnectHub («ch:<id>»); lokale bilder lastes opp ved
      lagring (logo → Logoer for Admin, ellers Fellesmappe; Faste bilder → Faste, bare Admin). Standardbilder tas aldri med.
      Faste bilder kan bare endres av Admin – grensesnittet er skrivebeskyttet for andre, og databasen avviser det uansett. */
+  /* ---------- Demo (tydelig merket, lagres aldri) ----------
+     Eksempelinnholdet med genererte bakgrunner (fargeoverganger og former tegnet i nettleseren) – ingen fotografier eller
+     logoer. Ingenting lagres: verken lokalt, i prosjektmapper eller i menighetens grunnoppsett. «Avslutt demo» åpner
+     den vanlige (tomme eller egne) lysbildeserien. */
+  makeDemoBg(i) {
+    const P = [['#1d2b64', '#f8cdda'], ['#0f2027', '#2c5364'], ['#42275a', '#734b6d'], ['#134e5e', '#71b280'], ['#3a1c71', '#ffaf7b']][i % 5];
+    const c = document.createElement('canvas'); c.width = 1920; c.height = 1080; const g = c.getContext('2d');
+    const lg = g.createLinearGradient(0, 0, 1920, 1080); lg.addColorStop(0, P[0]); lg.addColorStop(1, P[1]); g.fillStyle = lg; g.fillRect(0, 0, 1920, 1080);
+    g.globalAlpha = 0.18; g.fillStyle = '#ffffff';
+    for (let k = 0; k < 7; k++) { g.beginPath(); g.arc(240 + ((k * 397 + i * 211) % 1600), 160 + ((k * 263 + i * 137) % 820), 60 + ((k * 89 + i * 41) % 260), 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 0.12; g.lineWidth = 3; g.strokeStyle = '#ffffff';
+    for (let y = -400; y < 1500; y += 90) { g.beginPath(); g.moveTo(0, y + i * 23); g.lineTo(1920, y + 500 + i * 23); g.stroke(); }
+    return new Promise(r => c.toBlob(b => r(b), 'image/jpeg', 0.9));
+  }
+  async demoData(tpl) {
+    const d = this.sampleData(tpl), ids = [], urls = {};
+    for (let i = 0; i < 5; i++) {
+      const b = await this.makeDemoBg(i); if (!b) continue;
+      const id = 'demo-bg-' + i, u = URL.createObjectURL(b), im = new Image(); im.src = u; this.media.images[id] = im; urls[id] = u; ids.push(id);
+    }
+    this.setState(s => ({ urls: { ...s.urls, ...urls } }));
+    return { ...d, slides: d.slides.map((x, i) => ({ ...x, bg: ids.length ? ids[i % ids.length] : null, ruleId: null })) };
+  }
+  demoBanner(tpl) {
+    if (document.querySelector('[data-ch-demo-banner]')) return;
+    const b = document.createElement('div'); b.setAttribute('data-ch-demo-banner', '1'); b.setAttribute('role', 'status');
+    b.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147480000;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px);padding:8px 10px 8px 16px;border:1px solid #f5b82c;border-radius:999px;background:#1b1607;color:#f5d38f;font:600 13px Archivo,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)';
+    const t = document.createElement('span'); t.textContent = TT('DEMO – eksempel med genererte bakgrunner. Ingenting lagres.');
+    const a = document.createElement('a'); a.href = 'studio-editor.dc.html?mal=' + encodeURIComponent(tpl || 'week'); a.textContent = TT('Avslutt demo'); a.setAttribute('data-ch-demo-exit', '1');
+    a.style.cssText = 'height:30px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;background:#f5b82c;color:#111;text-decoration:none';
+    b.append(t, a); document.body.append(b);
+  }
+  bgSource(b, sel) {
+    if (!b) return '';
+    if (sel && sel.ruleId) { const r = (this.state.cfg.imgRules || []).find(x => x.id === sel.ruleId); if (r) return 'Kilde: Fast bilde «' + (r.kw || 'Uten navn') + '» (Faste bilder i Loop Studio)'; }
+    if (b.startsWith('ch:')) return 'Kilde: menighetens filer i ConnectHub (Faste bilder, Felles ressurser eller Fellesmappe)';
+    if (b.startsWith('img-')) return 'Kilde: eget bilde – lagret bare på denne enheten';
+    if (b.startsWith('demo-')) return 'Kilde: generert demobakgrunn';
+    return 'Kilde: eldre innebygd bilde';
+  }
   isStored(b) { return typeof b === 'string' && (b.startsWith('img-') || b.startsWith('ch:')); }
   async blobOf(b) {
     if (!b) return null;
@@ -434,7 +474,7 @@ class Component extends DCLogic {
     return { ...cfg, logoSrc: ok(cfg.logoSrc), imgRules: (cfg.imgRules || []).map(r => ({ ...r, bg: ok(r.bg), bgPort: ok(r.bgPort) })) };
   }
   async initShared(tpl) {
-    if (this.customId || this.diskId || !window.CH || !window.CH.me) return;
+    if (this.customId || this.diskId || this.demo || !window.CH || !window.CH.me) return;
     const sh = new SharedSetup('loopstudio:' + tpl, { onRemote: d => this.applyShared(d, false), onStatus: st => this.sharedStatus(st) });
     if (!sh.available) return;
     this.shared = sh;
@@ -582,10 +622,13 @@ class Component extends DCLogic {
     return saved && saved.slides.length ? saved : null;
   }
   saveNow() {
-    const s = this.state; clearTimeout(this._sv);
+    const s = this.state; clearTimeout(this._sv); if (this.demo) return;
     try { localStorage.setItem(this.storeKey(s.tpl), JSON.stringify({ programText: s.programText, slides: s.slides, cfg: s.cfg, videoName: s.videoName, audioName: s.audioName })); } catch (e) {}
   }
-  defaults(tpl) {
+  /* Nye brukere starter med en tom lysbildeserie (ingen eksempeltekst, ingen bilder). Eksempelinnholdet brukes bare i
+     demoen (?demo=1), som får genererte bakgrunner og aldri lagres. */
+  defaults(tpl) { const s = this.sampleData(tpl); return { programText: '', cfg: s.cfg, slides: [] }; }
+  sampleData(tpl) {
     const U = window.UkeLoop;
     if (tpl === 'sunday') return { programText: '', cfg: { header: 'Søndagsmøte', topLabel: 'Velkommen' }, slides: [
       { id: 'sun-velkommen', type: 'text', kicker: 'Velkommen', pill: 'Kl 11:00', body: 'Velkommen til søndagsmøte! Finn deg en plass, så begynner vi om litt.', sub: 'Møtet sendes også direkte på nett', bg: null, bgOpacity: 1, dur: 6 },
@@ -627,10 +670,12 @@ class Component extends DCLogic {
       else if (/^c-[a-z0-9]{4,16}$/.test(cid)) { this.customId = cid; this.customName = card && typeof card.title === 'string' ? card.title.slice(0, 60) : 'Egen mal'; }
       else if (card && typeof card.title === 'string' && card.title.trim() && card.title !== this.tplNames()[tpl]) this.customName = card.title.slice(0, 60);
     } catch (e) {}
-    try { localStorage.setItem('ukeloop.tpl', tpl); } catch (e) {}
+    if (new URLSearchParams(location.search).get('demo') !== '1') try { localStorage.setItem('ukeloop.tpl', tpl); } catch (e) {}
     this.baseCfg = this.state.cfg; this.tplCfg = (this.defaults(tpl) || {}).cfg || {};
     const dd = this.diskData && Array.isArray(this.diskData.slides) && this.diskData.slides.length ? { ...this.diskData, slides: this.diskData.slides.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && ['day', 'text', 'contact', 'outro'].includes(x.type)) } : null;
-    const base = dd || this.loadSaved(tpl) || this.defaults(tpl);
+    this.demo = new URLSearchParams(location.search).get('demo') === '1' && !this.customId && !this.diskId;
+    const base = this.demo ? await this.demoData(tpl) : dd || this.loadSaved(tpl) || this.defaults(tpl);
+    if (this.demo) this.demoBanner(tpl);
     this._initAt = performance.now();
     this.setState({ ready: true, tpl, programText: base.programText || '', slides: base.slides, cfg: { ...this.state.cfg, ...(base.cfg || {}) }, videoName: base.videoName || '', audioName: base.audioName || '', selected: (base.slides[0] || {}).id || null });
     /* only one sound engine per page: close every earlier context (reload / remount / live code updates) */
@@ -711,7 +756,7 @@ class Component extends DCLogic {
       this._last = { slides: S.slides, cfg: S.cfg, programText: S.programText, videoName: S.videoName, audioName: S.audioName };
       clearTimeout(this._sv);
       this._sv = setTimeout(() => {
-        const s = this.state;
+        const s = this.state; if (this.demo) return;
         try { localStorage.setItem(this.storeKey(s.tpl), JSON.stringify({ programText: s.programText, slides: s.slides, cfg: s.cfg, videoName: s.videoName, audioName: s.audioName })); } catch (e) {}
         if (performance.now() - (this._initAt || 0) > 1500) this.autoDisk();
       }, 700);
@@ -1241,7 +1286,7 @@ class Component extends DCLogic {
     try { const l = JSON.parse(localStorage.getItem('loopstudio.disk.v1') || '[]'); return Array.isArray(l) ? l.filter(d => d && typeof d.id === 'string' && /^d-[a-z0-9]{4,16}$/.test(d.id)) : []; } catch (e) { return []; }
   }
   autoDisk() {
-    if (!this.diskId || this.state.cfg.autoSave !== true) return;
+    if (this.demo || !this.diskId || this.state.cfg.autoSave !== true) return;
     const S = this.state, list = this.diskList(), i = list.findIndex(d => d.id === this.diskId);
     if (i < 0) return;
     const slides = S.slides.map(x => { const { qr, ...rest } = x; return rest; });
@@ -2633,7 +2678,7 @@ class Component extends DCLogic {
           if ((r.bg || r.bgPort || r.kw) && !confirm(TT('Slette det faste bildet') + (r.kw ? ' «' + r.kw + '»' : '') + '?\n\n' + TT('Det fjernes fra Faste bilder i Loop Studio for hele menigheten når du trykker Ferdig. Originalbildet i Felles ressurser eller Fellesmappe blir liggende.'))) return;
           this.draftRules(ds => ds.filter(x => x.id !== r.id), false);
         },
-        fromShared: () => { if (!this.canEditRules()) return; const F = PT ? 'bgPort' : 'bg'; this.pickShared('ressurser', ref => { this.setState({ galleryFor: null }); this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, [F]: ref } : x)); }); }
+        fromShared: () => { if (!this.canEditRules()) return; const F = PT ? 'bgPort' : 'bg'; this.pickShared('faste', ref => { this.setState({ galleryFor: null }); this.draftRules(ds => ds.map(x => x.id === r.id ? { ...x, [F]: ref } : x)); }); }
       })),
       addRule: () => { if (this.canEditRules()) this.draftRules(ds => [...ds, { id: 'r-' + Date.now().toString(36), kw: '', bg: null }], false); },
       rulesEdit: this.canEditRules(), rulesReadOnly: !this.canEditRules(),
@@ -2695,6 +2740,7 @@ class Component extends DCLogic {
             pick: () => this.setState(s => ({ rulePickOpen: false, slides: s.slides.map(x => x.id === id ? { ...x, ruleId: r.id, bg: r.bg || x.bg, bgPort: r.bgPort || x.bgPort || null } : x) })) }; })
         };
       })(),
+      bgSourceNote: sel ? this.bgSource(sel[this.bgField()] || (this.portrait() ? sel.bg : null), sel) : '',
       canRemoveBg: !!(sel && sel[this.bgField()]), removeBgLabel: PT ? 'Fjern stående bilde' : 'Fjern bilde',
       pickBgLabel: PT ? (sel && sel.bgPort ? 'Bytt stående bilde…' : 'Legg til stående bilde…') : 'Bytt bilde…',
       bgHeading: PT ? 'Bakgrunnsbilde · stående' : 'Bakgrunnsbilde', bgAspect: PT ? '9 / 16' : '16 / 9', bgBoxW: PT ? '46%' : '100%',
@@ -2857,7 +2903,7 @@ class Component extends DCLogic {
       logoOn: S.cfg.logoOn !== false, onLogoOn: e => this.setCfg('logoOn', e.target.checked),
       removeLogo: () => this.setCfg('logoSrc', null),
       pickLogoShared: () => this.pickShared('ressurser', ref => this.setState(s => ({ cfg: { ...s.cfg, logoSrc: ref, logoOn: true } }))),
-      pickBgShared: () => this.pickShared('ressurser', ref => this.setSlideBg(ref)),
+      pickBgShared: () => this.pickShared('faste', ref => this.setSlideBg(ref)),
       sharedNote: !this.sharedOn() ? '' : this.state.sharedExists ? 'Grunnoppsettet (farger, tekst, logo, effekter og Faste bilder) er felles for hele menigheten.' : 'Menigheten har ikke et felles grunnoppsett for denne malen ennå. Første endring du gjør, blir menighetens felles grunnoppsett.',
       logoSize: S.cfg.logoSize || 90, onLogoSize: e => this.setCfg('logoSize', Number(e.target.value)),
       logoOpacityPct: Math.round((S.cfg.logoOpacity == null ? 1 : S.cfg.logoOpacity) * 100), onLogoOpacity: e => this.setCfg('logoOpacity', Number(e.target.value) / 100),

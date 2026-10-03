@@ -362,6 +362,17 @@ export default function template(v) {
               </span>
               {"\n        "}
             </div>
+            <div data-ch-layouts="1" style={{"display":"flex","flexDirection":"column","gap":"6px","width":"100%","maxWidth":"620px","paddingTop":"4px"}}>
+              <span style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.2em","textTransform":"uppercase","color":"#9d998f"}}>Grunnoppsett i kategorien · felles for menigheten</span>
+              {list(v.layoutRows).map((r, i) => <div key={i} data-ch-layout={r.name} style={{"display":"flex","alignItems":"center","gap":"8px","flexWrap":"wrap","padding":"8px 12px","border":"1px solid rgba(255,255,255,0.12)","borderRadius":"12px"}}>
+                <b style={{"flex":"1","minWidth":"140px","fontSize":"13.5px"}}>{r.name}{r.isDefault ? <span data-ch-layout-default="1" style={{"marginLeft":"8px","fontSize":"11px","fontWeight":"600","color":"#f5d38f"}}>{I('Standard')}</span> : null}</b>
+                <button onClick={r.edit} style={{"height":"30px","padding":"0 12px","border":"1px solid rgba(255,255,255,0.22)","borderRadius":"999px","background":"transparent","color":"#f3f1ec","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>Rediger</button>
+                <button onClick={r.rename} style={{"height":"30px","padding":"0 12px","border":"0","background":"transparent","color":"#b3afa6","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>Gi nytt navn</button>
+                {r.notDefault ? <button onClick={r.makeDefault} data-ch-layout-make-default="1" style={{"height":"30px","padding":"0 12px","border":"0","background":"transparent","color":"#b3afa6","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>Gjør til standard</button> : null}
+                {r.canDel ? <button onClick={r.del} style={{"height":"30px","padding":"0 12px","border":"0","background":"transparent","color":"#ff8f7d","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>Slett</button> : null}
+              </div>)}
+              <button onClick={v.addLayout} data-ch-layout-add="1" style={{"alignSelf":"flex-start","height":"32px","padding":"0 14px","border":"1px dashed rgba(255,255,255,0.3)","borderRadius":"999px","background":"transparent","color":"#f3f1ec","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>+ Nytt grunnoppsett</button>
+            </div>
             {"\n      "}
           </div>
           {"\n      "}

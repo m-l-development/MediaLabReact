@@ -1,5 +1,6 @@
 /* Bildevelgeren «Fellesmappe» for verktøyene (Loop Studio, Thumbnail Studio, Photo Design, Motion Design …).
-   - To faner: «Felles ressurser» (Faste: faste bilder, logoer, bakgrunner) og «Fellesmappe» (menighetens delte bilder).
+   - Tre kilder: «Faste bilder» (menighetens faste bilder), «Felles ressurser» (logoer og bakgrunner) og «Fellesmappe»
+     (menighetens delte bilder). Egne bilder bare på enheten velges med verktøyets egen opplastingsknapp.
    - Viser bare filer i brukerens aktive menighet som er delt med menigheten (aldri private filer, aldri andre menigheters
      filer – databasen gir uansett bare det brukeren har tilgang til).
    - Valg gir en referanse «ch:<fil-id>» til originalen (ingen kopi), pluss bildet som Blob for straks visning.
@@ -15,11 +16,12 @@ const ERR = { video_not_allowed: 'Video kan aldri lastes opp.', type_not_allowed
 const el = (tag, css, text) => { const e = document.createElement(tag); if (css) e.style.cssText = css; if (text != null) e.textContent = text; return e; };
 const BTN = 'height:34px;padding:0 14px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:transparent;color:#f3f1ec;font:inherit;font-size:13px;font-weight:600;cursor:pointer';
 const AREAS = [
-  ['ressurser', 'Felles ressurser', ['faste', 'logoer', 'bakgrunner']],
+  ['faste', 'Faste bilder', ['faste']],
+  ['ressurser', 'Felles ressurser', ['logoer', 'bakgrunner']],
   ['felles', 'Fellesmappe', ['bilder']],
 ];
 
-export function pickFromFellesmappe({ title = 'Velg bilde fra Fellesmappe', start = 'ressurser', folders } = {}) {
+export function pickFromFellesmappe({ title = 'Velg bilde fra Fellesmappe', start = 'faste' } = {}) {
   return new Promise(resolve => {
     const church = activeChurch(), prevFocus = document.activeElement;
     const ov = el('div', 'position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Archivo,"Helvetica Neue",Arial,sans-serif');
@@ -32,7 +34,7 @@ export function pickFromFellesmappe({ title = 'Velg bilde fra Fellesmappe', star
     const tabs = el('div', 'display:flex;gap:6px;flex-wrap:wrap'); tabs.setAttribute('role', 'tablist');
     const bar = el('div', 'display:flex;align-items:center;gap:10px;flex-wrap:wrap');
     const msg = el('p', 'margin:0;font-size:13px;color:#b3afa6;flex:1;min-width:200px'); msg.setAttribute('role', 'status'); msg.setAttribute('data-ch-picker-msg', '1');
-    const up = el('label', BTN + ';display:inline-flex;align-items:center;background:#f3f1ec;color:#111;border-color:#f3f1ec', T('Last opp til Fellesmappe'));
+    const up = el('label', BTN + ';display:inline-flex;align-items:center;background:#f3f1ec;color:#111;border-color:#f3f1ec', T('Last opp og del i Fellesmappe'));
     const inp = el('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif'; inp.style.display = 'none'; up.append(inp); up.setAttribute('data-ch-picker-upload', '1');
     const open = el('a', 'font-size:13px;color:#b3afa6', T('Åpne Fellesmappe')); open.href = 'connecthub-admin.dc.html#/filer/felles'; open.target = '_blank'; open.rel = 'noopener';
     bar.append(msg, up, open);
@@ -44,7 +46,7 @@ export function pickFromFellesmappe({ title = 'Velg bilde fra Fellesmappe', star
     document.addEventListener('keydown', key, true);
     x.onclick = () => close(null); ov.onclick = e => { if (e.target === ov) close(null); };
     if (!church) { msg.textContent = T('Du er ikke medlem av en menighet. Bilder fra Fellesmappe vises bare for medlemmer.'); up.style.display = 'none'; return; }
-    let area = AREAS.some(a => a[0] === start) ? start : 'ressurser', seq = 0;
+    let area = AREAS.some(a => a[0] === start) ? start : 'faste', seq = 0;
     const choose = async (f, objUrl) => {
       try { const b = await (await fetch(objUrl)).blob(); close({ ref: 'ch:' + f.id, id: f.id, name: f.file_name, blob: b }); }
       catch (e) { msg.textContent = T('Bildet kunne ikke hentes. Prøv igjen.'); }
@@ -53,11 +55,11 @@ export function pickFromFellesmappe({ title = 'Velg bilde fra Fellesmappe', star
     async function load() {
       const n = ++seq; paintTabs(); grid.textContent = ''; msg.textContent = T('Laster …');
       try {
-        const fl = folders && area === 'ressurser' ? folders : AREAS.find(a => a[0] === area)[2];
+        const fl = AREAS.find(a => a[0] === area)[2];
         const lists = await Promise.all(fl.map(folder => F.list({ churchId: church.id, folder })));
         const list = lists.flat().filter(f => f.visibility === 'church' && f.church_id === church.id).slice(0, 200);
         if (n !== seq) return;
-        if (!list.length) { msg.textContent = T(area === 'ressurser' ? 'Ingen felles ressurser ennå. Admin legger dem inn under Filer → Faste i ConnectHub. Du kan også velge fra Fellesmappe eller laste opp et bilde.' : 'Fellesmappen er tom. Last opp det første bildet.'); return; }
+        if (!list.length) { msg.textContent = T(area === 'faste' ? 'Ingen faste bilder ennå. Admin legger dem inn under Filer → Faste i ConnectHub. Du kan også velge fra Fellesmappe eller laste opp et bilde.' : area === 'ressurser' ? 'Ingen felles ressurser (logoer eller bakgrunner) ennå. Admin legger dem inn under Filer → Faste i ConnectHub.' : 'Fellesmappen er tom. Last opp det første bildet.'); return; }
         msg.textContent = fill(T('{n} bilder – trykk på et bilde for å bruke det.'), { n: list.length });
         const u = {}; for (let i = 0; i < list.length; i += 100) Object.assign(u, await F.objectUrls(list.slice(i, i + 100).map(f => f.id)));
         if (n !== seq) { Object.values(u).forEach(v => URL.revokeObjectURL(v)); return; }

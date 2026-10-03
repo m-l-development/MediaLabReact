@@ -74,6 +74,7 @@ export default function template(v) {
           <h1 data-dc-tpl="30" data-ml-title="1" style={{"margin":"0","textAlign":"center","fontSize":"clamp(40px, 8.5vw, 104px)","fontWeight":"600","lineHeight":"1","letterSpacing":"0.08em","textTransform":"uppercase","fontStretch":"125%"}}>
             {I(v.pageTitle)}
           </h1>
+          <a href="studio-editor.dc.html?mal=week&demo=1" data-ch-demo-link="1" style={{"display":"inline-flex","alignItems":"center","gap":"8px","height":"36px","padding":"0 16px","border":"1px solid rgba(245,184,44,0.6)","borderRadius":"999px","color":"#f5d38f","fontSize":"12.5px","fontWeight":"600","letterSpacing":"0.06em","textDecoration":"none"}}>Se demo (lagres ikke)</a>
           {"\n    "}
         </> : null}
         {"\n    "}
