@@ -1236,3 +1236,16 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - Etterkontroll (`supabase/checks/prod_postcheck_folders.sql`): 36 migreringer, alle ok-felt true; filer 9 og private 0 uendret; radantall i alle 27 tabeller lik sikkerhetskopien. Tidligere etterkontroll (forespørsler) fortsatt ok.
 - `main` fast-forward f13c02e → c7163dd. Vercel Production: `version.json` = c7163dd.
 - Røyktest i prod (uten innlogging; ingen testkontoer i prod): `file.upload_link`, `file.upload` (privat), `file.urls`, `file.delete` → 401, ugyldig token → 401, Filer-siden → 307 til innlogging, innloggingssiden som før.
+
+## Felles grunnoppsett, Faste/Felles ressurser i verktøyene og ingen standardbilder (2026-10-03, dev)
+- Migrering `20261016100000_church_settings.sql` kjørt i dev (ny tabell `church_settings`, `church_settings_get/save`, `app.settings_admin_keys`). Ingen eksisterende data endret.
+- RLS 935/935 (PGlite og dev; 24 nye: første lagring, Admin og medlem ser samme versjon, CH011 ved utdatert versjon, eldre versjon kan ikke overskrive nyere, medlem kan ikke endre Faste bilder (imgRules), Admin kan, referanse til annen menighets fil/ukjent fil avvises, for stort/ugyldig område avvises, annen menighet kan verken lese eller lagre, Moderator uten medlemskap og ikke innlogget avvises, ingen direkte tabelltilgang, deaktivert medlem avvises, logg uten innhold).
+- `npm test` 160/160 (6 nye for sammenslåing og samtidige lagringer). `npm run build` OK.
+- E2E (preview mot dev, syntetiske kontoer):
+  - Loop Studio (Admin i A): ingen standardlogo eller standardbilder; Faste bilder → «Fellesmappe» viser Felles ressurser (faste/logoer) og Fellesmappe; valgt bilde lagres som referanse i menighetens grunnoppsett; logo fra Fellesmappe vises i panel og video.
+  - Loop Studio (User i A): ser Admins Faste bilder og logo, Faste bilder skrivebeskyttet (ingen slett/legg til, merknad); endret overskrift lagres felles; Admin ser endringen etter ny innlogging.
+  - API: User endrer Faste bilder → 403 «Bare Admin kan endre dette»; gammel versjon → CH011; User i B leser/lagrer A → 403; B har sitt eget (tomt) oppsett.
+  - Admin sletter fast bilde: bekreftelse («Originalbildet … blir liggende»), fjernet fra oppsettet, originalene i Faste/Logoer urørt.
+  - Thumbnail Studio: User i A endrer kategorinavn → felles (thumbstudio:cats), Admin i A ser det, User i B ser sitt eget; ingen gamle innebygde logoer i det delte grunnoppsettet. Testendringer tilbakestilt.
+  - Velgeren på mobil (User i B): bare B sine filer (tom-meldinger), Esc lukker, ingen vannrett rulling.
+  - Regresjon Fellesmappe/Samarbeidsmappe og private opplastinger: som før, 0 e2e-filer igjen.
