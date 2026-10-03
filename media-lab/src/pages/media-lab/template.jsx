@@ -2,6 +2,7 @@
 import React from 'react';
 import { css } from '../../shared/dc.jsx';
 import { canAdmin } from '../../services/data/me.js';
+import FolderLinks from './folder-links.jsx';
 
 /* malteksten til elementer som bare inneholder tekst (nøkkel = data-dc-tpl), se runtime-quirks.js */
 export const inline = {"17":["NO"],"18":["EN"],"20":["Media Lab"],"24":["Video"],"25":["Loop Studio"],"26":["Lag en loopende video av ukens program med bilder, musikk og effekter."],"27":["Åpne"],"28":["Åpne"],"30":["Bilde"],"31":["Thumbnail Studio"],"32":["Lag miniatyrbilder i 16:9 til YouTube og appen fra faste maler. Last ned i 1080p eller 4K."],"33":["Åpne"],"34":["Åpne"],"37":["Sosiale medier"],"40":["SoMe"],"41":["Redigeringsprogram for video og bilde til promo, Instagram og Facebook."],"42":["Åpne","2 verktøy"],"43":["Åpne"],"44":["2 verktøy"],"47":["Mappe"],"50":["Tools"],"51":["Mindre verktøy for bilder: isoler motiv og legg bilder inn i ekte skjermer."],"52":["Åpne","2 verktøy"],"53":["Åpne"],"54":["2 verktøy"],"64":["SoMe"],"67":["Video"],"68":["Motion design"],"69":["Lag promovideoer og innhold til Instagram og Facebook med klipp, tekst, musikk og overganger."],"70":["Åpne"],"71":["Åpne"],"73":["Bilde"],"74":["Photo design"],"75":["Rediger bilder med lag, justeringer og maler til promo, Instagram og Facebook."],"76":["Åpne"],"77":["Åpne"],"87":["Tools"],"90":["Bilde"],"91":["Isolate Subject"],"92":["Isoler en person, et objekt, en logo eller tekst fra bildet med AI, rett i nettleseren. Gratis, og bildet lastes aldri opp."],"93":["Åpne"],"94":["Åpne"],"96":["Bilde"],"97":["Mockups"],"98":["Legg et bilde inn i skjermen på en PC, TV, nettbrett eller telefon i ekte fotografier."],"99":["Åpne"],"100":["Åpne"],"106":["Design by Kristen Utvikling"]};
@@ -154,6 +155,7 @@ export default function template(v) {
             </button>
             {"\n\n    "}
           </div>
+          <FolderLinks />
           {"\n    "}
         </> : null}
         {"\n    "}

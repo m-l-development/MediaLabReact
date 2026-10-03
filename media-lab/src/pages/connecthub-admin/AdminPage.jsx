@@ -14,6 +14,7 @@ import { FeedbackView } from './feedback.jsx';
 import { CleanupView } from './cleanup.jsx';
 import { MailView } from './mail.jsx';
 import { RequestsView } from './requests.jsx';
+import { FolderButtons } from './folders.jsx';
 import { noteError } from '../../shared/feedback-errors.js';
 
 /* global __CH_DEV_SITE__ */
@@ -85,14 +86,18 @@ export default function AdminPage({ me }) {
   const nav = NAV.filter(([k]) => allowed.has(k));
   const ctx = { me, kind, isUser, staff, dev, collab, staffNoMfa, adminOf, allowed, d, reload, act, say, busy: pending > 0, churchName, userById, userName, canManage, openInvite: p => setInvite(p || {}), ctxChurch, setCtxChurch };
 
+  /* Filer vises bare i menigheter der brukeren selv er medlem (A1) – også for Developer og Moderator, som ellers ser alle
+     menighetene i velgeren. Er valgt menighet ikke en av dem, brukes den første brukeren er medlem av. */
+  const myChurchIds = [...new Set([...(me.churches || []).map(c => c.id), ...adminOf])];
+  const filesChurch = myChurchIds.includes(ctxChurch) ? ctxChurch : (d.churches.find(c => myChurchIds.includes(c.id) && c.status === 'active') || {}).id || myChurchIds[0] || null;
   const [sec0, id, sub] = route, sec = NAV.some(([k]) => k === sec0) ? sec0 : 'oversikt';
   let body;
   if (!allowed.has(sec)) body = <Forbidden />;
   else if (sec === 'brukere') body = <UsersView selected={id} />;
   else if (sec === 'menigheter') body = id ? <ChurchDetail id={id} tab={sub || (canManage(id) ? 'medlemmer' : 'filer')} /> : <ChurchesView />;
   else if (sec === 'invitasjoner') body = <InvitesView />;
-  else if (sec === 'filer') body = <><Head title="Filer" sub="Faste ressurser, delt mappe og Samarbeidsfiler. Video kan aldri lastes opp." right={<ChurchPicker />} />{ctxChurch ? <FilesView churchId={ctxChurch} /> : <Card><Empty>{T('Ingen menighet å vise.')}</Empty></Card>}</>;
-  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Samarbeidsgrupper med to eller flere menigheter. Hver gruppe har sin egen Samarbeidsfiler-mappe." /><LinksView /></>;
+  else if (sec === 'filer') body = <><Head title="Filer" sub="Fellesmappe, Samarbeidsmappe og faste ressurser. Video kan aldri lastes opp." right={<ChurchPicker onlyMine />} />{filesChurch ? <FilesView churchId={filesChurch} area={id || ''} /> : <Card><Empty>{T('Du er ikke medlem av noen menighet. Filer vises bare for medlemmer – også for Developer og Moderator.')}</Empty></Card>}</>;
+  else if (sec === 'samarbeid') body = <><Head title="Samarbeid" sub="Samarbeidsgrupper med to eller flere menigheter. Hver gruppe har sin egen Samarbeidsmappe." /><LinksView /></>;
   else if (sec === 'tilbakemeldinger') body = <FeedbackView selected={id} />;
   else if (sec === 'opprydning') body = <CleanupView churchId={id} />;
   else if (sec === 'mail') body = <MailView />;
@@ -175,6 +180,7 @@ function Overview({ pendingInvites }) {
   ];
   return <>
     <Welcome />
+    <FolderButtons />
     <div className="ch-stats">
       <a className="ch-stat" href={href('brukere')}><b>{s ? s.users : d.users.filter(u => u.status === 'active').length}</b><span>{T('Aktive brukere')}</span></a>
       <a className="ch-stat" href={href('menigheter')}><b>{d.churches.filter(c => c.status === 'active').length}</b><span>{T('Aktive menigheter')}</span></a>
@@ -243,6 +249,7 @@ function UserOverview() {
   const logos = useLogos(mine.map(c => c.logo_file_id));
   return <>
     <Welcome />
+    <FolderButtons />
     {window.CH && window.CH.testRole === 'admin' && <p className="ch-note warn">{T('Admin-visningen viser menighetene du er medlem av. Legg deg til i en menighet (som Developer) for å teste den.')}</p>}
     <Card title="Mine menigheter" sub={mine.length}>
       {mine.length ? <div className="ch-grid">{mine.map(c => <a key={c.id} className="ch-stat" href={href('menigheter', c.id)}>
@@ -250,7 +257,7 @@ function UserOverview() {
         <span>{T('Du er medlem')} · {T('Åpne')} →</span></a>)}</div> : <Empty>{T('Du er ikke medlem av noen menighet ennå. Du får en invitasjon fra menighetens admin.')}</Empty>}
     </Card>
     <div className="ch-grid">
-      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens fellesmappe, ha dine egne private bilder, og se Samarbeidsfiler med menigheter dere samarbeider med.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer')}>{T('Åpne filer')}</a></div></Card>
+      <Card title="Filer"><p className="ch-muted">{T('Se og legg til bilder i menighetens Fellesmappe, ha dine egne private bilder, og del bilder i Samarbeidsmappen med menigheter dere samarbeider med.')}</p><div className="ch-row"><a className="ch-btn" href={href('filer', 'felles')}>{T('Åpne filer')}</a></div></Card>
       <Card title="Profil og varsler"><p className="ch-muted">{T('Navn, telefon, varsler og personvern finner du i kontomenyen nede til høyre.')}</p></Card>
     </div>
   </>;

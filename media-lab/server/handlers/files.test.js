@@ -217,3 +217,38 @@ test('file.cleanup_retry: prøver ventende/feilede oppføringer igjen (ID-er fra
   assert.equal(r.status, 200); assert.equal(r.body.storage_done, 1);
   assert.equal(b.log.find(x => x[1] === 'cleanup_retry_ids')[0], 'user');
 });
+
+/* --- Samarbeidsmappe: direkte opplasting --- */
+const upLink = async (bytes, q, backend) => {
+  const r = await handle(new Request('https://x/api/ch?a=file.upload_link&' + new URLSearchParams(q), { method: 'POST', headers: { authorization: 'Bearer ' + await token(), 'content-type': 'application/octet-stream' }, body: bytes }), ENV, { fetchFn, backend });
+  return { status: r.status, body: await r.json() };
+};
+test('file.upload_link: bilde lagres under menigheten som bidro og registreres i gruppen for innlogget bruker', async () => {
+  const b = fake({ register_link_upload: a => ({ id: 'u1', link_id: a.p_link }) });
+  const r = await upLink(JPG, { link: LINK, church: CH, name: 'Plakat.png' }, b);
+  assert.equal(r.status, 200); assert.equal(r.body.file.id, 'u1');
+  const pre = b.log.find(x => x[1] === 'can_upload_link'); assert.equal(pre[0], 'user', 'forhåndskontrollen går med brukerens token'); assert.deepEqual(pre[2], { p_link: LINK, p_church: CH, p_size: JPG.length });
+  const put = b.log.find(x => x[0] === 'put'); assert.match(put[1], new RegExp('^c/' + CH + '/[0-9a-f-]{36}\.jpg$')); assert.equal(put[3], 'image/jpeg');
+  const reg = b.log.find(x => x[1] === 'register_link_upload'); assert.equal(reg[0], 'server');
+  assert.equal(reg[2].p_subject, 's1'); assert.equal(reg[2].p_link, LINK); assert.equal(reg[2].p_church, CH); assert.equal(reg[2].p_name, 'Plakat.jpg'); assert.equal(reg[2].p_key, put[1]); assert.match(reg[2].p_sha256, /^[0-9a-f]{64}$/);
+});
+test('file.upload_link: video og ugyldige ID-er avvises før noe lagres; avslag i databasen lagrer ingenting', async () => {
+  for (const [bytes, name] of [[MP4, 'film.png'], [PNG, 'klipp.mov']]) {
+    const b = fake(); const r = await upLink(bytes, { link: LINK, church: CH, name }, b);
+    assert.equal(r.status, 415); assert.equal(r.body.error, 'video_not_allowed'); assert.equal(b.log.length, 0);
+  }
+  assert.equal((await upLink(PNG, { link: 'x', church: CH }, fake())).status, 400);
+  assert.equal((await upLink(PNG, { link: LINK }, fake())).status, 400);
+  const nei = fake({ can_upload_link: () => { throw Object.assign(new Error(), { code: '42501' }); } });
+  assert.equal((await upLink(PNG, { link: LINK, church: CH }, nei)).status, 403); assert.ok(!nei.log.some(x => x[0] === 'put'));
+  const big = new Uint8Array(4 * 1024 * 1024 + 1); big.set(PNG);
+  assert.equal((await upLink(big, { link: LINK, church: CH }, fake())).status, 413);
+});
+test('file.upload_link: feiler registreringen (gruppen avsluttet, kvote), fjernes den lagrede filen igjen', async () => {
+  for (const [code, status] of [['42501', 403], ['53100', 507]]) {
+    const b = fake({ register_link_upload: () => { throw Object.assign(new Error(), { code }); } });
+    const r = await upLink(PNG, { link: LINK, church: CH }, b);
+    assert.equal(r.status, status);
+    assert.deepEqual(b.log.find(x => x[0] === 'del')[1], [b.log.find(x => x[0] === 'put')[1]]);
+  }
+});

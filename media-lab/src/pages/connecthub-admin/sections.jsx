@@ -2,10 +2,10 @@
 import React from 'react';
 import { admin, DEFAULT_QUOTA_MB } from '../../services/admin.js';
 import { files as FS, FOLDERS } from '../../services/files.js';
-import { spaces as SP, links as LK, linkName, activeMembers, otherChurches, memberName, MAX_GROUP_CHURCHES, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
+import { spaces as SP, links as LK, linkName, activeMembers, MAX_GROUP_CHURCHES, subscriptions as SUB, notifications as NOTI, churchLife, downloadJson } from '../../services/community.js';
 import { T, errText, ROLE, fmt, fmtDate, mb, norm, Btn, Badge, StatusBadge, RoleBadge, Avatar, Card, Empty, Field, Search, Select, List, Dialog, href, go } from './ui.jsx';
 import { useAdmin, Head } from './AdminPage.jsx';
-import { Thumb, downloadOriginal } from './thumbs.jsx';
+
 import { memberActions, fill } from './members.js';
 import { useLogos, ChurchLogo, forgetLogo } from './logos.jsx';
 import { clearMe } from '../../services/me-cache.js';
@@ -32,11 +32,13 @@ const ACTIONS = {
 export const actionName = a => ACTIONS[a] || a;
 
 /* Menighetsvelger for seksjoner som gjelder én menighet. */
-export function ChurchPicker() {
-  const { d, ctxChurch, setCtxChurch } = useAdmin();
-  const list = d.churches.filter(c => c.status === 'active');
+export function ChurchPicker({ onlyMine }) {
+  const { d, me, adminOf, ctxChurch, setCtxChurch } = useAdmin();
+  /* onlyMine (Filer): bare menigheter brukeren selv er medlem av – filer vises bare for medlemmer (A1). */
+  const mine = new Set([...(me.churches || []).map(c => c.id), ...adminOf]);
+  const list = d.churches.filter(c => c.status === 'active' && (!onlyMine || mine.has(c.id)));
   if (list.length < 2) return null;
-  return <Select label="Menighet" value={ctxChurch || ''} onChange={setCtxChurch} options={list.map(c => [c.id, c.name])} />;
+  return <Select label="Menighet" value={(list.some(c => c.id === ctxChurch) ? ctxChurch : (list[0] || {}).id) || ''} onChange={setCtxChurch} options={list.map(c => [c.id, c.name])} />;
 }
 
 /* ---------- Menigheter ---------- */
@@ -270,139 +272,8 @@ export function InvitesView({ churchId, embedded }) {
   </>;
 }
 
-/* ---------- Filer: Faste, Delt mappe og Samarbeidsfiler ---------- */
-/* Faste = felles ressurser som brukes av flere verktøy (Photo Design, Thumbnail Studio, Mockups …). Bare Admin i
-   menigheten vedlikeholder (M1); alle medlemmer ser og laster ned. Delt mappe = medlemmene deler bilder; Admin rydder.
-   Samarbeidsfiler (trinn 18) = KOPIER som deles i en kobling mellom nøyaktig to menigheter; originalen blir liggende.
-   Filer vises bare for medlemmer – også Developer ser bare filer i menigheter der Developer er medlem (A1).
-   Mappenavnene i databasen er uendret (faste, logoer, bakgrunner, mockups, bilder, samarbeid). */
-const AREAS = {
-  faste: { label: 'Faste – felles ressurser', folders: [['faste', 'Faste bilder'], ['logoer', 'Logoer'], ['bakgrunner', 'Bakgrunner'], ['mockups', 'Mockups']],
-    info: 'Felles bilder og logoer som brukes i flere verktøy (Photo Design, Thumbnail Studio, Mockups m.fl.). Admin legger til, organiserer og fjerner. Alle medlemmer kan se og laste ned.' },
-  delt: { label: 'Delt mappe', folders: [['bilder', 'Delt mappe']],
-    info: 'Bilder som deles i menigheten. Alle medlemmer kan se, laste ned og legge til egne bilder. Du kan slette dine egne; Admin kan rydde i alt.' },
-  samarbeid: { label: 'Samarbeidsfiler', folders: [['samarbeid', 'Samarbeidsfiler']],
-    info: 'Kopier av bilder som deles med én annen menighet i en kobling. Begge menighetene kan se og laste ned. Bilder legges inn ved å dele en kopi fra Delt mappe eller Faste – originalen blir liggende. Bare Admin i menigheten som bidro, kan fjerne en kopi.' },
-};
-const FOLDER_NAME = { bilder: 'Delt mappe', faste: 'Faste bilder', logoer: 'Logoer', bakgrunner: 'Bakgrunner', mockups: 'Mockups' };
-/* Sist viste liste per menighet og mappe (resten av besøket): bytte fram og tilbake viser lista med en gang, og den
-   oppdateres i bakgrunnen. */
-const FILE_LISTS = new Map();
-export function FilesView({ churchId }) {
-  const { me, adminOf, churchName, act, say } = useAdmin();
-  const member = (me.churches || []).some(c => c.id === churchId) || adminOf.includes(churchId);
-  const admin_ = adminOf.includes(churchId);   // M1: Faste og fjerning av egne bidrag i Samarbeidsfiler – bare Admin i menigheten
-  const [fl, setFl] = React.useState({ area: 'faste', folder: 'faste', list: [], loading: true, usage: null, priv: false, over: false, links: [], link: null, copy: null });
-  const seq = React.useRef(0);
-  /* Viser valgt mappe straks (fra hurtigbufferen hvis den finnes); lista og forbruket hentes parallelt. Bildene hentes
-     av <Thumb> når de vises. Bare siste valg vinner hvis brukeren bytter raskt. */
-  const load = async (folder = fl.folder, area = fl.area, { usage = false, link = fl.link } = {}) => {
-    const n = ++seq.current, key = churchId + '|' + folder + (folder === 'samarbeid' ? '|' + link : ''), hit = FILE_LISTS.get(key);
-    setFl(f => ({ ...f, area, folder, link, list: hit || [], loading: !hit }));
-    const [list, use] = await Promise.all([folder === 'samarbeid' ? (link ? FS.listLink(link) : []) : FS.list({ churchId, folder }), usage ? FS.usage(churchId) : null]);
-    FILE_LISTS.set(key, list);
-    if (n === seq.current) setFl(f => ({ ...f, list, loading: false, usage: use || f.usage }));
-  };
-  /* Aktive samarbeidsgrupper der denne menigheten er aktivt medlem (databasen gir bare grupper for egne menigheter). */
-  const loadLinks = async () => {
-    const all = await LK.mine().catch(() => []);
-    const links = all.filter(l => l.status === 'active' && activeMembers(l).some(m => m.church_id === churchId));
-    setFl(f => ({ ...f, links, link: f.link && links.some(l => l.id === f.link) ? f.link : (links[0] || {}).id || null }));
-    return links;
-  };
-  React.useEffect(() => {
-    if (!churchId || !member) return;
-    setFl(f => ({ ...f, area: 'faste', folder: 'faste', usage: null, links: [], link: null }));
-    act(async () => { await Promise.all([load('faste', 'faste', { usage: true }), loadLinks()]); })();
-  }, [churchId, member]);
-  if (!member) return <Card title="Filer"><p className="ch-note warn">{T('Du er ikke medlem av denne menigheten. Filer vises bare for medlemmer – også for Developer og Moderator.')}</p></Card>;
-
-  const A = AREAS[fl.area], collab = fl.area === 'samarbeid', canUpload = !collab && (fl.area === 'delt' || admin_);
-  const curLink = fl.links.find(l => l.id === fl.link), others = l => otherChurches(l, churchId);
-  const othersText = l => others(l).map(m => m.name).join(', ') || T('(ingen andre menigheter)');
-  const upload = act(async list => {
-    if (!canUpload) return;
-    let n = 0; for (const file of list) { try { await FS.upload(file, { churchId, folder: fl.folder, priv: fl.area === 'delt' && fl.priv }); n++; } catch (err) { say(file.name + ': ' + errText(err), false); } }
-    if (n) say(n + ' ' + T('filer er lastet opp.')); await load(undefined, undefined, { usage: true });
-  });
-  const download = act(x => downloadOriginal(x.id, x.file_name));
-  /* Kopi til Samarbeidsfiler: Delt mappe for alle medlemmer, Faste bare for Admin, aldri private filer. */
-  const canCopy = x => fl.links.length > 0 && !collab && x.visibility === 'church' && (fl.area === 'delt' || admin_);
-  const doCopy = act(async e => {
-    e.preventDefault();
-    const { file, link } = fl.copy, l = fl.links.find(x => x.id === link);
-    await FS.copyToLink(file.id, link);
-    for (const k of [...FILE_LISTS.keys()]) if (k.startsWith(churchId + '|samarbeid')) FILE_LISTS.delete(k);
-    setFl(f => ({ ...f, copy: null }));
-    say(fill(T('En kopi er lagt i Samarbeidsfiler i gruppen «{name}».'), { name: linkName(l) }));
-    await load(undefined, undefined, { usage: true });
-  });
-  const removeCopy = x => act(async () => {
-    if (!confirm(T('Den delte kopien slettes for alle menighetene i gruppen. Originalen i') + ' «' + T(FOLDER_NAME[x.source_folder] || 'Delt mappe') + '» ' + T('blir liggende.') + '\n\n' + T('Fjerne fra Samarbeidsfiler?'))) return;
-    await FS.remove(x.id); say(T('Kopien er fjernet fra Samarbeidsfiler.'));
-    setFl(f => ({ ...f, list: f.list.filter(y => y.id !== x.id) })); await load(undefined, undefined, { usage: true });
-  })();
-  const u = fl.usage, pct = u && u.quota_bytes ? Math.min(100, Math.round(100 * u.used_bytes / u.quota_bytes)) : 0;
-  /* Trinn 20: ledig plass er det minste av menighetens ledige kvote og ledig samlet plass i ConnectHub. */
-  const quotaFree = u ? Math.max(0, u.quota_bytes - u.used_bytes) : 0, sysFree = u && u.system_free_bytes != null ? u.system_free_bytes : Infinity;
-  const free = Math.min(quotaFree, sysFree), bySystem = sysFree < quotaFree;
-  const thumb = (x, extra) => <div key={x.id} className="ch-thumb">
-    <Thumb id={x.id} />
-    <span style={{ wordBreak: 'break-all' }}>{x.file_name} {x.visibility === 'private' && <Badge>{T('Privat')}</Badge>}</span>
-    {extra}
-  </div>;
-  const areas = Object.entries(AREAS).filter(([k]) => k !== 'samarbeid' || fl.links.length);
-
-  return <>
-    <nav className="ch-tabs" aria-label={T('Filområder')}>{areas.map(([k, v]) => <a key={k} href="#" className={fl.area === k ? 'on' : ''} onClick={e => { e.preventDefault(); if (fl.area !== k) act(() => load(v.folders[0][0], k))(); }}>{T(v.label)}</a>)}</nav>
-    <Card title={A.label} sub={fl.area === 'faste' ? T(admin_ ? 'Du kan vedlikeholde' : 'Bare visning og nedlasting') : null}>
-      <p className="ch-muted">{T(A.info)}</p>
-      {A.folders.length > 1 && <div className="ch-row">{A.folders.map(([f, l]) => <Btn key={f} small kind={fl.folder === f ? 'primary' : ''} onClick={() => { if (fl.folder !== f) act(() => load(f))(); }}>{T(l)}</Btn>)}</div>}
-      {collab && fl.links.length > 1 && <div className="ch-row" data-ch-groups>{fl.links.map(l => <Btn key={l.id} small kind={fl.link === l.id ? 'primary' : ''} onClick={() => { if (fl.link !== l.id) act(() => load('samarbeid', 'samarbeid', { link: l.id }))(); }}>{linkName(l)}</Btn>)}</div>}
-      {u && <><div className="ch-meter" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
-        <p className="ch-muted" data-ch-meter>{T('Brukt')}: {mb(u.used_bytes)} {T('av')} {mb(u.quota_bytes)} ({T(u.quota_bytes === DEFAULT_QUOTA_MB * 1048576 ? 'standard' : 'egen kvote')}) · {T('Ledig')}: {mb(free)}{bySystem ? ' (' + T('begrenset av samlet lagringsplass i ConnectHub') + ')' : ''}{fl.area === 'delt' ? ' · ' + T('Dine private') + ': ' + mb(u.my_private_bytes) + ' / ' + mb(u.my_private_quota_bytes) : ''}</p></>}
-      {u && sysFree === 0 && <p className="ch-note warn" data-ch-full>{T('Den samlede lagringsplassen i ConnectHub er full. Nye opplastinger er stoppet til det er frigjort plass. Nedlasting virker som før.')}</p>}
-      {collab ? <p className="ch-muted" data-ch-link>{curLink ? <>{T('Samarbeidsgruppe')} <b>{linkName(curLink)}</b>{curLink.description ? ' – ' + curLink.description : ''}. {T('Menigheter i gruppen')}: <b>{churchName(churchId)}</b>, {othersText(curLink)}. {T('Kopiene teller i kvoten til menigheten som bidro.')}</> : null}</p>
-      : canUpload ? <div className={'ch-drop' + (fl.over ? ' over' : '')} onDragOver={e => { e.preventDefault(); setFl(f => ({ ...f, over: true })); }} onDragLeave={() => setFl(f => ({ ...f, over: false }))}
-        onDrop={e => { e.preventDefault(); setFl(f => ({ ...f, over: false })); upload([...e.dataTransfer.files]); }}>
-        <div className="ch-row" style={{ justifyContent: 'center' }}>
-          <label className="ch-btn primary">{T('Last opp bilder')}<input type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={e => { const l = [...e.target.files]; e.target.value = ''; upload(l); }} /></label>
-          {fl.area === 'delt' && <label className="ch-row ch-muted"><input type="checkbox" checked={fl.priv} onChange={e => setFl(f => ({ ...f, priv: e.target.checked }))} /> {T('Privat (bare meg)')}</label>}
-        </div>
-        <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {T((A.folders.find(x => x[0] === fl.folder) || [])[1] || '')}</p>
-      </div> : <p className="ch-note warn">{T('Faste-mappen vedlikeholdes av Admin. Du kan se og laste ned filene.')}</p>}
-    </Card>
-    {collab ? (curLink ? [['oss', fl.list.filter(x => x.church_id === churchId), T('Fra oss')],
-      ...others(curLink).map(m => [m.church_id, fl.list.filter(x => x.church_id === m.church_id), T('Fra') + ' ' + m.name])].map(([k, list, title]) =>
-      <Card key={k} title={title} sub={fl.loading ? null : list.length}>
-        {list.length ? <div className="ch-thumbs">{list.map(x => thumb(x, <>
-          <span className="ch-muted">{T('Lagt inn av')} {x.church_id === churchId ? churchName(churchId) : memberName(curLink, x.church_id)} · {fmtDate(x.created_at)}</span>
-          <div className="ch-row">
-            <Btn small onClick={() => download(x)}>{T('Last ned')}</Btn>
-            {k === 'oss' && admin_ && <Btn small kind="danger" onClick={() => removeCopy(x)}>{T('Fjern fra Samarbeidsfiler')}</Btn>}
-          </div></>))}</div> : <Empty>{T(fl.loading ? 'Laster …' : 'Ingen bilder her ennå.')}</Empty>}
-      </Card>) : <Card><Empty>{T('Ingen aktive samarbeidsgrupper.')}</Empty></Card>)
-    : <Card title={(A.folders.find(x => x[0] === fl.folder) || [])[1] || ''} sub={fl.loading ? null : fl.list.length}>
-      {fl.list.length ? <div className="ch-thumbs">{fl.list.map(x => {
-        const mine = x.uploaded_by === me.id, canDel = admin_ || (fl.area === 'delt' && mine);
-        return thumb(x, <>
-          <span className="ch-muted">{mb(x.file_size)} · {fmtDate(x.created_at)}</span>
-          <div className="ch-row">
-            <Btn small onClick={() => download(x)}>{T('Last ned')}</Btn>
-            {canCopy(x) && <Btn small onClick={() => setFl(f => ({ ...f, copy: { file: x, link: f.link || (f.links[0] || {}).id } }))}>{T('Del i Samarbeidsfiler')}</Btn>}
-            {canDel && <Btn small kind="danger" onClick={act(async () => { if (!confirm(T('Slette filen?'))) return; await FS.remove(x.id); say(T('Filen er slettet.')); setFl(f => ({ ...f, list: f.list.filter(y => y.id !== x.id) })); await load(undefined, undefined, { usage: true }); })}>{T('Slett')}</Btn>}
-          </div></>);
-      })}</div> : <Empty>{T(fl.loading ? 'Laster …' : 'Ingen filer i denne mappen.')}</Empty>}
-    </Card>}
-    {fl.copy && <Dialog title={T('Del i Samarbeidsfiler')} onClose={() => setFl(f => ({ ...f, copy: null }))}>
-      <form onSubmit={doCopy} style={{ display: 'flex', flexDirection: 'column', gap: 12 }} data-ch-copy>
-        {fl.links.length > 1 && <Field label="Samarbeidsgruppe"><select className="ch-select" value={fl.copy.link} onChange={e => { const v = e.target.value; setFl(f => ({ ...f, copy: { ...f.copy, link: v } })); }}>{fl.links.map(l => <option key={l.id} value={l.id}>{linkName(l)}</option>)}</select></Field>}
-        <p>{T('En kopi av bildet')} «{fl.copy.file.file_name}» {T('legges i Samarbeidsfiler i gruppen')} <b>{linkName(fl.links.find(l => l.id === fl.copy.link))}</b> ({churchName(churchId)}, {othersText(fl.links.find(l => l.id === fl.copy.link))}). {T('Alle menighetene i gruppen kan se og laste den ned. Originalen blir liggende i')} «{T(FOLDER_NAME[fl.copy.file.folder] || 'Delt mappe')}».</p>
-        <div className="ch-row"><Btn kind="primary" onClick={e => e.currentTarget.form.requestSubmit()}>{T('Del kopi')}</Btn><Btn onClick={() => setFl(f => ({ ...f, copy: null }))}>{T('Avbryt')}</Btn></div>
-      </form>
-    </Dialog>}
-  </>;
-}
+/* ---------- Filer: Fellesmappe, Samarbeidsmappe og Faste – se folders.jsx ---------- */
+export { FilesView } from './folders.jsx';
 
 /* ---------- Samarbeid: samarbeidsgrupper (Developer og Moderator) ---------- */
 /* Developer/Moderator oppretter grupper med 2–20 menigheter, endrer navn og beskrivelse, legger til og fjerner menigheter,

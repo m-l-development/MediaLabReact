@@ -1547,6 +1547,85 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.cnt('Livsløp i gruppe: G2 ser fortsatt G1 sin kopi i Y', $q$select 1 from public.files where folder = 'samarbeid' and church_id = '61616161-0000-4000-8000-000000000061'$q$, 1);
 set local role postgres;
 
+-- ---------- Samarbeidsmappe: direkte opplasting, synlighet og sletting ----------
+-- Gruppe «Opplastingsgruppe» med G1 og G2 (G3 utenfor). 62 = medlem i G1, 61 = Admin i G1, 64 = medlem i G2, 63 = Admin i G2.
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeidsmappe: Moderator oppretter «Opplastingsgruppe» med G1 og G2', $q$select public.create_group('Opplastingsgruppe', null, array['61616161-0000-4000-8000-000000000061', '62626262-0000-4000-8000-000000000062']::uuid[])$q$);
+set local role postgres;
+insert into ch_test.grp select name, id from public.church_links where name = 'Opplastingsgruppe';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.ok('Samarbeidsmappe: medlem i G1 kan laste opp (forhåndskontroll)', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 1000)$q$);
+select ch_test.err('Samarbeidsmappe: kan ikke laste opp for en annen menighet', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '62626262-0000-4000-8000-000000000062', 1000)$q$, '42501');
+select ch_test.err('Samarbeidsmappe: ugyldig størrelse avvises', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 4194305)$q$, '22023');
+select ch_test.err('Samarbeidsmappe: gruppe som ikke finnes avvises uten å avsløre noe', $q$select public.can_upload_link(gen_random_uuid(), '61616161-0000-4000-8000-000000000061', 1000)$q$, '42501');
+select ch_test.err('Samarbeidsmappe: brukeren kan ikke registrere opplasting selv (bare serveren)', $q$select public.register_link_upload('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 'test/gu-x.png', 'x.png', 'image/png', 10, null)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.err('Samarbeidsmappe: menighet utenfor gruppen (G3) kan ikke laste opp', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '63636363-0000-4000-8000-000000000063', 1000)$q$, '42501');
+set local role anon;
+select ch_test.err('Samarbeidsmappe: ikke innlogget kan ikke laste opp', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 1000)$q$, '42501');
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.ok('Samarbeidsmappe: server registrerer opplasting fra medlem i G1', $q$select public.register_link_upload('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 'test/gu-g1.png', 'gu-g1.png', 'image/png', 100, null)$q$);
+select ch_test.ok('Samarbeidsmappe: server registrerer opplasting fra medlem i G2', $q$select public.register_link_upload('https://test.invalid/auth/v1', 'sub-g64', (select id from ch_test.grp where name = 'Opplastingsgruppe'), '62626262-0000-4000-8000-000000000062', 'test/gu-g2.png', 'gu-g2.png', 'image/png', 200, null)$q$);
+select ch_test.err('Samarbeidsmappe: server avviser opplasting fra G3 (utenfor gruppen)', $q$select public.register_link_upload('https://test.invalid/auth/v1', 'sub-g66', (select id from ch_test.grp where name = 'Opplastingsgruppe'), '63636363-0000-4000-8000-000000000063', 'test/gu-g3.png', 'gu-g3.png', 'image/png', 10, null)$q$, '42501');
+select ch_test.ok('Samarbeidsmappe: kopi fra Delt mappe virker som før', $q$select public.register_link_copy('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.gf where file_name = 'g1-ny.png'), (select id from ch_test.grp where name = 'Opplastingsgruppe'), 'test/gu-kopi.png')$q$);
+set local role postgres;
+create table ch_test.gu as select id, file_name, church_id, link_upload, source_folder from public.files where storage_key like 'test/gu-%';
+grant select on ch_test.gu to anon, authenticated;
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'grant select on ch_test.gu to service_role'; end if; end $$;
+select ch_test.cnt('Samarbeidsmappe: to opplastinger merket link_upload med source_folder bilder, kopien ikke', $q$select 1 from ch_test.gu where (link_upload and source_folder = 'bilder') or (not link_upload and file_name = 'g1-ny.png')$q$, 3);
+select ch_test.cnt('Samarbeidsmappe: opplastingen tilhører (og teller for) menigheten som bidro', $q$select 1 from public.files where storage_key = 'test/gu-g1.png' and church_id = '61616161-0000-4000-8000-000000000061' and folder = 'samarbeid' and visibility = 'church'$q$, 1);
+select ch_test.cnt('Samarbeidsmappe: opplastingen er loggført', $q$select 1 from public.audit_logs where action = 'files.insert' and target_id = (select id::text from ch_test.gu where file_name = 'gu-g1.png')$q$, 1);
+select ch_test.err('Samarbeidsmappe: link_upload krever samarbeidsmappe', $q$insert into public.files (church_id, storage_key, file_name, mime_type, file_size, folder, visibility, link_upload) values ('61616161-0000-4000-8000-000000000061', 'test/feil.png', 'feil.png', 'image/png', 1, 'bilder', 'church', true)$q$, '23514');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g64","aal":"aal1"}';
+select ch_test.cnt('Samarbeidsmappe: medlem i G2 ser alle tre filene i gruppen', $q$select 1 from public.files where link_id = (select id from ch_test.grp where name = 'Opplastingsgruppe')$q$, 3);
+select ch_test.cnt('Samarbeidsmappe: medlem i G2 får nedlastingslenker til alle tre', $q$select 1 from public.file_keys(array(select id from ch_test.gu))$q$, 3);
+select ch_test.err('Samarbeidsmappe: medlem i G2 kan ikke slette G1 sin opplasting', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g63","aal":"aal1"}';
+select ch_test.err('Samarbeidsmappe: Admin i G2 kan ikke slette G1 sin opplasting', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$, '42501');
+select ch_test.ok_rb('Samarbeidsmappe: Admin i G2 kan slette opplasting fra egen menighet', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g2.png'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.cnt('Samarbeidsmappe: G3 (utenfor) ser ingenting og får ingen lenker', $q$select 1 from public.files where id in (select id from ch_test.gu) union all select 1 from public.file_keys(array(select id from ch_test.gu))$q$, 0);
+select ch_test.err('Samarbeidsmappe: G3 (utenfor) kan ikke slette', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Samarbeidsmappe: Moderator ser ingen filrader og får ingen lenker', $q$select 1 from public.files where id in (select id from ch_test.gu) union all select 1 from public.file_keys(array(select id from ch_test.gu))$q$, 0);
+select ch_test.cnt('Samarbeidsmappe: Moderator ser metadata for alle tre', $q$select 1 from public.link_files_meta((select id from ch_test.grp where name = 'Opplastingsgruppe'))$q$, 3);
+select ch_test.err('Samarbeidsmappe: Moderator kan ikke slette', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Samarbeidsmappe: medlem kan fortsatt ikke slette kopier (bare Admin)', $q$select public.delete_file((select id from ch_test.gu where file_name = 'g1-ny.png'))$q$, '42501');
+select ch_test.ok_rb('Samarbeidsmappe: den som lastet opp, kan slette egen opplasting', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.ok_rb('Samarbeidsmappe: Admin i G1 kan slette medlemmets opplasting', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$);
+select ch_test.ok_rb('Samarbeidsmappe: Admin i G1 kan fjerne kopien', $q$select public.delete_file((select id from ch_test.gu where file_name = 'g1-ny.png'))$q$);
+
+-- Kvote, deaktivert medlemskap og avsluttet gruppe
+set local role postgres;
+update public.churches set storage_quota_mb = 0 where id = '61616161-0000-4000-8000-000000000061';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Samarbeidsmappe: full kvote stopper opplasting (54000)', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 1000)$q$, '54000');
+set local role postgres;
+update public.churches set storage_quota_mb = 200 where id = '61616161-0000-4000-8000-000000000061';
+update public.memberships set status = 'disabled' where user_id = '00000000-0000-4000-8000-000000000062' and church_id = '61616161-0000-4000-8000-000000000061';
+set local role authenticated;
+select ch_test.err('Samarbeidsmappe: deaktivert medlem kan ikke laste opp', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 1000)$q$, '42501');
+select ch_test.err('Samarbeidsmappe: deaktivert medlem kan ikke slette egen opplasting', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$, '42501');
+set local role postgres;
+update public.memberships set status = 'active' where user_id = '00000000-0000-4000-8000-000000000062' and church_id = '61616161-0000-4000-8000-000000000061';
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.ok('Samarbeidsmappe: Moderator avslutter gruppen', $q$select public.end_link((select id from ch_test.grp where name = 'Opplastingsgruppe'))$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g62","aal":"aal1"}';
+select ch_test.err('Samarbeidsmappe: avsluttet gruppe – ingen opplasting', $q$select public.can_upload_link((select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 1000)$q$, '42501');
+select ch_test.cnt('Samarbeidsmappe: avsluttet gruppe – filene er skjult og gruppen vises ikke', $q$select 1 from public.files where id in (select id from ch_test.gu) union all select 1 from public.my_groups() where id = (select id from ch_test.grp where name = 'Opplastingsgruppe')$q$, 0);
+select ch_test.err('Samarbeidsmappe: avsluttet gruppe – ingen sletting', $q$select public.delete_file((select id from ch_test.gu where file_name = 'gu-g1.png'))$q$, '42501');
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.err('Samarbeidsmappe: server avviser opplasting til avsluttet gruppe', $q$select public.register_link_upload('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 'test/gu-sen.png', 'sen.png', 'image/png', 10, null)$q$, '42501');
+set local role postgres;
+select ch_test.cnt('Samarbeidsmappe: ingenting er slettet ved avslutning', $q$select 1 from public.files where id in (select id from ch_test.gu)$q$, 3);
+
 -- ---------- Ekstra Admin: Developer og Moderator legger seg selv til / fjerner seg selv ----------
 -- Bruker N1 (41 = fast Admin, 42 = medlem) fra navneblokken. Developer (sub-1) og Moderator (sub-2) er ikke medlemmer i N1.
 set local role authenticated;
