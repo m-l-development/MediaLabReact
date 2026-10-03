@@ -4,6 +4,7 @@ import { DCLogic } from '../../shared/dc.jsx';
 import { onUpdate } from '../../shared/ml-update.js';
 import { SharedSetup } from '../../shared/shared-setup.js';
 import { files as CHF } from '../../services/files.js';
+import { personal as PB, central as CB, entryOf } from '../../shared/loop-bases.js';
 const TT = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const toast = s => { if (window.MLShare && window.MLShare.toast) window.MLShare.toast(TT(s)); };
 class Component extends DCLogic {
@@ -438,7 +439,7 @@ class Component extends DCLogic {
     const d = this.sampleData(tpl), ids = [], urls = {};
     for (let i = 0; i < 5; i++) {
       const b = await this.makeDemoBg(i); if (!b) continue;
-      const id = 'demo-bg-' + i, u = URL.createObjectURL(b), im = new Image(); im.src = u; this.media.images[id] = im; urls[id] = u; ids.push(id);
+      const id = 'gen:' + i, u = URL.createObjectURL(b), im = new Image(); im.src = u; this.media.images[id] = im; urls[id] = u; ids.push(id);
     }
     this.setState(s => ({ urls: { ...s.urls, ...urls } }));
     return { ...d, slides: d.slides.map((x, i) => ({ ...x, bg: ids.length ? ids[i % ids.length] : null, ruleId: null })) };
@@ -450,21 +451,82 @@ class Component extends DCLogic {
     const t = document.createElement('span'); t.textContent = TT('DEMO – eksempel med genererte bakgrunner. Ingenting lagres.');
     const a = document.createElement('a'); a.href = '/loopeditor?mal=' + encodeURIComponent(tpl || 'week'); a.textContent = TT('Avslutt demo'); a.setAttribute('data-ch-demo-exit', '1');
     a.style.cssText = 'height:30px;display:inline-flex;align-items:center;padding:0 14px;border-radius:999px;background:#f5b82c;color:#111;text-decoration:none';
-    b.append(t, a); document.body.append(b);
+    const sv = document.createElement('button'); sv.type = 'button'; sv.textContent = TT('Lagre som grunnoppsett'); sv.setAttribute('data-ch-demo-save', '1');
+    sv.style.cssText = 'height:30px;padding:0 14px;border:1px solid #f5b82c;border-radius:999px;background:transparent;color:#f5d38f;font:inherit;cursor:pointer';
+    sv.onclick = () => this.saveBaseDialog(tpl);
+    b.append(t, sv, a); document.body.append(b);
+  }
+  /* Lagre demoen (eller serien) som et navngitt grunnoppsett: personlig, eller felles for menigheten når brukeren er medlem.
+     Lager alltid et nytt grunnoppsett; demoen og eksisterende prosjekter og grunnoppsett endres ikke. */
+  saveBaseDialog(tpl) {
+    if (document.querySelector('[data-ch-base-dialog]')) return;
+    const me = window.CH && window.CH.me, canChurch = !!(me && (me.churches || []).length);
+    const ov = document.createElement('div'); ov.setAttribute('data-ch-base-dialog', '1');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147481000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;font:500 14px Archivo,system-ui,sans-serif';
+    const box = document.createElement('form'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true');
+    box.style.cssText = 'width:min(440px,100%);display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid #2b2b2b;border-radius:18px;background:#121212;color:#f3f1ec';
+    const h = document.createElement('b'); h.style.fontSize = '17px'; h.textContent = TT('Lagre som grunnoppsett');
+    const p = document.createElement('p'); p.style.cssText = 'margin:0;font-size:13px;color:#b3afa6'; p.textContent = TT('Lagrer slidene, tekstene, stilen og de genererte bakgrunnene som et nytt grunnoppsett. Demoen og dine andre serier endres ikke.');
+    const nl = document.createElement('label'); nl.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600'; nl.textContent = TT('Navn');
+    const name = document.createElement('input'); name.required = true; name.maxLength = 60; name.value = TT('Mitt grunnoppsett'); name.setAttribute('data-ch-base-name', '1');
+    name.style.cssText = 'height:36px;padding:0 10px;border:1px solid #2b2b2b;border-radius:10px;background:#000;color:#f3f1ec;font:inherit'; nl.append(name);
+    const lvl = document.createElement('fieldset'); lvl.style.cssText = 'margin:0;padding:0;border:0;display:flex;flex-direction:column;gap:6px;font-size:13px';
+    const opt = (v, text, on, dis) => { const l = document.createElement('label'); l.style.cssText = 'display:flex;gap:8px;align-items:flex-start' + (dis ? ';opacity:.5' : ''); const r = document.createElement('input'); r.type = 'radio'; r.name = 'lvl'; r.value = v; r.checked = on; r.disabled = !!dis; r.setAttribute('data-ch-base-level', v); const s = document.createElement('span'); s.textContent = TT(text); l.append(r, s); return l; };
+    lvl.append(opt('p', 'Personlig – bare for meg', true), opt('f', 'Felles for menigheten – alle medlemmer kan bruke det', false, !canChurch));
+    const msg = document.createElement('p'); msg.setAttribute('role', 'status'); msg.style.cssText = 'margin:0;font-size:13px;color:#ff8f7d;min-height:0';
+    const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+    const ok = document.createElement('button'); ok.type = 'submit'; ok.textContent = TT('Lagre'); ok.style.cssText = 'height:34px;padding:0 16px;border:0;border-radius:999px;background:#f3f1ec;color:#111;font:inherit;font-weight:700;cursor:pointer';
+    const no = document.createElement('button'); no.type = 'button'; no.textContent = TT('Avbryt'); no.style.cssText = 'height:34px;padding:0 14px;border:1px solid #2b2b2b;border-radius:999px;background:transparent;color:#f3f1ec;font:inherit;cursor:pointer';
+    no.onclick = () => ov.remove(); row.append(ok, no);
+    box.append(h, p, nl, lvl, msg, row); ov.append(box); document.body.append(ov); setTimeout(() => { name.focus(); name.select(); }, 0);
+    box.onsubmit = async ev => {
+      ev.preventDefault(); ok.disabled = true; msg.style.color = '#b3afa6'; msg.textContent = TT('Lagrer …');
+      const level = (box.querySelector('input[name=lvl]:checked') || {}).value || 'p', S = this.state;
+      const e = entryOf({ name: name.value, base: tpl || S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg });
+      try {
+        if (level === 'f') await CB.add(e); else PB.add(e);
+        ov.remove();
+        toast(level === 'f' ? 'Grunnoppsettet er lagret og er felles for menigheten. Du finner det på Loop Studio-siden.' : 'Grunnoppsettet er lagret (personlig). Du finner det på Loop Studio-siden.');
+        const link = document.querySelector('[data-ch-demo-banner]');
+        if (link && !link.querySelector('[data-ch-base-open]')) { const a = document.createElement('a'); a.href = '/loopeditor?mal=' + encodeURIComponent(e.base) + '&grunn=' + level + '-' + e.id; a.textContent = TT('Åpne grunnoppsettet'); a.setAttribute('data-ch-base-open', '1'); a.style.cssText = 'color:#f5d38f'; link.insertBefore(a, link.lastChild); }
+      } catch (x) {
+        ok.disabled = false; msg.style.color = '#ff8f7d';
+        msg.textContent = TT(x && x.code === 'full' ? 'Du har nådd grensen på 20 grunnoppsett. Slett et på Loop Studio-siden først.' : x && x.code === 'forbidden' ? 'Du har ikke tilgang til å lagre et felles grunnoppsett.' : 'Grunnoppsettet kunne ikke lagres. Prøv igjen.');
+      }
+    };
+  }
+  /* Serie fra et lagret grunnoppsett: viser hvor den kommer fra og lar brukeren bevisst oppdatere grunnoppsettet. */
+  baseBanner() {
+    const g = this.fromBase; if (!g || document.querySelector('[data-ch-base-banner]')) return;
+    const b = document.createElement('div'); b.setAttribute('data-ch-base-banner', '1'); b.setAttribute('role', 'status');
+    b.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147480000;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px);padding:6px 8px 6px 14px;border:1px solid #2b2b2b;border-radius:999px;background:#121212;color:#f3f1ec;font:500 12.5px Archivo,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)';
+    const t = document.createElement('span'); t.textContent = TT('Serie fra grunnoppsettet') + ' «' + g.name + '» (' + TT(g.kind === 'f' ? 'felles for menigheten' : 'personlig') + '). ' + TT('Endringer her endrer ikke grunnoppsettet.');
+    const up = document.createElement('button'); up.type = 'button'; up.textContent = TT('Oppdater grunnoppsettet'); up.setAttribute('data-ch-base-update', '1');
+    up.style.cssText = 'height:28px;padding:0 12px;border:1px solid #f3f1ec;border-radius:999px;background:transparent;color:#f3f1ec;font:inherit;cursor:pointer';
+    up.onclick = async () => {
+      if (!confirm(TT('Oppdatere grunnoppsettet') + ' «' + g.name + '» ' + TT('med denne serien?') + (g.kind === 'f' ? '\n\n' + TT('Det gjelder for hele menigheten.') : ''))) return;
+      const S = this.state, d = entryOf({ name: g.name, base: S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg }).data;
+      try { if (g.kind === 'f') await CB.update(g.id, d); else PB.update(g.id, d); toast('Grunnoppsettet er oppdatert.'); }
+      catch (x) { toast('Grunnoppsettet kunne ikke oppdateres. Prøv igjen.'); }
+    };
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', TT('Lukk'));
+    x.style.cssText = 'width:28px;height:28px;border:0;border-radius:999px;background:transparent;color:#9d998f;font:inherit;cursor:pointer'; x.onclick = () => b.remove();
+    b.append(t, up, x); document.body.append(b);
   }
   bgSource(b, sel) {
     if (!b) return '';
     if (sel && sel.ruleId) { const r = (this.state.cfg.imgRules || []).find(x => x.id === sel.ruleId); if (r) return 'Kilde: Fast bilde «' + (r.kw || 'Uten navn') + '» (Faste bilder i Loop Studio)'; }
     if (b.startsWith('ch:')) return 'Kilde: menighetens filer i ConnectHub (Faste bilder, Felles ressurser eller Fellesmappe)';
     if (b.startsWith('img-')) return 'Kilde: eget bilde – lagret bare på denne enheten';
-    if (b.startsWith('demo-')) return 'Kilde: generert demobakgrunn';
+    if (b.startsWith('demo-') || b.startsWith('gen:')) return 'Kilde: generert bakgrunn (fargeovergang og former)';
     return 'Kilde: eldre innebygd bilde';
   }
-  isStored(b) { return typeof b === 'string' && (b.startsWith('img-') || b.startsWith('ch:')); }
+  isStored(b) { return typeof b === 'string' && (b.startsWith('img-') || b.startsWith('ch:') || b.startsWith('gen:')); }
   async blobOf(b) {
     if (!b) return null;
     if (b.startsWith('img-')) return window.UkeLoop.store.get(b);
     if (b.startsWith('ch:')) return window.MLCloud && window.MLCloud.blob ? window.MLCloud.blob(b) : null;
+    if (/^gen:\d$/.test(b)) return this.makeDemoBg(Number(b.slice(4)));
     return this.safeSrc(b) ? (await fetch(b)).blob() : null;
   }
   sharedOn() { return !!(this.shared && this.shared.available && this.state.sharedReady && !this.state.sharedErr); }
@@ -712,7 +774,12 @@ class Component extends DCLogic {
         const ent = this.diskList().find(d => d.id === did);
         if (ent) { this.diskId = did; this.customId = did; this.customName = ent.name; this.diskData = ent.data; }
       }
-      if (this.diskId) {}
+      const gr = new URLSearchParams(location.search).get('grunn') || '';
+      if (/^[pf]-[a-z0-9]{4,16}$/.test(gr) && !this.diskId) {
+        const kind = gr[0], id = gr.slice(2), e = kind === 'f' ? await CB.get(id).catch(() => null) : PB.get(id);
+        if (e) { this.fromBase = { kind, id, name: e.name, data: e.data }; this.customId = 'g' + gr.replace('-', ''); this.customName = e.name; }
+      }
+      if (this.diskId || this.fromBase) {}
       else if (/^c-[a-z0-9]{4,16}$/.test(cid)) { this.customId = cid; this.customName = card && typeof card.title === 'string' ? card.title.slice(0, 60) : 'Egen mal'; }
       else if (card && typeof card.title === 'string' && card.title.trim() && card.title !== this.tplNames()[tpl]) this.customName = card.title.slice(0, 60);
     } catch (e) {}
@@ -720,8 +787,9 @@ class Component extends DCLogic {
     this.baseCfg = this.state.cfg; this.tplCfg = (this.defaults(tpl) || {}).cfg || {};
     const dd = this.diskData && Array.isArray(this.diskData.slides) && this.diskData.slides.length ? { ...this.diskData, slides: this.diskData.slides.filter(x => x && typeof x === 'object' && typeof x.id === 'string' && ['day', 'text', 'contact', 'outro'].includes(x.type)) } : null;
     this.demo = new URLSearchParams(location.search).get('demo') === '1' && !this.customId && !this.diskId;
-    const base = this.demo ? await this.demoData(tpl) : dd || this.loadSaved(tpl) || this.defaults(tpl);
-    if (this.demo) this.demoBanner(tpl); else this.legacyNotice();
+    const fb = this.fromBase ? { ...this.fromBase.data, slides: (this.fromBase.data.slides || []).filter(x => x && typeof x === 'object' && typeof x.id === 'string' && ['day', 'text', 'contact', 'outro'].includes(x.type)) } : null;
+    const base = this.demo ? await this.demoData(tpl) : dd || this.loadSaved(tpl) || fb || this.defaults(tpl);
+    if (this.demo) this.demoBanner(tpl); else if (this.fromBase) this.baseBanner(); else this.legacyNotice();
     this._initAt = performance.now();
     this.setState({ ready: true, tpl, programText: base.programText || '', slides: base.slides, cfg: { ...this.state.cfg, ...(base.cfg || {}) }, videoName: base.videoName || '', audioName: base.audioName || '', selected: (base.slides[0] || {}).id || null });
     /* only one sound engine per page: close every earlier context (reload / remount / live code updates) */
@@ -815,6 +883,8 @@ class Component extends DCLogic {
     let url = id;
     if (id.startsWith('img-')) {
       try { const b = await window.UkeLoop.store.get(id); if (!b) return; url = URL.createObjectURL(b); } catch (e) { return; }
+    } else if (/^gen:\d$/.test(id)) {
+      const b = await this.makeDemoBg(Number(id.slice(4))); if (!b) { delete this.loading[id]; return; } url = URL.createObjectURL(b);
     } else if (id.startsWith('ch:')) {
       const u = window.MLCloud && window.MLCloud.url ? await window.MLCloud.url(id).catch(() => null) : null;
       if (!u) { delete this.loading[id]; return; } url = u;

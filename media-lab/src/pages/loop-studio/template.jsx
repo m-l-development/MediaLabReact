@@ -1,6 +1,7 @@
 /* Konvertert fra den gamle dc-siden loop-studio.dc.html. Dette er nå kilden – rediger direkte. */
 import React from 'react';
 import { I, css, val, list } from '../../shared/dc.jsx';
+import LoopBases from './bases.jsx';
 
 /* malteksten til elementer som bare inneholder tekst (nøkkel = data-dc-tpl), se runtime-quirks.js */
 export const inline = {"17":["←","Media Lab"],"18":["←"],"19":["Media Lab"],"22":["Tilbakestill"],"23":["Ferdig"],"30":["{{ pageTitle }}"],"40":["Disk"],"41":["{{ diskCount }}"],"45":["Ingen lagrede looper ennå. Trykk «Lagre på Disk» i editoren."],"48":["\n                  ","{{ d.name }}","\n                  ","{{ d.meta }}","\n                "],"49":["{{ d.name }}"],"50":["{{ d.meta }}"],"54":["×"],"56":["‹"],"58":["›"],"63":["{{ c.cat }}"],"64":["{{ c.title }}"],"65":["{{ c.desc }}"],"66":["{{ c.btn }}"],"67":["{{ c.btn }}"],"72":["×"],"77":["Knappetekst"],"80":["Basert på"],"87":["‹"],"88":["›"],"89":["Rediger innhold"],"91":["+","Ny mal"],"92":["+"],"93":["Ny mal"],"94":["\n    ","Design by Kristen Utvikling","\n  "],"95":["Design by Kristen Utvikling"]};
@@ -304,6 +305,7 @@ export default function template(v) {
           </> : null}
           {"\n    "}
         </div>
+        <LoopBases />
         {"\n  "}
       </main>
       {"\n\n  "}
