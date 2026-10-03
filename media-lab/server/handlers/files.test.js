@@ -87,6 +87,19 @@ test('file.upload: for stor fil, ugyldig mappe og avslag fra databasen', async (
   assert.equal((await up(PNG, { church: CH }, kvote)).status, 429);
 });
 
+test('file.upload: nye private opplastinger avvises før noe leses, lagres eller sjekkes; vanlig opplasting sender aldri privat', async () => {
+  for (const v of ['1', 'true', 'ja', '']) {
+    const b = fake(); const r = await up(PNG, { church: CH, folder: 'bilder', private: v }, b);
+    assert.equal(r.status, 403, 'private=' + v); assert.equal(r.body.error, 'private_not_allowed'); assert.equal(b.log.length, 0);
+  }
+  for (const q of [{ church: CH }, { church: CH, private: '0' }]) {
+    const b = fake(); const r = await up(PNG, q, b);
+    assert.equal(r.status, 200);
+    assert.equal(b.log.find(x => x[1] === 'can_upload')[2].p_private, false);
+    assert.equal(b.log.find(x => x[1] === 'register_file')[2].p_private, false);
+  }
+});
+
 test('file.upload: feiler registreringen, fjernes den lagrede filen igjen', async () => {
   const b = fake({ register_file: () => { throw Object.assign(new Error(), { code: '54000' }); } });
   const r = await up(PNG, { church: CH }, b);

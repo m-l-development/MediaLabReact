@@ -20,9 +20,10 @@ function precheck(file) {
 export const files = {
   list: ({ churchId, folder } = {}) => data().select('files', { columns: COLS, eq: { ...(churchId ? { church_id: churchId } : {}), ...(folder ? { folder } : {}) }, order: 'created_at', desc: true, limit: 500 }),
   usage: churchId => data().rpc('storage_usage', { p_church: churchId }),
-  async upload(file, { churchId, folder = 'bilder', priv = false }) {
+  /* Bare felles opplasting: nye private bilder er stengt (serveren og databasen avviser dem). */
+  async upload(file, { churchId, folder = 'bilder' }) {
     precheck(file);
-    const r = await callServer('file.upload', null, { raw: file, contentType: 'application/octet-stream', query: { church: churchId, folder, private: priv ? '1' : '0', name: file.name || 'bilde' } });
+    const r = await callServer('file.upload', null, { raw: file, contentType: 'application/octet-stream', query: { church: churchId, folder, name: file.name || 'bilde' } });
     return r.file;
   },
   async urls(ids) { if (!ids.length) return {}; return (await callServer('file.urls', { ids })).urls || {}; },

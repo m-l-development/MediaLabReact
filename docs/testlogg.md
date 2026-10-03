@@ -1222,3 +1222,10 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
   - User B (mobil 390 px): ser A sine filer med bare «Last ned», ingen Slett i verktøylinjen, nedlasting OK, tom Fellesmappe gir tom-melding og Last opp, ingen vannrett rulling.
   - Sletting: bekreftelsesdialog (antall, «kan ikke angres», kopien hoppes over for vanlig medlem), Admin fjerner kopien.
   - API: uten innlogging 401; opplasting for annen menighet 403; Moderator uten medlemskap 403 og 0 lenker; B får lenke til samarbeidsfil men ikke til A sin Fellesmappe; B og Moderator kan ikke slette (403).
+
+## Nye private opplastinger stengt (2026-10-03, dev)
+- Migrering `20261015100100_no_private_uploads.sql` (dev): `app.upload_check` avviser `p_private = true` (42501) – gjelder `can_upload` og `register_file`. Ingen data endres; eksisterende private bilder er bare synlige for eieren som før.
+- Server: `file.upload` avviser `private` ≠ `0` med `403 private_not_allowed` før noe leses eller lagres, og sender alltid `p_private: false`.
+- RLS 911/911 (PGlite og dev). `npm test` 154/154. Bygg OK.
+- Direkte API (preview mot dev): User og Admin med `private=1`/`true` → 403 (også i Faste); vanlig opplasting → 200 (felles); antall private filer uendret (1/1); eieren får lenke til sitt eksisterende private bilde, Admin ikke. Testfilene slettet.
+- Regresjon: hele E2E for Fellesmappe og Samarbeidsmappe på nytt – alt som før, 0 e2e-filer igjen.

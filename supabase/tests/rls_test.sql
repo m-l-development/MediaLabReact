@@ -315,7 +315,9 @@ insert into public.files (church_id, storage_key, file_name, mime_type, file_siz
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
 select ch_test.ok('Fil: medlem kan laste opp til «bilder»', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 1000)$q$);
-select ch_test.ok('Fil: medlem kan laste opp privat', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'logoer', true, 1000)$q$);
+select ch_test.err('Fil: nye private opplastinger er stengt (forhåndskontroll)', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', true, 1000)$q$, '42501');
+select ch_test.err('Fil: nye private opplastinger er stengt også i andre mapper', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'logoer', true, 1000)$q$, '42501');
+select ch_test.ok('Fil: vanlig opplasting til Fellesmappe virker', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 1000)$q$);
 select ch_test.err('Fil: medlem kan ikke legge i «logoer» (felles)', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'logoer', false, 1000)$q$, '42501');
 select ch_test.err('Fil: over 4 MB avvises', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'bilder', false, 5000000)$q$, '22023');
 select ch_test.err('Fil: ukjent mappe avvises', $q$select public.can_upload('aaaaaaaa-0000-4000-8000-00000000000a', 'video', false, 1000)$q$, '22023');
@@ -1625,6 +1627,20 @@ do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') th
 select ch_test.err('Samarbeidsmappe: server avviser opplasting til avsluttet gruppe', $q$select public.register_link_upload('https://test.invalid/auth/v1', 'sub-g62', (select id from ch_test.grp where name = 'Opplastingsgruppe'), '61616161-0000-4000-8000-000000000061', 'test/gu-sen.png', 'sen.png', 'image/png', 10, null)$q$, '42501');
 set local role postgres;
 select ch_test.cnt('Samarbeidsmappe: ingenting er slettet ved avslutning', $q$select 1 from public.files where id in (select id from ch_test.gu)$q$, 3);
+
+-- Nye private opplastinger er stengt (også direkte mot databasen); eksisterende private bilder er urørt og bare for eieren
+do $$ begin if exists (select 1 from pg_roles where rolname = 'service_role') then execute 'set local role service_role'; else execute 'set local role postgres'; end if; end $$;
+select ch_test.err('Privat: server kan ikke registrere ny privat fil', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-g66', '63636363-0000-4000-8000-000000000063', 'bilder', true, 'test/ny-privat.png', 'ny-privat.png', 'image/png', 10, null)$q$, '42501');
+select ch_test.ok_rb('Privat: server registrerer vanlig fil i Fellesmappe', $q$select public.register_file('https://test.invalid/auth/v1', 'sub-g66', '63636363-0000-4000-8000-000000000063', 'bilder', false, 'test/ny-felles.png', 'ny-felles.png', 'image/png', 10, null)$q$);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g66","aal":"aal1"}';
+select ch_test.err('Privat: medlem kan ikke laste opp privat (forhåndskontroll)', $q$select public.can_upload('63636363-0000-4000-8000-000000000063', 'bilder', true, 10)$q$, '42501');
+select ch_test.cnt('Privat: eieren ser fortsatt sitt eksisterende private bilde og får lenke', $q$select 1 from public.files where file_name = 'g3-privat.png' union all select 1 from public.file_keys(array(select id from ch_test.gf where file_name = 'g3-privat.png'))$q$, 2);
+select ch_test.err('Privat: eksisterende fil kan ikke gjøres privat direkte', $q$update public.files set visibility = 'private' where file_name = 'g3-delt.png'$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g65","aal":"aal1"}';
+select ch_test.cnt('Privat: Admin ser ikke medlemmets private bilde og får ingen lenke', $q$select 1 from public.files where file_name = 'g3-privat.png' union all select 1 from public.file_keys(array(select id from ch_test.gf where file_name = 'g3-privat.png'))$q$, 0);
+set local role postgres;
+select ch_test.cnt('Privat: ingen private bilder er endret eller slettet', $q$select 1 from public.files where file_name = 'g3-privat.png' and visibility = 'private'$q$, 1);
 
 -- ---------- Ekstra Admin: Developer og Moderator legger seg selv til / fjerner seg selv ----------
 -- Bruker N1 (41 = fast Admin, 42 = medlem) fra navneblokken. Developer (sub-1) og Moderator (sub-2) er ikke medlemmer i N1.

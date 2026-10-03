@@ -211,7 +211,7 @@ export function FilesView({ churchId, area: routeArea }) {
       setJob(fill(T('Laster opp {i} av {n} …'), { i: i + 1, n: list.length }));
       try {
         if (collab) await FS.uploadToLink(file, { linkId: fl.link, churchId });
-        else await FS.upload(file, { churchId, folder: fl.folder, priv: false });   // ingen «Privat (bare meg)» i Fellesmappe og Faste
+        else await FS.upload(file, { churchId, folder: fl.folder });   // ingen «Privat (bare meg)» i Fellesmappe og Faste
         n++;
       } catch (err) { bad.push(file.name + ': ' + errText(err)); }
     }

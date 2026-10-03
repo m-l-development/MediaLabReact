@@ -37,18 +37,21 @@ async function drainCleanup(ctx, ids) {
 export const routes = {
   async 'file.upload'(ctx) {
     const q = new URL(ctx.request.url).searchParams;
-    const church = q.get('church') || '', folder = q.get('folder') || 'bilder', priv = q.get('private') === '1', name = String(q.get('name') || '').slice(0, 200);
+    const church = q.get('church') || '', folder = q.get('folder') || 'bilder', name = String(q.get('name') || '').slice(0, 200);
     if (!UUID.test(church) || !FOLDERS.includes(folder)) return fail('invalid');
+    /* Nye private opplastinger er stengt (Fellesmappe uten «Privat (bare meg)»). Databasen avviser dem også
+       (app.upload_check); eksisterende private bilder er urørt og fortsatt bare synlige for eieren. */
+    if (q.has('private') && q.get('private') !== '0') return fail('private_not_allowed', 403);
     const bytes = await readBody(ctx.request);
     const chk = checkUpload(bytes, name);
     if (!chk.ok) return fail(chk.error, 415);
-    await ctx.backend.rpcAsUser(ctx.token, 'can_upload', { p_church: church, p_folder: folder, p_private: priv, p_size: bytes.length });
+    await ctx.backend.rpcAsUser(ctx.token, 'can_upload', { p_church: church, p_folder: folder, p_private: false, p_size: bytes.length });
     const key = 'c/' + church + '/' + crypto.randomUUID() + '.' + chk.ext;
     const sha = hex(await crypto.subtle.digest('SHA-256', bytes));
     await ctx.backend.storagePut(key, bytes, chk.mime);
     try {
       const f = await ctx.backend.rpcAsServer('register_file', { p_issuer: ctx.claims.iss, p_subject: ctx.claims.sub, p_church: church, p_folder: folder,
-        p_private: priv, p_key: key, p_name: cleanName(name, chk.ext), p_mime: chk.mime, p_size: bytes.length, p_sha256: sha });
+        p_private: false, p_key: key, p_name: cleanName(name, chk.ext), p_mime: chk.mime, p_size: bytes.length, p_sha256: sha });
       return json({ ok: true, file: f });
     } catch (e) {
       await ctx.backend.storageDelete([key]).catch(() => {});

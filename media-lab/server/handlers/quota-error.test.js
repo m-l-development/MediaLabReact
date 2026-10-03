@@ -84,8 +84,10 @@ test('file.upload: brukt kvote gir quota_exceeded, og ingenting lagres', async (
   assert.equal(r.status, 413); assert.deepEqual(r.body, { ok: false, error: 'quota_exceeded' });
   assert.ok(!b.log.some(x => x[0] === 'put'), 'ingen fil lagres');
   assert.ok(!JSON.stringify(r.body).includes('kvote'), 'databasens melding sendes ikke til nettleseren');
+  /* Private opplastinger er stengt: avvises før kvotekontrollen. Meldingen for privat kvote kjennes fortsatt igjen. */
   const p = fake({ can_upload: () => { throw err('54000', QUOTA_PRIVATE); } });
-  assert.equal((await up(p, { private: '1' })).body.error, 'quota_exceeded');
+  assert.equal((await up(p, { private: '1' })).body.error, 'private_not_allowed');
+  assert.equal((await up(p)).body.error, 'quota_exceeded');
 });
 
 test('file.upload: kvoten brukt opp ved registrering → quota_exceeded, og den lagrede filen fjernes igjen', async () => {
