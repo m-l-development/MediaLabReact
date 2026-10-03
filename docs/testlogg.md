@@ -1229,3 +1229,10 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - RLS 911/911 (PGlite og dev). `npm test` 154/154. Bygg OK.
 - Direkte API (preview mot dev): User og Admin med `private=1`/`true` → 403 (også i Faste); vanlig opplasting → 200 (felles); antall private filer uendret (1/1); eieren får lenke til sitt eksisterende private bilde, Admin ikke. Testfilene slettet.
 - Regresjon: hele E2E for Fellesmappe og Samarbeidsmappe på nytt – alt som før, 0 e2e-filer igjen.
+
+## Produksjon: Fellesmappe og Samarbeidsmappe (2026-10-03)
+- Godkjent av brukeren. Før: prod 34 migreringer (sist 20261014100000); ny logisk sikkerhetskopi (27 tabeller, 9 filer, 0 private, 2 brukere, 1 menighet, 0 grupper).
+- Tørrkjøring mot `cmuienhheklcgtfmpvbe`: nøyaktig `20261015100000_collab_folder_upload.sql` og `20261015100100_no_private_uploads.sql`. Migrert; CLI koblet tilbake til dev.
+- Etterkontroll (`supabase/checks/prod_postcheck_folders.sql`): 36 migreringer, alle ok-felt true; filer 9 og private 0 uendret; radantall i alle 27 tabeller lik sikkerhetskopien. Tidligere etterkontroll (forespørsler) fortsatt ok.
+- `main` fast-forward f13c02e → c7163dd. Vercel Production: `version.json` = c7163dd.
+- Røyktest i prod (uten innlogging; ingen testkontoer i prod): `file.upload_link`, `file.upload` (privat), `file.urls`, `file.delete` → 401, ugyldig token → 401, Filer-siden → 307 til innlogging, innloggingssiden som før.
