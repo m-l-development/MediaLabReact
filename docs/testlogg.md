@@ -1185,3 +1185,28 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - Ingen feilmeldinger og ingen vannrett rulling.
 - Eneste konsollfeil er den kjente 404-en for den valgfrie `mockups/config.json`.
 - De nye sidene («Forespørsler», «Mail») og menyen er testet i egne kjøringer over.
+
+## Produksjon: forespørsler, kontomeny, kontovelger og «Bytt passord» (2026-10-03)
+
+| Steg | Resultat |
+|---|---|
+| **C** Lesende kontroll | 30 migreringer, siste `20261010100000`. `main` er `25216f4`. `f13c02e` er en ren fremspoling. |
+| **D** Sikkerhetskopi | JSON-kopi av alle 25 tabeller. Den er kontrollert som leselig, og antallene er like fingeravtrykket. Gjenoppretting er ikke prøvd. |
+| **E** Tørrkjøring | Nøyaktig de fire migreringene `20261011100000`–`20261014100000`. |
+| **F** Migrering | Brukt uten feil. |
+| **G** Etterkontroll | `prod_postcheck_requests.sql`: alle 8 `ok`, 34 migreringer. Fingeravtrykket er uendret, bortsett fra migreringstallet. Kommandolinjeverktøyet er tilbake på dev. |
+| **H** Kode | `git push origin f13c02e:main`. Vercel: «Deployment has completed». |
+| **I** Røyktest | Se under. |
+
+**Kontroll C – avvik som ble forklart:** 10 lagringsobjekter mot 9 filer, og én ny loggrad. Det var en egen e-postlogo lastet opp i Mail-fanen kl. 02:54 (`mail.logo_update`, objekt under `mail/`). Det er vanlig bruk og ikke et avvik.
+
+**Røyktest (steg I):**
+- Én CSP-header, uten dev-prosjektet.
+- Sidene gir 307 til innlogging.
+- `request.approve`, `mail.*`, `file.urls` og `invite.create` gir 401 uten innlogging.
+- `request.form` gir en signert nøkkel, og `request.submit` med falsk nøkkel gir `form_expired`, så ingenting lagres.
+- Ingen nettleserfiler inneholder dev-prosjektet eller SMTP-navn.
+- **Innloggingssiden i ekte nettleser (mobil):** vis/skjul, «Husk denne kontoen», knappen «Send forespørsel om opprettelse av bruker» og panelet med 5 felt (skjemanøkkel hentet) er på plass. Ingen vannrett rulling, og ingen feil.
+- Ingen forespørsel ble sendt, så det ble ikke laget data i produksjon.
+
+**Kjent begrensning:** produksjonen har ikke SMTP-oppsett. Forespørsler lagres, og stab varsles i ConnectHub, men det sendes ingen e-post før `docs/epostoppsett.md` er fulgt.
