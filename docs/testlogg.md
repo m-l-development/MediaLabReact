@@ -1210,3 +1210,15 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - Ingen forespørsel ble sendt, så det ble ikke laget data i produksjon.
 
 **Kjent begrensning:** produksjonen har ikke SMTP-oppsett. Forespørsler lagres, og stab varsles i ConnectHub, men det sendes ingen e-post før `docs/epostoppsett.md` er fulgt.
+
+## Fellesmappe og Samarbeidsmappe (2026-10-03, dev)
+- Migrering `20261015100000_collab_folder_upload.sql` kjørt i dev (bare tillegg: kolonnen `files.link_upload`, `can_upload_link`, `register_link_upload`, utvidet `delete_file`).
+- RLS: 902/902 i PGlite og 902/902 mot connecthub-dev (39 nye: opplasting for egen menighet, annen menighet/utenfor gruppen/ikke innlogget/ugyldig størrelse/ukjent gruppe avvist, bare serveren registrerer, synlighet og lenker, sletting (opplaster, Admin, ikke andre, ikke Moderator, kopier fortsatt bare Admin), kvote 54000, deaktivert medlem, avsluttet gruppe skjuler og stopper alt, ingenting slettes).
+- `npm test`: 153/153 (3 nye servertester for `file.upload_link`, 3 ZIP-tester). `npm run build`: OK, sikkerhetssøk uten funn.
+- E2E (vite preview mot dev, syntetiske kontoer, testbildene slettet igjen – 0 e2e-filer igjen):
+  - Forsiden: User i A og User i B ser «Fellesmappe» og «Samarbeidsmappe» (gruppen er aktiv).
+  - Fellesmappe: opplasting av 2 bilder, video avvist med melding, Slett bare på egne filer.
+  - Samarbeidsmappe: gruppeinfo, opplasting av 2 bilder, «Fra oss»/«Fra …», forhåndsvisning (original, blaing, Esc), flervalg → ZIP (2 filer, gyldig arkiv), Eksporter → ZIP, kopi fra Fellesmappe.
+  - User B (mobil 390 px): ser A sine filer med bare «Last ned», ingen Slett i verktøylinjen, nedlasting OK, tom Fellesmappe gir tom-melding og Last opp, ingen vannrett rulling.
+  - Sletting: bekreftelsesdialog (antall, «kan ikke angres», kopien hoppes over for vanlig medlem), Admin fjerner kopien.
+  - API: uten innlogging 401; opplasting for annen menighet 403; Moderator uten medlemskap 403 og 0 lenker; B får lenke til samarbeidsfil men ikke til A sin Fellesmappe; B og Moderator kan ikke slette (403).
