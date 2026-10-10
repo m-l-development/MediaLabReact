@@ -1,4 +1,25 @@
-# Media Lab P |P |I |P |I |I |I |I |I |I |
+T |
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|P |I |P |I |I |I |I |I |I |
 funksjonsregister (feature parity)
 
 Register over all funksjonalitet som den nybygde Media Lab (`web/`) skal bevare eller gjeninnføre.
@@ -6,8 +27,12 @@ Et verktøy er ikke ferdig før alle radene i dets omfang har status **Testet**,
 
 Sist oppdatert: 2026-10-10 (fase 2: fundament).
 
-Status i `web/` så langt: **I** = implementert og testet med falske adaptere/komponenttester, men ikke mot ekte backend
-(krever `.env.local` for `connecthub-dev`). **P** = påbegynt (f.eks. språk/tema finnes i skallet, men ikke i verktøyene ennå).
+Status i `web/` så langt: **T** = testet i ekte Chrome (Playwright) eller manuelt i Chrome (**M**); **I** = implementert og
+enhetstestet (**U**), men ikke testet hele veien i nettleser; **P** = påbegynt. Innlogging er bare testet med falske
+adaptere (krever `.env.local` for `connecthub-dev`).
+
+Isolate Subject: MODNet og SlimSAM er kjørt i Chrome mot ekte modeller (fra egen vert). BiRefNet (Objekt, 115 MB)
+får tidsavbrudd i headless Chrome, som i dagens app – må testes manuelt i vanlig Chrome.
 
 ## Kilder
 

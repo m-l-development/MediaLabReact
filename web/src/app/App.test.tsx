@@ -44,9 +44,10 @@ describe('App (lokal utvikling uten backend)', () => {
     expect(screen.getByRole('link', { name: /Media Lab/ }).getAttribute('href')).toBe('/app/')
   })
 
-  it('direkte adresse til et verktøy', async () => {
+  it('direkte adresse til et verktøy som er bygget (Isolate Subject) og ett som ikke er det', async () => {
     setup('/app/isolate-subject')
-    expect(await screen.findByRole('heading', { name: /Isolate Subject er ikke bygget/ })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Isolate Subject' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Slipp et bilde her/ })).toBeTruthy()
   })
 
   it('«Dine medier» har egen side', async () => {

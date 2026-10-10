@@ -37,9 +37,11 @@ const ACCEPTS: Record<ToolId, readonly AssetKind[]> = {
 
 /**
  * Registeret over verktøy. Et verktøy som bygges på nytt, får `load: () => import('../features/<id>')` her.
- * Ingen verktøy er bygget ennå (fase 2), så alle viser lenken til dagens versjon.
+ * Verktøy som ikke er bygget ennå, viser lenken til dagens versjon.
  */
-const LOADERS: Partial<Record<ToolId, ToolModule['load']>> = {}
+const LOADERS: Partial<Record<ToolId, ToolModule['load']>> = {
+  'isolate-subject': () => import('../features/isolate-subject/IsolateSubject'),
+}
 
 export const TOOLS: readonly ToolModule[] = TOOL_IDS.map((id) => {
   const load = LOADERS[id]
