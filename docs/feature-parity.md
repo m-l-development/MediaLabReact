@@ -1,9 +1,13 @@
-# Media Lab – funksjonsregister (feature parity)
+# Media Lab P |P |I |P |I |I |I |I |I |I |
+funksjonsregister (feature parity)
 
 Register over all funksjonalitet som den nybygde Media Lab (`web/`) skal bevare eller gjeninnføre.
 Et verktøy er ikke ferdig før alle radene i dets omfang har status **Testet**, eller en dokumentert og godkjent unntaksbeslutning.
 
-Sist oppdatert: 2026-10-10 (fase 0).
+Sist oppdatert: 2026-10-10 (fase 2: fundament).
+
+Status i `web/` så langt: **I** = implementert og testet med falske adaptere/komponenttester, men ikke mot ekte backend
+(krever `.env.local` for `connecthub-dev`). **P** = påbegynt (f.eks. språk/tema finnes i skallet, men ikke i verktøyene ennå).
 
 ## Kilder
 

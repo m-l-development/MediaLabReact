@@ -1,0 +1,29 @@
+.message {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-3);
+  min-height: 100vh;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.message p {
+  max-width: 460px;
+  color: var(--color-text-muted);
+}
+
+.devBanner {
+  position: fixed;
+  top: 6px;
+  left: 50%;
+  z-index: 1000;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: #9b1c3c;
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  pointer-events: none;
+  transform: translateX(-50%);
+}

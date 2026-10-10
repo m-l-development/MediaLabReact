@@ -1,0 +1,85 @@
+/*
+ * Designtokens. Mørk (standard) bygger på slate-skalaen; aksenten er Media Lab-gul (#f5b82c, brukt i dagens verktøy).
+ * Lys modus følger dagens app: dempet off-white (#e4e1da), ikke ren hvit.
+ */
+:root {
+  --font-sans: 'Archivo', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
+  --sidebar-width: 248px;
+  --topbar-height: 56px;
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration: 160ms;
+
+  /* Faste verktøyfarger (ikoner og kort) */
+  --tool-loop-studio: #22d3ee;
+  --tool-thumbnail-studio: #f5b82c;
+  --tool-motion-design: #f472b6;
+  --tool-photo-design: #fb923c;
+  --tool-isolate-subject: #a78bfa;
+  --tool-mockups: #34d399;
+}
+
+:root,
+:root[data-theme='dark'] {
+  --color-bg: #0f172a;           /* slate-900 */
+  --color-bg-sunken: #020617;    /* slate-950 */
+  --color-surface: #131c31;
+  --color-surface-raised: #1e293b; /* slate-800 */
+  --color-surface-hover: #273449;
+  --color-border: rgb(148 163 184 / 0.16);
+  --color-border-strong: rgb(148 163 184 / 0.32);
+  --color-text: #cbd5e1;         /* slate-300 */
+  --color-text-strong: #f1f5f9;  /* slate-100 */
+  --color-text-muted: #94a3b8;   /* slate-400 */
+  --color-accent: #f5b82c;
+  --color-accent-strong: #ffcc4d;
+  --color-on-accent: #111827;
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --shadow-md: 0 12px 32px -12px rgb(2 6 23 / 0.8);
+}
+
+:root[data-theme='light'] {
+  --color-bg: #e4e1da;
+  --color-bg-sunken: #d8d4cb;
+  --color-surface: #efece6;
+  --color-surface-raised: #f7f5f1;
+  --color-surface-hover: #ffffff;
+  --color-border: rgb(30 27 22 / 0.14);
+  --color-border-strong: rgb(30 27 22 / 0.28);
+  --color-text: #2e2b26;
+  --color-text-strong: #111111;
+  --color-text-muted: #5f5a51;
+  --color-accent: #b7831a;
+  --color-accent-strong: #946812;
+  --color-on-accent: #ffffff;
+  --color-danger: #b42318;
+  --color-success: #1d7a3a;
+  --color-warning: #8a5a00;
+  --shadow-md: 0 12px 32px -16px rgb(30 27 22 / 0.35);
+}

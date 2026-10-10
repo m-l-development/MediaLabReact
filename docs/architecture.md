@@ -69,8 +69,9 @@ infrastructure/   adaptere: idb, supabase, fs-access, workers, legacy-import, ap
 shared/           designsystem (ui/), canvas-editor, layers, crop, fill, image-adjust, text, hooks, lib
 ```
 
-Avhengighetsretning (kontrolleres av lint/test): `features → services → domain`, `services → infrastructure → domain`.
-`domain` importerer ingenting fra resten. Ingen verktøy importerer fra et annet verktøy; deling går via `services`
+Avhengighetsretning (sykluser stoppes av `import/no-cycle`): `features → services → domain`. `infrastructure` implementerer
+grensesnittene som `services` definerer (f.eks. `AuthAdapter`), og `services` importerer aldri `infrastructure`; bare
+`app/services.ts` kobler dem sammen. `domain` importerer ingenting fra resten. Ingen verktøy importerer fra et annet verktøy; deling går via `services`
 eller `shared`.
 
 ## 5. Verktøymodul-kontrakten
