@@ -28,7 +28,7 @@ function fakes(opts: { session?: Session | null; mfa?: MfaStatus; whoami?: unkno
     mfaEnroll: vi.fn(async () => ({ ok: true as const, factorId: 'f-new', qr: 'data:', secret: 'S' })),
     mfaVerify: vi.fn(async (_id: string, code: string) => (code === '123456' ? { ok: true as const } : { ok: false as const, error: 'invalid_credentials' })),
   }
-  const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'] }
+  const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'], select: vi.fn(async () => []) as DataAdapter['select'] }
   const writeCookie = vi.fn()
   const reload = vi.fn()
   return { auth, data, writeCookie, reload }

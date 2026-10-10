@@ -1,4 +1,17 @@
-T |
+I |
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
 |
 |
 |
@@ -30,6 +43,10 @@ Sist oppdatert: 2026-10-10 (fase 2: fundament).
 Status i `web/` så langt: **T** = testet i ekte Chrome (Playwright) eller manuelt i Chrome (**M**); **I** = implementert og
 enhetstestet (**U**), men ikke testet hele veien i nettleser; **P** = påbegynt. Innlogging er bare testet med falske
 adaptere (krever `.env.local` for `connecthub-dev`).
+
+Mockups: samme motor som i dag (homografi, skjermgjenkjenning, okklusjon, lys/glans) portert til TypeScript; samme
+mockup og design gir samme bilde som dagens app (kontrollert visuelt mot repo A). Innstillinger per mockup bruker
+samme nøkkel (`mockups.settings`) som dagens app.
 
 Isolate Subject: MODNet og SlimSAM er kjørt i Chrome mot ekte modeller (fra egen vert). BiRefNet (Objekt, 115 MB)
 får tidsavbrudd i headless Chrome, som i dagens app – må testes manuelt i vanlig Chrome.

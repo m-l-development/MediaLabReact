@@ -5,14 +5,14 @@ import { logoPng } from './png'
 /** Leser alfa-verdien i gitte punkter (andeler) av en PNG i nettleseren. */
 async function alphaAt(page: Page, file: string, points: [number, number][]): Promise<{ w: number; h: number; a: number[] }> {
   const b64 = fs.readFileSync(file).toString('base64')
-  return page.evaluate(async ({ b64, points }) => {
-    const blob = await (await fetch(`data:image/png;base64,${b64}`)).blob()
+  return page.evaluate(async ({ b64: data, points: pts }) => {
+    const blob = await (await fetch(`data:image/png;base64,${data}`)).blob()
     const bmp = await createImageBitmap(blob)
     const c = new OffscreenCanvas(bmp.width, bmp.height)
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(0, 0, bmp.width, bmp.height).data
-    return { w: bmp.width, h: bmp.height, a: points.map(([x, y]) => d[(Math.floor(y * bmp.height) * bmp.width + Math.floor(x * bmp.width)) * 4 + 3] ?? -1) }
+    return { w: bmp.width, h: bmp.height, a: pts.map(([x, y]) => d[(Math.floor(y * bmp.height) * bmp.width + Math.floor(x * bmp.width)) * 4 + 3] ?? -1) }
   }, { b64, points })
 }
 

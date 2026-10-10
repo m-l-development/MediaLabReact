@@ -54,7 +54,7 @@ export const sameRoute = (a: Route, b: Route): boolean => hrefFor(a) === hrefFor
 
 export interface Router {
   route: Store<Route>
-  navigate(target: Route, opts?: { replace?: boolean }): void
+  navigate(target: Route, opts?: { replace?: boolean; hash?: string }): void
   /** Kalles før navigering; returner false for å stoppe (f.eks. ulagrede endringer). */
   setGuard(guard: ((next: Route) => boolean | Promise<boolean>) | null): void
   dispose(): void
@@ -71,9 +71,9 @@ export function createRouter(base = DEFAULT_BASE, win: Window = window): Router 
   return {
     route,
     async navigate(target, opts = {}) {
-      if (sameRoute(target, route.get())) return
+      if (sameRoute(target, route.get()) && !opts.hash) return
       if (guard && !(await guard(target))) return
-      const href = hrefFor(target, base)
+      const href = hrefFor(target, base) + (opts.hash ? `#${opts.hash}` : '')
       if (opts.replace) win.history.replaceState(null, '', href)
       else win.history.pushState(null, '', href)
       route.set(target)

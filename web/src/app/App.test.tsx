@@ -2,13 +2,15 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { createAuthService } from '../services/auth/auth-service'
 import { createCommunityService } from '../services/community'
+import { createFilesService } from '../services/files'
 import { App } from './App'
 import { createRouter } from './router'
 
 function setup(path = '/app/') {
   history.replaceState(null, '', path)
   const router = createRouter()
-  const services = { auth: createAuthService({ auth: null, data: null, dev: true }), community: createCommunityService(null), router }
+  const auth = createAuthService({ auth: null, data: null, dev: true })
+  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), router }
   render(<App services={services} />)
   return services
 }
@@ -32,16 +34,16 @@ describe('App (lokal utvikling uten backend)', () => {
     expect(screen.getByRole('link', { name: /Photo design/ })).toBeTruthy()
   })
 
-  it('navigerer til et verktøy uten sideinnlasting, med «← Media Lab» og ærlig status', async () => {
-    setup('/app/#tools')
-    const link = await screen.findByRole('link', { name: /Mockups/ })
+  it('navigerer til et verktøy uten sideinnlasting, med «← SoMe» og ærlig status', async () => {
+    setup('/app/#some')
+    const link = await screen.findByRole('link', { name: /Photo design/ })
     await act(async () => {
       fireEvent.click(link)
     })
-    expect(location.pathname).toBe('/app/mockups')
-    expect(await screen.findByRole('heading', { name: /Mockups er ikke bygget/ })).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/mockup')
-    expect(screen.getByRole('link', { name: /Media Lab/ }).getAttribute('href')).toBe('/app/')
+    expect(location.pathname).toBe('/app/photo-design')
+    expect(await screen.findByRole('heading', { name: /Photo design er ikke bygget/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/photodesign')
+    expect(screen.getByRole('link', { name: /SoMe/ }).getAttribute('href')).toBe('/app/#some')
   })
 
   it('direkte adresse til et verktøy som er bygget (Isolate Subject) og ett som ikke er det', async () => {

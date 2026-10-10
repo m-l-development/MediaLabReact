@@ -41,6 +41,7 @@ const ACCEPTS: Record<ToolId, readonly AssetKind[]> = {
  */
 const LOADERS: Partial<Record<ToolId, ToolModule['load']>> = {
   'isolate-subject': () => import('../features/isolate-subject/IsolateSubject'),
+  mockups: () => import('../features/mockups/Mockups'),
 }
 
 export const TOOLS: readonly ToolModule[] = TOOL_IDS.map((id) => {

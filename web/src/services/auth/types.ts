@@ -34,8 +34,18 @@ export interface AuthAdapter {
 }
 
 /** Dataporten (databasefunksjoner). Feil kastes som ServiceError med nøytral kode. */
+export interface SelectOptions {
+  columns?: string
+  eq?: Record<string, string | number | boolean>
+  order?: string
+  desc?: boolean
+  limit?: number
+}
+
 export interface DataAdapter {
   rpc<T = unknown>(fn: string, args?: Record<string, unknown>): Promise<T>
+  /** Tabelloppslag med likhetsfiltre. Tilgangen avgjøres av RLS i databasen. */
+  select<T = Record<string, unknown>>(table: string, opts?: SelectOptions): Promise<T[]>
 }
 
 export type AuthState =

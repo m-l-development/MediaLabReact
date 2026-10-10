@@ -14,6 +14,8 @@ export interface Workspace {
   assets: AssetService
   projects: ProjectService
   shareImport: ShareImport
+  /** Små innstillinger per bruker i den nye databasen (f.eks. listen over egne mockup-bilder). */
+  settings: { get<T>(key: string): Promise<T | undefined>; set(key: string, value: unknown): Promise<void> }
 }
 
 export async function createWorkspace(
@@ -34,7 +36,8 @@ export async function createWorkspace(
     { read: () => readLegacyShare(userId, opts.factory) },
     { get: (k) => log.get<string>(k), set: (k, v) => log.set(k, v) },
   )
-  return { workspace: { userId, assets, projects: createProjectService(projectRepo), shareImport }, close: () => db.close() }
+  const settings = createKeyValue(db, STORES.settings)
+  return { workspace: { userId, assets, projects: createProjectService(projectRepo), shareImport, settings }, close: () => db.close() }
 }
 
 export const WorkspaceContext = createContext<Workspace | null>(null)

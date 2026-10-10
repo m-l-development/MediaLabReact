@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { canAdmin, displayName, initials, type Me } from '../domain/account'
+import { TOOL_GROUP } from '../domain/tool'
+import { useServices } from './services'
 import { setLang, useLang, useT } from '../shared/i18n/i18n'
 import { setTheme, useTheme } from '../shared/theme/theme'
 import { Backdrop } from '../shared/ui/Backdrop'
@@ -31,11 +33,7 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
       <a className={styles.skip} href="#main">{t('app.skipToContent')}</a>
 
       <header className={styles.bar}>
-        {!isHub && (
-          <Link to={{ name: 'hub' }} className={styles.backPill}>
-            <span aria-hidden="true">←</span> {t('app.name')}
-          </Link>
-        )}
+        {!isHub && <BackPill route={route} />}
         {isHub && <LangToggle />}
       </header>
 
@@ -133,5 +131,33 @@ function AccountButton({ me, onSignOut }: { me: Me; onSignOut: (() => void) | nu
         </div>
       )}
     </div>
+  )
+}
+
+/** «← Media Lab», eller «← Tools»/«← SoMe» for verktøy i en mappe (tilbake til mappen, som i dag). */
+function BackPill({ route }: { route: Route }) {
+  const t = useT()
+  const { router } = useServices()
+  const group = route.name === 'tool' ? TOOL_GROUP[route.tool] : null
+  const folder = group === 'tools' || group === 'some' ? group : null
+  if (!folder) {
+    return (
+      <Link to={{ name: 'hub' }} className={styles.backPill}>
+        <span aria-hidden="true">←</span> {t('app.name')}
+      </Link>
+    )
+  }
+  return (
+    <a
+      href={`/app/#${folder}`}
+      className={styles.backPill}
+      onClick={(e) => {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return
+        e.preventDefault()
+        router.navigate({ name: 'hub' }, { hash: folder })
+      }}
+    >
+      <span aria-hidden="true">←</span> {folder === 'tools' ? 'Tools' : 'SoMe'}
+    </a>
   )
 }

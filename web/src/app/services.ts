@@ -5,6 +5,7 @@ import { getClient } from '../infrastructure/supabase/client'
 import { createSupabaseDataAdapter } from '../infrastructure/supabase/data-adapter'
 import { createAuthService, type AuthService } from '../services/auth/auth-service'
 import { createCommunityService, type CommunityService } from '../services/community'
+import { createFilesService, type FilesService } from '../services/files'
 import type { Router } from './router'
 
 /**
@@ -14,6 +15,7 @@ import type { Router } from './router'
 export interface Services {
   auth: AuthService
   community: CommunityService
+  files: FilesService
   router: Router
 }
 
@@ -25,7 +27,7 @@ export function createServices(router: Router): Services {
     data,
     dev: import.meta.env.DEV,
   })
-  return { auth, community: createCommunityService(data), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)
