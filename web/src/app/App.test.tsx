@@ -16,10 +16,19 @@ function setup(path = '/app/') {
 describe('App (lokal utvikling uten backend)', () => {
   it('viser oversikten med alle verktøyene', async () => {
     setup()
-    expect(await screen.findByRole('heading', { level: 1, name: 'Velkommen' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Media Lab' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Dine medier' })).toBeTruthy()
     for (const name of ['Loop Studio', 'Thumbnail Studio', 'Motion design', 'Photo design', 'Isolate Subject', 'Mockups']) {
       expect(screen.getAllByText(name).length).toBeGreaterThan(0)
     }
+  })
+
+  it('åpner mappene SoMe og Tools som på dagens forside (#some/#tools)', async () => {
+    setup()
+    fireEvent.click(await screen.findByRole('button', { name: /SoMe/ }))
+    expect(location.hash).toBe('#some')
+    expect(await screen.findByRole('heading', { level: 1, name: 'SoMe' })).toBeTruthy()
+    expect(screen.getAllByRole('link', { name: /Motion design/ }).length).toBeGreaterThan(1)
   })
 
   it('navigerer til et verktøy uten sideinnlasting og viser ærlig status med lenke til dagens versjon', async () => {
@@ -47,7 +56,7 @@ describe('App (lokal utvikling uten backend)', () => {
   it('bytter språk og tema og husker valget', async () => {
     setup()
     fireEvent.click(await screen.findByRole('button', { name: 'Språk / Language' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Welcome' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Your media' })).toBeTruthy()
     expect(localStorage.getItem('medialab.lang')).toBe('en')
     fireEvent.click(screen.getByRole('button', { name: 'Switch between light and dark' }))
     expect(document.documentElement.dataset.theme).toBe('light')

@@ -52,7 +52,11 @@ export interface Asset {
   locations: StorageLocation[]
   ownerId: UserId | null
   createdAt: number
+  /** Sist åpnet eller brukt (for «nylig brukt»). */
+  lastUsedAt?: number
   thumb?: ContentHash
+  /** Kilde ved import fra dagens app, f.eks. { source: 'medialab-share', id: 's-…' }. */
+  legacy?: { source: string; id: string }
 }
 
 export function kindOfMime(mime: string): AssetKind | null {
@@ -133,7 +137,9 @@ const baseAsset = object({
   locations: array(location),
   ownerId: unknownValue,
   createdAt: number,
+  lastUsedAt: optional(number),
   thumb: optional(contentHash),
+  legacy: optional(object({ source: string, id: string })),
 })
 
 /** Validerer et asset fra lagring eller import, inkludert reglene i docs/media-model.md §3. */

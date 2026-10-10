@@ -13,6 +13,8 @@ import { ServicesContext, useServices, type Services } from './services'
 import { ToolHost } from './ToolHost'
 import styles from './App.module.css'
 import { toolById, type ToolLifecycle } from './tools'
+import { WorkspaceProvider } from './workspace'
+import { MediaLibrary } from '../features/media-library/MediaLibrary'
 
 export function App({ services }: { services: Services }) {
   useEffect(() => {
@@ -22,7 +24,13 @@ export function App({ services }: { services: Services }) {
 
   return (
     <ServicesContext value={services}>
-      <AuthGate>{(me) => <Routes me={me} />}</AuthGate>
+      <AuthGate>
+        {(me) => (
+          <WorkspaceProvider me={me}>
+            <Routes me={me} />
+          </WorkspaceProvider>
+        )}
+      </AuthGate>
     </ServicesContext>
   )
 }
@@ -51,7 +59,11 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
   return (
     <AppShell route={route} me={me} onSignOut={me ? () => void auth.signOut() : null}>
       <ErrorBoundary resetKey={hrefFor(route)} fallback={RouteErrorFallback}>
-        {route.name === 'hub' && <Hub me={me} />}
+        {route.name === 'hub' && (
+          <Hub me={me}>
+            <MediaLibrary />
+          </Hub>
+        )}
         {route.name === 'tool' && (
           <ToolHost key={route.tool} tool={toolById(route.tool)} query={route.query} onLifecycle={setLifecycle} />
         )}

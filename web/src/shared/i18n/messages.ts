@@ -55,6 +55,7 @@ export const no = {
   'hub.greetingAnon': 'Velkommen',
   'hub.toolsHeading': 'Verktøy',
   'hub.foldersHeading': 'Mapper',
+  'hub.folderLabel': 'Mappe',
 
   'lang.label': 'Språk / Language',
   'lang.no': 'Norsk',
@@ -98,6 +99,32 @@ export const no = {
   'notFound.title': 'Siden finnes ikke',
   'notFound.body': 'Adressen peker ikke til noe i Media Lab.',
   'notFound.home': 'Til oversikten',
+
+
+  'media.title': 'Dine medier',
+  'media.lead': 'Bilder, video og lyd du har lastet opp eller laget. Alle verktøyene kan bruke dem uten ny opplasting.',
+  'media.upload': 'Last opp',
+  'media.search': 'Søk i mediene',
+  'media.filter': 'Vis',
+  'media.kind.all': 'Alle',
+  'media.kind.image': 'Bilder',
+  'media.kind.video': 'Video',
+  'media.kind.audio': 'Lyd',
+  'media.empty': 'Ingen medier ennå. Last opp, eller dra filer hit. Filene blir i nettleseren og lastes aldri opp til skyen.',
+  'media.uploaded': '{count} fil(er) lagt til.',
+  'media.error.read': 'kunne ikke leses',
+  'media.derived': 'Ny versjon',
+  'media.openIn': 'Åpne i {tool}',
+  'media.delete': 'Fjern fra mediene',
+  'media.confirmDelete': 'Fjerne «{name}» fra mediene?',
+  'media.inUse': '«{name}» brukes i et prosjekt og kan ikke fjernes.',
+  'media.deleted': '«{name}» er fjernet.',
+  'media.import.offer': 'Den delte mappen i dagens Media Lab har {count} fil(er) som ikke er hentet hit.',
+  'media.import.run': 'Hent filene',
+  'media.import.done': '{imported} fil(er) hentet. {failed} feilet. Filene i dagens app er urørt.',
+
+  'workspace.error.title': 'Lagringen i nettleseren er ikke tilgjengelig',
+  'workspace.error.body': 'Media Lab lagrer prosjekter og medier i nettleseren. Prøv et vanlig vindu (ikke privat), eller gi nettstedet tillatelse til lagring.',
 
   'footer.credit': 'Design by Kristen Utvikling',
 } as const
@@ -157,6 +184,7 @@ export const en: Messages = {
   'hub.greetingAnon': 'Welcome',
   'hub.toolsHeading': 'Tools',
   'hub.foldersHeading': 'Folders',
+  'hub.folderLabel': 'Folder',
 
   'lang.label': 'Språk / Language',
   'lang.no': 'Norsk',
@@ -200,6 +228,32 @@ export const en: Messages = {
   'notFound.title': 'Page not found',
   'notFound.body': 'The address does not point to anything in Media Lab.',
   'notFound.home': 'Go to overview',
+
+
+  'media.title': 'Your media',
+  'media.lead': 'Images, video and audio you have uploaded or created. Every tool can use them without uploading again.',
+  'media.upload': 'Upload',
+  'media.search': 'Search media',
+  'media.filter': 'Show',
+  'media.kind.all': 'All',
+  'media.kind.image': 'Images',
+  'media.kind.video': 'Video',
+  'media.kind.audio': 'Audio',
+  'media.empty': 'No media yet. Upload, or drop files here. Files stay in the browser and are never uploaded to the cloud.',
+  'media.uploaded': '{count} file(s) added.',
+  'media.error.read': 'could not be read',
+  'media.derived': 'New version',
+  'media.openIn': 'Open in {tool}',
+  'media.delete': 'Remove from media',
+  'media.confirmDelete': 'Remove “{name}” from your media?',
+  'media.inUse': '“{name}” is used in a project and cannot be removed.',
+  'media.deleted': '“{name}” has been removed.',
+  'media.import.offer': 'The shared folder in the current Media Lab has {count} file(s) that have not been brought over.',
+  'media.import.run': 'Bring them over',
+  'media.import.done': '{imported} file(s) brought over. {failed} failed. The files in the current app are untouched.',
+
+  'workspace.error.title': 'Browser storage is not available',
+  'workspace.error.body': 'Media Lab stores projects and media in the browser. Try a normal window (not private), or allow the site to store data.',
 
   'footer.credit': 'Design by Kristen Utvikling',
 }

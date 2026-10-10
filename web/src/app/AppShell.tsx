@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { canAdmin, displayName, initials, type Me } from '../domain/account'
 import { TOOL_IDS, type ToolGroup } from '../domain/tool'
 import { setLang, useLang, useT } from '../shared/i18n/i18n'
@@ -77,7 +77,6 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
                     key={id}
                     to={{ name: 'tool', tool: id, query: {} }}
                     className={styles.navItem}
-                    style={{ '--tool-color': `var(--tool-${id})` } as CSSProperties}
                     aria-current={activeTool === id ? 'page' : undefined}
                     onPointerEnter={() => preloadTool(tool)}
                     onFocus={() => preloadTool(tool)}

@@ -51,6 +51,13 @@
   display: block;
 }
 
+.brand strong {
+  font-weight: 600;
+  font-stretch: var(--stretch-heading);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .brand small {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
@@ -77,9 +84,9 @@
 .navLabel {
   margin: var(--space-4) var(--space-3) var(--space-1);
   color: var(--color-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 0.65625rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
@@ -100,7 +107,6 @@
 
 .navItem svg {
   flex: none;
-  color: var(--tool-color, currentColor);
 }
 
 .navItem:hover {
@@ -121,7 +127,7 @@
   left: calc(-1 * var(--space-3));
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--tool-color, var(--color-accent));
+  background: var(--color-text-strong);
 }
 
 .legacyBadge {
@@ -180,9 +186,10 @@
   place-items: center;
   width: 32px;
   height: 32px;
+  border: 1px solid var(--color-border-strong);
   border-radius: 50%;
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  background: var(--color-chip-on);
+  color: var(--color-text-strong);
   font-size: var(--text-xs);
   font-weight: 700;
 }
@@ -228,6 +235,8 @@
 }
 
 .main {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -309,4 +318,26 @@
   .main {
     padding: var(--space-5) var(--space-4);
   }
+}
+
+/* Lysglød bak innholdet, som på dagens forside. */
+.main::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  z-index: -1;
+  width: 70vw;
+  height: 50vw;
+  max-width: 1100px;
+  max-height: 760px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--color-glow), 0.16), rgba(var(--color-glow), 0.05) 55%, rgba(var(--color-glow), 0) 100%);
+  filter: blur(40px);
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(-18deg);
+}
+
+.credit {
+  letter-spacing: 0.12em;
 }

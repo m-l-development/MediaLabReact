@@ -35,7 +35,7 @@ export function ToolHost({ tool, query, onLifecycle }: ToolHostProps) {
   if (!Component) {
     return (
       <section className={styles.notice} aria-labelledby="tool-notice-title">
-        <span className={styles.noticeIcon} style={{ color: `var(--tool-${tool.id})` }}>
+        <span className={styles.noticeIcon}>
           <Icon name={tool.id} size={32} />
         </span>
         <h1 id="tool-notice-title">{t('tool.notBuilt.title', { tool: t(toolTitleKey(tool.id)) })}</h1>
