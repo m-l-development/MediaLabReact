@@ -1,4 +1,5 @@
 import { callServer } from '../infrastructure/api/server'
+import { ServiceError } from './errors'
 import type { DataAdapter } from './auth/types'
 
 /**
@@ -21,16 +22,29 @@ export interface CloudFile {
   source_folder?: string | null
 }
 
+/** Samme grenser som dagens app; serveren kontrollerer innholdet på nytt. */
+export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024
+const UPLOAD_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+
+/** Rask kontroll i nettleseren for god tilbakemelding (video avvises alltid). */
+export function precheckUpload(file: { type: string; size: number; name?: string }): void {
+  if (/^video\//i.test(file.type || '') || /\.(mp4|m4v|mov|webm|mkv|avi|wmv|mpe?g|3gp|flv|ogv|mts|m2ts)$/i.test(file.name || '')) throw new ServiceError('video_not_allowed')
+  if (!UPLOAD_TYPES.includes(file.type)) throw new ServiceError('type_not_allowed')
+  if (file.size > UPLOAD_MAX_BYTES) throw new ServiceError('too_large')
+}
+
 const COLS = 'id, church_id, file_name, mime_type, file_size, folder, visibility, uploaded_by, created_at'
 
 export interface FilesService {
   available(): boolean
-  list(folder: CloudFolder): Promise<CloudFile[]>
+  list(folder: CloudFolder, churchId?: string): Promise<CloudFile[]>
   listCollab(): Promise<CloudFile[]>
   /** Korttidsadresser (signerte) for filene. */
   urls(ids: string[]): Promise<Record<string, string>>
   /** Henter selve filen (for import til Dine medier eller bruk i et verktøy). */
   blob(id: string): Promise<Blob | null>
+  /** Laster opp et bilde som deles med menigheten (Fellesmappe). Samme endepunkt som i dag: `file.upload`. */
+  upload(file: File, opts: { churchId: string; folder?: CloudFolder }): Promise<CloudFile>
 }
 
 export function createFilesService(data: DataAdapter | null, token: () => Promise<string | null>): FilesService {
@@ -41,9 +55,9 @@ export function createFilesService(data: DataAdapter | null, token: () => Promis
   }
   return {
     available: () => !!data,
-    async list(folder) {
+    async list(folder, churchId) {
       if (!data) return []
-      return data.select<CloudFile>('files', { columns: COLS, eq: { folder }, order: 'created_at', desc: true, limit: 500 })
+      return data.select<CloudFile>('files', { columns: COLS, eq: { ...(churchId ? { church_id: churchId } : {}), folder }, order: 'created_at', desc: true, limit: 500 })
     },
     async listCollab() {
       if (!data) return []
@@ -55,6 +69,11 @@ export function createFilesService(data: DataAdapter | null, token: () => Promis
       if (!u) return null
       const r = await fetch(u, { signal: AbortSignal.timeout(30000) })
       return r.ok ? r.blob() : null
+    },
+    async upload(file, { churchId, folder = 'bilder' }) {
+      precheckUpload(file)
+      const r = await callServer<{ file: CloudFile }>(await token(), 'file.upload', null, { raw: file, contentType: 'application/octet-stream', query: { church: churchId, folder, name: file.name || 'bilde' } })
+      return r.file
     },
   }
 }

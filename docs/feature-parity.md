@@ -216,25 +216,25 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| TS-01 | Lerret 1920×1080 (16:9) | B, D | E | `features/thumbnail-studio` | U | – |
-| TS-02 | Kategorier (Søndagsmøte, Kveldsbibelskole, Ungdomsmøte + egne; ny, gi nytt navn, beskrivelse, slett), felles for menigheten (`thumbstudio:cats`) | B `DEFAULT_CATS`, D | E | `features/thumbnail-studio` | E2E | – |
-| TS-03 | Grunnoppsett per kategori, flere per kategori (`layouts[]`, `defaultLayout`, `baseName`), rediger, gjør til standard, tilbakestill | B, D | E | `features/thumbnail-studio` | E2E | – |
-| TS-04 | Maler: maks 5 per kategori, maks 5 bilder per mal; ny, dupliser, overskriv, slett, lagre | B, D | E | `features/thumbnail-studio` | U, E2E | – |
-| TS-05 | 28 oppsett (Blank, Stor krok, Delt i høyden, Nummerert tips, To personer, Sitat og person, Navneskilt, Tre/Fire i panel, Ansikt til ansikt, Episode, Lydbølge, Gjest, Plakat, Stor dato, Infobokser, Person og tittel, Tittel i midten, Bibelvers, Skrå fargeflate, Sterk farge, Bilde med ramme, Film, Cover, Live, Sangliste, Vinyl, Toppliste); «Bytt oppsett» beholder person/navn/tema/bilder | B UI | E\* | `features/thumbnail-studio/layouts` | R | – |
-| TS-06 | Lag: tekst, bilde, form, strek, lys, logo, «Flere elementer» (overskrifter, sitat, punktlister med underpunkt, bokser og merker, navneskilt, dato, bildefelt) | B `addBtns` | E\* | `features/thumbnail-studio/layers` | K | – |
-| TS-07 | Lagliste: rekkefølge, ↺ tilbake til grunnoppsett, kobling av lag (dra over hverandre), lagnavn (dobbeltklikk) | B, D | E\* | `shared/layers` (felles med Photo) | E2E | – |
-| TS-08 | Flytt/skaler/roter, Shift endrer forhold, hjelpelinjer, zoom | B | E\* | `shared/canvas-editor` | E2E | – |
-| TS-09 | Beskjær bilde (dobbeltklikk), fjern tomme kanter, vis hele bildet | B, H 11 | E | `shared/crop` | R | – |
-| TS-10 | AI-utklipp (Person = MODNet, Objekt = BiRefNet), bruk originalbildet | B, H 11 | E | `services/ai` | R, M | – |
-| TS-11 | Fargekombinasjoner (11: Standard, Svart på hvit, …), farge på nye elementer, egen farge, understrek som følger teksten | B `COMBOS` | E | `features/thumbnail-studio` | U | – |
-| TS-12 | Bakgrunn (farge, gradient, bilde med zoom/posisjon/blur/demping) og vignett | B `emptyDoc` | E | `shared/fill` | R | – |
-| TS-13 | Eksport: PNG/JPG, 1080p/4K, gjennomsiktig PNG, råd («YouTube = JPG 1080p < 2 MB», varsel over 2 MB) | B, H 11 | E | `services/export` | R | – |
-| TS-14 | Kopier, «Send til …», delt mappe og Fellesmappe som bildekilde | B | E | `services/assets` | E2E | – |
-| TS-15 | Sikkerhetskopi: last ned fil og gjenopprett (erstatter kategorier og maler i nettleseren) | B, H 11 | E | `services/projects` | R | – |
-| TS-16 | Autolagring av/på, angre/gjør om, «ikke lagret»-varsel ved tilbake | B | E | `services/projects` | E2E | – |
-| TS-17 | Egen visning: dra paneler mellom kolonner, faner, tilbakestill | B UI | E\* | `features/thumbnail-studio/layout-editor` | E2E | – |
-| TS-18 | Enkel visning på mobil (bytt person, navn, tema, bakgrunn, last ned) | B UI | E\* | `features/thumbnail-studio` | E2E (mobil) | – |
-| TS-19 | Innebygde standardmaler med logoene `logo-symbol`/`logo-kbs` og `asset:`-referanser | A `thumb-engine.js` | F | Fjernet bevisst (D: «ingen forhåndsinnlagte standardbilder/logoer»). Filene i `public/images` beholdes, så gamle prosjekter virker → må støttes ved import. | R | – |
+| TS-01 | Lerret 1920×1080 (16:9) | B, D | E | `features/thumbnail-studio` | U | T |
+| TS-02 | Kategorier (Søndagsmøte, Kveldsbibelskole, Ungdomsmøte + egne; ny, gi nytt navn, beskrivelse, slett), felles for menigheten (`thumbstudio:cats`) | B `DEFAULT_CATS`, D | E | `features/thumbnail-studio` | E2E | T (deling i menigheten: I, krever backend) |
+| TS-03 | Grunnoppsett per kategori, flere per kategori (`layouts[]`, `defaultLayout`, `baseName`), rediger, gjør til standard, tilbakestill | B, D | E | `features/thumbnail-studio` | E2E | I |
+| TS-04 | Maler: maks 5 per kategori, maks 5 bilder per mal; ny, dupliser, overskriv, slett, lagre | B, D | E | `features/thumbnail-studio` | U, E2E | T |
+| TS-05 | 28 oppsett (Blank, Stor krok, Delt i høyden, Nummerert tips, To personer, Sitat og person, Navneskilt, Tre/Fire i panel, Ansikt til ansikt, Episode, Lydbølge, Gjest, Plakat, Stor dato, Infobokser, Person og tittel, Tittel i midten, Bibelvers, Skrå fargeflate, Sterk farge, Bilde med ramme, Film, Cover, Live, Sangliste, Vinyl, Toppliste); «Bytt oppsett» beholder person/navn/tema/bilder | B UI | E\* | `features/thumbnail-studio/layouts` | R | T |
+| TS-06 | Lag: tekst, bilde, form, strek, lys, logo, «Flere elementer» (overskrifter, sitat, punktlister med underpunkt, bokser og merker, navneskilt, dato, bildefelt) | B `addBtns` | E\* | `features/thumbnail-studio/layers` | K | I |
+| TS-07 | Lagliste: rekkefølge, ↺ tilbake til grunnoppsett, kobling av lag (dra over hverandre), lagnavn (dobbeltklikk) | B, D | E\* | `shared/layers` (felles med Photo) | E2E | I |
+| TS-08 | Flytt/skaler/roter, Shift endrer forhold, hjelpelinjer, zoom | B | E\* | `shared/canvas-editor` | E2E | T |
+| TS-09 | Beskjær bilde (dobbeltklikk), fjern tomme kanter, vis hele bildet | B, H 11 | E | `shared/crop` | R | I |
+| TS-10 | AI-utklipp (Person = MODNet, Objekt = BiRefNet), bruk originalbildet | B, H 11 | E | `services/ai` | R, M | I (M: må prøves i Chrome) |
+| TS-11 | Fargekombinasjoner (11: Standard, Svart på hvit, …), farge på nye elementer, egen farge, understrek som følger teksten | B `COMBOS` | E | `features/thumbnail-studio` | U | T |
+| TS-12 | Bakgrunn (farge, gradient, bilde med zoom/posisjon/blur/demping) og vignett | B `emptyDoc` | E | `shared/fill` | R | I |
+| TS-13 | Eksport: PNG/JPG, 1080p/4K, gjennomsiktig PNG, råd («YouTube = JPG 1080p < 2 MB», varsel over 2 MB) | B, H 11 | E | `services/export` | R | T |
+| TS-14 | Kopier, «Send til …», delt mappe og Fellesmappe som bildekilde | B | E | `services/assets` | E2E | I («Send til …» = «Lagre i Dine medier»; delt mappe = Dine medier) |
+| TS-15 | Sikkerhetskopi: last ned fil og gjenopprett (erstatter kategorier og maler i nettleseren) | B, H 11 | E | `services/projects` | R | T |
+| TS-16 | Autolagring av/på, angre/gjør om, «ikke lagret»-varsel ved tilbake | B | E | `services/projects` | E2E | T |
+| TS-17 | Egen visning: dra paneler mellom kolonner, faner, tilbakestill | B UI | E\* | `features/thumbnail-studio/layout-editor` | E2E | I |
+| TS-18 | Enkel visning på mobil (bytt person, navn, tema, bakgrunn, last ned) | B UI | E\* | `features/thumbnail-studio` | E2E (mobil) | I |
+| TS-19 | Innebygde standardmaler med logoene `logo-symbol`/`logo-kbs` og `asset:`-referanser | A `thumb-engine.js` | F | Fjernet bevisst (D: «ingen forhåndsinnlagte standardbilder/logoer»). Filene i `public/images` beholdes, så gamle prosjekter virker → må støttes ved import. | R | I (gamle asset:-logoer vises fortsatt) |
 
 ## 9. SoMe – Photo Design
 

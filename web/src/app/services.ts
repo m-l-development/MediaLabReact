@@ -6,6 +6,7 @@ import { createSupabaseDataAdapter } from '../infrastructure/supabase/data-adapt
 import { createAuthService, type AuthService } from '../services/auth/auth-service'
 import { createCommunityService, type CommunityService } from '../services/community'
 import { createFilesService, type FilesService } from '../services/files'
+import { createChurchSettings, type ChurchSettingsService } from '../services/shared-setup'
 import type { Router } from './router'
 
 /**
@@ -16,6 +17,8 @@ export interface Services {
   auth: AuthService
   community: CommunityService
   files: FilesService
+  /** Menighetens felles grunnoppsett (church_settings). */
+  churchSettings: ChurchSettingsService
   router: Router
 }
 
@@ -27,7 +30,7 @@ export function createServices(router: Router): Services {
     data,
     dev: import.meta.env.DEV,
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)
