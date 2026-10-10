@@ -7,10 +7,13 @@ import { createStore, type Store } from '../shared/lib/store'
  */
 export type Route =
   | { name: 'hub' }
+  | { name: 'library' }
   | { name: 'tool'; tool: ToolId; query: Readonly<Record<string, string>> }
   | { name: 'not-found'; path: string }
 
 export const DEFAULT_BASE = '/app/'
+/** «Dine medier» (felles mediebibliotek). */
+export const LIBRARY_PATH = 'medier'
 
 function normalizeBase(base: string): string {
   return `/${base.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/')
@@ -22,6 +25,7 @@ export function parseLocation(pathname: string, search: string, base = DEFAULT_B
   if (!path.startsWith(b)) return { name: 'not-found', path: pathname }
   const rest = path.slice(b.length).replace(/\/+$/, '')
   if (rest === '') return { name: 'hub' }
+  if (rest === LIBRARY_PATH) return { name: 'library' }
   if (isToolId(rest)) {
     const query: Record<string, string> = {}
     for (const [k, v] of new URLSearchParams(search)) query[k] = v
@@ -35,6 +39,8 @@ export function hrefFor(route: Route, base = DEFAULT_BASE): string {
   switch (route.name) {
     case 'hub':
       return b
+    case 'library':
+      return `${b}${LIBRARY_PATH}`
     case 'tool': {
       const qs = new URLSearchParams(route.query).toString()
       return `${b}${route.tool}${qs ? `?${qs}` : ''}`

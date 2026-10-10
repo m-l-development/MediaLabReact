@@ -14,38 +14,45 @@ function setup(path = '/app/') {
 }
 
 describe('App (lokal utvikling uten backend)', () => {
-  it('viser oversikten med alle verktøyene', async () => {
+  it('viser forsiden som i dag: tittel, kortene og snarveien til «Dine medier»', async () => {
     setup()
     expect(await screen.findByRole('heading', { level: 1, name: 'Media Lab' })).toBeTruthy()
-    expect(await screen.findByRole('heading', { name: 'Dine medier' })).toBeTruthy()
-    for (const name of ['Loop Studio', 'Thumbnail Studio', 'Motion design', 'Photo design', 'Isolate Subject', 'Mockups']) {
-      expect(screen.getAllByText(name).length).toBeGreaterThan(0)
-    }
+    for (const name of ['Loop Studio', 'Thumbnail Studio']) expect(screen.getByText(name)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /SoMe/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Tools/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Dine medier/ }).getAttribute('href')).toBe('/app/medier')
   })
 
-  it('åpner mappene SoMe og Tools som på dagens forside (#some/#tools)', async () => {
+  it('åpner mappene SoMe og Tools (#some/#tools) med verktøyene inni', async () => {
     setup()
     fireEvent.click(await screen.findByRole('button', { name: /SoMe/ }))
     expect(location.hash).toBe('#some')
     expect(await screen.findByRole('heading', { level: 1, name: 'SoMe' })).toBeTruthy()
-    expect(screen.getAllByRole('link', { name: /Motion design/ }).length).toBeGreaterThan(1)
+    expect(screen.getByRole('link', { name: /Motion design/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Photo design/ })).toBeTruthy()
   })
 
-  it('navigerer til et verktøy uten sideinnlasting og viser ærlig status med lenke til dagens versjon', async () => {
-    setup()
-    const link = (await screen.findAllByRole('link', { name: /Mockups/ }))[0]
-    if (!link) throw new Error('fant ikke lenken')
+  it('navigerer til et verktøy uten sideinnlasting, med «← Media Lab» og ærlig status', async () => {
+    setup('/app/#tools')
+    const link = await screen.findByRole('link', { name: /Mockups/ })
     await act(async () => {
       fireEvent.click(link)
     })
     expect(location.pathname).toBe('/app/mockups')
     expect(await screen.findByRole('heading', { name: /Mockups er ikke bygget/ })).toBeTruthy()
     expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/mockup')
+    expect(screen.getByRole('link', { name: /Media Lab/ }).getAttribute('href')).toBe('/app/')
   })
 
-  it('direkte adresse til et verktøy og ukjent adresse', async () => {
+  it('direkte adresse til et verktøy', async () => {
     setup('/app/isolate-subject')
     expect(await screen.findByRole('heading', { name: /Isolate Subject er ikke bygget/ })).toBeTruthy()
+  })
+
+  it('«Dine medier» har egen side', async () => {
+    setup('/app/medier')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dine medier' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Last opp' })).toBeTruthy()
   })
 
   it('ukjent adresse gir «Siden finnes ikke»', async () => {
@@ -53,14 +60,14 @@ describe('App (lokal utvikling uten backend)', () => {
     expect(await screen.findByRole('heading', { name: 'Siden finnes ikke' })).toBeTruthy()
   })
 
-  it('bytter språk og tema og husker valget', async () => {
+  it('bytter språk (NO/EN) og tema, og husker valget', async () => {
     setup()
-    fireEvent.click(await screen.findByRole('button', { name: 'Språk / Language' }))
-    expect(await screen.findByRole('heading', { name: 'Your media' })).toBeTruthy()
+    fireEvent.click(await screen.findByRole('button', { name: 'EN' }))
+    expect(await screen.findByRole('link', { name: /Your media/ })).toBeTruthy()
     expect(localStorage.getItem('medialab.lang')).toBe('en')
     fireEvent.click(screen.getByRole('button', { name: 'Switch between light and dark' }))
     expect(document.documentElement.dataset.theme).toBe('light')
     expect(localStorage.getItem('medialab.theme')).toBe('light')
-    fireEvent.click(screen.getByRole('button', { name: 'Språk / Language' }))
+    fireEvent.click(screen.getByRole('button', { name: 'NO' }))
   })
 })

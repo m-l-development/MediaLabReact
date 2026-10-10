@@ -52,18 +52,16 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
   }, [router, lifecycle])
 
   useEffect(() => {
-    const title = route.name === 'tool' ? `${t(toolTitleKey(route.tool))} · ${t('app.name')}` : t('app.name')
+    const title = route.name === 'tool' ? `${t(toolTitleKey(route.tool))} · ${t('app.name')}`
+      : route.name === 'library' ? `${t('media.title')} · ${t('app.name')}` : t('app.name')
     document.title = title
   }, [route, t])
 
   return (
     <AppShell route={route} me={me} onSignOut={me ? () => void auth.signOut() : null}>
       <ErrorBoundary resetKey={hrefFor(route)} fallback={RouteErrorFallback}>
-        {route.name === 'hub' && (
-          <Hub me={me}>
-            <MediaLibrary />
-          </Hub>
-        )}
+        {route.name === 'hub' && <Hub me={me} />}
+        {route.name === 'library' && <MediaLibrary />}
         {route.name === 'tool' && (
           <ToolHost key={route.tool} tool={toolById(route.tool)} query={route.query} onLifecycle={setLifecycle} />
         )}

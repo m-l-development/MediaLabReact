@@ -101,6 +101,8 @@ export function MediaLibrary() {
   const targets = (a: Asset) => TOOLS.filter((tool) => tool.load && tool.accepts.includes(a.kind))
 
   return (
+    <div className={styles.page}>
+    <h1 className={styles.pageTitle}>{t('media.title')}</h1>
     <section
       className={styles.library}
       aria-labelledby="media-title"
@@ -113,10 +115,7 @@ export function MediaLibrary() {
       onDrop={onDrop}
     >
       <header className={styles.head}>
-        <div>
-          <h2 id="media-title" className={styles.title}>{t('media.title')}</h2>
-          <p className={styles.lead}>{t('media.lead')}</p>
-        </div>
+        <p id="media-title" className={styles.lead}>{t('media.lead')}</p>
         <Button onClick={() => fileInput.current?.click()} disabled={busy}>{t('media.upload')}</Button>
         <input
           ref={fileInput}
@@ -171,6 +170,7 @@ export function MediaLibrary() {
         </ul>
       )}
     </section>
+    </div>
   )
 }
 

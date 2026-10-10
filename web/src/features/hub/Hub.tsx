@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link } from '../../app/Link'
 import { useServices } from '../../app/services'
 import { preloadTool } from '../../app/tool-loader'
@@ -20,7 +20,7 @@ function readFolder(): Folder {
 }
 
 /** Dashboardet (HUB-01–03), med samme oppsett og uttrykk som dagens forside. */
-export function Hub({ me, children }: { me: Me | null; children?: ReactNode }) {
+export function Hub({ me }: { me: Me | null }) {
   const t = useT()
   const { community } = useServices()
   const member = !!me && me.churches.length > 0
@@ -89,12 +89,15 @@ export function Hub({ me, children }: { me: Me | null; children?: ReactNode }) {
         </Button>
       )}
 
-      {!folder && member && (
+      {!folder && (
         <nav className={styles.folders} aria-label={t('hub.foldersHeading')}>
-          <a className={styles.folderLink} href="/fellesmappe" style={{ '--folder-color': '#e0a43a' } as CSSProperties}>
+          <Link to={{ name: 'library' }} className={styles.folderLink} style={{ '--folder-color': '#f3f1ec' } as CSSProperties}>
+            <Icon name="photo-design" size={18} /> {t('media.title')}
+          </Link>
+          {member && <a className={styles.folderLink} href="/fellesmappe" style={{ '--folder-color': '#e0a43a' } as CSSProperties}>
             <Icon name="folder" size={18} /> {t('nav.sharedFolder')}
-          </a>
-          {collab && (
+          </a>}
+          {member && collab && (
             <a className={styles.folderLink} href="/samarbeidsmappe" style={{ '--folder-color': '#3fb8a8' } as CSSProperties}>
               <Icon name="collab" size={18} /> {t('nav.collabFolder')}
             </a>
@@ -102,7 +105,6 @@ export function Hub({ me, children }: { me: Me | null; children?: ReactNode }) {
         </nav>
       )}
 
-      {!folder && children}
     </div>
   )
 }

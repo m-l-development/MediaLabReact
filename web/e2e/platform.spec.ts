@@ -24,7 +24,7 @@ test('oversikten vises uten konsollfeil, i dagens visuelle uttrykk', async ({ pa
   const errors = collectErrors(page)
   await page.goto('/app/')
   await expect(page.getByRole('heading', { level: 1, name: 'Media Lab' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Dine medier' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Dine medier/ })).toBeVisible()
   const bg = await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor)
   expect(bg).toBe('rgb(0, 0, 0)')
   // Archivo (selvdrevet font) må faktisk være lastet, ellers ser appen ikke ut som Media Lab.
@@ -37,13 +37,10 @@ test('oversikten vises uten konsollfeil, i dagens visuelle uttrykk', async ({ pa
 
 test('lys modus og engelsk huskes etter ny innlasting', async ({ page }, info) => {
   await page.goto('/app/')
-  // På mobil ligger valgene i menyen.
-  const menu = page.getByRole('button', { name: 'Vis menyen' })
-  if (await menu.isVisible()) await menu.click()
   await page.getByRole('button', { name: 'Bytt mellom lys og mørk' }).click()
-  await page.getByRole('button', { name: 'Språk / Language' }).click()
+  await page.getByRole('button', { name: 'EN' }).click()
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Your media' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Your media/ })).toBeVisible()
   const bg = await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor)
   expect(bg).toBe('rgb(228, 225, 218)')
   await page.screenshot({ path: info.outputPath('ny-forside-lys.png'), fullPage: true })
@@ -51,7 +48,7 @@ test('lys modus og engelsk huskes etter ny innlasting', async ({ page }, info) =
 
 test('opplastet bilde lagres i nettleseren med miniatyr og finnes etter ny innlasting', async ({ page }) => {
   const errors = collectErrors(page)
-  await page.goto('/app/')
+  await page.goto('/app/medier')
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Last opp' }).click()
   await (await chooser).setFiles(IMAGE)
@@ -78,7 +75,7 @@ test('mappene, verktøy-lenker og tilbake/fram i nettleseren', async ({ page }) 
   await page.goto('/app/')
   await page.getByRole('button', { name: /Tools/ }).click()
   await expect(page).toHaveURL(/#tools$/)
-  await page.locator('main').getByRole('link', { name: /Mockups/ }).click()
+  await page.getByRole('link', { name: /Mockups/ }).click()
   await expect(page).toHaveURL(/\/app\/mockups$/)
   await expect(page.getByRole('link', { name: /Åpne dagens versjon/ })).toHaveAttribute('href', '/mockup')
   await page.goBack()
