@@ -31,7 +31,7 @@ test('galleri med de innebygde mockupene, kategorier og design i alle', async ({
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('/app/mockups')
   await expect(page.getByRole('heading', { level: 1, name: 'Mockups' })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Tools/ })).toHaveAttribute('href', '/app/#tools')
+  await expect(page.getByRole('link', { name: /Media Lab/ })).toHaveAttribute('href', '/app/')
   await expect(page.locator('main li').first()).toBeVisible()
   expect(await page.locator('main li').count()).toBeGreaterThanOrEqual(12)
   await page.getByRole('button', { name: /^Mobil/ }).click()

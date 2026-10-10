@@ -102,7 +102,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       confirm: (p, v) => window.confirm(say(p, v)),
       prompt: (p, def) => window.prompt(say(p), def),
       t: say,
-      onLocation: (loc) => void router.navigate({ name: 'tool', tool: 'thumbnail-studio', query: loc }, { replace: true }),
+      onLocation: (loc, replace) => void router.navigate({ name: 'tool', tool: 'thumbnail-studio', query: { ...loc } }, { replace }),
     })
     const makeShared = (m: typeof me) => {
       if (!churchSettings.available() || shared) return
@@ -142,6 +142,14 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       },
     })
   }, [registerLifecycle, c, parts, images])
+
+  // Nettleserens tilbake/fram mellom start, kategori og mal
+  const qCat = query.cat
+  const qTpl = query.tpl
+  const qBase = query.base
+  useEffect(() => {
+    void c.followLocation({ ...(qCat ? { cat: qCat } : {}), ...(qTpl ? { tpl: qTpl } : {}), ...(qBase ? { base: qBase } : {}) })
+  }, [c, qCat, qTpl, qBase])
 
   // «Åpne i Thumbnail Studio» fra Dine medier (?asset=…)
   const assetParam = query.asset

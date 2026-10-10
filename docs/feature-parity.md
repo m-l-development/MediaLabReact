@@ -90,7 +90,7 @@ Testtype: **U** enhet · **K** komponent/integrasjon · **E2E** nettlesertest ·
 | PLT-03 | Flytende knappefelt nede til høyre: tilbakemelding, konto, lys/mørk; ett panel åpent om gangen | B `dock.js`, D | E | `app/dock` | K | – |
 | PLT-04 | Varsel om ny versjon: sjekk hvert minutt og når fanen blir synlig; lagrer arbeid; «Oppdater nå»/«Senere» (10 min); aldri tvungen omlasting; verktøy melder `save/busy/note` | B `ml-update.js`, D | E | `app/update` | U, E2E | – |
 | PLT-05 | Selvreparasjon ved feilende `/assets/`-filer (hent på nytt forbi cache, last én gang til, sperre mot løkke) | B `vite.config.js` HEAL | E | `app/self-heal` | E2E | – |
-| PLT-06 | Husk visning/prosjekt ved F5 og tilbake/fram (ikke ved ny fane) | B `here.js`, D | E | `app/router` | E2E | – |
+| PLT-06 | Husk visning/prosjekt ved F5 og tilbake/fram (ikke ved ny fane) | B `here.js`, D | E | `app/router` | E2E | T (endret etter ønske: «← Media Lab» går alltid til forsiden; nettleserens tilbake går ett nivå opp: mal → kategori → start → forside, aldri inn i sist brukte app) |
 | PLT-07 | PWA: manifest, installasjonsprompt, «Ikke nå» i 14 dager | B `ml-pwa.js`, H 11 | E | `app/pwa` | E2E | – |
 | PLT-08 | Forhåndslasting av neste verktøy ved hover/berøring | B `prefetch.js` | E | `app/router` (lazy + preload) | K | – |
 | PLT-09 | Fast topplinje med tilbakeknapp og verktøynavn, også ved rulling; tittel tones ut på startsider | B `sticky-title.js`, D | E | `shared/ui/TopBar` | E2E | – |

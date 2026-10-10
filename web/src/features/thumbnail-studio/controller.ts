@@ -10,6 +10,8 @@ import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
 import type { Phrase, Vars } from './texts'
 
 export type View = 'home' | 'cat' | 'edit'
+export interface Loc { cat?: string; tpl?: string; base?: string }
+const locKey = (l: Loc) => `${l.cat ?? ''}|${l.tpl ?? ''}|${l.base ?? ''}`
 export type Msg = { p: Phrase; v?: Vars; raw?: false } | { p: string; raw: true }
 export interface CropBox { cL: number; cT: number; cR: number; cB: number }
 export type PanelKey = 'add' | 'layers' | 'canvas' | 'props'
@@ -106,7 +108,7 @@ export interface Deps {
   /** Oversatt tekst (navn på grunnoppsett o.l. som lagres). */
   t(p: Phrase, v?: Vars): string
   /** Huskes i adressen (gjenopprettes ved omlasting). */
-  onLocation(loc: { cat?: string; tpl?: string; base?: string }): void
+  onLocation(loc: { cat?: string; tpl?: string; base?: string }, replace: boolean): void
   now?: () => number
 }
 
@@ -205,6 +207,8 @@ export class ThumbController {
   private offImg: (() => void) | null = null
   private stopShared: (() => void) | null = null
   private now: () => number
+  private quiet = false
+  private lastLoc = ''
 
   constructor(deps: Deps) {
     this.d = deps
@@ -277,25 +281,54 @@ export class ThumbController {
     void this.initShared()
   }
 
-  private restore(loc: { cat?: string; tpl?: string; base?: string }) {
-    const c = loc.cat ? this.s.cats.find((x) => x.id === loc.cat) : null
-    if (!c) return
-    this.set({ view: 'cat', catId: c.id })
-    if (loc.base) {
-      this.editBase(loc.base)
-      return
+  private restore(loc: Loc) {
+    this.quiet = true
+    try {
+      const c = loc.cat ? this.s.cats.find((x) => x.id === loc.cat) : null
+      if (!c) return
+      this.set({ view: 'cat', catId: c.id })
+      if (loc.base) {
+        this.editBase(loc.base)
+        return
+      }
+      const t = loc.tpl ? this.s.tpls.find((x) => x.id === loc.tpl && x.catId === c.id) : null
+      if (t) this.enterEdit(clone(t.doc), t.id, t.name)
+    } finally {
+      this.quiet = false
+      this.location(true)
     }
-    const t = loc.tpl ? this.s.tpls.find((x) => x.id === loc.tpl && x.catId === c.id) : null
-    if (t) this.enterEdit(clone(t.doc), t.id, t.name)
   }
 
-  private location() {
+  /**
+   * Nettleserens tilbake/fram: viser visningen adressen peker på (ett nivå om gangen: mal → kategori → start).
+   * Ulagrede endringer lagres først når det går; ellers spørres det.
+   */
+  async followLocation(loc: Loc): Promise<void> {
+    if (!this.s.ready || locKey(loc) === this.lastLoc) return
+    if (this.s.view === 'edit' && this.s.dirty) {
+      const r = await this.saveForUpdate()
+      if (r === false && !this.d.confirm('Du har endringer som ikke er lagret. Gå tilbake likevel?')) {
+        this.lastLoc = ''
+        this.location()
+        return
+      }
+    }
+    if (!this.alive) return
+    this.set({ view: 'home', baseEdit: false, doc: null, hist: [], fut: [], sel: null, multi: [], dirty: false, exp: false, save: false, newOpen: false, cropId: null, ctx: null, picker: null })
+    this.restore(loc)
+  }
+
+  /** Visningen i adressen. Hvert nivå (start, kategori, mal) er et eget steg i historikken. */
+  private location(replace = false) {
+    if (this.quiet) return
     const s = this.s
-    this.d.onLocation(
-      s.view === 'edit' && s.catId
-        ? { cat: s.catId, ...(s.baseEdit ? { base: s.layoutId || 'main' } : s.tplId ? { tpl: s.tplId } : {}) }
-        : s.view === 'cat' && s.catId ? { cat: s.catId } : {},
-    )
+    const loc: Loc = s.view === 'edit' && s.catId
+      ? { cat: s.catId, ...(s.baseEdit ? { base: s.layoutId || 'main' } : { tpl: s.tplId ?? 'new' }) }
+      : s.view === 'cat' && s.catId ? { cat: s.catId } : {}
+    const key = locKey(loc)
+    if (key === this.lastLoc) return
+    this.lastLoc = key
+    this.d.onLocation(loc, replace)
   }
 
   // ---------- felles grunnoppsett (ConnectHub) ----------
@@ -763,7 +796,7 @@ export class ThumbController {
     const finalId = saved[idx]?.id ?? id
     if (!this.alive) return
     this.set((s) => ({ tplId: finalId, tplName: name, dirty: s.doc === ref ? false : s.dirty, save: quiet ? s.save : false }))
-    this.location()
+    this.location(true)
     if (!quiet) this.flash('Malen er lagret.')
   }
 

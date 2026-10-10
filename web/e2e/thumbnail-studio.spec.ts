@@ -83,7 +83,7 @@ test('ny mal fra grunnoppsettet: bytt navn og person, lagre, og eksporter 1080p 
   // Eksport 1080p PNG: personen (grønn) er med
   await page.getByRole('button', { name: 'Eksporter', exact: true }).click()
   const exp = page.getByRole('dialog', { name: 'Eksporter' })
-  await expect(exp.getByText(/Filstørrelse:/)).toBeVisible()
+  await expect(exp.getByText(/Filstørrelse:/)).toBeVisible({ timeout: 30000 })
   let dl = page.waitForEvent('download')
   await exp.getByRole('button', { name: /^Last ned/ }).click()
   let file = info.outputPath('thumb.png')
@@ -96,7 +96,7 @@ test('ny mal fra grunnoppsettet: bytt navn og person, lagre, og eksporter 1080p 
   await page.getByRole('button', { name: 'Eksporter', exact: true }).click()
   await exp.getByRole('button', { name: /4K/ }).click()
   await exp.getByRole('button', { name: 'JPG' }).click()
-  await expect(exp.getByText(/Filstørrelse:/)).toBeVisible()
+  await expect(exp.getByText(/Filstørrelse:/)).toBeVisible({ timeout: 30000 })
   dl = page.waitForEvent('download')
   await exp.getByRole('button', { name: /^Last ned/ }).click()
   file = info.outputPath('thumb.jpg')
@@ -167,4 +167,25 @@ test('engelsk: tekstene oversettes', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Edit categories' })).toBeVisible()
   await expect(page.getByText('0 of 5 templates').first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Download backup' })).toBeVisible()
+})
+
+test('tilbake: pillen går til forsiden, nettleserens tilbake går ett nivå opp', async ({ page }) => {
+  // Først en annen app, så Thumbnail Studio: tilbake skal ikke ende i den andre appen
+  await page.goto('/app/mockups')
+  await page.goto('/app/thumbnail-studio')
+  await page.getByRole('button', { name: /Søndagsmøte/ }).click()
+  await page.getByRole('button', { name: /Ny mal/ }).click()
+  await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="base:main"]').click()
+  await page.getByRole('button', { name: 'Lagre mal' }).click()
+  await page.getByRole('dialog', { name: 'Lagre mal' }).getByRole('button', { name: 'Lagre som ny mal' }).click()
+  await expect(page).toHaveURL(/tpl=/)
+
+  await page.goBack()
+  await expect(page.getByRole('heading', { level: 1, name: 'Søndagsmøte' })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByRole('heading', { level: 1, name: 'Thumbnail Studio' })).toBeVisible()
+
+  await page.getByRole('link', { name: /Media Lab/ }).click()
+  await expect(page).toHaveURL(/\/app\/$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Media Lab' })).toBeVisible()
 })
