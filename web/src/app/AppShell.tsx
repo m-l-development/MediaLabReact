@@ -4,6 +4,7 @@ import { TOOL_IDS, type ToolGroup } from '../domain/tool'
 import { setLang, useLang, useT } from '../shared/i18n/i18n'
 import { groupKey, toolTitleKey } from '../shared/i18n/messages'
 import { setTheme, useTheme } from '../shared/theme/theme'
+import { Backdrop } from '../shared/ui/Backdrop'
 import { Icon } from '../shared/ui/Icon'
 import styles from './AppShell.module.css'
 import { Link } from './Link'
@@ -29,6 +30,7 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
 
   return (
     <div className={styles.shell}>
+      <Backdrop variant={route.name === 'hub' ? 'mesh' : 'lines'} />
       <a className={styles.skip} href="#main">{t('app.skipToContent')}</a>
 
       <header className={styles.topbar}>

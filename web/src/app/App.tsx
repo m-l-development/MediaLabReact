@@ -17,9 +17,9 @@ import { WorkspaceProvider } from './workspace'
 import { MediaLibrary } from '../features/media-library/MediaLibrary'
 
 export function App({ services }: { services: Services }) {
+  // Ruteren lever like lenge som siden (main.tsx); den skal ikke fjernes når komponenten avmonteres (StrictMode).
   useEffect(() => {
     void services.auth.start()
-    return () => services.router.dispose()
   }, [services])
 
   return (

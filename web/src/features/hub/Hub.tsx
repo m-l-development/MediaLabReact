@@ -132,8 +132,11 @@ function FolderCard({ label, title, desc, count, onOpen }: { label: string; titl
   const t = useT()
   return (
     <button type="button" className={styles.card} onClick={onOpen}>
-      <span className={styles.label}>{label}</span>
-      <span className={styles.cardTitle}>{title}</span>
+      <span className={styles.labelRow}>
+        <span className={styles.label}>{label}</span>
+        <Icon name="folder" size={18} />
+      </span>
+      <span className={styles.cardTitle} data-case={title === 'SoMe' ? 'keep' : undefined}>{title}</span>
       <span className={styles.desc}>{desc}</span>
       <span className={styles.footer}>
         <span className={styles.open}>{t('tool.open')}</span>

@@ -34,7 +34,12 @@
   padding: var(--space-4) var(--space-3);
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
-  background: var(--color-bg-sunken);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+}
+
+:root[data-theme='light'] .sidebar {
+  background: rgba(228, 225, 218, 0.7);
 }
 
 .brand {
@@ -272,7 +277,7 @@
     height: var(--topbar-height);
     padding: 0 var(--space-4);
     border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg-sunken);
+    background: var(--color-bg);
   }
 
   .topbarTitle {
@@ -299,6 +304,7 @@
     z-index: 30;
     width: min(var(--sidebar-width), 86vw);
     height: auto;
+    background: var(--color-bg);
     transform: translateX(-100%);
     transition: transform 200ms var(--ease);
   }
@@ -318,24 +324,6 @@
   .main {
     padding: var(--space-5) var(--space-4);
   }
-}
-
-/* Lysglød bak innholdet, som på dagens forside. */
-.main::before {
-  content: '';
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  z-index: -1;
-  width: 70vw;
-  height: 50vw;
-  max-width: 1100px;
-  max-height: 760px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(var(--color-glow), 0.16), rgba(var(--color-glow), 0.05) 55%, rgba(var(--color-glow), 0) 100%);
-  filter: blur(40px);
-  pointer-events: none;
-  transform: translate(-50%, -50%) rotate(-18deg);
 }
 
 .credit {
