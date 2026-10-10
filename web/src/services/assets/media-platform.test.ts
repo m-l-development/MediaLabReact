@@ -1,6 +1,6 @@
 import { Blob as NodeBlob } from 'node:buffer'
 import { describe, expect, it } from 'vitest'
-import { createWorkspace } from '../../app/workspace'
+import { createWorkspace } from '../../app/workspace-factory'
 import type { AssetId, ProjectId, UserId } from '../../domain/ids'
 import { openDatabase } from '../../infrastructure/idb/idb'
 import { legacyName } from '../../infrastructure/legacy-import/local-user'

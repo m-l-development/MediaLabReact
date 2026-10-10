@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { useServices } from '../../app/services'
 import { TOOLS } from '../../app/tools'
-import { useWorkspace } from '../../app/workspace'
+import { useWorkspace } from '../../app/workspace-factory'
+import { describe } from './format'
 import type { Asset, AssetKind } from '../../domain/asset'
 import { ServiceError } from '../../services/errors'
 import type { ImportResult } from '../../services/legacy-import/share-import'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import type { ToolId } from '../../domain/tool'
-import { useStore } from '../../shared/lib/store'
 import { useAssetUrl } from '../../shared/media/useAssetUrl'
 import { Button } from '../../shared/ui/Button'
 import { Icon } from '../../shared/ui/Icon'
@@ -18,26 +18,6 @@ type Filter = 'all' | AssetKind
 const FILTERS: readonly Filter[] = ['all', 'image', 'video', 'audio']
 const KIND_KEY: Record<Filter, MessageKey> = { all: 'media.kind.all', image: 'media.kind.image', video: 'media.kind.video', audio: 'media.kind.audio' }
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 ** 2) return `${Math.round(n / 1024)} KB`
-  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`
-  return `${(n / 1024 ** 3).toFixed(2)} GB`
-}
-
-function formatDuration(s: number): string {
-  const t = Math.round(s)
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
-}
-
-export function describe(a: Asset): string {
-  const parts: string[] = []
-  if (a.meta.width && a.meta.height) parts.push(`${a.meta.width}×${a.meta.height}`)
-  if (a.meta.duration) parts.push(formatDuration(a.meta.duration))
-  parts.push(formatBytes(a.content.size))
-  return parts.join(' · ')
-}
-
 /**
  * «Dine medier» – det felles biblioteket alle verktøyene bruker (SHR-01, SHR-02). Opplasting, filtrering, sletting
  * (bare når ingen prosjekter bruker filen), «Åpne i …» og import fra dagens delte mappe.
@@ -46,7 +26,6 @@ export function MediaLibrary() {
   const t = useT()
   const { router } = useServices()
   const { assets, shareImport } = useWorkspace()
-  const revision = useStore(assets.revision)
   const [filter, setFilter] = useState<Filter>('all')
   const [text, setText] = useState('')
   const [items, setItems] = useState<Asset[]>([])
@@ -56,21 +35,32 @@ export function MediaLibrary() {
   const [pending, setPending] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
 
+  // Henter på nytt når filteret endres og når biblioteket endres (assets.revision).
   useEffect(() => {
     let live = true
-    assets.query({ ...(filter === 'all' ? {} : { kinds: [filter] }), text }).then((rows) => live && setItems(rows))
+    const load = () => {
+      assets.query({ ...(filter === 'all' ? {} : { kinds: [filter] }), text }).then((rows) => live && setItems(rows))
+    }
+    load()
+    const unsubscribe = assets.revision.subscribe(load)
     return () => {
       live = false
+      unsubscribe()
     }
-  }, [assets, filter, text, revision])
+  }, [assets, filter, text])
 
   useEffect(() => {
     let live = true
-    shareImport.pending().then((n) => live && setPending(n), () => live && setPending(0))
+    const load = () => {
+      shareImport.pending().then((n) => live && setPending(n), () => live && setPending(0))
+    }
+    load()
+    const unsubscribe = assets.revision.subscribe(load)
     return () => {
       live = false
+      unsubscribe()
     }
-  }, [shareImport, revision])
+  }, [assets, shareImport])
 
   async function upload(files: File[]) {
     if (!files.length) return

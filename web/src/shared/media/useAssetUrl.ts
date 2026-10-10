@@ -7,15 +7,13 @@ import type { AssetService } from '../../services/assets/asset-service'
  * assetet byttes, så ingen binærdata blir liggende i minnet (docs/media-model.md §3.7).
  */
 export function useAssetUrl(assets: AssetService, asset: Asset | null | undefined, variant: 'thumb' | 'full' = 'thumb'): string | null {
-  const [url, setUrl] = useState<string | null>(null)
   const id = asset?.id
   const thumb = asset?.thumb
+  const key = id ? `${id}|${variant}|${thumb ?? ''}` : null
+  const [loaded, setLoaded] = useState<{ key: string; url: string } | null>(null)
 
   useEffect(() => {
-    if (!id) {
-      setUrl(null)
-      return
-    }
+    if (!id || !key) return
     let live = true
     let created: string | null = null
     const load = variant === 'thumb' && thumb ? assets.openThumb(thumb) : assets.open(id)
@@ -23,15 +21,18 @@ export function useAssetUrl(assets: AssetService, asset: Asset | null | undefine
       (blob) => {
         if (!live || !blob) return
         created = URL.createObjectURL(blob)
-        setUrl(created)
+        setLoaded({ key, url: created })
       },
-      () => live && setUrl(null),
+      () => {
+        // filen mangler: komponenten viser plassholder
+      },
     )
     return () => {
       live = false
       if (created) URL.revokeObjectURL(created)
     }
-  }, [assets, id, thumb, variant])
+  }, [assets, id, thumb, variant, key])
 
-  return url
+  // En URL for et annet asset enn det som vises nå, brukes aldri.
+  return loaded && loaded.key === key ? loaded.url : null
 }

@@ -53,7 +53,9 @@ export interface AssetServiceDeps {
 }
 
 function safeName(name: string | undefined, fallback: string): string {
-  const clean = String(name ?? '').replace(/[\u0000-\u001f<>:"/\\|?*]+/g, ' ').trim().slice(0, 120)
+  // Kontrolltegn og tegn som ikke er lov i filnavn byttes med mellomrom (samme regel som dagens delte mappe).
+  const noControl = [...String(name ?? '')].map((c) => (c.charCodeAt(0) < 32 ? ' ' : c)).join('')
+  const clean = noControl.replace(/[<>:"/\\|?*]+/g, ' ').trim().slice(0, 120)
   return clean || fallback
 }
 
