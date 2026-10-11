@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { createRouter } from './app/router'
+import { healDone } from './app/heal'
 import { createServices } from './app/services'
 import { langStore } from './shared/i18n/i18n'
 import { initTheme } from './shared/theme/theme'
@@ -22,3 +23,4 @@ createRoot(root).render(
     <App services={services} />
   </StrictMode>,
 )
+healDone()

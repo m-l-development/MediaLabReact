@@ -11,6 +11,7 @@ import { Link } from './Link'
 import { hrefFor } from './router'
 import { ServicesContext, useServices, type Services } from './services'
 import { ToolHost } from './ToolHost'
+import { UpdateNotice } from './UpdateNotice'
 import styles from './App.module.css'
 import { toolById, type ToolLifecycle } from './tools'
 import { WorkspaceProvider } from './workspace'
@@ -73,6 +74,7 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
           </section>
         )}
       </ErrorBoundary>
+      <UpdateNotice lifecycle={route.name === 'tool' ? lifecycle : null} />
     </AppShell>
   )
 }

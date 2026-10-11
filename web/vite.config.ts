@@ -1,4 +1,6 @@
 /// <reference types="vitest/config" />
+import { execSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -102,6 +104,59 @@ function connecthubApiLocal(): Plugin {
   }
 }
 
+/**
+ * Versjonsnummer per bygg (som buildVersion i media-lab/vite.config.js): bakes inn som __ML_BUILD__ og skrives til
+ * dist/version.json, som oppdateringsvarselet (PLT-04) sammenligner med. Commit og gren tas med i tilbakemeldinger.
+ */
+function buildVersion(): Plugin {
+  let id = 'dev'
+  return {
+    name: 'media-lab-web:version',
+    config(_, { command }) {
+      if (command === 'build') id = (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 10) + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+      const git = (a: string) => {
+        try {
+          return execSync('git ' + a, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+        } catch {
+          return ''
+        }
+      }
+      const commit = (process.env.VERCEL_GIT_COMMIT_SHA || git('rev-parse HEAD')).slice(0, 12) || null
+      const branch = process.env.VERCEL_GIT_COMMIT_REF || git('rev-parse --abbrev-ref HEAD') || null
+      return { define: { __ML_BUILD__: JSON.stringify(id), __ML_COMMIT__: JSON.stringify(commit), __ML_BRANCH__: JSON.stringify(branch) } }
+    },
+    generateBundle() {
+      if (id !== 'dev') this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ v: id }) + '\n' })
+    },
+  }
+}
+
+/**
+ * Selvreparasjon (PLT-05): nøyaktig samme innebygde skript som dagens app (HEAL i media-lab/vite.config.js), så hashen
+ * allerede står i CSP-en i media-lab/vercel.json og ingen CSP- eller Vercel-endring trengs. Bygget stopper hvis
+ * skriptet er endret og hashen mangler i en av CSP-reglene.
+ */
+export function legacyHealScript(): string {
+  const src = fs.readFileSync(path.join(LEGACY, 'vite.config.js'), 'utf8')
+  const m = /const HEAL = `([\s\S]*?)`;/.exec(src)
+  if (!m?.[1]) throw new Error('Fant ikke HEAL i media-lab/vite.config.js')
+  return new Function('return `' + m[1] + '`')() as string
+}
+function selfHeal(): Plugin {
+  return {
+    name: 'media-lab-web:self-heal',
+    apply: 'build',
+    transformIndexHtml() {
+      const heal = legacyHealScript()
+      const hash = `'sha256-${createHash('sha256').update(heal).digest('base64')}'`
+      const vercel = fs.readFileSync(path.join(LEGACY, 'vercel.json'), 'utf8')
+      const csps = [...vercel.matchAll(/"value": "(default-src [^"]*)"/g)].map((x) => x[1] ?? '')
+      if (!csps.length || !csps.every((c) => c.includes(hash))) throw new Error(`Selvreparasjonsskriptet (${hash}) står ikke i alle CSP-reglene i media-lab/vercel.json`)
+      return [{ tag: 'script', children: heal, injectTo: 'head-prepend' }]
+    },
+  }
+}
+
 /** Felles statiske filer fra media-lab/public (bilder, mockups) og tredjepartsfiler/fonter (build/vendor.js). */
 function sharedAssets(): Plugin {
   const publicDir = path.join(LEGACY, 'public')
@@ -152,6 +207,8 @@ export default defineConfig({
     connecthubEnv(),
     connecthubApiLocal(),
     sharedAssets(),
+    buildVersion(),
+    selfHeal(),
   ],
   server: { port: 5180, strictPort: true },
   preview: { port: 4180, strictPort: true },

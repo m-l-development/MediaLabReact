@@ -30,7 +30,10 @@
           "__CH_DEV_SITE__",
           "__ukeloopRendererFactory",
           "__ukeloopAudioCtl",
-          "__ukeloopPlayerBoot"
+          "__ukeloopPlayerBoot",
+          "__ML_BUILD__",
+          "__ML_COMMIT__",
+          "__ML_BRANCH__"
         ]
       }
     ],

@@ -6,6 +6,8 @@ import { Button, ButtonLink } from '../shared/ui/Button'
 import { Icon } from '../shared/ui/Icon'
 import { Spinner } from '../shared/ui/Spinner'
 import { isChunkLoadError } from './chunk-error'
+import { HEAL_KEY, healChunk } from './heal'
+import { sessionStore } from '../shared/lib/storage'
 import { ErrorBoundary, type FallbackProps } from './ErrorBoundary'
 import { TOOL_COMPONENTS } from './tool-loader'
 import styles from './ToolHost.module.css'
@@ -65,6 +67,12 @@ export function ToolHost({ tool, query, onLifecycle }: ToolHostProps) {
 function ToolErrorFallback({ error, reset }: FallbackProps) {
   const t = useT()
   const chunk = isChunkLoadError(error)
+  // første gang: hent filene forbi hurtigbufferen og last siden én gang til (PLT-05)
+  const healing = chunk && !sessionStore.get(HEAL_KEY)
+  useEffect(() => {
+    healChunk(error)
+  }, [error])
+  if (healing) return <Spinner label={t('tool.loadError.healing')} />
   return (
     <section className={styles.notice} role="alert">
       <span className={styles.noticeIcon}><Icon name="alert" size={32} /></span>
