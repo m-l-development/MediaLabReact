@@ -150,7 +150,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
 
       {s.phase === 'empty' && (
         <section className={styles.empty}>
-          <h1 className={styles.title}>{t('tool.isolate-subject.title')}</h1>
+          <h1 className={styles.title} data-ml-title="">{t('tool.isolate-subject.title')}</h1>
           <button type="button" className={styles.drop} data-active={dragOver} onClick={() => fileInput.current?.click()}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16" /></svg>
             <span className={styles.dropTitle}>{t('isolate.drop')}</span>

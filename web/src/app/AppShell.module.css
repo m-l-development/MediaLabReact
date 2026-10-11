@@ -33,6 +33,12 @@
   pointer-events: none;
 }
 
+/* i verktøyene står linjen fast ved rulling (PLT-09), over feltet bak den */
+.barFixed {
+  position: fixed;
+  z-index: 50;
+}
+
 .bar > * {
   pointer-events: auto;
 }

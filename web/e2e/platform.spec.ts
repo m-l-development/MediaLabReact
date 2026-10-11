@@ -180,3 +180,32 @@ test('web-app: manifest og ikoner, kortet ved installasjonsprompt, «Ikke nå» 
   await expect(en).toBeHidden()
   expect(Number(await page.evaluate(() => localStorage.getItem('medialab.pwa.later')))).toBeGreaterThan(Date.now() - 60_000)
 })
+
+test('fast topplinje: tilbakeknappen blir stående og verktøynavnet vises lite ved rulling (PLT-09)', async ({ page }, info) => {
+  await page.goto('/app/photo-design')
+  const big = page.locator('[data-ml-title]')
+  await expect(big).toHaveText('Photo design')
+  const small = page.locator('[data-ml-small-title]')
+  await expect(small).toHaveCSS('opacity', '0')
+  await page.mouse.wheel(0, 600)
+  await expect(small).toHaveCSS('opacity', '1')
+  await expect(small).toHaveText('Photo design')
+  const back = page.getByRole('link', { name: /Media Lab/ })
+  const box = await back.boundingBox()
+  expect(box && box.y).toBeLessThan(40)
+  const tb = await small.boundingBox()
+  expect(tb && box && tb.x).toBeGreaterThan(box!.x + box!.width)
+  expect(Number(await big.evaluate((n) => (n as HTMLElement).style.opacity))).toBeLessThan(0.5)
+  await page.screenshot({ path: info.outputPath('topplinje-rullet.png') })
+  // tilbake til toppen: alt som før
+  await page.evaluate(() => scrollTo(0, 0))
+  await expect(small).toHaveCSS('opacity', '0')
+  await expect(big).toHaveCSS('opacity', '1')
+  // Loop Studio har egen linje: én tilbakeknapp, og den lille tittelen virker der også
+  await page.goto('/app/loop-studio')
+  await expect(page.locator('[data-ml-title]')).toBeVisible()
+  await expect(page.getByRole('link', { name: /Media Lab$/ }).filter({ visible: true })).toHaveCount(1)
+  // verktøylinjen fjernes på forsiden
+  await page.goto('/app/')
+  await expect(page.locator('[data-ml-small-title]')).toHaveCount(0)
+})

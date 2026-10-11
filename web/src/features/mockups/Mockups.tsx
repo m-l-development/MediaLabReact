@@ -227,7 +227,7 @@ function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, setti
   const count = (c: 'all' | MockupCategory) => (c === 'all' ? allEntries.length : allEntries.filter((m) => m.cat === c).length)
   return (
     <section className={styles.gallery}>
-      <h1 className={styles.title}>{t('tool.mockups.title')}</h1>
+      <h1 className={styles.title} data-ml-title="">{t('tool.mockups.title')}</h1>
       <p className={styles.lead}>{t('mockups.lead')}</p>
       <div className={styles.row}>
         <Button variant="primary" onClick={onUpload}>{design ? t('mockups.replace') : t('mockups.upload')}</Button>

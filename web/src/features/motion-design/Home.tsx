@@ -68,7 +68,7 @@ export function Home({ c, S, tx, folders, onOpenFile, onGrantWaiting }: { c: Mot
   return (
     <div className={s.menu}>
       <div className={s.homeHead}>
-        <h1 className={s.title}>Motion design</h1>
+        <h1 className={s.title} data-ml-title="">Motion design</h1>
         <p className={s.lead}>{tx('Lag promovideoer og innhold til Instagram og Facebook med klipp, tekst, musikk og overganger.')}</p>
         <div className={s.homeBtns}>
           <button type="button" className={s.pillLight} onClick={() => c.newProject()}>{tx('Nytt prosjekt')}</button>

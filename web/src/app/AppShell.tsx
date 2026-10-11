@@ -7,6 +7,7 @@ import { Icon } from '../shared/ui/Icon'
 import styles from './AppShell.module.css'
 import { FeedbackButton } from './Feedback'
 import { Link } from './Link'
+import { stickyTitle } from './sticky-title'
 import type { Route } from './router'
 
 interface AppShellProps {
@@ -27,16 +28,24 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
   const isHub = route.name === 'hub'
   // knappefeltet (PLT-03): bare ett panel åpent om gangen
   const [panel, setPanel] = useState<'feedback' | 'account' | null>(null)
+  // fast topplinje med liten tittel ved rulling (PLT-09), i verktøyene som i dagens app
+  const isTool = route.name === 'tool'
+  // Loop Studio har sin egen topplinje med «← Media Lab» (portert fra dagens app)
+  const ownBar = route.name === 'tool' && route.tool === 'loop-studio'
+  const shell = useRef<HTMLDivElement>(null)
+  useEffect(() => (isTool && shell.current ? stickyTitle(shell.current) : undefined), [isTool])
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} ref={shell}>
       <Backdrop variant={isHub ? 'mesh' : 'lines'} />
       <a className={styles.skip} href="#main">{t('app.skipToContent')}</a>
 
-      <header className={styles.bar}>
-        {!isHub && <BackPill />}
-        {isHub && <LangToggle />}
-      </header>
+      {!ownBar && (
+        <header className={isTool ? `${styles.bar} ${styles.barFixed}` : styles.bar} data-ml-bar={isTool ? '' : undefined}>
+          {!isHub && <BackPill />}
+          {isHub && <LangToggle />}
+        </header>
+      )}
 
       <main id="main" className={styles.main} tabIndex={-1}>
         {children}

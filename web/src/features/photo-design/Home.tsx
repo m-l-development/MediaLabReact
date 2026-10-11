@@ -45,7 +45,7 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
   return (
     <div className={s.home}>
       <div className={s.homeHead}>
-        <h1 className={s.title}>Photo design</h1>
+        <h1 className={s.title} data-ml-title="">Photo design</h1>
         <p className={s.lead}>{tx('Lag bilder for sosiale medier og trykk. Velg format og mal, og juster farger, tekst og motiv.')}</p>
       </div>
       <section className={s.section}>

@@ -15,7 +15,7 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: ThumbController; S:
           {tx(S.editCats ? 'Ferdig' : 'Rediger kategorier')}
         </button>
       </div>
-      <h1 className={s.title}>Thumbnail Studio</h1>
+      <h1 className={s.title} data-ml-title="">Thumbnail Studio</h1>
       <p className={s.lead}>{tx('Miniatyrbilder til YouTube og appen i 16:9. Velg en kategori, bytt person og navn, og last ned i 1080p eller 4K.')}</p>
       <div className={s.catGrid}>
         {S.cats.map((k) => S.editCats ? (
@@ -76,7 +76,7 @@ export function CategoryView({ c, tx }: { c: ThumbController; tx: Tx }) {
       </div>
       <div className={s.catHead}>
         <span className={s.eyebrow}>{tx('{n} av 5 maler', { n: list.length })}</span>
-        <h1 className={s.catTitle}>{cat.name}</h1>
+        <h1 className={s.catTitle} data-ml-title="">{cat.name}</h1>
         <p className={s.catLead}>{cat.desc}</p>
         <div className={s.catActions}>
           <button type="button" className={s.pillSm} onClick={() => c.editBase('main')}>
