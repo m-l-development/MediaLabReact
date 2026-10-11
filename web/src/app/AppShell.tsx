@@ -5,6 +5,7 @@ import { setTheme, useTheme } from '../shared/theme/theme'
 import { Backdrop } from '../shared/ui/Backdrop'
 import { Icon } from '../shared/ui/Icon'
 import styles from './AppShell.module.css'
+import { FeedbackButton } from './Feedback'
 import { Link } from './Link'
 import type { Route } from './router'
 
@@ -24,6 +25,8 @@ const ROLE_LABEL: Record<string, string> = { developer: 'Developer', moderator: 
 export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
   const t = useT()
   const isHub = route.name === 'hub'
+  // knappefeltet (PLT-03): bare ett panel åpent om gangen
+  const [panel, setPanel] = useState<'feedback' | 'account' | null>(null)
 
   return (
     <div className={styles.shell}>
@@ -48,7 +51,8 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
       )}
 
       <div className={styles.dock}>
-        {me && <AccountButton me={me} onSignOut={onSignOut} />}
+        {me && <FeedbackButton me={me} fabClass={styles.fab} open={panel === 'feedback'} onOpen={(v) => setPanel(v ? 'feedback' : null)} />}
+        {me && <AccountButton me={me} onSignOut={onSignOut} open={panel === 'account'} setOpen={(v) => setPanel(v ? 'account' : null)} />}
         <ThemeButton />
       </div>
     </div>
@@ -85,9 +89,8 @@ function ThemeButton() {
   )
 }
 
-function AccountButton({ me, onSignOut }: { me: Me; onSignOut: (() => void) | null }) {
+function AccountButton({ me, onSignOut, open, setOpen }: { me: Me; onSignOut: (() => void) | null; open: boolean; setOpen: (v: boolean) => void }) {
   const t = useT()
-  const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -101,7 +104,7 @@ function AccountButton({ me, onSignOut }: { me: Me; onSignOut: (() => void) | nu
       document.removeEventListener('pointerdown', close)
       document.removeEventListener('keydown', close)
     }
-  }, [open])
+  }, [open, setOpen])
 
   const roles = [...new Set(me.roles.map((r) => ROLE_LABEL[r.role] ?? r.role))].join(', ')
   const church = me.churches[0]?.name
@@ -114,7 +117,7 @@ function AccountButton({ me, onSignOut }: { me: Me; onSignOut: (() => void) | nu
         aria-expanded={open}
         aria-haspopup="dialog"
         title={displayName(me)}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
       >
         {initials(me)}
       </button>

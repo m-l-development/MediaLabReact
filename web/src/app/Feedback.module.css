@@ -1,0 +1,252 @@
+/* Samme utseende som tilbakemeldingsskjemaet i dagens app (media-lab/src/shared/feedback-widget.js): lyst panel i begge moduser. */
+.panel {
+  position: fixed;
+  right: 12px;
+  bottom: calc(52px + env(safe-area-inset-bottom));
+  z-index: 2147482002;
+  width: 390px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f3f1ec;
+  color: #111;
+  font: 500 13px/1.45 Archivo, Helvetica, sans-serif;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.panel * {
+  box-sizing: border-box;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: normal;
+}
+.panel p {
+  margin: 0;
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.cat {
+  min-height: 42px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+.cat[aria-checked='true'] {
+  background: #111;
+  color: #f3f1ec;
+  border-color: #111;
+}
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b3934;
+}
+.panel input,
+.panel textarea,
+.panel select {
+  font: inherit;
+  font-weight: 500;
+  font-size: 14px;
+  color: #111;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 8px 10px;
+  width: 100%;
+}
+.panel textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+.btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #111;
+  background: #111;
+  color: #f3f1ec;
+}
+.light {
+  background: transparent;
+  color: #111;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+.tiny {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.note {
+  font-size: 12px;
+  color: #5a5750;
+}
+.warn {
+  font-size: 12px;
+  color: #7a4a00;
+  background: #fff4d6;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.err {
+  font-size: 12.5px;
+  color: #9b1c3c;
+  background: #fbe9ee;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.ok {
+  font-size: 14px;
+  font-weight: 700;
+}
+.mark {
+  flex: 1 1 100%;
+  font-size: 12px;
+  background: #fff;
+  border: 1px dashed #b07d00;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.tech {
+  font: 500 11px/1.4 ui-monospace, Consolas, monospace;
+  white-space: pre-wrap;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+  max-height: 160px;
+  overflow: auto;
+}
+@media (max-width: 600px) {
+  .panel {
+    inset: 0;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482001;
+  background: rgba(0, 0, 0, 0.22);
+  touch-action: manipulation;
+}
+.x {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: #fff;
+  color: #111;
+  font: 600 22px/1 Archivo, Helvetica, sans-serif;
+  cursor: pointer;
+  padding: 0;
+}
+.x:hover,
+.x:focus-visible {
+  background: #ece9e2;
+  outline: 2px solid #9b1c3c;
+  outline-offset: 1px;
+}
+.pick {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482003;
+  cursor: crosshair;
+  touch-action: none;
+  background: rgba(0, 0, 0, 0.04);
+}
+.box {
+  position: fixed;
+  z-index: 2147482004;
+  pointer-events: none;
+  border: 2px solid #f5b301;
+  background: rgba(245, 179, 1, 0.18);
+  border-radius: 4px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.12);
+}
+.bar {
+  position: fixed;
+  left: 50%;
+  top: calc(10px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  z-index: 2147482005;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100vw - 20px);
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #111;
+  color: #f3f1ec;
+  font: 600 13px/1.4 Archivo, Helvetica, sans-serif;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+.bar button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #f3f1ec;
+  background: #f3f1ec;
+  color: #111;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.bar .barLight {
+  background: transparent;
+  color: #f3f1ec;
+}
+.bar button:disabled {
+  opacity: 0.5;
+}

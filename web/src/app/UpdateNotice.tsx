@@ -30,10 +30,9 @@ const watcher = createUpdateWatcher({
 /** Kortet «Ny versjon av Media Lab er klar» (PLT-04). Lagrer det åpne verktøyets arbeid før det vises. */
 export function UpdateNotice({ lifecycle }: { lifecycle: ToolLifecycle | null }) {
   const t = useT()
-  const w = watcher
   // verktøyet som er åpent nå, lagrer og melder om det er opptatt
   useEffect(() => {
-    w.setTool({
+    watcher.setTool({
       async save() {
         if (!lifecycle?.save) return null
         try {
@@ -45,19 +44,19 @@ export function UpdateNotice({ lifecycle }: { lifecycle: ToolLifecycle | null })
       },
       busy: () => !!lifecycle?.isBusy?.(),
     })
-  }, [w, lifecycle])
+  }, [lifecycle])
   useEffect(() => {
-    const id = setInterval(() => void w.check(), EVERY)
+    const id = setInterval(() => void watcher.check(), EVERY)
     const vis = () => {
-      if (!document.hidden) void w.check()
+      if (!document.hidden) void watcher.check()
     }
     document.addEventListener('visibilitychange', vis)
     return () => {
       clearInterval(id)
       document.removeEventListener('visibilitychange', vis)
     }
-  }, [w])
-  const s = useStore(w.state)
+  }, [])
+  const s = useStore(watcher.state)
   if (!s.open) return null
   const text = s.phase === 'saving' ? 'update.saving' : s.phase === 'saved' ? 'update.saved' : s.phase === 'failed' ? 'update.failed' : 'update.reload'
   return (
@@ -65,10 +64,10 @@ export function UpdateNotice({ lifecycle }: { lifecycle: ToolLifecycle | null })
       <strong id="ml-update-title" className={styles.title}>{t('update.title')}</strong>
       <span className={styles.text}>{t(text)}</span>
       <div className={styles.row}>
-        <button type="button" className={styles.primary} disabled={s.phase === 'saving'} onClick={() => void w.updateNow(() => location.reload())}>
+        <button type="button" className={styles.primary} disabled={s.phase === 'saving'} onClick={() => void watcher.updateNow(() => location.reload())}>
           {t(s.phase === 'saving' ? 'update.savingShort' : 'update.now')}
         </button>
-        <button type="button" className={styles.secondary} disabled={s.phase === 'saving'} onClick={() => w.later()}>{t('update.later')}</button>
+        <button type="button" className={styles.secondary} disabled={s.phase === 'saving'} onClick={() => watcher.later()}>{t('update.later')}</button>
       </div>
     </div>
   )

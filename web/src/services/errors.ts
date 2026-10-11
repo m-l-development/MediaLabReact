@@ -25,6 +25,16 @@ const SQL_STATE: Record<string, string> = {
   CH010: 'has_account',
   CH011: 'settings_conflict',
   CH012: 'file_in_use',
+  // som media-lab/src/services/errors.js
+  '22023': 'invalid',
+  '23514': 'invalid',
+  '22P02': 'invalid',
+  '54000': 'rate_limited',
+  PGRST116: 'not_found',
+  PGRST202: 'not_found',
+  PGRST205: 'not_found',
+  '42P01': 'not_found',
+  '42883': 'not_found',
 }
 
 /** PostgreSQL SQLSTATE (felles for alle PostgreSQL-baserte leverandører) → nøytral kode. */

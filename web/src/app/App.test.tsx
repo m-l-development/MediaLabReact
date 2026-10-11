@@ -4,6 +4,7 @@ import { createAuthService } from '../services/auth/auth-service'
 import { createCommunityService } from '../services/community'
 import { createFilesService } from '../services/files'
 import { createChurchSettings } from '../services/shared-setup'
+import { createFeedbackService } from '../services/feedback'
 import { App } from './App'
 import { createRouter } from './router'
 
@@ -11,7 +12,7 @@ function setup(path = '/app/') {
   history.replaceState(null, '', path)
   const router = createRouter()
   const auth = createAuthService({ auth: null, data: null, dev: true })
-  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), churchSettings: createChurchSettings(null), router }
+  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), churchSettings: createChurchSettings(null), feedback: createFeedbackService(null), router }
   render(<App services={services} />)
   return services
 }

@@ -7,6 +7,7 @@ import { createAuthService, type AuthService } from '../services/auth/auth-servi
 import { createCommunityService, type CommunityService } from '../services/community'
 import { createFilesService, type FilesService } from '../services/files'
 import { createChurchSettings, type ChurchSettingsService } from '../services/shared-setup'
+import { createFeedbackService, type FeedbackService } from '../services/feedback'
 import type { Router } from './router'
 
 /**
@@ -19,6 +20,8 @@ export interface Services {
   files: FilesService
   /** Menighetens felles grunnoppsett (church_settings). */
   churchSettings: ChurchSettingsService
+  /** Tilbakemeldinger (PLT-21). */
+  feedback: FeedbackService
   router: Router
 }
 
@@ -30,7 +33,7 @@ export function createServices(router: Router): Services {
     data,
     dev: import.meta.env.DEV,
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)
