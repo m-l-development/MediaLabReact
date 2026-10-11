@@ -36,6 +36,8 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | L-7 | «Mørk toning bak teksten» / «Vignett og mørk toning på alle slides» | Tidlig Loop | Implementert | Heter «Vignett bak teksten» og «Vignett på alle slides» i B; portert |
 | LS-T | Loop Studio i lyst tema (dagens app farget om sidene med theme.js) | B | Testet | Samme omregning (`mapRGB`) portert til `light-theme.ts`, avgrenset til Loop-siden og dens stilark; enhetstest mot verdiene i dagens `theme.js` og E2E. Skjermbilder i lyst tema sammenlignet med dagens app (start og editor): like |
 | LE-03c | Ukeprogram fra bilde via Claude (`window.claude.complete`) | B `logic.js:2169` | Beslutning | Finnes bare i Claude-artefaktmiljøet, aldri i Media Lab-appen. Ikke tatt med; tekstgjenkjenning med tesseract er med |
+| PLT-07-id | Web-appens identitet (`id`/`start_url`/`scope`) | B `manifest.webmanifest` | Beslutning | Ny app har egen identitet `/app/` (dagens: `/media-lab.dc.html`, omfang `/`). Ikke endret eller publisert. Alternativer og hvordan eksisterende installasjoner oppfører seg: [pwa-identitet.md](pwa-identitet.md) |
+| PLT-19-u | Enhetsvalg i Loop Studio lagres i egne nøkler | B `studio-editor/logic.js` | Endret | Dagens valg (`medialab.units`) kopieres ved første åpning; den nye appen skriver aldri til dagens innstillinger. Ingen valg går tapt (nøklene er ulike per verktøy) |
 
 ## Bygget, men ikke kontrollert
 
@@ -54,9 +56,10 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | LE-12, LE-13 | Loop Studio: video på slide og grunnvideo | Testet | E2E med WebM laget i nettleseren; lagres bare lokalt |
 | LS-04, LE-05 | Loop Studio: felles grunnoppsett, faste bilder og Fellesmappe | Blokkert | Innlogging mot ConnectHub |
 | AUTH-* | Innlogging, MFA, glemt passord mot ekte ConnectHub | Blokkert | `.env.local` for `connecthub-dev`; bare testet med falske adaptere |
+| PLT-03, PLT-21 | Knappefelt og tilbakemeldingsknapp | Blokkert | Implementert og enhetstestet mot falsk tjeneste. Vises bare innlogget: nettlesertest, innsending til `submit_feedback` og mobilvisning krever testkonto mot connecthub-dev |
+| PLT-16 | Testrolle (rollebytter) | Blokkert | Regler, innlogging (falsk adapter) og grensesnitt testet. Vises bare i bygg mot utviklingsprosjektet og innlogget: krever testkonto (Developer og Admin) mot connecthub-dev |
+| PLT-17 | Lokale data per bruker, «Knytt til meg», «Fjern mine lokale data» | Blokkert | Enhetstestet med fake IndexedDB og komponenttester. Ekte flyt (to brukere på samme PC) krever to testkontoer |
 
 ## Gjenstår (ikke bygget ennå)
 
-Plattform (PLT-03 knappefelt med tilbakemelding, PLT-04 oppdateringsvarsel, PLT-05
-selvreparasjon, PLT-07 PWA, PLT-08 forhåndslasting, PLT-17 lokale data per bruker, PLT-21 tilbakemelding m.fl.),
-innlogging/konto (AUTH-*) og admin (ADM-*). Loop Studio er bygget (se LS-/LE-radene i registeret for hva som er testet). Rekkefølge videre: plattform → innlogging og konto → admin.
+Plattform: PLT-03/04/05/07/09/16/17/19/21 er bygget (se registeret for hva som er testet og hva som er blokkert av innlogging). PLT-12/13/14 (publisering, CSP, ruting) hører til et eget, godkjent publiseringstrinn. PLT-08 (forhåndslasting) er bygget, ikke kontrollert. Innlogging/konto (AUTH-*) og admin (ADM-*) gjenstår. Loop Studio er bygget (se LS-/LE-radene). Rekkefølge videre: innlogging og konto → admin.
