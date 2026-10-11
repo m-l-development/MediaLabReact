@@ -17,14 +17,14 @@ const resolveSupabaseEnv = envGuard.resolveSupabaseEnv as (env: Record<string, s
   public: { url: string; key: string; ref: string; target: string } | null
   warnings: string[]
 }
-const scanText = envGuard.scanText as (text: string, opts: { target: string }) => string[]
+const scanText = envGuard.scanText as (text: string, opts: { target: string; secrets?: [string, string | undefined][] }) => string[]
 const { SCAN_EXT, REFS, DEV_SITE } = envGuard
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url))
 const LEGACY = path.resolve(ROOT, '../media-lab')
 
 /** Bare URL og publiseringsnøkkel bakes inn (__CH_BACKEND__). Samme regler og samme .env.local som media-lab. */
-function connecthubEnv(): Plugin {
+export function connecthubEnv(): Plugin {
   let target = 'local'
   let outDir = 'dist'
   let building = false
@@ -57,7 +57,8 @@ function connecthubEnv(): Plugin {
           const p = path.join(d, e.name)
           if (e.isDirectory()) walk(p)
           else if (SCAN_EXT.test(e.name)) {
-            for (const f of scanText(fs.readFileSync(p, 'utf8'), { target })) hits.push(`${path.relative(dir, p)}: ${f}`)
+            // som dagens bygg: også den kjente hemmelige verdien fra byggemiljøet (SMTP-passordet), oppgitt ved navn
+            for (const f of scanText(fs.readFileSync(p, 'utf8'), { target, secrets: [['CONNECTHUB_SMTP_PASSWORD', process.env.CONNECTHUB_SMTP_PASSWORD]] })) hits.push(`${path.relative(dir, p)}: ${f}`)
           }
         }
       }
@@ -216,7 +217,7 @@ export default defineConfig({
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false },
   test: {
     environment: 'happy-dom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'build/**/*.test.ts'],
     setupFiles: ['src/test/setup.ts'],
     restoreMocks: true,
   },

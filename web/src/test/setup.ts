@@ -7,6 +7,7 @@ import { afterEach } from 'vitest'
 
 afterEach(() => {
   cleanup()
-  localStorage.clear()
-  sessionStorage.clear()
+  // byggetestene (build/) kjører i node uten nettleserlagring
+  if (typeof localStorage !== 'undefined') localStorage.clear()
+  if (typeof sessionStorage !== 'undefined') sessionStorage.clear()
 })

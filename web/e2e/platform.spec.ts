@@ -209,3 +209,16 @@ test('fast topplinje: tilbakeknappen blir stående og verktøynavnet vises lite 
   await page.goto('/app/')
   await expect(page.locator('[data-ml-small-title]')).toHaveCount(0)
 })
+
+test('forhåndslasting: verktøyet hentes når pekeren eller fokus treffer kortet, før klikket (PLT-08)', async ({ page }, info) => {
+  await page.goto('/app/')
+  await expect(page.getByRole('heading', { level: 1, name: 'Media Lab' })).toBeVisible()
+  const loaded = (name: string) => page.evaluate((n) => performance.getEntriesByType('resource').some((e) => e.name.includes(n)), name)
+  expect(await loaded('features/loop-studio/LoopStudio')).toBe(false)
+  const card = page.getByRole('link', { name: /Loop Studio/ })
+  if (info.project.name === 'mobil') await card.focus()
+  else await card.hover()
+  await expect.poll(() => loaded('features/loop-studio/LoopStudio')).toBe(true)
+  // ingenting åpnes før klikket
+  await expect(page).toHaveURL(/\/app\/$/)
+})
