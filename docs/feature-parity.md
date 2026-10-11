@@ -1,39 +1,4 @@
-I |
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|
-|P |I |P |I |I |I |I |I |I |
-funksjonsregister (feature parity)
+# Media Lab – funksjonsregister (feature parity)
 
 Register over all funksjonalitet som den nybygde Media Lab (`web/`) skal bevare eller gjeninnføre.
 Et verktøy er ikke ferdig før alle radene i dets omfang har status **Testet**, eller en dokumentert og godkjent unntaksbeslutning.
@@ -85,8 +50,8 @@ Testtype: **U** enhet · **K** komponent/integrasjon · **E2E** nettlesertest ·
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| PLT-01 | Norsk/engelsk språk, valg lagres, alle tekster oversatt (regel: all ny tekst skal ha engelsk) | B `i18n.js`, D | E | `shared/i18n` | U, E2E | – |
-| PLT-02 | Lys/mørk modus (mørk standard), lagres i `medialab.theme`, lys modus = dempet off-white `#e4e1da` | B `theme.js`, D | E | `shared/theme` | E2E | – |
+| PLT-01 | Norsk/engelsk språk, valg lagres, alle tekster oversatt (regel: all ny tekst skal ha engelsk) | B `i18n.js`, D | E | `shared/i18n` | U, E2E | T (E2E: engelsk huskes etter ny innlasting; hvert verktøy har test for engelske tekster) |
+| PLT-02 | Lys/mørk modus (mørk standard), lagres i `medialab.theme`, lys modus = dempet off-white `#e4e1da` | B `theme.js`, D | E | `shared/theme` | E2E | T (E2E: lys modus huskes) |
 | PLT-03 | Flytende knappefelt nede til høyre: tilbakemelding, konto, lys/mørk; ett panel åpent om gangen | B `dock.js`, D | E | `app/dock` | K | – |
 | PLT-04 | Varsel om ny versjon: sjekk hvert minutt og når fanen blir synlig; lagrer arbeid; «Oppdater nå»/«Senere» (10 min); aldri tvungen omlasting; verktøy melder `save/busy/note` | B `ml-update.js`, D | E | `app/update` | U, E2E | – |
 | PLT-05 | Selvreparasjon ved feilende `/assets/`-filer (hent på nytt forbi cache, last én gang til, sperre mot løkke) | B `vite.config.js` HEAL | E | `app/self-heal` | E2E | – |
@@ -94,12 +59,12 @@ Testtype: **U** enhet · **K** komponent/integrasjon · **E2E** nettlesertest ·
 | PLT-07 | PWA: manifest, installasjonsprompt, «Ikke nå» i 14 dager | B `ml-pwa.js`, H 11 | E | `app/pwa` | E2E | – |
 | PLT-08 | Forhåndslasting av neste verktøy ved hover/berøring | B `prefetch.js` | E | `app/router` (lazy + preload) | K | – |
 | PLT-09 | Fast topplinje med tilbakeknapp og verktøynavn, også ved rulling; tittel tones ut på startsider | B `sticky-title.js`, D | E | `shared/ui/TopBar` | E2E | – |
-| PLT-10 | Animert bakgrunn på menyer/startskjermer, statisk mørk på arbeidsflater; færre bilder på svake enheter; respekterer redusert bevegelse | B `ml-bg.js`, D | E | `shared/ui/Backdrop` | M | – |
-| PLT-11 | Footer «Design by Kristen Utvikling» med innfading og valgfri lenke | B `ml-footer.js` | E | `shared/ui/Footer` | K | – |
+| PLT-10 | Animert bakgrunn på menyer/startskjermer, statisk mørk på arbeidsflater; færre bilder på svake enheter; respekterer redusert bevegelse | B `ml-bg.js`, D | E | `shared/ui/Backdrop` | M | T (E2E: oversikten i dagens visuelle uttrykk) |
+| PLT-11 | Footer «Design by Kristen Utvikling» med innfading og valgfri lenke | B `ml-footer.js` | E | `shared/ui/Footer` | K | T (footer på forside og verktøy-startsider) |
 | PLT-12 | Korte adresser (/home, /loopstudio, /thumbnailstudio, /photodesign, /motiondesign, /isolate, /mockup, /admin, /fellesmappe …) og 307 fra gamle `.dc.html` | B `build/routes.js` | E | `app/router` + `vercel.json` | U, E2E | – |
 | PLT-13 | CSP uten CDN og uten `unsafe-inline` for skript; inline-skript med SHA-256; `wasm-unsafe-eval` for ONNX | B `vercel.json`, `build/csp.js` | E | byggeoppsett `web/` | U (byggesjekk) | – |
 | PLT-14 | Tredjepartsfiler og fonter fra egen vert, låst med SHA-384 (`vendor-lock.json`): transformers 3.5.1, tesseract 5.1.1 + `nor`, mp4-muxer 5.1.3, qrcode-generator 1.4.4, 10 fontfamilier | B `build/vendor.js` | E | byggeoppsett `web/` | U | – |
-| PLT-15 | Hemmelighetsvern i bygget: bare URL + publiseringsnøkkel ved navn, prosjekt-ID per miljø, søk i `dist/` etter hemmeligheter | B `build/env-guard.js` | E | byggeoppsett `web/` (gjenbruk av samme regler) | U | – |
+| PLT-15 | Hemmelighetsvern i bygget: bare URL + publiseringsnøkkel ved navn, prosjekt-ID per miljø, søk i `dist/` etter hemmeligheter | B `build/env-guard.js` | E | byggeoppsett `web/` (gjenbruk av samme regler) | U | I (samme hemmelighetsvern som dagens bygg gjenbrukes i vite.config.ts) |
 | PLT-16 | Testrolle/rollebytter (bare dev, bare senke rolle, bare UI) | B `test-role.js`, D | E | `features/account` | U | – |
 | PLT-17 | Lokale data per bruker (`navn@<bruker-id>`), «Knytt til meg» for gamle data, «Logg ut og fjern mine lokale data» | B `local-user.js`, D | E | `infrastructure/local-user` | U, E2E | – |
 | PLT-18 | Rask oppstart: siste `whoami` fra buffer, kontrolleres mot databasen like etter | B `me-cache.js` | E | `services/auth` | U | – |
@@ -159,9 +124,9 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| HUB-01 | Kort for Loop Studio, Thumbnail Studio, mappene SoMe (Motion, Photo) og Tools (Isolate, Mockups); `#some`/`#tools` | B `media-lab/` | E | `features/hub` | E2E | – |
+| HUB-01 | Kort for Loop Studio, Thumbnail Studio, mappene SoMe (Motion, Photo) og Tools (Isolate, Mockups); `#some`/`#tools` | B `media-lab/` | E | `features/hub` | E2E | T (E2E: mappene og verktøy-lenker) |
 | HUB-02 | Snarveier Fellesmappe/Samarbeidsmappe (sistnevnte bare ved aktiv gruppe) | B `folder-links.jsx` | E | `features/hub` | E2E | – |
-| HUB-03 | Språkvalg og Admin-lenke | B | E | `features/hub` | E2E | – |
+| HUB-03 | Språkvalg og Admin-lenke | B | E | `features/hub` | E2E | T (E2E: språkvalg; Admin-lenke vises bare for admin, ikke testet med ekte innlogging) |
 
 ## 6. Loop Studio – startside
 
@@ -219,11 +184,11 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 | TS-01 | Lerret 1920×1080 (16:9) | B, D | E | `features/thumbnail-studio` | U | T |
 | TS-02 | Kategorier (Søndagsmøte, Kveldsbibelskole, Ungdomsmøte + egne; ny, gi nytt navn, beskrivelse, slett), felles for menigheten (`thumbstudio:cats`) | B `DEFAULT_CATS`, D | E | `features/thumbnail-studio` | E2E | T (deling i menigheten: I, krever backend) |
 | TS-03 | Grunnoppsett per kategori, flere per kategori (`layouts[]`, `defaultLayout`, `baseName`), rediger, gjør til standard, tilbakestill | B, D | E | `features/thumbnail-studio` | E2E | I |
-| TS-04 | Maler: maks 5 per kategori, maks 5 bilder per mal; ny, dupliser, overskriv, slett, lagre | B, D | E | `features/thumbnail-studio` | U, E2E | T |
+| TS-04 | Maler: maks 5 per kategori, maks 5 bilder per mal; ny, dupliser, overskriv, slett, lagre | B, D | E | `features/thumbnail-studio` | U, E2E | I (ny mal og lagre testet (E2E); dupliser, overskriv, slett og grensene 5/5 enhetstestet delvis) |
 | TS-05 | 28 oppsett (Blank, Stor krok, Delt i høyden, Nummerert tips, To personer, Sitat og person, Navneskilt, Tre/Fire i panel, Ansikt til ansikt, Episode, Lydbølge, Gjest, Plakat, Stor dato, Infobokser, Person og tittel, Tittel i midten, Bibelvers, Skrå fargeflate, Sterk farge, Bilde med ramme, Film, Cover, Live, Sangliste, Vinyl, Toppliste); «Bytt oppsett» beholder person/navn/tema/bilder | B UI | E\* | `features/thumbnail-studio/layouts` | R | T |
 | TS-06 | Lag: tekst, bilde, form, strek, lys, logo, «Flere elementer» (overskrifter, sitat, punktlister med underpunkt, bokser og merker, navneskilt, dato, bildefelt) | B `addBtns` | E\* | `features/thumbnail-studio/layers` | K | I |
 | TS-07 | Lagliste: rekkefølge, ↺ tilbake til grunnoppsett, kobling av lag (dra over hverandre), lagnavn (dobbeltklikk) | B, D | E\* | `shared/layers` (felles med Photo) | E2E | I |
-| TS-08 | Flytt/skaler/roter, Shift endrer forhold, hjelpelinjer, zoom | B | E\* | `shared/canvas-editor` | E2E | T |
+| TS-08 | Flytt/skaler/roter, Shift endrer forhold, hjelpelinjer, zoom | B | E\* | `shared/canvas-editor` | E2E | I (dra på lerretet testet (E2E); roter, Shift, hjelpelinjer og zoom ikke testet) |
 | TS-09 | Beskjær bilde (dobbeltklikk), fjern tomme kanter, vis hele bildet | B, H 11 | E | `shared/crop` | R | I |
 | TS-10 | AI-utklipp (Person = MODNet, Objekt = BiRefNet), bruk originalbildet | B, H 11 | E | `services/ai` | R, M | I (M: må prøves i Chrome) |
 | TS-11 | Fargekombinasjoner (11: Standard, Svart på hvit, …), farge på nye elementer, egen farge, understrek som følger teksten | B `COMBOS` | E | `features/thumbnail-studio` | U | T |
@@ -241,22 +206,22 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
 | PD-01 | Formater: Instagram 1:1, 4:5, Story 9:16, 16:9, A4, A3, Visittkort, egendefinert | B `FORMATS` | E | `features/photo-design` | U | T |
-| PD-02 | Maler (9): Tomt, Visittkort tosidig, Bilde med tittel, Sitat, Arrangement, Ukeprogram, Dagsprogram, Ukeprogram (lys), Kunngjøring; egne maler i kategorier (maks 5 per kategori) | B `TEMPLATES` | E | `features/photo-design` | R | T (egne maler i kategorier lagres lokalt i nettleseren, som før) |
+| PD-02 | Maler (9): Tomt, Visittkort tosidig, Bilde med tittel, Sitat, Arrangement, Ukeprogram, Dagsprogram, Ukeprogram (lys), Kunngjøring; egne maler i kategorier (maks 5 per kategori) | B `TEMPLATES` | E | `features/photo-design` | R | I (de 9 malene testet (E2E); egne maler i kategorier er bygget, ikke testet) |
 | PD-03 | Lag: bilde, tekst, form (19 + avrundet rektangel), fx | B `SHAPES` | E | `shared/layers` | U | T |
-| PD-04 | Flytt/skaler/roter/kanter, flipp, beskjær (`cz/cx/cy`), bytt bilde ved å dra oppå bildeplass | B | E | `shared/canvas-editor` | E2E | T |
+| PD-04 | Flytt/skaler/roter/kanter, flipp, beskjær (`cz/cx/cy`), bytt bilde ved å dra oppå bildeplass | B | E | `shared/canvas-editor` | E2E | I (bygget; ikke egen test) |
 | PD-05 | Flervalg (ramme, Shift/Ctrl-klikk), grupper (Ctrl+G / Ctrl+Shift+G), gruppeskalering og sidehåndtak | B, D | E | `shared/canvas-editor` | U, E2E | T (E2E: Ctrl+A, Ctrl+G, slett, angre) |
 | PD-06 | Hjelpelinjer: lerret og andre lag, lik avstand med merke (#9b1c3c), Alt = uten festing | B, D | E | `shared/canvas-editor/snap` | U | T (U: festing og Alt) |
 | PD-07 | Formatbytte med smart omplassering og tilbakevending | B `changeFormat`, D | E | `features/photo-design` | U | T (U: frem og tilbake gir samme oppsett) |
-| PD-08 | Tekst: font (9), tykkelse, store bokstaver, kontur, understrek, skygge, linjehøyde, sperring | B | E\* | `shared/text` | R | T |
-| PD-09 | Blandingsmodus (7), looks (12), justering (piksel-LUT, Safari-trygt), kurve | B `BLENDS`, `LOOKS` | E | `shared/image-adjust` | R | T |
-| PD-10 | AI-utklipp (Person/Objekt) + pensel på masken (fjern/gjenopprett, Alt), inverter, fjern maske | B, H 11 | E | `services/ai` + `shared/mask` | R | T (bruker samme utklippsmodell som Isolate Subject) |
+| PD-08 | Tekst: font (9), tykkelse, store bokstaver, kontur, understrek, skygge, linjehøyde, sperring | B | E\* | `shared/text` | R | I (bygget; ikke egen test) |
+| PD-09 | Blandingsmodus (7), looks (12), justering (piksel-LUT, Safari-trygt), kurve | B `BLENDS`, `LOOKS` | E | `shared/image-adjust` | R | I (kurven enhetstestet; blanding/looks ikke testet) |
+| PD-10 | AI-utklipp (Person/Objekt) + pensel på masken (fjern/gjenopprett, Alt), inverter, fjern maske | B, H 11 | E | `services/ai` + `shared/mask` | R | I (bruker samme utklippsmodell som Isolate Subject; AI ikke kjørt i test) |
 | PD-11 | Avansert modus: 13 effekttyper (`ml-fx`), 1920 forhåndsvalg (80 looks × 8 paletter × 3 styrker), favoritter, nylig, egne (eksport/import JSON, gi nytt navn, slett), søk | B `ml-fx.js`, D | E | `features/fx` (felles motor) | R | T (felles motor i `shared/fx`; U: 1920 forhåndsvalg; E2E: effekt blir eget lag) |
-| PD-12 | Bakgrunn/gradient og vignett (samme sett som Loop) | B | E | `shared/fill` | R | T (felles `shared/fill` + FillEditor, gjenbrukes i Loop Studio) |
-| PD-13 | Koblede farger (endrer alle lag med samme farge), farge på nye elementer, tilfeldige farger | B UI | E\* | `features/photo-design` | U | T |
+| PD-12 | Bakgrunn/gradient og vignett (samme sett som Loop) | B | E | `shared/fill` | R | I (fyll enhetstestet; vignett ikke testet) |
+| PD-13 | Koblede farger (endrer alle lag med samme farge), farge på nye elementer, tilfeldige farger | B UI | E\* | `features/photo-design` | U | I (bygget; ikke egen test) |
 | PD-14 | Trykk: A3/visittkort (mm), utfallende 3 mm, tosidig (`doc.back`), CMYK-felt, «PDF trykk» (CMYK, 300 dpi, TrimBox/BleedBox, rendres i bånd) | B, D | E | `services/export/pdf` | R | T (E2E: PDF med /DeviceCMYK) |
 | PD-15 | Eksport PNG/JPG 1×/2×, gjennomsiktig, kopier, send til | B | E | `services/export` | R | T (E2E: PNG 1080, JPG 2× 2160; lagre i Dine medier) |
 | PD-16 | Prosjekter i IndexedDB `photodesign`, autolagring (av som standard), sikkerhetskopi last ned/gjenopprett, angre/gjør om, Ctrl+S | B | E | `services/projects` | R | T (prosjekter i ProjectService; gamle `photodesign`-prosjekter kopieres inn; autolagring er AV som standard, slik den gamle koden faktisk gjør) |
-| PD-17 | Bildebibliotek: delt mappe, Fellesmappe, Samarbeidsfiler; lim inn med Ctrl/Cmd+V, dra inn | B | E | `features/media-picker` | E2E | T (Dine medier og Fellesmappe via felles velgere; lim inn og dra inn) |
+| PD-17 | Bildebibliotek: delt mappe, Fellesmappe, Samarbeidsfiler; lim inn med Ctrl/Cmd+V, dra inn | B | E | `features/media-picker` | E2E | I (Dine medier og filvelger testet; Fellesmappe krever innlogging, ikke testet; lim inn/dra inn ikke testet) |
 | PD-18 | Avansert modus: keyframes/tidslinje via `t`, sporing, penselmaling med maske på fx-lag | D «Gjenstår» | U | Planlegges, ikke krav for paritet | – | – |
 
 ## 10. SoMe – Motion Design
@@ -266,58 +231,58 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 | MD-01 | Formater: Instagram innlegg/portrett, Story/Reels, Facebook/YouTube, Facebook-cover, egendefinert 240–4096 | B `FORMATS` | E | `features/motion-design` | U | T (E2E: 5 formater og egendefinert 240–4096) |
 | MD-02 | Maler (8): Møtepromo, Arrangement/konferanse, Sitat/vers, Nedtelling, Talerpresentasjon, Musikk/lovsang, Kunngjøring, Tom | B `TEMPLATES` | E | `features/motion-design` | R | T (U: alle 8 maler gir gyldige prosjekter; E2E: malvalg) |
 | MD-03 | Tidslinje med spor tekst, overlegg, video, undertekster, musikk; lås/skjul spor; zoom; markører (M, på takten) | B `tracks`, D | E | `features/motion-design/timeline` | U, E2E | T (E2E: spor, lag, markør med M; U: lag-plassering) |
-| MD-04 | Trim, del ved spillehodet (S), flytt, kobling av elementer (gruppe, maks ett videoklipp), høyreklikkmeny | B, D | E | `features/motion-design/timeline` | U | T (E2E: del med S, kobling, høyreklikkmeny; dra/trim testet manuelt i koden, ikke egen E2E) |
+| MD-04 | Trim, del ved spillehodet (S), flytt, kobling av elementer (gruppe, maks ett videoklipp), høyreklikkmeny | B, D | E | `features/motion-design/timeline` | U | I (del med S, kobling og meny testet (E2E); dra og trim ikke testet) |
 | MD-05 | Overganger (31): Ingen, Toning, Via svart/hvitt, Blits, Skyv ×4, Dekk ×4, Sveip, Zoom inn/ut, Snurr, Visk ×4, Sirkel, Diamant, Klokke, Persienner, Striper, Dører, Uskarp, Glitch, Piksler, Kryss-zoom, Fartsrampe, Match cut, Maskering, Chroma …; dra til tidslinjen, snapper mellom/start/slutt | B `TRANS`, D | E | `features/motion-design/render` | R | T (alle 36 typer i motoren; E2E: overgang mellom klipp og «Fjern overgang») |
-| MD-06 | Tekstanimasjoner (17): Ton inn, Stig opp, Sprett, Skyv inn, Fra uskarp, Skrivemaskin, Ord for ord, Bokstav for bokstav, Hopp inn, Bølge, Glitch, Zoom inn fra stor, Fall ned, Vend, Trekk sammen, Avdekk | B `ANIMS` | E | `features/motion-design/render` | R | T (17 animasjoner i motoren; ikke egen piksel-test per animasjon) |
-| MD-07 | Looks (12) og RGB-kurver (m/r/g/b, monoton spline), fallback uten `ctx.filter` (Safari) | B `LOOKS`, D | E | `shared/image-adjust` | R | T (U: kurve/spline; Safari-fallback porteret, ikke testet i Safari) |
-| MD-08 | Grønnskjerm på overlegg (keyOn/keyColor/keySim/keySmooth/keySpill) | B, D | E | `features/motion-design/render` | R | T (porteret uendret; ikke egen test) |
-| MD-09 | Transformhåndtak (dobbeltklikk → 8 punkter + rotasjon; igjen → beskjær), bilde-i-bilde | B, D | E | `shared/canvas-editor` | E2E | T (håndtak og beskjæring porteret; ikke egen E2E) |
-| MD-10 | Logo (Fellesmappe/opplasting), flyttbar, størrelse, gjennomsiktighet | B, D | E | `features/motion-design` | E2E | T (opplasting og bilder i prosjektet; Fellesmappe krever innlogging og er ikke testet mot ekte backend) |
-| MD-11 | Undertekster: egne, importer/last ned .srt, AI (Whisper i nettleseren), stil | B, H 11 | E | `features/motion-design/subs` + `services/ai` | R (srt byte-likt), M (Whisper) | T (E2E: .srt last ned/importer; Whisper i nettleseren ikke testet, krever modellnedlasting) |
-| MD-12 | Lyd: musikk (bibliotek/tidslinje), lydmikser med ducking (`p.mix`), utjevn lyd, voiceover (mikrofon → WAV) | B, D | E | `features/motion-design/audio` | R, M | T (U: demping; E2E: video med lyd eksporteres med lyd; voiceover krever mikrofon og er ikke testet) |
-| MD-13 | Kopier/lim inn farge og lyd mellom klipp | B, D | E | `features/motion-design` | U | T (ikke egen test) |
+| MD-06 | Tekstanimasjoner (17): Ton inn, Stig opp, Sprett, Skyv inn, Fra uskarp, Skrivemaskin, Ord for ord, Bokstav for bokstav, Hopp inn, Bølge, Glitch, Zoom inn fra stor, Fall ned, Vend, Trekk sammen, Avdekk | B `ANIMS` | E | `features/motion-design/render` | R | I (17 animasjoner bygget; ikke testet hver for seg) |
+| MD-07 | Looks (12) og RGB-kurver (m/r/g/b, monoton spline), fallback uten `ctx.filter` (Safari) | B `LOOKS`, D | E | `shared/image-adjust` | R | I (kurve enhetstestet; looks og Safari-fallback ikke testet) |
+| MD-08 | Grønnskjerm på overlegg (keyOn/keyColor/keySim/keySmooth/keySpill) | B, D | E | `features/motion-design/render` | R | I (bygget; ikke testet) |
+| MD-09 | Transformhåndtak (dobbeltklikk → 8 punkter + rotasjon; igjen → beskjær), bilde-i-bilde | B, D | E | `shared/canvas-editor` | E2E | I (bygget; ikke testet) |
+| MD-10 | Logo (Fellesmappe/opplasting), flyttbar, størrelse, gjennomsiktighet | B, D | E | `features/motion-design` | E2E | I (opplasting av logo bygget; Fellesmappe krever innlogging, ikke testet) |
+| MD-11 | Undertekster: egne, importer/last ned .srt, AI (Whisper i nettleseren), stil | B, H 11 | E | `features/motion-design/subs` + `services/ai` | R (srt byte-likt), M (Whisper) | I (.srt testet (E2E); AI-undertekster (Whisper) ikke testet) |
+| MD-12 | Lyd: musikk (bibliotek/tidslinje), lydmikser med ducking (`p.mix`), utjevn lyd, voiceover (mikrofon → WAV) | B, D | E | `features/motion-design/audio` | R, M | I (demping enhetstestet; lyd i eksport testet (E2E); voiceover krever mikrofon, ikke testet) |
+| MD-13 | Kopier/lim inn farge og lyd mellom klipp | B, D | E | `features/motion-design` | U | I (bygget; ikke testet) |
 | MD-14 | Fargeflate, frys bilde, erstatt fil i klipp | B UI | E\* | `features/motion-design` | E2E | T (E2E: frys bilde deler videoklippet i tre; fargeflate og bytt media) |
-| MD-15 | Eksport MP4 H.264 + lyd: 1080p30/60, 4K30 (WebCodecs + mp4-muxer); avbryt; send stillbilde/video | B, H 11 | E | `services/export/video` (Worker) | R | T (E2E: MP4 fra bilde og video med lyd, 1080p30; 1080p60/4K bruker samme vei, ikke egen test) |
+| MD-15 | Eksport MP4 H.264 + lyd: 1080p30/60, 4K30 (WebCodecs + mp4-muxer); avbryt; send stillbilde/video | B, H 11 | E | `services/export/video` (Worker) | R | I (1080p30 med lyd testet (E2E); 1080p60 og 4K ikke testet) |
 | MD-16 | Prosjektfil `.motion` (binær: `VFY1`, lengde, JSON, filer) lagre/åpne | B `VF.pack`, H 11 | E | `services/projects/formats/motion` | R (byte-likt) | T (U: VFY1-format fram og tilbake; E2E: lagre og åpne .motion) |
-| MD-17 | Prosjektmappe på PC (`prosjekt.motion.json`, media i `media/`) | B `project-folder.js`, D | E | `infrastructure/fs-access` | E2E, M | T (filer i prosjektmappe som eget lagringssted i Dine medier; U: lese fra mappe, frigjøre kopi trygt; File System Access-dialogen krever manuell test i Chrome/Edge) |
+| MD-17 | Prosjektmappe på PC (`prosjekt.motion.json`, media i `media/`) | B `project-folder.js`, D | E | `infrastructure/fs-access` | E2E, M | I (lagring i prosjektmappe enhetstestet; mappedialogen krever manuell test i Chrome/Edge) |
 | MD-18 | Prosjekter i IndexedDB `motiondesign`, autolagring (av som standard), angre/gjør om, Ctrl+S, dra filer inn | B | E | `services/projects` | E2E | T (E2E: lagre og åpne igjen etter omlasting, angre/gjør om; gamle `motiondesign`-prosjekter kopieres inn (U); autolagring AV som standard, som i dagens kode) |
-| MD-19 | Forhåndsvisning 4 bilder/s i ro, full fart ved bruk/avspilling; hover-forhåndsvisning av video i biblioteket | B, D | E | `features/motion-design/preview` | M | T (4 bilder/s i ro, full fart ved bruk; forhåndsvisning av video ved mus over i biblioteket) |
+| MD-19 | Forhåndsvisning 4 bilder/s i ro, full fart ved bruk/avspilling; hover-forhåndsvisning av video i biblioteket | B, D | E | `features/motion-design/preview` | M | I (bygget; ikke testet) |
 | MD-20 | LUT, fargehjul, former/emoji, proxy, flereksport, gjennomsiktig eksport, stabilisering | D «Gjenstår» | U | Planlegges, ikke krav for paritet | – | – |
 
 ## 11. Isolate Subject
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| IS-01 | Opplasting (JPG/PNG/WebP/AVIF/GIF/BMP), dra inn, lim inn, delt mappe | B | E | `features/isolate-subject` | E2E | – |
-| IS-02 | Beskjæringssteg etter opplasting (hjørner, flytt, ny ramme, 16:9, hopp over, beskjær på nytt) | B, H 06 | E | `shared/crop` | R | – |
-| IS-03 | Person – MODNet | B, D | E | `services/ai` (Worker) | R (byte-likt) | – |
-| IS-04 | Objekt – BiRefNet_lite (115 MB; krasjer i headless Chrome) | B, H 06 | E | `services/ai` | M | – |
-| IS-05 | Logo/Tekst – fargenøkkel fra kantfarge (også inni bokstaver), fallback BiRefNet | B, D | E | `features/isolate-subject` | R | – |
-| IS-06 | Merk i bildet – SlimSAM: trykk/firkant, grønn behold, rød/høyreklikk fjern, nullstill merker | B, D | E | `services/ai` | R | – |
-| IS-07 | Fjern objekt med «Fyll med omgivelser» (push-pull-innfylling + støy) – eneste operasjon som endrer piksler | B, D | E | `features/isolate-subject` | R | – |
-| IS-08 | Ellers endres motivet aldri, kun alfa-masken | D (krav) | E | `features/isolate-subject` | U (pikselsjekk) | – |
-| IS-09 | Bakgrunn: gjennomsiktig, palettfarge, egen farge | B | E | `features/isolate-subject` | R | – |
-| IS-10 | Finjuster: beskjær til motivet, myke kanter, stram inn kantene | B | E | `features/isolate-subject` | R | – |
-| IS-11 | Sammenlign før/etter, angre siste steg, tilbake til originalen | B | E | `features/isolate-subject` | E2E | – |
-| IS-12 | Last ned PNG, kopier, «Send til …»; dialog etter nedlasting: nytt bilde / annet motiv i samme bilde | B, H 11 | E | `services/export` + `services/assets` | E2E | – |
+| IS-01 | Opplasting (JPG/PNG/WebP/AVIF/GIF/BMP), dra inn, lim inn, delt mappe | B | E | `features/isolate-subject` | E2E | T (E2E: filvelger og Dine medier; dra inn og lim inn er bygget, ikke egen test) |
+| IS-02 | Beskjæringssteg etter opplasting (hjørner, flytt, ny ramme, 16:9, hopp over, beskjær på nytt) | B, H 06 | E | `shared/crop` | R | T (E2E: beskjæringssteg; «hopp over» og «beskjær på nytt» bygget) |
+| IS-03 | Person – MODNet | B, D | E | `services/ai` (Worker) | R (byte-likt) | I (MODNet i nettleseren; modellnedlasting er ikke kjørt i test – må prøves i Chrome) |
+| IS-04 | Objekt – BiRefNet_lite (115 MB; krasjer i headless Chrome) | B, H 06 | E | `services/ai` | M | I (BiRefNet; krasjer i headless Chrome, som før – må prøves i Chrome) |
+| IS-05 | Logo/Tekst – fargenøkkel fra kantfarge (også inni bokstaver), fallback BiRefNet | B, D | E | `features/isolate-subject` | R | T (E2E: fargenøkkel gir gjennomsiktig PNG i full oppløsning, motivet uendret) |
+| IS-06 | Merk i bildet – SlimSAM: trykk/firkant, grønn behold, rød/høyreklikk fjern, nullstill merker | B, D | E | `services/ai` | R | I (merking med firkant testet uten AI (E2E); SlimSAM-modellen ikke kjørt i test) |
+| IS-07 | Fjern objekt med «Fyll med omgivelser» (push-pull-innfylling + støy) – eneste operasjon som endrer piksler | B, D | E | `features/isolate-subject` | R | I (innfylling bygget og enhetstestet i motoren; ikke E2E) |
+| IS-08 | Ellers endres motivet aldri, kun alfa-masken | D (krav) | E | `features/isolate-subject` | U (pikselsjekk) | T (E2E: motivet uendret, bare alfa) |
+| IS-09 | Bakgrunn: gjennomsiktig, palettfarge, egen farge | B | E | `features/isolate-subject` | R | T (E2E: farget bakgrunn) |
+| IS-10 | Finjuster: beskjær til motivet, myke kanter, stram inn kantene | B | E | `features/isolate-subject` | R | T (E2E: beskjær til motivet; myke kanter og stram inn bygget) |
+| IS-11 | Sammenlign før/etter, angre siste steg, tilbake til originalen | B | E | `features/isolate-subject` | E2E | T (E2E: angre gir det fjernede tilbake; før/etter og tilbakestill bygget) |
+| IS-12 | Last ned PNG, kopier, «Send til …»; dialog etter nedlasting: nytt bilde / annet motiv i samme bilde | B, H 11 | E | `services/export` + `services/assets` | E2E | T (E2E: lagre i Dine medier som ny versjon; last ned, kopier og dialog etter nedlasting bygget) |
 
 ## 12. Mockups
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| MK-01 | 14 innebygde fotomockups (iMac ×2, MacBook ×2, iPhone ×3, TV ×2, kort ×2, papir …) med `config.json` (hjørner, okklusjon, `keepHoles`, sideforhold) | B `public/images/mockups` | E | `features/mockups/catalog` | U | – |
-| MK-02 | Brukerens mappe `public/mockups/index.json` (håndskrevet) | B | E | `features/mockups/catalog` | U | – |
-| MK-03 | Egne mockup-bilder i IndexedDB `mockuplib` (legg til, slett), skjermen finnes automatisk | B, H 04 | E | `features/mockups` | E2E | – |
-| MK-04 | Kategorier inkl. «Samarbeidsfiler»; galleri; forrige/neste (piltaster) | B, D | E | `features/mockups` | E2E | – |
-| MK-05 | Design: last opp (maks 60 MB), dra inn, lim inn, delt mappe; fjern design | B | E | `features/mockups` | E2E | – |
-| MK-06 | Plassering: fyll/vis hele, zoom, flytt | B, H 04 | E | `features/mockups` | R | – |
-| MK-07 | Realisme: skygger, glans, behold fingre og ting foran skjermen (okklusjon) | B, H 04 | E | `features/mockups/render` | R | – |
-| MK-08 | Skjerm: dra fire hjørner (lagres per bilde), finn automatisk, tilbakestill | B, H 04 | E | `features/mockups` | R | – |
-| MK-09 | Bakgrunnsfarge, forgrunn av/på | H 04 | E | `features/mockups` | R | – |
-| MK-10 | Eksport PNG/JPG (byte-likt i forrige migrering), kopier, send til | B, H 04 | E | `services/export` | R | – |
-| MK-11 | Husker valgt mockup ved F5 | B `here.js` | E | `app/router` | E2E | – |
-| MK-12 | Dobbeltklikk på glidebryter nullstiller | B UI | E | `shared/ui/Slider` | K | – |
-| MK-13 | Lokale mockups lastes før skysynk; galleriet blokkeres ikke av skysynk | A `a8515e9`, `e385c67` | G | `features/mockups` (krav) | E2E | – |
+| MK-01 | 14 innebygde fotomockups (iMac ×2, MacBook ×2, iPhone ×3, TV ×2, kort ×2, papir …) med `config.json` (hjørner, okklusjon, `keepHoles`, sideforhold) | B `public/images/mockups` | E | `features/mockups/catalog` | U | T (E2E: galleri med innebygde mockups) |
+| MK-02 | Brukerens mappe `public/mockups/index.json` (håndskrevet) | B | E | `features/mockups/catalog` | U | T (E2E: samme index.json som dagens app) |
+| MK-03 | Egne mockup-bilder i IndexedDB `mockuplib` (legg til, slett), skjermen finnes automatisk | B, H 04 | E | `features/mockups` | E2E | T (E2E: egne mockup-bilder) |
+| MK-04 | Kategorier inkl. «Samarbeidsfiler»; galleri; forrige/neste (piltaster) | B, D | E | `features/mockups` | E2E | T (E2E: kategorier; piltaster bygget) |
+| MK-05 | Design: last opp (maks 60 MB), dra inn, lim inn, delt mappe; fjern design | B | E | `features/mockups` | E2E | T (E2E: design; maks 60 MB, lim inn bygget) |
+| MK-06 | Plassering: fyll/vis hele, zoom, flytt | B, H 04 | E | `features/mockups` | R | T (E2E: juster plassering) |
+| MK-07 | Realisme: skygger, glans, behold fingre og ting foran skjermen (okklusjon) | B, H 04 | E | `features/mockups/render` | R | T (E2E: eksport med designet i skjermen; skygge/glans/okklusjon i samme motor) |
+| MK-08 | Skjerm: dra fire hjørner (lagres per bilde), finn automatisk, tilbakestill | B, H 04 | E | `features/mockups` | R | T (E2E: hjørner, finn automatisk, tilbakestill) |
+| MK-09 | Bakgrunnsfarge, forgrunn av/på | H 04 | E | `features/mockups` | R | I (bygget; ikke egen test) |
+| MK-10 | Eksport PNG/JPG (byte-likt i forrige migrering), kopier, send til | B, H 04 | E | `services/export` | R | T (E2E: eksport i full oppløsning; lagre i Dine medier) |
+| MK-11 | Husker valgt mockup ved F5 | B `here.js` | E | `app/router` | E2E | I (valgt mockup i adressen `?mockup=`; ikke egen test for F5) |
+| MK-12 | Dobbeltklikk på glidebryter nullstiller | B UI | E | `shared/ui/Slider` | K | I (dobbeltklikk nullstiller; ikke egen test) |
+| MK-13 | Lokale mockups lastes før skysynk; galleriet blokkeres ikke av skysynk | A `a8515e9`, `e385c67` | G | `features/mockups` (krav) | E2E | T (lokale mockups vises før skyen er hentet; galleriet venter aldri på skyen – E2E kjører uten sky) |
 
 ## 13. Data og lagringsformater som må leses (bevares)
 
