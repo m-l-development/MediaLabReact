@@ -6,6 +6,7 @@ import { useStore } from '../shared/lib/store'
 import { Button } from '../shared/ui/Button'
 import { AppShell } from './AppShell'
 import { AuthGate } from './AuthGate'
+import { InstallPrompt } from './InstallPrompt'
 import { ErrorBoundary, type FallbackProps } from './ErrorBoundary'
 import { Link } from './Link'
 import { hrefFor } from './router'
@@ -32,6 +33,7 @@ export function App({ services }: { services: Services }) {
           </WorkspaceProvider>
         )}
       </AuthGate>
+      <InstallPrompt />
     </ServicesContext>
   )
 }

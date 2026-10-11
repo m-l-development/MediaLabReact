@@ -386,6 +386,11 @@ export const no = {
   'fb.err.session': 'Økten er utløpt. Last siden på nytt.',
   'fb.err.network': 'Ingen forbindelse. Prøv igjen.',
   'fb.err.timeout': 'Tidsavbrudd. Prøv igjen.',
+  'pwa.title': 'Media Lab som web-app',
+  'pwa.text': 'Åpne Media Lab i eget vindu, med eget ikon på skrivebordet eller hjemskjermen.',
+  'pwa.ios': 'Trykk på Del-knappen i Safari og velg «Legg til på Hjem-skjerm». Da åpnes Media Lab som egen app.',
+  'pwa.open': 'Åpne i web-app',
+  'pwa.later': 'Ikke nå',
 } as const
 
 export type MessageKey = keyof typeof no
@@ -774,6 +779,11 @@ export const en: Messages = {
   'fb.err.session': 'The session has expired. Reload the page.',
   'fb.err.network': 'No connection. Try again.',
   'fb.err.timeout': 'Timed out. Please try again.',
+  'pwa.title': 'Media Lab as a web app',
+  'pwa.text': 'Open Media Lab in its own window, with its own icon on your desktop or home screen.',
+  'pwa.ios': 'Tap the Share button in Safari and choose “Add to Home Screen”. Media Lab then opens as its own app.',
+  'pwa.open': 'Open in web app',
+  'pwa.later': 'Not now',
 }
 
 // Typede nøkler for verktøy og grupper: en manglende tekst for et nytt verktøy gir byggefeil.

@@ -138,3 +138,45 @@ test('et verktøy som ikke kunne lastes, repareres ved å hente filene på nytt 
   expect(await page.evaluate(() => sessionStorage.getItem('medialab.heal'))).toBe('1')
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('medialab.heal')), { timeout: 6000 }).toBeNull()
 })
+
+test('web-app: manifest og ikoner, kortet ved installasjonsprompt, «Ikke nå» i 14 dager (PLT-07)', async ({ page, request }, info) => {
+  const m = await (await request.get('/app/manifest.webmanifest')).json() as { start_url: string; scope: string; icons: { src: string }[] }
+  expect([m.start_url, m.scope]).toEqual(['/app/', '/app/'])
+  for (const i of m.icons) expect((await request.get(i.src)).headers()['content-type']).toBe('image/png')
+  await page.addInitScript(() => {
+    // Nettleserens installasjonsprompt kan ikke utløses i en test; samme hendelse sendes med en registrert prompt().
+    addEventListener('load', () => {
+      const e = new Event('beforeinstallprompt', { cancelable: true }) as Event & { prompt(): void; userChoice: Promise<unknown> }
+      e.prompt = () => { (window as { prompted?: number }).prompted = ((window as { prompted?: number }).prompted ?? 0) + 1 }
+      e.userChoice = Promise.resolve({ outcome: 'dismissed' })
+      dispatchEvent(e)
+    })
+  })
+  await page.goto('/app/')
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/app/manifest.webmanifest')
+  const card = page.getByRole('dialog', { name: 'Media Lab som web-app' })
+  await expect(card).toBeVisible({ timeout: 6000 })
+  await expect(card).toContainText('Åpne Media Lab i eget vindu')
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: info.outputPath('pwa-mork.png') })
+  await card.getByRole('button', { name: 'Åpne i web-app' }).click()
+  expect(await page.evaluate(() => (window as { prompted?: number }).prompted)).toBe(1)
+  await expect(card).toBeHidden()
+  // avbrutt installasjon = «Ikke nå»: ikke vist igjen etter ny innlasting
+  await page.reload()
+  await page.waitForTimeout(3500)
+  await expect(card).toBeHidden()
+  // etter 14 dager vises det igjen, også i lyst tema og på engelsk
+  await page.evaluate(() => { localStorage.setItem('medialab.pwa.later', String(Date.now() - 15 * 864e5)) })
+  await page.getByRole('button', { name: 'Bytt mellom lys og mørk' }).click()
+  await page.getByRole('button', { name: 'EN' }).click()
+  await page.reload()
+  const en = page.getByRole('dialog', { name: 'Media Lab as a web app' })
+  await expect(en).toBeVisible({ timeout: 6000 })
+  expect(await en.evaluate((n) => getComputedStyle(n).backgroundColor)).toBe('rgba(214, 213, 208, 0.95)')
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: info.outputPath('pwa-lys-en.png') })
+  await en.getByRole('button', { name: 'Not now' }).click()
+  await expect(en).toBeHidden()
+  expect(Number(await page.evaluate(() => localStorage.getItem('medialab.pwa.later')))).toBeGreaterThan(Date.now() - 60_000)
+})
