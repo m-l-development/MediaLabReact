@@ -56,4 +56,4 @@ export type AuthState =
   | { status: 'mfa-setup'; enrollment?: { factorId: string; qr: string; secret: string }; error?: MessageKey }
   | { status: 'not-linked' }
   | { status: 'offline' }
-  | { status: 'ready'; me: Me | null }
+  | { status: 'ready'; me: Me | null; realMe?: Me | null; testRole?: string | null }

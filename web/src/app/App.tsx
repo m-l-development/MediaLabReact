@@ -12,6 +12,7 @@ import { Link } from './Link'
 import { hrefFor } from './router'
 import { ServicesContext, useServices, type Services } from './services'
 import { ToolHost } from './ToolHost'
+import { testRoleAllowed } from './test-role'
 import { UpdateNotice } from './UpdateNotice'
 import styles from './App.module.css'
 import { toolById, type ToolLifecycle } from './tools'
@@ -42,6 +43,8 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
   const t = useT()
   const { router, auth } = useServices()
   const route = useStore(router.route)
+  const authState = useStore(auth.state)
+  const ready = authState.status === 'ready' ? authState : null
   const [lifecycle, setLifecycle] = useState<ToolLifecycle | null>(null)
 
   // Før et verktøy lukkes (navigering), lagres arbeidet. Er verktøyet opptatt (eksport, AI), venter vi ikke på det,
@@ -61,7 +64,7 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
   }, [route, t])
 
   return (
-    <AppShell route={route} me={me} onSignOut={me ? () => void auth.signOut() : null}>
+    <AppShell route={route} me={me} onSignOut={me ? () => void auth.signOut() : null} realMe={ready?.realMe ?? me} testRole={ready?.testRole ?? null} testAllowed={testRoleAllowed}>
       <ErrorBoundary resetKey={hrefFor(route)} fallback={RouteErrorFallback}>
         {route.name === 'hub' && <Hub me={me} />}
         {route.name === 'library' && <MediaLibrary />}

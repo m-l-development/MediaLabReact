@@ -9,6 +9,7 @@ import { FeedbackButton } from './Feedback'
 import { Link } from './Link'
 import { AdoptPrompt, WipeLocalData } from './LocalData'
 import { stickyTitle } from './sticky-title'
+import { TestBanner, TestRoleBox } from './TestRole'
 import type { Route } from './router'
 
 interface AppShellProps {
@@ -16,6 +17,10 @@ interface AppShellProps {
   me: Me | null
   onSignOut: (() => void) | null
   children: ReactNode
+  /** Testrolle (PLT-16): den ekte innloggingen, valgt visning og om rollebytteren er med i bygget. */
+  realMe?: Me | null
+  testRole?: string | null
+  testAllowed?: boolean
 }
 
 const ROLE_LABEL: Record<string, string> = { developer: 'Developer', moderator: 'Moderator', church_admin: 'Admin' }
@@ -24,7 +29,7 @@ const ROLE_LABEL: Record<string, string> = { developer: 'Developer', moderator: 
  * Rammen rundt alle sider, som i dagens Media Lab: ingen sidelinje, «← Media Lab» øverst til venstre på undersider,
  * språkvalg øverst til høyre på forsiden, admin-skjold nede til venstre og knappefelt (konto, lys/mørk) nede til høyre.
  */
-export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
+export function AppShell({ route, me, onSignOut, children, realMe = me, testRole = null, testAllowed = false }: AppShellProps) {
   const t = useT()
   const isHub = route.name === 'hub'
   // knappefeltet (PLT-03): bare ett panel åpent om gangen
@@ -62,10 +67,11 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
 
       <div className={styles.dock}>
         {me && <FeedbackButton me={me} fabClass={styles.fab} open={panel === 'feedback'} onOpen={(v) => setPanel(v ? 'feedback' : null)} />}
-        {me && <AccountButton me={me} onSignOut={onSignOut} open={panel === 'account'} setOpen={(v) => setPanel(v ? 'account' : null)} />}
+        {me && <AccountButton me={me} realMe={realMe ?? me} testRole={testRole} testAllowed={testAllowed} onSignOut={onSignOut} open={panel === 'account'} setOpen={(v) => setPanel(v ? 'account' : null)} />}
         <ThemeButton />
       </div>
       {me && <AdoptPrompt userId={me.id} />}
+      {testRole && realMe && <TestBanner realMe={realMe} testRole={testRole} />}
     </div>
   )
 }
@@ -100,7 +106,7 @@ function ThemeButton() {
   )
 }
 
-function AccountButton({ me, onSignOut, open, setOpen }: { me: Me; onSignOut: (() => void) | null; open: boolean; setOpen: (v: boolean) => void }) {
+function AccountButton({ me, realMe, testRole, testAllowed, onSignOut, open, setOpen }: { me: Me; realMe: Me; testRole: string | null; testAllowed: boolean; onSignOut: (() => void) | null; open: boolean; setOpen: (v: boolean) => void }) {
   const t = useT()
   const box = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<'main' | 'wipe'>('main')
@@ -122,7 +128,8 @@ function AccountButton({ me, onSignOut, open, setOpen }: { me: Me; onSignOut: ((
     }
   }, [open, setOpen])
 
-  const roles = [...new Set(me.roles.map((r) => ROLE_LABEL[r.role] ?? r.role))].join(', ')
+  // rollene som står i menyen er de ekte (som i dagens app), også i testmodus
+  const roles = [...new Set(realMe.roles.map((r) => ROLE_LABEL[r.role] ?? r.role))].join(', ')
   const church = me.churches[0]?.name
 
   return (
@@ -146,6 +153,7 @@ function AccountButton({ me, onSignOut, open, setOpen }: { me: Me; onSignOut: ((
               <strong>{displayName(me)}</strong>
               <span>{me.email}</span>
               {(roles || church) && <span>{[roles, church].filter(Boolean).join(' · ')}</span>}
+              {testAllowed && <TestRoleBox realMe={realMe} testRole={testRole} />}
               {onSignOut && (
                 <>
                   <button type="button" className={styles.signOut} onClick={onSignOut}>{t('auth.signOut')}</button>

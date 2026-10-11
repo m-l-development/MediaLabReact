@@ -404,6 +404,17 @@ export const no = {
   'local.wipeWhat': 'Dette fjernes fra denne nettleseren på denne enheten: prosjekter og innstillinger i verktøyene (for eksempel Photo Design og Motion Design). Du blir logget ut.',
   'local.wipeStays': 'Dette blir liggende: alt i ConnectHub (filer, menighet og konto), data på andre enheter og videoer i prosjektmapper på PC-en.',
   'local.wipeGo': 'Fjern lokale data og logg ut',
+  'role.title': 'Testrolle',
+  'role.only': 'kun i Development/Preview',
+  'role.yours': 'din rolle',
+  'role.note': 'Bytt rolle for å teste ulike grensesnitt og tilgangsrettigheter. Dette påvirker ikke dine faktiske tilgangsrettigheter.',
+  'role.mode': 'Testmodus',
+  'role.serverSame': 'rettighetene på serveren er uendret',
+  'role.back': 'Tilbake til',
+  'role.developer': 'Developer',
+  'role.moderator': 'Moderator',
+  'role.admin': 'Admin',
+  'role.user': 'User',
 } as const
 
 export type MessageKey = keyof typeof no
@@ -810,6 +821,17 @@ export const en: Messages = {
   'local.wipeWhat': 'This is removed from this browser on this device: projects and settings in the tools (for example Photo Design and Motion Design). You are signed out.',
   'local.wipeStays': 'This is kept: everything in ConnectHub (files, church and account), data on other devices and videos in project folders on the PC.',
   'local.wipeGo': 'Remove local data and sign out',
+  'role.title': 'Test role',
+  'role.only': 'only in Development/Preview',
+  'role.yours': 'your role',
+  'role.note': 'Switch role to test different interfaces and access levels. This does not affect your actual access rights.',
+  'role.mode': 'Test mode',
+  'role.serverSame': 'server permissions are unchanged',
+  'role.back': 'Back to',
+  'role.developer': 'Developer',
+  'role.moderator': 'Moderator',
+  'role.admin': 'Admin',
+  'role.user': 'User',
 }
 
 // Typede nøkler for verktøy og grupper: en manglende tekst for et nytt verktøy gir byggefeil.

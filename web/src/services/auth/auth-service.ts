@@ -16,6 +16,8 @@ export interface AuthServiceDeps {
   writeCookie?: (session: Session | null) => void
   reload?: () => void
   timeoutMs?: number
+  /** Testrolle (PLT-16): hvordan grensesnittet skal se brukeren. Uten denne er visningen den ekte brukeren. */
+  present?: (me: Me) => { me: Me; testRole: string | null }
 }
 
 export interface AuthService {
@@ -58,6 +60,10 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
   const reload = deps.reload ?? (() => location.reload())
   const timeoutMs = deps.timeoutMs ?? 20000
   const state = createStore<AuthState>({ status: 'checking' })
+  const ready = (me: Me) => {
+    const v = deps.present ? deps.present(me) : { me, testRole: null }
+    state.set({ status: 'ready', me: v.me, realMe: me, testRole: v.testRole })
+  }
   let watching = false
 
   async function whoami(): Promise<Me | null> {
@@ -107,7 +113,7 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
       state.set({ status: 'mfa-setup' })
       return
     }
-    state.set({ status: 'ready', me })
+    ready(me)
   }
 
   return {
@@ -133,7 +139,7 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
       // Kjent innlogging: vis straks med forrige svar, og kontroller mot databasen like etter.
       const cached = readMe(s)
       if (cached) {
-        state.set({ status: 'ready', me: cached })
+        ready(cached)
         whoami().then(
           (fresh) => {
             if (!fresh) {

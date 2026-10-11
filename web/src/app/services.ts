@@ -9,6 +9,7 @@ import { createFilesService, type FilesService } from '../services/files'
 import { createChurchSettings, type ChurchSettingsService } from '../services/shared-setup'
 import { createFeedbackService, type FeedbackService } from '../services/feedback'
 import type { Router } from './router'
+import { presentTestRole } from './test-role'
 
 /**
  * Sammenkoblingen av tjenester og adaptere (eneste sted som kjenner begge). Verktøy og komponenter får tjenestene
@@ -32,6 +33,7 @@ export function createServices(router: Router): Services {
     auth: client ? createSupabaseAuthAdapter(client) : null,
     data,
     dev: import.meta.env.DEV,
+    present: (me) => presentTestRole(me),
   })
   return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), router }
 }

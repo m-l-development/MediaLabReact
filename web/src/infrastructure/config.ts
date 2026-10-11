@@ -19,3 +19,7 @@ function read(): BackendConfig | null {
 }
 
 export const backend: BackendConfig | null = read()
+
+declare const __CH_DEV_REF__: string | null
+/** Utviklingsprosjektets ID (bare i bygg som ikke er produksjon; produksjonsbygget får null). Brukes av testrollen. */
+export const devRef: string | null = typeof __CH_DEV_REF__ !== 'undefined' ? __CH_DEV_REF__ : null
