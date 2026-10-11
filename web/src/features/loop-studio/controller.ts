@@ -2230,7 +2230,12 @@ export class LoopController {
       }
       v.preload = 'metadata'
       v.muted = true
-      v.onloadedmetadata = () => end(Number.isFinite(v.duration) ? v.duration : null)
+      v.onloadedmetadata = () => {
+        if (Number.isFinite(v.duration)) { end(v.duration); return }
+        /* WebM fra opptak (MediaRecorder) oppgir ikke lengden: hopp til slutten, så nettleseren finner den */
+        v.ondurationchange = () => { if (Number.isFinite(v.duration)) end(v.duration) }
+        v.currentTime = 1e101
+      }
       v.onerror = () => end(-1)
       setTimeout(() => end(null), 10000)
       v.src = u

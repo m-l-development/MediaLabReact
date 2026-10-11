@@ -14,7 +14,7 @@ export default async function warmup() {
       const p = path.join(d, e.name)
       if (e.isDirectory()) {
         if (e.name !== 'test') walk(p)
-      } else if (/\.(tsx?|css)$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)) files.push(path.relative(root, p).split(path.sep).join('/'))
+      } else if (/\.(tsx?|css)$/.test(e.name) && !/\.(test\.tsx?|d\.ts)$/.test(e.name)) files.push(path.relative(root, p).split(path.sep).join('/'))
     }
   }
   walk(root)

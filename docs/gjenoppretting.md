@@ -41,17 +41,17 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 
 | ID | Hva | Status | Hva som trengs |
 |---|---|---|---|
-| MD-11 | AI-undertekster (Whisper i nettleseren) | Implementert | Ekte Chrome med nett (modellnedlasting) og et videoklipp med tale |
-| MD-12 | Voiceover | Implementert | Mikrofon i ekte nettleser |
-| MD-17 | Velge prosjektmappe (File System Access-dialogen) | Implementert | Manuell test i Chrome/Edge; lagringen bak er enhetstestet |
+| MD-11 | AI-undertekster (Whisper i nettleseren) | Blokkert | Testet 2026-10-11 i hodeløs Chrome: modellen lastes ned (100 %), WebGPU finner ingen adapter, appen faller tilbake til WASM, men tolkingen var ikke ferdig etter 9 min. Må prøves i ekte Chrome med et klipp med tale (`RUN_AI=1 npx playwright test e2e/motion-ai.spec.ts`) |
+| MD-12 | Voiceover | Testet | Chromes falske mikrofon (E2E). Ekte mikrofon og lydkvalitet bør høres på manuelt |
+| MD-17 | Velge prosjektmappe (File System Access-dialogen) | Implementert | Alt etter valget er testet med et ekte mappehåndtak (OPFS): kopiering, frigjøring og åpning. Selve dialogen kan ikke styres i en test: manuell test i Chrome/Edge |
 | MD-10 | Logo fra Fellesmappe i Motion design | Blokkert | Innlogging mot ConnectHub (`.env.local`) |
-| MD-15 | Eksport 1080p60 og 4K | Implementert | Ekte Chrome (samme kodevei som testet 1080p30) |
+| MD-15 | Eksport 1080p60 og 4K | Testet | Bildefrekvens og størrelse kontrollert i MP4-filen (E2E) |
 | IS-03, IS-04, IS-06, IS-07 | AI-modellene i Isolate Subject | Implementert | Ekte Chrome med nett; BiRefNet krasjer i headless Chrome |
 | TS-10, PD-10 | AI-utklipp i Thumbnail og Photo | Implementert | Som over |
 | PD-17, SHR-04 | Fellesmappe som bildekilde | Blokkert | Innlogging mot ConnectHub |
-| LE-28, LE-27 | Loop Studio: MP4 i 4K, stående format og opptak i sanntid | Implementert | Ekte Chrome (1080p med lyd er testet) |
-| LE-03 | Loop Studio: ukeprogram fra bilde (tekstgjenkjenning) | Implementert | Ekte Chrome med et bilde av et program |
-| LE-12, LE-13 | Loop Studio: video på slide og grunnvideo | Implementert | Manuell test med videofiler (lagres bare lokalt) |
+| LE-28, LE-27 | Loop Studio: MP4 i 4K, stående format og opptak i sanntid | Testet | E2E, størrelsen kontrollert i filen |
+| LE-03 | Loop Studio: ukeprogram fra bilde (tekstgjenkjenning) | Testet | E2E med et generert bilde; et fotografi av et ekte program bør prøves manuelt |
+| LE-12, LE-13 | Loop Studio: video på slide og grunnvideo | Testet | E2E med WebM laget i nettleseren; lagres bare lokalt |
 | LS-04, LE-05 | Loop Studio: felles grunnoppsett, faste bilder og Fellesmappe | Blokkert | Innlogging mot ConnectHub |
 | AUTH-* | Innlogging, MFA, glemt passord mot ekte ConnectHub | Blokkert | `.env.local` for `connecthub-dev`; bare testet med falske adaptere |
 

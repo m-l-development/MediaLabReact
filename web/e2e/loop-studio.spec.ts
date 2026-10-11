@@ -185,10 +185,10 @@ test('looper fra forrige versjon hentes (kopi) med bilder, og gamle data røres 
   }
   const disk = [{ id: 'd-abcd1234', name: 'Gammel loop', base: 'week', savedAt: 1700000000000, fav: true, count: 1, data: { programText: '', slides: legacy.slides, cfg: legacy.cfg } }]
   const img = png(64, 36, () => [20, 200, 40, 255]).toString('base64')
-  await page.evaluate(async ({ legacy, disk, img }) => {
-    localStorage.setItem('ukeloop.v2', JSON.stringify(legacy))
-    localStorage.setItem('loopstudio.disk.v1', JSON.stringify(disk))
-    const bin = Uint8Array.from(atob(img), (c) => c.charCodeAt(0))
+  await page.evaluate(async ({ legacy: L, disk: D, img: I }) => {
+    localStorage.setItem('ukeloop.v2', JSON.stringify(L))
+    localStorage.setItem('loopstudio.disk.v1', JSON.stringify(D))
+    const bin = Uint8Array.from(atob(I), (c) => c.charCodeAt(0))
     await new Promise<void>((res, rej) => {
       const r = indexedDB.open('ukeloop', 1)
       r.onupgradeneeded = () => r.result.createObjectStore('media')
