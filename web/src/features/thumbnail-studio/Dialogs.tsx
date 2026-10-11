@@ -1,3 +1,5 @@
+'use no memo'
+// Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { useLang } from '../../shared/i18n/i18n'
 import { type CropBox, type PanelKey, type State, type ThumbController } from './controller'

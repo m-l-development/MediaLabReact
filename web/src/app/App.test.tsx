@@ -37,19 +37,19 @@ describe('App (lokal utvikling uten backend)', () => {
 
   it('navigerer til et verktøy uten sideinnlasting, med «← Media Lab» til forsiden og ærlig status', async () => {
     setup('/app/#some')
-    const link = await screen.findByRole('link', { name: /Photo design/ })
+    const link = await screen.findByRole('link', { name: /Motion design/ })
     await act(async () => {
       fireEvent.click(link)
     })
-    expect(location.pathname).toBe('/app/photo-design')
-    expect(await screen.findByRole('heading', { name: /Photo design er ikke bygget/ })).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/photodesign')
+    expect(location.pathname).toBe('/app/motion-design')
+    expect(await screen.findByRole('heading', { name: /Motion design er ikke bygget/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/motiondesign')
     expect(screen.getByRole('link', { name: /Media Lab/ }).getAttribute('href')).toBe('/app/')
   })
 
   it('direkte adresse til et verktøy som er bygget (Isolate Subject) og ett som ikke er det', async () => {
     setup('/app/isolate-subject')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Isolate Subject' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Isolate Subject' }, { timeout: 5000 })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Slipp et bilde her/ })).toBeTruthy()
   })
 

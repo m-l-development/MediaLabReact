@@ -1,3 +1,5 @@
+'use no memo'
+// Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState } from 'react'
 import { useServices } from '../../app/services'
 import type { ToolProps } from '../../app/tools'

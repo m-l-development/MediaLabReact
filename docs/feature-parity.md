@@ -240,23 +240,23 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| PD-01 | Formater: Instagram 1:1, 4:5, Story 9:16, 16:9, A4, A3, Visittkort, egendefinert | B `FORMATS` | E | `features/photo-design` | U | – |
-| PD-02 | Maler (9): Tomt, Visittkort tosidig, Bilde med tittel, Sitat, Arrangement, Ukeprogram, Dagsprogram, Ukeprogram (lys), Kunngjøring; egne maler i kategorier (maks 5 per kategori) | B `TEMPLATES` | E | `features/photo-design` | R | – |
-| PD-03 | Lag: bilde, tekst, form (19 + avrundet rektangel), fx | B `SHAPES` | E | `shared/layers` | U | – |
-| PD-04 | Flytt/skaler/roter/kanter, flipp, beskjær (`cz/cx/cy`), bytt bilde ved å dra oppå bildeplass | B | E | `shared/canvas-editor` | E2E | – |
-| PD-05 | Flervalg (ramme, Shift/Ctrl-klikk), grupper (Ctrl+G / Ctrl+Shift+G), gruppeskalering og sidehåndtak | B, D | E | `shared/canvas-editor` | U, E2E | – |
-| PD-06 | Hjelpelinjer: lerret og andre lag, lik avstand med merke (#9b1c3c), Alt = uten festing | B, D | E | `shared/canvas-editor/snap` | U | – |
-| PD-07 | Formatbytte med smart omplassering og tilbakevending | B `changeFormat`, D | E | `features/photo-design` | U | – |
-| PD-08 | Tekst: font (9), tykkelse, store bokstaver, kontur, understrek, skygge, linjehøyde, sperring | B | E\* | `shared/text` | R | – |
-| PD-09 | Blandingsmodus (7), looks (12), justering (piksel-LUT, Safari-trygt), kurve | B `BLENDS`, `LOOKS` | E | `shared/image-adjust` | R | – |
-| PD-10 | AI-utklipp (Person/Objekt) + pensel på masken (fjern/gjenopprett, Alt), inverter, fjern maske | B, H 11 | E | `services/ai` + `shared/mask` | R | – |
-| PD-11 | Avansert modus: 13 effekttyper (`ml-fx`), 1920 forhåndsvalg (80 looks × 8 paletter × 3 styrker), favoritter, nylig, egne (eksport/import JSON, gi nytt navn, slett), søk | B `ml-fx.js`, D | E | `features/fx` (felles motor) | R | – |
-| PD-12 | Bakgrunn/gradient og vignett (samme sett som Loop) | B | E | `shared/fill` | R | – |
-| PD-13 | Koblede farger (endrer alle lag med samme farge), farge på nye elementer, tilfeldige farger | B UI | E\* | `features/photo-design` | U | – |
-| PD-14 | Trykk: A3/visittkort (mm), utfallende 3 mm, tosidig (`doc.back`), CMYK-felt, «PDF trykk» (CMYK, 300 dpi, TrimBox/BleedBox, rendres i bånd) | B, D | E | `services/export/pdf` | R | – |
-| PD-15 | Eksport PNG/JPG 1×/2×, gjennomsiktig, kopier, send til | B | E | `services/export` | R | – |
-| PD-16 | Prosjekter i IndexedDB `photodesign`, autolagring (på som standard), sikkerhetskopi last ned/gjenopprett, angre/gjør om, Ctrl+S | B | E | `services/projects` | R | – |
-| PD-17 | Bildebibliotek: delt mappe, Fellesmappe, Samarbeidsfiler; lim inn med Ctrl/Cmd+V, dra inn | B | E | `features/media-picker` | E2E | – |
+| PD-01 | Formater: Instagram 1:1, 4:5, Story 9:16, 16:9, A4, A3, Visittkort, egendefinert | B `FORMATS` | E | `features/photo-design` | U | T |
+| PD-02 | Maler (9): Tomt, Visittkort tosidig, Bilde med tittel, Sitat, Arrangement, Ukeprogram, Dagsprogram, Ukeprogram (lys), Kunngjøring; egne maler i kategorier (maks 5 per kategori) | B `TEMPLATES` | E | `features/photo-design` | R | T (egne maler i kategorier lagres lokalt i nettleseren, som før) |
+| PD-03 | Lag: bilde, tekst, form (19 + avrundet rektangel), fx | B `SHAPES` | E | `shared/layers` | U | T |
+| PD-04 | Flytt/skaler/roter/kanter, flipp, beskjær (`cz/cx/cy`), bytt bilde ved å dra oppå bildeplass | B | E | `shared/canvas-editor` | E2E | T |
+| PD-05 | Flervalg (ramme, Shift/Ctrl-klikk), grupper (Ctrl+G / Ctrl+Shift+G), gruppeskalering og sidehåndtak | B, D | E | `shared/canvas-editor` | U, E2E | T (E2E: Ctrl+A, Ctrl+G, slett, angre) |
+| PD-06 | Hjelpelinjer: lerret og andre lag, lik avstand med merke (#9b1c3c), Alt = uten festing | B, D | E | `shared/canvas-editor/snap` | U | T (U: festing og Alt) |
+| PD-07 | Formatbytte med smart omplassering og tilbakevending | B `changeFormat`, D | E | `features/photo-design` | U | T (U: frem og tilbake gir samme oppsett) |
+| PD-08 | Tekst: font (9), tykkelse, store bokstaver, kontur, understrek, skygge, linjehøyde, sperring | B | E\* | `shared/text` | R | T |
+| PD-09 | Blandingsmodus (7), looks (12), justering (piksel-LUT, Safari-trygt), kurve | B `BLENDS`, `LOOKS` | E | `shared/image-adjust` | R | T |
+| PD-10 | AI-utklipp (Person/Objekt) + pensel på masken (fjern/gjenopprett, Alt), inverter, fjern maske | B, H 11 | E | `services/ai` + `shared/mask` | R | T (bruker samme utklippsmodell som Isolate Subject) |
+| PD-11 | Avansert modus: 13 effekttyper (`ml-fx`), 1920 forhåndsvalg (80 looks × 8 paletter × 3 styrker), favoritter, nylig, egne (eksport/import JSON, gi nytt navn, slett), søk | B `ml-fx.js`, D | E | `features/fx` (felles motor) | R | T (felles motor i `shared/fx`; U: 1920 forhåndsvalg; E2E: effekt blir eget lag) |
+| PD-12 | Bakgrunn/gradient og vignett (samme sett som Loop) | B | E | `shared/fill` | R | T (felles `shared/fill` + FillEditor, gjenbrukes i Loop Studio) |
+| PD-13 | Koblede farger (endrer alle lag med samme farge), farge på nye elementer, tilfeldige farger | B UI | E\* | `features/photo-design` | U | T |
+| PD-14 | Trykk: A3/visittkort (mm), utfallende 3 mm, tosidig (`doc.back`), CMYK-felt, «PDF trykk» (CMYK, 300 dpi, TrimBox/BleedBox, rendres i bånd) | B, D | E | `services/export/pdf` | R | T (E2E: PDF med /DeviceCMYK) |
+| PD-15 | Eksport PNG/JPG 1×/2×, gjennomsiktig, kopier, send til | B | E | `services/export` | R | T (E2E: PNG 1080, JPG 2× 2160; lagre i Dine medier) |
+| PD-16 | Prosjekter i IndexedDB `photodesign`, autolagring (av som standard), sikkerhetskopi last ned/gjenopprett, angre/gjør om, Ctrl+S | B | E | `services/projects` | R | T (prosjekter i ProjectService; gamle `photodesign`-prosjekter kopieres inn; autolagring er AV som standard, slik den gamle koden faktisk gjør) |
+| PD-17 | Bildebibliotek: delt mappe, Fellesmappe, Samarbeidsfiler; lim inn med Ctrl/Cmd+V, dra inn | B | E | `features/media-picker` | E2E | T (Dine medier og Fellesmappe via felles velgere; lim inn og dra inn) |
 | PD-18 | Avansert modus: keyframes/tidslinje via `t`, sporing, penselmaling med maske på fx-lag | D «Gjenstår» | U | Planlegges, ikke krav for paritet | – | – |
 
 ## 10. SoMe – Motion Design

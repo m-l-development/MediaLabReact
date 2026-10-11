@@ -1,3 +1,5 @@
+'use no memo'
+// Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import type { ThumbController, State } from './controller'
 import { BASE_KEYS, BASE_LABELS } from './engine/layouts'
 import { MAX_TPL } from './engine/model'

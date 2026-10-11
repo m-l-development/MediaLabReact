@@ -7,6 +7,7 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: 'e2e',
   outputDir: 'test-results',
+  globalSetup: './e2e/warmup.ts',
   fullyParallel: false,
   retries: 0,
   reporter: [['list']],

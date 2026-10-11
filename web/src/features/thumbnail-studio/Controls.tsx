@@ -1,3 +1,5 @@
+'use no memo'
+// Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useLang } from '../../shared/i18n/i18n'
 import { localStore } from '../../shared/lib/storage'

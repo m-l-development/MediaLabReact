@@ -43,6 +43,7 @@ const LOADERS: Partial<Record<ToolId, ToolModule['load']>> = {
   'isolate-subject': () => import('../features/isolate-subject/IsolateSubject'),
   mockups: () => import('../features/mockups/Mockups'),
   'thumbnail-studio': () => import('../features/thumbnail-studio/ThumbnailStudio'),
+  'photo-design': () => import('../features/photo-design/PhotoDesign'),
 }
 
 export const TOOLS: readonly ToolModule[] = TOOL_IDS.map((id) => {
