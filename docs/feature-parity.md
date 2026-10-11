@@ -263,25 +263,25 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| MD-01 | Formater: Instagram innlegg/portrett, Story/Reels, Facebook/YouTube, Facebook-cover, egendefinert 240–4096 | B `FORMATS` | E | `features/motion-design` | U | – |
-| MD-02 | Maler (8): Møtepromo, Arrangement/konferanse, Sitat/vers, Nedtelling, Talerpresentasjon, Musikk/lovsang, Kunngjøring, Tom | B `TEMPLATES` | E | `features/motion-design` | R | – |
-| MD-03 | Tidslinje med spor tekst, overlegg, video, undertekster, musikk; lås/skjul spor; zoom; markører (M, på takten) | B `tracks`, D | E | `features/motion-design/timeline` | U, E2E | – |
-| MD-04 | Trim, del ved spillehodet (S), flytt, kobling av elementer (gruppe, maks ett videoklipp), høyreklikkmeny | B, D | E | `features/motion-design/timeline` | U | – |
-| MD-05 | Overganger (31): Ingen, Toning, Via svart/hvitt, Blits, Skyv ×4, Dekk ×4, Sveip, Zoom inn/ut, Snurr, Visk ×4, Sirkel, Diamant, Klokke, Persienner, Striper, Dører, Uskarp, Glitch, Piksler, Kryss-zoom, Fartsrampe, Match cut, Maskering, Chroma …; dra til tidslinjen, snapper mellom/start/slutt | B `TRANS`, D | E | `features/motion-design/render` | R | – |
-| MD-06 | Tekstanimasjoner (17): Ton inn, Stig opp, Sprett, Skyv inn, Fra uskarp, Skrivemaskin, Ord for ord, Bokstav for bokstav, Hopp inn, Bølge, Glitch, Zoom inn fra stor, Fall ned, Vend, Trekk sammen, Avdekk | B `ANIMS` | E | `features/motion-design/render` | R | – |
-| MD-07 | Looks (12) og RGB-kurver (m/r/g/b, monoton spline), fallback uten `ctx.filter` (Safari) | B `LOOKS`, D | E | `shared/image-adjust` | R | – |
-| MD-08 | Grønnskjerm på overlegg (keyOn/keyColor/keySim/keySmooth/keySpill) | B, D | E | `features/motion-design/render` | R | – |
-| MD-09 | Transformhåndtak (dobbeltklikk → 8 punkter + rotasjon; igjen → beskjær), bilde-i-bilde | B, D | E | `shared/canvas-editor` | E2E | – |
-| MD-10 | Logo (Fellesmappe/opplasting), flyttbar, størrelse, gjennomsiktighet | B, D | E | `features/motion-design` | E2E | – |
-| MD-11 | Undertekster: egne, importer/last ned .srt, AI (Whisper i nettleseren), stil | B, H 11 | E | `features/motion-design/subs` + `services/ai` | R (srt byte-likt), M (Whisper) | – |
-| MD-12 | Lyd: musikk (bibliotek/tidslinje), lydmikser med ducking (`p.mix`), utjevn lyd, voiceover (mikrofon → WAV) | B, D | E | `features/motion-design/audio` | R, M | – |
-| MD-13 | Kopier/lim inn farge og lyd mellom klipp | B, D | E | `features/motion-design` | U | – |
-| MD-14 | Fargeflate, frys bilde, erstatt fil i klipp | B UI | E\* | `features/motion-design` | E2E | – |
-| MD-15 | Eksport MP4 H.264 + lyd: 1080p30/60, 4K30 (WebCodecs + mp4-muxer); avbryt; send stillbilde/video | B, H 11 | E | `services/export/video` (Worker) | R | – |
-| MD-16 | Prosjektfil `.motion` (binær: `VFY1`, lengde, JSON, filer) lagre/åpne | B `VF.pack`, H 11 | E | `services/projects/formats/motion` | R (byte-likt) | – |
-| MD-17 | Prosjektmappe på PC (`prosjekt.motion.json`, media i `media/`) | B `project-folder.js`, D | E | `infrastructure/fs-access` | E2E, M | – |
-| MD-18 | Prosjekter i IndexedDB `motiondesign`, autolagring, angre/gjør om, Ctrl+S, dra filer inn | B | E | `services/projects` | E2E | – |
-| MD-19 | Forhåndsvisning 4 bilder/s i ro, full fart ved bruk/avspilling; hover-forhåndsvisning av video i biblioteket | B, D | E | `features/motion-design/preview` | M | – |
+| MD-01 | Formater: Instagram innlegg/portrett, Story/Reels, Facebook/YouTube, Facebook-cover, egendefinert 240–4096 | B `FORMATS` | E | `features/motion-design` | U | T (E2E: 5 formater og egendefinert 240–4096) |
+| MD-02 | Maler (8): Møtepromo, Arrangement/konferanse, Sitat/vers, Nedtelling, Talerpresentasjon, Musikk/lovsang, Kunngjøring, Tom | B `TEMPLATES` | E | `features/motion-design` | R | T (U: alle 8 maler gir gyldige prosjekter; E2E: malvalg) |
+| MD-03 | Tidslinje med spor tekst, overlegg, video, undertekster, musikk; lås/skjul spor; zoom; markører (M, på takten) | B `tracks`, D | E | `features/motion-design/timeline` | U, E2E | T (E2E: spor, lag, markør med M; U: lag-plassering) |
+| MD-04 | Trim, del ved spillehodet (S), flytt, kobling av elementer (gruppe, maks ett videoklipp), høyreklikkmeny | B, D | E | `features/motion-design/timeline` | U | T (E2E: del med S, kobling, høyreklikkmeny; dra/trim testet manuelt i koden, ikke egen E2E) |
+| MD-05 | Overganger (31): Ingen, Toning, Via svart/hvitt, Blits, Skyv ×4, Dekk ×4, Sveip, Zoom inn/ut, Snurr, Visk ×4, Sirkel, Diamant, Klokke, Persienner, Striper, Dører, Uskarp, Glitch, Piksler, Kryss-zoom, Fartsrampe, Match cut, Maskering, Chroma …; dra til tidslinjen, snapper mellom/start/slutt | B `TRANS`, D | E | `features/motion-design/render` | R | T (alle 36 typer i motoren; E2E: overgang mellom klipp og «Fjern overgang») |
+| MD-06 | Tekstanimasjoner (17): Ton inn, Stig opp, Sprett, Skyv inn, Fra uskarp, Skrivemaskin, Ord for ord, Bokstav for bokstav, Hopp inn, Bølge, Glitch, Zoom inn fra stor, Fall ned, Vend, Trekk sammen, Avdekk | B `ANIMS` | E | `features/motion-design/render` | R | T (17 animasjoner i motoren; ikke egen piksel-test per animasjon) |
+| MD-07 | Looks (12) og RGB-kurver (m/r/g/b, monoton spline), fallback uten `ctx.filter` (Safari) | B `LOOKS`, D | E | `shared/image-adjust` | R | T (U: kurve/spline; Safari-fallback porteret, ikke testet i Safari) |
+| MD-08 | Grønnskjerm på overlegg (keyOn/keyColor/keySim/keySmooth/keySpill) | B, D | E | `features/motion-design/render` | R | T (porteret uendret; ikke egen test) |
+| MD-09 | Transformhåndtak (dobbeltklikk → 8 punkter + rotasjon; igjen → beskjær), bilde-i-bilde | B, D | E | `shared/canvas-editor` | E2E | T (håndtak og beskjæring porteret; ikke egen E2E) |
+| MD-10 | Logo (Fellesmappe/opplasting), flyttbar, størrelse, gjennomsiktighet | B, D | E | `features/motion-design` | E2E | T (opplasting og bilder i prosjektet; Fellesmappe krever innlogging og er ikke testet mot ekte backend) |
+| MD-11 | Undertekster: egne, importer/last ned .srt, AI (Whisper i nettleseren), stil | B, H 11 | E | `features/motion-design/subs` + `services/ai` | R (srt byte-likt), M (Whisper) | T (E2E: .srt last ned/importer; Whisper i nettleseren ikke testet, krever modellnedlasting) |
+| MD-12 | Lyd: musikk (bibliotek/tidslinje), lydmikser med ducking (`p.mix`), utjevn lyd, voiceover (mikrofon → WAV) | B, D | E | `features/motion-design/audio` | R, M | T (U: demping; E2E: video med lyd eksporteres med lyd; voiceover krever mikrofon og er ikke testet) |
+| MD-13 | Kopier/lim inn farge og lyd mellom klipp | B, D | E | `features/motion-design` | U | T (ikke egen test) |
+| MD-14 | Fargeflate, frys bilde, erstatt fil i klipp | B UI | E\* | `features/motion-design` | E2E | T (E2E: frys bilde deler videoklippet i tre; fargeflate og bytt media) |
+| MD-15 | Eksport MP4 H.264 + lyd: 1080p30/60, 4K30 (WebCodecs + mp4-muxer); avbryt; send stillbilde/video | B, H 11 | E | `services/export/video` (Worker) | R | T (E2E: MP4 fra bilde og video med lyd, 1080p30; 1080p60/4K bruker samme vei, ikke egen test) |
+| MD-16 | Prosjektfil `.motion` (binær: `VFY1`, lengde, JSON, filer) lagre/åpne | B `VF.pack`, H 11 | E | `services/projects/formats/motion` | R (byte-likt) | T (U: VFY1-format fram og tilbake; E2E: lagre og åpne .motion) |
+| MD-17 | Prosjektmappe på PC (`prosjekt.motion.json`, media i `media/`) | B `project-folder.js`, D | E | `infrastructure/fs-access` | E2E, M | T (filer i prosjektmappe som eget lagringssted i Dine medier; U: lese fra mappe, frigjøre kopi trygt; File System Access-dialogen krever manuell test i Chrome/Edge) |
+| MD-18 | Prosjekter i IndexedDB `motiondesign`, autolagring (av som standard), angre/gjør om, Ctrl+S, dra filer inn | B | E | `services/projects` | E2E | T (E2E: lagre og åpne igjen etter omlasting, angre/gjør om; gamle `motiondesign`-prosjekter kopieres inn (U); autolagring AV som standard, som i dagens kode) |
+| MD-19 | Forhåndsvisning 4 bilder/s i ro, full fart ved bruk/avspilling; hover-forhåndsvisning av video i biblioteket | B, D | E | `features/motion-design/preview` | M | T (4 bilder/s i ro, full fart ved bruk; forhåndsvisning av video ved mus over i biblioteket) |
 | MD-20 | LUT, fargehjul, former/emoji, proxy, flereksport, gjennomsiktig eksport, stabilisering | D «Gjenstår» | U | Planlegges, ikke krav for paritet | – | – |
 
 ## 11. Isolate Subject

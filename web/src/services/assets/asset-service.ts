@@ -1,4 +1,4 @@
-import { canStoreInCloud, kindOfMime, type Asset, type AssetKind, type AssetOrigin, type DerivationOp } from '../../domain/asset'
+import { canStoreInCloud, kindOfMime, type Asset, type AssetKind, type AssetOrigin, type DerivationOp, type StorageLocation } from '../../domain/asset'
 import { newId, type AssetId, type ContentHash, type UserId } from '../../domain/ids'
 import type { ToolId } from '../../domain/tool'
 import { createStore, type Store } from '../../shared/lib/store'
@@ -14,10 +14,12 @@ import type { AssetReferences, AssetRepository, MediaProbe } from './types'
  * - Video og lyd lagres aldri i skyen.
  */
 
-/** Samme filtyper og grense som dagens delte mappe (media-lab/src/legacy/ml-share.js). */
+/** Samme filtyper som dagens delte mappe (media-lab/src/legacy/ml-share.js) og Motion design. */
 export const ACCEPTED_MIME =
-  /^(image\/(png|jpeg|webp|gif|avif|bmp)|video\/(mp4|webm|quicktime|x-m4v)|audio\/(mpeg|mp3|wav|x-wav|wave|mp4|x-m4a|aac|ogg|webm|flac))$/
+  /^(image\/(png|jpeg|webp|gif|avif|bmp)|video\/(mp4|webm|quicktime|x-m4v)|audio\/(mpeg|mp3|wav|x-wav|wave|mp4|x-m4a|aac|ogg|webm|flac|x-flac))$/
+/** Grense per fil: 2 GB som i dagens delte mappe, men video opp til 4 GB som i Motion design. */
 export const MAX_FILE_BYTES = 2e9
+export const MAX_VIDEO_BYTES = 4e9
 
 export interface AssetQuery {
   kinds?: readonly AssetKind[]
@@ -42,6 +44,25 @@ export interface AssetService {
   touch(id: AssetId): Promise<void>
   rename(id: AssetId, name: string): Promise<void>
   release(id: AssetId): Promise<'deleted' | 'in-use'>
+  /**
+   * Registrerer en fil som allerede ligger et annet sted enn i nettleseren (f.eks. en prosjektmappe på PC-en).
+   * Bare miniatyren lagres i nettleseren. Finnes innholdet fra før, får det eksisterende assetet stedet i tillegg.
+   */
+  registerAt(input: Blob, location: StorageLocation, opts?: { name?: string; legacy?: Asset['legacy'] }): Promise<Asset>
+  /** Legger til et sted der innholdet også ligger (f.eks. etter kopiering til en prosjektmappe). */
+  addLocation(id: AssetId, location: StorageLocation): Promise<void>
+  /** Om innholdet ligger i nettleseren. */
+  hasLocalCopy(id: AssetId): Promise<boolean>
+  /**
+   * Fjerner kopien i nettleseren når innholdet også ligger et annet sted (f.eks. i prosjektmappen).
+   * Gjør ingenting hvis assetet ikke har noe annet sted. → om kopien ble fjernet.
+   */
+  dropLocalCopy(id: AssetId): Promise<boolean>
+}
+
+/** Leser innhold som ligger utenfor nettleseren (prosjektmappe). */
+export interface ExternalReader {
+  read(location: StorageLocation): Promise<Blob | undefined>
 }
 
 export interface AssetServiceDeps {
@@ -50,7 +71,10 @@ export interface AssetServiceDeps {
   probe: MediaProbe
   ownerId: UserId | null
   now?: () => number
+  external?: ExternalReader
 }
+
+const sameLocation = (a: StorageLocation, b: StorageLocation) => JSON.stringify(a) === JSON.stringify(b)
 
 function safeName(name: string | undefined, fallback: string): string {
   // Kontrolltegn og tegn som ikke er lov i filnavn byttes med mellomrom (samme regel som dagens delte mappe).
@@ -65,9 +89,9 @@ export function createAssetService(deps: AssetServiceDeps): AssetService {
   const revision = createStore(0)
   const bump = () => revision.set((n) => n + 1)
 
-  async function store(blob: Blob, kind: AssetKind) {
+  async function store(blob: Blob, kind: AssetKind, keepContent = true) {
     const hash = await sha256(blob)
-    if (!(await repo.getBlob(hash))) await repo.putBlob(hash, blob)
+    if (keepContent && !(await repo.getBlob(hash))) await repo.putBlob(hash, blob)
     const { meta, thumb } = await probe.probe(blob, kind).catch(() => ({ meta: {}, thumb: undefined }))
     let thumbHash
     if (thumb) {
@@ -79,9 +103,11 @@ export function createAssetService(deps: AssetServiceDeps): AssetService {
 
   function validateInput(input: Blob): AssetKind {
     if (!ACCEPTED_MIME.test(input.type)) throw new ServiceError('unsupported_type', `Filtypen støttes ikke: ${input.type || 'ukjent'}`)
-    if (input.size > MAX_FILE_BYTES) throw new ServiceError('too_large', 'Filen er for stor (maks 2 GB).')
     const kind = kindOfMime(input.type)
     if (!kind) throw new ServiceError('unsupported_type')
+    if (input.size > (kind === 'video' ? MAX_VIDEO_BYTES : MAX_FILE_BYTES)) {
+      throw new ServiceError('too_large', kind === 'video' ? 'Filen er for stor (maks 4 GB).' : 'Filen er for stor (maks 2 GB).')
+    }
     return kind
   }
 
@@ -96,7 +122,9 @@ export function createAssetService(deps: AssetServiceDeps): AssetService {
     if (origin.type === 'upload') {
       const existing = (await repo.findByHash(hash)).find((a) => a.origin.type === 'upload')
       if (existing) {
-        const touched = { ...existing, lastUsedAt: now() }
+        // Innholdet ligger nå i nettleseren igjen (også om kopien var fjernet til fordel for en prosjektmappe).
+        const local = existing.locations.some((l) => l.type === 'local')
+        const touched: Asset = { ...existing, lastUsedAt: now(), locations: local ? existing.locations : [{ type: 'local' }, ...existing.locations] }
         await repo.putAsset(touched)
         bump()
         return touched
@@ -151,9 +179,73 @@ export function createAssetService(deps: AssetServiceDeps): AssetService {
     async open(id) {
       const asset = await repo.getAsset(id)
       if (!asset) throw new ServiceError('not_found')
-      const blob = await repo.getBlob(asset.content.hash)
-      if (!blob) throw new ServiceError('content_missing', 'Innholdet til filen mangler i nettleseren.')
+      let blob = await repo.getBlob(asset.content.hash)
+      // Ligger filen bare i en prosjektmappe, leses den derfra (krever at brukeren har gitt tilgang til mappen).
+      for (const loc of asset.locations) {
+        if (blob || loc.type !== 'project-folder' || !deps.external) continue
+        blob = await deps.external.read(loc).catch(() => undefined)
+      }
+      if (!blob) {
+        const inFolder = asset.locations.some((l) => l.type === 'project-folder')
+        throw new ServiceError('content_missing', inFolder ? 'Filen ligger i en prosjektmappe som nettleseren ikke har tilgang til nå.' : 'Innholdet til filen mangler i nettleseren.')
+      }
       return blob.type ? blob : new Blob([blob], { type: asset.content.mime })
+    },
+
+    async registerAt(input, location, opts = {}) {
+      const kind = validateInput(input)
+      const { hash, meta, thumbHash } = await store(input, kind, false)
+      const existing = (await repo.findByHash(hash))[0]
+      if (existing) {
+        if (!existing.locations.some((l) => sameLocation(l, location))) {
+          await repo.putAsset({ ...existing, locations: [...existing.locations, location], lastUsedAt: now() })
+          bump()
+        }
+        return (await repo.getAsset(existing.id)) ?? existing
+      }
+      const fileName = input instanceof File ? input.name : undefined
+      const asset: Asset = {
+        id: newId<AssetId>(),
+        kind,
+        name: safeName(opts.name ?? fileName, kind === 'image' ? 'Bilde' : kind === 'video' ? 'Video' : 'Lyd'),
+        content: { hash, mime: input.type, size: input.size },
+        meta,
+        origin: { type: 'upload' },
+        locations: [location],
+        ownerId,
+        createdAt: now(),
+        lastUsedAt: now(),
+        ...(thumbHash ? { thumb: thumbHash } : {}),
+        ...(opts.legacy ? { legacy: opts.legacy } : {}),
+      }
+      await repo.putAsset(asset)
+      bump()
+      return asset
+    },
+
+    async addLocation(id, location) {
+      const asset = await repo.getAsset(id)
+      if (!asset) throw new ServiceError('not_found')
+      if (asset.kind !== 'image' && location.type === 'cloud') throw new ServiceError('cloud_video_forbidden', 'Video og lyd lagres aldri i skyen.')
+      if (asset.locations.some((l) => sameLocation(l, location))) return
+      await repo.putAsset({ ...asset, locations: [...asset.locations, location] })
+      bump()
+    },
+
+    async hasLocalCopy(id) {
+      const asset = await repo.getAsset(id)
+      return !!asset && !!(await repo.getBlob(asset.content.hash))
+    },
+
+    async dropLocalCopy(id) {
+      const asset = await repo.getAsset(id)
+      if (!asset || !asset.locations.some((l) => l.type !== 'local' && l.type !== 'url')) return false
+      await repo.putAsset({ ...asset, locations: asset.locations.filter((l) => l.type !== 'local') })
+      // Innholdet slettes bare når ingen andre assets fortsatt har det i nettleseren.
+      const others = (await repo.findByHash(asset.content.hash)).some((a) => a.id !== id && a.locations.some((l) => l.type === 'local'))
+      if (!others) await repo.deleteBlob(asset.content.hash)
+      bump()
+      return true
     },
 
     openThumb: (thumb) => repo.getBlob(thumb),

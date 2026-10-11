@@ -36,14 +36,14 @@ describe('App (lokal utvikling uten backend)', () => {
   })
 
   it('navigerer til et verktøy uten sideinnlasting, med «← Media Lab» til forsiden og ærlig status', async () => {
-    setup('/app/#some')
-    const link = await screen.findByRole('link', { name: /Motion design/ })
+    setup('/app/')
+    const link = await screen.findByRole('link', { name: /Loop Studio/ })
     await act(async () => {
       fireEvent.click(link)
     })
-    expect(location.pathname).toBe('/app/motion-design')
-    expect(await screen.findByRole('heading', { name: /Motion design er ikke bygget/ })).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/motiondesign')
+    expect(location.pathname).toBe('/app/loop-studio')
+    expect(await screen.findByRole('heading', { name: /Loop Studio er ikke bygget/ })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/loopstudio')
     expect(screen.getByRole('link', { name: /Media Lab/ }).getAttribute('href')).toBe('/app/')
   })
 

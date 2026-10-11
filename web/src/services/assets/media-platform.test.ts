@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { createWorkspace } from '../../app/workspace-factory'
 import type { AssetId, ProjectId, UserId } from '../../domain/ids'
 import { openDatabase } from '../../infrastructure/idb/idb'
+import { createAssetRepository, openMediaDb } from '../../infrastructure/idb/media-db'
+import { createAssetService } from './asset-service'
 import { legacyName } from '../../infrastructure/legacy-import/local-user'
 import { array, object, string } from '../../domain/validation'
 import type { MediaProbe } from './types'
@@ -87,6 +89,64 @@ describe('mediebiblioteket', () => {
     expect(await w.assets.release(a.id)).toBe('deleted')
     await expect(w.assets.open(a.id)).rejects.toMatchObject({ code: 'not_found' })
     w.close()
+  })
+
+  it('video opp til 4 GB; andre filer opp til 2 GB', async () => {
+    const w = await workspace()
+    const big = (type: string, size: number) => Object.defineProperty(new Blob(['x'], { type }), 'size', { value: size })
+    await expect(w.assets.register(big('video/mp4', 4.1e9))).rejects.toMatchObject({ code: 'too_large' })
+    await expect(w.assets.register(big('audio/mpeg', 2.1e9))).rejects.toMatchObject({ code: 'too_large' })
+    w.close()
+  })
+})
+
+describe('prosjektmapper (filer på PC-en)', () => {
+  const folder = { type: 'project-folder' as const, folderId: 'motion:p1', path: 'media/klipp.mp4' }
+  const mp4 = (text: string) => new File([text], 'klipp.mp4', { type: 'video/mp4' })
+
+  async function withFolder(content: string | null) {
+    const db = await openMediaDb(`mappe-${Date.now()}-${n++}`)
+    const assets = createAssetService({
+      repo: createAssetRepository(db, { blobCloneable: false }),
+      refs: { usedBy: async () => [] },
+      probe,
+      ownerId: null,
+      external: { read: async (loc) => (content !== null && loc.type === 'project-folder' && loc.path === folder.path ? new Blob([content], { type: 'video/mp4' }) : undefined) },
+    })
+    return { assets, close: () => db.close() }
+  }
+
+  it('en fil som bare ligger i prosjektmappen, leses derfra og lagres ikke i nettleseren', async () => {
+    const { assets, close } = await withFolder('VIDEO')
+    const a = await assets.registerAt(mp4('VIDEO'), folder)
+    expect(a.locations).toEqual([folder])
+    expect(await assets.hasLocalCopy(a.id)).toBe(false)
+    expect(await (await assets.open(a.id)).text()).toBe('VIDEO')
+    // Samme innhold igjen: samme asset, ingen kopi
+    expect((await assets.registerAt(mp4('VIDEO'), folder)).id).toBe(a.id)
+    close()
+  })
+
+  it('kopien i nettleseren fjernes bare når filen også ligger i mappen, og kommer tilbake ved ny opplasting', async () => {
+    const { assets, close } = await withFolder(null)
+    const a = await assets.register(mp4('KLIPP'))
+    expect(await assets.dropLocalCopy(a.id)).toBe(false)
+    await assets.addLocation(a.id, folder)
+    expect(await assets.dropLocalCopy(a.id)).toBe(true)
+    expect(await assets.hasLocalCopy(a.id)).toBe(false)
+    await expect(assets.open(a.id)).rejects.toMatchObject({ code: 'content_missing', message: expect.stringContaining('prosjektmappe') })
+    const again = await assets.register(mp4('KLIPP'))
+    expect(again.id).toBe(a.id)
+    expect(again.locations.map((l) => l.type)).toEqual(['local', 'project-folder'])
+    expect(await (await assets.open(a.id)).text()).toBe('KLIPP')
+    close()
+  })
+
+  it('video kan aldri få et sky-sted', async () => {
+    const { assets, close } = await withFolder(null)
+    const a = await assets.register(mp4('V'))
+    await expect(assets.addLocation(a.id, { type: 'cloud', fileId: 'x' })).rejects.toMatchObject({ code: 'cloud_video_forbidden' })
+    close()
   })
 })
 

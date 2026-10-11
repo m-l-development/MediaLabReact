@@ -50,7 +50,9 @@ test('nytt prosjekt fra mal: bilde, tekst, lagre og eksporter PNG, JPG og PDF', 
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Bytt bilde' }).click()
   await (await chooser).setFiles({ name: 'rod.png', mimeType: 'image/png', buffer: png(300, 300, () => [230, 20, 20, 255]) })
-  await expect(page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' })).toBeVisible()
+  // Den tomme bildeplassen får bildet og filnavnet (som i dagens app)
+  await expect(page.locator('[data-layer]').filter({ hasText: 'rod' })).toBeVisible()
+  await expect(page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' })).toHaveCount(0)
 
   // Ny tekst
   await page.getByRole('button', { name: 'Tekst', exact: true }).click()
