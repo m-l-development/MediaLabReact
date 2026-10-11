@@ -27,13 +27,14 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | PLT-20 | Feillogg fra nettleseren til Admin-loggen | A, H `db76976` | Beslutning | Tilbakemeldingsknappen (PLT-21) tar med siste feil; gjeninnføring krever godkjenning (ny API) |
 | LE-34 | Fonter i spiller-HTML fra Google Fonts | A | Beslutning | Erstattet av egne fontfiler (personvern). Kontroller at Loop-spilleren bygger inn de egne fontene |
 | TS-19 | Innebygde standardmaler med `asset:`-logoer | A | Beslutning | Gamle `asset:`-logoer vises fortsatt i maler som bruker dem |
-| L-1 | Takt-stiler «Groove» og «Rolig» (overganger, ord og kamera på takt) | Tidlig Loop | Mangler | `groove` finnes i B; kontrolleres linje for linje i Loop-porteringen |
-| L-2 | Bevegelse etter lydstyrke og overlegg etter tempo | Tidlig Loop | Mangler | `energy` finnes i B-motoren; kontrolleres i Loop-porteringen |
-| L-3 | Nyttår: fyrverkeri på slagene | Tidlig Loop | Mangler | `newyear` finnes i B; kontrolleres i Loop-porteringen |
-| L-4 | Vignett-åpning: klikk i bildet for å velge hvor vignetten åpner seg | Tidlig Loop | Mangler | `vigX`/`vigY` i B; kontrolleres i Loop-porteringen |
-| L-5 | Fokusområde: klikk for å velge (langsom zoom) | Tidlig Loop | Mangler | `focus` i B; kontrolleres i Loop-porteringen |
-| L-6 | Lyd av/på i forhåndsvisningen (påvirker ikke eksporten) | Tidlig Loop | Mangler | Finnes i B med annen tekst; bygges i Loop |
-| L-7 | «Mørk toning bak teksten» / «Vignett og mørk toning på alle slides» | Tidlig Loop | Mangler | Kontrolleres i Loop-porteringen |
+| L-1 | Takt-stiler «Groove» og «Rolig» (overganger, ord og kamera på takt) | Tidlig Loop | Implementert | Finnes i B som takt-stilene groove/calm (sjangrene velger dem); motoren er portert uendret, og takt-effektene tegnes i enhetstest |
+| L-2 | Bevegelse etter lydstyrke og overlegg etter tempo | Tidlig Loop | Implementert | `energy`/`energyAdaptive` og «Farten følger tempoet i musikken» i B; portert uendret |
+| L-3 | Nyttår: fyrverkeri på slagene | Tidlig Loop | Implementert | Overlegget «Konfetti» (`newyear`) følger slagene når takt-synk er på; tegnes i enhetstest |
+| L-4 | Vignett-åpning: klikk i bildet for å velge hvor vignetten åpner seg | Tidlig Loop | Implementert | I B: vignettdialogen (dra punktet, åpning og størrelse); portert. Dialogen er ikke testet |
+| L-5 | Fokusområde: klikk i bakgrunnsbildet for å velge utsnitt | Tidlig Loop | Implementert | I B erstattet av «Beskjær / flytt bilde» (utsnitt) og vignettpunktet; portert. Ikke testet |
+| L-6 | Lyd av/på i forhåndsvisningen (påvirker ikke eksporten) | Tidlig Loop | Implementert | Lydknappen ved spilleknappen; ikke testet |
+| L-7 | «Mørk toning bak teksten» / «Vignett og mørk toning på alle slides» | Tidlig Loop | Implementert | Heter «Vignett bak teksten» og «Vignett på alle slides» i B; portert |
+| LS-T | Loop Studio i lyst tema (dagens app farget om dc-sidene med theme.js) | B | Mangler | Den nye Loop Studio er alltid mørk; kontrolleres mot dagens app i lyst tema og bygges ved behov |
 
 ## Bygget, men ikke kontrollert
 
@@ -47,10 +48,14 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | IS-03, IS-04, IS-06, IS-07 | AI-modellene i Isolate Subject | Implementert | Ekte Chrome med nett; BiRefNet krasjer i headless Chrome |
 | TS-10, PD-10 | AI-utklipp i Thumbnail og Photo | Implementert | Som over |
 | PD-17, SHR-04 | Fellesmappe som bildekilde | Blokkert | Innlogging mot ConnectHub |
+| LE-28, LE-27 | Loop Studio: MP4 i 4K, stående format og opptak i sanntid | Implementert | Ekte Chrome (1080p med lyd er testet) |
+| LE-03 | Loop Studio: ukeprogram fra bilde (tekstgjenkjenning) | Implementert | Ekte Chrome med et bilde av et program |
+| LE-12, LE-13 | Loop Studio: video på slide og grunnvideo | Implementert | Manuell test med videofiler (lagres bare lokalt) |
+| LS-04, LE-05 | Loop Studio: felles grunnoppsett, faste bilder og Fellesmappe | Blokkert | Innlogging mot ConnectHub |
 | AUTH-* | Innlogging, MFA, glemt passord mot ekte ConnectHub | Blokkert | `.env.local` for `connecthub-dev`; bare testet med falske adaptere |
 
 ## Gjenstår (ikke bygget ennå)
 
-Loop Studio (LS-*, LE-*), plattform (PLT-03 knappefelt med tilbakemelding, PLT-04 oppdateringsvarsel, PLT-05
+Plattform (PLT-03 knappefelt med tilbakemelding, PLT-04 oppdateringsvarsel, PLT-05
 selvreparasjon, PLT-07 PWA, PLT-08 forhåndslasting, PLT-17 lokale data per bruker, PLT-21 tilbakemelding m.fl.),
-innlogging/konto (AUTH-*) og admin (ADM-*). Rekkefølge: Loop Studio → plattform → innlogging og konto → admin.
+innlogging/konto (AUTH-*) og admin (ADM-*). Loop Studio er bygget (se LS-/LE-radene i registeret for hva som er testet). Rekkefølge videre: plattform → innlogging og konto → admin.

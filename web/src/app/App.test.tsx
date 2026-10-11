@@ -35,17 +35,17 @@ describe('App (lokal utvikling uten backend)', () => {
     expect(screen.getByRole('link', { name: /Photo design/ })).toBeTruthy()
   })
 
-  it('navigerer til et verktøy uten sideinnlasting, med «← Media Lab» til forsiden og ærlig status', async () => {
+  it('navigerer til et verktøy uten sideinnlasting, med «← Media Lab» til forsiden', async () => {
     setup('/app/')
     const link = await screen.findByRole('link', { name: /Loop Studio/ })
     await act(async () => {
       fireEvent.click(link)
     })
     expect(location.pathname).toBe('/app/loop-studio')
-    expect(await screen.findByRole('heading', { name: /Loop Studio er ikke bygget/ })).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Åpne dagens versjon/ }).getAttribute('href')).toBe('/loopstudio')
-    expect(screen.getByRole('link', { name: /Media Lab/ }).getAttribute('href')).toBe('/app/')
-  })
+    expect(await screen.findByRole('heading', { level: 1, name: 'Loop Studio' }, { timeout: 5000 })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /Se demo/ }).getAttribute('href')).toBe('/app/loop-studio?mal=week&demo=1')
+    for (const a of screen.getAllByRole('link', { name: /Media Lab/ })) expect(a.getAttribute('href')).toBe('/app/')
+  }, 15000)
 
   it('direkte adresse til et verktøy som er bygget (Isolate Subject) og ett som ikke er det', async () => {
     setup('/app/isolate-subject')

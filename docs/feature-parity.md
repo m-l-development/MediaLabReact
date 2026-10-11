@@ -132,50 +132,50 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| LS-01 | Maler: Ukeprogram, Søndagsmøte, Ungdomsmøte, Tom mal; egne maler (ny, rediger kategori/navn/beskrivelse/knapp, flytt, fjern, tilbakestill) | B `loop-studio/`, H 05 | E | `features/loop-studio/home` | E2E | – |
-| LS-02 | Disk: lagrede looper (maks 10), favoritt, slett (også `ukeloop.custom.<id>`) | B, H 05 | E | `features/loop-studio/home` | E2E | – |
-| LS-03 | «Se demo (lagres ikke)» med genererte bakgrunner (`gen:N`), «Lagre som grunnoppsett» fra demoen | B, D | E | `features/loop-studio` | E2E | – |
-| LS-04 | Grunnoppsett personlig (`loopstudio.bases.v1`) og felles (`loopstudio:bases`), `?grunn=p|f-<id>` | B `loop-bases.js`, D | E | `features/loop-studio` | U, E2E | – |
-| LS-05 | Sidetittel kan endres | H 05 | E | `features/loop-studio/home` | E2E | – |
+| LS-01 | Maler: Ukeprogram, Søndagsmøte, Ungdomsmøte, Tom mal; egne maler (ny, rediger kategori/navn/beskrivelse/knapp, flytt, fjern, tilbakestill) | B `loop-studio/`, H 05 | E | `features/loop-studio/home` | E2E | I (malkort, ny mal og sidetittel testet (E2E); flytt, fjern og tilbakestill ikke testet) |
+| LS-02 | Disk: lagrede looper (maks 10), favoritt, slett (også `ukeloop.custom.<id>`) | B, H 05 | E | `features/loop-studio/home` | E2E | I (lagre på Disk og åpne igjen testet (E2E); favoritt og sletting ikke testet) |
+| LS-03 | «Se demo (lagres ikke)» med genererte bakgrunner (`gen:N`), «Lagre som grunnoppsett» fra demoen | B, D | E | `features/loop-studio` | E2E | I (demo og «Avslutt demo» testet (E2E); «Lagre som grunnoppsett» ikke testet) |
+| LS-04 | Grunnoppsett personlig (`loopstudio.bases.v1`) og felles (`loopstudio:bases`), `?grunn=p|f-<id>` | B `loop-bases.js`, D | E | `features/loop-studio` | U, E2E | I (felles grunnoppsett krever innlogging mot ConnectHub; ikke testet) |
+| LS-05 | Sidetittel kan endres | H 05 | E | `features/loop-studio/home` | E2E | T |
 
 ## 7. Loop Studio – editor (Ukeprogram Loop)
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| LE-01 | Ukeprogram fra tekst (én linje per møte; «Ekstra:»; dato-linjer blir egne slides), skjema «Legg til møte» (ukedag, dato, tid, navn, sted) | B `studio-editor/` | E\* | `features/loop-studio/program` | U | – |
-| LE-02 | Ukeprogram fra fil (.txt/.csv/.tsv) | B, H 11 | E | `features/loop-studio/program` | U, R | – |
-| LE-03 | Ukeprogram fra bilde: tesseract (`nor`) med forbehandling; bruker `window.claude.complete` når den finnes (bare i Claude-artefaktmiljø) | B `logic.js:2169` | E | `features/loop-studio/program` (+ `services/ai`) | R, M | – |
-| LE-04 | Standard uke (lagre, endre, tilbakestill; menighetens egen, aldri automatisk), `loopstudio:week` | B, D | E\* | `features/loop-studio` | E2E | – |
-| LE-05 | Faste bilder per møtenavn (lengste treff vinner; husker per møte; nye møter får sist brukte bilde på samme ukedag); bare Admin endrer felles | B, D | E\* | `features/loop-studio` | U | – |
-| LE-06 | Slides: legg til, dupliser, flytt, slett, vis i loopen, varighet; typer Tekst, Kontakt med QR, Avslutning | B | E\* | `features/loop-studio/slides` | K | – |
-| LE-07 | Tekstfelt per slide (merkelapp, tid-merke, undertekst, overskrift, e-post, telefon, tittel) med egen tekstfarge | B | E\* | `features/loop-studio/slides` | K | – |
-| LE-08 | QR-kode (lenke/mailto/tel), plassering, størrelse, tekst under, runde hjørner, eksempelkode, flytter seg unna logo | B, qrcode-generator | E\* | `features/loop-studio/qr` | U, R | – |
-| LE-09 | Fritt plasserte elementer (tekst, bilde, logo, QR): dra, hjørner endrer størrelse, dobbeltklikk redigerer tekst, Delete sletter | B | E\* | `features/loop-studio/canvas` | E2E | – |
-| LE-10 | Bakgrunn per slide: bilde (lokal, Fellesmappe, delt mappe), beskjær/flytt utsnitt, rotasjon, bildestyrke, kobling til fast bilde | B | E\* | `features/loop-studio/slides` | E2E | – |
-| LE-11 | Bakgrunnsfarge/gradient: 17 typer (solid, linear, mirror, radial, conic, mesh, stripes, wave, ellipse, corner, spot, glow, conicRep, conicMirror, rays, conicCorner, none), fargestopp, snu, fordel jevnt, skarp/myk, gjentakelser | B `FILLM` | E | `shared/fill` (felles med Photo/Thumb der lik) | U | – |
-| LE-12 | Video på slide (maks 5 min) i stedet for bilde, lyd fra video vs loop-musikk, videovolum | B | E\* | `features/loop-studio/slides` | E2E | – |
-| LE-13 | Grunnvideo bak alle slides | B | E\* | `features/loop-studio` | E2E | – |
-| LE-14 | Logo: bytt, vis/skjul per slide, plassering vannrett/loddrett | B | E\* | `features/loop-studio` | E2E | – |
-| LE-15 | Stilpakker (Rolig, Energisk, Glitch, Promo, Kino, Minimal, Skyv, Feiring) og «Overrask meg» | B | E\* | `features/loop-studio/style` | U | – |
-| LE-16 | 100+ fargepaletter, tilfeldig farge (bare trykkbar), aksentfarge, standardfarger | B `PALS`, D | E\* | `features/loop-studio/style` | U | – |
-| LE-17 | Overganger: Toning, Via svart, Skyv, Zoom, Glitch, Paneler, Kutt | B `transOpts` | E | `features/loop-studio/engine` | R | – |
-| LE-18 | Tekstanimasjon: Avdekk, Ton inn, Gli inn, Uskarp, Sprett, Glitch, Ingen; fart | B `textOpts` | E | `features/loop-studio/engine` | R | – |
-| LE-19 | Overlegg: Filmkorn, Lyslekkasje, Bokeh, Snø, Konfetti, Linjer; egen farge, gjennomsiktighet, per slide/alle | B `OVT` | E | `features/loop-studio/engine` | R | – |
-| LE-20 | Vignett-editor: typer auto/round/oval/bottom/top/cinema/sides/left/even, flere vignetter, rotasjon, størrelse, diffus 0–200 % (S-kurve over 50 %), «Alle slides» fjerner overstyringer | B `VIGT`, D | E | `features/loop-studio/vignette` | U, R | – |
-| LE-21 | Fargepaneler (overgang «Paneler») med farger, synlighet per panel, per slide | B | E\* | `features/loop-studio/engine` | R | – |
-| LE-22 | Fargefilter på bilder (farge, blanding, styrke), per slide; toning/varme, fargehjul, pipette, metning/lysstyrke, fargetone | B | E\* | `features/loop-studio/engine` | R | – |
-| LE-23 | Langsom zoom (Ken Burns), lysstripe ved skifte, rolig dybde | B | E | `features/loop-studio/engine` | R | – |
-| LE-24 | Lydspor (MP3/M4A/WAV), lydbibliotek med sjanger, volum, inn-/uttoning, start i sangen | B | E\* | `features/loop-studio/audio` | E2E | – |
-| LE-25 | Looping-modus: Auto/strekk til sangen/takt; takt-analyse (BPM, halv/dobbel, ±1, finjuster slaget), takt-synk av tekst/bilde/skifter, beat-ekstra | B, H 11 | E\* | `features/loop-studio/beat` | U, R | – |
-| LE-26 | Skrift for titler og øvrig tekst, overskrift/merkelapp globalt, ukestripe nederst, strek ved ukedag | B | E\* | `features/loop-studio/style` | K | – |
-| LE-27 | Formater/oppløsning for video (liggende/stående, 1080p/4K) | B, H 08 | E\* | `features/loop-studio/export` | R | – |
-| LE-28 | Eksport: fullskjerm-spiller (.html, frittstående; videoer på slides blir ikke med), rask MP4 (WebCodecs + mp4-muxer, 1080p/4K, med lyd), sanntidsopptak (MediaRecorder) som reserve | B, H 08 | E | `features/loop-studio/export` | R (HTML byte-likt, MP4 dekodede bilder) | – |
-| LE-29 | Forhåndsvisning: spill/pause, spol, fullskjerm, zoom/flytt, hjelpelinjer (Sneglehus, Fibonacci, Tredeling, snu), «Tester effekten på slide» (`testSlide`) | B, D | E\* | `features/loop-studio/preview` | E2E | – |
-| LE-30 | Angre/gjør om, autolagring av/på, lagre på Disk / «Lagre som ny» | B | E\* | `services/projects` + `features/loop-studio` | E2E | – |
-| LE-31 | Lyd synkronisert mellom faner (`BroadcastChannel('ukeloop-audio')`) | B `logic.js:61` | E\* | **avklares** (trengs det i én SPA?) | M | – |
-| LE-32 | Gammelt autolagret eksempelinnhold legges til side og kan hentes tilbake | B `e09f4c3` | E\* | `infrastructure/legacy-import` | U | – |
-| LE-33 | Spiller-HTML bygges med `Function.toString()` av motoren | B, H 08 | E | Nytt: egen, bygget spiller-modul (krav: frittstående fil) | R | – |
-| LE-34 | Innbygging av fonter i spiller-HTML fra Google Fonts | A `ukeloop-engine.js` | F | Erstattet av egne fontfiler (P8). Verifiser at spilleren fortsatt bygger inn fontene. | R | – |
+| LE-01 | Ukeprogram fra tekst (én linje per møte; «Ekstra:»; dato-linjer blir egne slides), skjema «Legg til møte» (ukedag, dato, tid, navn, sted) | B `studio-editor/` | E\* | `features/loop-studio/program` | U | I (tekst med «Ekstra:» testet (E2E); skjemaet «Legg til møte» ikke testet) |
+| LE-02 | Ukeprogram fra fil (.txt/.csv/.tsv) | B, H 11 | E | `features/loop-studio/program` | U, R | I (ikke testet) |
+| LE-03 | Ukeprogram fra bilde: tesseract (`nor`) med forbehandling; bruker `window.claude.complete` når den finnes (bare i Claude-artefaktmiljø) | B `logic.js:2169` | E | `features/loop-studio/program` (+ `services/ai`) | R, M | I (tesseract `nor` fra /vendor; ikke testet. `window.claude.complete` finnes bare i Claude-artefakter og er ikke tatt med) |
+| LE-04 | Standard uke (lagre, endre, tilbakestill; menighetens egen, aldri automatisk), `loopstudio:week` | B, D | E\* | `features/loop-studio` | E2E | I (ikke testet) |
+| LE-05 | Faste bilder per møtenavn (lengste treff vinner; husker per møte; nye møter får sist brukte bilde på samme ukedag); bare Admin endrer felles | B, D | E\* | `features/loop-studio` | U | I (ikke testet; gamle faste bilder hentes med importen (testet)) |
+| LE-06 | Slides: legg til, dupliser, flytt, slett, vis i loopen, varighet; typer Tekst, Kontakt med QR, Avslutning | B | E\* | `features/loop-studio/slides` | K | I (slett, angre/gjør om testet (E2E); øvrige handlinger ikke testet) |
+| LE-07 | Tekstfelt per slide (merkelapp, tid-merke, undertekst, overskrift, e-post, telefon, tittel) med egen tekstfarge | B | E\* | `features/loop-studio/slides` | K | I (motoren tegner alle felt (enhetstest); redigering ikke testet) |
+| LE-08 | QR-kode (lenke/mailto/tel), plassering, størrelse, tekst under, runde hjørner, eksempelkode, flytter seg unna logo | B, qrcode-generator | E\* | `features/loop-studio/qr` | U, R | I (QR i motoren enhetstestet; QR-biblioteket lastes fra /vendor med SHA-384; redigering ikke testet) |
+| LE-09 | Fritt plasserte elementer (tekst, bilde, logo, QR): dra, hjørner endrer størrelse, dobbeltklikk redigerer tekst, Delete sletter | B | E\* | `features/loop-studio/canvas` | E2E | I (frie elementer i motoren enhetstestet; dra/størrelse ikke testet) |
+| LE-10 | Bakgrunn per slide: bilde (lokal, Fellesmappe, delt mappe), beskjær/flytt utsnitt, rotasjon, bildestyrke, kobling til fast bilde | B | E\* | `features/loop-studio/slides` | E2E | I (eget bilde med beskjæringsdialog testet (E2E); Fellesmappe krever innlogging; utsnitt ikke testet) |
+| LE-11 | Bakgrunnsfarge/gradient: 17 typer (solid, linear, mirror, radial, conic, mesh, stripes, wave, ellipse, corner, spot, glow, conicRep, conicMirror, rays, conicCorner, none), fargestopp, snu, fordel jevnt, skarp/myk, gjentakelser | B `FILLM` | E | `shared/fill` (felles med Photo/Thumb der lik) | U | I (alle 16 typer tegnes uten feil (enhetstest); editoren ikke testet) |
+| LE-12 | Video på slide (maks 5 min) i stedet for bilde, lyd fra video vs loop-musikk, videovolum | B | E\* | `features/loop-studio/slides` | E2E | I (ikke testet; video lagres bare lokalt) |
+| LE-13 | Grunnvideo bak alle slides | B | E\* | `features/loop-studio` | E2E | I (ikke testet; video lagres bare lokalt) |
+| LE-14 | Logo: bytt, vis/skjul per slide, plassering vannrett/loddrett | B | E\* | `features/loop-studio` | E2E | I (ikke testet) |
+| LE-15 | Stilpakker (Rolig, Energisk, Glitch, Promo, Kino, Minimal, Skyv, Feiring) og «Overrask meg» | B | E\* | `features/loop-studio/style` | U | I (ikke testet) |
+| LE-16 | 100+ fargepaletter, tilfeldig farge (bare trykkbar), aksentfarge, standardfarger | B `PALS`, D | E\* | `features/loop-studio/style` | U | I (ikke testet) |
+| LE-17 | Overganger: Toning, Via svart, Skyv, Zoom, Glitch, Paneler, Kutt | B `transOpts` | E | `features/loop-studio/engine` | R | T (alle overganger tegnes (enhetstest)) |
+| LE-18 | Tekstanimasjon: Avdekk, Ton inn, Gli inn, Uskarp, Sprett, Glitch, Ingen; fart | B `textOpts` | E | `features/loop-studio/engine` | R | T (alle teksteffekter tegnes (enhetstest)) |
+| LE-19 | Overlegg: Filmkorn, Lyslekkasje, Bokeh, Snø, Konfetti, Linjer; egen farge, gjennomsiktighet, per slide/alle | B `OVT` | E | `features/loop-studio/engine` | R | I (alle overlegg tegnes (enhetstest); overleggsdialogen ikke testet) |
+| LE-20 | Vignett-editor: typer auto/round/oval/bottom/top/cinema/sides/left/even, flere vignetter, rotasjon, størrelse, diffus 0–200 % (S-kurve over 50 %), «Alle slides» fjerner overstyringer | B `VIGT`, D | E | `features/loop-studio/vignette` | U, R | I (alle vignettyper og ekstra lag tegnes (enhetstest); vignettdialogen ikke testet) |
+| LE-21 | Fargepaneler (overgang «Paneler») med farger, synlighet per panel, per slide | B | E\* | `features/loop-studio/engine` | R | I (ikke testet) |
+| LE-22 | Fargefilter på bilder (farge, blanding, styrke), per slide; toning/varme, fargehjul, pipette, metning/lysstyrke, fargetone | B | E\* | `features/loop-studio/engine` | R | I (ikke testet) |
+| LE-23 | Langsom zoom (Ken Burns), lysstripe ved skifte, rolig dybde | B | E | `features/loop-studio/engine` | R | I (ikke testet) |
+| LE-24 | Lydspor (MP3/M4A/WAV), lydbibliotek med sjanger, volum, inn-/uttoning, start i sangen | B | E\* | `features/loop-studio/audio` | E2E | I (lydspor testet (E2E); lydbibliotek og sjanger ikke testet) |
+| LE-25 | Looping-modus: Auto/strekk til sangen/takt; takt-analyse (BPM, halv/dobbel, ±1, finjuster slaget), takt-synk av tekst/bilde/skifter, beat-ekstra | B, H 11 | E\* | `features/loop-studio/beat` | U, R | I (takt-analyse og «Følg takten» testet (E2E); takt-effektene tegnes (enhetstest), også «glow» som feilet i dagens app) |
+| LE-26 | Skrift for titler og øvrig tekst, overskrift/merkelapp globalt, ukestripe nederst, strek ved ukedag | B | E\* | `features/loop-studio/style` | K | I (ikke testet) |
+| LE-27 | Formater/oppløsning for video (liggende/stående, 1080p/4K) | B, H 08 | E\* | `features/loop-studio/export` | R | I (1080p testet (E2E); stående og 4K ikke testet) |
+| LE-28 | Eksport: fullskjerm-spiller (.html, frittstående; videoer på slides blir ikke med), rask MP4 (WebCodecs + mp4-muxer, 1080p/4K, med lyd), sanntidsopptak (MediaRecorder) som reserve | B, H 08 | E | `features/loop-studio/export` | R (HTML byte-likt, MP4 dekodede bilder) | I (HTML-spiller og MP4 1080p med lyd testet (E2E); 4K og sanntidsopptak ikke testet) |
+| LE-29 | Forhåndsvisning: spill/pause, spol, fullskjerm, zoom/flytt, hjelpelinjer (Sneglehus, Fibonacci, Tredeling, snu), «Tester effekten på slide» (`testSlide`) | B, D | E\* | `features/loop-studio/preview` | E2E | I (ikke testet) |
+| LE-30 | Angre/gjør om, autolagring av/på, lagre på Disk / «Lagre som ny» | B | E\* | `services/projects` + `features/loop-studio` | E2E | T (angre/gjør om og Disk (E2E)) |
+| LE-31 | Lyd synkronisert mellom faner (`BroadcastChannel('ukeloop-audio')`) | B `logic.js:61` | E\* | **avklares** (trengs det i én SPA?) | M | I (ikke testet) |
+| LE-32 | Gammelt autolagret eksempelinnhold legges til side og kan hentes tilbake | B `e09f4c3` | E\* | `infrastructure/legacy-import` | U | I (ikke testet) |
+| LE-33 | Spiller-HTML bygges med `Function.toString()` av motoren | B, H 08 | E | Nytt: egen, bygget spiller-modul (krav: frittstående fil) | R | T (spiller-HTML bygges av kildeteksten til motoren, uavhengig av minifisering (enhetstest + E2E)) |
+| LE-34 | Innbygging av fonter i spiller-HTML fra Google Fonts | A `ukeloop-engine.js` | F | Erstattet av egne fontfiler (P8). Verifiser at spilleren fortsatt bygger inn fontene. | R | I (egne fontfiler bygges inn som før; ikke kontrollert i test) |
 
 ## 8. Thumbnail Studio
 

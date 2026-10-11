@@ -146,7 +146,9 @@ export default defineConfig({
   base: '/app/',
   plugins: [
     react(),
-    babel({ presets: [reactCompilerPreset()] }),
+    // De genererte visningene i Loop Studio ('use no memo', over 5000 linjer) og den uendrede motoren tas ikke gjennom
+    // React Compiler: de ville uansett ikke blitt endret, og analysen tok over 10 sekunder.
+    babel({ presets: [reactCompilerPreset()], exclude: [/[/\\]node_modules[/\\]/, /features[/\\]loop-studio[/\\](EditorView|HomeView)\.tsx$/, /features[/\\]loop-studio[/\\]engine[/\\][a-z]+\.js$/] }),
     connecthubEnv(),
     connecthubApiLocal(),
     sharedAssets(),
