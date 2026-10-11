@@ -7,7 +7,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import { SharedSetup } from '../../services/shared-setup'
 import { useLang, useT } from '../../shared/i18n/i18n'
-import { localStore } from '../../shared/lib/storage'
+import { userStore } from '../../infrastructure/local-user'
 import { useStore } from '../../shared/lib/store'
 import { fitUpload } from '../../shared/media/upload-fit'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
@@ -100,7 +100,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
         const f = await files.upload(await fitUpload(blob, `Grunnoppsett${blob.type === 'image/png' ? '.png' : '.jpg'}`), { churchId: church.id, folder: 'bilder' })
         return `ch:${f.id}`
       },
-      storage: { get: (k) => localStore.get(k), set: (k, v) => void localStore.set(k, v) },
+      storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v) },
       confirm: (p, v) => window.confirm(say(p, v)),
       prompt: (p, def) => window.prompt(say(p), def),
       t: say,

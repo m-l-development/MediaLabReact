@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { Me } from '../domain/account'
 import { useT } from '../shared/i18n/i18n'
 import { Spinner } from '../shared/ui/Spinner'
+import { setLocalUser } from '../infrastructure/local-user'
 import { createWorkspace, WorkspaceContext, type Workspace } from './workspace-factory'
 
 type Opened = { userId: string | null } & ({ ok: true; workspace: Workspace } | { ok: false; message: string })
@@ -15,6 +16,7 @@ export function WorkspaceProvider({ me, children }: { me: Me | null; children: R
   useEffect(() => {
     let close: (() => void) | null = null
     let live = true
+    setLocalUser(userId)
     createWorkspace(userId).then(
       (r) => {
         if (!live) return r.close()

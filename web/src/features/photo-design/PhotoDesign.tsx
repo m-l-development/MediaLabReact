@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
-import { localStore } from '../../shared/lib/storage'
+import { userStore } from '../../infrastructure/local-user'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
@@ -57,7 +57,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         return `m:${a.id}`
       },
       cutout: (src, kind, onProgress) => cutout.run(src, kind, onProgress),
-      storage: { get: (k) => localStore.get(k), set: (k, v) => void localStore.set(k, v), remove: (k) => localStore.remove(k) },
+      storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v), remove: (k) => userStore.remove(k) },
       confirm: (p, v) => window.confirm(say(p, v)),
       prompt: (p, def) => window.prompt(say(p), def),
       t: say,

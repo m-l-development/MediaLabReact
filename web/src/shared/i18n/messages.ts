@@ -391,6 +391,19 @@ export const no = {
   'pwa.ios': 'Trykk på Del-knappen i Safari og velg «Legg til på Hjem-skjerm». Da åpnes Media Lab som egen app.',
   'pwa.open': 'Åpne i web-app',
   'pwa.later': 'Ikke nå',
+  'local.title': 'Prosjekter fra før innlogging',
+  'local.body': 'Denne PC-en har prosjekter og innstillinger som ble laget før innlogging ble innført. Vil du knytte dem til kontoen din? De blir liggende der de er – ingenting flyttes, kopieres eller slettes. Andre som logger inn på denne PC-en, vil da ikke se dem.',
+  'local.adopt': 'Knytt til meg',
+  'local.notMine': 'De er ikke mine',
+  'local.adopted': 'Prosjektene er knyttet til kontoen din.',
+  'local.conflict': 'Du har allerede egne prosjekter på denne PC-en, så de gamle kan ikke knyttes automatisk. Ingenting er endret.',
+  'local.failed': 'Kunne ikke knytte prosjektene. Ingenting er endret.',
+  'local.wipe': 'Logg ut og fjern mine lokale data',
+  'local.wipeHint': 'Fjerner prosjekter og innstillinger lagret i denne nettleseren på denne enheten, og logger deg ut.',
+  'local.wipeTitle': 'Fjern lokale data?',
+  'local.wipeWhat': 'Dette fjernes fra denne nettleseren på denne enheten: prosjekter og innstillinger i verktøyene (for eksempel Photo Design og Motion Design). Du blir logget ut.',
+  'local.wipeStays': 'Dette blir liggende: alt i ConnectHub (filer, menighet og konto), data på andre enheter og videoer i prosjektmapper på PC-en.',
+  'local.wipeGo': 'Fjern lokale data og logg ut',
 } as const
 
 export type MessageKey = keyof typeof no
@@ -784,6 +797,19 @@ export const en: Messages = {
   'pwa.ios': 'Tap the Share button in Safari and choose “Add to Home Screen”. Media Lab then opens as its own app.',
   'pwa.open': 'Open in web app',
   'pwa.later': 'Not now',
+  'local.title': 'Projects from before sign-in',
+  'local.body': 'This computer has projects and settings created before sign-in was introduced. Do you want to link them to your account? They stay where they are – nothing is moved, copied or deleted. Others who sign in on this computer will then not see them.',
+  'local.adopt': 'Link to me',
+  'local.notMine': 'They are not mine',
+  'local.adopted': 'The projects are now linked to your account.',
+  'local.conflict': 'You already have your own projects on this computer, so the old ones cannot be linked automatically. Nothing has been changed.',
+  'local.failed': 'Could not link the projects. Nothing has been changed.',
+  'local.wipe': 'Sign out and remove my local data',
+  'local.wipeHint': 'Removes projects and settings stored in this browser on this device, and signs you out.',
+  'local.wipeTitle': 'Remove local data?',
+  'local.wipeWhat': 'This is removed from this browser on this device: projects and settings in the tools (for example Photo Design and Motion Design). You are signed out.',
+  'local.wipeStays': 'This is kept: everything in ConnectHub (files, church and account), data on other devices and videos in project folders on the PC.',
+  'local.wipeGo': 'Remove local data and sign out',
 }
 
 // Typede nøkler for verktøy og grupper: en manglende tekst for et nytt verktøy gir byggefeil.

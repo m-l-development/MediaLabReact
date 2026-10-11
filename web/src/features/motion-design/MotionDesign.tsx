@@ -7,7 +7,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import { foldersSupported, pickDirectory } from '../../infrastructure/fs/project-folders'
 import { useLang } from '../../shared/i18n/i18n'
-import { localStore } from '../../shared/lib/storage'
+import { userStore } from '../../infrastructure/local-user'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
@@ -57,7 +57,7 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
     const c = new MotionController({
       repo,
       files,
-      storage: { get: (k) => localStore.get(k), set: (k, v) => void localStore.set(k, v) },
+      storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v) },
       confirm: (p, v) => window.confirm(say(p, v)),
       t: say,
       pickFile(mode, accept) {

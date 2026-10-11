@@ -7,6 +7,7 @@ import { Icon } from '../shared/ui/Icon'
 import styles from './AppShell.module.css'
 import { FeedbackButton } from './Feedback'
 import { Link } from './Link'
+import { AdoptPrompt, WipeLocalData } from './LocalData'
 import { stickyTitle } from './sticky-title'
 import type { Route } from './router'
 
@@ -64,6 +65,7 @@ export function AppShell({ route, me, onSignOut, children }: AppShellProps) {
         {me && <AccountButton me={me} onSignOut={onSignOut} open={panel === 'account'} setOpen={(v) => setPanel(v ? 'account' : null)} />}
         <ThemeButton />
       </div>
+      {me && <AdoptPrompt userId={me.id} />}
     </div>
   )
 }
@@ -101,6 +103,11 @@ function ThemeButton() {
 function AccountButton({ me, onSignOut, open, setOpen }: { me: Me; onSignOut: (() => void) | null; open: boolean; setOpen: (v: boolean) => void }) {
   const t = useT()
   const box = useRef<HTMLDivElement>(null)
+  const [view, setView] = useState<'main' | 'wipe'>('main')
+  const toggle = (v: boolean) => {
+    setView('main')
+    setOpen(v)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -126,17 +133,27 @@ function AccountButton({ me, onSignOut, open, setOpen }: { me: Me; onSignOut: ((
         aria-expanded={open}
         aria-haspopup="dialog"
         title={displayName(me)}
-        onClick={() => setOpen(!open)}
+        onClick={() => toggle(!open)}
       >
         {initials(me)}
       </button>
       {open && (
         <div className={styles.menu} role="dialog" aria-label={displayName(me)}>
-          <strong>{displayName(me)}</strong>
-          <span>{me.email}</span>
-          {(roles || church) && <span>{[roles, church].filter(Boolean).join(' · ')}</span>}
-          {onSignOut && (
-            <button type="button" className={styles.signOut} onClick={onSignOut}>{t('auth.signOut')}</button>
+          {view === 'wipe' && onSignOut ? (
+            <WipeLocalData userId={me.id} onCancel={() => setView('main')} onSignOut={onSignOut} />
+          ) : (
+            <>
+              <strong>{displayName(me)}</strong>
+              <span>{me.email}</span>
+              {(roles || church) && <span>{[roles, church].filter(Boolean).join(' · ')}</span>}
+              {onSignOut && (
+                <>
+                  <button type="button" className={styles.signOut} onClick={onSignOut}>{t('auth.signOut')}</button>
+                  <button type="button" className={styles.wipe} data-ch-wipe="" onClick={() => setView('wipe')}>{t('local.wipe')}</button>
+                  <span className={styles.hint}>{t('local.wipeHint')}</span>
+                </>
+              )}
+            </>
           )}
         </div>
       )}

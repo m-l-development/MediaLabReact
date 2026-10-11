@@ -1,0 +1,73 @@
+/* Samme dialog som askLegacy i dagens auth-gate.js: lys boks over mørk bakgrunn, i begge moduser. */
+.wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: Archivo, Helvetica, Arial, sans-serif;
+}
+.box {
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 18px;
+  background: #f3f1ec;
+  color: #111;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.box strong {
+  font-size: 16px;
+}
+.box p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #3b3934;
+}
+.box .note {
+  font-size: 12.5px;
+  color: #6b675f;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.primary,
+.secondary,
+.danger,
+.light {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.primary {
+  border: 1px solid #111;
+  background: #111;
+  color: #f3f1ec;
+}
+.secondary,
+.light {
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  background: transparent;
+  color: #111;
+}
+.danger {
+  border: 1px solid #9b1c3c;
+  background: #9b1c3c;
+  color: #fff;
+}
+.light,
+.danger {
+  margin-top: 4px;
+}

@@ -3,6 +3,8 @@
  * Prosedyrisk Canvas 2D uten avhengigheter. Deterministisk: samme frø og tid gir samme bilde (viktig for videoeksport).
  * Brukes av Photo Design (t = 0) og Motion Design (t = sekunder).
  */
+import { userKey } from '../../infrastructure/local-user'
+
 type G = CanvasRenderingContext2D
 const TAU = Math.PI * 2
 const DEG = Math.PI / 180
@@ -1067,7 +1069,7 @@ export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, 
 
 const LS = <T>(k: string, d: T): T => {
   try {
-    const v = localStorage.getItem(k)
+    const v = localStorage.getItem(userKey(k))
     return v == null ? d : (JSON.parse(v) as T)
   } catch {
     return d
@@ -1075,7 +1077,7 @@ const LS = <T>(k: string, d: T): T => {
 }
 const SS = (k: string, v: unknown) => {
   try {
-    localStorage.setItem(k, JSON.stringify(v))
+    localStorage.setItem(userKey(k), JSON.stringify(v))
   } catch {
     // lagringen er full eller blokkert
   }
