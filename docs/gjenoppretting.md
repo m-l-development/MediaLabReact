@@ -34,7 +34,8 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | L-5 | Fokusområde: klikk i bakgrunnsbildet for å velge utsnitt | Tidlig Loop | Implementert | I B erstattet av «Beskjær / flytt bilde» (utsnitt) og vignettpunktet; portert. Ikke testet |
 | L-6 | Lyd av/på i forhåndsvisningen (påvirker ikke eksporten) | Tidlig Loop | Implementert | Lydknappen ved spilleknappen; ikke testet |
 | L-7 | «Mørk toning bak teksten» / «Vignett og mørk toning på alle slides» | Tidlig Loop | Implementert | Heter «Vignett bak teksten» og «Vignett på alle slides» i B; portert |
-| LS-T | Loop Studio i lyst tema (dagens app farget om dc-sidene med theme.js) | B | Mangler | Den nye Loop Studio er alltid mørk; kontrolleres mot dagens app i lyst tema og bygges ved behov |
+| LS-T | Loop Studio i lyst tema (dagens app farget om sidene med theme.js) | B | Testet | Samme omregning (`mapRGB`) portert til `light-theme.ts`, avgrenset til Loop-siden og dens stilark; enhetstest mot verdiene i dagens `theme.js` og E2E. Skjermbilder i lyst tema sammenlignet med dagens app (start og editor): like |
+| LE-03c | Ukeprogram fra bilde via Claude (`window.claude.complete`) | B `logic.js:2169` | Beslutning | Finnes bare i Claude-artefaktmiljøet, aldri i Media Lab-appen. Ikke tatt med; tekstgjenkjenning med tesseract er med |
 
 ## Bygget, men ikke kontrollert
 

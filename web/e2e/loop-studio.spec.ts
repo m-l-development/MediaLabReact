@@ -236,3 +236,23 @@ test('mobil: forhåndsvis og rediger, og engelsk', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Update the video' })).toBeVisible()
   expect(errors).toEqual([])
 })
+
+test('lyst tema som i dagens app, og tilbake til mørkt', async ({ page }) => {
+  const errors = await errorsOf(page)
+  await page.goto('/app/')
+  await page.evaluate(() => localStorage.setItem('medialab.theme', 'light'))
+  await page.goto('/app/loop-studio')
+  const title = page.getByRole('heading', { level: 1, name: 'Loop Studio' })
+  await expect(page.locator('[data-loop-view]')).toHaveAttribute('data-ml-mode', 'light')
+  const lum = () => title.evaluate((h) => { const m = getComputedStyle(h).color.match(/\d+/g) ?? ['0']; return Number(m[0]) })
+  await expect.poll(lum).toBeLessThan(80)
+  const bg = await page.locator('[data-loop-view]').evaluate((e) => getComputedStyle(e).backgroundColor)
+  expect(bg).not.toBe('rgb(0, 0, 0)')
+  // demoen: forhåndsvisningen (lerretet) beholder sine farger
+  await page.getByRole('link', { name: /Se demo/ }).click()
+  await expect.poll(() => drawn(page), { timeout: 15000 }).toBeGreaterThan(0.3)
+  await page.evaluate(() => localStorage.setItem('medialab.theme', 'dark'))
+  await page.reload()
+  await expect(page.locator('[data-loop-view]')).not.toHaveAttribute('data-ml-mode', 'light')
+  expect(errors).toEqual([])
+})

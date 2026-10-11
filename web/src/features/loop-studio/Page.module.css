@@ -101,3 +101,8 @@
   font: 600 11px/1 Helvetica, Arial, sans-serif;
   letter-spacing: 0.3em;
 }
+
+/* lyst tema: stjernene vises ikke (som i dagens app) */
+.page[data-ml-mode='light'] [data-ml-star] {
+  opacity: 0 !important;
+}

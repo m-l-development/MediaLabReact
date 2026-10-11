@@ -22,6 +22,9 @@ import { HomeView } from './HomeView'
 import { LoopMediaStore, LoopRepo } from './store'
 import { trLoop } from './texts'
 import { importLegacyLoop } from './transfer'
+import H from './Home.module.css'
+import { applyLight } from './light-theme'
+import LS from './LoopStudio.module.css'
 import L from './Page.module.css'
 
 function download(b: Blob, name: string) {
@@ -121,8 +124,15 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
     : null
 
   const editing = ready && isEditor(query)
+  // Lyst tema som i dagens app: nøytrale farger regnes om på Loop-siden og i dens egne stilark
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root || theme !== 'light') return
+    return applyLight(root, [...Object.values(L), ...Object.values(LS), ...Object.values(H)].filter((x): x is string => !!x))
+  }, [theme])
   return (
-    <div data-loop-view={!ready ? 'loading' : editing ? 'edit' : 'home'} className={L.page}>
+    <div data-loop-view={!ready ? 'loading' : editing ? 'edit' : 'home'} className={L.page} ref={rootRef}>
       {!ready && <div className={L.loading}>{tx('LASTER …')}</div>}
       {ready && !editing && (
         <Home
