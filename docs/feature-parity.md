@@ -92,11 +92,11 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| ADM-01 | Oversikt (krever handling, siste hendelser, utviklerkort, PRODUKSJON/UTVIKLING-merke, «Åpne ConnectHub Dev») | B `connecthub-admin/` | E\* | `features/admin` | E2E | – |
-| ADM-02 | Brukere: søk, status, roller, profil, medlemskap, invitasjoner, siste aktivitet, navn | B, D | E\* | `features/admin` | E2E | – |
+| ADM-01 | Oversikt (krever handling, siste hendelser, utviklerkort, PRODUKSJON/UTVIKLING-merke, «Åpne ConnectHub Dev») | B `connecthub-admin/` | E\* | `features/admin` | E2E | I (ramme under /app/admin med #-adresser som i dag, meny per rolle (regler og tester portert fra access.js), rolle i toppfeltet, UTVIKLING-merke, velkomst, tall, «Krever handling», siste hendelser, utviklerkort og samarbeidskort. Komponenttester med falsk database. Seksjoner som ikke er flyttet, sier det og lenker til dagens /admin. Ikke prøvd mot connecthub-dev) |
+| ADM-02 | Brukere: søk, status, roller, profil, medlemskap, invitasjoner, siste aktivitet, navn | B, D | E\* | `features/admin` | E2E | I (brukerliste med søk og filtre, brukerdetalj: navn, medlemskap (én menighet om gangen, fjern/deaktiver med bekreftelse), globale roller med sperre for siste rolle, deaktiver konto, invitasjoner og aktivitet. Regler og komponenttester med falsk database. Ikke prøvd mot connecthub-dev) |
 | ADM-03 | Menigheter: ny, navn, kvote, logo, eksport, status og sletting (livsløp) | B, D | E\* | `features/admin` | E2E | – |
 | ADM-04 | Medlemmer: én menighet om gangen, fjerning/gjenoppretting, Ekstra Admin, melding til alle | B, D | E\* | `features/admin` | E2E | – |
-| ADM-05 | Invitasjoner: opprett, send på nytt, aksepter | B, D | E\* | `features/admin` | E2E | – |
+| ADM-05 | Invitasjoner: opprett, send på nytt, aksepter | B, D | E\* | `features/admin` | E2E | I (Ny invitasjon via serveren (invite.create) med roller etter rolle; send på nytt og trekk tilbake kommer med Invitasjoner-seksjonen. Komponenttest med falsk server) |
 | ADM-06 | Forespørsler-innboks (A/B/C-godkjenning) | B, D | E\* | `features/admin` | E2E | – |
 | ADM-07 | Filer: Fellesmappe, Samarbeidsmappe, Faste; opplasting, forhåndsvisning, flervalg, ZIP, eksporter, slett; filer i bruk kan ikke slettes | B `folders.jsx`, D | E\* | `features/files` | E2E | – |
 | ADM-08 | Samarbeidsgrupper (2–20 menigheter), kopiering inn, avslutt/gjenåpne/slett | B, D | E\* | `features/admin` | E2E | – |

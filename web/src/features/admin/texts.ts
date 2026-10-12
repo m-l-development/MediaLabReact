@@ -160,6 +160,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Del kopi': 'Share copy',
   'Den samlede lagringsgrensen er endret.': 'The total storage limit has been changed.',
   'Den samlede lagringsplassen i ConnectHub er full. Nye opplastinger er stoppet til det er frigjort plass. Nedlasting virker som før.': 'ConnectHub\'s total storage is full. New uploads are stopped until space is freed. Downloads work as before.',
+  'Denne delen er ikke flyttet til den nye appen ennå. Bruk dagens admin så lenge.': 'This part has not been moved to the new app yet. Use the current admin for now.',
   'Denne logoen vises på oversikten.': 'This logo is shown on the overview.',
   'Det er lov, men opplasting stoppes for alle når den samlede plassen er brukt opp.': 'This is allowed, but uploads stop for everyone when the total storage is used up.',
   'Det finnes allerede en aktiv kobling mellom disse menighetene. Avslutt den før du gjenåpner en eldre kobling.': 'There is already an active link between these churches. End it before reopening an older link.',
@@ -797,6 +798,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Åpne': 'Open',
   'Åpne ConnectHub Dev': 'Open ConnectHub Dev',
   'Åpne filer': 'Open files',
+  'Åpne i dagens admin': 'Open in the current admin',
   'Åpne menigheten': 'Open the church',
   'Åpner utviklingsmiljøet i en ny fane. Det har egen database og egne kontoer, så du logger inn der på nytt. Endringer der påvirker ikke produksjon.': 'Opens the development environment in a new tab. It has its own database and accounts, so you sign in again there. Changes there do not affect production.',
 }

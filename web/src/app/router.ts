@@ -8,12 +8,15 @@ import { createStore, type Store } from '../shared/lib/store'
 export type Route =
   | { name: 'hub' }
   | { name: 'library' }
+  | { name: 'admin' }
   | { name: 'tool'; tool: ToolId; query: Readonly<Record<string, string>> }
   | { name: 'not-found'; path: string }
 
 export const DEFAULT_BASE = '/app/'
 /** «Dine medier» (felles mediebibliotek). */
 export const LIBRARY_PATH = 'medier'
+/** ConnectHub Admin; seksjonene står i #-delen som i dagens admin (#/brukere/<id>). */
+export const ADMIN_PATH = 'admin'
 
 function normalizeBase(base: string): string {
   return `/${base.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/')
@@ -26,6 +29,7 @@ export function parseLocation(pathname: string, search: string, base = DEFAULT_B
   const rest = path.slice(b.length).replace(/\/+$/, '')
   if (rest === '') return { name: 'hub' }
   if (rest === LIBRARY_PATH) return { name: 'library' }
+  if (rest === ADMIN_PATH) return { name: 'admin' }
   if (isToolId(rest)) {
     const query: Record<string, string> = {}
     for (const [k, v] of new URLSearchParams(search)) query[k] = v
@@ -41,6 +45,8 @@ export function hrefFor(route: Route, base = DEFAULT_BASE): string {
       return b
     case 'library':
       return `${b}${LIBRARY_PATH}`
+    case 'admin':
+      return `${b}${ADMIN_PATH}`
     case 'tool': {
       const qs = new URLSearchParams(route.query).toString()
       return `${b}${route.tool}${qs ? `?${qs}` : ''}`

@@ -11,7 +11,7 @@ import { AdoptPrompt } from './LocalData'
 import { stickyTitle } from './sticky-title'
 import { TestBanner } from './TestRole'
 import { AccountMenu } from './AccountMenu'
-import type { Route } from './router'
+import { hrefFor, type Route } from './router'
 
 interface AppShellProps {
   route: Route
@@ -37,13 +37,15 @@ export function AppShell({ route, me, onSignOut, children, realMe = me, testRole
   // fast topplinje med liten tittel ved rulling (PLT-09), i verktøyene som i dagens app
   const isTool = route.name === 'tool'
   // Loop Studio har sin egen topplinje med «← Media Lab» (portert fra dagens app)
-  const ownBar = route.name === 'tool' && route.tool === 'loop-studio'
+  const ownBar = (route.name === 'tool' && route.tool === 'loop-studio') || route.name === 'admin'
+  // admin har egen ramme (topplinje, sidemeny og bakgrunn) som i dagens app; knappefeltet beholdes
+  const bare = route.name === 'admin'
   const shell = useRef<HTMLDivElement>(null)
   useEffect(() => (isTool && shell.current ? stickyTitle(shell.current) : undefined), [isTool])
 
   return (
     <div className={styles.shell} ref={shell}>
-      <Backdrop variant={isHub ? 'mesh' : 'lines'} />
+      {!bare && <Backdrop variant={isHub ? 'mesh' : 'lines'} />}
       <a className={styles.skip} href="#main">{t('app.skipToContent')}</a>
 
       {!ownBar && (
@@ -53,13 +55,15 @@ export function AppShell({ route, me, onSignOut, children, realMe = me, testRole
         </header>
       )}
 
-      <main id="main" className={styles.main} tabIndex={-1}>
-        {children}
-        <footer className={styles.credit}>{t('footer.credit')}</footer>
-      </main>
+      {bare ? children : (
+        <main id="main" className={styles.main} tabIndex={-1}>
+          {children}
+          <footer className={styles.credit}>{t('footer.credit')}</footer>
+        </main>
+      )}
 
-      {canAdmin(me) && (
-        <a className={`${styles.fab} ${styles.adminFab}`} href="/admin" title={t('nav.admin')}>
+      {canAdmin(me) && !bare && (
+        <a className={`${styles.fab} ${styles.adminFab}`} href={hrefFor({ name: 'admin' })} title={t('nav.admin')}>
           <Icon name="shield" size={16} />
           <span className="visually-hidden">{t('nav.admin')}</span>
         </a>

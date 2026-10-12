@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Spinner } from '../shared/ui/Spinner'
 import { Hub } from '../features/hub/Hub'
 import { useT } from '../shared/i18n/i18n'
 import { toolTitleKey } from '../shared/i18n/messages'
@@ -18,6 +19,9 @@ import styles from './App.module.css'
 import { toolById, type ToolLifecycle } from './tools'
 import { WorkspaceProvider } from './workspace'
 import { MediaLibrary } from '../features/media-library/MediaLibrary'
+
+/** ConnectHub Admin lastes som egen del (bare for dem som åpner den). */
+const AdminRoute = lazy(() => import('../features/admin/AdminRoute'))
 
 export function App({ services }: { services: Services }) {
   // Ruteren lever like lenge som siden (main.tsx); den skal ikke fjernes når komponenten avmonteres (StrictMode).
@@ -59,7 +63,7 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
 
   useEffect(() => {
     const title = route.name === 'tool' ? `${t(toolTitleKey(route.tool))} · ${t('app.name')}`
-      : route.name === 'library' ? `${t('media.title')} · ${t('app.name')}` : t('app.name')
+      : route.name === 'library' ? `${t('media.title')} · ${t('app.name')}` : route.name === 'admin' ? 'ConnectHub Admin' : t('app.name')
     document.title = title
   }, [route, t])
 
@@ -68,6 +72,12 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
       <ErrorBoundary resetKey={hrefFor(route)} fallback={RouteErrorFallback}>
         {route.name === 'hub' && <Hub me={me} />}
         {route.name === 'library' && <MediaLibrary />}
+        {route.name === 'admin' && me && (
+          <Suspense fallback={<Spinner label={t('app.loading')} />}>
+            <AdminRoute me={me} testRole={ready?.testRole ?? null} />
+          </Suspense>
+        )}
+        {route.name === 'admin' && !me && <section className={styles.message}><h1>{t('auth.notConfigured')}</h1></section>}
         {route.name === 'tool' && (
           <ToolHost key={route.tool} tool={toolById(route.tool)} query={route.query} onLifecycle={setLifecycle} />
         )}
