@@ -35,6 +35,8 @@ export interface AuthAdapter {
   setPassword(password: string): Promise<AuthResult>
   /** Logger ut alle andre økter enn denne. */
   signOutOthers(): Promise<AuthResult>
+  /** Leverandørens e-post med tilbakestillingslenke (reserve når ConnectHub ikke sender selv). */
+  requestPasswordReset(email: string, redirectTo: string): Promise<AuthResult>
 }
 
 /** Dataporten (databasefunksjoner). Feil kastes som ServiceError med nøytral kode. */

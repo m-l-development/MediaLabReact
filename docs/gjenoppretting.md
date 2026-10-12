@@ -38,6 +38,7 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | LE-03c | Ukeprogram fra bilde via Claude (`window.claude.complete`) | B `logic.js:2169` | Beslutning | Finnes bare i Claude-artefaktmiljøet, aldri i Media Lab-appen. Ikke tatt med; tekstgjenkjenning med tesseract er med |
 | PLT-07-id | Web-appens identitet (`id`/`start_url`/`scope`) | B `manifest.webmanifest` | Beslutning | Ny app har egen identitet `/app/` (dagens: `/media-lab.dc.html`, omfang `/`). Ikke endret eller publisert. Alternativer og hvordan eksisterende installasjoner oppfører seg: [pwa-identitet.md](pwa-identitet.md) |
 | PLT-19-u | Enhetsvalg i Loop Studio lagres i egne nøkler | B `studio-editor/logic.js` | Endret | Dagens valg (`medialab.units`) kopieres ved første åpning; den nye appen skriver aldri til dagens innstillinger. Ingen valg går tapt (nøklene er ulike per verktøy) |
+| AUTH-links | E-postlenker (nytt passord, invitasjon, innloggingslenke) og godkjenning av invitasjon | B `LoginPage.jsx` | Beslutning | Lander fortsatt på dagens offentlige `/login.dc.html` (tillatt omdirigeringsadresse hos leverandøren). Den nye appen under `/app/` er bak sperren og kan ikke ta imot lenkene uten endret ruting, omdirigeringsadresser og lenker i serverens e-poster – krever godkjent publiseringstrinn. Skal porteres før dagens innloggingsside fjernes |
 
 ## Bygget, men ikke kontrollert
 

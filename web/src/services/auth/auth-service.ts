@@ -2,6 +2,7 @@ import { isStaff, parseMe, type Me } from '../../domain/account'
 import { createStore, type Store } from '../../shared/lib/store'
 import type { MessageKey } from '../../shared/i18n/messages'
 import { ServiceError, withTimeout } from '../errors'
+import { callAnonymous } from '../../infrastructure/api/server'
 import { clearMe, readMe, sameMe, writeMe } from './me-cache'
 import type { AuthAdapter, AuthState, DataAdapter, Session } from './types'
 
@@ -16,6 +17,9 @@ export interface AuthServiceDeps {
   writeCookie?: (session: Session | null) => void
   reload?: () => void
   timeoutMs?: number
+  /** «Glemt passord» via ConnectHub-serveren (auth.recover); fallback = bruk leverandørens e-post. */
+  recover?: (email: string) => Promise<{ fallback: boolean }>
+  origin?: string
   /** Testrolle (PLT-16): hvordan grensesnittet skal se brukeren. Uten denne er visningen den ekte brukeren. */
   present?: (me: Me) => { me: Me; testRole: string | null }
 }
@@ -29,7 +33,18 @@ export interface AuthService {
   signOut(): Promise<void>
   /** Gjeldende tilgangstoken (for kall til /api/ch). */
   accessToken(): Promise<string | null>
+  /**
+   * «Glemt passord» (AUTH-04): svarer alltid likt utad, så det ikke avsløres om e-posten finnes. ConnectHub sender selv
+   * (lenke som virker i alle nettlesere) når e-postsystemet er satt opp; ellers, eller hvis serveren ikke svarer, brukes
+   * leverandørens e-post som før. Lenken går til dagens innloggingsside (RECOVERY_PATH), som er tillatt hos leverandøren.
+   */
+  requestPasswordReset(email: string): Promise<void>
 }
+
+/** Dagens offentlige innloggingsside, der lenkene i e-postene lander (uendret til publiseringstrinnet er godkjent). */
+export const RECOVERY_PATH = '/login.dc.html'
+
+const defaultRecover = async (email: string) => ({ fallback: !!(await callAnonymous<{ fallback?: boolean }>('auth.recover', { email }, fetch, 15000)).fallback })
 
 export function browserCookieWriter(session: Session | null): void {
   const secs = session ? Math.max(0, Math.floor(session.expiresAt - Date.now() / 1000)) : 0
@@ -201,6 +216,17 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
       if (auth) await auth.signOut()
       writeCookie(null)
       state.set({ status: 'signed-out' })
+    },
+
+    async requestPasswordReset(email) {
+      const e = email.trim()
+      let fallback = true
+      try {
+        fallback = (await (deps.recover ?? defaultRecover)(e)).fallback
+      } catch {
+        fallback = true
+      }
+      if (fallback && auth) await auth.requestPasswordReset(e, (deps.origin ?? location.origin) + RECOVERY_PATH + '?flow=recovery').catch(() => undefined)
     },
 
     async accessToken() {

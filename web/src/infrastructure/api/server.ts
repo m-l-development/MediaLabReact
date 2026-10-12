@@ -47,3 +47,28 @@ export async function callServer<T = Record<string, unknown>>(
   }
   return json as T
 }
+
+/**
+ * Handlinger før innlogging (serverens `route.anonymous`): «Glemt passord» (`auth.recover`) og forespørsel om konto
+ * (`request.form`, `request.submit`). Uten token; serveren har egne grenser per IP og e-post. Samme kontrakt som i dag.
+ */
+export async function callAnonymous<T = Record<string, unknown>>(action: string, body?: unknown, fetchImpl: typeof fetch = fetch, timeoutMs = 20000): Promise<T> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  let response: Response
+  try {
+    response = await fetchImpl(`/api/ch?a=${encodeURIComponent(action)}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body ?? {}),
+      signal: controller.signal,
+    })
+  } catch {
+    throw new ServiceError(controller.signal.aborted ? 'timeout' : 'network')
+  } finally {
+    clearTimeout(timer)
+  }
+  const json = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+  if (!response.ok || !json || !json.ok) throw new ServiceError(json?.error ?? `http_${response.status}`)
+  return json as T
+}

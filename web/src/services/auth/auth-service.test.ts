@@ -29,6 +29,7 @@ function fakes(opts: { session?: Session | null; mfa?: MfaStatus; whoami?: unkno
     mfaVerify: vi.fn(async (_id: string, code: string) => (code === '123456' ? { ok: true as const } : { ok: false as const, error: 'invalid_credentials' })),
     setPassword: vi.fn(async () => ({ ok: true as const })),
     signOutOthers: vi.fn(async () => ({ ok: true as const })),
+    requestPasswordReset: vi.fn(async () => ({ ok: true as const })),
   }
   const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'], select: vi.fn(async () => []) as DataAdapter['select'], update: vi.fn(async () => []) as DataAdapter['update'] }
   const writeCookie = vi.fn()
@@ -143,5 +144,22 @@ describe('me-cache (kompatibel med dagens app)', () => {
     const a = me([{ role: 'x', church_id: null }, { role: 'y', church_id: null }]) as never
     const b = me([{ role: 'y', church_id: null }, { role: 'x', church_id: null }]) as never
     expect(sameMe(a, b)).toBe(true)
+  })
+})
+
+describe('«Glemt passord» (AUTH-04)', () => {
+  it('ConnectHub sender selv: leverandørens e-post brukes ikke', async () => {
+    const f = fakes()
+    const s = createAuthService({ ...f, dev: false, recover: async () => ({ fallback: false }), origin: 'https://x.no' })
+    await s.requestPasswordReset(' ola@b.no ')
+    expect(f.auth.requestPasswordReset).not.toHaveBeenCalled()
+  })
+  it('uten e-postoppsett eller uten svar fra serveren: leverandørens e-post med lenke til dagens innloggingsside; svaret er likt', async () => {
+    for (const recover of [async () => ({ fallback: true }), async () => { throw new Error('nett') }]) {
+      const f = fakes()
+      const s = createAuthService({ ...f, dev: false, recover, origin: 'https://x.no' })
+      await expect(s.requestPasswordReset('ola@b.no')).resolves.toBeUndefined()
+      expect(f.auth.requestPasswordReset).toHaveBeenCalledWith('ola@b.no', 'https://x.no/login.dc.html?flow=recovery')
+    }
   })
 })

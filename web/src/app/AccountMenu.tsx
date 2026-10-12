@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { displayName, initials, type Me } from '../domain/account'
 import { clearMyLocalData } from '../infrastructure/local-user'
+import { forgetAccount } from '../infrastructure/saved-accounts'
 import { downloadJson, passwordChecks, validNotifyEmail, type EmailPrefs, type Notification, type PasswordResult } from '../services/account'
 import { ServiceError } from '../services/errors'
 import { useLang, useT } from '../shared/i18n/i18n'
@@ -397,6 +398,7 @@ function DeleteAccount({ realMe, onCancel, onSignOut }: { realMe: Me; onCancel: 
             setBusy(false)
             return
           }
+          forgetAccount(realMe.email)
           await clearMyLocalData(realMe.id).catch(() => undefined)
           await onSignOut()
         }}>
