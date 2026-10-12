@@ -1392,3 +1392,19 @@ Samme oppsett. Konto: syntetisk `ch-test-admin` (Admin i 1 menighet, 0 MFA-fakto
 | app_users | registreres | 403 42501 |
 
 Admin-grensesnittet (PC og mobil like): Oversikt («Velkommen, Admin Test»), Brukere, Menigheter, Invitasjoner, Filer, Abonnement og Logg vises; Samarbeid, Tilbakemeldinger, Opprydning, Forespørsler og Mail viser «Ingen tilgang» – i tråd med `features/admin/access.ts`. Utlogging virket. 503 fra `/api/ch` på Oversikt og Filer (forventet uten hemmelig nøkkel).
+
+### Tillegg: serverhandlinger med hemmelig nøkkel – Admin (2026-10-12)
+
+Dev-serveren på 5180 ble stoppet (etter brukerens bekreftelse) og startet av brukeren i egen terminal med `CONNECTHUB_SUPABASE_SECRET_KEY` bare i terminalens minne (egen nøkkel for lokal utvikling i connecthub-dev). En første nøkkel ble limt inn i chatten ved et uhell; den ble slettet i Supabase og erstattet før bruk.
+
+**Resultat: 4 bestått, 2 hoppet over** (kjøres én gang).
+
+| Handling (/api/ch) | Forventet | Svar |
+|---|---|---|
+| request.form (uten innlogging) | ok | 200 (ok, token) |
+| mail.status (bare stab) | nektet | 403 forbidden |
+| church.export, egen menighet | ok | 200 (export) |
+| church.export, fremmed id | nektet | 403 forbidden |
+| mail.status uten innlogging | nektet | 401 unauthorized |
+
+Tilgang i databasen, nå med kontroll av menighetstilhørighet: churches 1, memberships 6, audit_logs 201 rader – 0 utenfor egen menighet. `app_users` med bare `id`: 6 rader (= medlemskapene); med `select=*` i forrige kjøring 403, fordi noen kolonner er sperret. Admin-grensesnittet uten feil på PC og mobil; 503 på Oversikt og Filer er borte (logoer/miniatyrer via `file.urls`). Ingen endrende serverhandlinger er kjørt (ingen e-post, invitasjoner, opplasting eller sletting).
