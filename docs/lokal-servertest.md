@@ -54,3 +54,17 @@ Uten hemmelig nøkkel gir alle disse `not_configured`. Innlogging, lesing av egn
 - Den hemmelige nøkkelen for connecthub-dev må settes i terminalen av deg (punkt 2). Jeg har den ikke og skal ikke ha den.
 - SMTP-verdiene hvis e-post skal prøves lokalt (punkt 3).
 - Testkontoer: vanlig bruker, Admin, Developer (med MFA) og en konto som kan slettes.
+
+## Verifisere innlogging og admin automatisk (bare lesing)
+
+`web/e2e-dev/admin-dev.spec.ts` logger inn på dev-serveren (5180, ekte connecthub-dev) med en testkonto **uten MFA**, åpner alle admin-seksjonene på PC og mobil, og skriver en tabell med overskrift, feilmeldinger i siden, konsollfeil og mislykkede kall. Den trykker ingen knapper som endrer data, og logger ut til slutt. Den er ikke med i den vanlige kontrollen.
+
+```powershell
+cd F:\ReactProjects\MediaLabReact\web
+$env:ML_DEV_EMAIL = "ch-test-…@example.com"   # testkonto, ikke en ekte bruker
+$s = Read-Host "Passord" -AsSecureString
+$env:ML_DEV_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
+npx playwright test -c e2e-dev
+```
+
+Skjermbilder havner i `web/test-results/dev/` (ignorert av Git). Uten variablene hoppes testen over.
