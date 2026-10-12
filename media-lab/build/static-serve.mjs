@@ -8,7 +8,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ruleApplies, localCsp } from './csp.js';
 import { localRoutes } from './routes.js';
-import { localRoutes } from './routes.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
 const DIST = path.join(ROOT, 'dist');

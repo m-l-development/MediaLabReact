@@ -40,3 +40,9 @@ test('innlogging: «next» godtar korte interne stier, aldri innloggingssiden el
   assert.equal(safeNext('/loopeditor?mal=week'), '/loopeditor?mal=week');
   for (const bad of ['/login', '/login?next=/x', '/login.dc.html', 'https://evil.example/', '//evil.example', '']) assert.equal(safeNext(bad), '/home', bad);
 });
+
+test('den nye appen: /app og alle sider under gir app/index.html, filer leveres direkte', () => {
+  for (const p of ['/app', '/app/', '/app/admin', '/app/photo-design', '/app/medier/', '/app/admin/brukere']) assert.equal(fileFor(p), 'app/index.html', p);
+  for (const p of ['/app/assets/index-abc.js', '/app/manifest.webmanifest', '/app/images/app-icon-192.png', '/app/version.json']) assert.equal(fileFor(p), null, p);
+  for (const p of ['/apps', '/application', '/home', '/admin']) assert.notEqual(fileFor(p), 'app/index.html', p);
+});

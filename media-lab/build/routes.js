@@ -24,11 +24,20 @@ export const SHORTCUTS = [
   ['/ressurser', 'filer/faste'],
 ];
 export const START = '/home';
+/* Den nye appen (web/, bygget til dist/app av build/web-app.js): én side som selv velger visning ut fra stien.
+   Filer som finnes (app/assets/…, manifest, ikoner) leveres direkte; alle andre stier under /app får app/index.html. */
+export const APP = '/app';
+const APP_INDEX = 'app/index.html';
+const isAppFile = p => /^\/app\/.+\.[a-z0-9]+$/i.test(p);
 
 const byPath = new Map([...ROUTES, ...SHORTCUTS.map(([p]) => [p, 'connecthub-admin.dc.html'])]);
 const byFile = new Map(ROUTES.map(([p, f]) => [f, p]));
 /* Kort sti → filen som skal leveres (eller null). Godtar også avsluttende skråstrek. */
-export function fileFor(pathname) { const p = String(pathname || '').replace(/\/+$/, '') || '/'; return byPath.get(p) || null; }
+export function fileFor(pathname) {
+  const raw = String(pathname || ''), p = raw.replace(/\/+$/, '') || '/';
+  if ((p === APP || p.startsWith(APP + '/')) && !isAppFile(raw)) return APP_INDEX;
+  return byPath.get(p) || null;
+}
 /* Gammel filsti (/media-lab.dc.html) → kort sti (/home), ellers null. */
 export function routeForFile(pathname) { const m = /^\/([a-z0-9-]+\.dc\.html)$/.exec(String(pathname || '')); return m ? byFile.get(m[1]) || null : null; }
 
@@ -36,7 +45,12 @@ export function routeForFile(pathname) { const m = /^\/([a-z0-9-]+\.dc\.html)$/.
 export function vercelRoutes() {
   return {
     redirects: [{ source: '/', destination: START, permanent: false }, ...ROUTES.map(([p, f]) => ({ source: '/' + f, destination: p, permanent: false }))],
-    rewrites: [...ROUTES, ...SHORTCUTS.map(([p]) => [p, 'connecthub-admin.dc.html'])].map(([p, f]) => ({ source: p, destination: '/' + f })),
+    rewrites: [
+      ...[...ROUTES, ...SHORTCUTS.map(([p]) => [p, 'connecthub-admin.dc.html'])].map(([p, f]) => ({ source: p, destination: '/' + f })),
+      // Vercel leverer filer som finnes før omskrivingene, så app/assets/… og manifestet kommer direkte
+      { source: APP, destination: '/' + APP_INDEX },
+      { source: APP + '/(.*)', destination: '/' + APP_INDEX },
+    ],
   };
 }
 

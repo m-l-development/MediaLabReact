@@ -48,7 +48,9 @@ test('verifyJwt: token signert med annen nøkkel avvises', async () => {
 });
 
 test('isPublicPath: bare innlogging og statiske filer er åpne', () => {
-  for (const p of ['/login.dc.html', '/login', '/assets/x.js', '/images/a.png', '/version.json', '/api/ch', '/manifest.webmanifest', '/favicon.ico']) assert.equal(isPublicPath(p), true, p);
+  for (const p of ['/login.dc.html', '/login', '/assets/x.js', '/app/assets/index-abc.js', '/images/a.png', '/version.json', '/api/ch', '/manifest.webmanifest', '/favicon.ico']) assert.equal(isPublicPath(p), true, p);
+  // den nye appen: kodefilene er åpne, selve appen og alle sidene krever innlogging
+  for (const p of ['/app', '/app/', '/app/admin', '/app/photo-design', '/app/index.html', '/app/assetsx/a.js', '/app/manifest.webmanifest']) assert.equal(isPublicPath(p), false, p);
   for (const p of ['/', '/media-lab.dc.html', '/photo-design.dc.html', '/admin.dc.html', '/login.dc.html.evil', '/x/login.dc.html', '/assetsx/a.js', '/home', '/admin', '/fellesmappe', '/loopeditor', '/loginx', '/login/x']) assert.equal(isPublicPath(p), false, p);
 });
 
