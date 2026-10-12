@@ -30,7 +30,7 @@ export function MailView() {
   const current = k => (saved[k] ? { subject: saved[k].subject, blocks: saved[k].blocks } : DEFAULT_TEMPLATES[k]);
   const loadLogo = async () => {
     const url = await mail.logoUrl().catch(() => null);
-    const blob = await fetch(url || '/images/logo-symbol.png').then(r => r.blob()).catch(() => null);
+    const blob = await fetch(url || '/images/app-icon-192.png').then(r => r.blob()).catch(() => null);
     setLogo(blob ? await toDataUrl(blob) : null);
   };
   const load = async (k = key) => {

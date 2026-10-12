@@ -33,7 +33,10 @@ export function connecthubEnv(): Plugin {
     config(_, { mode, command }) {
       building = command === 'build'
       const env = { ...loadEnv(mode, LEGACY, ''), ...loadEnv(mode, ROOT, ''), ...process.env }
-      const r = resolveSupabaseEnv(env)
+      // Automatiske tester kjører alltid uten backend (som uten .env.local), så de aldri når en ekte database:
+      // enhetstestene (Vitest) og nettlesertestene (ML_TEST_NO_BACKEND=1, egen server). Aldri i produksjonsbygg.
+      const noBackend = mode !== 'production' && (!!process.env.VITEST || process.env.ML_TEST_NO_BACKEND === '1')
+      const r = noBackend ? { target: 'local', public: null, warnings: [] as string[] } : resolveSupabaseEnv(env)
       target = r.target
       r.warnings.forEach((w: string) => console.warn(`\x1b[33m${w}\x1b[0m`))
       return {

@@ -39,3 +39,32 @@ describe('bygget stoppes ved hemmeligheter (PLT-15)', () => {
     expect(built({ 'a.js': 'x="smtp-passord-123"' })).toThrow(/verdien av CONNECTHUB_SMTP_PASSWORD/)
   })
 })
+
+describe('testene når aldri en ekte backend', () => {
+  type Cfg = { define: Record<string, string> }
+  const define = (mode: string) => ((connecthubEnv() as unknown as { config: (c: unknown, e: unknown) => Cfg }).config({}, { mode, command: 'serve' })).define
+  it('under Vitest og med ML_TEST_NO_BACKEND=1 bakes ingen backend inn i utvikling', () => {
+    expect(define('development').__CH_BACKEND__).toBe('null')
+    process.env.ML_TEST_NO_BACKEND = '1'
+    const vitest = process.env.VITEST
+    delete process.env.VITEST
+    try {
+      expect(define('development').__CH_BACKEND__).toBe('null')
+    } finally {
+      process.env.VITEST = vitest
+      delete process.env.ML_TEST_NO_BACKEND
+    }
+  })
+  it('bryteren gjelder aldri produksjonsbygg', () => {
+    process.env.ML_TEST_NO_BACKEND = '1'
+    process.env.CONNECTHUB_SUPABASE_URL = 'https://uatpdmhnwwjgzlxaucsx.supabase.co'
+    process.env.CONNECTHUB_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_' + 'x'.repeat(20)
+    try {
+      expect(JSON.parse(define('production').__CH_BACKEND__ ?? 'null')).toMatchObject({ ref: 'uatpdmhnwwjgzlxaucsx' })
+    } finally {
+      delete process.env.ML_TEST_NO_BACKEND
+      delete process.env.CONNECTHUB_SUPABASE_URL
+      delete process.env.CONNECTHUB_SUPABASE_PUBLISHABLE_KEY
+    }
+  })
+})

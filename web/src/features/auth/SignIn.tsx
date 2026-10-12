@@ -95,7 +95,7 @@ export function SignIn({ state, auth }: SignInProps) {
   return (
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="signin-title">
-        <img src="/images/logo-symbol.png" alt="" width={48} height={48} className={styles.logo} />
+        <img src="/images/app-icon-192.png" alt="" width={48} height={48} className={styles.logo} />
 
         {state.status === 'signed-out' && mode === 'login' && (
           <>

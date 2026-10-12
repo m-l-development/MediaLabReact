@@ -22,7 +22,7 @@ const fetchAll = async (mail: MailService) => Promise.all([mail.templates(), mai
 /** Logoen i forhåndsvisningen (egen logo fra serveren, ellers standardsymbolet) som data:-adresse. */
 const fetchLogo = async (mail: MailService) => {
   const url = await mail.logoUrl().catch(() => null)
-  const blob = await fetch(url || '/images/logo-symbol.png').then((r) => r.blob()).catch(() => null)
+  const blob = await fetch(url || '/images/app-icon-192.png').then((r) => r.blob()).catch(() => null)
   return blob ? toDataUrl(blob) : null
 }
 const confirmOr = (text: string) => { if (!window.confirm(text)) throw new Cancelled('cancel') }

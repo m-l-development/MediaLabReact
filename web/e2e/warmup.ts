@@ -21,7 +21,7 @@ export default async function warmup() {
   const queue = [...files]
   await Promise.all(
     Array.from({ length: 4 }, async () => {
-      for (let f = queue.shift(); f; f = queue.shift()) await fetch(`http://localhost:5180/app/src/${f}`).then((r) => r.arrayBuffer())
+      for (let f = queue.shift(); f; f = queue.shift()) await fetch(`http://localhost:5181/app/src/${f}`).then((r) => r.arrayBuffer())
     }),
   )
 }
