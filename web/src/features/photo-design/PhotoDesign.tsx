@@ -72,9 +72,13 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
     if (started.current) return
     started.current = true
     void (async () => {
-      const n = await importLegacyPhoto(userId, assets, repo).catch(() => 0)
+      // startsiden vises straks; gamle prosjekter fra dagens app hentes i bakgrunnen og legges til når de er klare
       await c.refresh()
-      if (n) c.flash('{n} prosjekter er hentet fra forrige versjon av Photo design.', { n })
+      const n = await importLegacyPhoto(userId, assets, repo).catch(() => 0)
+      if (n) {
+        await c.refresh()
+        c.flash('{n} prosjekter er hentet fra forrige versjon av Photo design.', { n })
+      }
     })()
   }, [c, repo, userId, assets])
 

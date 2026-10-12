@@ -9,7 +9,7 @@ import { isChunkLoadError } from './chunk-error'
 import { HEAL_KEY, healChunk } from './heal'
 import { sessionStore } from '../shared/lib/storage'
 import { ErrorBoundary, type FallbackProps } from './ErrorBoundary'
-import { TOOL_COMPONENTS } from './tool-loader'
+import { retryToolLoads, TOOL_COMPONENTS } from './tool-loader'
 import styles from './ToolHost.module.css'
 import type { ToolLifecycle, ToolModule } from './tools'
 
@@ -25,12 +25,19 @@ export function ToolHost({ tool, query, onLifecycle }: ToolHostProps) {
   const Component = TOOL_COMPONENTS[tool.id]
   const lifecycle = useRef<ToolLifecycle | null>(null)
 
-  // Når verktøyet lukkes: frigjør ressursene det har meldt inn.
+  // Når verktøyet lukkes: frigjør ressursene det har meldt inn. Bare ved ekte lukking – ikke når React i utvikling
+  // (StrictMode) monterer på nytt med en gang; da ville verktøyet som nettopp startet, blitt stoppet.
+  const mounted = useRef(false)
   useEffect(() => {
+    mounted.current = true
     return () => {
-      lifecycle.current?.dispose?.()
-      lifecycle.current = null
-      onLifecycle(null)
+      mounted.current = false
+      queueMicrotask(() => {
+        if (mounted.current) return
+        lifecycle.current?.dispose?.()
+        lifecycle.current = null
+        onLifecycle(null)
+      })
     }
   }, [onLifecycle])
 
@@ -79,7 +86,7 @@ function ToolErrorFallback({ error, reset }: FallbackProps) {
       <h1>{chunk ? t('tool.loadError.title') : t('error.title')}</h1>
       <p>{chunk ? t('tool.loadError.body') : t('error.body')}</p>
       <div className={styles.actions}>
-        <Button variant="primary" onClick={reset}>{t('tool.loadError.retry')}</Button>
+        <Button variant="primary" onClick={() => { retryToolLoads(); reset() }}>{t('tool.loadError.retry')}</Button>
         <Button onClick={() => location.reload()}>{t('tool.loadError.reload')}</Button>
       </div>
     </section>

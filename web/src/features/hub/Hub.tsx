@@ -12,6 +12,8 @@ import { Icon } from '../../shared/ui/Icon'
 import styles from './Hub.module.css'
 
 type Folder = 'some' | 'tools' | null
+/** Verktøyene i hver mappe (samme som kortene under). */
+const FOLDER_TOOLS: Record<'some' | 'tools', ToolId[]> = { some: ['motion-design', 'photo-design'], tools: ['isolate-subject', 'mockups'] }
 
 /** `#some` og `#tools` åpner mappene direkte, som på dagens forside (HUB-01). */
 function readFolder(): Folder {
@@ -46,6 +48,11 @@ export function Hub({ me }: { me: Me | null }) {
       live = false
     }
   }, [member, community])
+
+  // verktøyene i en åpen mappe forhåndslastes (de er det neste brukeren trykker på)
+  useEffect(() => {
+    for (const id of folder ? FOLDER_TOOLS[folder] : []) preloadTool(toolById(id))
+  }, [folder])
 
   function openFolder(f: Folder) {
     // Mappen står i adressen, så tilbake-knappen i nettleseren lukker den.
@@ -116,7 +123,11 @@ function ToolCard({ id, label }: { id: ToolId; label: string }) {
     <Link
       to={{ name: 'tool', tool: id, query: {} }}
       className={styles.card}
+      // forhåndslasting: når pekeren kommer inn eller beveger seg over kortet (kortet kan dukke opp under en stillestående
+      // peker når en mappe åpnes), ved trykk og ved fokus
       onPointerEnter={() => preloadTool(tool)}
+      onPointerMove={() => preloadTool(tool)}
+      onPointerDown={() => preloadTool(tool)}
       onFocus={() => preloadTool(tool)}
     >
       <span className={styles.label}>{label}</span>
