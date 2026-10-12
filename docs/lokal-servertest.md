@@ -30,7 +30,7 @@ Uten hemmelig nøkkel gir alle disse `not_configured`. Innlogging, lesing av egn
 
 ## Det du må gjøre (én gang per økt)
 
-1. **Lag en egen nøkkel for lokal utvikling** i Supabase: connecthub-dev → Project Settings → API Keys → Secret keys → «Create new secret key», kall den f.eks. `lokal-utvikling`. Da kan den trekkes tilbake alene uten å påvirke Vercel. Bruk aldri produksjonsprosjektets nøkler.
+1. **Lag en egen nøkkel for lokal utvikling** i Supabase: connecthub-dev → Project Settings → API Keys → Secret keys → «Create new secret key», kall den f.eks. `lokal_utvikling` (bare små bokstaver, tall og _). Da kan den trekkes tilbake alene uten å påvirke Vercel. Bruk aldri produksjonsprosjektets nøkler.
 2. **Start utviklingsserveren med nøkkelen bare i terminalens minne** (PowerShell; nøkkelen vises ikke og havner ikke i historikken):
 
    ```powershell
