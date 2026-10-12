@@ -1,6 +1,7 @@
 import { useAdmin } from './context'
+import { NAV } from './access'
 import { initials } from './lib'
-import { Select } from './ui'
+import { Card, Select } from './ui'
 
 /** Menighetsvelger for seksjoner som gjelder én menighet. onlyMine (Filer): bare menigheter brukeren er medlem av. */
 export function ChurchPicker({ onlyMine }: { onlyMine?: boolean }) {
@@ -26,4 +27,17 @@ export function Head({ title, sub, right, crumb }: { title: string; sub?: string
       {right && <div className="ch-actions">{right}</div>}
     </div>
   )
+}
+
+/** En del som ikke er flyttet til den nye appen ennå: sier det rett ut og lenker til samme sted i dagens admin. */
+export function NotMoved({ sec, path, inline }: { sec: string; path?: string; inline?: boolean }) {
+  const { t } = useAdmin()
+  const label = NAV.find(([k]) => k === sec)?.[1] ?? sec
+  const card = (
+    <Card>
+      <p className="ch-muted" data-ch-notmoved="">{t('Denne delen er ikke flyttet til den nye appen ennå. Bruk dagens admin så lenge.')}</p>
+      <div className="ch-row"><a className="ch-btn primary" href={'/admin#/' + (path ?? sec)}>{t('Åpne i dagens admin')} ↗</a></div>
+    </Card>
+  )
+  return inline ? card : <><Head title={label} />{card}</>
 }

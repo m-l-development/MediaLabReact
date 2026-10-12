@@ -8,7 +8,7 @@ import type { AuditRow, Invitation } from '../../services/admin'
 import { activeMembers, type Group } from '../../services/collab'
 import { useLang } from '../../shared/i18n/i18n'
 import { NAV, brandOf, isSection, sectionsFor, type Kind } from './access'
-import { ChurchLogo, Head } from './common'
+import { ChurchLogo, Head, NotMoved } from './common'
 import { Ctx, useAdmin, type AdminCtx, type AdminData } from './context'
 import { canJoinAnother, Cancelled, fill, mainRole, memberActions, nameError, roleBlocked, roleSummary, splitName, welcomeName, type MemberTarget } from './members'
 import { trAdmin } from './texts'
@@ -163,21 +163,6 @@ function Forbidden() {
       <Card>
         <p className="ch-muted">{t('Rollen din har ikke tilgang til denne siden. Tilgangen kontrolleres også på serveren og i databasen.')}</p>
         <div className="ch-row"><a className="ch-btn" href={href('oversikt')}>{t('Til oversikten')}</a></div>
-      </Card>
-    </>
-  )
-}
-
-/** En seksjon som ikke er flyttet til den nye appen ennå: sier det rett ut og lenker til dagens admin. */
-function NotMoved({ sec }: { sec: string }) {
-  const { t } = useAdmin()
-  const label = NAV.find(([k]) => k === sec)?.[1] ?? sec
-  return (
-    <>
-      <Head title={label} />
-      <Card>
-        <p className="ch-muted" data-ch-notmoved="">{t('Denne delen er ikke flyttet til den nye appen ennå. Bruk dagens admin så lenge.')}</p>
-        <div className="ch-row"><a className="ch-btn primary" href={'/admin#/' + sec}>{t('Åpne i dagens admin')} ↗</a></div>
       </Card>
     </>
   )
