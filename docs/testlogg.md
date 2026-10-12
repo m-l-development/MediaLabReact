@@ -1408,3 +1408,19 @@ Dev-serveren på 5180 ble stoppet (etter brukerens bekreftelse) og startet av br
 | mail.status uten innlogging | nektet | 401 unauthorized |
 
 Tilgang i databasen, nå med kontroll av menighetstilhørighet: churches 1, memberships 6, audit_logs 201 rader – 0 utenfor egen menighet. `app_users` med bare `id`: 6 rader (= medlemskapene); med `select=*` i forrige kjøring 403, fordi noen kolonner er sperret. Admin-grensesnittet uten feil på PC og mobil; 503 på Oversikt og Filer er borte (logoer/miniatyrer via `file.urls`). Ingen endrende serverhandlinger er kjørt (ingen e-post, invitasjoner, opplasting eller sletting).
+
+### Tillegg: serverhandlinger med hemmelig nøkkel – vanlig bruker (2026-10-12)
+
+**Resultat: 4 bestått, 2 hoppet over.** (Et første forsøk stoppet på «Feil e-post eller passord.» fordi feil passord ble limt inn; ingenting ble endret.)
+
+| Handling (/api/ch) | Forventet | Svar |
+|---|---|---|
+| request.form (uten innlogging) | ok | 200 |
+| mail.status | nektet | 403 forbidden |
+| church.export, egen menighet | nektet (ikke admin) | 403 forbidden |
+| church.export, fremmed id | nektet | 403 forbidden |
+| mail.status uten innlogging | nektet | 401 unauthorized |
+
+Databasen: alle kontroller «ja» (churches 1, memberships 1, audit_logs 0 – 0 utenfor egen menighet; user_roles og invitations 0; app_users med bare `id`: 1 rad = seg selv). Grensesnittet uten feil på PC og mobil (ingen 503).
+
+**Samlet for innlogging og admin mot connecthub-dev:** vanlig bruker og Admin verifisert – innlogging/utlogging, meny per rolle, tilgang håndhevet i databasen og på serveren for lesende kall. **Ikke prøvd:** Developer/Moderator (krever MFA), endrende serverhandlinger (e-post, invitasjoner, opplasting, sletting – krever egen testkonto og uttrykkelig bekreftelse), kontosletting.
