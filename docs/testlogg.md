@@ -1309,3 +1309,35 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - Røyktest (uten innlogging; ingen testkontoer i prod): `/` → `/home`; alle korte sider → 307 til `/login?next=…`; `/login` 200; gamle `.dc.html` (også e-postlenke med `token_hash`) → 307 til kort adresse med spørring; filhandlinger 401; innloggingssiden og forespørselsskjemaet som før.
 - Tilbakeføring: Vercel «Promote» av forrige deployment (e6947a8) eller `git revert`; database: `supabase/checks/rollback_20261017100000.sql` (gjenoppretter forrige `delete_file`, ingen data endres).
 - Ikke testet i prod: innlogget bruk (krever konto) – dekket i dev.
+
+## TB-7BF5C1 – Isolate Subject henger og laster ned flere ganger (2026-10-12)
+
+Kjørt automatisk i **ekte Chrome 154** (Playwright `channel: 'chrome'`, hodeløs, WebGPU på NVIDIA Ada via localhost) mot React-versjonen (`/app/isolate-subject`, testserver uten backend) med **ekte modeller fra Hugging Face**. Testbilder: `images/mockups/iphone-hand.jpg`, `card-black-hand.jpg`, `images/fredag.jpeg`. Ny nettleserprofil per kjøring (tom modellbuffer). Ikke manuelt verifisert av bruker.
+
+**Årsak funnet:** BiRefNet_lite (Objekt) virker ikke i Chrome 154:
+| Variant | Resultat |
+|---|---|
+| WebGPU fp16 / fp32 | Krasj i kjøringen (WebGPU-valideringsfeil `computeSliceOffsets`; med ORT 1.31: `shader_helper.cc:308`) |
+| WASM fp32 / fp16 | Feil etter 35–40 s (med ORT 1.31: `std::bad_alloc`, tom for minne) |
+| Mindre inndata (512) | Avvist: modellen krever 1024×1024 |
+| transformers.js 3.8.1 og 4.3.1 | Samme feil |
+
+Den gamle flyten lastet derfor ned fp16 (115 MB), feilet, lastet ned fp32 (224 MB) og feilet igjen – «laster seg ned flere ganger og blir aldri ferdig».
+
+**Andre modeller prøvd (samme oppsett):** BEN2 (MIT) virker på WebGPU (4,5 s / 1,8 s varm), men 219 MB og 94 s på WASM. ormbg (Apache 2.0) virker på WASM (uint8: 11 s / 1 s varm, 44 MB), men ikke på WebGPU (MaxPool med ceil). Maskene fra BEN2 og ormbg er visuelt like gode på kort-i-hånd og mobil-i-hånd; MODNet er ubrukelig på gjenstander. **Valgt: ormbg uint8 på WASM for Objekt.**
+
+**Ny svakhet funnet:** feiler WebGPU-oppstarten inne i ONNX Runtime, nekter den også WASM resten av sideøkten («no available backend found»). Rettet ved å prøve `requestAdapter` + `requestDevice` selv før ONNX Runtime får prøve.
+
+**Etter rettelsene (React-versjonen):**
+| Scenario | Resultat |
+|---|---|
+| Objekt, kald start | Ferdig etter 14 s, én modellfil (`model_uint8.onnx`), 37 % beholdt, ingen sidefeil |
+| Objekt, ny økt (siden lastet på nytt) | Ingen ny nedlasting, ferdig etter 12,5 s |
+| To bildebytter under nedlasting | Én nedlasting totalt, ferdig, ingen sidefeil |
+| Uten WebGPU (bare CPU) | Ferdig etter 14 s |
+| Person (MODNet) på WebGPU | Ferdig etter 3,9 s |
+| Person med simulert WebGPU-feil (adapter som ikke gir enhet) | Før: feilmelding etter 3 s. Etter: CPU brukes, ferdig etter 4,5 s; ny økt 2,8 s uten ny nedlasting |
+
+**Automatiske tester (falske modeller):** `segmenter.test.ts` (delt nedlasting, GPU-feil huskes, GPU-tidsavbrudd, Objekt rett til WASM uint8), `services/ai/transformers.test.ts` (WebGPU regnes bare med når enheten starter). Hele kontrollen grønn (271 enhetstester + e2e), `media-lab` `npm test` grønn.
+
+**Ikke kjørt:** dagens app (`media-lab`, samme rettelser i `logic.js`, `photo-engine.js`, `thumb-engine.js`) krever innlogging også uten backend; den er bygget mot connecthub-dev og må prøves etter innlogging. Photo Design og Thumbnail Studio (samme Segmenter i React-versjonen) er ikke kjørt med ekte modell. «Merk i bildet» (SlimSAM) er ikke kjørt.

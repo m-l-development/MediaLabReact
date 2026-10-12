@@ -41,7 +41,8 @@ Status: fase 1 (2026-10-10).
 
 ## 5. Hva som ikke kan testes automatisk
 
-- **BiRefNet (Objekt) og Whisper:** krasjer i headless Chrome (minne) også i den gamle appen. Manuell test i vanlig Chrome med fast testbilde/-video; resultatet loggføres i `docs/testlogg.md`.
+- **Objekt (ormbg) og Person (MODNet):** kjøres i ekte Chrome (`channel: 'chrome'`, WebGPU virker hodeløst på localhost) med ekte modeller fra Hugging Face; se testlogg 2026-10-12. BiRefNet er erstattet (feilet i Chrome 154).
+- **Whisper:** krasjer i headless Chrome (minne) også i den gamle appen. Manuell test i vanlig Chrome med fast testbilde/-video; resultatet loggføres i `docs/testlogg.md`.
 - **Prosjektmapper (File System Access):** krever brukerhandling. Manuell test med fast prosedyre.
 - **Safari og Firefox:** manuell røyktest per verktøy før Preview godkjennes.
 - **Ekte e-post:** testpostkassen (`CH_TEST_MAILBOX`).

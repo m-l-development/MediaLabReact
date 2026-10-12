@@ -7,11 +7,12 @@ class Component extends DCLogic {
   viewRef = React.createRef(); fileRef = React.createRef();
   pipes = {}; hist = []; _tok = 0;
   COLORS = [['#ffffff', 'Hvit'], ['#000000', 'Svart'], ['#e4e1da', 'Lys grå'], ['#1d3557', 'Marineblå'], ['#2a9d8f', 'Grønnblå'], ['#e9c46a', 'Gul'], ['#e76f51', 'Korall'], ['#9b2c4a', 'Vinrød']];
-  MODELS = { fine: 'onnx-community/BiRefNet_lite-ONNX', fast: 'Xenova/modnet' };
+  // Objekt: ormbg (Apache 2.0, 44 MB uint8) i stedet for BiRefNet_lite, som feiler i Chrome 154 både på WebGPU og WASM (TB-7BF5C1). ormbg kjøres bare på WASM (støttes ikke av WebGPU).
+  MODELS = { fine: 'onnx-community/ormbg-ONNX', fast: 'Xenova/modnet' };
   SAM_ID = 'Xenova/slimsam-77-uniform';
   KINDS = {
     person: { label: 'Person', desc: 'Portretter og folk', note: 'MODNet (Apache 2.0). Laget for personer.' },
-    object: { label: 'Objekt', desc: 'Produkter, dyr og ting', note: 'BiRefNet (MIT). Best på detaljer og ting.' },
+    object: { label: 'Objekt', desc: 'Produkter, dyr og ting', note: 'ormbg (Apache 2.0). Best på detaljer og ting.' },
     logo: { label: 'Logo', desc: 'På ensfarget bakgrunn', note: 'Fjerner bakgrunnsfargen. Ingen AI-modell trengs.' },
     text: { label: 'Tekst', desc: 'På ensfarget bakgrunn', note: 'Fjerner bakgrunnsfargen, også inni bokstavene.' }
   };
@@ -113,8 +114,8 @@ class Component extends DCLogic {
   }
   async loadPipe(key, onProg, wasmOnly) {
     const T = await this.lib();
-    let gpu = false; if (!wasmOnly && !this.gpuFailed(key) && navigator.gpu) { try { gpu = !!(await navigator.gpu.requestAdapter()); } catch (e) {} }
-    const tries = gpu ? [['webgpu', key === 'fine' ? 'fp16' : 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']];
+    let gpu = false; if (!wasmOnly && !this.gpuFailed(key) && navigator.gpu) { try { var ad = await navigator.gpu.requestAdapter(); if (ad) { var dv = await ad.requestDevice(); if (dv.destroy) dv.destroy(); gpu = true; } } catch (e) {} /* enheten prøves her: feiler WebGPU inne i ONNX Runtime, nekter den også WASM resten av økten */ }
+    const tries = key === 'fine' ? [['wasm', 'uint8']] : gpu ? [['webgpu', 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']];
     let err = null;
     for (const [device, dtype] of tries) {
       try { const p = await T.pipeline('background-removal', this.MODELS[key], { device, dtype, progress_callback: onProg }); p._dev = device; p._dtype = dtype; return (this.pipes[key] = p); } catch (e) { err = e; if (device === 'webgpu') this.markGpuFailed(key); }

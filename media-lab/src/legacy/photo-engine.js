@@ -315,12 +315,13 @@
   function hit(doc, x, y) { var i, L, d, p, pad = 6; for (i = doc.layers.length - 1; i >= 0; i--) { L = doc.layers[i]; if (L.hidden || L.locked || L.type !== 'fx') continue; d = dims(L); p = toLocal(L, x, y); if (Math.abs(p[0]) <= Math.abs(d.w) * 0.12 && Math.abs(p[1]) <= Math.abs(d.h) * 0.12) return L; } for (i = doc.layers.length - 1; i >= 0; i--) { L = doc.layers[i]; if (L.hidden || L.type === 'fx') continue; d = dims(L); p = toLocal(L, x, y); if (Math.abs(p[0]) <= Math.abs(d.w) / 2 + pad && Math.abs(p[1]) <= Math.abs(d.h) / 2 + pad) { if (L.locked) continue; return L; } } for (i = doc.layers.length - 1; i >= 0; i--) { L = doc.layers[i]; if (L.hidden || L.locked || L.type !== 'fx') continue; d = dims(L); p = toLocal(L, x, y); if (Math.abs(p[0]) <= Math.abs(d.w) * 0.4 && Math.abs(p[1]) <= Math.abs(d.h) * 0.4) return L; } return null; }
 
   /* ---------- AI-utklipp (transformers.js, lastes første gang) ---------- */
-  var T = null, pipes = {}, MODELS = { person: 'Xenova/modnet', object: 'onnx-community/BiRefNet_lite-ONNX' };
+  // Objekt: ormbg (Apache 2.0, 44 MB uint8) i stedet for BiRefNet_lite, som feiler i Chrome 154 både på WebGPU og WASM (TB-7BF5C1). ormbg kjøres bare på WASM (støttes ikke av WebGPU).
+  var T = null, pipes = {}, MODELS = { person: 'Xenova/modnet', object: 'onnx-community/ormbg-ONNX' };
   function lib() { return T || (T = import(/* @vite-ignore */ '/vendor/transformers-3.5.1/transformers.min.js'.toString()).then(function (m) { m.env.allowLocalModels = false; m.env.backends.onnx.wasm.wasmPaths = location.origin + '/vendor/transformers-3.5.1/'; return m; })); }
   async function pipe(kind, onProg, wasm) {
     var k = kind + (wasm ? 'w' : ''); if (pipes[k]) return pipes[k]; var m = await lib(), gpu = false;
-    if (!wasm && navigator.gpu) { try { gpu = !!(await navigator.gpu.requestAdapter()); } catch (e) {} }
-    var tries = gpu ? [['webgpu', kind === 'object' ? 'fp16' : 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']], err = null;
+    if (!wasm && navigator.gpu) { try { var ad = await navigator.gpu.requestAdapter(); if (ad) { var dv = await ad.requestDevice(); if (dv.destroy) dv.destroy(); gpu = true; } } catch (e) {} /* enheten prøves her: feiler WebGPU inne i ONNX Runtime, nekter den også WASM resten av økten */ }
+    var tries = kind === 'object' ? [['wasm', 'uint8']] : gpu ? [['webgpu', 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']], err = null;
     for (var i = 0; i < tries.length; i++) { try { var p = await m.pipeline('background-removal', MODELS[kind], { device: tries[i][0], dtype: tries[i][1], progress_callback: onProg }); p._dt = tries[i][1]; return (pipes[k] = p); } catch (e) { err = e; } }
     throw err || new Error('pipeline');
   }
@@ -329,7 +330,7 @@
     var run = async function (p) { var out = await p(url), im = Array.isArray(out) ? out[0] : out, c = im.toCanvas(), m = mk(b.width, b.height), g = m.getContext('2d'); g.drawImage(c, 0, 0, m.width, m.height);
       var id = g.getImageData(0, 0, m.width, m.height), d = id.data, ch = im.channels === 4 ? 3 : 0, n = 0; for (var i = 0; i < d.length; i += 4) { var a = d[i + ch]; d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = a; if (a > 128) n++; }
       var f = n / (d.length / 4); if (f < 0.002 || f > 0.998) return null; g.putImageData(id, 0, 0); return m; };
-    try { var p = await pipe(kind, onProg), m = null; try { m = await run(p); } catch (e) { if (p._dt === 'fp32') throw e; } if (!m) m = await run(await pipe(kind, onProg, true)); return m; }
+    try { var p = await pipe(kind, onProg), m = null; try { m = await run(p); } catch (e) { if (p._dt !== 'fp16') throw e; } if (!m) m = await run(await pipe(kind, onProg, true)); return m; }
     finally { URL.revokeObjectURL(url); }
   }
 

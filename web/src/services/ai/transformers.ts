@@ -71,11 +71,23 @@ export function progressTracker(onPercent: (pct: number) => void): ProgressCallb
   }
 }
 
-export async function hasWebGpu(): Promise<boolean> {
-  const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } }).gpu
+interface GpuLike {
+  requestAdapter(): Promise<{ requestDevice(): Promise<{ destroy?: () => void }> } | null>
+}
+
+/**
+ * Finnes en WebGPU som faktisk lar seg starte? Både adapter og enhet prøves her, før ONNX Runtime får prøve: feiler
+ * WebGPU-oppstarten inne i ONNX Runtime, nekter den også WASM resten av sideøkten («no available backend found»),
+ * så reserven virket ikke før siden ble lastet på nytt (TB-7BF5C1, prøvd i Chrome 154).
+ */
+export async function hasWebGpu(gpu: GpuLike | undefined = (navigator as Navigator & { gpu?: GpuLike }).gpu): Promise<boolean> {
   if (!gpu) return false
   try {
-    return !!(await gpu.requestAdapter())
+    const adapter = await gpu.requestAdapter()
+    if (!adapter) return false
+    const device = await adapter.requestDevice()
+    device.destroy?.()
+    return true
   } catch {
     return false
   }

@@ -3,7 +3,7 @@ import { loadToCanvas, toBlob } from '../../isolate-subject/engine/raster'
 import { Segmenter, type ModelKey } from '../../isolate-subject/engine/segmenter'
 
 /**
- * Valgfritt AI-utklipp i Thumbnail Studio (TS-08): Person = MODNet, Objekt = BiRefNet, lokalt i nettleseren.
+ * Valgfritt AI-utklipp i Thumbnail Studio (TS-08): Person = MODNet, Objekt = ormbg, lokalt i nettleseren.
  * Samme etterbehandling som dagens app: masken strammes litt inn (2 px per 1000 px) og kanten mykes (1,5 px),
  * men aldri utenfor den strammede masken. → PNG med gjennomsiktig bakgrunn.
  */

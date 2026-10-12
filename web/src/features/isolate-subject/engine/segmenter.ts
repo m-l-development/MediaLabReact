@@ -3,10 +3,20 @@ import { localStore } from '../../../shared/lib/storage'
 import { isDegenerate, type Mask } from './mask'
 import { alphaAtSize, makeCanvas, toBlob } from './raster'
 
-/** Modellene i dag (IS-03, IS-04, IS-06). */
-export const MODELS = { fine: 'onnx-community/BiRefNet_lite-ONNX', fast: 'Xenova/modnet' } as const
+/**
+ * Modellene (IS-03, IS-04, IS-06). Objekt var BiRefNet_lite, men den feiler i Chrome 154 både på WebGPU (shaderfeil)
+ * og WASM (tom for minne etter ~35 s), i alle versjoner av transformers.js (TB-7BF5C1). ormbg (Apache 2.0) gir like gode
+ * masker, kjører på WASM i alle nettlesere og er 44 MB (uint8) mot 115 + 224 MB.
+ */
+export const MODELS = { fine: 'onnx-community/ormbg-ONNX', fast: 'Xenova/modnet' } as const
 export const SAM_ID = 'Xenova/slimsam-77-uniform'
 export type ModelKey = keyof typeof MODELS
+
+/** Presisjon per modell og enhet. ormbg støttes ikke av WebGPU i ONNX Runtime (MaxPool med ceil), så den kjøres bare på WASM. */
+const RUN: Record<ModelKey, { gpu: string | null; wasm: string }> = {
+  fine: { gpu: null, wasm: 'uint8' },
+  fast: { gpu: 'fp32', wasm: 'fp32' },
+}
 
 type Pipe = ((input: string) => Promise<RawImageLike | RawImageLike[]>) & { device?: string; dtype?: string; dispose?: () => Promise<void> }
 
@@ -59,7 +69,7 @@ export interface SamPrompt {
 
 /**
  * AI-delen av Isolate Subject. Modeller lastes én gang og gjenbrukes til `dispose()` (når verktøyet lukkes).
- * WebGPU brukes når den finnes (fp16 for BiRefNet), med WASM fp32 som reserve – også når GPU-resultatet er ubrukelig.
+ * WebGPU brukes for MODNet når den finnes, med WASM som reserve – også når GPU-en feiler eller ikke svarer.
  */
 export class Segmenter {
   private pipes: Partial<Record<ModelKey, Pipe>> = {}
@@ -81,8 +91,9 @@ export class Segmenter {
   }
 
   private async loadPipe(T: TransformersLib, key: ModelKey, onPct: (n: number) => void, wasmOnly: boolean): Promise<Pipe> {
-    const gpu = !wasmOnly && !gpuFailed(key) && (await hasWebGpu())
-    const tries: [string, string][] = gpu ? [['webgpu', key === 'fine' ? 'fp16' : 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']]
+    const { gpu: gpuType, wasm } = RUN[key]
+    const gpu = !!gpuType && !wasmOnly && !gpuFailed(key) && (await hasWebGpu())
+    const tries: [string, string][] = gpu && gpuType ? [['webgpu', gpuType], ['wasm', wasm]] : [['wasm', wasm]]
     let err: unknown = null
     for (const [device, dtype] of tries) {
       try {
@@ -110,7 +121,7 @@ export class Segmenter {
     return alphaAtSize(img.toCanvas(), W, H, img.channels === 4 ? 3 : 0)
   }
 
-  /** Bakgrunnsfjerning med Person (MODNet) eller Objekt (BiRefNet). */
+  /** Bakgrunnsfjerning med Person (MODNet) eller Objekt (ormbg). */
   async removeBackground(key: ModelKey, src: HTMLCanvasElement, onPhase: (p: Phase) => void, onPct: (n: number) => void): Promise<Mask> {
     const T = await loadTransformers()
     onPhase(this.pipes[key] ? 'run' : 'model')

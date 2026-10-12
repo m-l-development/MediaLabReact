@@ -49,7 +49,7 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | MD-17 | Velge prosjektmappe (File System Access-dialogen) | Implementert | Alt etter valget er testet med et ekte mappehåndtak (OPFS): kopiering, frigjøring og åpning. Selve dialogen kan ikke styres i en test: manuell test i Chrome/Edge |
 | MD-10 | Logo fra Fellesmappe i Motion design | Blokkert | Innlogging mot ConnectHub (`.env.local`) |
 | MD-15 | Eksport 1080p60 og 4K | Testet | Bildefrekvens og størrelse kontrollert i MP4-filen (E2E) |
-| IS-03, IS-04, IS-06, IS-07 | AI-modellene i Isolate Subject | Implementert | Ekte Chrome med nett; BiRefNet krasjer i headless Chrome. TB-7BF5C1: rettelse testet automatisk med falsk modell, ikke manuelt verifisert |
+| IS-03, IS-04, IS-06, IS-07 | AI-modellene i Isolate Subject | Implementert | Ekte Chrome med nett; TB-7BF5C1: Objekt byttet fra BiRefNet_lite (feilet i Chrome 154) til ormbg; React-versjonen kjørt automatisk i ekte Chrome med ekte modeller 2026-10-12 (se testlogg); dagens app ikke kjørt (krever innlogging), ikke manuelt verifisert av bruker |
 | TS-10, PD-10 | AI-utklipp i Thumbnail og Photo | Implementert | Som over |
 | PD-17, SHR-04 | Fellesmappe som bildekilde | Blokkert | Innlogging mot ConnectHub |
 | LE-28, LE-27 | Loop Studio: MP4 i 4K, stående format og opptak i sanntid | Testet | E2E, størrelsen kontrollert i filen |

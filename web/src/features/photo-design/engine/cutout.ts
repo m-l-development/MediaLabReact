@@ -2,7 +2,7 @@ import { Segmenter, type ModelKey } from '../../isolate-subject/engine/segmenter
 import { mk } from './render'
 
 /**
- * AI-utklipp i Photo Design (PD-10): Person = MODNet, Objekt = BiRefNet, lokalt i nettleseren.
+ * AI-utklipp i Photo Design (PD-10): Person = MODNet, Objekt = ormbg, lokalt i nettleseren.
  * Gir en maske (hvit med alfa) i bildets størrelse, eller null når modellen ikke fant et tydelig motiv.
  */
 export class PhotoCutout {

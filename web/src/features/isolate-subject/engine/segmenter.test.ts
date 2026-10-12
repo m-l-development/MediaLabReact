@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mask } from './mask'
 
 const good: Mask = new Uint8ClampedArray(1000).fill(255, 0, 500)
-const empty: Mask = new Uint8ClampedArray(1000)
 
 type Out = { mask: Mask } | 'hang'
 const pipeline = vi.fn<(task: string, model: string, opts: { device: string; dtype: string }) => Promise<unknown>>()
@@ -31,8 +30,9 @@ function models(out: Record<string, Out>) {
 }
 
 const src = { width: 10, height: 100 } as HTMLCanvasElement
-const run = (s: InstanceType<typeof Segmenter>, key: 'fine' | 'fast' = 'fine') => s.removeBackground(key, src, () => undefined, () => undefined)
+const run = (s: InstanceType<typeof Segmenter>, key: 'fine' | 'fast' = 'fast') => s.removeBackground(key, src, () => undefined, () => undefined)
 const devices = () => pipeline.mock.calls.map((c) => c[2].device)
+const runs = () => pipeline.mock.calls.map((c) => `${c[1]} ${c[2].device} ${c[2].dtype}`)
 
 /** TB-7BF5C1: «AI henger seg, laster seg ned flere ganger og blir aldri ferdig». */
 describe('Segmenter: modellen lastes én gang og henger ikke', () => {
@@ -58,19 +58,17 @@ describe('Segmenter: modellen lastes én gang og henger ikke', () => {
     expect(pipeline).toHaveBeenCalledTimes(1)
   })
 
-  it('ubrukelig GPU-svar: WASM brukes, og neste økt går rett til WASM uten å laste GPU-modellen', async () => {
-    models({ webgpu: { mask: empty }, wasm: { mask: good } })
-    expect(await run(new Segmenter())).toBe(good)
-    expect(devices()).toEqual(['webgpu', 'wasm'])
-    expect(JSON.parse(localStorage.getItem(GPU_FAIL_KEY) ?? '{}')).toHaveProperty('fine')
+  it('Objekt (ormbg) kjøres rett på WASM uint8, også når WebGPU finnes – BiRefNet brukes ikke lenger', async () => {
+    models({})
+    expect(await run(new Segmenter(), 'fine')).toBe(good)
+    expect(runs()).toEqual(['onnx-community/ormbg-ONNX wasm uint8'])
+  })
 
-    pipeline.mockClear()
-    expect(await run(new Segmenter())).toBe(good)
-    expect(devices()).toEqual(['wasm'])
-    // en annen modell (Person) prøver fortsatt GPU
-    pipeline.mockClear()
-    await run(new Segmenter(), 'fast')
-    expect(devices()).toEqual(['webgpu'])
+  it('Person (MODNet) bruker WebGPU når den finnes; GPU-feil huskes bare for den modellen', async () => {
+    models({})
+    await run(new Segmenter())
+    expect(runs()).toEqual(['Xenova/modnet webgpu fp32'])
+    expect(localStorage.getItem(GPU_FAIL_KEY)).toBe(null)
   })
 
   it('GPU-kjøring som aldri svarer, gir opp etter en stund og bruker WASM i stedet for å henge', async () => {
@@ -80,6 +78,9 @@ describe('Segmenter: modellen lastes én gang og henger ikke', () => {
     await vi.advanceTimersByTimeAsync(GPU_RUN_TIMEOUT_MS + 10)
     expect(await p).toBe(good)
     expect(devices()).toEqual(['webgpu', 'wasm'])
+    pipeline.mockClear()
+    await run(new Segmenter())
+    expect(devices()).toEqual(['wasm'])
   })
 
   it('GPU-modellen lar seg ikke laste: WASM, og feilen huskes', async () => {
@@ -89,6 +90,7 @@ describe('Segmenter: modellen lastes én gang og henger ikke', () => {
     })
     expect(await run(new Segmenter())).toBe(good)
     expect(devices()).toEqual(['webgpu', 'wasm'])
+    expect(JSON.parse(localStorage.getItem(GPU_FAIL_KEY) ?? '{}')).toHaveProperty('fast')
     pipeline.mockClear()
     await run(new Segmenter())
     expect(devices()).toEqual(['wasm'])
@@ -96,7 +98,7 @@ describe('Segmenter: modellen lastes én gang og henger ikke', () => {
 
   it('gammel GPU-feil (over 30 dager) eller ødelagt lagret verdi: GPU prøves igjen', async () => {
     models({})
-    localStorage.setItem(GPU_FAIL_KEY, JSON.stringify({ fine: Date.now() - 31 * 864e5 }))
+    localStorage.setItem(GPU_FAIL_KEY, JSON.stringify({ fast: Date.now() - 31 * 864e5 }))
     await run(new Segmenter())
     expect(devices()).toEqual(['webgpu'])
     pipeline.mockClear()

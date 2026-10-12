@@ -252,7 +252,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
             <button type="button" className={s.primary} disabled={!!S.busy} onClick={() => void c.cut('person')}>{tx('Person')}</button>
             <button type="button" className={s.primary} disabled={!!S.busy} onClick={() => void c.cut('object')}>{tx('Objekt')}</button>
           </div>
-          <span className={s.dimSm}>{tx('Kjører i nettleseren. Første gang lastes modellen ned (MODNet for personer, BiRefNet for objekter).')}</span>
+          <span className={s.dimSm}>{tx('Kjører i nettleseren. Første gang lastes modellen ned (MODNet for personer, ormbg for objekter).')}</span>
           <span className={s.eyebrowSm}>{tx('Pensel på masken')}</span>
           <button type="button" className={S.tool === 'brush' ? s.brushOn : s.smallBtn} onClick={() => {
             if (!has) {

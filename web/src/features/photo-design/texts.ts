@@ -237,7 +237,7 @@ export const EN = {
   'Kjerne': 'Core',
   'Kjernefarge': 'Core colour',
   'Kjølig': 'Cool',
-  'Kjører i nettleseren. Første gang lastes modellen ned (MODNet for personer, BiRefNet for objekter).': 'Runs in the browser. The first time, the model is downloaded (MODNet for people, BiRefNet for objects).',
+  'Kjører i nettleseren. Første gang lastes modellen ned (MODNet for personer, ormbg for objekter).': 'Runs in the browser. The first time, the model is downloaded (MODNet for people, ormbg for objects).',
   'Klarte ikke å klippe ut motivet i denne nettleseren.': 'Could not cut out the subject in this browser.',
   'Klikk for å legge til punkt. Dra for å flytte. Dobbeltklikk på et punkt fjerner det.': 'Click to add a point. Drag to move. Double-click a point to remove it.',
   'Klikk på et lag i bildet for å redigere det. Dra bilder inn i vinduet, eller lim inn med Ctrl/Cmd + V. Dra et bilde oppå en bildeplass for å bytte det.': 'Click a layer in the image to edit it. Drag images into the window or paste with Ctrl/Cmd + V. Drop an image on an image placeholder to replace it.',
