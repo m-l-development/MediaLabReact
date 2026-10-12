@@ -50,7 +50,7 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | MD-10 | Logo fra Fellesmappe i Motion design | Blokkert | Innlogging mot ConnectHub (`.env.local`) |
 | MD-15 | Eksport 1080p60 og 4K | Testet | Bildefrekvens og størrelse kontrollert i MP4-filen (E2E) |
 | IS-03, IS-04, IS-06, IS-07 | AI-modellene i Isolate Subject | Implementert | Ekte Chrome med nett; TB-7BF5C1: Objekt byttet fra BiRefNet_lite (feilet i Chrome 154) til ormbg; React-versjonen kjørt automatisk i ekte Chrome med ekte modeller 2026-10-12 (se testlogg); dagens app ikke kjørt (krever innlogging), ikke manuelt verifisert av bruker |
-| TS-10, PD-10 | AI-utklipp i Thumbnail og Photo | Implementert | Som over |
+| TS-10, PD-10 | AI-utklipp i Thumbnail og Photo | Testet | Ekte Chrome 154 med ekte modeller (ormbg/MODNet) 2026-10-12, se testlogg; ikke manuelt verifisert |
 | PD-17, SHR-04 | Fellesmappe som bildekilde | Blokkert | Innlogging mot ConnectHub |
 | SHR-01 | Delt mappe: dagens app sletter de eldste filene over 60 automatisk; Dine medier sletter aldri automatisk | Beslutning | Bevisst avvik (originaler slettes aldri uten brukeren), venter på din godkjenning |
 | SHR-02 | «Send til» direkte fra Photo Design, Thumbnail Studio og Motion design (manglet; bare via Dine medier) | Testet | «Bruk i …» lagt til, E2E PC/mobil 2026-10-12 |

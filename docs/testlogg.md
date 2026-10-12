@@ -1341,3 +1341,17 @@ Den gamle flyten lastet derfor ned fp16 (115 MB), feilet, lastet ned fp32 (224 M
 **Automatiske tester (falske modeller):** `segmenter.test.ts` (delt nedlasting, GPU-feil huskes, GPU-tidsavbrudd, Objekt rett til WASM uint8), `services/ai/transformers.test.ts` (WebGPU regnes bare med når enheten starter). Hele kontrollen grønn (271 enhetstester + e2e), `media-lab` `npm test` grønn.
 
 **Ikke kjørt:** dagens app (`media-lab`, samme rettelser i `logic.js`, `photo-engine.js`, `thumb-engine.js`) krever innlogging også uten backend; den er bygget mot connecthub-dev og må prøves etter innlogging. Photo Design og Thumbnail Studio (samme Segmenter i React-versjonen) er ikke kjørt med ekte modell. «Merk i bildet» (SlimSAM) er ikke kjørt.
+
+### Tillegg: AI-utklipp i Photo Design og Thumbnail Studio, og «Merk i bildet» (2026-10-12)
+
+Samme oppsett (ekte Chrome 154, hodeløs, ekte modeller fra Hugging Face, ny profil per kjøring, React-versjonen uten backend). Ikke manuelt verifisert.
+
+| Verktøy | Modell | Resultat |
+|---|---|---|
+| Photo Design, Objekt (mobil i hånd) | ormbg uint8 | «Motivet er klippet ut» etter 14,1 s; mobil og hånd rent utklippet (skjermbilde) |
+| Photo Design, Person (scenebilde) | MODNet | Ferdig etter 3,7 s |
+| Thumbnail Studio, Objekt | ormbg uint8 | «Bakgrunnen er fjernet» etter 15,1 s; utklippet plassert i malen (skjermbilde) |
+| Thumbnail Studio, Person | MODNet | Ferdig etter 4,5 s |
+| Isolate Subject, «Merk i bildet»: ett trykk på mobilen → Fjern | SlimSAM (vision encoder + decoder, kvantisert) | Ferdig etter 12,6 s; alfa 0 på mobilen (to punkter), 255 i hjørnet og bakgrunnen. Hånden ble også med i markeringen |
+
+Én modellfil per kjøring, ingen sidefeil. Ikke kjørt: penselen på masken (Photo Design), grønn «behold»-markering og flere punkter med ekte SlimSAM.
