@@ -20,6 +20,9 @@ export interface CloudFile {
   created_at: string
   link_id?: string | null
   source_folder?: string | null
+  uploaded_by?: string | null
+  /** Lastet opp direkte i Samarbeidsmappen (ikke en kopi). */
+  link_upload?: boolean | null
 }
 
 /** Samme grenser som dagens app; serveren kontrollerer innholdet på nytt. */
@@ -45,6 +48,14 @@ export interface FilesService {
   blob(id: string): Promise<Blob | null>
   /** Laster opp et bilde som deles med menigheten (Fellesmappe). Samme endepunkt som i dag: `file.upload`. */
   upload(file: File, opts: { churchId: string; folder?: CloudFolder }): Promise<CloudFile>
+  /** Samarbeidsmappen i én gruppe (kopier og direkte opplastinger). */
+  listLink(linkId: string): Promise<CloudFile[]>
+  /** Sletter en fil (serveren og databasen avgjør om brukeren har lov). */
+  remove(id: string): Promise<void>
+  /** Legger en kopi i Samarbeidsmappen; originalen blir liggende. */
+  copyToLink(fileId: string, linkId: string): Promise<void>
+  /** Direkte opplasting til Samarbeidsmappen; filen tilhører egen menighet og teller i dens kvote. */
+  uploadToLink(file: File, opts: { linkId: string; churchId: string }): Promise<CloudFile>
 }
 
 export function createFilesService(data: DataAdapter | null, token: () => Promise<string | null>): FilesService {
@@ -73,6 +84,21 @@ export function createFilesService(data: DataAdapter | null, token: () => Promis
     async upload(file, { churchId, folder = 'bilder' }) {
       precheckUpload(file)
       const r = await callServer<{ file: CloudFile }>(await token(), 'file.upload', null, { raw: file, contentType: 'application/octet-stream', query: { church: churchId, folder, name: file.name || 'bilde' } })
+      return r.file
+    },
+    async listLink(linkId) {
+      if (!data) return []
+      return data.select<CloudFile>('files', { columns: `${COLS}, link_id, source_folder, link_upload`, eq: { link_id: linkId }, order: 'created_at', desc: true, limit: 500 })
+    },
+    async remove(id) {
+      await callServer(await token(), 'file.delete', { id })
+    },
+    async copyToLink(fileId, linkId) {
+      await callServer(await token(), 'file.copy_to_link', { file_id: fileId, link_id: linkId })
+    },
+    async uploadToLink(file, { linkId, churchId }) {
+      precheckUpload(file)
+      const r = await callServer<{ file: CloudFile }>(await token(), 'file.upload_link', null, { raw: file, contentType: 'application/octet-stream', query: { link: linkId, church: churchId, name: file.name || 'bilde' } })
       return r.file
     },
   }

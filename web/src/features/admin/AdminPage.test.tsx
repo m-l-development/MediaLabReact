@@ -61,14 +61,11 @@ describe('ConnectHub Admin: ramme og roller (ADM-01)', () => {
     expect(await screen.findByRole('heading', { name: 'Ingen tilgang' })).toBeTruthy()
     expect(screen.queryByText('Utvikler')).toBe(null)
   })
-  it('User: egen oversikt med menigheten; seksjoner som ikke er flyttet sier det og lenker til dagens admin', async () => {
+  it('User: egen oversikt med menigheten', async () => {
     setup(USR)
     expect(screen.getByText('CONNECTHUB · BRUKER')).toBeTruthy()
     expect(navLabels()).toEqual(['Oversikt', 'Menigheter', 'Filer'])
     expect(await screen.findByRole('heading', { name: /^Mine menigheter/ })).toBeTruthy()
-    act(() => { location.hash = '#/filer'; window.dispatchEvent(new HashChangeEvent('hashchange')) })
-    expect(await screen.findByText(/ikke flyttet til den nye appen ennå/)).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Åpne i dagens admin/ }).getAttribute('href')).toBe('/admin#/filer')
   })
   it('engelsk: tekstene fra dagens ordbok', async () => {
     setLang('en')

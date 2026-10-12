@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DEFAULT_QUOTA_MB, type Church } from '../../services/admin'
 import { downloadJson } from '../../services/account'
 import { clearMe } from '../../services/auth/me-cache'
-import { ChurchLogo, Head, NotMoved } from './common'
+import { ChurchLogo, Head } from './common'
+import { FilesView } from './Folders'
 import { useAdmin } from './context'
 import { SubsView } from './Subs'
 import { fmtDate, forgetLogo, go, href, mb, norm, useLogos } from './lib'
@@ -91,7 +92,7 @@ export function ChurchDetail({ id, tab: tab0 }: { id: string; tab?: string | und
       <nav className="ch-tabs">{CTABS.filter(([k]) => canManage(id) || k === 'filer').map(([k, l]) => <a key={k} href={href('menigheter', id, k)} className={tab === k ? 'on' : ''}>{t(l)}</a>)}</nav>
       {tab === 'medlemmer' && canManage(id) && <MembersView church={c} />}
       {tab === 'invitasjoner' && canManage(id) && <InvitesView churchId={id} embedded />}
-      {tab === 'filer' && <NotMoved sec="filer" path={`menigheter/${id}/filer`} inline />}
+      {tab === 'filer' && <FilesView key={id} churchId={id} />}
       {tab === 'abonnement' && canManage(id) && <SubsView churchId={id} />}
       {tab === 'innstillinger' && <ChurchSettings church={c} />}
     </>

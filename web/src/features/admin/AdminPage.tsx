@@ -8,8 +8,9 @@ import type { AuditRow, Invitation } from '../../services/admin'
 import { activeMembers, type Group } from '../../services/collab'
 import { useLang } from '../../shared/i18n/i18n'
 import { NAV, brandOf, isSection, sectionsFor, type Kind } from './access'
-import { ChurchLogo, Head, NotMoved } from './common'
+import { ChurchLogo, Head } from './common'
 import { Ctx, useAdmin, type AdminCtx, type AdminData } from './context'
+import { FolderButtons } from './Folders'
 import { canJoinAnother, Cancelled, fill, mainRole, memberActions, nameError, roleBlocked, roleSummary, splitName, welcomeName, type MemberTarget } from './members'
 import { trAdmin } from './texts'
 import { actionName, errText, fmt, fmtDate, go, href, norm, ROLE, useHashRoute, useLogos } from './lib'
@@ -123,7 +124,7 @@ export function AdminPage({ me, testRole, sections }: { me: Me; testRole: string
   else if (sec === 'oversikt') body = kind === 'user' ? <UserOverview /> : <Overview pendingInvites={pendingInvites} />
   else {
     const view = sections[sec]
-    body = view ? view({ id, sub }) : <NotMoved sec={sec} />
+    body = view ? view({ id, sub }) : null
   }
   const counts: Partial<Record<string, number>> = { invitasjoner: allowed.has('invitasjoner') ? pendingInvites.length : 0, abonnement: d.pendingSubs }
 
@@ -204,6 +205,7 @@ function Overview({ pendingInvites }: { pendingInvites: Invitation[] }) {
   return (
     <>
       <Welcome />
+      <FolderButtons />
       <div className="ch-stats">
         <a className="ch-stat" href={href('brukere')}><b>{s ? s.users : d.users.filter((u) => u.status === 'active').length}</b><span>{t('Aktive brukere')}</span></a>
         <a className="ch-stat" href={href('menigheter')}><b>{d.churches.filter((c) => c.status === 'active').length}</b><span>{t('Aktive menigheter')}</span></a>
@@ -289,6 +291,7 @@ function UserOverview() {
   return (
     <>
       <Welcome />
+      <FolderButtons />
       {testRole === 'admin' && <p className="ch-note warn">{t('Admin-visningen viser menighetene du er medlem av. Legg deg til i en menighet (som Developer) for å teste den.')}</p>}
       <Card title="Mine menigheter" sub={mine.length}>
         {mine.length ? (

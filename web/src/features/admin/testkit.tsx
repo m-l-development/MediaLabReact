@@ -33,7 +33,7 @@ export const USR = { ...base, id: 'u1', email: 'ola@b.no', full_name: 'Ola Nordm
 export interface Kit {
   data: DataAdapter & { rpc: ReturnType<typeof vi.fn>; select: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> }
   server: ReturnType<typeof vi.fn>
-  files: { blob: ReturnType<typeof vi.fn>; upload: ReturnType<typeof vi.fn> }
+  files: Record<'blob' | 'upload' | 'list' | 'listLink' | 'urls' | 'remove' | 'copyToLink' | 'uploadToLink', ReturnType<typeof vi.fn>>
 }
 
 export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string, unknown[]>; rpc?: (fn: string, args?: Record<string, unknown>) => unknown; server?: (action: string, body: unknown) => unknown; sections?: Record<string, (p: { id?: string | undefined; sub?: string | undefined }) => ReactNode> } = {}): Kit {
@@ -65,7 +65,15 @@ export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string
     insert: vi.fn(async (_t: string, row: Record<string, unknown>) => ({ id: 'c9', status: 'active', ...row })),
   }
   const server = vi.fn(async (_tok: string, action: string, body: unknown) => opts.server?.(action, body) ?? { ok: true, invitation: { email: 'ny@b.no' }, email_sent: true })
-  const files = { blob: vi.fn(async () => null), upload: vi.fn(async () => ({ id: 'f-logo' })) }
+  // filer: mappe → rader (tabellen files i minnet, filtrert som databasen gjør)
+  const fileRows = (tables.files ?? []) as { church_id: string; folder: string; link_id?: string }[]
+  const files = {
+    blob: vi.fn(async () => null), upload: vi.fn(async () => ({ id: 'f-logo' })),
+    list: vi.fn(async (folder: string, churchId: string) => fileRows.filter((f) => f.folder === folder && f.church_id === churchId)),
+    listLink: vi.fn(async (linkId: string) => fileRows.filter((f) => f.link_id === linkId)),
+    urls: vi.fn(async (ids: string[]) => Object.fromEntries(ids.map((id) => [id, 'https://lagring.test/' + id]))),
+    remove: vi.fn(async () => undefined), copyToLink: vi.fn(async () => undefined), uploadToLink: vi.fn(async () => ({ id: 'f-new' })),
+  }
   const services = {
     admin: createAdminService(data as unknown as DataAdapter, async () => 'tok', server as never),
     collab: createCollabService(data as unknown as DataAdapter, async () => 'tok', server as never),

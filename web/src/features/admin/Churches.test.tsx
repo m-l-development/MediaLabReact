@@ -31,10 +31,9 @@ describe('Menigheter (ADM-03)', () => {
     expect(rows[0]?.textContent).not.toContain('Lagring')
     expect(screen.queryByText('Ny menighet')).toBe(null)
   })
-  it('User: bare Filer-fanen i menigheten; Filer er ikke flyttet ennå og lenker til samme sted i dagens admin', async () => {
+  it('User: bare Filer-fanen i menigheten (Fellesmappe)', async () => {
     setupAdmin(USR, { hash: '#/menigheter/c1', sections })
-    expect(await screen.findByText(/ikke flyttet til den nye appen ennå/)).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Åpne i dagens admin/ }).getAttribute('href')).toBe('/admin#/menigheter/c1/filer')
+    expect(await screen.findByRole('link', { name: /Fellesmappe/ })).toBeTruthy()
     expect(screen.queryByRole('link', { name: 'Medlemmer' })).toBe(null)
   })
 })
