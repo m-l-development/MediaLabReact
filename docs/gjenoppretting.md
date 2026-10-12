@@ -55,6 +55,8 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | SHR-01 | Delt mappe: dagens app slettet de eldste filene over 60 automatisk | Testet | Godkjent 2026-10-12: ingen automatisk sletting i Dine medier eller i dagens delte mappe; varsel ved stor samling og bruksoversikt; E2E med 300 filer |
 | SHR-02 | «Send til» direkte fra Photo Design, Thumbnail Studio og Motion design (manglet; bare via Dine medier) | Testet | «Bruk i …» lagt til, E2E PC/mobil 2026-10-12 |
 | SHR-07 | Felles grunnoppsett ved samtidige endringer (versjon, sammenslåing) | Blokkert | Enhetstestet med falsk tjeneste; mot connecthub-dev krever to innloggede testkontoer |
+| ADM-03, SHR-04 | Ny menighet starter tom (maler, grunnoppsett, Faste/Felles), men Livets Ord-innhold er innebygd for alle | Beslutning | Mapper og egne maler er allerede tomme for ny menighet (komponenttest). Livets Ord-logoer/-kategorier vises også for nye menigheter; forslag i docs/ny-menighet-standardinnhold.md venter på godkjenning |
+| Publisering | Den nye appen var ikke koblet inn i bygget eller rutene på Vercel | Testet | Bygget tar med web/ til dist/app, ruter og headere for /app, sperren slipper /app/assets; fullt bygg og røyktest lokalt 2026-10-12. Venter på Vercel-forhåndsvisning og godkjenning (docs/lansering.md) |
 | LE-28, LE-27 | Loop Studio: MP4 i 4K, stående format og opptak i sanntid | Testet | E2E, størrelsen kontrollert i filen |
 | LE-03 | Loop Studio: ukeprogram fra bilde (tekstgjenkjenning) | Testet | E2E med et generert bilde; et fotografi av et ekte program bør prøves manuelt |
 | LE-12, LE-13 | Loop Studio: video på slide og grunnvideo | Testet | E2E med WebM laget i nettleseren; lagres bare lokalt |

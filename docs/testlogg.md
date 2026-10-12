@@ -1424,3 +1424,18 @@ Tilgang i databasen, nå med kontroll av menighetstilhørighet: churches 1, memb
 Databasen: alle kontroller «ja» (churches 1, memberships 1, audit_logs 0 – 0 utenfor egen menighet; user_roles og invitations 0; app_users med bare `id`: 1 rad = seg selv). Grensesnittet uten feil på PC og mobil (ingen 503).
 
 **Samlet for innlogging og admin mot connecthub-dev:** vanlig bruker og Admin verifisert – innlogging/utlogging, meny per rolle, tilgang håndhevet i databasen og på serveren for lesende kall. **Ikke prøvd:** Developer/Moderator (krever MFA), endrende serverhandlinger (e-post, invitasjoner, opplasting, sletting – krever egen testkonto og uttrykkelig bekreftelse), kontosletting.
+
+## Lanseringsforberedelse (2026-10-12)
+
+**Funnet:** den nye appen var ikke koblet inn i publiseringen – Vercel bygger bare `media-lab`, og `vercel.json`/sperren kjente ikke `/app/`. Rettet på grenen (ikke publisert): `media-lab/build/web-app.js` (bygger `web/` til `dist/app`), ruter i `build/routes.js` + `vercel.json`, headere for `/app/assets` og manifestet, `/app/assets/` åpen i sperren (`server/lib/gate.js`, `middleware.js`). Rettet også en eksisterende feil: `build/static-serve.mjs` hadde en dobbel import og startet ikke.
+
+| Kontroll | Resultat |
+|---|---|
+| `media-lab` `npm run build` (mot dev-oppsettet) | rc 0; dagens app + `/app/`; sikkerhetssøk uten funn; tredjepartsfiler kontrollert |
+| Røyktest av bygget med headerne fra vercel.json, ekte Chrome | `/app/`, `/app/admin`, `/app/photo-design`: 200, innlogging vises, 0 CSP-brudd, ingen feil; `/login` 200; `/home` → innlogging som før. `/app/assets/*.js` immutable 1 år, `index.html`/manifest no-cache, manifest `application/manifest+json` |
+| `media-lab` `npm test` | 177/177 (nye: `build/web-app.test.js`, /app i `routes.test.js` og `gate.test.js`) |
+| `web` `npm run check` | 285/285 enhetstester (50 filer), typesjekk, lint, bygg |
+| `web` nettlesertester (PC + mobil) | 87 bestått, 5 tidsavbrudd under høy maskinbelastning (to videoeksporter, tre mobilklikk); de 5 kjørt på nytt: 5/5 bestått. Totalt 92/92, 28 hoppet over som planlagt |
+| Ny komponenttest | `features/cloud-picker/CloudPicker.test.tsx`: ny menighet får tomme Faste bilder/Felles ressurser/Fellesmappe; filer fra andre menigheter vises aldri |
+
+**Photo Design «hvitt bilde»:** ikke gjenskapt uten innlogging i ekte Chrome – alle 7 formater, malene «Bilde med tittel», «Arrangement» og «Tomt», «Bytt bilde», «Bilde»-knappen, dra-og-slipp, lim inn, JPEG opptil 48 MP, lagre → last på nytt → åpne: bildet tegnes hver gang, uten feil. Diagnosetest for innlogget kjøring: `web/e2e-dev/photo-dev.spec.ts` (også med brukerens eget bilde via `ML_DEV_IMAGE`). Ikke rettet, fordi årsaken ikke er funnet.
