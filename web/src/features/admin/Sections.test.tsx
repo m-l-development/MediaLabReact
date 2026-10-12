@@ -32,7 +32,7 @@ describe('Samarbeid (ADM-08)', () => {
   })
   it('sletting av avsluttet gruppe viser antall kopier i bekreftelsen og går via serveren', async () => {
     const { server } = setupAdmin(DEV, { hash: '#/samarbeid', rpc: groupRpc, server: (a) => (a === 'link.delete' ? { ok: true, copies: 1 } : undefined) })
-    const confirm = vi.fn(() => true)
+    const confirm = vi.fn((_m: string) => true)
     vi.stubGlobal('confirm', confirm)
     fireEvent.click(await screen.findByRole('button', { name: 'Slett' }))
     await waitFor(() => expect(server).toHaveBeenCalledWith('tok', 'link.delete', { link_id: 'g2' }))
