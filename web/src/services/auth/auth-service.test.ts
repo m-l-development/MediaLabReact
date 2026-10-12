@@ -31,7 +31,7 @@ function fakes(opts: { session?: Session | null; mfa?: MfaStatus; whoami?: unkno
     signOutOthers: vi.fn(async () => ({ ok: true as const })),
     requestPasswordReset: vi.fn(async () => ({ ok: true as const })),
   }
-  const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'], select: vi.fn(async () => []) as DataAdapter['select'], update: vi.fn(async () => []) as DataAdapter['update'] }
+  const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'], select: vi.fn(async () => []) as DataAdapter['select'], update: vi.fn(async () => []) as DataAdapter['update'], insert: vi.fn() as DataAdapter['insert'] }
   const writeCookie = vi.fn()
   const reload = vi.fn()
   return { auth, data, writeCookie, reload }

@@ -43,6 +43,10 @@ export interface AuthAdapter {
 export interface SelectOptions {
   columns?: string
   eq?: Record<string, string | number | boolean>
+  /** Kolonner som skal være null (f.eks. revoked_at). */
+  isNull?: string[]
+  /** Kolonne i en liste av verdier. */
+  inList?: Record<string, (string | number)[]>
   order?: string
   desc?: boolean
   limit?: number
@@ -54,6 +58,8 @@ export interface DataAdapter {
   select<T = Record<string, unknown>>(table: string, opts?: SelectOptions): Promise<T[]>
   /** Oppdatering med likhetsfiltre (f.eks. varsel lest). Tilgangen avgjøres av RLS. */
   update<T = Record<string, unknown>>(table: string, match: Record<string, string | number | boolean>, patch: Record<string, unknown>): Promise<T[]>
+  /** Ny rad (f.eks. ny menighet). Tilgangen avgjøres av RLS. */
+  insert<T = Record<string, unknown>>(table: string, row: Record<string, unknown>, columns?: string): Promise<T>
 }
 
 export type AuthState =
