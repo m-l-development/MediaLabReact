@@ -1355,3 +1355,23 @@ Samme oppsett (ekte Chrome 154, hodeløs, ekte modeller fra Hugging Face, ny pro
 | Isolate Subject, «Merk i bildet»: ett trykk på mobilen → Fjern | SlimSAM (vision encoder + decoder, kvantisert) | Ferdig etter 12,6 s; alfa 0 på mobilen (to punkter), 255 i hjørnet og bakgrunnen. Hånden ble også med i markeringen |
 
 Én modellfil per kjøring, ingen sidefeil. Ikke kjørt: penselen på masken (Photo Design), grønn «behold»-markering og flere punkter med ekte SlimSAM.
+
+## Innlogging, admin og tilgang mot connecthub-dev – vanlig bruker (2026-10-12)
+
+Kjørt av brukeren i egen terminal med `npx playwright test -c e2e-dev` (Chrome), dev-server på 5180 uten hemmelig nøkkel. Konto: syntetisk `ch-test-user` (vanlig bruker, 1 menighet, uten MFA). Passordet ble satt av brukeren via Supabase Admin API for akkurat denne bruker-ID-en i connecthub-dev (skjult inntasting, aldri i chat, filer eller historikk). Ingen andre brukere eller data er endret. Første kjøring feilet fordi dev-serveren sendte en utdatert modul (appen krasjet før innlogging); rettet ved å la serveren lese filene på nytt, uten omstart.
+
+**Resultat: 3 bestått, 3 hoppet over** (access-dev mobil: kjøres én gang; server-dev: `not_configured`).
+
+Tilgang i databasen (direkte kall med brukerens egen økt, utenom appens knapper):
+
+| Kall | Forventet | Svar |
+|---|---|---|
+| rpc system_status / mail_settings_get / cleanup_overview | nektet | 403 42501 (alle tre) |
+| rpc export_church (egen menighet / fremmed id) | nektet | 403 42501 (begge) |
+| user_roles / invitations | bare egne / ingen | 0 / 0 rader |
+| churches / memberships / audit_logs | registreres | 1 / 1 / 0 rader |
+| app_users | registreres | 403 42501 |
+
+Admin-grensesnittet (PC og mobil like): Oversikt («Velkommen, User Test»), Menigheter og Filer vises; Brukere, Invitasjoner, Samarbeid, Abonnement, Logg, Tilbakemeldinger, Opprydning, Forespørsler og Mail viser «Ingen tilgang» – i tråd med `features/admin/access.ts`. Utlogging virket. Eneste feil: 503 fra `/api/ch` på Oversikt og Filer (logoer/miniatyrer via `file.urls`), forventet uten hemmelig nøkkel.
+
+**Gjenstår:** Admin-konto, og serverhandlingene med nøkkelen satt.
