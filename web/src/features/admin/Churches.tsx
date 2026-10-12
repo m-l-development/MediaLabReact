@@ -4,6 +4,7 @@ import { downloadJson } from '../../services/account'
 import { clearMe } from '../../services/auth/me-cache'
 import { ChurchLogo, Head, NotMoved } from './common'
 import { useAdmin } from './context'
+import { SubsView } from './Subs'
 import { fmtDate, forgetLogo, go, href, mb, norm, useLogos } from './lib'
 import { Cancelled, fill, memberActions, type MemberTarget } from './members'
 import { Avatar, Badge, Btn, Card, Empty, Field, List, RoleBadge, Search, Select, StatusBadge } from './ui'
@@ -91,7 +92,7 @@ export function ChurchDetail({ id, tab: tab0 }: { id: string; tab?: string | und
       {tab === 'medlemmer' && canManage(id) && <MembersView church={c} />}
       {tab === 'invitasjoner' && canManage(id) && <InvitesView churchId={id} embedded />}
       {tab === 'filer' && <NotMoved sec="filer" path={`menigheter/${id}/filer`} inline />}
-      {tab === 'abonnement' && canManage(id) && <NotMoved sec="abonnement" path={`menigheter/${id}/abonnement`} inline />}
+      {tab === 'abonnement' && canManage(id) && <SubsView churchId={id} />}
       {tab === 'innstillinger' && <ChurchSettings church={c} />}
     </>
   )

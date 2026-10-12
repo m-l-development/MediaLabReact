@@ -7,6 +7,7 @@ import { createAdminService } from '../../services/admin'
 import type { DataAdapter } from '../../services/auth/types'
 import { createCollabService } from '../../services/collab'
 import { AdminPage } from './AdminPage'
+import AdminRoute from './AdminRoute'
 
 /**
  * Felles oppsett for admin-testene: falsk database (tabeller i minnet + rpc-svar) og falsk server. Viser flyten i
@@ -67,7 +68,8 @@ export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string
     collab: createCollabService(data as unknown as DataAdapter, async () => 'tok', server as never),
     files,
   } as unknown as Services
-  render(<ServicesContext value={services}><AdminPage me={me} testRole={null} sections={opts.sections ?? {}} /></ServicesContext>)
+  // uten egne seksjoner brukes de ekte (AdminRoute), som i appen
+  render(<ServicesContext value={services}>{opts.sections ? <AdminPage me={me} testRole={null} sections={opts.sections} /> : <AdminRoute me={me} testRole={null} />}</ServicesContext>)
   return { data: data as unknown as Kit['data'], server, files }
 }
 

@@ -33,6 +33,7 @@ export interface RoleRow { id: string; user_id: string; role: string; church_id:
 export interface Invitation { id: string; email: string; church_id: string | null; role: string; status: string; expires_at: string; created_at: string; accepted_at: string | null }
 export interface AuditRow { id: string; actor_user_id?: string | null; action: string; target_type: string | null; target_id?: string | null; church_id: string | null; reason?: string | null; meta: Record<string, unknown> | null; created_at: string }
 export interface SystemStatus { users: number; files: number; files_bytes: number; audit_last_24h: number; [k: string]: unknown }
+export interface StorageUsage { quota_bytes: number; used_bytes: number; system_free_bytes?: number | null }
 export interface InviteResult { invitation: { email: string }; email_sent: boolean }
 export interface RemoveResult { admin_role_revoked?: boolean; active_memberships_left?: number }
 
@@ -106,6 +107,8 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     audit: async (churchId: string | null) =>
       data().select<AuditRow>('audit_logs', { columns: 'id, actor_user_id, action, target_type, target_id, church_id, reason, meta, created_at', ...(churchId ? { eq: { church_id: churchId } } : {}), order: 'created_at', desc: true, limit: 200 }),
     systemStatus: async () => data().rpc<SystemStatus>('system_status'),
+    /** Menighetens kvote, brukt og ledig plass (medlemmer og stab; databasen avgjør). */
+    storageUsage: async (churchId: string) => data().rpc<StorageUsage | null>('storage_usage', { p_church: churchId }),
   }
   return s
 }

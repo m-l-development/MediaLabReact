@@ -10,7 +10,7 @@ export interface GroupMember { church_id: string; name: string; status: 'active'
 export interface Group { id: string; name: string | null; description: string | null; status: string; created_at: string; ended_at: string | null; my_church: boolean; members: GroupMember[]; copies?: number; bytes?: number; hidden_copies?: number }
 export interface SubscriptionRequest { id: string; church_id: string; plan: string; free_of_charge: boolean; reason: string | null; status: string; decision_note: string | null; created_at: string; decided_at: string | null }
 export interface ChurchSubscription { church_id: string; plan: string; free_of_charge: boolean; status: string; updated_at: string }
-export interface Plan { code: string; name: string; price_nok_month: number | null; active: boolean; quota_mb?: number }
+export interface Plan { code: string; name: string; price_nok_month: number | null; active: boolean; storage_quota_mb?: number }
 
 export const MAX_GROUP_CHURCHES = 20
 export const linkName = (l: Pick<Group, 'name'> | null): string => l?.name || '(uten navn)'
