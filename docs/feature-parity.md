@@ -76,15 +76,15 @@ Testtype: **U** enhet · **K** komponent/integrasjon · **E2E** nettlesertest ·
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| AUTH-01 | Innlogging obligatorisk for alle verktøy, data og API-er, også direkte URL (sperre foran sider + port i nettleser + RLS) | B `middleware.js`, `gate.js`, `auth-gate.js`, D | E | `app/auth-gate` + uendret server | E2E | – |
-| AUTH-02 | Innlogging med e-post/passord, `safeNext`, vern mot omdirigeringssløyfe (`ch.loop`) | B `login/` | E | `features/auth` | E2E | – |
-| AUTH-03 | MFA (TOTP), MFA-oppsett for stab, `aal2` | B `login/`, D | E | `features/auth` | E2E | – |
-| AUTH-04 | Glemt passord: nøytralt svar, `token_hash`-lenker, MFA-steg, nytt passord med krav og vis/skjul, «Lenken virker ikke lenger» + «Send ny lenke» | B, D | E | `features/auth` | E2E | – |
-| AUTH-05 | Bytt passord (ny innlogging, MFA, andre økter logges ut) | B `account-menu.js`, D | E | `features/account` | E2E | – |
-| AUTH-06 | Kontovelger på innloggingssiden (bare e-post, navn, initialer) | B `saved-accounts.js` | E | `features/auth` | U | – |
-| AUTH-07 | Kontoforespørsel før innlogging (skjemanøkkel, felle-felt, grenser) | B `RequestPanel.jsx`, D | E | `features/auth` | E2E | – |
-| AUTH-08 | Kontomeny: Varsler, E-postvarsler (Developer/Moderator), Konto og sikkerhet (Last ned mine data, lokale data, Slett kontoen min), Logg ut | B `account-menu.js`, D | E | `features/account` | E2E | – |
-| AUTH-09 | Konto ikke aktiv / ukoblet konto → egen visning | B, D | E | `features/auth` | E2E | – |
+| AUTH-01 | Innlogging obligatorisk for alle verktøy, data og API-er, også direkte URL (sperre foran sider + port i nettleser + RLS) | B `middleware.js`, `gate.js`, `auth-gate.js`, D | E | `app/auth-gate` + uendret server | E2E | I (port i appen (AuthGate) + uendret sperre på serveren og RLS; utlogget vises innlogging. Enhetstester med falske adaptere; sperren på Vercel hører til publiseringstrinnet. Ikke prøvd mot connecthub-dev) |
+| AUTH-02 | Innlogging med e-post/passord, `safeNext`, vern mot omdirigeringssløyfe (`ch.loop`) | B `login/` | E | `features/auth` | E2E | I (e-post/passord i ny innloggingsvisning; feilmeldinger. Enhetstester med falsk adapter. Ikke prøvd mot connecthub-dev) |
+| AUTH-03 | MFA (TOTP), MFA-oppsett for stab, `aal2` | B `login/`, D | E | `features/auth` | E2E | I (MFA-kode ved aal1 med faktor, MFA-oppsett for stab uten faktor. Enhetstester med falsk adapter. Ikke prøvd mot connecthub-dev) |
+| AUTH-04 | Glemt passord: nøytralt svar, `token_hash`-lenker, MFA-steg, nytt passord med krav og vis/skjul, «Lenken virker ikke lenger» + «Send ny lenke» | B, D | E | `features/auth` | E2E | – (lenken «Glemt passord» går foreløpig til dagens /login; må porteres før dagens app fjernes) |
+| AUTH-05 | Bytt passord (ny innlogging, MFA, andre økter logges ut) | B `account-menu.js`, D | E | `features/account` | E2E | I (samme flyt som i dag: gammelt passord kontrolleres med ny innlogging, MFA-kode ved faktor, løpende krav, andre økter logges ut. Tjeneste- og komponenttester med falske adaptere. Ikke prøvd mot connecthub-dev) |
+| AUTH-06 | Kontovelger på innloggingssiden (bare e-post, navn, initialer) | B `saved-accounts.js` | E | `features/auth` | U | – (kontovelger ikke portert; dagens /login har den) |
+| AUTH-07 | Kontoforespørsel før innlogging (skjemanøkkel, felle-felt, grenser) | B `RequestPanel.jsx`, D | E | `features/auth` | E2E | – (kontoforespørsel ikke portert; dagens /login har den) |
+| AUTH-08 | Kontomeny: Varsler, E-postvarsler (Developer/Moderator), Konto og sikkerhet (Last ned mine data, lokale data, Slett kontoen min), Logg ut | B `account-menu.js`, D | E | `features/account` | E2E | I (kontomeny som i dag: varsler med antall uleste (hentes hvert 2. min/ved synlig fane), e-postvarsler for Developer/Moderator, Konto og sikkerhet: bytt passord, last ned mine data, fjern lokale data, slett kontoen min (se docs/konto-sletting.md). Komponenttester med falske adaptere. Ikke prøvd mot connecthub-dev) |
+| AUTH-09 | Konto ikke aktiv / ukoblet konto → egen visning | B, D | E | `features/auth` | E2E | I (egen visning for konto som ikke er koblet, og ved nettfeil. Enhetstest) |
 
 ## 3. Administrasjon (ConnectHub Admin)
 

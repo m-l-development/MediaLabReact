@@ -4,6 +4,7 @@ import type { Me } from '../domain/account'
 import { TEST_ROLE_KEY } from '../domain/test-role'
 import { createAuthService } from '../services/auth/auth-service'
 import type { AuthAdapter, DataAdapter, Session } from '../services/auth/types'
+import { createAccountService } from '../services/account'
 import { AppShell } from './AppShell'
 import { ServicesContext, type Services } from './services'
 import { presentTestRole } from './test-role'
@@ -36,7 +37,7 @@ describe('testrolle i appen (PLT-16)', () => {
   it('kontomenyen viser rollene man kan bytte til; valget lagres for fanen og siden lastes på nytt', () => {
     const reload = vi.fn()
     vi.spyOn(window.location, 'reload').mockImplementation(reload)
-    const services = { feedback: { available: () => true, submit: vi.fn() } } as unknown as Services
+    const services = { feedback: { available: () => true, submit: vi.fn() }, account: createAccountService({ auth: null, data: null, token: async () => null }) } as unknown as Services
     render(
       <ServicesContext value={services}>
         <AppShell route={{ name: 'hub' }} me={DEV} realMe={DEV} testRole={null} testAllowed onSignOut={vi.fn()}><p /></AppShell>
@@ -53,7 +54,7 @@ describe('testrolle i appen (PLT-16)', () => {
   it('i testmodus: stripe nederst med knapp tilbake, og menyen viser fortsatt de ekte rollene', () => {
     vi.spyOn(window.location, 'reload').mockImplementation(() => {})
     sessionStorage.setItem(TEST_ROLE_KEY, 'user')
-    const services = { feedback: { available: () => true, submit: vi.fn() } } as unknown as Services
+    const services = { feedback: { available: () => true, submit: vi.fn() }, account: createAccountService({ auth: null, data: null, token: async () => null }) } as unknown as Services
     const eff = { ...DEV, roles: [] } as Me
     render(
       <ServicesContext value={services}>
@@ -70,7 +71,7 @@ describe('testrolle i appen (PLT-16)', () => {
     expect(sessionStorage.getItem(TEST_ROLE_KEY)).toBe(null)
   })
   it('uten tillatelse (produksjon) vises ingen rollevelger', () => {
-    const services = { feedback: { available: () => true, submit: vi.fn() } } as unknown as Services
+    const services = { feedback: { available: () => true, submit: vi.fn() }, account: createAccountService({ auth: null, data: null, token: async () => null }) } as unknown as Services
     render(
       <ServicesContext value={services}>
         <AppShell route={{ name: 'hub' }} me={DEV} realMe={DEV} onSignOut={vi.fn()}><p /></AppShell>

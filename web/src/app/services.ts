@@ -8,6 +8,7 @@ import { createCommunityService, type CommunityService } from '../services/commu
 import { createFilesService, type FilesService } from '../services/files'
 import { createChurchSettings, type ChurchSettingsService } from '../services/shared-setup'
 import { createFeedbackService, type FeedbackService } from '../services/feedback'
+import { createAccountService, type AccountService } from '../services/account'
 import type { Router } from './router'
 import { presentTestRole } from './test-role'
 
@@ -23,19 +24,22 @@ export interface Services {
   churchSettings: ChurchSettingsService
   /** Tilbakemeldinger (PLT-21). */
   feedback: FeedbackService
+  /** Kontomenyen: varsler, e-postvarsler, passord, eksport og sletting (AUTH-05, AUTH-08). */
+  account: AccountService
   router: Router
 }
 
 export function createServices(router: Router): Services {
   const client = backend ? getClient(backend) : null
   const data = client ? createSupabaseDataAdapter(client) : null
+  const authAdapter = client ? createSupabaseAuthAdapter(client) : null
   const auth = createAuthService({
-    auth: client ? createSupabaseAuthAdapter(client) : null,
+    auth: authAdapter,
     data,
     dev: import.meta.env.DEV,
     present: (me) => presentTestRole(me),
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)

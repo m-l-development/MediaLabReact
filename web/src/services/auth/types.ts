@@ -31,6 +31,10 @@ export interface AuthAdapter {
   mfaStatus(): Promise<MfaStatus>
   mfaEnroll(): Promise<MfaEnrollment>
   mfaVerify(factorId: string, code: string): Promise<AuthResult>
+  /** Nytt passord for innlogget bruker (leverandøren krever fersk innlogging, og aal2 når kontoen har MFA). */
+  setPassword(password: string): Promise<AuthResult>
+  /** Logger ut alle andre økter enn denne. */
+  signOutOthers(): Promise<AuthResult>
 }
 
 /** Dataporten (databasefunksjoner). Feil kastes som ServiceError med nøytral kode. */
@@ -46,6 +50,8 @@ export interface DataAdapter {
   rpc<T = unknown>(fn: string, args?: Record<string, unknown>): Promise<T>
   /** Tabelloppslag med likhetsfiltre. Tilgangen avgjøres av RLS i databasen. */
   select<T = Record<string, unknown>>(table: string, opts?: SelectOptions): Promise<T[]>
+  /** Oppdatering med likhetsfiltre (f.eks. varsel lest). Tilgangen avgjøres av RLS. */
+  update<T = Record<string, unknown>>(table: string, match: Record<string, string | number | boolean>, patch: Record<string, unknown>): Promise<T[]>
 }
 
 export type AuthState =

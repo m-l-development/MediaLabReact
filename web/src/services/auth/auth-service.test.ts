@@ -27,8 +27,10 @@ function fakes(opts: { session?: Session | null; mfa?: MfaStatus; whoami?: unkno
     mfaStatus: vi.fn(async () => opts.mfa ?? { current: 'aal1', next: 'aal1', factors: [] }),
     mfaEnroll: vi.fn(async () => ({ ok: true as const, factorId: 'f-new', qr: 'data:', secret: 'S' })),
     mfaVerify: vi.fn(async (_id: string, code: string) => (code === '123456' ? { ok: true as const } : { ok: false as const, error: 'invalid_credentials' })),
+    setPassword: vi.fn(async () => ({ ok: true as const })),
+    signOutOthers: vi.fn(async () => ({ ok: true as const })),
   }
-  const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'], select: vi.fn(async () => []) as DataAdapter['select'] }
+  const data: DataAdapter = { rpc: vi.fn(async () => (opts.whoami === undefined ? me() : opts.whoami)) as DataAdapter['rpc'], select: vi.fn(async () => []) as DataAdapter['select'], update: vi.fn(async () => []) as DataAdapter['update'] }
   const writeCookie = vi.fn()
   const reload = vi.fn()
   return { auth, data, writeCookie, reload }

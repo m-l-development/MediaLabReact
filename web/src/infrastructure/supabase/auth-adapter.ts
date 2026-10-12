@@ -92,5 +92,21 @@ export function createSupabaseAuthAdapter(client: SupabaseClient): AuthAdapter {
         return toFailure(e)
       }
     },
+    async setPassword(password) {
+      try {
+        const { error } = await a.updateUser({ password })
+        return done(error)
+      } catch (e) {
+        return toFailure(e)
+      }
+    },
+    async signOutOthers() {
+      try {
+        const { error } = await a.signOut({ scope: 'others' })
+        return done(error)
+      } catch (e) {
+        return toFailure(e)
+      }
+    },
   }
 }

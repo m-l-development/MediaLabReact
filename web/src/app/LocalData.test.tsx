@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '../domain/account'
 import { shouldAsk } from '../infrastructure/local-user'
+import { createAccountService } from '../services/account'
 import { AppShell } from './AppShell'
 import { AdoptPrompt } from './LocalData'
 import { ServicesContext, type Services } from './services'
@@ -40,13 +41,14 @@ describe('lokale data i grensesnittet (PLT-17)', () => {
     localStorage.setItem('photodesign.cats@' + U, 'meg')
     localStorage.setItem('medialab.theme', 'light')
     const signOut = vi.fn(async () => undefined)
-    const services = { feedback: { available: () => true, submit: vi.fn() } } as unknown as Services
+    const services = { feedback: { available: () => true, submit: vi.fn() }, account: createAccountService({ auth: null, data: null, token: async () => null }) } as unknown as Services
     render(
       <ServicesContext value={services}>
         <AppShell route={{ name: 'hub' }} me={me} onSignOut={signOut}><p>innhold</p></AppShell>
       </ServicesContext>,
     )
     fireEvent.click(screen.getByTitle('Test Testesen'))
+    fireEvent.click(screen.getByRole('button', { name: /Konto og sikkerhet/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Logg ut og fjern mine lokale data' }))
     expect(screen.getByText('Fjern lokale data?')).toBeTruthy()
     expect(screen.getByText(/Dette blir liggende: alt i ConnectHub/)).toBeTruthy()
