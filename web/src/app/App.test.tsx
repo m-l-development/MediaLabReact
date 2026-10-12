@@ -22,7 +22,8 @@ function setup(path = '/app/') {
   return services
 }
 
-describe('App (lokal utvikling uten backend)', () => {
+// verktøyene lastes som egne moduler; Loop Studio er stor og kan bruke over 5 s første gang mens hele testsettet kjører
+describe('App (lokal utvikling uten backend)', { timeout: 30000 }, () => {
   it('viser forsiden som i dag: tittel, kortene og snarveien til «Dine medier»', async () => {
     setup()
     expect(await screen.findByRole('heading', { level: 1, name: 'Media Lab' })).toBeTruthy()
@@ -48,14 +49,14 @@ describe('App (lokal utvikling uten backend)', () => {
       fireEvent.click(link)
     })
     expect(location.pathname).toBe('/app/loop-studio')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Loop Studio' }, { timeout: 5000 })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Loop Studio' }, { timeout: 20000 })).toBeTruthy()
     expect(screen.getByRole('link', { name: /Se demo/ }).getAttribute('href')).toBe('/app/loop-studio?mal=week&demo=1')
     for (const a of screen.getAllByRole('link', { name: /Media Lab/ })) expect(a.getAttribute('href')).toBe('/app/')
   }, 15000)
 
   it('direkte adresse til et verktøy som er bygget (Isolate Subject) og ett som ikke er det', async () => {
     setup('/app/isolate-subject')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Isolate Subject' }, { timeout: 5000 })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Isolate Subject' }, { timeout: 20000 })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Slipp et bilde her/ })).toBeTruthy()
   })
 

@@ -28,7 +28,7 @@ export function RequestPanel() {
   const [done, setDone] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   // uten skjemanøkkel kan skjemaet ikke sendes (serveren signerer den); da sies det tydelig i stedet for en død knapp
-  const newToken = () => requests.formToken().then((tk) => { setToken(tk); setErr(null) }, () => { setToken(null); setErr('req.err.unavailable') })
+  const newToken = () => requests.formToken().then(setToken, () => { setToken(null); setErr('req.err.unavailable') })
   const toggle = () => {
     const o = !open
     setOpen(o)
