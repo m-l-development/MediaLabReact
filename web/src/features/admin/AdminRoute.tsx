@@ -8,6 +8,7 @@ import { CleanupView } from './Cleanup'
 import { FeedbackView } from './Feedback'
 import { LinksView } from './Links'
 import { LogView } from './Log'
+import { MailView } from './Mail'
 import { RequestsView } from './Requests'
 import { SubsView } from './Subs'
 
@@ -34,6 +35,7 @@ const SECTIONS: Partial<Record<string, (p: { id?: string | undefined; sub?: stri
   // utvalget nullstilles når en annen menighet velges
   opprydning: ({ id }) => <CleanupView key={id ?? ''} churchId={id} />,
   foresporsler: ({ id }) => <RequestsView selected={id} />,
+  mail: () => <MailView />,
 }
 
 export default function AdminRoute({ me, testRole }: { me: Me; testRole: string | null }) {

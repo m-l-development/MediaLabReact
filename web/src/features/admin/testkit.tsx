@@ -8,6 +8,7 @@ import type { DataAdapter } from '../../services/auth/types'
 import { createCollabService } from '../../services/collab'
 import { createFeedbackService } from '../../services/feedback'
 import { createRequestInbox } from '../../services/requests'
+import { createMailService } from '../../services/mail'
 import { AdminPage } from './AdminPage'
 import AdminRoute from './AdminRoute'
 
@@ -70,6 +71,7 @@ export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string
     collab: createCollabService(data as unknown as DataAdapter, async () => 'tok', server as never),
     files,
     feedback: createFeedbackService(data as unknown as DataAdapter),
+    mail: createMailService(data as unknown as DataAdapter, async () => 'tok', server as never),
     requestInbox: createRequestInbox(data as unknown as DataAdapter, async () => 'tok', server as never),
   } as unknown as Services
   // uten egne seksjoner brukes de ekte (AdminRoute), som i appen
