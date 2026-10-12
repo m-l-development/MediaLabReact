@@ -63,6 +63,8 @@ Tre tester i `web/e2e-dev/` (ikke med i den vanlige kontrollen). Alle logger inn
 |---|---|
 | `admin-dev.spec.ts` | Alle admin-seksjonene på PC og mobil: overskrift, feilmeldinger i siden, konsollfeil, mislykkede kall; utlogging |
 | `access-dev.spec.ts` | At tilgang **håndheves i databasen**, ikke bare skjules: kaller databasen direkte med brukerens økt (stabsfunksjoner, eksport av egen og fremmed menighet, roller og invitasjoner) og sammenligner med reglene i migreringene |
+| `photo-dev.spec.ts` | Diagnose «hvitt bilde» i Photo Design: legger inn et testbilde (og ditt eget via `ML_DEV_IMAGE=<sti>`) og måler om bildeplassen viser bildet. Bildet blir bare i Playwrights midlertidige profil |
+| `feedback-dev.spec.ts` | **Endrer data:** sender én merket testsak («[E2E-TEST …]») og sjekker referansen og at innsenderen ikke kan lese innboksen. Kjører bare med `$env:ML_DEV_ALLOW_FEEDBACK = "JA"` etter godkjenning; arkiver saken i Admin → Tilbakemeldinger etterpå |
 | `server-dev.spec.ts` | Serverhandlingene som bare leser (`request.form`, `mail.status`, `church.export` egen/fremmed, uten innlogging). Krever den hemmelige nøkkelen i terminalen som startet dev-serveren; ellers hoppes den over med beskjed |
 
 Kjør én gang per konto (vanlig bruker, deretter Admin):

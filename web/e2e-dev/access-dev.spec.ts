@@ -6,7 +6,7 @@ import { expect, test, type Page } from '@playwright/test'
  * reglene i migreringene (supabase/migrations). Token, passord og persondata skrives aldri ut; bare antall og feilkoder.
  *
  * Forventninger (fra koden):
- * - system_status, mail_settings_get, cleanup_overview: bare stab (Developer/Moderator) → ellers 42501 «Ingen tilgang»
+ * - system_status, mail_settings_get, cleanup_overview, feedback_list (tilbakemeldingsinnboksen): bare stab (Developer/Moderator) → ellers 42501 «Ingen tilgang»
  * - export_church(egen menighet): bare menighetens admin eller stab; export_church(fremmed id): bare stab
  * - user_roles og invitations: vanlig bruker ser bare egne roller og ingen invitasjoner fra andre menigheter
  */
@@ -60,7 +60,7 @@ test('tilgang håndheves i databasen for innlogget testkonto (bare lesing)', asy
     return right
   }
   const results: boolean[] = []
-  for (const fn of ['system_status', 'mail_settings_get', 'cleanup_overview']) results.push(check(`rpc ${fn}`, 'nektet', await probe(page, `/rest/v1/rpc/${fn}`, {})))
+  for (const fn of ['system_status', 'mail_settings_get', 'cleanup_overview', 'feedback_list']) results.push(check(`rpc ${fn}`, 'nektet', await probe(page, `/rest/v1/rpc/${fn}`, {})))
   if (own[0]) results.push(check('rpc export_church (egen menighet)', adminOf.includes(own[0]) ? 'tillatt' : 'nektet', await probe(page, '/rest/v1/rpc/export_church', { p_church: own[0] })))
   results.push(check('rpc export_church (fremmed id)', 'nektet', await probe(page, '/rest/v1/rpc/export_church', { p_church: '00000000-0000-4000-8000-0000000000ff' })))
 
