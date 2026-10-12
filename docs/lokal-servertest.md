@@ -68,7 +68,7 @@ Tre tester i `web/e2e-dev/` (ikke med i den vanlige kontrollen). Alle logger inn
 Kjør én gang per konto (vanlig bruker, deretter Admin):
 
 ```powershell
-cd F:ReactProjectsMediaLabReactweb
+cd F:\ReactProjects\MediaLabReact\web
 $env:ML_DEV_EMAIL = "ch-test-…@example.com"   # testkonto, ikke en ekte bruker
 $s = Read-Host "Passord" -AsSecureString
 $env:ML_DEV_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
