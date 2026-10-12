@@ -43,7 +43,8 @@ export function splitName(u: { first_name?: string | null; last_name?: string | 
   const parts = (u.full_name || '').trim().split(/\s+/).filter(Boolean)
   return parts.length > 1 ? { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] ?? '' } : { first: parts[0] || '', last: '' }
 }
-const CONTROL = new RegExp('[\\u0000-\\u001f\\u007f<>]')
+/** Kontrolltegn (0–31, 127) eller < > – samme tegn som databasen avviser. */
+const CONTROL = { test: (s: string) => [...s].some((c) => { const n = c.charCodeAt(0); return n < 32 || n === 127 || c === '<' || c === '>' }) }
 /** Samme regler som databasen (set_user_name): minst ett felt, høyst 60 tegn, ingen kontrolltegn eller < >. */
 export function nameError(first: string, last: string): string | null {
   const f = first.trim(), l = last.trim()
