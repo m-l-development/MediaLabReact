@@ -37,7 +37,7 @@ function probe(page: Page, path: string, body?: unknown): Promise<Probe & { data
     })
     const j: unknown = await r.json().catch(() => null)
     const code = !r.ok && j && typeof j === 'object' && 'code' in j ? String((j as { code: unknown }).code) : undefined
-    return { status: r.status, code, rows: Array.isArray(j) ? j.length : undefined, ok: r.ok, data: /whoami|user_roles|invitations/.test(url) ? j : undefined }
+    return { status: r.status, code, rows: Array.isArray(j) ? j.length : undefined, ok: r.ok, data: /whoami|user_roles|invitations|churches|memberships|audit_logs/.test(url) ? j : undefined }
   }, { p: path, b: body })
 }
 
@@ -75,10 +75,19 @@ test('tilgang håndheves i databasen for innlogget testkonto (bare lesing)', asy
   const invOk = invRows.every((r) => r.church_id != null && adminOf.includes(r.church_id))
   rows.push(`| invitations | ${adminOf.length ? 'bare egen menighet' : 'ingen'} | ${invRows.length} rader${inv.ok ? '' : ` (${inv.status} ${inv.code ?? ''})`} | ${invOk ? 'ja' : '**NEI**'} |`)
   results.push(invOk)
-  for (const t of ['churches', 'memberships', 'app_users', 'audit_logs']) {
-    const p = await probe(page, `/rest/v1/${t}?select=*&limit=1000`)
-    rows.push(`| ${t} | (registreres) | ${p.ok ? `${p.rows} rader` : `nektet (${p.status} ${p.code ?? ''})`} | – |`)
+  // Tabeller med menighets-ID: bare egne menigheter (church_id null = systemhendelse, telles for seg)
+  for (const t of ['churches', 'memberships', 'audit_logs']) {
+    const col = t === 'churches' ? 'id' : 'church_id'
+    const p = await probe(page, `/rest/v1/${t}?select=${col}&limit=1000`)
+    const list = ((p.data as Record<string, string | null>[] | undefined) ?? []).map((r) => r[col] ?? null)
+    const outside = list.filter((id) => id != null && !own.includes(id)).length
+    const nulls = list.filter((id) => id == null).length
+    const okScope = p.ok && outside === 0
+    rows.push(`| ${t} | bare egne menigheter | ${p.ok ? `${list.length} rader, ${outside} utenfor egne${nulls ? `, ${nulls} uten menighet` : ''}` : `nektet (${p.status} ${p.code ?? ''})`} | ${okScope ? 'ja' : '**NEI**'} |`)
+    results.push(okScope)
   }
+  const au = await probe(page, '/rest/v1/app_users?select=id&limit=1000')
+  rows.push(`| app_users | (registreres) | ${au.ok ? `${au.rows} rader` : `nektet (${au.status} ${au.code ?? ''})`} | – |`)
 
   // Grensesnittet: admin-seksjoner for stab skal ikke vises for denne kontoen
   await page.goto('/app/admin#/logg')

@@ -1375,3 +1375,20 @@ Tilgang i databasen (direkte kall med brukerens egen økt, utenom appens knapper
 Admin-grensesnittet (PC og mobil like): Oversikt («Velkommen, User Test»), Menigheter og Filer vises; Brukere, Invitasjoner, Samarbeid, Abonnement, Logg, Tilbakemeldinger, Opprydning, Forespørsler og Mail viser «Ingen tilgang» – i tråd med `features/admin/access.ts`. Utlogging virket. Eneste feil: 503 fra `/api/ch` på Oversikt og Filer (logoer/miniatyrer via `file.urls`), forventet uten hemmelig nøkkel.
 
 **Gjenstår:** Admin-konto, og serverhandlingene med nøkkelen satt.
+
+### Tillegg: Admin-konto mot connecthub-dev (2026-10-12)
+
+Samme oppsett. Konto: syntetisk `ch-test-admin` (Admin i 1 menighet, 0 MFA-faktorer, kontrollert via Admin API før endring). Passordet satt av brukeren via Supabase Admin API for akkurat denne bruker-ID-en (skjult inntasting, bekreftet med «JA»). Ingen andre brukere eller data endret.
+
+**Resultat: 3 bestått, 3 hoppet over** (access-dev mobil; server-dev: `not_configured`).
+
+| Kall | Forventet | Svar |
+|---|---|---|
+| rpc system_status / mail_settings_get / cleanup_overview | nektet | 403 42501 (alle tre) |
+| rpc export_church (egen menighet) | tillatt | 200 |
+| rpc export_church (fremmed id) | nektet | 403 42501 |
+| user_roles / invitations | egne / egen menighet | 2 / 6 rader, alle innenfor |
+| churches / memberships / audit_logs | registreres | 1 / 6 / 201 rader (menighetstilhørighet ikke kontrollert i denne kjøringen; sjekk lagt til i testen) |
+| app_users | registreres | 403 42501 |
+
+Admin-grensesnittet (PC og mobil like): Oversikt («Velkommen, Admin Test»), Brukere, Menigheter, Invitasjoner, Filer, Abonnement og Logg vises; Samarbeid, Tilbakemeldinger, Opprydning, Forespørsler og Mail viser «Ingen tilgang» – i tråd med `features/admin/access.ts`. Utlogging virket. 503 fra `/api/ch` på Oversikt og Filer (forventet uten hemmelig nøkkel).
