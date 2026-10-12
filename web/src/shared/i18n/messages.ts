@@ -507,6 +507,7 @@ export const no = {
   'req.err.expired': 'Skjemaet var åpent for lenge eller ble sendt for raskt. Prøv igjen.',
   'req.err.network': 'Fikk ikke kontakt med serveren. Sjekk nettforbindelsen og prøv igjen.',
   'req.err.failed': 'Forespørselen kunne ikke sendes. Prøv igjen.',
+  'req.err.unavailable': 'Skjemaet kan ikke åpnes akkurat nå. Prøv igjen senere.',
 } as const
 
 export type MessageKey = keyof typeof no
@@ -1016,6 +1017,7 @@ export const en: Messages = {
   'req.err.expired': 'The form was open too long or was sent too quickly. Try again.',
   'req.err.network': 'Could not reach the server. Check your connection and try again.',
   'req.err.failed': 'The request could not be sent. Try again.',
+  'req.err.unavailable': 'The form cannot be opened right now. Please try again later.',
 }
 
 // Typede nøkler for verktøy og grupper: en manglende tekst for et nytt verktøy gir byggefeil.

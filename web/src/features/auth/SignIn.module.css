@@ -8,6 +8,8 @@
 
 .card {
   display: grid;
+  /* én kolonne som aldri blir bredere enn kortet (lange knappetekster brytes i stedet for å stikke ut) */
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: var(--space-4);
   width: min(400px, 100%);
@@ -29,6 +31,7 @@
   display: grid;
   gap: var(--space-4);
   width: 100%;
+  min-width: 0;
 }
 
 .form h1 {
@@ -181,4 +184,14 @@
   width: 1px;
   height: 1px;
   overflow: hidden;
+}
+
+/* lang knappetekst («Send forespørsel om opprettelse av bruker») brytes over to linjer på smale kort */
+.request .wrap {
+  height: auto;
+  min-height: 42px;
+  padding-block: 10px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
 }

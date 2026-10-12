@@ -27,7 +27,8 @@ export function RequestPanel() {
   const [err, setErr] = useState<MessageKey | null>(null)
   const [done, setDone] = useState(false)
   const box = useRef<HTMLDivElement>(null)
-  const newToken = () => requests.formToken().then(setToken, () => setToken(null))
+  // uten skjemanøkkel kan skjemaet ikke sendes (serveren signerer den); da sies det tydelig i stedet for en død knapp
+  const newToken = () => requests.formToken().then((tk) => { setToken(tk); setErr(null) }, () => { setToken(null); setErr('req.err.unavailable') })
   const toggle = () => {
     const o = !open
     setOpen(o)
@@ -57,7 +58,7 @@ export function RequestPanel() {
   }
   return (
     <div ref={box} className={styles.request} data-ch-request="">
-      {!open && <Button block onClick={toggle} data-ch-request-open="">{t('req.open')}</Button>}
+      {!open && <Button block className={styles.wrap} onClick={toggle} data-ch-request-open="">{t('req.open')}</Button>}
       {open && (done ? (
         <>
           <p className={styles.ok} role="status" data-ch-request-done="">{t('req.done')}</p>

@@ -104,4 +104,10 @@ describe('forespørsel om konto (AUTH-07)', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Skjemaet var åpent for lenge')
     await waitFor(() => expect(call.mock.calls.filter((c) => c[0] === 'request.form')).toHaveLength(2))
   })
+  it('uten skjemanøkkel (serveren ikke satt opp): tydelig melding i stedet for en død knapp', async () => {
+    setup({ call: async () => { throw new ServiceError('not_configured') } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send forespørsel om opprettelse av bruker' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Skjemaet kan ikke åpnes akkurat nå. Prøv igjen senere.')
+    expect((screen.getByRole('button', { name: 'Send forespørsel' }) as HTMLButtonElement).disabled).toBe(true)
+  })
 })
