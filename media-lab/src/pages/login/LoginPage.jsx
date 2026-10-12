@@ -27,6 +27,7 @@ const ERR = {
   user_disabled: 'Kontoen er deaktivert. Kontakt administrator.',
   admin_exists: 'Menigheten har allerede en administrator. Kontakt den som inviterte deg.',
   already_member_elsewhere: 'Du er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen. Kontakt den som inviterte deg.',
+  member_limit: 'Menigheten har nådd grensen for antall brukere. Kontakt den som inviterte deg.',
   church_inactive: 'Menigheten er ikke aktiv. Kontakt den som inviterte deg.',
   inviter_lost_access: 'Den som inviterte deg, har ikke lenger tilgang til å invitere. Be om en ny invitasjon.',
   /* Tilbakestillingslenker (alle gir siden «Lenken virker ikke lenger» med skjema for ny lenke). */

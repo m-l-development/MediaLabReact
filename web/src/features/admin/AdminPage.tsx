@@ -9,6 +9,8 @@ import { activeMembers, type Group } from '../../services/collab'
 import { useLang } from '../../shared/i18n/i18n'
 import { NAV, brandOf, isSection, sectionsFor, type Kind } from './access'
 import { ChurchLogo, Head } from './common'
+import { MemberUsageNote } from './MemberLimit'
+import { isFull, useMemberUsage } from './member-limit'
 import { Ctx, useAdmin, type AdminCtx, type AdminData } from './context'
 import { FolderButtons } from './Folders'
 import { canJoinAnother, Cancelled, fill, mainRole, memberActions, nameError, roleBlocked, roleSummary, splitName, welcomeName, type MemberTarget } from './members'
@@ -535,6 +537,9 @@ function InviteDialog({ initial, onClose }: { initial: { church?: string | null 
   const churches = d.churches.filter((c) => c.status === 'active' && canManage(c.id))
   const [f, setF] = useState({ email: '', role: 'user', church: initial.church && churches.some((c) => c.id === initial.church) ? initial.church : churches[0]?.id || '' })
   const global = f.role === 'moderator' || f.role === 'developer'
+  // brukergrensen for valgt menighet (vises og sperrer knappen; databasen avgjør uansett)
+  const usage = useMemberUsage(global ? null : f.church)
+  const full = !global && isFull(usage)
   const send = (e: FormEvent) => {
     e.preventDefault()
     void act(async () => {
@@ -551,7 +556,8 @@ function InviteDialog({ initial, onClose }: { initial: { church?: string | null 
         <Field label="E-postadresse"><input className="ch-input" type="email" required maxLength={254} value={f.email} onChange={(e) => setF((x) => ({ ...x, email: e.target.value }))} autoFocus /></Field>
         <Field label="Rolle"><select className="ch-select" value={f.role} onChange={(e) => setF((x) => ({ ...x, role: e.target.value }))}>{roles.map((r) => <option key={r} value={r}>{t(ROLE[r] ?? r)}</option>)}</select></Field>
         {!global && <Field label="Menighet"><select className="ch-select" value={f.church} onChange={(e) => setF((x) => ({ ...x, church: e.target.value }))} required>{churches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>}
-        <div className="ch-row"><Btn kind="primary" type="submit">{t('Send invitasjon')}</Btn><Btn onClick={onClose}>{t('Avbryt')}</Btn></div>
+        {!global && <MemberUsageNote usage={usage} />}
+        <div className="ch-row"><Btn kind="primary" type="submit" disabled={full}>{t('Send invitasjon')}</Btn><Btn onClick={onClose}>{t('Avbryt')}</Btn></div>
       </form>
     </Dialog>
   )

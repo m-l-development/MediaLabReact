@@ -1901,6 +1901,96 @@ select ch_test.cnt('E-postvarsler: kontoens egen adresse lagres som standard', $
 select ch_test.cnt('E-postvarsler: tilbake til kontoens adresse', $q$select 1 where public.my_email_prefs() ->> 'notify_email' is null$q$, 1);
 set local role postgres;
 
+-- ---------- Brukergrense per menighet (CH013, docs/plan-brukergrense.md) ----------
+-- Menighet G: Admin + 8 aktive + 1 deaktivert = 9 som teller. Menighet H: over grensen fra før (12 aktive + 1 ventende).
+set local role postgres;
+insert into public.churches (id, name) values
+  ('c0c0c0c0-0000-4000-8000-0000000000c1', 'Grense G'),
+  ('c0c0c0c0-0000-4000-8000-0000000000c2', 'Grense H');
+insert into public.app_users (id, email, full_name, status)
+select ('00000000-0000-4000-8000-0000000001' || lpad(g::text, 2, '0'))::uuid, 'g' || g || '@grense.invalid', 'G ' || g, 'active' from generate_series(0, 10) g;
+insert into public.app_users (id, email, full_name, status)
+select ('00000000-0000-4000-8000-0000000002' || lpad(g::text, 2, '0'))::uuid, 'h' || g || '@grense.invalid', 'H ' || g, 'active' from generate_series(0, 13) g;
+insert into public.user_identities (provider, subject, user_id) values ('https://test.invalid/auth/v1', 'sub-ga', '00000000-0000-4000-8000-000000000100');
+insert into public.memberships (user_id, church_id)
+select ('00000000-0000-4000-8000-0000000001' || lpad(g::text, 2, '0'))::uuid, 'c0c0c0c0-0000-4000-8000-0000000000c1' from generate_series(0, 8) g;
+insert into public.memberships (user_id, church_id, status) values ('00000000-0000-4000-8000-000000000109', 'c0c0c0c0-0000-4000-8000-0000000000c1', 'disabled');
+insert into public.user_roles (user_id, role, church_id) values ('00000000-0000-4000-8000-000000000100', 'church_admin', 'c0c0c0c0-0000-4000-8000-0000000000c1');
+-- H fylles mens grensen er høy, og senkes så: «over grensen fra før»
+update public.churches set member_limit = 20 where id = 'c0c0c0c0-0000-4000-8000-0000000000c2';
+insert into public.memberships (user_id, church_id)
+select ('00000000-0000-4000-8000-0000000002' || lpad(g::text, 2, '0'))::uuid, 'c0c0c0c0-0000-4000-8000-0000000000c2' from generate_series(0, 11) g;
+insert into public.invitations (email, church_id, role, token_hash, expires_at, created_by) values
+  ('hventer@grense.invalid', 'c0c0c0c0-0000-4000-8000-0000000000c2', 'user', md5('grense-f') || md5('grense-f2'), now() + interval '2 days', '00000000-0000-4000-8000-000000000001');
+update public.churches set member_limit = 10 where id = 'c0c0c0c0-0000-4000-8000-0000000000c2';
+insert into public.account_requests (name, email, church_text, status) values ('Grense Søker', 'sok@grense.invalid', 'Grense G', 'new');
+create table ch_test.grq as select id, email, status from public.account_requests where email = 'sok@grense.invalid';
+grant select on ch_test.grq to authenticated;
+
+select ch_test.cnt('Grense: 9 aktive teller 9 (deaktivert teller ikke)', $q$select 1 where app.member_count('c0c0c0c0-0000-4000-8000-0000000000c1') = 9$q$, 1);
+select ch_test.cnt('Grense: menighet over grensen fra før beholder alle (12 aktive + 1 ventende)', $q$select 1 where app.member_count('c0c0c0c0-0000-4000-8000-0000000000c2') = 13$q$, 1);
+
+-- Admin G (uten MFA, som i dag)
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-ga","aal":"aal1"}';
+select ch_test.ok('Grense: Admin inviterer nr. 10', $q$select public.create_invitation('ny10@grense.invalid', 'c0c0c0c0-0000-4000-8000-0000000000c1', 'user', md5('grense-a') || md5('grense-a2'), 7)$q$);
+select ch_test.err('Grense: invitasjon nr. 11 avvises (CH013)', $q$select public.create_invitation('ny11@grense.invalid', 'c0c0c0c0-0000-4000-8000-0000000000c1', 'user', md5('grense-b') || md5('grense-b2'), 7)$q$, 'CH013');
+select ch_test.ok('Grense: ny invitasjon til samme adresse erstatter den gamle (antallet øker ikke)', $q$select public.create_invitation('NY10@grense.invalid', 'c0c0c0c0-0000-4000-8000-0000000000c1', 'user', md5('grense-c') || md5('grense-c2'), 7)$q$);
+select ch_test.cnt('Grense: Admin ser 10 av 10, hvorav 1 ventende', $q$select 1 where public.member_usage('c0c0c0c0-0000-4000-8000-0000000000c1') = '{"count": 10, "limit": 10, "pending": 1}'::jsonb$q$, 1);
+select ch_test.err('Grense: reaktivering av deaktivert medlem ved 10/10 avvises', $q$update public.memberships set status = 'active' where user_id = '00000000-0000-4000-8000-000000000109'$q$, 'CH013');
+select ch_test.err('Grense: Admin kan ikke heve grensen selv', $q$select public.set_member_limit('c0c0c0c0-0000-4000-8000-0000000000c1', 50, 'Vil ha flere brukere nå')$q$, '42501');
+
+-- Godta invitasjonen: personen var allerede talt, så antallet øker ikke (ingen dobbelttelling)
+set local role postgres;
+select ch_test.cnt('Grense: godta invitasjon ved 10/10 er lov', $q$select 1 where (public.accept_invitation(md5('grense-c') || md5('grense-c2'), 'https://test.invalid/auth/v1', 'sub-gny10', 'ny10@grense.invalid') ->> 'ok')::boolean$q$, 1);
+select ch_test.cnt('Grense: etter godtatt invitasjon fortsatt 10 (ikke 11)', $q$select 1 where app.member_count('c0c0c0c0-0000-4000-8000-0000000000c1') = 10$q$, 1);
+insert into public.invitations (email, church_id, role, token_hash, expires_at, created_by) values
+  ('gammel@grense.invalid', 'c0c0c0c0-0000-4000-8000-0000000000c1', 'user', md5('grense-d') || md5('grense-d2'), now() - interval '1 day', '00000000-0000-4000-8000-000000000100');
+select ch_test.cnt('Grense: utløpt invitasjon teller ikke', $q$select 1 where app.member_count('c0c0c0c0-0000-4000-8000-0000000000c1') = 10$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-ga","aal":"aal1"}';
+select ch_test.err('Grense: «Send på nytt» av utløpt invitasjon ved 10/10 avvises (ville telt igjen)', $q$select public.reissue_invitation((select id from public.invitations where email = 'gammel@grense.invalid'), md5('grense-i') || md5('grense-i2'))$q$, 'CH013');
+set local role postgres;
+
+-- Fjerne/deaktivere frigjør plass; da kan et deaktivert medlem aktiveres igjen
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-ga","aal":"aal1"}';
+select ch_test.rows('Grense: Admin deaktiverer et medlem (frigjør plass)', $q$update public.memberships set status = 'disabled' where user_id = '00000000-0000-4000-8000-000000000108' and church_id = 'c0c0c0c0-0000-4000-8000-0000000000c1'$q$, 1);
+select ch_test.rows('Grense: reaktivering når det er plass', $q$update public.memberships set status = 'active' where user_id = '00000000-0000-4000-8000-000000000109'$q$, 1);
+select ch_test.err('Grense: andre menigheters bruk er skjult', $q$select public.member_usage('c0c0c0c0-0000-4000-8000-0000000000c2')$q$, '42501');
+
+-- Stab ved grensen: direkte innmelding og godkjenning av kontoforespørsel avvises også
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Grense: add_membership ved grensen avvises (også for stab)', $q$select public.add_membership('00000000-0000-4000-8000-000000000110', 'c0c0c0c0-0000-4000-8000-0000000000c1')$q$, 'CH013');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Grense: godkjenning av kontoforespørsel til full menighet avvises', $q$select public.approve_account_request((select id from ch_test.grq), 'existing', null, 'c0c0c0c0-0000-4000-8000-0000000000c1', 'user', md5('grense-e') || md5('grense-e2'))$q$, 'CH013');
+set local role postgres;
+select ch_test.cnt('Grense: forespørselen er fortsatt åpen etter avvisningen', $q$select 1 from public.account_requests where email = 'sok@grense.invalid' and status = 'new'$q$, 1);
+set local role authenticated;
+select ch_test.ok('Grense: godkjenning med ny menighet er lov', $q$select public.approve_account_request((select id from ch_test.grq), 'new', 'Grense Ny', null, 'church_admin', md5('grense-g') || md5('grense-g2'))$q$);
+
+-- Overstyring: Developer/Moderator med MFA og begrunnelse, logget
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
+select ch_test.err('Grense: overstyring uten MFA avvises', $q$select public.set_member_limit('c0c0c0c0-0000-4000-8000-0000000000c1', 11, 'Særtilfelle avtalt med menigheten')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Grense: overstyring uten begrunnelse avvises', $q$select public.set_member_limit('c0c0c0c0-0000-4000-8000-0000000000c1', 11, 'kort')$q$, '22023');
+select ch_test.err('Grense: grensen kan ikke endres direkte i tabellen', $q$update public.churches set member_limit = 99 where id = 'c0c0c0c0-0000-4000-8000-0000000000c1'$q$, '42501');
+select ch_test.cnt('Grense: Moderator med MFA hever grensen til 11', $q$select 1 where (public.set_member_limit('c0c0c0c0-0000-4000-8000-0000000000c1', 11, 'Særtilfelle avtalt med menigheten') ->> 'limit')::int = 11$q$, 1);
+select ch_test.ok('Grense: etter overstyring kan nr. 11 legges til', $q$select public.add_membership('00000000-0000-4000-8000-000000000110', 'c0c0c0c0-0000-4000-8000-0000000000c1')$q$);
+set local role postgres;
+select ch_test.cnt('Grense: overstyringen er logget med begrunnelse og gammel/ny grense', $q$select 1 from public.audit_logs where action = 'church.member_limit' and actor_user_id = '00000000-0000-4000-8000-000000000002' and reason = 'Særtilfelle avtalt med menigheten' and meta = '{"old": 10, "new": 11}'::jsonb$q$, 1);
+
+-- Menighet over grensen fra før: ingen nye, men en eldre ventende invitasjon kan godtas
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Grense: over grensen fra før – ny innmelding avvises', $q$select public.add_membership('00000000-0000-4000-8000-000000000212', 'c0c0c0c0-0000-4000-8000-0000000000c2')$q$, 'CH013');
+select ch_test.err('Grense: over grensen fra før – ny invitasjon avvises', $q$select public.create_invitation('hny@grense.invalid', 'c0c0c0c0-0000-4000-8000-0000000000c2', 'user', md5('grense-h') || md5('grense-h2'), 7)$q$, 'CH013');
+set local role postgres;
+select ch_test.cnt('Grense: over grensen fra før – eldre ventende invitasjon kan godtas', $q$select 1 where (public.accept_invitation(md5('grense-f') || md5('grense-f2'), 'https://test.invalid/auth/v1', 'sub-hventer', 'hventer@grense.invalid') ->> 'ok')::boolean$q$, 1);
+select ch_test.cnt('Grense: over grensen fra før – fortsatt 13, ingen fjernet', $q$select 1 where app.member_count('c0c0c0c0-0000-4000-8000-0000000000c2') = 13$q$, 1);
+update public.memberships set status = 'disabled' where user_id = '00000000-0000-4000-8000-000000000200';
+select ch_test.err('Grense: under 13 men fortsatt over 10 – fortsatt ingen nye', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000212', 'c0c0c0c0-0000-4000-8000-0000000000c2')$q$, 'CH013');
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);

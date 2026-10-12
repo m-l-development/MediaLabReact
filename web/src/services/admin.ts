@@ -36,6 +36,8 @@ export interface SystemStatus { users: number; files: number; files_bytes: numbe
 export interface CleanupChurch { church_id: string; church_name: string; candidates: number; candidate_bytes: number; ready: number; ready_bytes: number; queue_pending: number; queue_failed: number; can_view: boolean }
 export interface CleanupFile { id: string; file_name: string; file_size: number; uploaded_at: string; former_member: string | null; removed_at: string; ready: boolean; reason: string | null }
 export interface StorageUsage { quota_bytes: number; used_bytes: number; system_free_bytes?: number | null }
+/** Brukergrense per menighet (docs/plan-brukergrense.md): aktive medlemmer + ventende invitasjoner. */
+export interface MemberUsage { count: number; limit: number; pending: number }
 export interface InviteResult { invitation: { email: string }; email_sent: boolean }
 export interface RemoveResult { admin_role_revoked?: boolean; active_memberships_left?: number }
 
@@ -117,6 +119,11 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     cleanupRetry: async (churchId: string | null) => call<{ storage_done: number; storage_failed: number }>('file.cleanup_retry', { church_id: churchId || null }),
     /** Menighetens kvote, brukt og ledig plass (medlemmer og stab; databasen avgjør). */
     storageUsage: async (churchId: string) => data().rpc<StorageUsage | null>('storage_usage', { p_church: churchId }),
+    /** Brukere mot grensen (medlemmer, Admin og stab). Grensen håndheves i databasen (CH013 → member_limit). */
+    memberUsage: async (churchId: string) => data().rpc<MemberUsage>('member_usage', { p_church: churchId }),
+    /** Overstyring: Developer/Moderator med MFA og begrunnelse; logges. */
+    setMemberLimit: async (churchId: string, limit: number, reason: string) =>
+      data().rpc('set_member_limit', { p_church: churchId, p_limit: limit, p_reason: reason }),
   }
   return s
 }

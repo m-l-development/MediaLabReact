@@ -45,6 +45,7 @@ export function dbError(e) {
   if (code === 'CH010') return { status: 409, error: 'account_exists' };            // e-postadressen har allerede en konto
   if (code === 'CH011') return { status: 409, error: 'settings_conflict' };          // grunnoppsettet er endret av en annen bruker
   if (code === 'CH012') return { status: 409, error: 'file_in_use' };                // filen brukes i grunnoppsettet eller som logo
+  if (code === 'CH013') return { status: 409, error: 'member_limit' };               // menigheten har nådd brukergrensen (docs/plan-brukergrense.md)
   if (code === '22023' || code === '23514' || code === '22P02') return { status: 400, error: 'invalid' };
   return { status: 502, error: 'backend_error' };
 }

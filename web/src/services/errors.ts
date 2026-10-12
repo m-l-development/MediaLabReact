@@ -25,6 +25,7 @@ const SQL_STATE: Record<string, string> = {
   CH010: 'has_account',
   CH011: 'settings_conflict',
   CH012: 'file_in_use',
+  CH013: 'member_limit',
   // som media-lab/src/services/errors.js
   '22023': 'invalid',
   '23514': 'invalid',

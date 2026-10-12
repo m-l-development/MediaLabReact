@@ -106,3 +106,15 @@ Gratis bivirkning: funksjonene trenger ingen egen telling – triggeren er enest
 **Tilbakeføring:** en ny migrering som fjerner de to triggerne og funksjonene; kolonnen `member_limit` kan bli stående. Ingen data går tapt.
 
 **Omfang:** migrering og databasetester ca. ½ dag; server og begge grensesnittene ca. ½ dag; samtidighetstest og dev-kontroll når nøkler og godkjenninger er på plass.
+
+## Gjennomføring (2026-10-12) og avvik fra planen
+
+**Bygget og testet lokalt** (ikke kjørt i connecthub-dev ennå): migreringen `supabase/migrations/20261018100000_member_limit.sql`, 30 nye databasetester i `supabase/tests/rls_test.sql`, server (`CH013 → 409 member_limit`), ny app (teller i «Ny invitasjon» og i menighetens innstillinger, sperret knapp, overstyring for stab), feilmelding i dagens app, og kontrollfiler for dev i `supabase/checks/member_limit_*.sql`.
+
+**Avvik, med begrunnelse:**
+
+1. **«Send på nytt» av en utløpt invitasjon var et hull.** Invitasjoner får status «utløpt» først når noen prøver å bruke dem; en utløpt invitasjon står ofte som «ventende», og `reissue_invitation` forlenger bare utløpsdatoen. Triggeren på `invitations` slår derfor også til ved endret `expires_at`, og sjekker grensen når en invitasjon går fra å ikke telle til å telle. Egen databasetest.
+2. **Aktivt medlemskap teller uansett kontostatus.** Ellers kunne stab låse opp en sperret konto og komme over grensen uten kontroll.
+3. **`accept_invitation` er ikke endret.** Å godta en invitasjon øker aldri antallet (personen er allerede talt), så triggeren slipper den alltid gjennom; serveren oversetter uansett CH013 til `member_limit`.
+4. **Dagens app viser bare feilmeldingen, ikke telleren.** Telleren og sperret knapp finnes i den nye appen. Dagens admin brukes bare i overgangen, og databasen stopper nr. 11 uansett hvilken app som brukes.
+5. **Grensen kan ikke endres direkte i tabellen** – kolonnerettighetene på `churches` gjelder bare navn og status, så bare `set_member_limit` (stab med MFA og begrunnelse) kan endre den. Egen databasetest.

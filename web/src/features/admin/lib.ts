@@ -19,6 +19,7 @@ const ERR: Record<string, string> = {
   private_not_allowed: 'Private opplastinger er ikke lenger mulig. Bildet må deles med menigheten.',
   file_in_use: 'Bildet brukes i menighetens grunnoppsett (Loop Studio eller Thumbnail Studio) eller som menighetens logo, og kan ikke slettes. Fjern det derfra først.',
   already_member_elsewhere: 'Brukeren er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen – fjern brukeren fra den andre menigheten først.',
+  member_limit: 'Menigheten har nådd grensen for antall brukere (aktive medlemmer og ventende invitasjoner). Fjern en bruker eller trekk tilbake en invitasjon før du inviterer flere. I særtilfeller kan Developer eller Moderator heve grensen.',
   role_blocked_memberships: 'Rollen kan ikke fjernes ennå: brukeren har flere aktive medlemskap. Som User eller Admin kan brukeren bare være medlem av én menighet – fjern medlemskap først.',
   cleanup_not_ready: 'En eller flere av filene kan ikke ryddes (de er i bruk, eller eieren er medlem igjen). Ingenting ble slettet. Last siden på nytt.',
   cleanup_changed: 'Utvalget er endret siden du bekreftet. Ingenting ble slettet. Last siden på nytt og velg igjen.',

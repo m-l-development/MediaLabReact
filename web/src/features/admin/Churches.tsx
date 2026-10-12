@@ -3,6 +3,7 @@ import { DEFAULT_QUOTA_MB, type Church } from '../../services/admin'
 import { downloadJson } from '../../services/account'
 import { clearMe } from '../../services/auth/me-cache'
 import { ChurchLogo, Head } from './common'
+import { MemberLimitCard, MemberUsageCard } from './MemberLimit'
 import { FilesView } from './Folders'
 import { useAdmin } from './context'
 import { SubsView } from './Subs'
@@ -272,6 +273,7 @@ function ChurchSettings({ church }: { church: Church }) {
           <p className="ch-muted">{t('Alle kvoteendringer loggføres med gammel og ny verdi. Ingen filer slettes om kvoten senkes – bare nye opplastinger stoppes.')}</p>
         </Card>
       )}
+      {staff ? <MemberLimitCard churchId={church.id} /> : canManage(church.id) && <MemberUsageCard churchId={church.id} />}
       {canManage(church.id) && (
         <Card title="Eksport">
           <p className="ch-muted">{t('Last ned menighetens data (medlemmer, invitasjoner, filer med lenker som virker i 1 time, samarbeid og logg) som JSON.')}</p>
