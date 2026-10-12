@@ -9,7 +9,7 @@ import { createFilesService, type FilesService } from '../services/files'
 import { createChurchSettings, type ChurchSettingsService } from '../services/shared-setup'
 import { createFeedbackService, type FeedbackService } from '../services/feedback'
 import { createAccountService, type AccountService } from '../services/account'
-import { createRequestService, type RequestService } from '../services/requests'
+import { createRequestInbox, createRequestService, type RequestInbox, type RequestService } from '../services/requests'
 import { createAdminService, type AdminService } from '../services/admin'
 import { createCollabService, type CollabService } from '../services/collab'
 import type { Router } from './router'
@@ -31,6 +31,8 @@ export interface Services {
   account: AccountService
   /** Forespørsel om konto før innlogging (AUTH-07). */
   requests: RequestService
+  /** Innboksen for forespørsler om konto (ADM-06). */
+  requestInbox: RequestInbox
   /** ConnectHub Admin (ADM-*). */
   admin: AdminService
   /** Samarbeidsgrupper, abonnement og menighetens livsløp. */
@@ -48,7 +50,7 @@ export function createServices(router: Router): Services {
     dev: import.meta.env.DEV,
     present: (me) => presentTestRole(me),
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)

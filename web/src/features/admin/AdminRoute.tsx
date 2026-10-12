@@ -4,9 +4,11 @@ import { AdminPage } from './AdminPage'
 import { ChurchDetail, ChurchesView, InvitesView } from './Churches'
 import { ChurchPicker, Head } from './common'
 import { useAdmin } from './context'
+import { CleanupView } from './Cleanup'
 import { FeedbackView } from './Feedback'
 import { LinksView } from './Links'
 import { LogView } from './Log'
+import { RequestsView } from './Requests'
 import { SubsView } from './Subs'
 
 /**
@@ -29,6 +31,9 @@ const SECTIONS: Partial<Record<string, (p: { id?: string | undefined; sub?: stri
   abonnement: () => <SubsSection />,
   logg: () => <LogSection />,
   tilbakemeldinger: ({ id }) => <FeedbackView selected={id} />,
+  // utvalget nullstilles når en annen menighet velges
+  opprydning: ({ id }) => <CleanupView key={id ?? ''} churchId={id} />,
+  foresporsler: ({ id }) => <RequestsView selected={id} />,
 }
 
 export default function AdminRoute({ me, testRole }: { me: Me; testRole: string | null }) {

@@ -33,6 +33,8 @@ export interface RoleRow { id: string; user_id: string; role: string; church_id:
 export interface Invitation { id: string; email: string; church_id: string | null; role: string; status: string; expires_at: string; created_at: string; accepted_at: string | null }
 export interface AuditRow { id: string; actor_user_id?: string | null; action: string; target_type: string | null; target_id?: string | null; church_id: string | null; reason?: string | null; meta: Record<string, unknown> | null; created_at: string }
 export interface SystemStatus { users: number; files: number; files_bytes: number; audit_last_24h: number; [k: string]: unknown }
+export interface CleanupChurch { church_id: string; church_name: string; candidates: number; candidate_bytes: number; ready: number; ready_bytes: number; queue_pending: number; queue_failed: number; can_view: boolean }
+export interface CleanupFile { id: string; file_name: string; file_size: number; uploaded_at: string; former_member: string | null; removed_at: string; ready: boolean; reason: string | null }
 export interface StorageUsage { quota_bytes: number; used_bytes: number; system_free_bytes?: number | null }
 export interface InviteResult { invitation: { email: string }; email_sent: boolean }
 export interface RemoveResult { admin_role_revoked?: boolean; active_memberships_left?: number }
@@ -107,6 +109,12 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     audit: async (churchId: string | null) =>
       data().select<AuditRow>('audit_logs', { columns: 'id, actor_user_id, action, target_type, target_id, church_id, reason, meta, created_at', ...(churchId ? { eq: { church_id: churchId } } : {}), order: 'created_at', desc: true, limit: 200 }),
     systemStatus: async () => data().rpc<SystemStatus>('system_status'),
+    /** Opprydning (ADM-13): private filer fra fjernede medlemmer. Bare metadata; databasen og serveren kontrollerer alt. */
+    cleanupOverview: async () => data().rpc<CleanupChurch[]>('cleanup_overview'),
+    cleanupCandidates: async (churchId: string) => data().rpc<CleanupFile[]>('cleanup_candidates', { p_church: churchId }),
+    cleanup: async (churchId: string, ids: string[], expectedCount: number, expectedBytes: number) =>
+      call<{ count: number; bytes: number; storage_failed?: number }>('file.cleanup', { church_id: churchId, ids, expected_count: expectedCount, expected_bytes: expectedBytes }),
+    cleanupRetry: async (churchId: string | null) => call<{ storage_done: number; storage_failed: number }>('file.cleanup_retry', { church_id: churchId || null }),
     /** Menighetens kvote, brukt og ledig plass (medlemmer og stab; databasen avgjør). */
     storageUsage: async (churchId: string) => data().rpc<StorageUsage | null>('storage_usage', { p_church: churchId }),
   }

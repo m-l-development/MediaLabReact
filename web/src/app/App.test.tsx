@@ -1,7 +1,7 @@
 import { createAdminService } from '../services/admin'
 import { createCollabService } from '../services/collab'
 import { createAccountService } from '../services/account'
-import { createRequestService } from '../services/requests'
+import { createRequestInbox, createRequestService } from '../services/requests'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { createAuthService } from '../services/auth/auth-service'
@@ -16,7 +16,7 @@ function setup(path = '/app/') {
   history.replaceState(null, '', path)
   const router = createRouter()
   const auth = createAuthService({ auth: null, data: null, dev: true })
-  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), churchSettings: createChurchSettings(null), feedback: createFeedbackService(null), account: createAccountService({ auth: null, data: null, token: async () => null }), requests: createRequestService(async () => { throw new Error('ingen server') }), admin: createAdminService(null, async () => null), collab: createCollabService(null, async () => null), router }
+  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), churchSettings: createChurchSettings(null), feedback: createFeedbackService(null), account: createAccountService({ auth: null, data: null, token: async () => null }), requests: createRequestService(async () => { throw new Error('ingen server') }), admin: createAdminService(null, async () => null), collab: createCollabService(null, async () => null), requestInbox: createRequestInbox(null, async () => null), router }
   render(<App services={services} />)
   return services
 }
