@@ -55,16 +55,24 @@ Uten hemmelig nøkkel gir alle disse `not_configured`. Innlogging, lesing av egn
 - SMTP-verdiene hvis e-post skal prøves lokalt (punkt 3).
 - Testkontoer: vanlig bruker, Admin, Developer (med MFA) og en konto som kan slettes.
 
-## Verifisere innlogging og admin automatisk (bare lesing)
+## Verifisere innlogging, admin, tilgang og serverhandlinger (bare lesing)
 
-`web/e2e-dev/admin-dev.spec.ts` logger inn på dev-serveren (5180, ekte connecthub-dev) med en testkonto **uten MFA**, åpner alle admin-seksjonene på PC og mobil, og skriver en tabell med overskrift, feilmeldinger i siden, konsollfeil og mislykkede kall. Den trykker ingen knapper som endrer data, og logger ut til slutt. Den er ikke med i den vanlige kontrollen.
+Tre tester i `web/e2e-dev/` (ikke med i den vanlige kontrollen). Alle logger inn på dev-serveren (5180, ekte connecthub-dev) med en testkonto **uten MFA**, trykker ingen knapper som endrer data, og skriver aldri ut passord, token eller persondata – bare antall, statuskoder og feilkoder.
+
+| Test | Hva den viser |
+|---|---|
+| `admin-dev.spec.ts` | Alle admin-seksjonene på PC og mobil: overskrift, feilmeldinger i siden, konsollfeil, mislykkede kall; utlogging |
+| `access-dev.spec.ts` | At tilgang **håndheves i databasen**, ikke bare skjules: kaller databasen direkte med brukerens økt (stabsfunksjoner, eksport av egen og fremmed menighet, roller og invitasjoner) og sammenligner med reglene i migreringene |
+| `server-dev.spec.ts` | Serverhandlingene som bare leser (`request.form`, `mail.status`, `church.export` egen/fremmed, uten innlogging). Krever den hemmelige nøkkelen i terminalen som startet dev-serveren; ellers hoppes den over med beskjed |
+
+Kjør én gang per konto (vanlig bruker, deretter Admin):
 
 ```powershell
-cd F:\ReactProjects\MediaLabReact\web
+cd F:ReactProjectsMediaLabReactweb
 $env:ML_DEV_EMAIL = "ch-test-…@example.com"   # testkonto, ikke en ekte bruker
 $s = Read-Host "Passord" -AsSecureString
 $env:ML_DEV_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
 npx playwright test -c e2e-dev
 ```
 
-Skjermbilder havner i `web/test-results/dev/` (ignorert av Git). Uten variablene hoppes testen over.
+Resultattabellene skrives i terminalen og ligger som vedlegg i rapporten; skjermbilder i `web/test-results/dev/` (ignorert av Git). Testene gjør ingen sletting, sender ingen e-post og lager ingen invitasjoner – det krever en egen testkonto og din uttrykkelige bekreftelse.
