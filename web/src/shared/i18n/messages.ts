@@ -131,6 +131,9 @@ export const no = {
   'media.import.offer': 'Den delte mappen i dagens Media Lab har {count} fil(er) som ikke er hentet hit.',
   'media.import.run': 'Hent filene',
   'media.import.done': '{imported} fil(er) hentet. {failed} feilet. Filene i dagens app er urørt.',
+  'media.usage': '{count} fil(er) · {size} i nettleseren. Ingenting slettes automatisk.',
+  'media.large': 'Dine medier er blitt stor ({count} filer, {size}). Det kan gjøre nettleseren tregere og fylle lagringsplassen. Fjern filer du ikke trenger – ingenting slettes automatisk.',
+  'media.quota': 'Nettleseren har brukt {pct} % av plassen den gir Media Lab. Fjern filer du ikke trenger – ingenting slettes automatisk.',
 
   'workspace.error.title': 'Lagringen i nettleseren er ikke tilgjengelig',
   'workspace.error.body': 'Media Lab lagrer prosjekter og medier i nettleseren. Prøv et vanlig vindu (ikke privat), eller gi nettstedet tillatelse til lagring.',
@@ -642,6 +645,9 @@ export const en: Messages = {
   'media.import.offer': 'The shared folder in the current Media Lab has {count} file(s) that have not been brought over.',
   'media.import.run': 'Bring them over',
   'media.import.done': '{imported} file(s) brought over. {failed} failed. The files in the current app are untouched.',
+  'media.usage': '{count} file(s) · {size} in the browser. Nothing is deleted automatically.',
+  'media.large': 'Your media has grown large ({count} files, {size}). This can slow the browser down and fill up storage. Remove files you no longer need – nothing is deleted automatically.',
+  'media.quota': 'The browser has used {pct}% of the space it gives Media Lab. Remove files you no longer need – nothing is deleted automatically.',
 
   'workspace.error.title': 'Browser storage is not available',
   'workspace.error.body': 'Media Lab stores projects and media in the browser. Try a normal window (not private), or allow the site to store data.',

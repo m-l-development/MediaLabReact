@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { useServices } from '../../app/services'
 import { TOOLS } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
-import { describe } from './format'
+import { describe, formatBytes, librarySummary, type LibrarySummary } from './format'
 import type { Asset, AssetKind } from '../../domain/asset'
 import { ServiceError } from '../../services/errors'
 import type { ImportResult } from '../../services/legacy-import/share-import'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import type { ToolId } from '../../domain/tool'
+import { subscribeSettled } from '../../shared/lib/store'
 import { useAssetUrl } from '../../shared/media/useAssetUrl'
 import { Button } from '../../shared/ui/Button'
 import { Icon } from '../../shared/ui/Icon'
@@ -33,6 +34,7 @@ export function MediaLibrary() {
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState(0)
+  const [summary, setSummary] = useState<LibrarySummary | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
   // Henter på nytt når filteret endres og når biblioteket endres (assets.revision).
@@ -42,12 +44,27 @@ export function MediaLibrary() {
       assets.query({ ...(filter === 'all' ? {} : { kinds: [filter] }), text }).then((rows) => live && setItems(rows))
     }
     load()
-    const unsubscribe = assets.revision.subscribe(load)
+    const unsubscribe = subscribeSettled(assets.revision, load)
     return () => {
       live = false
       unsubscribe()
     }
   }, [assets, filter, text])
+
+  // Lagringsbruk og varsel ved stor samling (SHR-01: ingenting slettes automatisk)
+  useEffect(() => {
+    let live = true
+    const load = () => {
+      const est = navigator.storage?.estimate ? navigator.storage.estimate().catch(() => undefined) : Promise.resolve(undefined)
+      Promise.all([assets.query(), est]).then(([all, e]) => live && setSummary(librarySummary(all, e)), () => undefined)
+    }
+    load()
+    const unsubscribe = subscribeSettled(assets.revision, load)
+    return () => {
+      live = false
+      unsubscribe()
+    }
+  }, [assets])
 
   useEffect(() => {
     let live = true
@@ -55,7 +72,7 @@ export function MediaLibrary() {
       shareImport.pending().then((n) => live && setPending(n), () => live && setPending(0))
     }
     load()
-    const unsubscribe = assets.revision.subscribe(load)
+    const unsubscribe = subscribeSettled(assets.revision, load)
     return () => {
       live = false
       unsubscribe()
@@ -137,6 +154,17 @@ export function MediaLibrary() {
           <Button size="small" onClick={() => void runImport()} disabled={busy}>{t('media.import.run')}</Button>
         </div>
       )}
+
+      {summary?.warn && (
+        <div className={styles.banner} role="status" data-media-warn={summary.warn}>
+          <span>
+            {summary.warn === 'quota'
+              ? t('media.quota', { pct: Math.round((summary.quotaShare ?? 0) * 100) })
+              : t('media.large', { count: summary.count, size: formatBytes(summary.bytes) })}
+          </span>
+        </div>
+      )}
+      {summary && summary.count > 0 && <p className={styles.usage} data-media-usage="">{t('media.usage', { count: summary.count, size: formatBytes(summary.bytes) })}</p>}
 
       <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label={t('media.filter')}>

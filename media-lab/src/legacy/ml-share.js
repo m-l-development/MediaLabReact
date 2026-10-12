@@ -1,7 +1,7 @@
 /* Delt mappe mellom verktøyene: send, importer, kopier og lim inn. Lagres lokalt i nettleseren (IndexedDB). */
 (function () {
   if (window.MLShare) return;
-  var DB = 'medialab-share', ST = 'items', MAX_ITEMS = 60, MAX_SIZE = 2e9;
+  var DB = 'medialab-share', ST = 'items', MAX_SIZE = 2e9;
   var T = function (s) { return window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s; };
   var OK = /^(image\/(png|jpeg|webp|gif)|video\/(mp4|webm|quicktime)|audio\/(mpeg|mp3|wav|x-wav|wave|mp4|x-m4a|aac|ogg|webm|flac))$/;
   var kindOf = function (t) { return /^image\//.test(t) ? 'image' : /^video\//.test(t) ? 'video' : /^audio\//.test(t) ? 'audio' : ''; };
@@ -25,7 +25,7 @@
     if (!blob || !OK.test(blob.type || '') || blob.size > MAX_SIZE) throw new Error('type');
     var id = 's-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), th = await thumbOf(blob);
     await tx('readwrite', function (s) { return s.put({ id: id, name: clean(name), type: blob.type, size: blob.size, from: String(from || '').slice(0, 40), created: Date.now(), thumb: th, blob: blob }); });
-    var all = await list(); if (all.length > MAX_ITEMS) await Promise.all(all.slice(MAX_ITEMS).map(function (x) { return del(x.id); }));
+    /* Ingen automatisk sletting av de eldste over 60 lenger (godkjent 2026-10-12): filene skal kunne hentes over til Dine medier i den nye appen. Brukeren sletter selv i velgeren. */
     return id;
   }
   function list() { return tx('readonly', function (s) { return s.getAll(); }).then(function (a) { return (a || []).sort(function (x, y) { return y.created - x.created; }); }); }

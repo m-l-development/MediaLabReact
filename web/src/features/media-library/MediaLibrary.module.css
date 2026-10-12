@@ -221,3 +221,10 @@
   border-color: var(--color-border-strong);
   color: var(--color-text-strong);
 }
+
+/* Lagringsbruk (SHR-01): alltid synlig, dempet */
+.usage {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
