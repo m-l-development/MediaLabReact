@@ -1,4 +1,5 @@
 import { hasWebGpu, loadTransformers, progressTracker, type RawImageLike, type SamInputs, type SamModelLike, type SamProcessorLike, type TransformersLib } from '../../../services/ai/transformers'
+import { localStore } from '../../../shared/lib/storage'
 import { isDegenerate, type Mask } from './mask'
 import { alphaAtSize, makeCanvas, toBlob } from './raster'
 
@@ -10,6 +11,46 @@ export type ModelKey = keyof typeof MODELS
 type Pipe = ((input: string) => Promise<RawImageLike | RawImageLike[]>) & { device?: string; dtype?: string; dispose?: () => Promise<void> }
 
 export type Phase = 'model' | 'run' | 'analyze' | 'seg'
+
+/** Modeller der WebGPU har feilet på denne maskinen (TB-7BF5C1): neste gang går vi rett til WASM uten å laste ned GPU-filen først. */
+export const GPU_FAIL_KEY = 'ml.isolate.gpuFail'
+const GPU_FAIL_DAYS = 30
+/** En GPU-kjøring som ikke svarer innen dette, regnes som feilet, og WASM brukes i stedet (ellers hang verktøyet for alltid). */
+export const GPU_RUN_TIMEOUT_MS = 90_000
+
+function readGpuFails(): Partial<Record<ModelKey, number>> {
+  try {
+    const v: unknown = JSON.parse(localStore.get(GPU_FAIL_KEY) ?? '{}')
+    return v && typeof v === 'object' ? (v as Partial<Record<ModelKey, number>>) : {}
+  } catch {
+    return {}
+  }
+}
+
+function gpuFailed(key: ModelKey): boolean {
+  const at = readGpuFails()[key]
+  return typeof at === 'number' && Date.now() - at < GPU_FAIL_DAYS * 864e5
+}
+
+function markGpuFailed(key: ModelKey): void {
+  localStore.set(GPU_FAIL_KEY, JSON.stringify({ ...readGpuFails(), [key]: Date.now() }))
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms)
+    p.then(
+      (v) => {
+        clearTimeout(t)
+        resolve(v)
+      },
+      (e: unknown) => {
+        clearTimeout(t)
+        reject(e instanceof Error ? e : new Error(String(e)))
+      },
+    )
+  })
+}
 
 export interface SamPrompt {
   points?: { x: number; y: number; label: 0 | 1 }[]
@@ -25,10 +66,22 @@ export class Segmenter {
   private sam: { model: SamModelLike; proc: SamProcessorLike } | null = null
   private embedding: { src: HTMLCanvasElement; inputs: SamInputs; emb: Record<string, unknown> } | null = null
 
-  private async pipe(T: TransformersLib, key: ModelKey, onPct: (n: number) => void, wasmOnly: boolean): Promise<Pipe> {
+  /** Nedlastinger som pågår: et nytt klikk, nytt bilde eller bytte av modus venter på den samme i stedet for å starte en ny. */
+  private loading = new Map<string, Promise<Pipe>>()
+
+  private pipe(T: TransformersLib, key: ModelKey, onPct: (n: number) => void, wasmOnly: boolean): Promise<Pipe> {
     const cached = this.pipes[key]
-    if (cached && !(wasmOnly && cached.device !== 'wasm')) return cached
-    const gpu = !wasmOnly && (await hasWebGpu())
+    if (cached && !(wasmOnly && cached.device !== 'wasm')) return Promise.resolve(cached)
+    const id = `${key}:${wasmOnly ? 'wasm' : 'any'}`
+    const running = this.loading.get(id)
+    if (running) return running
+    const p = this.loadPipe(T, key, onPct, wasmOnly).finally(() => this.loading.delete(id))
+    this.loading.set(id, p)
+    return p
+  }
+
+  private async loadPipe(T: TransformersLib, key: ModelKey, onPct: (n: number) => void, wasmOnly: boolean): Promise<Pipe> {
+    const gpu = !wasmOnly && !gpuFailed(key) && (await hasWebGpu())
     const tries: [string, string][] = gpu ? [['webgpu', key === 'fine' ? 'fp16' : 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']]
     let err: unknown = null
     for (const [device, dtype] of tries) {
@@ -40,6 +93,7 @@ export class Segmenter {
         return p
       } catch (e) {
         err = e
+        if (device === 'webgpu') markGpuFailed(key)
       }
     }
     throw err ?? new Error('pipeline')
@@ -65,13 +119,16 @@ export class Segmenter {
     const url = URL.createObjectURL(await toBlob(src))
     try {
       let a: Mask | null = null
+      const onGpu = pipe.device !== 'wasm'
       try {
-        a = await this.infer(pipe, url, src.width, src.height)
+        const run = this.infer(pipe, url, src.width, src.height)
+        a = onGpu ? await withTimeout(run, GPU_RUN_TIMEOUT_MS) : await run
         if (pipe.dtype === 'fp16' && isDegenerate(a)) a = null
       } catch (e) {
-        if (pipe.device === 'wasm') throw e
+        if (!onGpu) throw e
       }
       if (!a) {
+        markGpuFailed(key)
         onPhase('model')
         pipe = await this.pipe(T, key, onPct, true)
         onPhase('run')
@@ -181,6 +238,7 @@ export class Segmenter {
   dispose(): void {
     for (const p of Object.values(this.pipes)) void p?.dispose?.().catch(() => undefined)
     this.pipes = {}
+    this.loading.clear()
     this.sam = null
     this.embedding = null
   }
