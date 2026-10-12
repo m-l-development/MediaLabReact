@@ -52,6 +52,9 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | IS-03, IS-04, IS-06, IS-07 | AI-modellene i Isolate Subject | Implementert | Ekte Chrome med nett; TB-7BF5C1: Objekt byttet fra BiRefNet_lite (feilet i Chrome 154) til ormbg; React-versjonen kjørt automatisk i ekte Chrome med ekte modeller 2026-10-12 (se testlogg); dagens app ikke kjørt (krever innlogging), ikke manuelt verifisert av bruker |
 | TS-10, PD-10 | AI-utklipp i Thumbnail og Photo | Implementert | Som over |
 | PD-17, SHR-04 | Fellesmappe som bildekilde | Blokkert | Innlogging mot ConnectHub |
+| SHR-01 | Delt mappe: dagens app sletter de eldste filene over 60 automatisk; Dine medier sletter aldri automatisk | Beslutning | Bevisst avvik (originaler slettes aldri uten brukeren), venter på din godkjenning |
+| SHR-02 | «Send til» direkte fra Photo Design, Thumbnail Studio og Motion design (manglet; bare via Dine medier) | Testet | «Bruk i …» lagt til, E2E PC/mobil 2026-10-12 |
+| SHR-07 | Felles grunnoppsett ved samtidige endringer (versjon, sammenslåing) | Blokkert | Enhetstestet med falsk tjeneste; mot connecthub-dev krever to innloggede testkontoer |
 | LE-28, LE-27 | Loop Studio: MP4 i 4K, stående format og opptak i sanntid | Testet | E2E, størrelsen kontrollert i filen |
 | LE-03 | Loop Studio: ukeprogram fra bilde (tekstgjenkjenning) | Testet | E2E med et generert bilde; et fotografi av et ekte program bør prøves manuelt |
 | LE-12, LE-13 | Loop Studio: video på slide og grunnvideo | Testet | E2E med WebM laget i nettleseren; lagres bare lokalt |

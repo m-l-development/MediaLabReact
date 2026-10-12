@@ -1,6 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState, type PointerEvent as RPE } from 'react'
+import type { ToolId } from '../../domain/tool'
 import { FillEditor } from '../../shared/fill/FillEditor'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type Interaction, type PhotoController, type PState, type Pt } from './controller'
@@ -16,7 +17,9 @@ interface EditorProps {
   S: PState
   tx: Tx
   pickFile: (replace?: string) => void
-  onExport: (kind: 'download' | 'copy' | 'media') => void
+  onExport: (kind: 'download' | 'copy' | 'media', to?: ToolId) => void
+  /** «Bruk i …» (SHR-02): verktøy som kan ta imot bildet. */
+  sendTo?: { id: ToolId; label: string }[]
 }
 
 /** Følger én peker til den slippes (flytt, ramme, håndtak, pensel). */
@@ -123,6 +126,11 @@ export function Editor(p: EditorProps) {
               <div className={s.row2}>
                 <button type="button" className={s.pillDark} onClick={() => onExport('copy')}>{tx('Kopier bilde')}</button>
                 <button type="button" className={s.pillDark} onClick={() => onExport('media')}>{tx('Lagre i Dine medier')}</button>
+              </div>
+            )}
+            {S.exp.fmt !== 'pdf' && !!p.sendTo?.length && (
+              <div className={s.row2}>
+                {p.sendTo.map((x) => <button key={x.id} type="button" className={s.pillDark} disabled={S.busy === 'exp'} onClick={() => onExport('media', x.id)}>{x.label}</button>)}
               </div>
             )}
           </div>

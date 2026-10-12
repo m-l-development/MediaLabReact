@@ -1,12 +1,15 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState } from 'react'
+import { sendTargets } from '../../app/send-targets'
 import { useServices } from '../../app/services'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
+import type { ToolId } from '../../domain/tool'
 import { SharedSetup } from '../../services/shared-setup'
 import { useLang, useT } from '../../shared/i18n/i18n'
+import { toolTitleKey } from '../../shared/i18n/messages'
 import { userStore } from '../../infrastructure/local-user'
 import { useStore } from '../../shared/lib/store'
 import { fitUpload } from '../../shared/media/upload-fit'
@@ -46,6 +49,8 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   const t = useT()
   const lang = useLang()
   const services = useServices()
+  // «Bruk i …» (SHR-02): eksporten lagres i Dine medier og åpnes i det andre verktøyet
+  const sendTo = sendTargets('thumbnail-studio', 'image').map((tool) => ({ id: tool.id, label: t('share.useIn', { tool: t(toolTitleKey(tool.id)) }) }))
   const { files, auth, churchSettings, router } = services
   const ws = useWorkspace()
   const { assets, projects, settings, userId } = ws
@@ -344,11 +349,12 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
     }
   }
 
-  async function saveExportToMedia() {
+  async function saveExportToMedia(to?: ToolId) {
     try {
       const b = await c.exportBlob()
-      await assets.register(b, { name: c.exportName(), origin: { type: 'generated', tool: 'thumbnail-studio' } })
-      c.flash('Bildet er lagret i Dine medier.')
+      const a = await assets.register(b, { name: c.exportName(), origin: { type: 'generated', tool: 'thumbnail-studio' } })
+      if (to) void router.navigate({ name: 'tool', tool: to, query: { asset: a.id } })
+      else c.flash('Bildet er lagret i Dine medier.')
     } catch {
       c.flash('Eksporten feilet. Prøv 1080p eller JPG.')
     }
@@ -363,7 +369,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       {S.ready && S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} images={images} renderer={renderer} pickFile={pickFile} />}
 
       {S.newOpen && <NewDialog c={c} S={S} tx={tx} />}
-      {S.exp && <ExportDialog c={c} S={S} tx={tx} onDownload={() => void doExport()} onCopy={() => void copyExport()} onSaveMedia={() => void saveExportToMedia()} />}
+      {S.exp && <ExportDialog c={c} S={S} tx={tx} onDownload={() => void doExport()} onCopy={() => void copyExport()} onSaveMedia={(to) => void saveExportToMedia(to)} sendTo={sendTo} />}
       {S.save && <SaveDialog c={c} S={S} tx={tx} />}
       {S.cropId && <CropDialog c={c} S={S} tx={tx} images={images} />}
       {S.lcOpen && <LayoutDialog c={c} S={S} tx={tx} />}

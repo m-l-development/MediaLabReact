@@ -1,9 +1,12 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState } from 'react'
+import { sendTargets } from '../../app/send-targets'
+import { useServices } from '../../app/services'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
+import type { ToolId } from '../../domain/tool'
 import { userStore } from '../../infrastructure/local-user'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
@@ -15,7 +18,8 @@ import { Home } from './Home'
 import { PdRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
 import { backupPhoto, importLegacyPhoto, restorePhoto } from './transfer'
-import { useLang } from '../../shared/i18n/i18n'
+import { useLang, useT } from '../../shared/i18n/i18n'
+import { toolTitleKey } from '../../shared/i18n/messages'
 import s from './PhotoDesign.module.css'
 
 const M_ID = (src: string) => src.slice(2) as AssetId
@@ -36,6 +40,10 @@ function download(b: Blob, name: string) {
 export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   const tx = useTx()
   const lang = useLang()
+  const tApp = useT()
+  const { router } = useServices()
+  // «Bruk i …» (SHR-02): resultatet lagres i Dine medier og åpnes i det andre verktøyet
+  const sendTo = sendTargets('photo-design', 'image').map((tool) => ({ id: tool.id, label: tApp('share.useIn', { tool: tApp(toolTitleKey(tool.id)) }) }))
   const { assets, projects, userId } = useWorkspace()
   const langRef = useRef(lang)
   useEffect(() => {
@@ -222,7 +230,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
     }
   }
 
-  async function onExport(kind: 'download' | 'copy' | 'media') {
+  async function onExport(kind: 'download' | 'copy' | 'media', to?: ToolId) {
     if (c.s.busy) return
     if (kind === 'download' && c.s.exp.fmt === 'pdf') {
       c.ui({})
@@ -253,8 +261,9 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
           c.flash('Nettleseren tillot ikke kopiering.')
         }
       } else {
-        await assets.register(b, { name: c.fname(), origin: { type: 'generated', tool: 'photo-design' } })
-        c.flash('Bildet er lagret i Dine medier.')
+        const a = await assets.register(b, { name: c.fname(), origin: { type: 'generated', tool: 'photo-design' } })
+        if (to) void router.navigate({ name: 'tool', tool: to, query: { asset: a.id } })
+        else c.flash('Bildet er lagret i Dine medier.')
       }
     } catch {
       c.flash('Eksporten feilet.')
@@ -309,7 +318,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
           }}
           onRestore={() => restoreInput.current?.click()} />
       )}
-      {S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} pickFile={pickFile} onExport={(k) => void onExport(k)} />}
+      {S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} pickFile={pickFile} onExport={(k, to) => void onExport(k, to)} sendTo={sendTo} />}
       {picker?.kind === 'media' && (
         <AssetPicker kinds={['image']} onClose={() => c.closePicker()} onPick={(a) => {
           c.closePicker()

@@ -1,6 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import type { ToolId } from '../../domain/tool'
 import { useLang } from '../../shared/i18n/i18n'
 import { type CropBox, type PanelKey, type State, type ThumbController } from './controller'
 import { COMBOS } from './engine/colors'
@@ -81,7 +82,7 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
   )
 }
 
-export function ExportDialog({ c, S, tx, onDownload, onCopy, onSaveMedia }: { c: ThumbController; S: State; tx: Tx; onDownload: () => void; onCopy: () => void; onSaveMedia: () => void }) {
+export function ExportDialog({ c, S, tx, onDownload, onCopy, onSaveMedia, sendTo = [] }: { c: ThumbController; S: State; tx: Tx; onDownload: () => void; onCopy: () => void; onSaveMedia: (to?: ToolId) => void; sendTo?: { id: ToolId; label: string }[] }) {
   const en = useLang() === 'en'
   const tooBig = S.expSize != null && S.expSize > 2 * 1024 * 1024
   return (
@@ -127,7 +128,9 @@ export function ExportDialog({ c, S, tx, onDownload, onCopy, onSaveMedia }: { c:
       <div className={s.modalFootRight}>
         <button type="button" className={s.textBtn} onClick={() => c.closeExport()}>{tx('Avbryt')}</button>
         <button type="button" className={s.pillSm} disabled={S.expBusy} onClick={onCopy}>{tx('Kopier')}</button>
-        <button type="button" className={s.pillSm} disabled={S.expBusy} onClick={onSaveMedia}>{tx('Lagre i Dine medier')}</button>
+        <button type="button" className={s.pillSm} disabled={S.expBusy} onClick={() => onSaveMedia()}>{tx('Lagre i Dine medier')}</button>
+        {/* «Bruk i …» (SHR-02): lagres i Dine medier og åpnes i det andre verktøyet */}
+        {sendTo.map((x) => <button key={x.id} type="button" className={s.pillSm} disabled={S.expBusy} onClick={() => onSaveMedia(x.id)}>{x.label}</button>)}
         <button type="button" className={s.pillPrimary} disabled={S.expBusy} onClick={onDownload}>
           {S.expBusy ? tx('Lager bildet …') : S.expSize != null ? `${tx('Last ned')} · ${mb(S.expSize, en)}` : tx('Last ned')}
         </button>

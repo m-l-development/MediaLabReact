@@ -105,3 +105,28 @@ test('Lagre i Dine medier: originalen og den nye versjonen, uten ny opplasting i
   await expect(page).toHaveURL(/\/app\/isolate-subject\?asset=/)
   await expect(page.getByText('Beskjær bildet', { exact: true })).toBeVisible()
 })
+
+test('Kopier og «Bruk i Mockups»: resultatet på utklippstavlen og videre til et annet verktøy uten ny opplasting (SHR-02, SHR-03)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await upload(page)
+  await page.getByRole('button', { name: 'Hopp over' }).click()
+  await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.getByRole('button', { name: 'Kopier', exact: true }).click()
+  await expect(page.getByText('Bildet er kopiert. Lim inn med Ctrl+V.')).toBeVisible()
+  const clip = await page.evaluate(async () => {
+    const items = await navigator.clipboard.read()
+    const item = items.find((i) => i.types.includes('image/png'))
+    if (!item) return null
+    const bmp = await createImageBitmap(await item.getType('image/png'))
+    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+    g.drawImage(bmp, 0, 0)
+    const at = (x: number, y: number) => g.getImageData(Math.floor(x * bmp.width), Math.floor(y * bmp.height), 1, 1).data[3]
+    return { w: bmp.width, h: bmp.height, corner: at(0.02, 0.02), middle: at(0.5, 0.5) }
+  })
+  expect(clip).toEqual({ w: 240, h: 160, corner: 0, middle: 255 })
+
+  await page.getByRole('button', { name: 'Bruk i Mockups' }).click()
+  await expect(page).toHaveURL(/\/app\/mockups\?asset=/)
+  await expect(page.getByRole('button', { name: /Bytt design/ }).first()).toBeVisible()
+})

@@ -6,6 +6,9 @@ import { clipFields, collapse, musicFields, ovFields, projectFields, subFields, 
 import { LeftPanel } from './Panels'
 import { Fields } from './Props'
 import type { Phrase, Tx } from './texts'
+import type { ToolId } from '../../domain/tool'
+
+export type SendTo = { image: { id: ToolId; label: string }[]; video: { id: ToolId; label: string }[] }
 import { Timeline } from './Timeline'
 import s from './MotionDesign.module.css'
 
@@ -67,7 +70,7 @@ function propsOf(c: MotionController, S: MState, p: Project): { title: Phrase; t
 
 const EXP: [ExpState['q'], Phrase, '1080' | '4k'][] = [['1080-30', '1080p · 30 fps', '1080'], ['1080-60', '1080p · 60 fps', '1080'], ['4k-30', '4K · 30 fps', '4k']]
 
-export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void; onLogoCloud: () => void; folders: boolean }) {
+export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void; onLogoCloud: () => void; folders: boolean ; sendTo?: SendTo }) {
   const T = totalDur(p)
   const narrow = S.narrow
   const wide = !narrow && S.vw >= 1280
@@ -228,6 +231,13 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders }: { c: Mot
               <button type="button" className={`${s.barBtn} ${s.small}`} onClick={() => void c.sendFrame()}>{tx('Stillbilde til Dine medier')}</button>
               {S.lastExp && <button type="button" className={`${s.barBtn} ${s.small}`} onClick={() => void c.sendVideo()}>{tx('Videoen til Dine medier')}</button>}
             </div>
+            {/* «Bruk i …» (SHR-02): stillbildet eller videoen lagres i Dine medier og åpnes i det andre verktøyet */}
+            {!!sendTo && (
+              <div className={s.row}>
+                {sendTo.image.map((x) => <button key={`i-${x.id}`} type="button" className={`${s.barBtn} ${s.small}`} onClick={() => void c.sendFrame(x.id)}>{x.label}</button>)}
+                {S.lastExp && sendTo.video.map((x) => <button key={`v-${x.id}`} type="button" className={`${s.barBtn} ${s.small}`} onClick={() => void c.sendVideo(x.id)}>{x.label}</button>)}
+              </div>
+            )}
             {E.msg && <span className={E.err ? s.err : s.ok} role="status">{tx(E.msg.p, E.msg.v)}</span>}
             <div className={s.modalBtns}>
               {!E.busy && (

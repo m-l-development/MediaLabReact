@@ -13,8 +13,8 @@ Mockups: samme motor som i dag (homografi, skjermgjenkjenning, okklusjon, lys/gl
 mockup og design gir samme bilde som dagens app (kontrollert visuelt mot repo A). Innstillinger per mockup bruker
 samme nøkkel (`mockups.settings`) som dagens app.
 
-Isolate Subject: MODNet og SlimSAM er kjørt i Chrome mot ekte modeller (fra egen vert). BiRefNet (Objekt, 115 MB)
-får tidsavbrudd i headless Chrome, som i dagens app – må testes manuelt i vanlig Chrome.
+Isolate Subject: MODNet og SlimSAM er kjørt i Chrome mot ekte modeller (fra egen vert). Objekt bruker nå ormbg (44 MB):
+BiRefNet_lite feilet i Chrome 154 både på WebGPU og WASM (TB-7BF5C1, se testlogg 2026-10-12). ormbg og MODNet er kjørt i ekte Chrome.
 
 ## Kilder
 
@@ -111,14 +111,14 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 
 | ID | Funksjon | Kilde | Status | Ny modul | Test | Impl |
 |---|---|---|---|---|---|---|
-| SHR-01 | Delt mappe mellom verktøy (IndexedDB `medialab-share`, maks 60, maks 2 GB per fil, bilde/video/lyd, miniatyr) | B `ml-share.js` | E | `services/assets` (erstatter, leser gamle data) | U, E2E | – |
-| SHR-02 | «Send til …» et annet verktøy, motta ved åpning | B `ml-share.js`, H 11 | E | `services/assets` + `app/router` | E2E | – |
-| SHR-03 | Kopier bilde til utklippstavlen, last ned | B `ml-share.js` | E | `services/export` | E2E | – |
-| SHR-04 | Velger «Fellesmappe»/«Felles ressurser» (Faste, logoer, bakgrunner) og Samarbeidsfiler; `ch:<fil-id>`-referanser | B `ch-picker.js`, `ch-cloud.js` | E | `features/media-picker`, `services/files` | E2E | – |
-| SHR-05 | Skyfiler bare bilder; video avvises (magiske bytes) | B `server/lib/sniff.js`, D | E | uendret server + klientvalidering | U | – |
-| SHR-06 | Prosjektmapper på PC (File System Access), media i `<mappe>/media/`, kopier – aldri slett, «Frigjør plass» med bekreftelse | B `project-folder.js`, D | E | `infrastructure/fs-access` | E2E, M | – |
-| SHR-07 | Felles grunnoppsett per menighet (`church_settings`), versjon mot samtidige endringer, `merge3` | B `shared-setup.js`, D | E | `services/settings` | U | – |
-| SHR-08 | **Video lagres aldri i skyen** | D (fast krav) | E | Håndheves i `services/assets` | U | – |
+| SHR-01 | Delt mappe mellom verktøy (IndexedDB `medialab-share`, maks 60, maks 2 GB per fil, bilde/video/lyd, miniatyr) | B `ml-share.js` | E | `services/assets` (erstatter, leser gamle data) | U, E2E | T (E2E: opplastet bilde lagres med miniatyr og finnes etter ny innlasting; U: samme fil én gang, filtyper, 2 GB / video 4 GB, import fra dagens delte mappe uten å endre den. **Bevisst avvik til godkjenning:** dagens delte mappe sletter de eldste filene over 60 automatisk; Dine medier sletter aldri automatisk – bare brukeren, og bare filer ingen prosjekter bruker) |
+| SHR-02 | «Send til …» et annet verktøy, motta ved åpning | B `ml-share.js`, H 11 | E | `services/assets` + `app/router` | E2E | T (E2E PC/mobil: «Bruk i …» fra Isolate Subject → Mockups, Photo Design → Isolate, Thumbnail Studio → Mockups, Motion design (stillbilde) → Isolate; «Åpne i …» fra Dine medier. Mottakeren åpnes med `?asset=` uten ny opplasting. Video fra Motion design tilbys bare verktøy som tar imot video (Loop Studio) etter eksport – ikke egen E2E. Lim inn (Ctrl+V) som bildekilde er brukt i Isolate-kjøringen i ekte Chrome) |
+| SHR-03 | Kopier bilde til utklippstavlen, last ned | B `ml-share.js` | E | `services/export` | E2E | T (E2E PC/mobil: «Kopier» i Isolate legger PNG med gjennomsiktighet på utklippstavlen, «Last ned PNG» gir riktig fil. Kopier finnes også i Mockups, Photo Design og Thumbnail Studio – der ikke egen E2E for utklippstavlen) |
+| SHR-04 | Velger «Fellesmappe»/«Felles ressurser» (Faste, logoer, bakgrunner) og Samarbeidsfiler; `ch:<fil-id>`-referanser | B `ch-picker.js`, `ch-cloud.js` | E | `features/media-picker`, `services/files` | E2E | I (`features/cloud-picker`, `ch:<fil-id>` i Thumbnail Studio og Photo Design; komponenttester med falsk database. **Blokkert:** ikke prøvd mot connecthub-dev – krever innlogging med testkonto og serverens hemmelige nøkkel for `file.urls`, se docs/lokal-servertest.md) |
+| SHR-05 | Skyfiler bare bilder; video avvises (magiske bytes) | B `server/lib/sniff.js`, D | E | uendret server + klientvalidering | U | I (U: `precheckUpload` – bare PNG/JPEG/WebP/GIF ≤ 4 MB, video avvist etter type og filnavn; serverens innholdskontroll uendret med egne tester i `media-lab/server` (video forkledd som bilde avvises). Ikke prøvd mot connecthub-dev) |
+| SHR-06 | Prosjektmapper på PC (File System Access), media i `<mappe>/media/`, kopier – aldri slett, «Frigjør plass» med bekreftelse | B `project-folder.js`, D | E | `infrastructure/fs-access` | E2E, M | T (E2E: kopier til prosjektmappe, frigjør plass i nettleseren og åpne fra mappen igjen (Motion design); U: filer som bare ligger i mappen, leses derfra; kopien i nettleseren fjernes bare når filen også ligger i mappen. Ekte mappevalg (File System Access-dialogen) er ikke prøvd manuelt) |
+| SHR-07 | Felles grunnoppsett per menighet (`church_settings`), versjon mot samtidige endringer, `merge3` | B `shared-setup.js`, D | E | `services/settings` | U | I (U: `merge3`, og `SharedSetup` med falsk tjeneste: samlede lagringer, versjonskonflikt → sammenslåing og ny lagring, konflikt i samme felt meldes, admin-felt holdes tilbake, manglende rettighet beholder endringen. **Blokkert:** ikke prøvd mot connecthub-dev med to brukere samtidig) |
+| SHR-08 | **Video lagres aldri i skyen** | D (fast krav) | E | Håndheves i `services/assets` | U | I (U: aldri sky-sted for video i mediebiblioteket, `precheckUpload` avviser video, serveren avviser video også forkledd som bilde. Ingen E2E mot ekte server) |
 
 ## 5. Forsiden (dashboard)
 
@@ -190,7 +190,7 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 | TS-07 | Lagliste: rekkefølge, ↺ tilbake til grunnoppsett, kobling av lag (dra over hverandre), lagnavn (dobbeltklikk) | B, D | E\* | `shared/layers` (felles med Photo) | E2E | I |
 | TS-08 | Flytt/skaler/roter, Shift endrer forhold, hjelpelinjer, zoom | B | E\* | `shared/canvas-editor` | E2E | I (dra på lerretet testet (E2E); roter, Shift, hjelpelinjer og zoom ikke testet) |
 | TS-09 | Beskjær bilde (dobbeltklikk), fjern tomme kanter, vis hele bildet | B, H 11 | E | `shared/crop` | R | I |
-| TS-10 | AI-utklipp (Person = MODNet, Objekt = BiRefNet), bruk originalbildet | B, H 11 | E | `services/ai` | R, M | I (M: må prøves i Chrome) |
+| TS-10 | AI-utklipp (Person = MODNet, Objekt = ormbg; var BiRefNet), bruk originalbildet | B, H 11 | E | `services/ai` | R, M | I (samme Segmenter som Isolate Subject, der ormbg/MODNet er kjørt i ekte Chrome 2026-10-12; utklippet i Thumbnail Studio er ikke kjørt med ekte modell) |
 | TS-11 | Fargekombinasjoner (11: Standard, Svart på hvit, …), farge på nye elementer, egen farge, understrek som følger teksten | B `COMBOS` | E | `features/thumbnail-studio` | U | T |
 | TS-12 | Bakgrunn (farge, gradient, bilde med zoom/posisjon/blur/demping) og vignett | B `emptyDoc` | E | `shared/fill` | R | I |
 | TS-13 | Eksport: PNG/JPG, 1080p/4K, gjennomsiktig PNG, råd («YouTube = JPG 1080p < 2 MB», varsel over 2 MB) | B, H 11 | E | `services/export` | R | T |
@@ -255,9 +255,9 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 |---|---|---|---|---|---|---|
 | IS-01 | Opplasting (JPG/PNG/WebP/AVIF/GIF/BMP), dra inn, lim inn, delt mappe | B | E | `features/isolate-subject` | E2E | T (E2E: filvelger og Dine medier; dra inn og lim inn er bygget, ikke egen test) |
 | IS-02 | Beskjæringssteg etter opplasting (hjørner, flytt, ny ramme, 16:9, hopp over, beskjær på nytt) | B, H 06 | E | `shared/crop` | R | T (E2E: beskjæringssteg; «hopp over» og «beskjær på nytt» bygget) |
-| IS-03 | Person – MODNet | B, D | E | `services/ai` (Worker) | R (byte-likt) | I, A, M-auto (ekte Chrome 154, 2026-10-12: WebGPU 4,5 s / ny økt 2,8 s; simulert WebGPU-feil → CPU uten feilmelding; én nedlasting) |
-| IS-04 | Objekt – ormbg uint8, 44 MB (var BiRefNet_lite 115/224 MB; byttet 2026-10-12, TB-7BF5C1) | B, H 06 | E | `services/ai` | M | I, A, M-auto. BiRefNet_lite feilet i ekte Chrome 154 i alle 6 varianter (WebGPU: shaderfeil; WASM: tom for minne etter ~35 s), også med transformers.js 3.8.1 og 4.3.1. ormbg (Apache 2.0): 14 s første gang, ingen ny nedlasting i ny økt; to bildebytter under nedlasting gir én nedlasting; uten GPU virker. Gjelder også Photo Design og Thumbnail Studio. Dagens app: rettet, men ikke prøvd i ekte Chrome (krever innlogging) |
-| IS-05 | Logo/Tekst – fargenøkkel fra kantfarge (også inni bokstaver), fallback BiRefNet | B, D | E | `features/isolate-subject` | R | T (E2E: fargenøkkel gir gjennomsiktig PNG i full oppløsning, motivet uendret) |
+| IS-03 | Person – MODNet | B, D | E | `services/ai` (Worker) | R (byte-likt) | T (ekte Chrome 154 med ekte modell, Playwright 2026-10-12: WebGPU ferdig etter 3,9 s; simulert WebGPU-feil → CPU-reserve uten feilmelding, 4,5 s; ny økt uten ny nedlasting. Ikke prøvd manuelt) |
+| IS-04 | Objekt – ormbg uint8, 44 MB (var BiRefNet_lite 115/224 MB; byttet 2026-10-12, TB-7BF5C1) | B, H 06 | E | `services/ai` | M | T (Playwright i ekte Chrome 2026-10-12). BiRefNet_lite feilet i ekte Chrome 154 i alle 6 varianter (WebGPU: shaderfeil; WASM: tom for minne etter ~35 s), også med transformers.js 3.8.1 og 4.3.1. ormbg (Apache 2.0): 14 s første gang, ingen ny nedlasting i ny økt; to bildebytter under nedlasting gir én nedlasting; uten GPU virker. Gjelder også Photo Design og Thumbnail Studio. Dagens app: rettet, men ikke prøvd i ekte Chrome (krever innlogging) |
+| IS-05 | Logo/Tekst – fargenøkkel fra kantfarge (også inni bokstaver), fallback ormbg | B, D | E | `features/isolate-subject` | R | T (E2E: fargenøkkel gir gjennomsiktig PNG i full oppløsning, motivet uendret) |
 | IS-06 | Merk i bildet – SlimSAM: trykk/firkant, grønn behold, rød/høyreklikk fjern, nullstill merker | B, D | E | `services/ai` | R | I (merking med firkant testet uten AI (E2E); SlimSAM-modellen ikke kjørt i test) |
 | IS-07 | Fjern objekt med «Fyll med omgivelser» (push-pull-innfylling + støy) – eneste operasjon som endrer piksler | B, D | E | `features/isolate-subject` | R | I (innfylling bygget og enhetstestet i motoren; ikke E2E) |
 | IS-08 | Ellers endres motivet aldri, kun alfa-masken | D (krav) | E | `features/isolate-subject` | U (pikselsjekk) | T (E2E: motivet uendret, bare alfa) |

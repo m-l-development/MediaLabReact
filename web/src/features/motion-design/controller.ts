@@ -1,3 +1,4 @@
+import type { ToolId } from '../../domain/tool'
 import { createStore, type Store } from '../../shared/lib/store'
 import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
 import { exportMp4 } from './engine/export'
@@ -91,8 +92,10 @@ export interface MDeps {
   pickDirectory(opts: { id: string; startIn?: string }): Promise<DirHandle | null>
   foldersSupported(): boolean
   download(blob: Blob, name: string): void
-  /** Lagrer et bilde eller en video i Dine medier. */
-  toMedia(blob: Blob, name: string): Promise<void>
+  /** Lagrer et bilde eller en video i Dine medier. → ID i Dine medier. */
+  toMedia(blob: Blob, name: string): Promise<string>
+  /** «Bruk i …» (SHR-02): åpner et annet verktøy med filen fra Dine medier. */
+  openIn?(tool: ToolId, assetId: string): void
   onLocation(loc: Loc, replace: boolean): void
   now?: () => number
 }
@@ -2936,7 +2939,7 @@ export class MotionController {
   }
 
   /** Stillbilde av spillehodet til Dine medier. */
-  async sendFrame(): Promise<void> {
+  async sendFrame(to?: ToolId): Promise<void> {
     const p = this.s.proj
     if (!p) return
     const z = exportSize(p, '1080')
@@ -2951,14 +2954,20 @@ export class MotionController {
     }
     const b = await new Promise<Blob | null>((r) => c.toBlob(r, 'image/png'))
     if (!b) return
-    await this.d.toMedia(b, `${fileBase(p)}-stillbilde.png`).then(() => this.flash('Stillbildet er lagret i Dine medier.'), () => this.flash('Kunne ikke lagre i Dine medier.'))
+    await this.d.toMedia(b, `${fileBase(p)}-stillbilde.png`).then((id) => this.sent(id, to, 'Stillbildet er lagret i Dine medier.'), () => this.flash('Kunne ikke lagre i Dine medier.'))
   }
 
   /** Den siste eksporterte videoen til Dine medier (blir i nettleseren; lastes aldri opp). */
-  async sendVideo(): Promise<void> {
+  async sendVideo(to?: ToolId): Promise<void> {
     const v = this.lastExpBlob
     if (!v) return
-    await this.d.toMedia(v.blob, v.name).then(() => this.flash('Videoen er lagret i Dine medier.'), () => this.flash('Kunne ikke lagre i Dine medier.'))
+    await this.d.toMedia(v.blob, v.name).then((id) => this.sent(id, to, 'Videoen er lagret i Dine medier.'), () => this.flash('Kunne ikke lagre i Dine medier.'))
+  }
+
+  /** Lagret i Dine medier: åpne mottakeren («Bruk i …») eller si fra. */
+  private sent(id: string, to: ToolId | undefined, saved: Phrase): void {
+    if (to && this.d.openIn) this.d.openIn(to, id)
+    else this.flash(saved)
   }
 
   /* ---------- seksjoner i egenskapspanelet ---------- */

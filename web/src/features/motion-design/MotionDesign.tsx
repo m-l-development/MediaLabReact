@@ -1,12 +1,14 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState } from 'react'
+import { sendTargets } from '../../app/send-targets'
 import { useServices } from '../../app/services'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import { foldersSupported, pickDirectory } from '../../infrastructure/fs/project-folders'
-import { useLang } from '../../shared/i18n/i18n'
+import { useLang, useT } from '../../shared/i18n/i18n'
+import { toolTitleKey } from '../../shared/i18n/messages'
 import { userStore } from '../../infrastructure/local-user'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
@@ -36,6 +38,10 @@ function download(b: Blob, name: string) {
 /** Motion design (MD-01–MD-19): video med klipp, tekst, undertekster, musikk og overganger. Video lastes aldri opp. */
 export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
   const tx = useTx()
+  const tApp = useT()
+  // «Bruk i …» (SHR-02) for stillbildet og den siste eksporterte videoen
+  const targetsFor = (kind: 'image' | 'video', suffix: string) => sendTargets('motion-design', kind).map((tool) => ({ id: tool.id, label: tApp('share.useIn', { tool: tApp(toolTitleKey(tool.id)) }) + suffix }))
+  const sendTo = { image: targetsFor('image', ''), video: targetsFor('video', ' (video)') }
   const lang = useLang()
   const { router } = useServices()
   const { assets, projects, folders, userId } = useWorkspace()
@@ -74,8 +80,9 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
       foldersSupported,
       download,
       async toMedia(blob, name) {
-        await assets.register(blob, { name, origin: { type: 'generated', tool: 'motion-design' } })
+        return (await assets.register(blob, { name, origin: { type: 'generated', tool: 'motion-design' } })).id
       },
+      openIn: (tool, id) => void router.navigate({ name: 'tool', tool, query: { asset: id } }),
       onLocation: (loc: Loc, replace) => void router.navigate({ name: 'tool', tool: 'motion-design', query: { ...loc } as Record<string, string> }, { replace }),
     })
     return { c, repo }
@@ -178,7 +185,7 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
           }} />
       )}
       {editing && S.proj && (
-        <Editor c={c} S={S} p={S.proj} tx={tx} folders={canFolders}
+        <Editor c={c} S={S} p={S.proj} tx={tx} folders={canFolders} sendTo={sendTo}
           onShared={() => c.set({ picker: { kind: 'media', mode: S.replaceFor ? 'replace' : 'lib' } })}
           onLogoCloud={() => c.set({ picker: { kind: 'cloud', mode: 'logo' } })} />
       )}
