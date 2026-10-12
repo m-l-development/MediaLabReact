@@ -6,6 +6,7 @@ import type { Me } from '../../domain/account'
 import { createAdminService } from '../../services/admin'
 import type { DataAdapter } from '../../services/auth/types'
 import { createCollabService } from '../../services/collab'
+import { createFeedbackService } from '../../services/feedback'
 import { AdminPage } from './AdminPage'
 import AdminRoute from './AdminRoute'
 
@@ -67,6 +68,7 @@ export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string
     admin: createAdminService(data as unknown as DataAdapter, async () => 'tok', server as never),
     collab: createCollabService(data as unknown as DataAdapter, async () => 'tok', server as never),
     files,
+    feedback: createFeedbackService(data as unknown as DataAdapter),
   } as unknown as Services
   // uten egne seksjoner brukes de ekte (AdminRoute), som i appen
   render(<ServicesContext value={services}>{opts.sections ? <AdminPage me={me} testRole={null} sections={opts.sections} /> : <AdminRoute me={me} testRole={null} />}</ServicesContext>)

@@ -4,6 +4,7 @@ import { AdminPage } from './AdminPage'
 import { ChurchDetail, ChurchesView, InvitesView } from './Churches'
 import { ChurchPicker, Head } from './common'
 import { useAdmin } from './context'
+import { FeedbackView } from './Feedback'
 import { LinksView } from './Links'
 import { LogView } from './Log'
 import { SubsView } from './Subs'
@@ -27,6 +28,7 @@ const SECTIONS: Partial<Record<string, (p: { id?: string | undefined; sub?: stri
   samarbeid: () => <><Head title="Samarbeid" sub="Samarbeidsgrupper med to eller flere menigheter. Hver gruppe har sin egen Samarbeidsmappe." /><LinksView /></>,
   abonnement: () => <SubsSection />,
   logg: () => <LogSection />,
+  tilbakemeldinger: ({ id }) => <FeedbackView selected={id} />,
 }
 
 export default function AdminRoute({ me, testRole }: { me: Me; testRole: string | null }) {

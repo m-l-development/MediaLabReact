@@ -103,3 +103,25 @@ export function useLogos(files: FilesService, ids: (string | null | undefined)[]
 }
 export const forgetLogo = (id: string | null | undefined): void => { if (id) cache.delete(id) }
 
+
+/** Utklippstavlen, ellers en reserve med markert tekst. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true }
+  } catch {
+    // reserven under
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.setAttribute('readonly', '')
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    ta.remove()
+    return ok
+  } catch {
+    return false
+  }
+}
