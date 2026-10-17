@@ -7,8 +7,10 @@ import { targetOf, issuerOf } from './backend.js';
 
 export const COOKIE = 'ch_at';
 export const LOGIN = '/login';   // kort adresse (build/routes.js); /login.dc.html sendes hit
-/* app/assets/: den nye appens kodefiler (/app/), offentlige som /assets/ er i dag; selve appen bak /app/ krever innlogging. */
-const PUBLIC = /^\/(assets\/|app\/assets\/|images\/|mockups\/|api\/|vendor\/|fonts\/|login\.dc\.html$|login$|version\.json$|manifest\.webmanifest$|favicon\.ico$|robots\.txt$)/;
+/* app/assets/: den nye appens kodefiler (/app/), offentlige som /assets/ er i dag; selve appen bak /app/ krever innlogging.
+   app/manifest.webmanifest og app/version.json er åpne som i roten: nettleseren henter manifestet uten innlogging
+   (ellers kan ikke appen installeres), og oppdateringsvarselet må virke også når økten er utløpt. Ingen data i dem. */
+const PUBLIC = /^\/(assets\/|app\/assets\/|app\/version\.json$|app\/manifest\.webmanifest$|images\/|mockups\/|api\/|vendor\/|fonts\/|login\.dc\.html$|login$|version\.json$|manifest\.webmanifest$|favicon\.ico$|robots\.txt$)/;
 
 export const isPublicPath = p => PUBLIC.test(p);
 

@@ -40,9 +40,11 @@ if (commit) check(`bygget fra commit ${commit.slice(0, 7)}`, v.startsWith(commit
 
 // 2. den nye appen og innloggingen
 const appHtml = first.status === 200 ? await first.text() : ''
-check('/app/ svarer med appen', first.status === 200 && /<script[^>]+src="\/app\/assets\//.test(appHtml), first.status)
+if (first.status === 200) check('/app/ svarer med appen (uten sperre, f.eks. lokalt)', /<script[^>]+src="\/app\/assets\//.test(appHtml), first.status)
+else check('/app/ uten innlogging sendes til innloggingen (sperren)', first.status === 307 && /\/login\?next=(%2F|\/)app/.test(first.headers.get('location') ?? ''), `${first.status} ${first.headers.get('location') ?? ''}`)
 const login = await get('/login')
-check('/login svarer (innloggingen)', login.status === 200 && /<html/i.test(await login.text()), login.status)
+const loginHtml = login.status === 200 ? await login.text() : ''
+check('/login svarer (innloggingen)', login.status === 200 && /<html/i.test(loginHtml), login.status)
 
 // 3. sikkerhetshoder og CSP
 const h = first.headers
@@ -58,11 +60,14 @@ for (const [k, re] of [['x-content-type-options', /^nosniff$/], ['x-frame-option
 if (https) check('header strict-transport-security', /max-age=31536000/.test(h.get('strict-transport-security') ?? ''), h.get('strict-transport-security') ?? 'mangler')
 
 // 4. hurtigbuffer og manifest
-const asset = /src="(\/app\/assets\/[^"]+\.js)"/.exec(appHtml)?.[1]
+// kodefil fra /app/ (uten sperre) eller fra innloggingssiden (/assets/, samme regel)
+const asset = /src="(\/app\/assets\/[^"]+\.js)"/.exec(appHtml)?.[1] ?? /src="(\/assets\/[^"]+\.js)"/.exec(loginHtml)?.[1]
 if (asset) {
   const a = await get(asset)
-  check('appens filer: hurtigbuffer 1 år, immutable', a.status === 200 && /max-age=31536000.*immutable/.test(a.headers.get('cache-control') ?? ''), a.headers.get('cache-control') ?? a.status)
-} else check('appens filer funnet i /app/', false)
+  check(`kodefiler (${asset.split('/').slice(0, -1).join('/')}/): hurtigbuffer 1 år, immutable`, a.status === 200 && /max-age=31536000.*immutable/.test(a.headers.get('cache-control') ?? ''), a.headers.get('cache-control') ?? a.status)
+} else check('kodefiler funnet', false)
+const appAsset = await get('/app/assets/finnes-ikke.js')
+check('/app/assets/ er åpen (ikke sendt til innlogging)', appAsset.status !== 307, appAsset.status)
 const man = await get('/app/manifest.webmanifest')
 check('/app/manifest.webmanifest: riktig type, no-cache', man.status === 200 && /manifest\+json/.test(man.headers.get('content-type') ?? '') && /no-cache/.test(man.headers.get('cache-control') ?? ''), `${man.status} ${man.headers.get('content-type')}`)
 check('version.json: no-cache (oppdateringsvarselet)', /no-cache/.test(ver.headers.get('cache-control') ?? ''), ver.headers.get('cache-control') ?? '')
