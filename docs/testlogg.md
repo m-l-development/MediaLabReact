@@ -1587,3 +1587,14 @@ Ingen kritiske eller høye funn gjenstår.
 - Innlogget mot forhåndsvisningen med de syntetiske kontoene (`node e2e-dev/run-dev.mjs --remote=<adresse>`, bare tester som leser): Bruker 8/8, Admin 5/5, Photo Design 1/1 (bildet tegnet riktig).
 - Merknad: Vercels tilbakemeldingslinje (`vercel.live`, bare i forhåndsvisninger) blokkeres av CSP-en – uten betydning for produksjonen.
 
+## B1–B3 mot produksjonen (2026-10-17, godkjent, bare lesing via CLI med midlertidig innloggingsrolle)
+
+| Kontroll | Resultat | Forventet |
+|---|---|---|
+| B1 migreringer | 38, siste `20261017100000` (før den: `20261016100000`, `20261015100100`) | 38 / `20261017100000` – ja |
+| B2 brukergrense | 1 menighet («Livets Ord Fredrikstad»): 2 aktive, 0 ventende → 2 av 10; ingen på eller over grensen; `migrated: false` | ja |
+| B3 fingeravtrykk (før migreringen) | migrations 38, churches 1 (`730f5c9a…`), users 2 (`a734c50d…`), memberships active 2 (`c48f2c81…`), roles `7cf85894…`, files 7 / 9 150 318 byte (`01ce9c24…`), storage-objekter 8, links 0, feedback 7, invitations 1, subscriptions 0, audit 93 | lagret for C4 |
+
+Merknad: 8 objekter i bøtta mot 7 filrader (trolig menighetslogo eller e-postlogo, som ikke ligger i `files`) – uendret av migreringene, ikke en blokkering.
+Etter C3 skal B3 være lik, bortsett fra `migrations` (40), `last_migration` (`20261018110000`) og `audit`.
+
