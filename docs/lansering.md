@@ -35,8 +35,8 @@ Alt under kjøres **av deg**, eller av meg først etter at du har godkjent **det
 
 | # | Handling | Merknad |
 |---|---|---|
-| A1 | Automatisk kontroll: `cd media-lab && npm run check:preview -- <preview-adresse> --commit <sha>` med `VERCEL_AUTOMATION_BYPASS_SECRET` satt i terminalen (se `docs/manuelle-tester.md`, del 4) | Commit, ruter/307, sikkerhetshoder, CSP, hurtigbuffer, `/api` krever innlogging. «Alt i orden» |
-| A2 | Manuelle punkter i forhåndsvisningen (innlogging med din konto, ett verktøy, Admin) – `docs/manuelle-tester.md`, del 4 | 5–10 minutter |
+| A1 | **Utført 2026-10-17 (08e0b9f): alt i orden** – se testlogg. Automatisk kontroll: `cd media-lab && npm run check:preview -- <preview-adresse> --commit <sha>` med `VERCEL_AUTOMATION_BYPASS_SECRET` satt i terminalen (se `docs/manuelle-tester.md`, del 4) | Commit, ruter/307, sikkerhetshoder, CSP, hurtigbuffer, `/api` krever innlogging. «Alt i orden» |
+| A2 | **Utført automatisk** med syntetiske kontoer mot forhåndsvisningen (`run-dev.mjs --remote=…`). Valgfritt: logg inn med din egen konto | – |
 | A3 | Vercel → Usage → Deployment Storage under 10 GB med god margin (`docs/vercel-lagring.md`) | Over 10 GB kan blokkere produksjonsbygget i D1 |
 
 ### B. Produksjonen – bare lesing (ingen endring)

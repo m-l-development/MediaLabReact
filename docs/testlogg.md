@@ -1578,3 +1578,12 @@ Ingen kritiske eller høye funn gjenstår.
 
 **Vercel:** 71 eldre `connecthub`-forhåndsvisninger slettet etter godkjenning – se `docs/vercel-lagring.md` og `docs/vercel-slettelogg.txt`. Frigjort lagring er ikke verifisert ennå (Usage oppdateres daglig).
 
+## Vercel-forhåndsvisningen kontrollert (2026-10-17)
+
+«Protection Bypass for Automation» opprettet i `media-lab-react-vyef` (eiers ønske; verdien er aldri vist eller lagret – hentes fra Vercel i minnet ved bruk). Forhåndsvisning `08e0b9f` (`media-lab-react-vyef-eind1tsfr-media-lab3.vercel.app`):
+
+- `npm run check:preview`: 21/21 – riktig commit, `/app/` uten innlogging → 307 til `/login?next=/app/`, sikkerhetshoder og CSP, hurtigbuffer, manifest, 24 omdirigeringer (307), `/api` krever innlogging.
+- **Funnet og rettet (`08e0b9f`):** sperren sendte `/app/manifest.webmanifest` og `/app/version.json` til innlogging – den nye appen kunne ikke installeres, og oppdateringsvarselet feilet ved utløpt økt. Nå åpne som i roten (gate.js + middleware.js, tester oppdatert; 181/181).
+- Innlogget mot forhåndsvisningen med de syntetiske kontoene (`node e2e-dev/run-dev.mjs --remote=<adresse>`, bare tester som leser): Bruker 8/8, Admin 5/5, Photo Design 1/1 (bildet tegnet riktig).
+- Merknad: Vercels tilbakemeldingslinje (`vercel.live`, bare i forhåndsvisninger) blokkeres av CSP-en – uten betydning for produksjonen.
+

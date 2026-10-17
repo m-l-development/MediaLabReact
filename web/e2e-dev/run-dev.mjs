@@ -19,7 +19,11 @@ const SUPA = `https://${REF}.supabase.co`
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const LEGACY = path.resolve(WEB, '../media-lab')
 const PORT = 5191
-const BASE = `http://localhost:${PORT}`
+// --remote=<adresse>: kjør mot en Vercel-forhåndsvisning (mot connecthub-dev) i stedet for et lokalt bygg. Bare testene
+// som leser (forhåndsvisningen kan sende ekte e-post); tilgangen går via «Protection Bypass for Automation» (bare i minnet).
+const REMOTE = (process.argv.find((a) => a.startsWith('--remote=')) ?? '').slice(9).replace(/\/$/, '')
+if (REMOTE && !/^https:\/\/media-lab-react-vyef-[a-z0-9-]+-media-lab3\.vercel\.app$/.test(REMOTE)) throw new Error('--remote må være en forhåndsvisning av media-lab-react-vyef (ikke produksjonsadressen)')
+const BASE = REMOTE || `http://localhost:${PORT}`
 const win = process.platform === 'win32'
 const only = (process.argv.find((a) => a.startsWith('--only=')) ?? '').slice(7).split(',').filter(Boolean)
 const say = (m) => console.log(`\x1b[36m[run-dev]\x1b[0m ${m}`)
@@ -46,7 +50,7 @@ if (claims.ref !== REF || claims.role !== 'service_role') throw new Error('nøkk
 say('nøkkel for connecthub-dev hentet (bare i minnet)')
 
 // 2. bygg
-if (!process.argv.includes('--no-build')) {
+if (!REMOTE && !process.argv.includes('--no-build')) {
   say('bygger publiseringsbygget (media-lab npm run build)')
   const b = spawnSync('npm', ['run', 'build'], { cwd: LEGACY, stdio: 'inherit', shell: win, env: { ...process.env, ML_TEST_NO_BACKEND: '' } })
   if (b.status !== 0) throw new Error('bygget feilet')
@@ -57,17 +61,34 @@ if (!process.argv.includes('--no-build')) {
 const MAILBOX = path.join(os.tmpdir(), `ch-dev-mailbox-${process.pid}.jsonl`)
 fs.mkdirSync(path.dirname(MAILBOX), { recursive: true })
 fs.writeFileSync(MAILBOX, '')
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
-  cwd: LEGACY, shell: win, stdio: 'ignore', env: { ...process.env, CONNECTHUB_SUPABASE_SECRET_KEY: KEY, CH_TEST_MAILBOX: MAILBOX },
-})
-const stopServer = () => { if (win) spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' }); else server.kill() }
-process.on('exit', stopServer)
-for (let i = 0; ; i++) {
-  try { if ((await fetch(`${BASE}/login`)).ok) break } catch { /* starter */ }
-  if (i > 120) throw new Error('serveren startet ikke')
-  await new Promise((r) => setTimeout(r, 500))
+let stopServer = () => undefined
+const STORAGE = path.join(os.tmpdir(), `ch-dev-bypass-${process.pid}.json`)
+if (REMOTE) {
+  // tilgangscookie for forhåndsvisningen (hemmeligheten hentes fra Vercel og holdes i minnet; cookie-filen slettes til slutt)
+  const proj = JSON.parse(capture('npx', ['--yes', 'vercel@latest', 'api', '/v9/projects/media-lab-react-vyef?teamId=media-lab3', '--raw']))
+  const secret = Object.entries(proj.protectionBypass ?? {}).find(([, v]) => v.scope === 'automation-bypass')?.[0]
+  if (!secret) throw new Error('prosjektet har ingen «Protection Bypass for Automation»')
+  const { request } = await import('@playwright/test')
+  const ctx = await request.newContext()
+  const r = await ctx.get(`${REMOTE}/login`, { headers: { 'x-vercel-protection-bypass': secret, 'x-vercel-set-bypass-cookie': 'true' } })
+  if (!r.ok()) throw new Error(`forhåndsvisningen svarte ${r.status()}`)
+  await ctx.storageState({ path: STORAGE })
+  await ctx.dispose()
+  process.on('exit', () => fs.rmSync(STORAGE, { force: true }))
+  say(`kjører mot forhåndsvisningen ${REMOTE} (connecthub-dev, bare tester som leser)`)
+} else {
+  const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
+    cwd: LEGACY, shell: win, stdio: 'ignore', env: { ...process.env, CONNECTHUB_SUPABASE_SECRET_KEY: KEY, CH_TEST_MAILBOX: MAILBOX },
+  })
+  stopServer = () => { if (win) spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' }); else server.kill() }
+  process.on('exit', stopServer)
+  for (let i = 0; ; i++) {
+    try { if ((await fetch(`${BASE}/login`)).ok) break } catch { /* starter */ }
+    if (i > 120) throw new Error('serveren startet ikke')
+    await new Promise((r) => setTimeout(r, 500))
+  }
+  say(`publiseringsbygget kjører på ${BASE} (connecthub-dev, testpostkasse)`)
 }
-say(`publiseringsbygget kjører på ${BASE} (connecthub-dev, testpostkasse)`)
 
 // 4. testkontoer
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', 'User-Agent': 'connecthub-dev-e2e' }
@@ -137,11 +158,13 @@ try {
     const pw2 = id2 ? await newPassword(id2) : ''
     if (run.role === 'staff') say(`${run.name}: ${await dropFactors(id)} MFA-faktor(er) fjernet før testen`)
     // ML_DEV_SPECS=a,b kjører bare disse testene i løpet (f.eks. for gjentatte kjøringer)
-    const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : run.specs
+    const READ_ONLY = ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'photo-dev']
+    const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : REMOTE ? run.specs.filter((x) => READ_ONLY.includes(x)) : run.specs
+    if (!specs.length) { results.push([run.name, 'hoppet over (ingen tester som bare leser)']); continue }
     say(`${run.name}: kjører ${specs.join(', ')}`)
     const r = spawnSync('npx', ['playwright', 'test', '-c', 'e2e-dev', ...specs], {
       cwd: WEB, stdio: 'inherit', shell: win,
-      env: { ...process.env, ML_DEV_BASE: BASE, ML_DEV_EMAIL: run.email, ML_DEV_PASSWORD: pw, ML_DEV_ROLE: run.role, ML_DEV_EMAIL2: run.email2 ?? '', ML_DEV_PASSWORD2: pw2, ML_DEV_MAILBOX: MAILBOX, ML_DEV_SUPABASE_URL: SUPA, ML_DEV_PUBLISHABLE_KEY: PUBLISHABLE, ...(run.env ?? {}) },
+      env: { ...process.env, ML_DEV_BASE: BASE, ML_DEV_EMAIL: run.email, ML_DEV_PASSWORD: pw, ML_DEV_ROLE: run.role, ...(REMOTE ? { ML_DEV_STORAGE: STORAGE } : {}), ML_DEV_EMAIL2: run.email2 ?? '', ML_DEV_PASSWORD2: pw2, ML_DEV_MAILBOX: MAILBOX, ML_DEV_SUPABASE_URL: SUPA, ML_DEV_PUBLISHABLE_KEY: PUBLISHABLE, ...(run.env ?? {}) },
     })
     results.push([run.name, r.status === 0 ? 'bestått' : `FEILET (rc ${r.status})`])
   }
