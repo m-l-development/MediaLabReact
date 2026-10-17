@@ -1991,6 +1991,24 @@ select ch_test.cnt('Grense: over grensen fra før – fortsatt 13, ingen fjernet
 update public.memberships set status = 'disabled' where user_id = '00000000-0000-4000-8000-000000000200';
 select ch_test.err('Grense: under 13 men fortsatt over 10 – fortsatt ingen nye', $q$insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000212', 'c0c0c0c0-0000-4000-8000-0000000000c2')$q$, 'CH013');
 
+-- ---------- Injeksjon: brukertekst lagres som tekst, tolkes aldri (sikkerhetsgjennomgang 2026-10-17) ----------
+-- Alle databasekall er parameteriserte (PostgREST/RPC). Kontrollerte teststrenger med SQL- og HTML-tegn skal lagres
+-- uendret, og ingen tabell eller rettighet skal påvirkes.
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-ga","aal":"aal1"}';
+select ch_test.err('Injeksjon: navn med SQL- og HTML-tegn avvises av valideringen', $q$select public.set_user_name('00000000-0000-4000-8000-000000000101', 'Robert''); drop table public.churches;--', '<script>alert(1)</script>')$q$, '22023');
+select ch_test.ok('Injeksjon: vanlig navn med apostrof og bindestrek godtas', $q$select public.set_user_name('00000000-0000-4000-8000-000000000101', 'O''Brien', 'Nilsen-Ødegård')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Injeksjon: e-post med anførselstegn og SQL-ord lagres som tekst i en invitasjon', $q$select public.create_invitation('o''brien--or''1''=''1@test.invalid', 'aaaaaaaa-0000-4000-8000-00000000000a', 'user', md5('inj-a') || md5('inj-a2'), 7)$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-4","aal":"aal1"}';
+select ch_test.ok('Injeksjon: tilbakemelding med SQL og HTML lagres', $q$select public.submit_feedback('other', $t$'; delete from public.feedback; --$t$, $t$<img src=x onerror=alert(1)> '); drop table public.app_users; --$t$, '{}', 'photo-design', 'Photo Design', '/app/photo-design', null, null, '{}', null)$q$);
+set local role postgres;
+select ch_test.cnt('Injeksjon: navnet er lagret ordrett', $q$select 1 from public.app_users where id = '00000000-0000-4000-8000-000000000101' and first_name = 'O''Brien' and last_name = 'Nilsen-Ødegård'$q$, 1);
+select ch_test.cnt('Injeksjon: invitasjonens e-post er lagret ordrett', $q$select 1 from public.invitations where email = 'o''brien--or''1''=''1@test.invalid'$q$, 1);
+select ch_test.cnt('Injeksjon: tilbakemeldingen er lagret ordrett', $q$select 1 from public.feedback where description like '<img src=x onerror=alert(1)> ''); drop table public.app_users; --%'$q$, 1);
+select ch_test.cnt('Injeksjon: tabellene finnes fortsatt', $q$select 1 where to_regclass('public.churches') is not null and to_regclass('public.app_users') is not null and to_regclass('public.feedback') is not null$q$, 1);
+select ch_test.atleast('Injeksjon: tidligere tilbakemeldinger er urørt', $q$select 1 from public.feedback where description like 'RLS-test%'$q$, 1);
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
