@@ -4,7 +4,7 @@ import { api, dropOwnFactors, EMAIL, expectHub, injectBackend, mailLink, PASSWOR
 
 /**
  * Hele livsløpet til en konto mot connecthub-dev, med en konto testen lager selv (kjøres av run-dev.mjs med Developer):
- * Developer med MFA inviterer ch-test-e2e-<tid>@example.com til «CH-test Menighet B» (har ingen fast Admin, så Admin-rollen kan gis) → lenken fra testpostkassen godtas
+ * Developer med MFA lager en egen midlertidig testmenighet («E2E Testmenighet L …», slettes til slutt) og inviterer ch-test-e2e-<tid>@example.com dit → lenken fra testpostkassen godtas
  * og passord velges → Admin-rollen gis og trekkes tilbake → medlemskapet fjernes → brukeren sletter kontoen sin selv i
  * kontomenyen → innlogging avvises. Lenken, passordet og nøkkelen skrives aldri ut. Ingen ekte e-post sendes.
  */
@@ -19,10 +19,16 @@ test('konto fra invitasjon til sletting: lenke, passord, rolle, medlemskap og «
   await setupMfa(page)
   const me = (await rest(page, '/rest/v1/rpc/whoami', { body: {} })).body as { roles: { role: string }[] }
   test.skip(!me.roles.some((r) => r.role === 'developer'), 'krever Developer')
+  const temp: { id: string; name: string }[] = []
+  // midlertidige testmenigheter fra en avbrutt kjøring (bare testens eget navnemønster) slettes også til slutt
+  for (const o of (((await rest(page, `/rest/v1/churches?select=id,name&name=like.${encodeURIComponent('E2E Testmenighet L *')}`)).body as { id: string; name: string }[] | null) ?? [])) if (/^E2E Testmenighet L \d+$/.test(o.name)) temp.push(o)
   try {
-    const ch = (await rest(page, `/rest/v1/churches?select=id&name=eq.${encodeURIComponent('CH-test Menighet B')}`)).body as { id: string }[]
-    const church = ch[0]?.id
-    if (!church) throw new Error('fant ikke testmenigheten')
+    const made = await rest(page, '/rest/v1/churches?select=id,name', { method: 'POST', body: { name: `E2E Testmenighet L ${Date.now()}` }, headers: { Prefer: 'return=representation' } })
+    const c = (made.body as { id: string; name: string }[] | null)?.[0]
+    if (!c) throw new Error(`testmenigheten ble ikke laget (${made.status})`)
+    temp.push(c)
+    const church = c.id
+    rows.push(`| Midlertidig testmenighet laget | ${made.status} |`)
 
     // 1. invitasjon → testpostkassen
     const addr = `ch-test-e2e-${Date.now()}@example.com`
@@ -62,6 +68,29 @@ test('konto fra invitasjon til sletting: lenke, passord, rolle, medlemskap og «
     rows.push(`| Gi Admin / trekke tilbake | ${ar.status} (Admin: ${asAdmin ? 'ja' : 'nei'}) / ${rr.status} (Admin: ${after ? 'ja' : 'nei'}) |`)
     expect([ar.status, asAdmin, rr.status, after]).toEqual([200, true, 204, false])
 
+    // 3b. varsler (TB-D9DE93) – testkontoen er eneste medlem, så bare dens egne varsler berøres
+    for (const n of [1, 2]) await rest(page, '/rest/v1/rpc/send_church_message', { body: { p_church: church, p_title: `E2E-varsel ${n}`, p_body: 'Automatisk test' } })
+    await u.goto('/app/')
+    await u.getByRole('button', { name: 'Konto' }).click()
+    await u.getByRole('button', { name: /Varsler/ }).click()
+    await expect(u.getByText('E2E-varsel 2')).toBeVisible({ timeout: 20_000 })
+    await u.locator('[data-ch-notif-markall]').click()
+    await expect(u.getByText('Alle varsler er merket som lest.')).toBeVisible({ timeout: 20_000 })
+    await u.locator('[data-ch-notif-clearread]').click()
+    await expect(u.getByText(/varsler fjernet./)).toBeVisible({ timeout: 20_000 })
+    await expect(u.getByText('E2E-varsel 1')).toHaveCount(0)
+    const note1 = (await u.locator('[data-ch-notif-note]').textContent()) ?? ''
+    await rest(page, '/rest/v1/rpc/send_church_message', { body: { p_church: church, p_title: 'E2E-varsel 3', p_body: 'Automatisk test' } })
+    await u.keyboard.press('Escape')
+    await u.getByRole('button', { name: 'Konto' }).click()
+    await u.getByRole('button', { name: /Varsler/ }).click()
+    await expect(u.getByText('E2E-varsel 3')).toBeVisible({ timeout: 20_000 })
+    u.once('dialog', (d) => void d.accept())
+    await u.locator('[data-ch-notif-clearall]').click()
+    await expect(u.getByText('Ingen varsler.')).toBeVisible({ timeout: 20_000 })
+    rows.push(`| Varsler: merk alle som lest / fjern leste / tøm (med bekreftelse) | ja / «${note1.trim()}» / tom logg |`)
+    await u.keyboard.press('Escape')
+
     // 4. medlemskapet fjernes (stab, med begrunnelse)
     const rm = await rest(page, '/rest/v1/rpc/remove_membership', { body: { p_user: userId, p_church: church, p_reason: 'Automatisk test (e2e-dev)', p_allow_no_admin: false } })
     const left = ((await rest(u, '/rest/v1/rpc/whoami', { body: {} })).body as { churches: { id: string }[] }).churches.some((c) => c.id === church)
@@ -86,6 +115,11 @@ test('konto fra invitasjon til sletting: lenke, passord, rolle, medlemskap og «
     expect(gone.length).toBe(0)
     await ctx.close()
   } finally {
+    for (const c of temp) {
+      await rest(page, '/rest/v1/rpc/set_church_status', { body: { p_church: c.id, p_status: 'pending_deletion' } }).catch(() => undefined)
+      const p = await api(page, 'church.purge', { church_id: c.id, confirm_name: c.name }).catch(() => ({ status: 0 }))
+      rows.push(`| Midlertidig testmenighet slettet | ${p.status} |`)
+    }
     rows.push(`| MFA-faktor fjernet etter testen | ${(await dropOwnFactors(page)).join(', ') || '–'} |`)
     const report = rows.join('\n')
     console.log(`\n${report}\n`)

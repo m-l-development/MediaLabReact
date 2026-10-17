@@ -144,3 +144,11 @@ export async function rpc(page: Page, fn: string, body: unknown) {
 /** Blir elementet synlig innen `ms`? (locator.isVisible venter ikke.) */
 export const appears = (l: import('@playwright/test').Locator, ms: number): Promise<boolean> =>
   l.waitFor({ state: 'visible', timeout: ms }).then(() => true, () => false)
+
+/** Første lenke til denne appen i siste e-post til `to` i testpostkassen (f.eks. «Glemt passord»). Skrives aldri ut. */
+export function mailLinkTo(to: string): string | null {
+  if (!MAILBOX || !fs.existsSync(MAILBOX)) return null
+  const all = fs.readFileSync(MAILBOX, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as { to: string; text?: string; html?: string })
+  const m = all.filter((x) => x.to === to).at(-1)
+  return /https?:\/\/[^\s"'<>]+(token_hash|flow=recovery)[^\s"'<>]*/.exec(m?.text ?? m?.html ?? '')?.[0]?.replace(/&amp;/g, '&') ?? null
+}
