@@ -4,12 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node build/web-app.js --run",
     "preview": "vite preview",
     "test": "node --test \"build/*.test.js\" \"src/services/**/*.test.js\" \"src/shared/*.test.js\" \"src/pages/**/*.test.js\" \"server/**/*.test.js\"",
     "vendor:check": "node build/vendor.js",
     "vendor:lock": "node build/vendor.js --lock",
-    "drill": "node build/restore-drill.mjs"
+    "drill": "node build/restore-drill.mjs",
+    "check:preview": "node build/check-preview.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

@@ -1,0 +1,106 @@
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Spinner } from '../shared/ui/Spinner'
+import { Hub } from '../features/hub/Hub'
+import { useT } from '../shared/i18n/i18n'
+import { toolTitleKey } from '../shared/i18n/messages'
+import { useStore } from '../shared/lib/store'
+import { Button } from '../shared/ui/Button'
+import { AppShell } from './AppShell'
+import { AuthGate } from './AuthGate'
+import { InstallPrompt } from './InstallPrompt'
+import { ErrorBoundary, type FallbackProps } from './ErrorBoundary'
+import { Link } from './Link'
+import { hrefFor } from './router'
+import { ServicesContext, useServices, type Services } from './services'
+import { ToolHost } from './ToolHost'
+import { testRoleAllowed } from './test-role'
+import { UpdateNotice } from './UpdateNotice'
+import styles from './App.module.css'
+import { toolById, type ToolLifecycle } from './tools'
+import { WorkspaceProvider } from './workspace'
+import { MediaLibrary } from '../features/media-library/MediaLibrary'
+
+/** ConnectHub Admin lastes som egen del (bare for dem som åpner den). */
+const AdminRoute = lazy(() => import('../features/admin/AdminRoute'))
+
+export function App({ services }: { services: Services }) {
+  // Ruteren lever like lenge som siden (main.tsx); den skal ikke fjernes når komponenten avmonteres (StrictMode).
+  useEffect(() => {
+    void services.auth.start()
+  }, [services])
+
+  return (
+    <ServicesContext value={services}>
+      <AuthGate>
+        {(me) => (
+          <WorkspaceProvider me={me}>
+            <Routes me={me} />
+          </WorkspaceProvider>
+        )}
+      </AuthGate>
+      <InstallPrompt />
+    </ServicesContext>
+  )
+}
+
+function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
+  const t = useT()
+  const { router, auth } = useServices()
+  const route = useStore(router.route)
+  const authState = useStore(auth.state)
+  const ready = authState.status === 'ready' ? authState : null
+  const [lifecycle, setLifecycle] = useState<ToolLifecycle | null>(null)
+
+  // Før et verktøy lukkes (navigering), lagres arbeidet. Er verktøyet opptatt (eksport, AI), venter vi ikke på det,
+  // men lar verktøyet selv avgjøre i save().
+  useEffect(() => {
+    router.setGuard(async () => {
+      if (lifecycle?.save) await lifecycle.save().catch(() => undefined)
+      return true
+    })
+    return () => router.setGuard(null)
+  }, [router, lifecycle])
+
+  useEffect(() => {
+    const title = route.name === 'tool' ? `${t(toolTitleKey(route.tool))} · ${t('app.name')}`
+      : route.name === 'library' ? `${t('media.title')} · ${t('app.name')}` : route.name === 'admin' ? 'ConnectHub Admin' : t('app.name')
+    document.title = title
+  }, [route, t])
+
+  return (
+    <AppShell route={route} me={me} onSignOut={me ? () => void auth.signOut() : null} realMe={ready?.realMe ?? me} testRole={ready?.testRole ?? null} testAllowed={testRoleAllowed}>
+      <ErrorBoundary resetKey={hrefFor(route)} fallback={RouteErrorFallback}>
+        {route.name === 'hub' && <Hub me={me} />}
+        {route.name === 'library' && <MediaLibrary />}
+        {route.name === 'admin' && me && (
+          <Suspense fallback={<Spinner label={t('app.loading')} />}>
+            <AdminRoute me={me} testRole={ready?.testRole ?? null} />
+          </Suspense>
+        )}
+        {route.name === 'admin' && !me && <section className={styles.message}><h1>{t('auth.notConfigured')}</h1></section>}
+        {route.name === 'tool' && (
+          <ToolHost key={route.tool} tool={toolById(route.tool)} query={route.query} onLifecycle={setLifecycle} />
+        )}
+        {route.name === 'not-found' && (
+          <section className={styles.message}>
+            <h1>{t('notFound.title')}</h1>
+            <p>{t('notFound.body')}</p>
+            <Link to={{ name: 'hub' }}>{t('notFound.home')}</Link>
+          </section>
+        )}
+      </ErrorBoundary>
+      <UpdateNotice lifecycle={route.name === 'tool' ? lifecycle : null} />
+    </AppShell>
+  )
+}
+
+function RouteErrorFallback({ reset }: FallbackProps) {
+  const t = useT()
+  return (
+    <section className={styles.message} role="alert">
+      <h1>{t('error.title')}</h1>
+      <p>{t('error.body')}</p>
+      <Button variant="primary" onClick={reset}>{t('error.retry')}</Button>
+    </section>
+  )
+}

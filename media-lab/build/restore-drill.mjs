@@ -35,15 +35,30 @@ export async function rlsTests(db) {
   return row.rows[0].resultat;
 }
 
+/* PostgreSQL-tabell-literal fra en JSON-liste (tekst i anførselstegn, null som NULL). */
+const pgArray = (a) => '{' + a.map(x => (x === null ? 'NULL' : '"' + String(x).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')).join(',') + '}';
+
 /* Gjenoppretter rader fra { tabell: [rader] } uten å kjøre triggere (som ved pg_restore), og sjekker antall. */
-export async function restore(db, dump) {
+export async function restore(db, dump, tables = TABLES) {
   await db.exec('set session_replication_role = replica');
   const counts = {};
-  for (const t of TABLES) {
+  for (const t of tables) {
     const rows = dump[t] || [];
+    // kolonnetyper: tabellkolonner (text[] o.l.) som PostgreSQL-tabeller, json som tekst; identitetskolonner beholder id-ene
+    const meta = (await db.query(`select column_name, data_type, identity_generation from information_schema.columns where table_schema = 'public' and table_name = $1`, [t])).rows;
+    const arrays = new Set(meta.filter(m => m.data_type === 'ARRAY').map(m => m.column_name));
+    const always = meta.filter(m => m.identity_generation === 'ALWAYS').map(m => m.column_name);
+    // sikkerhetskopien er fasiten: standardrader fra migreringene (f.eks. mail_settings) erstattes
+    await db.exec(`delete from public.${t}`);
     for (const r of rows) {
-      const cols = Object.keys(r).filter(k => !(t === 'audit_logs' && k === 'id'));
-      await db.query(`insert into public.${t} (${cols.map(c => '"' + c + '"').join(',')}) values (${cols.map((_, i) => '$' + (i + 1)).join(',')})`, cols.map(c => (r[c] !== null && typeof r[c] === 'object' ? JSON.stringify(r[c]) : r[c])));
+      const cols = Object.keys(r);
+      const vals = cols.map(c => (r[c] === null ? null : arrays.has(c) ? pgArray(r[c]) : typeof r[c] === 'object' ? JSON.stringify(r[c]) : r[c]));
+      const override = cols.some(c => always.includes(c)) ? ' overriding system value' : '';
+      await db.query(`insert into public.${t} (${cols.map(c => '"' + c + '"').join(',')})${override} values (${cols.map((_, i) => '$' + (i + 1)).join(',')})`, vals);
+    }
+    // sekvensene etter de gjenopprettede id-ene, så nye rader ikke kolliderer
+    for (const c of meta.filter(m => m.identity_generation).map(m => m.column_name)) {
+      await db.query(`select setval(pg_get_serial_sequence('public.${t}', '${c}'), coalesce((select max("${c}") from public.${t}), 0) + 1, false)`);
     }
     counts[t] = (await db.query(`select count(*)::int as n from public.${t}`)).rows[0].n;
   }
@@ -78,10 +93,13 @@ if (process.argv[1] && path.resolve(process.argv[1]).endsWith(path.join('build',
   console.log(`RLS-testsett: ${r.bestatt} bestått, ${r.feilet} feilet` + (r.feilet ? '\n' + JSON.stringify(r.feil, null, 1) : ''));
   const dumpFile = process.argv[2];
   if (dumpFile) {
-    const dump = JSON.parse(fs.readFileSync(dumpFile, 'utf8'));
-    const counts = await restore(db, dump);
-    const mismatch = TABLES.filter(t => counts[t] !== (dump[t] || []).length);
-    console.log('Gjenopprettet: ' + TABLES.map(t => t + '=' + counts[t]).join(', ') + (mismatch.length ? '  AVVIK: ' + mismatch.join(', ') : '  (alle radantall stemmer)'));
+    // én JSON-fil { tabell: [rader] }, eller en mappe fra supabase/checks/export-data.mjs (public.<tabell>.json per tabell)
+    const isDir = fs.statSync(dumpFile).isDirectory();
+    const dump = isDir ? Object.fromEntries(fs.readdirSync(dumpFile).filter(n => /^public\..+\.json$/.test(n)).map(n => [n.slice(7, -5), JSON.parse(fs.readFileSync(path.join(dumpFile, n), 'utf8'))])) : JSON.parse(fs.readFileSync(dumpFile, 'utf8'));
+    const tables = isDir ? Object.keys(dump).sort() : TABLES;
+    const counts = await restore(db, dump, tables);
+    const mismatch = tables.filter(t => counts[t] !== (dump[t] || []).length);
+    console.log('Gjenopprettet ' + tables.length + ' tabeller, ' + tables.reduce((a, t) => a + counts[t], 0) + ' rader: ' + tables.map(t => t + '=' + counts[t]).join(', ') + (mismatch.length ? '  AVVIK: ' + mismatch.join(', ') : '  (alle radantall stemmer)'));
     const acc = await checkAccess(db, dump);
     console.log('Tilgang etter gjenoppretting: ' + acc.filter(a => a.ok).length + '/' + acc.length + ' brukere riktig' + (acc.some(a => !a.ok) ? '\n' + JSON.stringify(acc.filter(a => !a.ok)) : ''));
     if (mismatch.length || acc.some(a => !a.ok)) process.exitCode = 1;

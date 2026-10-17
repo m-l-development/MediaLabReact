@@ -7,11 +7,12 @@ class Component extends DCLogic {
   viewRef = React.createRef(); fileRef = React.createRef();
   pipes = {}; hist = []; _tok = 0;
   COLORS = [['#ffffff', 'Hvit'], ['#000000', 'Svart'], ['#e4e1da', 'Lys grå'], ['#1d3557', 'Marineblå'], ['#2a9d8f', 'Grønnblå'], ['#e9c46a', 'Gul'], ['#e76f51', 'Korall'], ['#9b2c4a', 'Vinrød']];
-  MODELS = { fine: 'onnx-community/BiRefNet_lite-ONNX', fast: 'Xenova/modnet' };
+  // Objekt: ormbg (Apache 2.0, 44 MB uint8) i stedet for BiRefNet_lite, som feiler i Chrome 154 både på WebGPU og WASM (TB-7BF5C1). ormbg kjøres bare på WASM (støttes ikke av WebGPU).
+  MODELS = { fine: 'onnx-community/ormbg-ONNX', fast: 'Xenova/modnet' };
   SAM_ID = 'Xenova/slimsam-77-uniform';
   KINDS = {
     person: { label: 'Person', desc: 'Portretter og folk', note: 'MODNet (Apache 2.0). Laget for personer.' },
-    object: { label: 'Objekt', desc: 'Produkter, dyr og ting', note: 'BiRefNet (MIT). Best på detaljer og ting.' },
+    object: { label: 'Objekt', desc: 'Produkter, dyr og ting', note: 'ormbg (Apache 2.0). Best på detaljer og ting.' },
     logo: { label: 'Logo', desc: 'På ensfarget bakgrunn', note: 'Fjerner bakgrunnsfargen. Ingen AI-modell trengs.' },
     text: { label: 'Tekst', desc: 'På ensfarget bakgrunn', note: 'Fjerner bakgrunnsfargen, også inni bokstavene.' }
   };
@@ -101,14 +102,23 @@ class Component extends DCLogic {
       if (pct !== this._lp && this.alive) { this._lp = pct; this.setState({ pct }); }
     };
   }
-  async getPipe(key, onProg, wasmOnly) {
-    if (this.pipes[key] && !(wasmOnly && this.pipes[key]._dev !== 'wasm')) return this.pipes[key];
+  // TB-7BF5C1: WebGPU som har feilet på denne maskinen, hoppes over i 30 dager (ellers to store nedlastinger hver gang).
+  gpuFails() { try { const v = JSON.parse(localStorage.getItem('ml.isolate.gpuFail') || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+  gpuFailed(key) { const at = this.gpuFails()[key]; return typeof at === 'number' && Date.now() - at < 30 * 864e5; }
+  markGpuFailed(key) { try { localStorage.setItem('ml.isolate.gpuFail', JSON.stringify(Object.assign(this.gpuFails(), { [key]: Date.now() }))); } catch (e) {} }
+  // En nedlasting som pågår, deles: nytt klikk eller nytt bilde starter ikke samme modell på nytt.
+  getPipe(key, onProg, wasmOnly) {
+    if (this.pipes[key] && !(wasmOnly && this.pipes[key]._dev !== 'wasm')) return Promise.resolve(this.pipes[key]);
+    const id = key + (wasmOnly ? ':wasm' : ':any'); this._loading = this._loading || {};
+    return this._loading[id] || (this._loading[id] = this.loadPipe(key, onProg, wasmOnly).finally(() => { delete this._loading[id]; }));
+  }
+  async loadPipe(key, onProg, wasmOnly) {
     const T = await this.lib();
-    let gpu = false; if (!wasmOnly && navigator.gpu) { try { gpu = !!(await navigator.gpu.requestAdapter()); } catch (e) {} }
-    const tries = gpu ? [['webgpu', key === 'fine' ? 'fp16' : 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']];
+    let gpu = false; if (!wasmOnly && !this.gpuFailed(key) && navigator.gpu) { try { var ad = await navigator.gpu.requestAdapter(); if (ad) { var dv = await ad.requestDevice(); if (dv.destroy) dv.destroy(); gpu = true; } } catch (e) {} /* enheten prøves her: feiler WebGPU inne i ONNX Runtime, nekter den også WASM resten av økten */ }
+    const tries = key === 'fine' ? [['wasm', 'uint8']] : gpu ? [['webgpu', 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']];
     let err = null;
     for (const [device, dtype] of tries) {
-      try { const p = await T.pipeline('background-removal', this.MODELS[key], { device, dtype, progress_callback: onProg }); p._dev = device; p._dtype = dtype; return (this.pipes[key] = p); } catch (e) { err = e; }
+      try { const p = await T.pipeline('background-removal', this.MODELS[key], { device, dtype, progress_callback: onProg }); p._dev = device; p._dtype = dtype; return (this.pipes[key] = p); } catch (e) { err = e; if (device === 'webgpu') this.markGpuFailed(key); }
     }
     throw err || new Error('pipeline');
   }
@@ -123,7 +133,7 @@ class Component extends DCLogic {
   degenerate(a) { let n = 0; for (let i = 0; i < a.length; i += 7) if (a[i] > 128) n++; const f = n / Math.ceil(a.length / 7); return f < 0.002 || f > 0.998; }
   setAlpha(a, note) { this.alpha = a; this._mk = null; this.setState({ busy: '', ready: true, err: '', note: note || '' }); }
   choose(kind) {
-    if (!this.src) return;
+    if (!this.src || this.state.busy) return;
     this.snap(); this.pend = null;
     const tok = (this._tok = (this._tok || 0) + 1);
     this.alpha = null; this._mk = null;
@@ -163,8 +173,10 @@ class Component extends DCLogic {
       const blob = await new Promise(r => this.src.toBlob(r, 'image/png'));
       url = URL.createObjectURL(blob);
       let a = null;
-      try { a = await this.infer(pipe, url); if (pipe._dtype === 'fp16' && this.degenerate(a)) a = null; } catch (e) { if (pipe._dev === 'wasm') throw e; }
-      if (!a) { this.setState({ busy: 'model', pct: 0 }); pipe = await this.getPipe(key, onProg, true); if (tok !== this._tok) return; this.setState({ busy: 'run' }); a = await this.infer(pipe, url); }
+      // GPU-kjøring som ikke svarer på 90 s, regnes som feilet (WASM brukes i stedet) – før hang den for alltid
+      const gpuRun = pipe._dev !== 'wasm', limit = gpuRun ? new Promise((_, rej) => { this._gt = setTimeout(() => rej(new Error('timeout')), 90000); }) : null;
+      try { a = gpuRun ? await Promise.race([this.infer(pipe, url), limit]) : await this.infer(pipe, url); if (pipe._dtype === 'fp16' && this.degenerate(a)) a = null; } catch (e) { if (!gpuRun) throw e; } finally { clearTimeout(this._gt); }
+      if (!a) { this.markGpuFailed(key); this.setState({ busy: 'model', pct: 0 }); pipe = await this.getPipe(key, onProg, true); if (tok !== this._tok) return; this.setState({ busy: 'run' }); a = await this.infer(pipe, url); }
       if (tok !== this._tok || !this.alive) return;
       this.setAlpha(a, note);
     } catch (e) {

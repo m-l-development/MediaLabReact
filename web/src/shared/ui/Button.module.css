@@ -1,0 +1,69 @@
+/* Pilleknapper som i dagens Media Lab: tynn kant i tekstfargen, versaler med sperring. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 24px;
+  border: 1px solid var(--color-text-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-strong);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: var(--tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--duration) ease, border-color var(--duration) ease, color var(--duration) ease,
+    transform 120ms ease, opacity var(--duration) ease;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-chip-on);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  opacity: 0.45;
+}
+
+.primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+}
+
+.ghost {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.ghost:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-strong);
+  background: transparent;
+}
+
+.small {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 0.65625rem;
+}
+
+.block {
+  width: 100%;
+}
+
+.iconOnly {
+  width: 40px;
+  padding: 0;
+}

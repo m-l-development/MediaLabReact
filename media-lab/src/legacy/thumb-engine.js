@@ -741,13 +741,14 @@
   }
 
   /* ---------- optional AI cut-out (transformers.js, runs locally) ---------- */
-  var T = null, pipes = {}, MODELS = { person: 'Xenova/modnet', object: 'onnx-community/BiRefNet_lite-ONNX' };
+  // Objekt: ormbg (Apache 2.0, 44 MB uint8) i stedet for BiRefNet_lite, som feiler i Chrome 154 både på WebGPU og WASM (TB-7BF5C1). ormbg kjøres bare på WASM (støttes ikke av WebGPU).
+  var T = null, pipes = {}, MODELS = { person: 'Xenova/modnet', object: 'onnx-community/ormbg-ONNX' };
   function lib() { return T || (T = import(/* @vite-ignore */ '/vendor/transformers-3.5.1/transformers.min.js'.toString()).then(function (m) { m.env.allowLocalModels = false; m.env.backends.onnx.wasm.wasmPaths = location.origin + '/vendor/transformers-3.5.1/'; return m; })); }
   async function getPipe(key, onProg, wasmOnly) {
     if (pipes[key] && !(wasmOnly && pipes[key]._dev !== 'wasm')) return pipes[key];
     var M = await lib(), gpu = false;
-    if (!wasmOnly && navigator.gpu) { try { gpu = !!(await navigator.gpu.requestAdapter()); } catch (e) {} }
-    var tries = gpu ? [['webgpu', key === 'object' ? 'fp16' : 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']], err = null;
+    if (!wasmOnly && navigator.gpu) { try { var ad = await navigator.gpu.requestAdapter(); if (ad) { var dv = await ad.requestDevice(); if (dv.destroy) dv.destroy(); gpu = true; } } catch (e) {} /* enheten prøves her: feiler WebGPU inne i ONNX Runtime, nekter den også WASM resten av økten */ }
+    var tries = key === 'object' ? [['wasm', 'uint8']] : gpu ? [['webgpu', 'fp32'], ['wasm', 'fp32']] : [['wasm', 'fp32']], err = null;
     for (var i = 0; i < tries.length; i++) {
       try { var p = await M.pipeline('background-removal', MODELS[key], { device: tries[i][0], dtype: tries[i][1], progress_callback: onProg }); p._dev = tries[i][0]; p._dtype = tries[i][1]; return (pipes[key] = p); } catch (e) { err = e; }
     }

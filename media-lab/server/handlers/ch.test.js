@@ -100,6 +100,18 @@ test('invite.create: ugyldige felt avvises før databasen; databasens avslag gir
   assert.equal((await run(await req('invite.create', { email: 'a@b.no', role: 'user', church_id: '22222222-2222-4222-8222-222222222222' }), nei)).status, 403);
 });
 
+test('invite.create / invite.resend: brukergrensen (CH013) gir 409 member_limit, og ingen e-post sendes', async () => {
+  const full = () => { throw Object.assign(new Error('x'), { code: 'CH013' }); };
+  const b = fakeBackend({ create_invitation: full, reissue_invitation: full });
+  let sent = 0;
+  const deliver = async () => { sent++; return { sent: true }; };
+  const c = await run(await req('invite.create', { email: 'a@b.no', role: 'user', church_id: '22222222-2222-4222-8222-222222222222' }), b, deliver);
+  assert.deepEqual([c.status, c.body.error], [409, 'member_limit']);
+  const r = await run(await req('invite.resend', { id: '33333333-3333-4333-8333-333333333333' }), b, deliver);
+  assert.deepEqual([r.status, r.body.error], [409, 'member_limit']);
+  assert.equal(sent, 0);
+});
+
 test('invite.create: e-postfeil gir svar med email_sent=false, invitasjonen beholdes', async () => {
   const { status, body } = await run(await req('invite.create', { email: 'a@b.no', role: 'user', church_id: '22222222-2222-4222-8222-222222222222' }), fakeBackend(), async () => { throw Object.assign(new Error('x'), { code: 'email_address_not_authorized' }); });
   assert.equal(status, 200); assert.equal(body.email_sent, false); assert.equal(body.email_error, 'email_address_not_authorized');

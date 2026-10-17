@@ -1299,3 +1299,313 @@ Lesende regresjon (`94df725`): alle admin-sider og fem verktøy for Developer, M
 - Loop Studio-demo → «Lagre som grunnoppsett» (navn; personlig eller felles for menigheten): genererte bakgrunner lagres som varige referanser `gen:N` (ingen filer). Test: demoen lagrer ingenting før valget; personlig og felles lagret; startsiden viser dem; «Ny serie fra dette» lager eget prosjekt (grunnoppsett 7 slides, serie 8 etter endring); serien er lagret ved ny åpning; «Oppdater grunnoppsettet» bare bevisst med bekreftelse; Admin i A ser det felles, ikke Users personlige (mobil, uten vannrett rulling); User i B ser ingen; sletting med bekreftelse; felles data uten lokale referanser. `loop-bases.test.js`: sanering, ny ID, samtidige tillegg uten tap.
 - Regresjon etter adressene: Fellesmappe/Samarbeidsmappe (opplasting via `/fellesmappe`, ZIP, eksport, sletting, API-sperrer), private opplastinger stengt, gammelt eksempelprosjekt/«Hent tilbake», Thumbnail-grunnoppsett per kategori, Faste bilder (User legger til → 403). To avvik undersøkt og avklart som testfeil (tidlig steg; uendret liste er lovlig). 0 testfiler igjen.
 - `npm test` 174/174, bygg OK.
+
+## Produksjon: Loop Studio-retting, grunnoppsett fra demoen, korte nettadresser og filer i bruk (2026-10-03)
+- Godkjent av brukeren (publisering med nødvendige produksjonssteg og sikkerhetskopi).
+- Før: `main` e6947a8; prod 37 migreringer (sist 20261016100000), `church_settings` finnes, `20261017100000` ikke kjørt. Merk: 1 fil i prod (9 ved forrige sikkerhetskopi) og 1 grunnoppsett – endret av brukere i prod, ikke av publiseringen.
+- Sikkerhetskopi (logisk JSON, 28 tabeller, 88 rader) av `cmuienhheklcgtfmpvbe` tatt 2026-10-03 13:15:58 UTC; radantall lik databasen.
+- Tørrkjøring: nøyaktig `20261017100000_file_in_use.sql`; migrert; CLI tilbake til dev. Etterkontroll `prod_postcheck_file_in_use.sql` ok; `prod_postcheck_settings.sql` og `prod_postcheck_folders.sql` fortsatt ok; radantall i alle 28 tabeller lik sikkerhetskopien.
+- `main` fast-forward e6947a8 → 2a1484b; Vercel Production `version.json` = 2a1484b.
+- Røyktest (uten innlogging; ingen testkontoer i prod): `/` → `/home`; alle korte sider → 307 til `/login?next=…`; `/login` 200; gamle `.dc.html` (også e-postlenke med `token_hash`) → 307 til kort adresse med spørring; filhandlinger 401; innloggingssiden og forespørselsskjemaet som før.
+- Tilbakeføring: Vercel «Promote» av forrige deployment (e6947a8) eller `git revert`; database: `supabase/checks/rollback_20261017100000.sql` (gjenoppretter forrige `delete_file`, ingen data endres).
+- Ikke testet i prod: innlogget bruk (krever konto) – dekket i dev.
+
+## TB-7BF5C1 – Isolate Subject henger og laster ned flere ganger (2026-10-12)
+
+Kjørt automatisk i **ekte Chrome 154** (Playwright `channel: 'chrome'`, hodeløs, WebGPU på NVIDIA Ada via localhost) mot React-versjonen (`/app/isolate-subject`, testserver uten backend) med **ekte modeller fra Hugging Face**. Testbilder: `images/mockups/iphone-hand.jpg`, `card-black-hand.jpg`, `images/fredag.jpeg`. Ny nettleserprofil per kjøring (tom modellbuffer). Ikke manuelt verifisert av bruker.
+
+**Årsak funnet:** BiRefNet_lite (Objekt) virker ikke i Chrome 154:
+| Variant | Resultat |
+|---|---|
+| WebGPU fp16 / fp32 | Krasj i kjøringen (WebGPU-valideringsfeil `computeSliceOffsets`; med ORT 1.31: `shader_helper.cc:308`) |
+| WASM fp32 / fp16 | Feil etter 35–40 s (med ORT 1.31: `std::bad_alloc`, tom for minne) |
+| Mindre inndata (512) | Avvist: modellen krever 1024×1024 |
+| transformers.js 3.8.1 og 4.3.1 | Samme feil |
+
+Den gamle flyten lastet derfor ned fp16 (115 MB), feilet, lastet ned fp32 (224 MB) og feilet igjen – «laster seg ned flere ganger og blir aldri ferdig».
+
+**Andre modeller prøvd (samme oppsett):** BEN2 (MIT) virker på WebGPU (4,5 s / 1,8 s varm), men 219 MB og 94 s på WASM. ormbg (Apache 2.0) virker på WASM (uint8: 11 s / 1 s varm, 44 MB), men ikke på WebGPU (MaxPool med ceil). Maskene fra BEN2 og ormbg er visuelt like gode på kort-i-hånd og mobil-i-hånd; MODNet er ubrukelig på gjenstander. **Valgt: ormbg uint8 på WASM for Objekt.**
+
+**Ny svakhet funnet:** feiler WebGPU-oppstarten inne i ONNX Runtime, nekter den også WASM resten av sideøkten («no available backend found»). Rettet ved å prøve `requestAdapter` + `requestDevice` selv før ONNX Runtime får prøve.
+
+**Etter rettelsene (React-versjonen):**
+| Scenario | Resultat |
+|---|---|
+| Objekt, kald start | Ferdig etter 14 s, én modellfil (`model_uint8.onnx`), 37 % beholdt, ingen sidefeil |
+| Objekt, ny økt (siden lastet på nytt) | Ingen ny nedlasting, ferdig etter 12,5 s |
+| To bildebytter under nedlasting | Én nedlasting totalt, ferdig, ingen sidefeil |
+| Uten WebGPU (bare CPU) | Ferdig etter 14 s |
+| Person (MODNet) på WebGPU | Ferdig etter 3,9 s |
+| Person med simulert WebGPU-feil (adapter som ikke gir enhet) | Før: feilmelding etter 3 s. Etter: CPU brukes, ferdig etter 4,5 s; ny økt 2,8 s uten ny nedlasting |
+
+**Automatiske tester (falske modeller):** `segmenter.test.ts` (delt nedlasting, GPU-feil huskes, GPU-tidsavbrudd, Objekt rett til WASM uint8), `services/ai/transformers.test.ts` (WebGPU regnes bare med når enheten starter). Hele kontrollen grønn (271 enhetstester + e2e), `media-lab` `npm test` grønn.
+
+**Ikke kjørt:** dagens app (`media-lab`, samme rettelser i `logic.js`, `photo-engine.js`, `thumb-engine.js`) krever innlogging også uten backend; den er bygget mot connecthub-dev og må prøves etter innlogging. Photo Design og Thumbnail Studio (samme Segmenter i React-versjonen) er ikke kjørt med ekte modell. «Merk i bildet» (SlimSAM) er ikke kjørt.
+
+### Tillegg: AI-utklipp i Photo Design og Thumbnail Studio, og «Merk i bildet» (2026-10-12)
+
+Samme oppsett (ekte Chrome 154, hodeløs, ekte modeller fra Hugging Face, ny profil per kjøring, React-versjonen uten backend). Ikke manuelt verifisert.
+
+| Verktøy | Modell | Resultat |
+|---|---|---|
+| Photo Design, Objekt (mobil i hånd) | ormbg uint8 | «Motivet er klippet ut» etter 14,1 s; mobil og hånd rent utklippet (skjermbilde) |
+| Photo Design, Person (scenebilde) | MODNet | Ferdig etter 3,7 s |
+| Thumbnail Studio, Objekt | ormbg uint8 | «Bakgrunnen er fjernet» etter 15,1 s; utklippet plassert i malen (skjermbilde) |
+| Thumbnail Studio, Person | MODNet | Ferdig etter 4,5 s |
+| Isolate Subject, «Merk i bildet»: ett trykk på mobilen → Fjern | SlimSAM (vision encoder + decoder, kvantisert) | Ferdig etter 12,6 s; alfa 0 på mobilen (to punkter), 255 i hjørnet og bakgrunnen. Hånden ble også med i markeringen |
+
+Én modellfil per kjøring, ingen sidefeil. Ikke kjørt: penselen på masken (Photo Design), grønn «behold»-markering og flere punkter med ekte SlimSAM.
+
+## Innlogging, admin og tilgang mot connecthub-dev – vanlig bruker (2026-10-12)
+
+Kjørt av brukeren i egen terminal med `npx playwright test -c e2e-dev` (Chrome), dev-server på 5180 uten hemmelig nøkkel. Konto: syntetisk `ch-test-user` (vanlig bruker, 1 menighet, uten MFA). Passordet ble satt av brukeren via Supabase Admin API for akkurat denne bruker-ID-en i connecthub-dev (skjult inntasting, aldri i chat, filer eller historikk). Ingen andre brukere eller data er endret. Første kjøring feilet fordi dev-serveren sendte en utdatert modul (appen krasjet før innlogging); rettet ved å la serveren lese filene på nytt, uten omstart.
+
+**Resultat: 3 bestått, 3 hoppet over** (access-dev mobil: kjøres én gang; server-dev: `not_configured`).
+
+Tilgang i databasen (direkte kall med brukerens egen økt, utenom appens knapper):
+
+| Kall | Forventet | Svar |
+|---|---|---|
+| rpc system_status / mail_settings_get / cleanup_overview | nektet | 403 42501 (alle tre) |
+| rpc export_church (egen menighet / fremmed id) | nektet | 403 42501 (begge) |
+| user_roles / invitations | bare egne / ingen | 0 / 0 rader |
+| churches / memberships / audit_logs | registreres | 1 / 1 / 0 rader |
+| app_users | registreres | 403 42501 |
+
+Admin-grensesnittet (PC og mobil like): Oversikt («Velkommen, User Test»), Menigheter og Filer vises; Brukere, Invitasjoner, Samarbeid, Abonnement, Logg, Tilbakemeldinger, Opprydning, Forespørsler og Mail viser «Ingen tilgang» – i tråd med `features/admin/access.ts`. Utlogging virket. Eneste feil: 503 fra `/api/ch` på Oversikt og Filer (logoer/miniatyrer via `file.urls`), forventet uten hemmelig nøkkel.
+
+**Gjenstår:** Admin-konto, og serverhandlingene med nøkkelen satt.
+
+### Tillegg: Admin-konto mot connecthub-dev (2026-10-12)
+
+Samme oppsett. Konto: syntetisk `ch-test-admin` (Admin i 1 menighet, 0 MFA-faktorer, kontrollert via Admin API før endring). Passordet satt av brukeren via Supabase Admin API for akkurat denne bruker-ID-en (skjult inntasting, bekreftet med «JA»). Ingen andre brukere eller data endret.
+
+**Resultat: 3 bestått, 3 hoppet over** (access-dev mobil; server-dev: `not_configured`).
+
+| Kall | Forventet | Svar |
+|---|---|---|
+| rpc system_status / mail_settings_get / cleanup_overview | nektet | 403 42501 (alle tre) |
+| rpc export_church (egen menighet) | tillatt | 200 |
+| rpc export_church (fremmed id) | nektet | 403 42501 |
+| user_roles / invitations | egne / egen menighet | 2 / 6 rader, alle innenfor |
+| churches / memberships / audit_logs | registreres | 1 / 6 / 201 rader (menighetstilhørighet ikke kontrollert i denne kjøringen; sjekk lagt til i testen) |
+| app_users | registreres | 403 42501 |
+
+Admin-grensesnittet (PC og mobil like): Oversikt («Velkommen, Admin Test»), Brukere, Menigheter, Invitasjoner, Filer, Abonnement og Logg vises; Samarbeid, Tilbakemeldinger, Opprydning, Forespørsler og Mail viser «Ingen tilgang» – i tråd med `features/admin/access.ts`. Utlogging virket. 503 fra `/api/ch` på Oversikt og Filer (forventet uten hemmelig nøkkel).
+
+### Tillegg: serverhandlinger med hemmelig nøkkel – Admin (2026-10-12)
+
+Dev-serveren på 5180 ble stoppet (etter brukerens bekreftelse) og startet av brukeren i egen terminal med `CONNECTHUB_SUPABASE_SECRET_KEY` bare i terminalens minne (egen nøkkel for lokal utvikling i connecthub-dev). En første nøkkel ble limt inn i chatten ved et uhell; den ble slettet i Supabase og erstattet før bruk.
+
+**Resultat: 4 bestått, 2 hoppet over** (kjøres én gang).
+
+| Handling (/api/ch) | Forventet | Svar |
+|---|---|---|
+| request.form (uten innlogging) | ok | 200 (ok, token) |
+| mail.status (bare stab) | nektet | 403 forbidden |
+| church.export, egen menighet | ok | 200 (export) |
+| church.export, fremmed id | nektet | 403 forbidden |
+| mail.status uten innlogging | nektet | 401 unauthorized |
+
+Tilgang i databasen, nå med kontroll av menighetstilhørighet: churches 1, memberships 6, audit_logs 201 rader – 0 utenfor egen menighet. `app_users` med bare `id`: 6 rader (= medlemskapene); med `select=*` i forrige kjøring 403, fordi noen kolonner er sperret. Admin-grensesnittet uten feil på PC og mobil; 503 på Oversikt og Filer er borte (logoer/miniatyrer via `file.urls`). Ingen endrende serverhandlinger er kjørt (ingen e-post, invitasjoner, opplasting eller sletting).
+
+### Tillegg: serverhandlinger med hemmelig nøkkel – vanlig bruker (2026-10-12)
+
+**Resultat: 4 bestått, 2 hoppet over.** (Et første forsøk stoppet på «Feil e-post eller passord.» fordi feil passord ble limt inn; ingenting ble endret.)
+
+| Handling (/api/ch) | Forventet | Svar |
+|---|---|---|
+| request.form (uten innlogging) | ok | 200 |
+| mail.status | nektet | 403 forbidden |
+| church.export, egen menighet | nektet (ikke admin) | 403 forbidden |
+| church.export, fremmed id | nektet | 403 forbidden |
+| mail.status uten innlogging | nektet | 401 unauthorized |
+
+Databasen: alle kontroller «ja» (churches 1, memberships 1, audit_logs 0 – 0 utenfor egen menighet; user_roles og invitations 0; app_users med bare `id`: 1 rad = seg selv). Grensesnittet uten feil på PC og mobil (ingen 503).
+
+**Samlet for innlogging og admin mot connecthub-dev:** vanlig bruker og Admin verifisert – innlogging/utlogging, meny per rolle, tilgang håndhevet i databasen og på serveren for lesende kall. **Ikke prøvd:** Developer/Moderator (krever MFA), endrende serverhandlinger (e-post, invitasjoner, opplasting, sletting – krever egen testkonto og uttrykkelig bekreftelse), kontosletting.
+
+## Lanseringsforberedelse (2026-10-12)
+
+**Funnet:** den nye appen var ikke koblet inn i publiseringen – Vercel bygger bare `media-lab`, og `vercel.json`/sperren kjente ikke `/app/`. Rettet på grenen (ikke publisert): `media-lab/build/web-app.js` (bygger `web/` til `dist/app`), ruter i `build/routes.js` + `vercel.json`, headere for `/app/assets` og manifestet, `/app/assets/` åpen i sperren (`server/lib/gate.js`, `middleware.js`). Rettet også en eksisterende feil: `build/static-serve.mjs` hadde en dobbel import og startet ikke.
+
+| Kontroll | Resultat |
+|---|---|
+| `media-lab` `npm run build` (mot dev-oppsettet) | rc 0; dagens app + `/app/`; sikkerhetssøk uten funn; tredjepartsfiler kontrollert |
+| Røyktest av bygget med headerne fra vercel.json, ekte Chrome | `/app/`, `/app/admin`, `/app/photo-design`: 200, innlogging vises, 0 CSP-brudd, ingen feil; `/login` 200; `/home` → innlogging som før. `/app/assets/*.js` immutable 1 år, `index.html`/manifest no-cache, manifest `application/manifest+json` |
+| `media-lab` `npm test` | 177/177 (nye: `build/web-app.test.js`, /app i `routes.test.js` og `gate.test.js`) |
+| `web` `npm run check` | 285/285 enhetstester (50 filer), typesjekk, lint, bygg |
+| `web` nettlesertester (PC + mobil) | 87 bestått, 5 tidsavbrudd under høy maskinbelastning (to videoeksporter, tre mobilklikk); de 5 kjørt på nytt: 5/5 bestått. Totalt 92/92, 28 hoppet over som planlagt |
+| Ny komponenttest | `features/cloud-picker/CloudPicker.test.tsx`: ny menighet får tomme Faste bilder/Felles ressurser/Fellesmappe; filer fra andre menigheter vises aldri |
+
+**Photo Design «hvitt bilde»:** ikke gjenskapt uten innlogging i ekte Chrome – alle 7 formater, malene «Bilde med tittel», «Arrangement» og «Tomt», «Bytt bilde», «Bilde»-knappen, dra-og-slipp, lim inn, JPEG opptil 48 MP, lagre → last på nytt → åpne: bildet tegnes hver gang, uten feil. Diagnosetest for innlogget kjøring: `web/e2e-dev/photo-dev.spec.ts` (også med brukerens eget bilde via `ML_DEV_IMAGE`). Ikke rettet, fordi årsaken ikke er funnet.
+
+## Brukergrense per menighet – connecthub-dev (2026-10-12)
+
+Plan og avvik: `docs/plan-brukergrense.md`. Migrering: `supabase/migrations/20261018100000_member_limit.sql`. Bare connecthub-dev (`uatpdmhnwwjgzlxaucsx`); produksjonen er ikke rørt.
+
+| Steg | Resultat |
+|---|---|
+| Telling før migreringen (`checks/member_limit_report.sql`, bare lesing) | 3 menigheter, ingen over 10; størst «CH-test Menighet A» 6/10, «12» 2/10, «CH-test Menighet B» 2/10 |
+| `db push --dry-run` | bare `20261018100000_member_limit.sql` |
+| `db push` | kjørt |
+| Telling etter migreringen | uendret (ingen medlemskap eller invitasjoner endret) |
+| `rls_test.sql` i dev (rullet tilbake) | **972/972**, hvorav 30 nye for grensen (alle veier, dobbelttelling, utløpte invitasjoner, «Send på nytt», reaktivering, over grensen fra før, overstyring med MFA og logg, direkte tabellendring avvist) |
+| Samtidighet (to ekte økter, testmenighet «CH-test Grense» med 9) | økt A tok plass 10 og holdt transaksjonen i 6 s; økt B ventet **5,8 s** på låsen og ble avvist: «CH013: Menigheten har nådd grensen på 10 brukere (10 med ventende invitasjoner)». Etterpå 10/10 med én ventende |
+| Begge appene mot ekte database (`e2e-dev/member-limit-dev.spec.ts`, Admin, «CH-test Menighet A» midlertidig satt til 6/6 og logget) | `member_usage` 6 av 6; Admin → `set_member_limit` 403 42501; telleren «Brukere i menigheten: 6 av 6» + varsel; «Send invitasjon» sperret; `invite.create` (samme serverhandling som dagens app bruker) → **409 member_limit**, ingen invitasjon og ingen e-post |
+| Opprydding | «CH-test Menighet A» tilbake til 10 (logget); «CH-test Grense» og `ch-test-grense-*` fjernet; telling: 3 menigheter, ingen over grensen |
+
+Lokalt samme dag: PGlite 972/972, `media-lab` `npm test` 178/178, `web` 289/289 enhetstester og 92/92 nettlesertester (11 tidsavbrudd under høy maskinbelastning, bestått ved ny kjøring). Dagens app: feilmeldingen for `member_limit` er lagt inn (admin og innlogging), ikke prøvd i nettleser – den bruker samme serverhandling som er prøvd over.
+
+## Lanseringsklar gjennomgang – connecthub-dev og lokalt (2026-10-17)
+
+Bare connecthub-dev (`uatpdmhnwwjgzlxaucsx`) og lokale servere. Produksjonen er ikke rørt; ingen ekte e-post sendt (testpostkasse).
+
+**Hele dev-løpet uten manuelle steg:** `node web/e2e-dev/run-dev.mjs` bygger publiseringsbygget (samme ruter og `/api` som Vercel, `vite preview`), henter dev-nøkkelen via den innloggede Supabase-CLI-en (bare i minnet), gir de syntetiske testkontoene nye tilfeldige passord (aldri vist eller lagret), fjerner MFA-faktorer på stab før og etter, og rydder bort kontoer og bilder testene selv har laget.
+
+| Løp | Tester | Resultat |
+|---|---|---|
+| Bruker | innlogging via dagens `/login` → `/app/`, korte adresser (307), admin-seksjoner, tilgang i databasen, serverhandlinger, Photo Design innlogget, tilbakemelding sendt | 10/10 bestått |
+| Admin | admin-seksjoner, tilgang, serverhandlinger, brukergrense (teller, Admin kan ikke endre grensen), invitasjon → testpostkasse → tilbaketrekking (antall 7 → 6), opplasting/signert adresse/sletting, video forkledd som PNG → 415, «Glemt passord», Fellesmappe som bildekilde i Photo Design, Thumbnail Studio, Motion design og Loop Studio (bakgrunn og logo) | 7/7 bestått |
+| Developer | MFA-oppsett med TOTP; `system_status` før MFA 403 42501, etter 200; tilbakemeldingen fra Bruker-løpet funnet i innboksen og behandlet (status/notat/arkiv 204); `mail.test` til testpostkassen; `set_member_limit` med MFA | bestått |
+| Moderator | samme som Developer (ingen menighet, så overstyringen hoppes over) | bestått |
+| Livsløp | Developer inviterer ny konto til «CH-test Menighet B» → lenken fra e-posten åpnes i egen nettleser, «Fortsett», passord valgt → inn i `/app/` som medlem; Admin-rollen gitt (200) og trukket tilbake (204); medlemskap fjernet; «Slett kontoen min» i kontomenyen → utlogget, innlogging avvist, brukerraden borte | bestått |
+
+**Funn og rettelser underveis**
+- **Feil i begge appene, rettet:** «Ny invitasjon» åpnet før menighetene var lastet hadde tom menighet i tilstanden, mens listen viste den første – ingen teller, og invitasjonen kunne sendes uten menighet. Rettet i `web/src/features/admin/AdminPage.tsx` og `media-lab/src/pages/connecthub-admin/AdminPage.jsx`; ny komponenttest i `MemberLimit.test.tsx` (feiler uten rettelsen).
+- **Testoppsett:** en invitasjon via testpostkassen lager en innloggingskonto hos Supabase; testene etterlot slike (5 stk.) og to testbilder fra en avbrutt kjøring. Fjernet av kjørerens avgrensede opprydding (bare `ch-test-e2e-<tall>@example.com` og `e2e-(logo|fast)-<tall>.png`); kontroll etterpå: 0 igjen.
+- «Glemt passord» ga ingen e-post i siste løp: frekvensgrensen (3 per adresse per time) slo til – svaret er bevisst det samme, så adresser ikke kan kartlegges.
+- Én gang feilet Motion design-steget (velgeren ble ikke synlig i tide); bestått i de tre neste kjøringene.
+
+**Øvrige kontroller samme dag**
+
+| Kontroll | Resultat |
+|---|---|
+| `web` `npm run check` | 296/296 enhetstester (52 filer), typesjekk, lint, bygg |
+| `web` nettlesertester (PC + mobil) | 94/94 |
+| `web/e2e-real` (ekte Chrome, ekte SlimSAM/MODNet) | 4/4: grønn «Behold», tre punkter + fjerne merke, «Fyll med omgivelser», pensel Fjern/Gjenopprett |
+| `media-lab` `npm test` | 179/179 (ruter, omdirigeringer 307, `vercel.json` = `routes.js`) |
+| `supabase/tests/rls_test.sql` i connecthub-dev (rullet tilbake) | 984/984, inkl. injeksjonstester og `legacy_defaults` |
+| `supabase/checks/security_audit.sql` i dev | ingen SECURITY DEFINER uten `search_path`, ingen tabeller uten RLS, ingen anon-tabellrettigheter, ingen offentlige bøtter |
+| `supabase db advisors` (dev) | 90 varsler om SECURITY DEFINER-funksjoner for innloggede (tilsiktet; tilgang kontrolleres i funksjonene, dekket av rls_test), 1 varsel: beskyttelse mot lekkede passord er av (Auth-innstilling) |
+
+## SHR-07, PLT-16 og PLT-17 mot connecthub-dev (2026-10-17)
+
+Bare syntetiske kontoer (`ch-test-admin`, `ch-test-user`, `ch-test-dev`, `ch-test-mod`) i connecthub-dev, kjørt med `node web/e2e-dev/run-dev.mjs` (publiseringsbygget). Ingen e-post sendt, produksjonen ikke rørt.
+
+**SHR-07 – felles grunnoppsett ved samtidige endringer** (`e2e-dev/shared-setup-dev.spec.ts`, Admin og Bruker i «CH-test Menighet A» innlogget samtidig i hver sin nettleser)
+
+| Kontroll | Resultat |
+|---|---|
+| Databasen, eget testområde `e2etest:shr07-<tid>`: samtidig lagring mot samme versjon | nøyaktig én lykkes (200), den andre avvises (400 CH011) – i alle 7 kjøringer |
+| Etter konflikt: hent nyeste og lagre på nytt | begge endringene med (`{"a":"A","b":"B"}`) |
+| Lagring med gammel versjon | avvist (CH011), innholdet uendret |
+| Thumbnail Studio hos begge; Admin endrer kategori 1, Bruker endrer kategori 2 uten å ha hentet Admins endring | **Før rettelsen: Brukers endring gikk tapt** (1 kjøring). Etter rettelsen: begge endringene i menighetens oppsett i 6 av 6 kjøringer, melding «Endringene er slått sammen» hos Bruker; Admin får «Grunnoppsettet er oppdatert …» og ser endringen (testen bestått 5 av 6, se under) |
+
+**Feil funnet og rettet:** `merge3` slo sammen bare på toppnivå. Thumbnail Studio lagrer alle kategoriene i ett felt (`cats`), så to brukere som endret hver sin kategori samtidig, fikk «konflikt», og den sist lagrede listen vant – den andres endring forsvant. Nå slås lister der alle elementer har unik `id` sammen element for element: ulike elementer beholdes begge, nye fra begge kommer med, sletting av et uendret element gjelder; bare samme element endret ulikt gir konflikt (nyeste lagrede vinner, og det meldes som før). Rettet i `web/src/services/shared-setup.ts` og `media-lab/src/shared/shared-setup.js`, med enhetstester i begge (6 + 2 nye). Lister uten id-er oppfører seg som før.
+
+En kjøring feilet på kontrollen «Admin ser Brukers endring»: testen leste listen før appens henting var ferdig. Testen venter nå på appens melding om oppdateringen (feiler fortsatt hvis den uteblir); 4 av 4 bestått etterpå.
+
+**PLT-16 – rollebytter** (`e2e-dev/test-role-dev.spec.ts`)
+
+| Konto | Resultat |
+|---|---|
+| Developer (MFA) | valg: Developer (din rolle), Moderator, Admin, User. Admin-visning: banner «Testmodus: Admin · rettighetene på serveren er uendret», Tilbakemeldinger «Ingen tilgang», Menigheter vises, `system_status` fortsatt 200. Ny fane: ekte rolle. User-visning: Brukere «Ingen tilgang». «Tilbake til Developer»: banner borte, Tilbakemeldinger vises |
+| Moderator (MFA) | ingen rollebytter |
+| Admin | valg: Admin (din rolle), User; User-visning: Brukere «Ingen tilgang», `member_usage` fortsatt 200; tilbake til Admin |
+| Bruker | ingen rollebytter |
+
+Bestått i alle kjøringer.
+
+**PLT-17 – to brukere på samme PC** (`e2e-dev/local-data-dev.spec.ts`, Admin og Bruker i samme nettleserprofil)
+
+| Steg | Resultat |
+|---|---|
+| Eierløse data fra før innlogging (`photodesign.cats`) → konto 1 får spørsmålet, «Knytt til meg» | spørsmålet vist; kategorien synlig i Photo Design |
+| Konto 1 lagrer et prosjekt, logger ut; konto 2 logger inn | konto 2 får ikke spørsmålet, ser verken de eierløse dataene eller konto 1s prosjekt (0) |
+| Konto 2 lagrer eget prosjekt, «Fjern mine lokale data» | utlogget; inn igjen: 0 prosjekter |
+| Konto 1 inn igjen | 1 prosjekt og de eierløse dataene – urørt |
+
+Første kjøringer feilet i testen, ikke i appen: `isVisible({ timeout })` venter ikke (sjekket dialogen etter 0,5 s), og testen gikk videre før appens nye innlasting etter «Knytt til meg» (0,9 s). Begge rettet i testen; deretter 6 av 6 bestått.
+
+**Motion design-steget (Fellesmappe-testen):** etter den ene feilen tidligere i dag er steget kjørt 12 ganger til – 12 av 12 bestått (8 på rad i egen serie + 4 fulle Admin-løp). Feilen er ikke gjenskapt; den skjedde i første kjøring etter at testen ble endret til å åpne Logo-fanen, og resultatfilene ble overskrevet, så årsaken kan ikke påvises. Ingen feil i siden ble logget. Vurdering: stabil; ingen kjent feil i appen.
+
+**Opprydding (kontrollert med spørring bare for lesing etterpå):** testområdene `e2etest:*` fjernet av kjøreren (bare det prefikset); «CH-test Menighet A» sitt Thumbnail-oppsett lagt tilbake med likt innhold etter hver kjøring (versjonsnummeret har økt fra 16 til 37, se under); ingen `ch-test-e2e-*`-kontoer, testbilder eller ventende testinvitasjoner igjen; 5 rader felles oppsett som før. Lokale data lå bare i testenes nettleserprofiler, som forkastes. Hendelsene står i `audit_logs` (loggen slettes ikke).
+
+**Regresjon etter rettelsene:** `web` 302/302 enhetstester, typesjekk, lint, bygg og 94/94 nettlesertester; `media-lab` 181/181; fullt dev-løp: 7 av 8 løp bestått i første runde (SHR-07-kontrollen over), deretter par-løpet 3/3 og SHR-07 3/3.
+
+## MD-11 og Loop Studio L-4–L-6 (2026-10-17, lokalt)
+
+| Test | Resultat |
+|---|---|
+| `e2e-real/motion-subs.spec.ts` – AI-undertekster i ekte Chrome med WebGPU, ekte tale («Welcome to the Sunday meeting. Today we will talk about hope and community.», laget lokalt med Windows-talesyntese, `e2e-real/fixtures/tale-en.wav`), språk Engelsk | «1 undertekster er laget» etter 11 s og 9 s; 5 av 5 ord (welcome, sunday, meeting, hope, community); ingen feil. Hele `e2e-real` 5/5 |
+| `e2e/loop-studio-ui.spec.ts` L-4 vignettdialogen | punktet dras (lerretet endres), Styrke 40 (endres), «+ Legg til vignett» → «Vignett 2», Ferdig, åpnes igjen med samme innstillinger |
+| L-5 bakgrunnsbilde | bildevalg → beskjæringsdialog → «Bruk hele bildet»; «Beskjær / flytt bilde» → «Flytt utsnitt», rammen dras → videoen viser et annet utsnitt |
+| L-6 lydknappen | uten musikk: til Stil («Velg lyd…»); WAV valgt → «Demp lyd …» → «Slå på lyd …» → «Demp lyd …» |
+
+**Funnet og rettet:** «Rediger vignett …» og «Rediger vignett for alle slides …» gjorde ingenting når malen ennå ikke hadde slides (f.eks. et nytt Ukeprogram). Samme i dagens app. Nå vises «Legg til minst én slide først …» (`loop-studio/controller.ts`, tekst på engelsk i `texts.ts`); kontrollert i L-4-testen.
+
+Regresjon: `web` 302/302 enhetstester, typesjekk, lint, bygg og 97/97 nettlesertester.
+
+Ikke automatisert: MD-17 (selve mappedialogen i Chrome/Edge kan ikke styres av en test), norsk tale i MD-11.
+
+### Versjonsnummeret i Menighet A (thumbstudio:cats) – kontroll 2026-10-17, bare lesing
+
+`audit_logs` (`settings.update`, `thumbstudio:cats`, «CH-test Menighet A»): versjon 1–16 ble lagret 2026-10-03 (tidligere testing), versjon 17–37 i dag – **21 lagringer = 7 kjøringer av `shared-setup-dev` × 3**: (1) Admin endrer kategori 1 i Thumbnail Studio, (2) Bruker endrer kategori 2 og lagrer etter sammenslåing, (3) testen legger det opprinnelige innholdet tilbake som Admin. Kjøringene: 16:20 (før rettelsen), 18:06, 18:20 (fullt løp), 18:21, 18:21, 18:22 og 18:22 (norsk tid). Hver lagring skal ha en ny versjon – det er slik konflikter oppdages – så tallet kan ikke og skal ikke settes tilbake.
+
+Innholdet nå: 577 byte (samme som før første testkjøring, målt 2026-10-17 før testene), 3 kategorier «Søndagsmøte | Kveldsbibelskole | Ungdomsmøte», ingen testnavn (`E2E-`). I hver av de 7 kjøringene sammenlignet testen det tilbakelagte innholdet tegn for tegn med kopien tatt før kjøringen («innhold som før: ja» alle 7 gangene). Siden hver kopi var forrige kjørings tilbakelagte innhold, er innholdet identisk med utgangspunktet (versjon 16). md5 nå: `89024a8bf6e51e04e0a232a25f9eb44a` (for senere sammenligning). Revisjonsloggen er ikke endret.
+
+## Regresjon på 49e2ea8, sikkerhet, tilbakeføring og sikkerhetskopi (2026-10-17)
+
+**Regresjon på `49e2ea8` (rent arbeidstre):** `web` 302/302 enhetstester, typesjekk, lint, bygg, 97/97 nettlesertester; alle 8 dev-løp mot connecthub-dev bestått (user 10, admin 7, dev, mod, livsløp, rolle-dev, rolle-mod, par 3); `e2e-real` 5/5; `media-lab` 181/181. Vercel: forhåndsvisning `dpl_5Nqq61DKCeTUKCmrQyHRQTVsftcj` er bygget fra `49e2ea8` (Vercels metadata `githubCommitSha`), READY.
+
+**Sikkerhet (bare lesing, dev):**
+
+| Kontroll | Resultat |
+|---|---|
+| `npm audit` web (alle) / media-lab (produksjon) | 0 / 0 |
+| `npm audit` media-lab (alle) | 1 høy i byggeverktøy: `source-map-js` 1.2.1 (GHSA-68fv-2mgg-jv7q, via vite → postcss, bare under bygging). **Rettet:** `npm audit fix` → 1.2.2, bare `package-lock.json`; bygg (sikkerhetssøk uten funn) og 181/181 etterpå; 0 sårbarheter |
+| `security_audit.sql` | ingen tabeller uten RLS, ingen anon-tabellrettigheter, ingen SECURITY DEFINER uten search_path, ingen offentlige bøtter; 4 triggerfunksjoner i `app` (ikke eksponert) |
+| API-eksponering | `app` og `auth` gir PGRST106 (ikke eksponert); anonym lesing av `app_users` gir 42501; GraphQL er ikke aktivert |
+| `db advisors` | 90 × «authenticated SECURITY DEFINER» (tilsiktet, tilgang sjekkes i funksjonene, dekket av rls_test), 1 × lekkede passord av (krever Supabase Pro – begge prosjektene er på Free) |
+| Hemmeligheter i repoet | alle sporede filer og hele git-historikken: bare 6 oppdiktede testverdier (`sb_secret_abcd…/test…` i testfiler) og et falskt RSA-eksempel i testen av hemmelighetsrensingen; ingen JWT-er, ingen ekte nøkler, ingen `.env` sporet |
+
+Ingen kritiske eller høye funn gjenstår.
+
+**Tilbakeføringsøvelse** (`media-lab/build/rollback-drill.mjs`, PGlite): 38 migreringer (produksjonen i dag) mot 40 migreringer + `rollback_20261018110000.sql` + `rollback_20261018100000.sql`: 167 funksjoner med identisk definisjon og rettigheter (også `whoami`), 18 triggere, kolonnerettigheter og RLS-regler identiske; eneste forskjell `churches.member_limit` og `churches.legacy_defaults` (beholdes bevisst); ingen brukergrensefunksjoner igjen.
+
+**Sikkerhetskopi og gjenoppretting:** `supabase db dump` krever Docker (ikke installert) → nytt `supabase/checks/export-data.mjs` (bare SELECT via `db query`, ingen passord): dev → 30 tabeller (inkl. `auth.users`, `auth.identities`), 985 rader, 40 migreringer. Gjenoppretting øvd med `media-lab/build/restore-drill.mjs <mappe>` i tom PGlite: **funn og rettet** – tabellkolonner (`text[]`, f.eks. `mail_settings.notify_extra`) ble sendt som JSON-tekst, og standardrader fra migreringene kolliderte; nå gjøres tabellkolonner om riktig, identitets-id-er beholdes (sekvensene settes etter), og hver tabell tømmes før den fylles. Resultat: 28 tabeller, 959 rader, alle radantall stemmer, tilgang riktig for 11/11 brukere, RLS 984/984. Eksportfilene er slettet etterpå.
+
+**Vercel:** 71 eldre `connecthub`-forhåndsvisninger slettet etter godkjenning – se `docs/vercel-lagring.md` og `docs/vercel-slettelogg.txt`. Frigjort lagring er ikke verifisert ennå (Usage oppdateres daglig).
+
+## Vercel-forhåndsvisningen kontrollert (2026-10-17)
+
+«Protection Bypass for Automation» opprettet i `media-lab-react-vyef` (eiers ønske; verdien er aldri vist eller lagret – hentes fra Vercel i minnet ved bruk). Forhåndsvisning `08e0b9f` (`media-lab-react-vyef-eind1tsfr-media-lab3.vercel.app`):
+
+- `npm run check:preview`: 21/21 – riktig commit, `/app/` uten innlogging → 307 til `/login?next=/app/`, sikkerhetshoder og CSP, hurtigbuffer, manifest, 24 omdirigeringer (307), `/api` krever innlogging.
+- **Funnet og rettet (`08e0b9f`):** sperren sendte `/app/manifest.webmanifest` og `/app/version.json` til innlogging – den nye appen kunne ikke installeres, og oppdateringsvarselet feilet ved utløpt økt. Nå åpne som i roten (gate.js + middleware.js, tester oppdatert; 181/181).
+- Innlogget mot forhåndsvisningen med de syntetiske kontoene (`node e2e-dev/run-dev.mjs --remote=<adresse>`, bare tester som leser): Bruker 8/8, Admin 5/5, Photo Design 1/1 (bildet tegnet riktig).
+- Merknad: Vercels tilbakemeldingslinje (`vercel.live`, bare i forhåndsvisninger) blokkeres av CSP-en – uten betydning for produksjonen.
+
+## B1–B3 mot produksjonen (2026-10-17, godkjent, bare lesing via CLI med midlertidig innloggingsrolle)
+
+| Kontroll | Resultat | Forventet |
+|---|---|---|
+| B1 migreringer | 38, siste `20261017100000` (før den: `20261016100000`, `20261015100100`) | 38 / `20261017100000` – ja |
+| B2 brukergrense | 1 menighet («Livets Ord Fredrikstad»): 2 aktive, 0 ventende → 2 av 10; ingen på eller over grensen; `migrated: false` | ja |
+| B3 fingeravtrykk (før migreringen) | migrations 38, churches 1 (`730f5c9a…`), users 2 (`a734c50d…`), memberships active 2 (`c48f2c81…`), roles `7cf85894…`, files 7 / 9 150 318 byte (`01ce9c24…`), storage-objekter 8, links 0, feedback 7, invitations 1, subscriptions 0, audit 93 | lagret for C4 |
+
+Merknad: 8 objekter i bøtta mot 7 filrader (trolig menighetslogo eller e-postlogo, som ikke ligger i `files`) – uendret av migreringene, ikke en blokkering.
+Etter C3 skal B3 være lik, bortsett fra `migrations` (40), `last_migration` (`20261018110000`) og `audit`.
+
+## C1 – sikkerhetskopi av produksjonsdataene (2026-10-17, godkjent)
+
+`node supabase/checks/export-data.mjs cmuienhheklcgtfmpvbe F:/ML-backup/2026-10-17 --produksjon-godkjent` (bare SELECT). Lagret utenfor repoet; ikke lastet opp eller delt. Fullført: 30 tabeller (28 i `public` + `auth.users`, `auth.identities`), 138 rader, 38 migreringer (siste `20261017100000`). Kontroll: radantall i filene = oversikten (`_manifest.json`) for alle 30; samsvarer med B3-fingeravtrykket (brukere 2, menigheter 1, medlemskap 2, filer 7, invitasjoner 1, tilbakemeldinger 7, logg 93). Lokal gjenoppretting i tom PGlite: 28 tabeller / 134 rader, alle radantall stemmer, tilgang riktig 2/2, RLS 984/984, utgangskode 0. Filene inneholder personopplysninger og slettes når lanseringen er stabil (etter eiers beskjed).
+
+## C2–C4 – migreringene i produksjonen (2026-10-17, godkjent steg for steg)
+
+- **C2 tørrkjøring:** «Would push these migrations: 20261018100000_member_limit.sql, 20261018110000_church_legacy_defaults.sql»; seeds [] og roles [].
+- **C3:** `db push` – «Applying migration 20261018100000_member_limit.sql… 20261018110000_church_legacy_defaults.sql…», ingen feil.
+- **C4 (bare lesing):** B1 40 migreringer, siste `20261017100000, 20261018100000, 20261018110000`. B2 uendret (1 menighet, 2 av 10, ingen på/over grensen; `migrated` false → true). B3 likt før/etter bortsett fra `migrations` 38 → 40, `last_migration` → `20261018110000` og `audit` 93 → 94 (den nye raden er `churches.update` uten bruker, skrevet av migreringens `legacy_defaults = true`). Skjema: `churches.member_limit` (integer, standard 10) og `legacy_defaults` (boolean, standard false); menigheten har `legacy_defaults = true` og grense 10; 5 funksjoner og 2 triggere for brukergrensen; `whoami` returnerer `legacy_defaults`; ingen SECURITY DEFINER uten search_path. Ingen uventede endringer.
+- Publisert kode er fortsatt `main` (`2a1484b`) til D1; den tåler skjemaendringene.
+

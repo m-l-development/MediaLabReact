@@ -1,0 +1,108 @@
+/*
+ * Rammen rundt Loop Studio. Startsiden og editoren tegnes som i dagens app (helside, svart), så de gamle grunnstilene
+ * fra loop-studio.dc.html og studio-editor.dc.html gjelder her, og den nye appens grunnstiler tilbakestilles der de
+ * ville endret utseendet (linjehøyde, marger, blokkvisning av lerreter og ikoner, knappefonter).
+ */
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  overflow: auto;
+  background: #000;
+  color: #f3f1ec;
+  color-scheme: dark;
+  font-family: initial;
+  font-size: 16px;
+  line-height: normal;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.page :where(h1, h2, h3, h4, p) {
+  margin: revert;
+  color: revert;
+  line-height: revert;
+  letter-spacing: revert;
+}
+.page :where(button, input, select, textarea) {
+  font: revert;
+  color: revert;
+}
+.page :where(img, video, canvas, svg) {
+  display: revert;
+  max-width: revert;
+}
+.page :where(a) {
+  color: #e9e7e2;
+  text-decoration: none;
+}
+.page :where(a):hover {
+  color: #ffffff;
+}
+.page :where(button, a, label, select, input) {
+  -webkit-tap-highlight-color: transparent;
+}
+.page :where(input, textarea)::placeholder {
+  color: #6f6b64;
+}
+.page * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+.page ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.page ::-webkit-scrollbar-track,
+.page ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.page ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+.page ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+@media (max-width: 820px) {
+  .editor :where(button, select, input:not([type='range']):not([type='color']):not([type='checkbox'])) {
+    min-height: 44px;
+  }
+  .editor :where(input, select, textarea) {
+    font-size: 16px !important;
+  }
+  .editor :where(input[type='range']) {
+    height: 32px;
+  }
+}
+.page :global(#hex-pop) input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+}
+.page :global(#hex-pop) input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  cursor: pointer;
+}
+.loading {
+  padding: 120px 24px;
+  text-align: center;
+  color: #6f6b64;
+  font: 600 11px/1 Helvetica, Arial, sans-serif;
+  letter-spacing: 0.3em;
+}
+
+/* lyst tema: stjernene vises ikke (som i dagens app) */
+.page[data-ml-mode='light'] [data-ml-star] {
+  opacity: 0 !important;
+}
