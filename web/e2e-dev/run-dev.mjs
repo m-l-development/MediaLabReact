@@ -6,7 +6,7 @@
 //  4. gir de syntetiske testkontoene nye tilfeldige passord (aldri vist eller lagret) og fjerner MFA-faktorer på stab
 //  5. kjører testene per rolle, og gir kontoene nye ukjente passord til slutt
 // Bare connecthub-dev: stopper hvis .env.local eller nøkkelen gjelder et annet prosjekt.
-//   node e2e-dev/run-dev.mjs [--no-build] [--only=user,admin,dev,mod,livslop,rolle-dev,rolle-mod,par]
+//   node e2e-dev/run-dev.mjs [--no-build] [--only=user,admin,dev,mod,livslop,rolle-dev,rolle-mod,par,drift]
 import { spawn, spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -143,6 +143,7 @@ const RUNS = [
   { name: 'mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['staff-dev'] },
   { name: 'livslop', email: 'ch-test-dev@example.com', role: 'staff', specs: ['lifecycle-dev'] },
   { name: 'rolle-dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['test-role-dev'] },
+  { name: 'drift', email: 'ch-test-dev@example.com', role: 'staff', specs: ['admin-ops-dev'] },
   { name: 'rolle-mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['test-role-dev'] },
   // to kontoer samtidig (Admin og Bruker i samme menighet): felles grunnoppsett, rollebytter og to brukere på samme PC
   { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev'] },

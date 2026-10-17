@@ -16,20 +16,20 @@ export async function signInPassword(page: Page) {
 }
 
 /** Kall direkte mot Supabase (REST/RPC/Auth) med brukerens økt. Bare status, feilkode og svar uten hemmeligheter. */
-export function rest(page: Page, path: string, init: { method?: string; body?: unknown } = {}) {
-  return page.evaluate(async ({ p, m, b }) => {
+export function rest(page: Page, path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}) {
+  return page.evaluate(async ({ p, m, b, h }) => {
     const cfg = (globalThis as { __CH_BACKEND__?: { url: string; key: string } }).__CH_BACKEND__
     const s = JSON.parse(localStorage.getItem('ch.auth') ?? 'null') as { access_token?: string } | null
     if (!cfg || !s?.access_token) return { status: 0, code: 'ingen økt', body: null as unknown }
     const r = await fetch(`${cfg.url}${p}`, {
       method: m ?? (b === undefined ? 'GET' : 'POST'),
-      headers: { apikey: cfg.key, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      headers: { apikey: cfg.key, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json', ...(h ?? {}) },
       ...(b === undefined ? {} : { body: JSON.stringify(b) }),
     })
     const body = (await r.json().catch(() => null)) as unknown
     const code = !r.ok && body && typeof body === 'object' && 'code' in body ? String((body as { code: unknown }).code) : undefined
     return { status: r.status, code, body }
-  }, { p: path, m: init.method, b: init.body })
+  }, { p: path, m: init.method, b: init.body, h: init.headers })
 }
 
 /** Serverhandling (/api/ch) med brukerens økt. */
