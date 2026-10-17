@@ -1609,3 +1609,12 @@ Etter C3 skal B3 være lik, bortsett fra `migrations` (40), `last_migration` (`2
 - **C4 (bare lesing):** B1 40 migreringer, siste `20261017100000, 20261018100000, 20261018110000`. B2 uendret (1 menighet, 2 av 10, ingen på/over grensen; `migrated` false → true). B3 likt før/etter bortsett fra `migrations` 38 → 40, `last_migration` → `20261018110000` og `audit` 93 → 94 (den nye raden er `churches.update` uten bruker, skrevet av migreringens `legacy_defaults = true`). Skjema: `churches.member_limit` (integer, standard 10) og `legacy_defaults` (boolean, standard false); menigheten har `legacy_defaults = true` og grense 10; 5 funksjoner og 2 triggere for brukergrensen; `whoami` returnerer `legacy_defaults`; ingen SECURITY DEFINER uten search_path. Ingen uventede endringer.
 - Publisert kode er fortsatt `main` (`2a1484b`) til D1; den tåler skjemaendringene.
 
+## D1 – publisering (2026-10-17, godkjent)
+
+- Merge `feature/onepage-rebuild` → `main`: merge-commit `ec34de9` (innhold identisk med grenen), pushet.
+- Vercel produksjon: `dpl_6pcNfbFfabE5B7cwr1kR2YzT1FXt` READY; `media-lab-react-vyef.vercel.app` peker på den.
+- Tilbakeføringsmål bekreftet før merge: `dpl_8PvjVcp3h2VoKrBPHKXHnx81KEHP` (main `2a1484b`) – ikke brukt.
+- Røyktest av produksjonen (`npm run check:preview -- https://media-lab-react-vyef.vercel.app --commit ec34de9`): 21/21 – riktig commit, `/app/` → 307 til innlogging, `/login` 200, én CSP uten dev-prosjektet, 6 sikkerhetshoder, hurtigbuffer, `/app/assets/` og manifest åpne, 24 korte/gamle adresser 307 til riktig mål, `/api` GET 405 og uten innlogging 401 (serveren er konfigurert).
+- Ikke automatisert: innlogget bruk i produksjonen (ingen testkontoer der; manuell kontroll av eier).
+- Sikkerhetskopien fra C1 (`F:/ML-backup/2026-10-17`) beholdes til eier sier fra.
+
