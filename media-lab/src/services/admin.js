@@ -70,6 +70,10 @@ export const admin = {
   userActivity: userId => data().select('audit_logs', { columns: 'id, action, target_type, church_id, meta, created_at', eq: { actor_user_id: userId }, order: 'created_at', desc: true, limit: 25 }),
   audit: churchId => data().select('audit_logs', { columns: 'id, actor_user_id, action, target_type, target_id, church_id, reason, meta, created_at', ...(churchId ? { eq: { church_id: churchId } } : {}), order: 'created_at', desc: true, limit: 200 }),
   systemStatus: () => data().rpc('system_status'),
+  /* Brukergrense per menighet (docs/plan-brukergrense.md): aktive medlemmer + ventende invitasjoner. Håndheves i databasen (CH013). */
+  memberUsage: churchId => data().rpc('member_usage', { p_church: churchId }),
+  /* Overstyring: Developer/Moderator med MFA og begrunnelse; logges. */
+  setMemberLimit: (churchId, limit, reason) => data().rpc('set_member_limit', { p_church: churchId, p_limit: limit, p_reason: reason }),
 };
 
 /* Godkjenning av invitasjon etter innlogging med den inviterte adressen. */

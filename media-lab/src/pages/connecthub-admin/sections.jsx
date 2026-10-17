@@ -9,6 +9,7 @@ import { useAdmin, Head } from './AdminPage.jsx';
 import { memberActions, fill } from './members.js';
 import { useLogos, ChurchLogo, forgetLogo } from './logos.jsx';
 import { clearMe } from '../../services/me-cache.js';
+import { MemberLimitCard } from './member-limit.jsx';
 
 const ACTIONS = {
   'churches.insert': 'Menighet opprettet', 'churches.update': 'Menighet endret', 'churches.delete': 'Menighet slettet', 'churches.purge': 'Menighet slettet for godt',
@@ -225,6 +226,7 @@ function ChurchSettings({ church }) {
       {so && so.quota_sum_mb > so.limit_mb && <p className="ch-note warn" data-ch-overbooked>{T('Summen av alle menighetenes kvoter')} ({so.quota_sum_mb} MB) {T('er større enn den samlede lagringsplassen')} ({so.limit_mb} MB). {T('Det er lov, men opplasting stoppes for alle når den samlede plassen er brukt opp.')}</p>}
       <p className="ch-muted">{T('Alle kvoteendringer loggføres med gammel og ny verdi. Ingen filer slettes om kvoten senkes – bare nye opplastinger stoppes.')}</p>
     </Card>}
+    {(staff || canManage(church.id)) && <MemberLimitCard churchId={church.id} />}
     {canManage(church.id) && <Card title="Eksport">
       <p className="ch-muted">{T('Last ned menighetens data (medlemmer, invitasjoner, filer med lenker som virker i 1 time, samarbeid og logg) som JSON.')}</p>
       <div className="ch-row"><Btn onClick={act(async () => { downloadJson(await churchLife.export(church.id), 'menighet-' + church.name.replace(/[^A-Za-z0-9æøåÆØÅ]+/g, '-') + '.json'); say(T('Eksporten er lastet ned. Lenkene til filene virker i 1 time.')); })}>{T('Eksporter')}</Btn></div>

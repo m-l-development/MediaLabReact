@@ -27,6 +27,7 @@
     "build",
     "playwright.config.ts",
     "e2e",
-    "e2e-dev"
+    "e2e-dev",
+    "e2e-real"
   ]
 }
