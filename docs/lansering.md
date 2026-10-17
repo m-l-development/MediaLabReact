@@ -35,7 +35,9 @@ Alt under kjøres **av deg**, eller av meg først etter at du har godkjent **det
 
 | # | Handling | Merknad |
 |---|---|---|
-| A1 | Gå gjennom sjekklisten for Vercel-forhåndsvisningen (`feature/onepage-rebuild`) med testkonto | Commit og byggestatus kontrolleres i GitHub/Vercel |
+| A1 | Automatisk kontroll: `cd media-lab && npm run check:preview -- <preview-adresse> --commit <sha>` med `VERCEL_AUTOMATION_BYPASS_SECRET` satt i terminalen (se `docs/manuelle-tester.md`, del 4) | Commit, ruter/307, sikkerhetshoder, CSP, hurtigbuffer, `/api` krever innlogging. «Alt i orden» |
+| A2 | Manuelle punkter i forhåndsvisningen (innlogging med din konto, ett verktøy, Admin) – `docs/manuelle-tester.md`, del 4 | 5–10 minutter |
+| A3 | Vercel → Usage → Deployment Storage under 10 GB med god margin (`docs/vercel-lagring.md`) | Over 10 GB kan blokkere produksjonsbygget i D1 |
 
 ### B. Produksjonen – bare lesing (ingen endring)
 
@@ -49,7 +51,7 @@ Alt under kjøres **av deg**, eller av meg først etter at du har godkjent **det
 
 | # | Handling | Endrer? | Forventet |
 |---|---|---|---|
-| C1 | Sikkerhetskopi: `supabase db dump --linked` (skjema) og `--data-only` (data), se `docs/produksjonsplan-samarbeidsgrupper.md` 2.1 | Leser databasen; lager lokale filer – datafila har personopplysninger, lagres utenfor repoet og slettes når alt er stabilt | To filer |
+| C1 | Sikkerhetskopi av dataene: `node supabase/checks/export-data.mjs cmuienhheklcgtfmpvbe <mappe-utenfor-repoet> --produksjon-godkjent` (bare SELECT, ingen Docker eller passord; prøvd mot dev 2026-10-17: 30 tabeller). Hvis prosjektet har Supabase-backup (Pro): noter også tidspunktet for siste backup under Database → Backups. (`supabase db dump` krever Docker, som ikke er installert.) | Leser databasen; lager lokale filer med personopplysninger – lagres utenfor repoet og slettes når alt er stabilt | Én JSON-fil per tabell + `_manifest.json` med **38** migreringer |
 | C2 | `npx supabase@latest db push --linked --project-ref cmuienhheklcgtfmpvbe --dry-run` | Ingen dataendring (CLI-en oppretter en midlertidig innloggingsrolle for tilkoblingen) | **Bare** `20261018100000_member_limit.sql` og `20261018110000_church_legacy_defaults.sql`. Alt annet: stopp |
 | C3 | Samme kommando uten `--dry-run` | **Ja** – to nye kolonner (`member_limit`, `legacy_defaults`), funksjoner og triggere; `whoami` får feltet `legacy_defaults`. Eksisterende menigheter merkes `legacy_defaults = true` (beholder Livets Ord-innholdet); ingen andre rader endres | «Applying migration …» for begge, uten feil |
 | C4 | Verifisering: B1 (nå **40**), B2 (samme antall per menighet, grense 10) og B3 (likt med før, bortsett fra `migrations`/`last_migration`) | Bare lesing | Som forventet |
@@ -66,7 +68,7 @@ Mellom C3 og publiseringen (D) bruker produksjonen fortsatt dagens kode. Den tå
 
 ### E. Tilbakeføring
 
-- **Koden:** Vercel → Deployments → forrige produksjonsdeployment → «Instant Rollback» (sekunder, ingen git-endring). Deretter `git revert` av merge-commiten. Databasen kan bli stående – dagens kode tåler den.
+- **Koden:** Vercel → Deployments → forrige produksjonsdeployment → «Instant Rollback» (sekunder, ingen git-endring). På Hobby kan det bare rulles tilbake til **den umiddelbart forrige** produksjonen – i dag `dpl_8PvjVcp3h2VoKrBPHKXHnx81KEHP` (main `2a1484b`). Den skal ikke slettes (se `docs/vercel-lagring.md`). Deretter `git revert` av merge-commiten. Databasen kan bli stående – dagens kode tåler den.
 - **Korte adresser:** Instant Rollback over gir dagens adresser tilbake straks (omdirigeringene er 307 og huskes ikke).
 - **Brukergrensen i databasen:** `supabase/checks/rollback_20261018100000.sql` fjerner triggerne og funksjonene; ingen medlemskap eller invitasjoner endres (testet lokalt). Bare etter egen godkjenning.
 - **Livets Ord-feltet:** `supabase/checks/rollback_20261018110000.sql` gir `whoami` tilbake uten feltet (appen tolker manglende felt som Livets Ord-innhold). Kolonnen kan stå. Bare etter egen godkjenning.

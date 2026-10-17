@@ -1530,7 +1530,7 @@ Første kjøringer feilet i testen, ikke i appen: `isVisible({ timeout })` vente
 
 **Motion design-steget (Fellesmappe-testen):** etter den ene feilen tidligere i dag er steget kjørt 12 ganger til – 12 av 12 bestått (8 på rad i egen serie + 4 fulle Admin-løp). Feilen er ikke gjenskapt; den skjedde i første kjøring etter at testen ble endret til å åpne Logo-fanen, og resultatfilene ble overskrevet, så årsaken kan ikke påvises. Ingen feil i siden ble logget. Vurdering: stabil; ingen kjent feil i appen.
 
-**Opprydding (kontrollert med spørring bare for lesing etterpå):** testområdene `e2etest:*` fjernet av kjøreren (bare det prefikset); «CH-test Menighet A» sitt Thumbnail-oppsett lagt tilbake med likt innhold etter hver kjøring (versjonsnummeret har økt fra 16 til 37 – innholdet uten testnavn); ingen `ch-test-e2e-*`-kontoer, testbilder eller ventende testinvitasjoner igjen; 5 rader felles oppsett som før. Lokale data lå bare i testenes nettleserprofiler, som forkastes. Hendelsene står i `audit_logs` (loggen slettes ikke).
+**Opprydding (kontrollert med spørring bare for lesing etterpå):** testområdene `e2etest:*` fjernet av kjøreren (bare det prefikset); «CH-test Menighet A» sitt Thumbnail-oppsett lagt tilbake med likt innhold etter hver kjøring (versjonsnummeret har økt fra 16 til 37, se under); ingen `ch-test-e2e-*`-kontoer, testbilder eller ventende testinvitasjoner igjen; 5 rader felles oppsett som før. Lokale data lå bare i testenes nettleserprofiler, som forkastes. Hendelsene står i `audit_logs` (loggen slettes ikke).
 
 **Regresjon etter rettelsene:** `web` 302/302 enhetstester, typesjekk, lint, bygg og 94/94 nettlesertester; `media-lab` 181/181; fullt dev-løp: 7 av 8 løp bestått i første runde (SHR-07-kontrollen over), deretter par-løpet 3/3 og SHR-07 3/3.
 
@@ -1548,4 +1548,10 @@ Første kjøringer feilet i testen, ikke i appen: `isVisible({ timeout })` vente
 Regresjon: `web` 302/302 enhetstester, typesjekk, lint, bygg og 97/97 nettlesertester.
 
 Ikke automatisert: MD-17 (selve mappedialogen i Chrome/Edge kan ikke styres av en test), norsk tale i MD-11.
+
+### Versjonsnummeret i Menighet A (thumbstudio:cats) – kontroll 2026-10-17, bare lesing
+
+`audit_logs` (`settings.update`, `thumbstudio:cats`, «CH-test Menighet A»): versjon 1–16 ble lagret 2026-10-03 (tidligere testing), versjon 17–37 i dag – **21 lagringer = 7 kjøringer av `shared-setup-dev` × 3**: (1) Admin endrer kategori 1 i Thumbnail Studio, (2) Bruker endrer kategori 2 og lagrer etter sammenslåing, (3) testen legger det opprinnelige innholdet tilbake som Admin. Kjøringene: 16:20 (før rettelsen), 18:06, 18:20 (fullt løp), 18:21, 18:21, 18:22 og 18:22 (norsk tid). Hver lagring skal ha en ny versjon – det er slik konflikter oppdages – så tallet kan ikke og skal ikke settes tilbake.
+
+Innholdet nå: 577 byte (samme som før første testkjøring, målt 2026-10-17 før testene), 3 kategorier «Søndagsmøte | Kveldsbibelskole | Ungdomsmøte», ingen testnavn (`E2E-`). I hver av de 7 kjøringene sammenlignet testen det tilbakelagte innholdet tegn for tegn med kopien tatt før kjøringen («innhold som før: ja» alle 7 gangene). Siden hver kopi var forrige kjørings tilbakelagte innhold, er innholdet identisk med utgangspunktet (versjon 16). md5 nå: `89024a8bf6e51e04e0a232a25f9eb44a` (for senere sammenligning). Revisjonsloggen er ikke endret.
 
