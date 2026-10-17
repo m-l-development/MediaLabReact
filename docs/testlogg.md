@@ -1555,3 +1555,26 @@ Ikke automatisert: MD-17 (selve mappedialogen i Chrome/Edge kan ikke styres av e
 
 Innholdet nå: 577 byte (samme som før første testkjøring, målt 2026-10-17 før testene), 3 kategorier «Søndagsmøte | Kveldsbibelskole | Ungdomsmøte», ingen testnavn (`E2E-`). I hver av de 7 kjøringene sammenlignet testen det tilbakelagte innholdet tegn for tegn med kopien tatt før kjøringen («innhold som før: ja» alle 7 gangene). Siden hver kopi var forrige kjørings tilbakelagte innhold, er innholdet identisk med utgangspunktet (versjon 16). md5 nå: `89024a8bf6e51e04e0a232a25f9eb44a` (for senere sammenligning). Revisjonsloggen er ikke endret.
 
+## Regresjon på 49e2ea8, sikkerhet, tilbakeføring og sikkerhetskopi (2026-10-17)
+
+**Regresjon på `49e2ea8` (rent arbeidstre):** `web` 302/302 enhetstester, typesjekk, lint, bygg, 97/97 nettlesertester; alle 8 dev-løp mot connecthub-dev bestått (user 10, admin 7, dev, mod, livsløp, rolle-dev, rolle-mod, par 3); `e2e-real` 5/5; `media-lab` 181/181. Vercel: forhåndsvisning `dpl_5Nqq61DKCeTUKCmrQyHRQTVsftcj` er bygget fra `49e2ea8` (Vercels metadata `githubCommitSha`), READY.
+
+**Sikkerhet (bare lesing, dev):**
+
+| Kontroll | Resultat |
+|---|---|
+| `npm audit` web (alle) / media-lab (produksjon) | 0 / 0 |
+| `npm audit` media-lab (alle) | 1 høy i byggeverktøy: `source-map-js` 1.2.1 (GHSA-68fv-2mgg-jv7q, via vite → postcss, bare under bygging). **Rettet:** `npm audit fix` → 1.2.2, bare `package-lock.json`; bygg (sikkerhetssøk uten funn) og 181/181 etterpå; 0 sårbarheter |
+| `security_audit.sql` | ingen tabeller uten RLS, ingen anon-tabellrettigheter, ingen SECURITY DEFINER uten search_path, ingen offentlige bøtter; 4 triggerfunksjoner i `app` (ikke eksponert) |
+| API-eksponering | `app` og `auth` gir PGRST106 (ikke eksponert); anonym lesing av `app_users` gir 42501; GraphQL er ikke aktivert |
+| `db advisors` | 90 × «authenticated SECURITY DEFINER» (tilsiktet, tilgang sjekkes i funksjonene, dekket av rls_test), 1 × lekkede passord av (krever Supabase Pro – begge prosjektene er på Free) |
+| Hemmeligheter i repoet | alle sporede filer og hele git-historikken: bare 6 oppdiktede testverdier (`sb_secret_abcd…/test…` i testfiler) og et falskt RSA-eksempel i testen av hemmelighetsrensingen; ingen JWT-er, ingen ekte nøkler, ingen `.env` sporet |
+
+Ingen kritiske eller høye funn gjenstår.
+
+**Tilbakeføringsøvelse** (`media-lab/build/rollback-drill.mjs`, PGlite): 38 migreringer (produksjonen i dag) mot 40 migreringer + `rollback_20261018110000.sql` + `rollback_20261018100000.sql`: 167 funksjoner med identisk definisjon og rettigheter (også `whoami`), 18 triggere, kolonnerettigheter og RLS-regler identiske; eneste forskjell `churches.member_limit` og `churches.legacy_defaults` (beholdes bevisst); ingen brukergrensefunksjoner igjen.
+
+**Sikkerhetskopi og gjenoppretting:** `supabase db dump` krever Docker (ikke installert) → nytt `supabase/checks/export-data.mjs` (bare SELECT via `db query`, ingen passord): dev → 30 tabeller (inkl. `auth.users`, `auth.identities`), 985 rader, 40 migreringer. Gjenoppretting øvd med `media-lab/build/restore-drill.mjs <mappe>` i tom PGlite: **funn og rettet** – tabellkolonner (`text[]`, f.eks. `mail_settings.notify_extra`) ble sendt som JSON-tekst, og standardrader fra migreringene kolliderte; nå gjøres tabellkolonner om riktig, identitets-id-er beholdes (sekvensene settes etter), og hver tabell tømmes før den fylles. Resultat: 28 tabeller, 959 rader, alle radantall stemmer, tilgang riktig for 11/11 brukere, RLS 984/984. Eksportfilene er slettet etterpå.
+
+**Vercel:** 71 eldre `connecthub`-forhåndsvisninger slettet etter godkjenning – se `docs/vercel-lagring.md` og `docs/vercel-slettelogg.txt`. Frigjort lagring er ikke verifisert ennå (Usage oppdateres daglig).
+

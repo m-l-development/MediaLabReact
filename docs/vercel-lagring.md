@@ -1,6 +1,6 @@
 # Vercel Deployment Storage – kartlegging og forslag (2026-10-17)
 
-Status: **bare undersøkt**. Ingenting er slettet eller endret i Vercel. Alle tall er hentet med lesende kall (`vercel api` GET, `vercel inspect`, `vercel project ls`) mot teamet `media-lab3` (Hobby).
+Status: **gruppe 1 ryddet 2026-10-17** (se «Opprydding utført» nederst). Ingen innstillinger er endret. Alle tall er hentet med lesende kall (`vercel api` GET, `vercel inspect`, `vercel project ls`) mot teamet `media-lab3` (Hobby).
 
 ## Hvordan Vercel teller (kilder nederst)
 
@@ -64,3 +64,29 @@ Anslått gevinst for gruppe 1+2: ≈ 5 GB (usikkert til Usage er sjekket dagen e
 - [Deployment Storage](https://vercel.com/docs/deployment-storage) · [Optimize Deployment Storage](https://vercel.com/docs/deployment-storage/optimize) · [Deployment Retention](https://vercel.com/docs/deployment-retention) · [Instant Rollback](https://vercel.com/docs/instant-rollback)
 - [Hobby projects now retain fewer deployments](https://vercel.com/changelog/hobby-projects-now-retain-fewer-deployments-to-free-up-storage) · [Deployment Storage keeps your deployments rollback-ready](https://vercel.com/changelog/deployment-storage-keeps-your-deployments-rollback-ready)
 - Forum: [Hobby – Deployment Storage stuck at 17 GB after deleting 2/3 of deployments](https://community.vercel.com/t/hobby-deployment-storage-stuck-at-17-gb-after-deleting-2-3-of-the-projects-deployments/49569)
+
+## Opprydding utført (2026-10-17, godkjent: eldre forhåndsvisninger som oppfyller kriteriene)
+
+**Før:** dashbordet viste ca. 7,98 GB av 10 GB (lest av eier). 260 deployments i teamet.
+
+**Slettet: 71 forhåndsvisninger** – alle eldre `connecthub`-forhåndsvisninger i `media-lab-react-vyef` (1.–3. oktober; 33 fra det tidligere repoet `zoefredrikstad-maker/MediaLabReact`, 38 fra `m-l-development/MediaLabReact`). Full liste med id, commit og tidspunkt: [vercel-slettelogg.txt](vercel-slettelogg.txt).
+
+Kontroll før hver sletting: mål `preview`, status READY, gren `connecthub`, ikke på beskyttelseslisten, og grenaliaset `media-lab-react-vyef-git-connecthub-media-lab3.vercel.app` peker **ikke** på den (det peker på den nyeste, `dpl_B5BE…`, som er beholdt). Slettet med `vercel remove --safe` (hopper over alt med aktivt alias). Fire grupper (3, 17, 20, 31); etter hver gruppe: produksjon `dpl_8Pvj…` READY og `media-lab-react-vyef.vercel.app` peker på den, de to forrige produksjonene READY, lanseringsforhåndsvisningene (`dpl_5Nqq…` = `49e2ea8`, `dpl_5RFm…` = `7798aa5`) READY, nyeste `connecthub` READY, GitHub-koblingen `m-l-development/MediaLabReact` uendret. Ingen ble hoppet over, ingen feilet. Stikkprøve: slettet deployment gir «Deployment not found (404)» i API-et og 404 på adressen.
+
+**Etter:** 190 deployments (71 færre; 1 nytt bygg kom til). **Frigjort lagring er ikke verifisert ennå:** Vercel gir ikke bruksdata via CLI/API for et Hobby-team uten abonnement, og Usage oppdateres omtrent daglig. Anslag ≈ 4 GB (71 × ~58 MB). Sjekk **Usage → Deployment Storage** i morgen; forventet ca. 4 GB hvis Vercel frigjør med en gang (jf. forumtilfellet over: det er ikke sikkert).
+
+**Bevisst beholdt:** all produksjon i alle prosjekter; nyeste forhåndsvisning for `connecthub` og `hotfix/api-ml` (grenene finnes); alle 28 vellykkede `feature/onepage-rebuild`-forhåndsvisninger og 37 feilede (feilede har normalt ingen lagret output); alt i `lab-media` og `medialab-media-lab` (bruken kan ikke fastslås herfra; utløper av seg selv om 7–11 dager, unntatt beskyttede).
+
+**Spørsmål til deg:** (1) Kan eldre `feature/onepage-rebuild`-forhåndsvisninger (eldre enn de 3–5 siste, ≈ 1,3 GB) slettes, eller vil du beholde dem til lanseringen? (2) Brukes `lab-media` (`lab-media-theta.vercel.app`) og `medialab-media-lab` (`medialab-media-lab-seven.vercel.app`) fortsatt?
+
+**Margin:** med ~4 GB frigjort er det rom for svært mange nye bygg; selv uten frigjøring er det ~2 GB ≈ 30 bygg. Hvert push til grenen lager ett bygg; merge til `main` lager ett produksjonsbygg.
+
+### Forslag som krever godkjenning (ikke gjort)
+
+| Forslag | Effekt | Ulempe |
+|---|---|---|
+| Prosjektinnstilling: oppbevaring av **Pre-Production** 30 → 7–14 dager | gamle forhåndsvisninger forsvinner raskere automatisk | eldre forhåndsvisninger kan ikke åpnes etterpå (kan bygges på nytt fra git) |
+| `vercel.json` → `git.deploymentEnabled`: bare `main` og `feature/onepage-rebuild` bygges automatisk | ingen bygg for andre grener | andre grener må bygges manuelt ved behov |
+| «Ignored Build Step» (`ignoreCommand`): hopp over bygg når bare `docs/`, `web/e2e*`, `supabase/checks` er endret | færre bygg for dokumentasjons- og testendringer | et slikt push gir ingen ny forhåndsvisning |
+| Komprimere bildene i `media-lab/public/images` (22 MB) uten å endre filnavn | ~10–15 MB mindre per bygg | må kontrolleres visuelt |
+

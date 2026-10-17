@@ -76,7 +76,9 @@ Feil: noter adresse, hva du gjorde og skjermbilde.
 
 ## 5. Beskyttelse mot lekkede passord (Supabase Auth)
 
-Funksjonen sjekker nye passord mot Have I Been Pwned og avviser kjente lekkede passord. **Den finnes bare på Supabase Pro og høyere.** Er prosjektet på Free, vises den som utilgjengelig. Da er valget å oppgradere (kostnad, din beslutning) eller å akseptere varselet. Passordkravene i appen (lengde og tegn) gjelder uansett.
+Funksjonen sjekker nye passord mot Have I Been Pwned og avviser kjente lekkede passord. **Den finnes bare på Supabase Pro og høyere.** Kontrollert 2026-10-17 (lesing i Vercel): **begge prosjektene, også produksjonen, står på «Supabase Free Plan»** via Vercel-integrasjonen (organisasjonen «Media Lab»). Innstillingen kan derfor ikke slås på uten oppgradering – det er din beslutning (kostnad; oppgraderingen gjøres i Vercel → Storage/Integrations → Supabase eller i Supabase-organisasjonen). Uten oppgradering: varselet aksepteres; passordkravene i appen (lengde og tegn) gjelder uansett. Merk også: Free har ingen nedlastbare sikkerhetskopier hos Supabase – derfor eksportskriptet i C1.
+
+Etter eventuell oppgradering:
 
 Aktivere (gjør det først i **connecthub-dev**, deretter produksjonen etter egen vurdering):
 
