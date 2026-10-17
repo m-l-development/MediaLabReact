@@ -1598,3 +1598,7 @@ Ingen kritiske eller høye funn gjenstår.
 Merknad: 8 objekter i bøtta mot 7 filrader (trolig menighetslogo eller e-postlogo, som ikke ligger i `files`) – uendret av migreringene, ikke en blokkering.
 Etter C3 skal B3 være lik, bortsett fra `migrations` (40), `last_migration` (`20261018110000`) og `audit`.
 
+## C1 – sikkerhetskopi av produksjonsdataene (2026-10-17, godkjent)
+
+`node supabase/checks/export-data.mjs cmuienhheklcgtfmpvbe F:/ML-backup/2026-10-17 --produksjon-godkjent` (bare SELECT). Lagret utenfor repoet; ikke lastet opp eller delt. Fullført: 30 tabeller (28 i `public` + `auth.users`, `auth.identities`), 138 rader, 38 migreringer (siste `20261017100000`). Kontroll: radantall i filene = oversikten (`_manifest.json`) for alle 30; samsvarer med B3-fingeravtrykket (brukere 2, menigheter 1, medlemskap 2, filer 7, invitasjoner 1, tilbakemeldinger 7, logg 93). Lokal gjenoppretting i tom PGlite: 28 tabeller / 134 rader, alle radantall stemmer, tilgang riktig 2/2, RLS 984/984, utgangskode 0. Filene inneholder personopplysninger og slettes når lanseringen er stabil (etter eiers beskjed).
+
