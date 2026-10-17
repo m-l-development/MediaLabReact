@@ -1602,3 +1602,10 @@ Etter C3 skal B3 være lik, bortsett fra `migrations` (40), `last_migration` (`2
 
 `node supabase/checks/export-data.mjs cmuienhheklcgtfmpvbe F:/ML-backup/2026-10-17 --produksjon-godkjent` (bare SELECT). Lagret utenfor repoet; ikke lastet opp eller delt. Fullført: 30 tabeller (28 i `public` + `auth.users`, `auth.identities`), 138 rader, 38 migreringer (siste `20261017100000`). Kontroll: radantall i filene = oversikten (`_manifest.json`) for alle 30; samsvarer med B3-fingeravtrykket (brukere 2, menigheter 1, medlemskap 2, filer 7, invitasjoner 1, tilbakemeldinger 7, logg 93). Lokal gjenoppretting i tom PGlite: 28 tabeller / 134 rader, alle radantall stemmer, tilgang riktig 2/2, RLS 984/984, utgangskode 0. Filene inneholder personopplysninger og slettes når lanseringen er stabil (etter eiers beskjed).
 
+## C2–C4 – migreringene i produksjonen (2026-10-17, godkjent steg for steg)
+
+- **C2 tørrkjøring:** «Would push these migrations: 20261018100000_member_limit.sql, 20261018110000_church_legacy_defaults.sql»; seeds [] og roles [].
+- **C3:** `db push` – «Applying migration 20261018100000_member_limit.sql… 20261018110000_church_legacy_defaults.sql…», ingen feil.
+- **C4 (bare lesing):** B1 40 migreringer, siste `20261017100000, 20261018100000, 20261018110000`. B2 uendret (1 menighet, 2 av 10, ingen på/over grensen; `migrated` false → true). B3 likt før/etter bortsett fra `migrations` 38 → 40, `last_migration` → `20261018110000` og `audit` 93 → 94 (den nye raden er `churches.update` uten bruker, skrevet av migreringens `legacy_defaults = true`). Skjema: `churches.member_limit` (integer, standard 10) og `legacy_defaults` (boolean, standard false); menigheten har `legacy_defaults = true` og grense 10; 5 funksjoner og 2 triggere for brukergrensen; `whoami` returnerer `legacy_defaults`; ingen SECURITY DEFINER uten search_path. Ingen uventede endringer.
+- Publisert kode er fortsatt `main` (`2a1484b`) til D1; den tåler skjemaendringene.
+
