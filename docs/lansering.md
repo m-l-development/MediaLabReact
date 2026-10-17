@@ -1,6 +1,6 @@
 # Lansering av den nye appen (`/app/`)
 
-Status 2026-10-12. **Ingenting er publisert, merget eller endret i produksjonen.** Grenen `feature/onepage-rebuild` er klar for en samlet gjennomgang; punktene merket **[godkjenning]** krever din beslutning.
+Status 2026-10-17. **Ingenting er publisert, merget eller endret i produksjonen.** Grenen `feature/onepage-rebuild` er klar for en samlet gjennomgang; punktene merket **[godkjenning]** krever din beslutning.
 
 ## Anbefalt: myk lansering (minste trygge steg)
 
@@ -22,18 +22,51 @@ Hvorfor: ingen eksisterende lenke, installasjon eller e-postlenke brytes; dagens
 
 - **Automatisk:** hele kontrollen i `web/` (typesjekk, lint, enhetstester, bygg, nettlesertester PC/mobil) og `media-lab` `npm test` – se testloggen for siste tall.
 - **Mot connecthub-dev (ekte innlogging, 2026-10-12):** vanlig bruker og Admin – innlogging/utlogging, meny per rolle, tilgang håndhevet i databasen og på serveren (lesende kall). Se `docs/testlogg.md`.
+- **Brukergrensen (maks 10 per menighet) i connecthub-dev:** migrering, 972/972 databasetester, samtidighetstest og begge appene – se `docs/plan-brukergrense.md` og testloggen.
 - **Ekte Chrome med ekte AI-modeller:** Isolate Subject, Photo Design, Thumbnail Studio (Objekt/Person), SlimSAM (ett punkt).
 
 ## Før publisering
 
-| # | Handling | Hvem | Merknad |
+Alt under kjøres **av deg**, eller av meg først etter at du har godkjent **det enkelte steget**. Ingenting her er gjort i produksjonen.
+
+### A. Forhåndsvisning (connecthub-dev, ingen produksjonsdata)
+
+| # | Handling | Merknad |
+|---|---|---|
+| A1 | Gå gjennom sjekklisten for Vercel-forhåndsvisningen (`feature/onepage-rebuild`) med testkonto | Commit og byggestatus kontrolleres i GitHub/Vercel |
+
+### B. Produksjonen – bare lesing (ingen endring)
+
+| # | Handling | Forventet |
+|---|---|---|
+| B1 | Supabase-panelet → produksjonsprosjektet `cmuienhheklcgtfmpvbe` → **Database → Migrations** | **38** migreringer, siste `20261017100000_file_in_use`. Mangler noe: stopp |
+| B2 | Panelets SQL-redigering: innholdet i `supabase/checks/member_limit_report.sql` (bare `select`; viser bare menighetsnavn og tall) | Liste over menigheter og antall. Menigheter med over 10 beholder alle sine; noter dem |
+| B3 | Samme sted: `supabase/checks/prod_fingerprint.sql` (bare `select`) – lagre svaret | Fingeravtrykk før migreringen |
+
+### C. Produksjonen – brukergrensen (**[godkjenning] for hvert steg**, før koden publiseres)
+
+| # | Handling | Endrer? | Forventet |
 |---|---|---|---|
-| 1 | **Vercel-forhåndsvisning av grenen** (Vercel bygger forhåndsvisninger for grener ved push, mot connecthub-dev – kontroller i Vercel at det finnes en for `feature/onepage-rebuild`; ellers start en for grenen): åpne `/app/` og `/home`, logg inn med testkonto | Du | Bekrefter at Vercel bygger `web/` (krever at prosjektet tar med filer utenfor rotmappen `media-lab` – standard for Git-prosjekter; ellers stopper bygget med melding) |
-| 2a | **[godkjenning]** Brukergrensen i produksjonen, **før** koden publiseres: telling med `supabase/checks/member_limit_report.sql` (bare lesing), sikkerhetskopi, `db push --dry-run` (skal vise bare `20261018100000_member_limit.sql`), `db push`, ny telling. Dagens kode tåler migreringen | Du / jeg etter godkjenning | Verifisert i dev 2026-10-12 |
-| 2 | **Produksjonsdatabasen har alle migreringene** grenen bruker: `npx supabase migration list --project-ref cmuienhheklcgtfmpvbe` (bare lesing) | Du | Grenen har ingen nye migreringer i forhold til `main`, men `main` sin siste (`20261017100000_file_in_use.sql`) må være kjørt i produksjonen |
-| 3 | **[godkjenning]** Merge `feature/onepage-rebuild` → `main` (= publisering til produksjon) | Du | Tar også med rettelsene i dagens app: Isolate/Photo/Thumbnail-utklipp (ormbg, TB-7BF5C1), ingen automatisk sletting i delt mappe, `/app/assets` i sperren |
-| 4 | Etter publisering: logg inn på produksjonen, åpne `/app/`, ett verktøy og Dine medier; sjekk at `/home` fortsatt virker | Du | 5 minutter |
-| 5 | Tilbakeføring ved feil: revert av merge-commiten på `main` | Du | Dagens app påvirkes ikke av `/app/` |
+| C1 | Sikkerhetskopi: `supabase db dump --linked` (skjema) og `--data-only` (data), se `docs/produksjonsplan-samarbeidsgrupper.md` 2.1 | Leser databasen; lager lokale filer – datafila har personopplysninger, lagres utenfor repoet og slettes når alt er stabilt | To filer |
+| C2 | `npx supabase@latest db push --linked --project-ref cmuienhheklcgtfmpvbe --dry-run` | Ingen dataendring (CLI-en oppretter en midlertidig innloggingsrolle for tilkoblingen) | **Bare** `20261018100000_member_limit.sql`. Alt annet: stopp |
+| C3 | Samme kommando uten `--dry-run` | **Ja** – ny kolonne, funksjoner og triggere; ingen eksisterende rader endres | «Applying migration 20261018100000_member_limit.sql» uten feil |
+| C4 | Verifisering: B1 (nå **39**), B2 (samme antall per menighet, grense 10) og B3 (likt med før, bortsett fra `migrations`/`last_migration`) | Bare lesing | Som forventet |
+
+Mellom C3 og publiseringen (D) bruker produksjonen fortsatt dagens kode. Den tåler migreringen; den eneste forskjellen er at en menighet som allerede er på eller over grensen, får en generell feilmelding ved ny invitasjon (den tydelige teksten kommer med koden). B2 viser om noen menighet berøres.
+
+### D. Publisering (**[godkjenning]**)
+
+| # | Handling | Merknad |
+|---|---|---|
+| D1 | Merge `feature/onepage-rebuild` → `main` | Publiserer den nye appen under `/app/`, brukergrensen i begge appene og rettelsene i dagens app (utklipp med ormbg/TB-7BF5C1, ingen automatisk sletting i delt mappe, `/app/assets` i sperren) |
+| D2 | Kontroller i Vercel at produksjonsdeploymenten bygger merge-commiten, og at den er «Ready» | |
+| D3 | Etter publisering: logg inn, åpne `/app/`, ett verktøy, Dine medier og Admin → menighetens innstillinger (telleren); sjekk at `/home` og `/admin` virker som før | 5–10 minutter |
+
+### E. Tilbakeføring
+
+- **Koden:** Vercel → Deployments → forrige produksjonsdeployment → «Instant Rollback» (sekunder, ingen git-endring). Deretter `git revert` av merge-commiten. Databasen kan bli stående – dagens kode tåler den.
+- **Brukergrensen i databasen:** `supabase/checks/rollback_20261018100000.sql` fjerner triggerne og funksjonene; ingen medlemskap eller invitasjoner endres (testet lokalt). Bare etter egen godkjenning.
+- **Data:** gjenoppretting fra sikkerhetskopien (C1) bare hvis data faktisk er skadet, og bare etter egen godkjenning. Migreringen sletter eller overskriver ingen rader.
 
 ## Kan vente til etter lansering
 
