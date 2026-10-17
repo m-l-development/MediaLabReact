@@ -112,3 +112,35 @@ export function mailLink(to: string): string | null {
   const m = all.filter((x) => x.to === to).at(-1)
   return /https?:\/\/[^\s"'<>]+invite=[^\s"'<>]+/.exec(m?.text ?? m?.html ?? '')?.[0]?.replace(/&amp;/g, '&') ?? null
 }
+
+/** Andre testkonto i samme løp (run-dev.mjs, løp med to kontoer). */
+export const EMAIL2 = process.env.ML_DEV_EMAIL2 ?? ''
+export const PASSWORD2 = process.env.ML_DEV_PASSWORD2 ?? ''
+
+/** Innlogging med valgt konto, også når innloggingssiden viser lagrede kontoer («Bruk en annen konto»). */
+export async function signInAs(page: Page, email: string, password: string) {
+  await page.goto('/app/')
+  const other = page.getByRole('button', { name: 'Bruk en annen konto' })
+  const field = page.getByLabel('E-post')
+  await expect(field.or(other).first()).toBeVisible({ timeout: 30_000 })
+  if (!(await field.isVisible())) await other.click()
+  await field.fill(email)
+  await page.getByLabel('Passord', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Logg inn', exact: true }).click()
+}
+
+/** Utlogging fra kontomenyen. */
+export async function signOut(page: Page) {
+  await page.getByRole('button', { name: 'Konto' }).click()
+  await page.getByRole('button', { name: 'Logg ut', exact: true }).click()
+  await expect(page.getByLabel('E-post').or(page.getByRole('button', { name: 'Bruk en annen konto' })).first()).toBeVisible({ timeout: 30_000 })
+}
+
+/** RPC som innlogget bruker; kaster ikke ved feil, gir status og feilkode. */
+export async function rpc(page: Page, fn: string, body: unknown) {
+  return rest(page, `/rest/v1/rpc/${fn}`, { body })
+}
+
+/** Blir elementet synlig innen `ms`? (locator.isVisible venter ikke.) */
+export const appears = (l: import('@playwright/test').Locator, ms: number): Promise<boolean> =>
+  l.waitFor({ state: 'visible', timeout: ms }).then(() => true, () => false)

@@ -76,3 +76,18 @@ test('SharedSetup: samme innhold i annen rekkefølge lagres ikke (ingen ny versj
   assert.ok(!db.calls.includes('church_settings_save'), 'ingen lagring');
   useDataAdapter(null);
 });
+
+const kat = (id, name) => ({ id, name });
+test('merge3: to brukere endrer hver sin kategori samtidig – begge beholdes (SHR-07)', () => {
+  const base = { cats: [kat('a', 'A'), kat('b', 'B')] };
+  const r = merge3(base, { cats: [kat('a', 'A'), kat('b', 'B2')] }, { cats: [kat('a', 'A1'), kat('b', 'B')] });
+  assert.deepEqual(r.data.cats, [kat('a', 'A1'), kat('b', 'B2')]);
+  assert.deepEqual(r.conflicts, []);
+});
+test('merge3: samme kategori endret ulikt – nyeste lagrede vinner og meldes; nye fra begge kommer med', () => {
+  const base = { cats: [kat('a', 'A')] };
+  const r = merge3(base, { cats: [kat('a', 'mitt'), kat('m', 'M')] }, { cats: [kat('a', 'deres'), kat('t', 'T')] });
+  assert.deepEqual(r.data.cats, [kat('a', 'deres'), kat('t', 'T'), kat('m', 'M')]);
+  assert.deepEqual(r.conflicts, ['cats']);
+});
+

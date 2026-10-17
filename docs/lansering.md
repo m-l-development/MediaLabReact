@@ -84,4 +84,5 @@ Mellom C3 og publiseringen (D) bruker produksjonen fortsatt dagens kode. Den tå
 | Fellesmappe som bildekilde i verktøyene | Testet mot dev | `sources-dev` |
 | Pensel, grønn «behold», SlimSAM-punkter | Testet med ekte modeller | `e2e-real/ai-tools.spec.ts` |
 | Sikkerhetsgjennomgang | Utført; ett innstillingspunkt hos deg (lekkede passord) | `supabase/checks/security_audit.sql`, `docs/testlogg.md` |
+| Felles grunnoppsett ved samtidige endringer (SHR-07), rollebytter (PLT-16), to brukere på samme PC (PLT-17) | Testet mot dev; feil i sammenslåingen funnet og rettet | `shared-setup-dev`, `test-role-dev`, `local-data-dev` |
 | Photo Design «hvitt bilde» | **Ikke gjenskapt** – trenger bildet eller fremgangsmåten | `e2e-dev/photo-dev.spec.ts` (`ML_DEV_IMAGE`) |

@@ -6,7 +6,7 @@
 //  4. gir de syntetiske testkontoene nye tilfeldige passord (aldri vist eller lagret) og fjerner MFA-faktorer på stab
 //  5. kjører testene per rolle, og gir kontoene nye ukjente passord til slutt
 // Bare connecthub-dev: stopper hvis .env.local eller nøkkelen gjelder et annet prosjekt.
-//   node e2e-dev/run-dev.mjs [--no-build] [--only=user,admin,dev,mod,livslop]
+//   node e2e-dev/run-dev.mjs [--no-build] [--only=user,admin,dev,mod,livslop,rolle-dev,rolle-mod,par]
 import { spawn, spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -92,6 +92,13 @@ async function dropFactors(id) {
 // Kontoer som testene selv lager (ch-test-e2e-<tall>@example.com): en invitasjon via testpostkassen lager en innloggings-
 // konto hos Supabase (generateLink). Blir de liggende (ubrukt invitasjon, eller en test som stoppet), fjernes de som ved
 // «Slett kontoen min»: delete_account (appens data via koblingen i user_identities), deretter innloggingskontoen.
+// Testområder i felles grunnoppsett (bare scope e2etest:*, laget av shared-setup-dev)
+async function cleanupSettings() {
+  const r = await fetch(`${SUPA}/rest/v1/church_settings?scope=like.e2etest:*`, { method: 'DELETE', headers: { ...H, Prefer: 'return=representation' } })
+  if (!r.ok) throw new Error(`church_settings: ${r.status}`)
+  return (await r.json()).length
+}
+
 async function cleanupInvited() {
   const list = (await admin('/users?page=1&per_page=1000')).users
   const users = list.filter((u) => /^ch-test-e2e-\d+@example\.com$/.test(u.email ?? ''))
@@ -114,6 +121,10 @@ const RUNS = [
   { name: 'dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['staff-dev'] },
   { name: 'mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['staff-dev'] },
   { name: 'livslop', email: 'ch-test-dev@example.com', role: 'staff', specs: ['lifecycle-dev'] },
+  { name: 'rolle-dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['test-role-dev'] },
+  { name: 'rolle-mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['test-role-dev'] },
+  // to kontoer samtidig (Admin og Bruker i samme menighet): felles grunnoppsett, rollebytter og to brukere på samme PC
+  { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev'] },
 ].filter((r) => !only.length || only.includes(r.name))
 
 const results = []
@@ -122,19 +133,24 @@ try {
     const id = userId(run.email)
     if (!id) { results.push([run.name, 'mangler kontoen']); continue }
     const pw = await newPassword(id)
+    const id2 = run.email2 ? userId(run.email2) : null
+    const pw2 = id2 ? await newPassword(id2) : ''
     if (run.role === 'staff') say(`${run.name}: ${await dropFactors(id)} MFA-faktor(er) fjernet før testen`)
-    say(`${run.name}: kjører ${run.specs.join(', ')}`)
-    const r = spawnSync('npx', ['playwright', 'test', '-c', 'e2e-dev', ...run.specs], {
+    // ML_DEV_SPECS=a,b kjører bare disse testene i løpet (f.eks. for gjentatte kjøringer)
+    const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : run.specs
+    say(`${run.name}: kjører ${specs.join(', ')}`)
+    const r = spawnSync('npx', ['playwright', 'test', '-c', 'e2e-dev', ...specs], {
       cwd: WEB, stdio: 'inherit', shell: win,
-      env: { ...process.env, ML_DEV_BASE: BASE, ML_DEV_EMAIL: run.email, ML_DEV_PASSWORD: pw, ML_DEV_ROLE: run.role, ML_DEV_MAILBOX: MAILBOX, ML_DEV_SUPABASE_URL: SUPA, ML_DEV_PUBLISHABLE_KEY: PUBLISHABLE, ...(run.env ?? {}) },
+      env: { ...process.env, ML_DEV_BASE: BASE, ML_DEV_EMAIL: run.email, ML_DEV_PASSWORD: pw, ML_DEV_ROLE: run.role, ML_DEV_EMAIL2: run.email2 ?? '', ML_DEV_PASSWORD2: pw2, ML_DEV_MAILBOX: MAILBOX, ML_DEV_SUPABASE_URL: SUPA, ML_DEV_PUBLISHABLE_KEY: PUBLISHABLE, ...(run.env ?? {}) },
     })
     results.push([run.name, r.status === 0 ? 'bestått' : `FEILET (rc ${r.status})`])
   }
 } finally {
-  for (const run of RUNS) { const id = userId(run.email); if (id) await newPassword(id).catch(() => undefined) }
+  for (const e of new Set(RUNS.flatMap((r) => [r.email, r.email2].filter(Boolean)))) { const id = userId(e); if (id) await newPassword(id).catch(() => undefined) }
   for (const run of RUNS.filter((x) => x.role === 'staff')) { const id = userId(run.email); if (id) await dropFactors(id).catch(() => undefined) }
   // invitasjoner via testpostkassen lager en innloggingskonto hos Supabase (generateLink); de som aldri ble godtatt
   // (ingen brukerprofil), og bare med testenes egne adresser, fjernes igjen
+  say(`opprydding: ${await cleanupSettings().catch((e) => `feilet (${e.message})`)} testområde(r) i felles grunnoppsett (e2etest:*) fjernet`)
   say(`opprydding: ${await cleanupInvited().catch((e) => `feilet (${e.message})`)} testkonto(er) laget av testene fjernet`)
   stopServer()
 }

@@ -1489,3 +1489,48 @@ Bare connecthub-dev (`uatpdmhnwwjgzlxaucsx`) og lokale servere. Produksjonen er 
 | `supabase/checks/security_audit.sql` i dev | ingen SECURITY DEFINER uten `search_path`, ingen tabeller uten RLS, ingen anon-tabellrettigheter, ingen offentlige bøtter |
 | `supabase db advisors` (dev) | 90 varsler om SECURITY DEFINER-funksjoner for innloggede (tilsiktet; tilgang kontrolleres i funksjonene, dekket av rls_test), 1 varsel: beskyttelse mot lekkede passord er av (Auth-innstilling) |
 
+## SHR-07, PLT-16 og PLT-17 mot connecthub-dev (2026-10-17)
+
+Bare syntetiske kontoer (`ch-test-admin`, `ch-test-user`, `ch-test-dev`, `ch-test-mod`) i connecthub-dev, kjørt med `node web/e2e-dev/run-dev.mjs` (publiseringsbygget). Ingen e-post sendt, produksjonen ikke rørt.
+
+**SHR-07 – felles grunnoppsett ved samtidige endringer** (`e2e-dev/shared-setup-dev.spec.ts`, Admin og Bruker i «CH-test Menighet A» innlogget samtidig i hver sin nettleser)
+
+| Kontroll | Resultat |
+|---|---|
+| Databasen, eget testområde `e2etest:shr07-<tid>`: samtidig lagring mot samme versjon | nøyaktig én lykkes (200), den andre avvises (400 CH011) – i alle 7 kjøringer |
+| Etter konflikt: hent nyeste og lagre på nytt | begge endringene med (`{"a":"A","b":"B"}`) |
+| Lagring med gammel versjon | avvist (CH011), innholdet uendret |
+| Thumbnail Studio hos begge; Admin endrer kategori 1, Bruker endrer kategori 2 uten å ha hentet Admins endring | **Før rettelsen: Brukers endring gikk tapt** (1 kjøring). Etter rettelsen: begge endringene i menighetens oppsett i 6 av 6 kjøringer, melding «Endringene er slått sammen» hos Bruker; Admin får «Grunnoppsettet er oppdatert …» og ser endringen (testen bestått 5 av 6, se under) |
+
+**Feil funnet og rettet:** `merge3` slo sammen bare på toppnivå. Thumbnail Studio lagrer alle kategoriene i ett felt (`cats`), så to brukere som endret hver sin kategori samtidig, fikk «konflikt», og den sist lagrede listen vant – den andres endring forsvant. Nå slås lister der alle elementer har unik `id` sammen element for element: ulike elementer beholdes begge, nye fra begge kommer med, sletting av et uendret element gjelder; bare samme element endret ulikt gir konflikt (nyeste lagrede vinner, og det meldes som før). Rettet i `web/src/services/shared-setup.ts` og `media-lab/src/shared/shared-setup.js`, med enhetstester i begge (6 + 2 nye). Lister uten id-er oppfører seg som før.
+
+En kjøring feilet på kontrollen «Admin ser Brukers endring»: testen leste listen før appens henting var ferdig. Testen venter nå på appens melding om oppdateringen (feiler fortsatt hvis den uteblir); 4 av 4 bestått etterpå.
+
+**PLT-16 – rollebytter** (`e2e-dev/test-role-dev.spec.ts`)
+
+| Konto | Resultat |
+|---|---|
+| Developer (MFA) | valg: Developer (din rolle), Moderator, Admin, User. Admin-visning: banner «Testmodus: Admin · rettighetene på serveren er uendret», Tilbakemeldinger «Ingen tilgang», Menigheter vises, `system_status` fortsatt 200. Ny fane: ekte rolle. User-visning: Brukere «Ingen tilgang». «Tilbake til Developer»: banner borte, Tilbakemeldinger vises |
+| Moderator (MFA) | ingen rollebytter |
+| Admin | valg: Admin (din rolle), User; User-visning: Brukere «Ingen tilgang», `member_usage` fortsatt 200; tilbake til Admin |
+| Bruker | ingen rollebytter |
+
+Bestått i alle kjøringer.
+
+**PLT-17 – to brukere på samme PC** (`e2e-dev/local-data-dev.spec.ts`, Admin og Bruker i samme nettleserprofil)
+
+| Steg | Resultat |
+|---|---|
+| Eierløse data fra før innlogging (`photodesign.cats`) → konto 1 får spørsmålet, «Knytt til meg» | spørsmålet vist; kategorien synlig i Photo Design |
+| Konto 1 lagrer et prosjekt, logger ut; konto 2 logger inn | konto 2 får ikke spørsmålet, ser verken de eierløse dataene eller konto 1s prosjekt (0) |
+| Konto 2 lagrer eget prosjekt, «Fjern mine lokale data» | utlogget; inn igjen: 0 prosjekter |
+| Konto 1 inn igjen | 1 prosjekt og de eierløse dataene – urørt |
+
+Første kjøringer feilet i testen, ikke i appen: `isVisible({ timeout })` venter ikke (sjekket dialogen etter 0,5 s), og testen gikk videre før appens nye innlasting etter «Knytt til meg» (0,9 s). Begge rettet i testen; deretter 6 av 6 bestått.
+
+**Motion design-steget (Fellesmappe-testen):** etter den ene feilen tidligere i dag er steget kjørt 12 ganger til – 12 av 12 bestått (8 på rad i egen serie + 4 fulle Admin-løp). Feilen er ikke gjenskapt; den skjedde i første kjøring etter at testen ble endret til å åpne Logo-fanen, og resultatfilene ble overskrevet, så årsaken kan ikke påvises. Ingen feil i siden ble logget. Vurdering: stabil; ingen kjent feil i appen.
+
+**Opprydding (kontrollert med spørring bare for lesing etterpå):** testområdene `e2etest:*` fjernet av kjøreren (bare det prefikset); «CH-test Menighet A» sitt Thumbnail-oppsett lagt tilbake med likt innhold etter hver kjøring (versjonsnummeret har økt fra 16 til 37 – innholdet uten testnavn); ingen `ch-test-e2e-*`-kontoer, testbilder eller ventende testinvitasjoner igjen; 5 rader felles oppsett som før. Lokale data lå bare i testenes nettleserprofiler, som forkastes. Hendelsene står i `audit_logs` (loggen slettes ikke).
+
+**Regresjon etter rettelsene:** `web` 302/302 enhetstester, typesjekk, lint, bygg og 94/94 nettlesertester; `media-lab` 181/181; fullt dev-løp: 7 av 8 løp bestått i første runde (SHR-07-kontrollen over), deretter par-løpet 3/3 og SHR-07 3/3.
+

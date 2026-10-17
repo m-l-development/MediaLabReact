@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '../domain/account'
 import { ServiceError } from './errors'
-import { legacyDefaults, SharedSetup, type ChurchSettingsService, type SettingsRow } from './shared-setup'
+import { legacyDefaults, merge3, SharedSetup, type ChurchSettingsService, type SettingsRow } from './shared-setup'
 import { parseMe } from '../domain/account'
 
 /** Felles grunnoppsett per menighet (SHR-07): versjon mot samtidige endringer, tre-veis sammenslåing og admin-felt. */
@@ -138,5 +138,41 @@ describe('legacyDefaults', () => {
   it('whoami leser feltet', () => {
     expect(who(false).churches[0]?.legacy_defaults).toBe(false)
     expect('legacy_defaults' in (who(undefined).churches[0] ?? {})).toBe(false)
+  })
+})
+
+describe('merge3: lister med id-er (SHR-07, f.eks. kategorier)', () => {
+  const k = (id: string, name: string) => ({ id, name })
+  const base = { cats: [k('a', 'A'), k('b', 'B'), k('c', 'C')] }
+
+  it('to brukere endrer hver sin kategori samtidig: begge endringene beholdes, ingen konflikt', () => {
+    const r = merge3(base, { cats: [k('a', 'A'), k('b', 'B2'), k('c', 'C')] }, { cats: [k('a', 'A1'), k('b', 'B'), k('c', 'C')] })
+    expect(r.data.cats).toEqual([k('a', 'A1'), k('b', 'B2'), k('c', 'C')])
+    expect(r.conflicts).toEqual([])
+  })
+  it('samme kategori endret ulikt: den nyeste lagrede vinner, og det meldes', () => {
+    const r = merge3(base, { cats: [k('a', 'mitt'), k('b', 'B'), k('c', 'C')] }, { cats: [k('a', 'deres'), k('b', 'B'), k('c', 'C')] })
+    expect(r.data.cats).toEqual([k('a', 'deres'), k('b', 'B'), k('c', 'C')])
+    expect(r.conflicts).toEqual(['cats'])
+  })
+  it('nye kategorier fra begge kommer med; sletting av en uendret kategori gjelder', () => {
+    const r = merge3(base, { cats: [k('a', 'A'), k('c', 'C'), k('m', 'Min nye')] }, { cats: [k('a', 'A'), k('b', 'B'), k('c', 'C'), k('t', 'Deres nye')] })
+    expect(r.data.cats).toEqual([k('a', 'A'), k('c', 'C'), k('t', 'Deres nye'), k('m', 'Min nye')])
+    expect(r.conflicts).toEqual([])
+  })
+  it('slettet hos meg, men endret hos dem: deres endring beholdes og det meldes', () => {
+    const r = merge3(base, { cats: [k('a', 'A'), k('c', 'C')] }, { cats: [k('a', 'A'), k('b', 'B endret'), k('c', 'C')] })
+    expect(r.data.cats).toEqual([k('a', 'A'), k('b', 'B endret'), k('c', 'C')])
+    expect(r.conflicts).toEqual(['cats'])
+  })
+  it('bare jeg har endret rekkefølgen: min rekkefølge, deres innhold', () => {
+    const r = merge3(base, { cats: [k('c', 'C'), k('a', 'A'), k('b', 'B')] }, { cats: [k('a', 'A'), k('b', 'B9'), k('c', 'C')] })
+    expect(r.data.cats).toEqual([k('c', 'C'), k('a', 'A'), k('b', 'B9')])
+  })
+  it('lister uten id (eller med doble id-er) slås sammen som før: nyeste lagrede vinner', () => {
+    const r = merge3({ x: [1, 2] }, { x: [1, 3] }, { x: [1, 4] })
+    expect([r.data.x, r.conflicts]).toEqual([[1, 4], ['x']])
+    const d = merge3({ x: [k('a', '1')] }, { x: [k('a', '2'), k('a', '3')] }, { x: [k('a', '4')] })
+    expect(d.data.x).toEqual([k('a', '4')])
   })
 })

@@ -53,7 +53,63 @@ export const same = (a: unknown, b: unknown): boolean => JSON.stringify(canon(a)
 
 type Rec = Record<string, unknown>
 
-/** Tre-veis sammenslåing på toppnivå. */
+type Item = Rec & { id: string }
+/** Liste der alle elementer er objekter med unik tekst-id (f.eks. kategorier)? */
+const idList = (v: unknown): v is Item[] => {
+  if (!Array.isArray(v)) return false
+  const ids = new Set<string>()
+  for (const x of v) {
+    if (!x || typeof x !== 'object' || typeof (x as Rec).id !== 'string' || ids.has((x as Item).id)) return false
+    ids.add((x as Item).id)
+  }
+  return true
+}
+
+/**
+ * Tre-veis sammenslåing av en liste med id-er, element for element: endringer i ulike elementer beholdes begge;
+ * nye elementer fra begge kommer med; et element den ene har slettet og den andre ikke har endret, slettes.
+ * Har begge endret samme element ulikt (eller den ene slettet det den andre endret), vinner den nyeste lagrede (deres).
+ */
+function mergeList(base: Item[], mine: Item[], theirs: Item[]): { list: Item[]; conflict: boolean } {
+  const B = new Map(base.map((x) => [x.id, x]))
+  const M = new Map(mine.map((x) => [x.id, x]))
+  const T = new Map(theirs.map((x) => [x.id, x]))
+  const keep = new Map<string, Item>()
+  let conflict = false
+  for (const id of new Set([...T.keys(), ...M.keys()])) {
+    const b = B.get(id), m = M.get(id), t = T.get(id)
+    if (m && t) {
+      const mc = !same(m, b), tc = !same(t, b)
+      if (mc && tc && !same(m, t)) conflict = true
+      keep.set(id, mc && !tc ? m : t)
+    } else if (t) {
+      // finnes ikke hos meg: ny hos dem, eller slettet av meg
+      if (!b) keep.set(id, t)
+      else if (!same(t, b)) {
+        conflict = true
+        keep.set(id, t)
+      }
+    } else if (m) {
+      // finnes ikke hos dem: ny hos meg, eller slettet av dem
+      if (!b) keep.set(id, m)
+      else if (!same(m, b)) conflict = true
+    }
+  }
+  // rekkefølge: min, hvis bare jeg har endret den; ellers deres. Nye elementer kommer til slutt.
+  const order = (l: Item[]) => l.map((x) => x.id).filter((id) => B.has(id) && T.has(id) && M.has(id)).join('\n')
+  const first = order(mine) !== order(base) && order(theirs) === order(base) ? mine : theirs
+  const list: Item[] = []
+  for (const id of [...first, ...theirs, ...mine].map((x) => x.id)) {
+    const v = keep.get(id)
+    if (v) {
+      list.push(v)
+      keep.delete(id)
+    }
+  }
+  return { list, conflict }
+}
+
+/** Tre-veis sammenslåing på toppnivå; lister med id-er (f.eks. kategorier) slås sammen element for element. */
 export function merge3(base: Rec | null, mine: Rec | null, theirs: Rec | null): { data: Rec; conflicts: string[] } {
   const b = base ?? {}
   const m = mine ?? {}
@@ -66,7 +122,11 @@ export function merge3(base: Rec | null, mine: Rec | null, theirs: Rec | null): 
     let v: unknown
     if (!mineChanged) v = t[k]
     else if (!theirsChanged) v = m[k]
-    else {
+    else if (idList(m[k]) && idList(t[k]) && (b[k] === undefined || idList(b[k]))) {
+      const r = mergeList((b[k] as Item[] | undefined) ?? [], m[k], t[k])
+      if (r.conflict) conflicts.push(k)
+      v = r.list
+    } else {
       if (!same(m[k], t[k])) conflicts.push(k)
       v = t[k]
     }

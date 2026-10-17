@@ -13,12 +13,37 @@ import { churchSettings as CS } from '../services/church-settings.js';
 const canon = v => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.keys(v).sort().reduce((o, k) => { if (v[k] !== undefined) o[k] = canon(v[k]); return o; }, {}) : v === undefined ? null : v;
 export const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
-/* Tre-veis sammenslåing på toppnivå. → { data, conflicts: [nøkler] } */
+/* Liste der alle elementer er objekter med unik tekst-id (f.eks. kategorier)? */
+const idList = v => { if (!Array.isArray(v)) return false; const ids = new Set(); for (const x of v) { if (!x || typeof x !== 'object' || typeof x.id !== 'string' || ids.has(x.id)) return false; ids.add(x.id); } return true; };
+
+/* Tre-veis sammenslåing av en liste med id-er, element for element (samme regler som web/src/services/shared-setup.ts):
+   endringer i ulike elementer beholdes begge; nye fra begge kommer med; slettet og uendret hos den andre → slettes;
+   samme element endret ulikt (eller slettet mot endret) → den nyeste lagrede (deres), og det meldes. */
+function mergeList(base, mine, theirs) {
+  const B = new Map(base.map(x => [x.id, x])), M = new Map(mine.map(x => [x.id, x])), T = new Map(theirs.map(x => [x.id, x])), keep = new Map();
+  let conflict = false;
+  for (const id of new Set([...T.keys(), ...M.keys()])) {
+    const b = B.get(id), m = M.get(id), t = T.get(id);
+    if (m && t) { const mc = !same(m, b), tc = !same(t, b); if (mc && tc && !same(m, t)) conflict = true; keep.set(id, mc && !tc ? m : t); }
+    else if (t) { if (!b) keep.set(id, t); else if (!same(t, b)) { conflict = true; keep.set(id, t); } }
+    else if (m) { if (!b) keep.set(id, m); else if (!same(m, b)) conflict = true; }
+  }
+  const order = l => l.map(x => x.id).filter(id => B.has(id) && T.has(id) && M.has(id)).join('\n');
+  const first = order(mine) !== order(base) && order(theirs) === order(base) ? mine : theirs, list = [];
+  for (const id of [...first, ...theirs, ...mine].map(x => x.id)) { const v = keep.get(id); if (v) { list.push(v); keep.delete(id); } }
+  return { list, conflict };
+}
+
+/* Tre-veis sammenslåing på toppnivå; lister med id-er slås sammen element for element. → { data, conflicts: [nøkler] } */
 export function merge3(base, mine, theirs) {
   const b = base || {}, m = mine || {}, t = theirs || {}, out = {}, conflicts = [];
   for (const k of new Set([...Object.keys(b), ...Object.keys(m), ...Object.keys(t)])) {
     const mineChanged = !same(m[k], b[k]), theirsChanged = !same(t[k], b[k]);
-    const v = !mineChanged ? t[k] : !theirsChanged ? m[k] : same(m[k], t[k]) ? t[k] : (conflicts.push(k), t[k]);
+    let v;
+    if (!mineChanged) v = t[k];
+    else if (!theirsChanged) v = m[k];
+    else if (idList(m[k]) && idList(t[k]) && (b[k] === undefined || idList(b[k]))) { const r = mergeList(b[k] || [], m[k], t[k]); if (r.conflict) conflicts.push(k); v = r.list; }
+    else v = same(m[k], t[k]) ? t[k] : (conflicts.push(k), t[k]);
     if (v !== undefined) out[k] = v;
   }
   return { data: out, conflicts };
