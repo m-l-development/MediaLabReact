@@ -62,10 +62,20 @@ test('Loop Studio delt i menigheten: grunnoppsett, malsoppsett og isolering', as
     const marker = `Torsdag kl 18 Endret av B ${Date.now() % 10000}`
     await prog.fill(marker)
     await b.getByRole('button', { name: 'Oppdater videoen' }).click()
+    const toasts: string[] = []
+    const vBefore = (await get(page, church, 'loopstudio:bases'))?.version ?? 0
+    b.on('console', () => undefined)
     await b.locator('[data-ch-base-update]').click()
-    await expect(b.getByText('Grunnoppsettet er oppdatert.')).toBeVisible({ timeout: 20_000 })
+    const ok = b.getByText('Grunnoppsettet er oppdatert.', { exact: true })
+    const fail = b.getByText('Grunnoppsettet kunne ikke oppdateres. Prøv igjen.', { exact: true })
+    await expect(ok.or(fail).first()).toBeVisible({ timeout: 20_000 })
+    toasts.push((await ok.or(fail).first().textContent()) ?? '')
+    rows.push(`| (melding hos B etter «Oppdater grunnoppsettet») | «${toasts[0]}» |`)
+    await expect(ok).toBeVisible()
     rows.push('| B lager serie fra det, endrer og oppdaterer grunnoppsettet | ja |')
-    const stored = JSON.stringify((await get(page, church, 'loopstudio:bases'))?.data ?? {})
+    const afterRow = await get(page, church, 'loopstudio:bases')
+    const stored = JSON.stringify(afterRow?.data ?? {})
+    rows.push(`| (diagnose) versjon av loopstudio:bases før / etter Bs oppdatering | ${vBefore} / ${afterRow?.version ?? '–'} |`)
     rows.push(`| Bs endring lagret i menighetens grunnoppsett (databasen) | ${stored.includes(marker) ? 'ja' : '**NEI**'} |`)
     // A: får Bs endring
     await page.goto('/app/loop-studio')
