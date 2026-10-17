@@ -64,9 +64,10 @@ export function createAccountService(d: AccountDeps) {
     notifications: {
       list: async () => data().select<Notification>('notifications', { columns: 'id, kind, title, body, link, church_id, read_at, created_at', order: 'created_at', desc: true, limit: 50 }),
       markRead: async (id: string) => data().update('notifications', { id }, { read_at: new Date().toISOString() }),
-      async markAllRead(list: Notification[]) {
-        for (const n of list.filter((x) => !x.read_at)) await data().update('notifications', { id: n.id }, { read_at: new Date().toISOString() })
-      },
+      /** Alle egne uleste varsler (ikke bare de 50 som vises). → antall merket. */
+      markAllRead: async () => data().rpc<number>('mark_my_notifications_read'),
+      /** onlyRead: «Fjern leste» (true) eller «Tøm varslingsloggen» (false, permanent). Bare egne varsler. → antall fjernet. */
+      clear: async (onlyRead: boolean) => data().rpc<number>('clear_my_notifications', { p_only_read: onlyRead }),
     },
 
     /** E-postvarsler: bare Developer og Moderator med MFA (databasen avviser andre). */

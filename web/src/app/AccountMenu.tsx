@@ -5,6 +5,7 @@ import { forgetAccount } from '../infrastructure/saved-accounts'
 import { downloadJson, passwordChecks, validNotifyEmail, type EmailPrefs, type Notification, type PasswordResult } from '../services/account'
 import { ServiceError } from '../services/errors'
 import { useLang, useT } from '../shared/i18n/i18n'
+import { Icon } from '../shared/ui/Icon'
 import type { MessageKey } from '../shared/i18n/messages'
 import { WipeLocalData } from './LocalData'
 import { useServices } from './services'
@@ -137,11 +138,43 @@ function Notifications({ list, refresh, back, close }: { list: Notification[]; r
   const lang = useLang()
   const { account } = useServices()
   const [busy, setBusy] = useState<string | null>(null)
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
+  /** Kjører en handling for hele loggen; viser «lyktes» bare når den faktisk lyktes, og henter listen på nytt uansett. */
+  const tool = async (run: () => Promise<number | null>, ok: (n: number) => string) => {
+    setBusy('tool')
+    setNote(null)
+    try {
+      const n = await run()
+      setNote({ ok: true, text: ok(Number(n) || 0) })
+    } catch {
+      setNote({ ok: false, text: t('acc.notif.failed') })
+    }
+    await refresh().catch(() => undefined)
+    setBusy(null)
+  }
   const when = (d: string) => new Date(d).toLocaleString(lang === 'en' ? 'en-GB' : 'nb-NO', { dateStyle: 'short', timeStyle: 'short' })
   return (
     <>
       {back}
-      <span className={s.head}>{t('acc.notifications')}</span>
+      <div className={s.notifHead}>
+        <span className={s.head}>{t('acc.notifications')}</span>
+        {/* TB-D9DE93: små knapper for hele loggen; meldingen om at noe lyktes vises bare når databasen har gjort det */}
+        <span className={s.notifTools}>
+          <button type="button" className={s.iconBtn} title={t('acc.markAllRead')} aria-label={t('acc.markAllRead')} data-ch-notif-markall=""
+            disabled={!!busy || !list.some((x) => !x.read_at)} onClick={() => void tool(() => account.notifications.markAllRead(), () => t('acc.notif.marked'))}>
+            <Icon name="check" size={16} />
+          </button>
+          <button type="button" className={s.iconBtn} title={t('acc.notif.clearRead')} aria-label={t('acc.notif.clearRead')} data-ch-notif-clearread=""
+            disabled={!!busy || !list.some((x) => x.read_at)} onClick={() => void tool(() => account.notifications.clear(true), (n) => t('acc.notif.cleared', { n }))}>
+            <Icon name="trashRead" size={16} />
+          </button>
+          <button type="button" className={s.iconBtn} title={t('acc.notif.clearAll')} aria-label={t('acc.notif.clearAll')} data-ch-notif-clearall=""
+            disabled={!!busy || !list.length} onClick={() => { if (window.confirm(t('acc.notif.confirmClear'))) void tool(() => account.notifications.clear(false), (n) => t('acc.notif.cleared', { n })) }}>
+            <Icon name="trash" size={16} />
+          </button>
+        </span>
+      </div>
+      {note && <p className={note.ok ? s.note : s.errBox} role={note.ok ? 'status' : 'alert'} data-ch-notif-note="">{note.text}</p>}
       <div className={s.notifs} data-ch-notifs="">
         {!list.length && <span className={s.note}>{t('acc.noNotifications')}</span>}
         {list.slice(0, 20).map((x) => (
@@ -159,11 +192,6 @@ function Notifications({ list, refresh, back, close }: { list: Notification[]; r
             <span className={s.notifWhen}>{when(x.created_at)}{x.link ? ' · ' + t('acc.open') + ' ›' : ''}</span>
           </button>
         ))}
-        {list.some((x) => !x.read_at) && (
-          <button type="button" className={`${s.btn} ${s.light}`} disabled={busy === 'all'} onClick={async () => { setBusy('all'); await account.notifications.markAllRead(list).catch(() => undefined); await refresh(); setBusy(null) }}>
-            {t('acc.markAllRead')}
-          </button>
-        )}
       </div>
     </>
   )

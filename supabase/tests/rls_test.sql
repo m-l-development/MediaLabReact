@@ -368,6 +368,32 @@ select ch_test.rows('Varsel: kan merke eget varsel som lest', $q$update public.n
 select ch_test.err('Varsel: kan ikke endre tittel', $q$update public.notifications set title = 'x'$q$, '42501');
 select ch_test.err('Varsel: kan ikke lage varsler selv', $q$insert into public.notifications (user_id, kind, title) values ('00000000-0000-4000-8000-000000000008', 'message', 'x')$q$, '42501');
 select ch_test.err('Varsel: medlem kan ikke sende melding til menigheten', $q$select public.send_church_message('aaaaaaaa-0000-4000-8000-00000000000a', 'Hei', 'x')$q$, '42501');
+-- TB-D9DE93: merk alle som lest, fjern leste, tøm – bare egne varsler, bare via funksjonene
+select ch_test.err('Varsel: kan ikke slette varsler direkte', $q$delete from public.notifications$q$, '42501');
+set local role postgres;
+insert into public.notifications (user_id, kind, title) values ('00000000-0000-4000-8000-000000000008', 'message', 'TB-ulest');
+insert into public.notifications (user_id, kind, title) select id, 'message', 'TB-annens' from public.app_users where id <> '00000000-0000-4000-8000-000000000008' order by id limit 1;
+set local role authenticated;
+select ch_test.ok('Varsel: merk alle egne som lest', $q$select public.mark_my_notifications_read()$q$);
+select ch_test.cnt('Varsel: ingen uleste igjen etter «Merk alle som lest»', $q$select 1 from public.notifications where read_at is null$q$, 0);
+select ch_test.ok('Varsel: fjern leste', $q$select public.clear_my_notifications(true)$q$);
+select ch_test.cnt('Varsel: egne leste er fjernet', $q$select 1 from public.notifications$q$, 0);
+set local role postgres;
+select ch_test.cnt('Varsel: andres varsel er urørt etter «Fjern leste»', $q$select 1 from public.notifications where title = 'TB-annens'$q$, 1);
+insert into public.notifications (user_id, kind, title) values ('00000000-0000-4000-8000-000000000008', 'message', 'TB-ny-ulest');
+set local role authenticated;
+select ch_test.ok('Varsel: fjern leste når bare uleste finnes', $q$select public.clear_my_notifications(true)$q$);
+select ch_test.cnt('Varsel: uleste står igjen etter «Fjern leste»', $q$select 1 from public.notifications where title = 'TB-ny-ulest'$q$, 1);
+select ch_test.ok('Varsel: tøm varslingsloggen', $q$select public.clear_my_notifications(false)$q$);
+select ch_test.cnt('Varsel: alle egne varsler er borte etter «Tøm»', $q$select 1 from public.notifications$q$, 0);
+select ch_test.err('Varsel: tøm uten valg avvises', $q$select public.clear_my_notifications(null)$q$, '22023');
+set local role postgres;
+select ch_test.cnt('Varsel: andres varsel er urørt etter «Tøm»', $q$select 1 from public.notifications where title = 'TB-annens'$q$, 1);
+set local role anon;
+select ch_test.err('Varsel: anonym kan ikke tømme varsler', $q$select public.clear_my_notifications(false)$q$, '42501');
+select ch_test.err('Varsel: anonym kan ikke merke varsler', $q$select public.mark_my_notifications_read()$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
 
 -- ---------- Koblinger og Samarbeidsfiler (trinn 18): menigheter ser aldri hverandres vanlige filer ----------
 set local role postgres;

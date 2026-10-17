@@ -69,12 +69,14 @@ describe('«Bytt passord» (AUTH-05)', () => {
 })
 
 describe('varsler, e-postvarsler, eksport og sletting (AUTH-08)', () => {
-  it('varsler: siste 50, nyeste først; «Merk alle som lest» gjelder bare uleste', async () => {
+  it('varsler: siste 50, nyeste først; «Merk alle som lest», «Fjern leste» og «Tøm» via databasefunksjonene (TB-D9DE93)', async () => {
     const { svc, data } = fakes()
-    const list = await svc.notifications.list()
+    await svc.notifications.list()
     expect(data.select).toHaveBeenCalledWith('notifications', expect.objectContaining({ order: 'created_at', desc: true, limit: 50 }))
-    await svc.notifications.markAllRead(list as never)
-    expect(data.update.mock.calls.map((c) => c[1])).toEqual([{ id: 'n1' }, { id: 'n3' }])
+    await svc.notifications.markAllRead()
+    await svc.notifications.clear(true)
+    await svc.notifications.clear(false)
+    expect(data.rpc.mock.calls.slice(-3)).toEqual([['mark_my_notifications_read'], ['clear_my_notifications', { p_only_read: true }], ['clear_my_notifications', { p_only_read: false }]])
   })
   it('e-postvarsler og eksport bruker databasefunksjonene uendret', async () => {
     const { svc, data } = fakes()

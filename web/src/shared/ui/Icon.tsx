@@ -3,7 +3,7 @@ import type { ToolId } from '../../domain/tool'
 export type IconName =
   | ToolId
   | 'hub' | 'folder' | 'back' | 'external' | 'sun' | 'moon' | 'globe' | 'shield' | 'logout' | 'menu' | 'close'
-  | 'alert' | 'refresh' | 'collab'
+  | 'alert' | 'refresh' | 'collab' | 'check' | 'trash' | 'trashRead'
 
 const PATHS: Record<IconName, string> = {
   'loop-studio': 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
@@ -26,6 +26,9 @@ const PATHS: Record<IconName, string> = {
   close: 'M6 6l12 12M18 6L6 18',
   alert: 'M12 3l10 18H2zM12 10v4M12 17.5h.01',
   refresh: 'M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4',
+  check: 'M4 12.5l5 5L20 6.5',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
+  trashRead: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M9.5 13.5l2 2 3.5-4',
 }
 
 interface IconProps {
