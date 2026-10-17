@@ -364,6 +364,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Grunnoppsettet er nå felles for menigheten. Andre i menigheten ser endringene.': 'The base setup is now shared by the church. Others in the church see the changes.',
   'Grunnoppsettet er oppdatert med endringer fra menigheten.': 'The base setup has been updated with changes from the church.',
   'Grunnoppsettet er oppdatert.': 'The base setup has been updated.',
+  'Legg til minst én slide først (skriv inn programmet eller trykk «+ Legg til»), så kan du redigere vignetten.': 'Add at least one slide first (type in the programme or tap “+ Add”), then you can edit the vignette.',
   'Grunnoppsettet kunne ikke lagres. Prøv igjen.': 'The base setup could not be saved. Try again.',
   'Grunnoppsettet kunne ikke oppdateres. Prøv igjen.': 'The base setup could not be updated. Try again.',
   'Grunnoppsettet kunne ikke slettes. Prøv igjen.': 'The base setup could not be deleted. Try again.',

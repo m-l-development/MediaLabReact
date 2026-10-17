@@ -4952,7 +4952,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
             {"\n        "}
             <div style={{"display":"flex","gap":"18px","flexWrap":"wrap","alignItems":"flex-start"}}>
               {"\n          "}
-              <div ref={v.vigEdWrap} onPointerDown={v.onVigEdDown} style={css(`position:${v.vePos ?? "relative"}; top:0; flex:0 0 auto; width:${v.vePW ?? ""}; height:${v.vePH ?? ""}; border:1px solid #262626; border-radius:8px; overflow:hidden; background:#000; cursor:grab; touch-action:none; user-select:none;`)}>
+              <div ref={v.vigEdWrap} onPointerDown={v.onVigEdDown} data-loop-viged="1" style={css(`position:${v.vePos ?? "relative"}; top:0; flex:0 0 auto; width:${v.vePW ?? ""}; height:${v.vePH ?? ""}; border:1px solid #262626; border-radius:8px; overflow:hidden; background:#000; cursor:grab; touch-action:none; user-select:none;`)}>
                 {"\n            "}
                 <canvas ref={v.vigEdCanvas} style={{"display":"block","width":"100%","height":"100%","pointerEvents":"none"}} />
                 {"\n            "}
@@ -5369,7 +5369,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                 {"\n            "}
                 <div style={css(`width:100%; height:100%; background-image:${v.panImgBg ?? ""}; background-size:100% 100%; pointer-events:none;`)} />
                 {"\n            "}
-                <div onPointerDown={v.onPanFrameDown} style={css(`position:absolute; left:${v.pfL ?? ""}; top:${v.pfT ?? ""}; width:${v.pfW ?? ""}; height:${v.pfH ?? ""}; box-shadow:0 0 0 9999px rgba(0,0,0,0.62); outline:2px solid #ffffff; cursor:grab; touch-action:none; display:flex; align-items:center; justify-content:center;`)}>
+                <div onPointerDown={v.onPanFrameDown} data-loop-panframe="1" style={css(`position:absolute; left:${v.pfL ?? ""}; top:${v.pfT ?? ""}; width:${v.pfW ?? ""}; height:${v.pfH ?? ""}; box-shadow:0 0 0 9999px rgba(0,0,0,0.62); outline:2px solid #ffffff; cursor:grab; touch-action:none; display:flex; align-items:center; justify-content:center;`)}>
                   {"\n              "}
                   <div style={{"position":"absolute","left":"33.333%","top":"0","bottom":"0","width":"1px","background":"rgba(255,255,255,0.35)","pointerEvents":"none"}} />
                   {"\n              "}
@@ -5476,7 +5476,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                 {"\n            "}
                 <div style={css(`width:100%; height:100%; background-image:${v.cropBg ?? ""}; background-size:100% 100%; pointer-events:none;`)} />
                 {"\n            "}
-                <div onPointerDown={v.cropMove} style={css(`position:absolute; left:${v.cropL ?? ""}; top:${v.cropT ?? ""}; width:${v.cropW ?? ""}; height:${v.cropH ?? ""}; box-shadow:0 0 0 9999px rgba(0,0,0,0.62); outline:2px solid #ffffff; cursor:move; touch-action:none;`)}>
+                <div onPointerDown={v.cropMove} data-loop-cropbox="1" style={css(`position:absolute; left:${v.cropL ?? ""}; top:${v.cropT ?? ""}; width:${v.cropW ?? ""}; height:${v.cropH ?? ""}; box-shadow:0 0 0 9999px rgba(0,0,0,0.62); outline:2px solid #ffffff; cursor:move; touch-action:none;`)}>
                   {"\n              "}
                   <div style={{"position":"absolute","left":"33.333%","top":"0","bottom":"0","width":"1px","background":"rgba(255,255,255,0.35)","pointerEvents":"none"}} />
                   {"\n              "}

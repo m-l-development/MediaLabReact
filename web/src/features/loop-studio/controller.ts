@@ -3522,7 +3522,7 @@ export class LoopController {
           fillCenter: () => put({ x: 0.5, y: 0.5 }), fillMoved: fl.x != null && (Math.abs(fl.x - 0.5) > 0.005 || Math.abs((fl.y == null ? 0.5 : fl.y) - 0.5) > 0.005),
         }
       })(),
-      openVigEd: () => { if (!id) return; this.setState({ vigEd: { layer: 0, scope: 'slide' }, playing: false }); this.hardStopAudio() },
+      openVigEd: () => { if (!id) { this.deps.toast(this.t('Legg til minst én slide først (skriv inn programmet eller trykk «+ Legg til»), så kan du redigere vignetten.')); return } this.setState({ vigEd: { layer: 0, scope: 'slide' }, playing: false }); this.hardStopAudio() },
       openOvEd: () => { if (!id) return; this.setState({ ovEd: { scope: 'slide' }, playing: false }); this.hardStopAudio() },
       openOvEdAll: () => { if (!id) return; this.setState({ ovEd: { scope: 'all' }, playing: false }); this.hardStopAudio() },
       ovSummary: (() => { if (!sel) return ''; const o = this.ovState(sel, false), tt = OVT.find((x) => x[0] === o.fx); return o.on ? (tt ? tt[1] : '') + (ovOwn(sel) ? ' · egne innstillinger' : '') : 'Av' })(),
@@ -3576,7 +3576,7 @@ export class LoopController {
           oeDone: () => this.setState({ ovEd: null }),
         }
       })(),
-      openVigEdAll: () => { if (!id) return; this.setState({ vigEd: { layer: 0, scope: 'all' }, playing: false }); this.hardStopAudio() },
+      openVigEdAll: () => { if (!id) { this.deps.toast(this.t('Legg til minst én slide først (skriv inn programmet eller trykk «+ Legg til»), så kan du redigere vignetten.')); return } this.setState({ vigEd: { layer: 0, scope: 'all' }, playing: false }); this.hardStopAudio() },
       vigAllSummary: (() => { const o = VIG_TYPE_OPTS.find((x) => x[0] === (S.cfg.vigType || 'auto')), n = (S.cfg.vigs ?? []).length; return (o ? o[1].replace(/ \(.*\)/, '') : '') + (S.cfg.vigRot ? ' · ' + Math.round(S.cfg.vigRot) + '°' : '') + (n ? ' · +' + n + ' ekstra' : '') })(),
       vigSummary: (() => { if (!sel) return ''; const o = VIG_TYPE_OPTS.find((x) => x[0] === (sel.vigType || S.cfg.vigType || 'auto')), n = (sel.vigs ?? []).length; return (o ? o[1].replace(/ \(.*\)/, '') : '') + (sel.vigRot ? ' · ' + Math.round(sel.vigRot) + '°' : '') + (n ? ' · +' + n + ' ekstra' : '') })(),
       ...(() => {

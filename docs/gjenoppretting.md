@@ -30,9 +30,9 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 | L-1 | Takt-stiler «Groove» og «Rolig» (overganger, ord og kamera på takt) | Tidlig Loop | Implementert | Finnes i B som takt-stilene groove/calm (sjangrene velger dem); motoren er portert uendret, og takt-effektene tegnes i enhetstest |
 | L-2 | Bevegelse etter lydstyrke og overlegg etter tempo | Tidlig Loop | Implementert | `energy`/`energyAdaptive` og «Farten følger tempoet i musikken» i B; portert uendret |
 | L-3 | Nyttår: fyrverkeri på slagene | Tidlig Loop | Implementert | Overlegget «Konfetti» (`newyear`) følger slagene når takt-synk er på; tegnes i enhetstest |
-| L-4 | Vignett-åpning: klikk i bildet for å velge hvor vignetten åpner seg | Tidlig Loop | Implementert | I B: vignettdialogen (dra punktet, åpning og størrelse); portert. Dialogen er ikke testet |
-| L-5 | Fokusområde: klikk i bakgrunnsbildet for å velge utsnitt | Tidlig Loop | Implementert | I B erstattet av «Beskjær / flytt bilde» (utsnitt) og vignettpunktet; portert. Ikke testet |
-| L-6 | Lyd av/på i forhåndsvisningen (påvirker ikke eksporten) | Tidlig Loop | Implementert | Lydknappen ved spilleknappen; ikke testet |
+| L-4 | Vignett-åpning: klikk i bildet for å velge hvor vignetten åpner seg | Tidlig Loop | Testet | E2E `e2e/loop-studio-ui.spec.ts` (2026-10-17): punktet dras og bildet endres, Styrke, «+ Legg til vignett», innstillingene huskes. **Funnet og rettet:** uten slides gjorde knappen ingenting – nå vises en forklaring |
+| L-5 | Fokusområde: klikk i bakgrunnsbildet for å velge utsnitt | Tidlig Loop | Testet | E2E `e2e/loop-studio-ui.spec.ts` (2026-10-17): beskjæringsdialogen ved valg av bakgrunnsbilde, «Beskjær / flytt bilde» → «Flytt utsnitt» flytter det som vises |
+| L-6 | Lyd av/på i forhåndsvisningen (påvirker ikke eksporten) | Tidlig Loop | Testet | E2E `e2e/loop-studio-ui.spec.ts` (2026-10-17): uten musikk sender knappen til Stil; med musikk demp og slå på igjen |
 | L-7 | «Mørk toning bak teksten» / «Vignett og mørk toning på alle slides» | Tidlig Loop | Implementert | Heter «Vignett bak teksten» og «Vignett på alle slides» i B; portert |
 | LS-T | Loop Studio i lyst tema (dagens app farget om sidene med theme.js) | B | Testet | Samme omregning (`mapRGB`) portert til `light-theme.ts`, avgrenset til Loop-siden og dens stilark; enhetstest mot verdiene i dagens `theme.js` og E2E. Skjermbilder i lyst tema sammenlignet med dagens app (start og editor): like |
 | LE-03c | Ukeprogram fra bilde via Claude (`window.claude.complete`) | B `logic.js:2169` | Beslutning | Finnes bare i Claude-artefaktmiljøet, aldri i Media Lab-appen. Ikke tatt med; tekstgjenkjenning med tesseract er med |
@@ -44,7 +44,7 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 
 | ID | Hva | Status | Hva som trengs |
 |---|---|---|---|
-| MD-11 | AI-undertekster (Whisper i nettleseren) | Blokkert | Testet 2026-10-11 i hodeløs Chrome: modellen lastes ned (100 %), WebGPU finner ingen adapter, appen faller tilbake til WASM, men tolkingen var ikke ferdig etter 9 min. Må prøves i ekte Chrome med et klipp med tale (`RUN_AI=1 npx playwright test e2e/motion-ai.spec.ts`) |
+| MD-11 | AI-undertekster (Whisper i nettleseren) | Testet | Ekte Chrome med WebGPU (`e2e-real/motion-subs.spec.ts`, 2026-10-17): ekte tale (engelsk, laget lokalt med Windows-talesyntese) → «undertekster er laget» på 9–11 s, 5 av 5 ord riktig, to kjøringer. Norsk tale er ikke prøvd automatisk (ingen norsk stemme på maskinen) – bør høres på manuelt |
 | MD-12 | Voiceover | Testet | Chromes falske mikrofon (E2E). Ekte mikrofon og lydkvalitet bør høres på manuelt |
 | MD-17 | Velge prosjektmappe (File System Access-dialogen) | Implementert | Alt etter valget er testet med et ekte mappehåndtak (OPFS): kopiering, frigjøring og åpning. Selve dialogen kan ikke styres i en test: manuell test i Chrome/Edge |
 | MD-10 | Logo fra Fellesmappe i Motion design | Testet | Ekte innlogging mot connecthub-dev 2026-10-17: logo fra Felles ressurser valgt i Motion design (`e2e-dev/sources-dev.spec.ts`, publiseringsbygget) |

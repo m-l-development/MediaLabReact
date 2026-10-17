@@ -1534,3 +1534,18 @@ Første kjøringer feilet i testen, ikke i appen: `isVisible({ timeout })` vente
 
 **Regresjon etter rettelsene:** `web` 302/302 enhetstester, typesjekk, lint, bygg og 94/94 nettlesertester; `media-lab` 181/181; fullt dev-løp: 7 av 8 løp bestått i første runde (SHR-07-kontrollen over), deretter par-løpet 3/3 og SHR-07 3/3.
 
+## MD-11 og Loop Studio L-4–L-6 (2026-10-17, lokalt)
+
+| Test | Resultat |
+|---|---|
+| `e2e-real/motion-subs.spec.ts` – AI-undertekster i ekte Chrome med WebGPU, ekte tale («Welcome to the Sunday meeting. Today we will talk about hope and community.», laget lokalt med Windows-talesyntese, `e2e-real/fixtures/tale-en.wav`), språk Engelsk | «1 undertekster er laget» etter 11 s og 9 s; 5 av 5 ord (welcome, sunday, meeting, hope, community); ingen feil. Hele `e2e-real` 5/5 |
+| `e2e/loop-studio-ui.spec.ts` L-4 vignettdialogen | punktet dras (lerretet endres), Styrke 40 (endres), «+ Legg til vignett» → «Vignett 2», Ferdig, åpnes igjen med samme innstillinger |
+| L-5 bakgrunnsbilde | bildevalg → beskjæringsdialog → «Bruk hele bildet»; «Beskjær / flytt bilde» → «Flytt utsnitt», rammen dras → videoen viser et annet utsnitt |
+| L-6 lydknappen | uten musikk: til Stil («Velg lyd…»); WAV valgt → «Demp lyd …» → «Slå på lyd …» → «Demp lyd …» |
+
+**Funnet og rettet:** «Rediger vignett …» og «Rediger vignett for alle slides …» gjorde ingenting når malen ennå ikke hadde slides (f.eks. et nytt Ukeprogram). Samme i dagens app. Nå vises «Legg til minst én slide først …» (`loop-studio/controller.ts`, tekst på engelsk i `texts.ts`); kontrollert i L-4-testen.
+
+Regresjon: `web` 302/302 enhetstester, typesjekk, lint, bygg og 97/97 nettlesertester.
+
+Ikke automatisert: MD-17 (selve mappedialogen i Chrome/Edge kan ikke styres av en test), norsk tale i MD-11.
+
