@@ -379,6 +379,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Ingen hendelser.': 'No events.',
   'Ingen invitasjoner passer med filteret.': 'No invitations match the filter.',
   'Ingen logo ennå – forbokstavene vises i stedet.': 'No logo yet – the initials are shown instead.',
+  'Logoen endres av menighetens Admin. Som Developer eller Moderator kan du legge deg til som ekstra Admin under Medlemmer for å endre den.': 'The logo is changed by the church Admin. As Developer or Moderator you can add yourself as an extra Admin under Members to change it.',
   'Ingen markering.': 'No marking.',
   'Ingen medlemmer passer med søket.': 'No members match the search.',
   'Ingen menigheter funnet.': 'No churches found.',

@@ -191,10 +191,12 @@ function MembersView({ church }: { church: Church }) {
 }
 
 /**
- * Logo: Admin i menigheten (eller stab som er medlem) laster opp et bilde til Faste → Logoer med den vanlige, kontrollerte
+ * Logo: Admin i menigheten (også ekstra Admin) laster opp et bilde til Faste → Logoer med den vanlige, kontrollerte
  * opplastingen (bare bilder, 4 MB, innholdet sjekkes på serveren) og velger det som logo. Gamle logoer slettes aldri.
+ * Stab uten Admin-rolle ser logoen, men databasen krever Admin-rollen for å laste opp i Logoer – derfor en forklaring
+ * i stedet for en knapp som ville gitt «ingen tilgang».
  */
-function LogoCard({ church }: { church: Church }) {
+function LogoCard({ church, canUpload }: { church: Church; canUpload: boolean }) {
   const { act, say, reload, admin, files, t } = useAdmin()
   const logos = useLogos(files, [church.logo_file_id])
   const url = church.logo_file_id ? logos[church.logo_file_id] : null
@@ -221,20 +223,24 @@ function LogoCard({ church }: { church: Church }) {
         <ChurchLogo url={url} name={church.name} size={72} />
         <div><b>{church.name}</b><div className="ch-muted">{t(church.logo_file_id ? 'Denne logoen vises på oversikten.' : 'Ingen logo ennå – forbokstavene vises i stedet.')}</div></div>
       </div>
+      {canUpload ? <>
       <input ref={input} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={(e) => void upload(e)} data-ch-logoinput="" aria-label={t('Last opp logo')} />
       <div className="ch-row">
         <Btn kind="primary" onClick={() => input.current?.click()}>{t(church.logo_file_id ? 'Bytt logo' : 'Last opp logo')}</Btn>
         {church.logo_file_id && <Btn onClick={clear}>{t('Fjern logo')}</Btn>}
       </div>
       <p className="ch-muted">{t('PNG, JPG, WebP eller GIF, høyst 4 MB. Kvadratiske logoer blir finest.')}</p>
+      </> : <p className="ch-muted" data-ch-logo-staffnote="">{t('Logoen endres av menighetens Admin. Som Developer eller Moderator kan du legge deg til som ekstra Admin under Medlemmer for å endre den.')}</p>}
     </Card>
   )
 }
 
 interface StorageOverview { quota_sum_mb: number; limit_mb: number }
 function ChurchSettings({ church }: { church: Church }) {
-  const { staff, act, say, reload, canManage, adminOf, me, admin, collabSvc, t } = useAdmin()
-  const logoOk = adminOf.includes(church.id) || (staff && me.churches.some((c) => c.id === church.id))
+  const { staff, act, say, reload, canManage, adminOf, admin, collabSvc, t } = useAdmin()
+  // opplasting i Logoer krever Admin-rollen i menigheten (app.upload_check); stab uten den ser logoen og en forklaring
+  const logoAdmin = adminOf.includes(church.id)
+  const logoOk = logoAdmin || staff
   const [name, setName] = useState(church.name), [quota, setQuota] = useState(String(church.storage_quota_mb ?? DEFAULT_QUOTA_MB))
   const run = (fn: () => Promise<unknown>, ok?: string) => act(async () => { await fn(); if (ok) say(t(ok)); await reload() })
   const used = useQuotaOverview(staff, church.storage_quota_mb)[church.id]?.used_bytes
@@ -254,7 +260,7 @@ function ChurchSettings({ church }: { church: Church }) {
   })
   return (
     <div className="ch-grid">
-      {logoOk && <LogoCard church={church} />}
+      {logoOk && <LogoCard church={church} canUpload={logoAdmin} />}
       {staff && (
         <Card title="Navn og lagring">
           <form className="ch-form" onSubmit={rename}>
