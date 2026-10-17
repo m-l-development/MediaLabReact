@@ -1439,3 +1439,20 @@ Databasen: alle kontroller «ja» (churches 1, memberships 1, audit_logs 0 – 0
 | Ny komponenttest | `features/cloud-picker/CloudPicker.test.tsx`: ny menighet får tomme Faste bilder/Felles ressurser/Fellesmappe; filer fra andre menigheter vises aldri |
 
 **Photo Design «hvitt bilde»:** ikke gjenskapt uten innlogging i ekte Chrome – alle 7 formater, malene «Bilde med tittel», «Arrangement» og «Tomt», «Bytt bilde», «Bilde»-knappen, dra-og-slipp, lim inn, JPEG opptil 48 MP, lagre → last på nytt → åpne: bildet tegnes hver gang, uten feil. Diagnosetest for innlogget kjøring: `web/e2e-dev/photo-dev.spec.ts` (også med brukerens eget bilde via `ML_DEV_IMAGE`). Ikke rettet, fordi årsaken ikke er funnet.
+
+## Brukergrense per menighet – connecthub-dev (2026-10-12)
+
+Plan og avvik: `docs/plan-brukergrense.md`. Migrering: `supabase/migrations/20261018100000_member_limit.sql`. Bare connecthub-dev (`uatpdmhnwwjgzlxaucsx`); produksjonen er ikke rørt.
+
+| Steg | Resultat |
+|---|---|
+| Telling før migreringen (`checks/member_limit_report.sql`, bare lesing) | 3 menigheter, ingen over 10; størst «CH-test Menighet A» 6/10, «12» 2/10, «CH-test Menighet B» 2/10 |
+| `db push --dry-run` | bare `20261018100000_member_limit.sql` |
+| `db push` | kjørt |
+| Telling etter migreringen | uendret (ingen medlemskap eller invitasjoner endret) |
+| `rls_test.sql` i dev (rullet tilbake) | **972/972**, hvorav 30 nye for grensen (alle veier, dobbelttelling, utløpte invitasjoner, «Send på nytt», reaktivering, over grensen fra før, overstyring med MFA og logg, direkte tabellendring avvist) |
+| Samtidighet (to ekte økter, testmenighet «CH-test Grense» med 9) | økt A tok plass 10 og holdt transaksjonen i 6 s; økt B ventet **5,8 s** på låsen og ble avvist: «CH013: Menigheten har nådd grensen på 10 brukere (10 med ventende invitasjoner)». Etterpå 10/10 med én ventende |
+| Begge appene mot ekte database (`e2e-dev/member-limit-dev.spec.ts`, Admin, «CH-test Menighet A» midlertidig satt til 6/6 og logget) | `member_usage` 6 av 6; Admin → `set_member_limit` 403 42501; telleren «Brukere i menigheten: 6 av 6» + varsel; «Send invitasjon» sperret; `invite.create` (samme serverhandling som dagens app bruker) → **409 member_limit**, ingen invitasjon og ingen e-post |
+| Opprydding | «CH-test Menighet A» tilbake til 10 (logget); «CH-test Grense» og `ch-test-grense-*` fjernet; telling: 3 menigheter, ingen over grensen |
+
+Lokalt samme dag: PGlite 972/972, `media-lab` `npm test` 178/178, `web` 289/289 enhetstester og 92/92 nettlesertester (11 tidsavbrudd under høy maskinbelastning, bestått ved ny kjøring). Dagens app: feilmeldingen for `member_limit` er lagt inn (admin og innlogging), ikke prøvd i nettleser – den bruker samme serverhandling som er prøvd over.

@@ -1,6 +1,6 @@
 # Plan: maks 10 brukere per menighet
 
-Status 2026-10-12: **plan, ikke implementert.** Ingen kode, migrering eller database er endret. Godkjente regler (fra deg):
+Status 2026-10-12: **implementert og verifisert i connecthub-dev** (se «Gjennomføring» nederst og docs/testlogg.md). **Produksjonen er ikke rørt.** Godkjente regler (fra deg):
 
 - Grensen gjelder **per menighet**: 10 brukere.
 - **Teller:** aktive medlemmer + ventende invitasjoner. Menighetsadministratoren teller som én bruker.
