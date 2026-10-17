@@ -13,7 +13,8 @@ export interface Me {
   phone: string | null
   mfa: boolean
   roles: { role: Role | string; church_id: ChurchId | null }[]
-  churches: { id: ChurchId; name: string; logo_file_id: string | null }[]
+  /** legacy_defaults: menigheten fantes før Livets Ord-standardene ble avgrenset (docs/ny-menighet-standardinnhold.md). */
+  churches: { id: ChurchId; name: string; logo_file_id: string | null; legacy_defaults?: boolean }[]
 }
 
 const optText = optional(nullable(string))
@@ -27,7 +28,7 @@ const me = object({
   phone: optText,
   mfa: optional(boolean),
   roles: array(object({ role: string, church_id: optText })),
-  churches: array(object({ id: string, name: string, logo_file_id: optText })),
+  churches: array(object({ id: string, name: string, logo_file_id: optText, legacy_defaults: optional(boolean) })),
 })
 
 export function parseMe(input: unknown): Validation<Me | null> {
@@ -47,7 +48,7 @@ export function parseMe(input: unknown): Validation<Me | null> {
       phone: v.phone ?? null,
       mfa: v.mfa ?? false,
       roles: v.roles.map((x) => ({ role: x.role, church_id: (x.church_id ?? null) as ChurchId | null })),
-      churches: v.churches.map((c) => ({ id: c.id as ChurchId, name: c.name, logo_file_id: c.logo_file_id ?? null })),
+      churches: v.churches.map((c) => ({ id: c.id as ChurchId, name: c.name, logo_file_id: c.logo_file_id ?? null, ...(typeof c.legacy_defaults === 'boolean' ? { legacy_defaults: c.legacy_defaults } : {}) })),
     },
   }
 }

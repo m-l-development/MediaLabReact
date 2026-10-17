@@ -77,6 +77,15 @@ export function merge3(base: Rec | null, mine: Rec | null, theirs: Rec | null): 
 
 export const ACTIVE_CHURCH_KEY = 'ch.activeChurch'
 
+/**
+ * Skal de innebygde Livets Ord-standardene (kategorien og grunnoppsettet «Kveldsbibelskole») vises? Bare for menigheter
+ * som fantes før avgrensningen (churches.legacy_defaults). Uten innlogging/backend, eller før migreringen, som før: ja.
+ */
+export function legacyDefaults(me: Me | null): boolean {
+  const c = activeChurch(me)
+  return !c || c.legacy_defaults !== false
+}
+
 /** Menigheten verktøyene arbeider i: valgt menighet hvis brukeren er medlem der, ellers den første. */
 export function activeChurch(me: Me | null): Me['churches'][number] | null {
   const list = me?.churches ?? []

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '../domain/account'
 import { ServiceError } from './errors'
-import { SharedSetup, type ChurchSettingsService, type SettingsRow } from './shared-setup'
+import { legacyDefaults, SharedSetup, type ChurchSettingsService, type SettingsRow } from './shared-setup'
+import { parseMe } from '../domain/account'
 
 /** Felles grunnoppsett per menighet (SHR-07): versjon mot samtidige endringer, tre-veis sammenslåing og admin-felt. */
 type Rec = Record<string, unknown>
@@ -116,5 +117,26 @@ describe('SharedSetup (felles grunnoppsett)', () => {
     state.fail = ''
     expect(await s.flush()).toBe(true)
     expect(state.saves).toEqual([{ value: { a: 2 }, version: 1 }])
+  })
+})
+
+/** Livets Ord-standarder bare for menigheter som fantes før (churches.legacy_defaults, docs/ny-menighet-standardinnhold.md). */
+describe('legacyDefaults', () => {
+  const who = (legacy?: boolean) => {
+    const r = parseMe({ id: 'u1', email: 'a@b.no', roles: [], churches: [{ id: 'c1', name: 'M', logo_file_id: null, ...(legacy === undefined ? {} : { legacy_defaults: legacy }) }] })
+    if (!r.ok || !r.value) throw new Error('whoami')
+    return r.value
+  }
+  it('eksisterende menighet (true) og ukjent felt (før migreringen) gir standardene; ny menighet (false) ikke', () => {
+    expect(legacyDefaults(who(true))).toBe(true)
+    expect(legacyDefaults(who(undefined))).toBe(true)
+    expect(legacyDefaults(who(false))).toBe(false)
+  })
+  it('uten innlogging (ingen backend): som før', () => {
+    expect(legacyDefaults(null)).toBe(true)
+  })
+  it('whoami leser feltet', () => {
+    expect(who(false).churches[0]?.legacy_defaults).toBe(false)
+    expect('legacy_defaults' in (who(undefined).churches[0] ?? {})).toBe(false)
   })
 })

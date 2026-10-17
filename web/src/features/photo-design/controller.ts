@@ -67,6 +67,8 @@ export interface PState {
 }
 
 export interface PDeps {
+  /** Livets Ord-standardene bare for menigheter som fantes før (churches.legacy_defaults). Standard: ja. */
+  legacyDefaults?: boolean
   repo: PdRepo
   /** Bilde i Dine medier: Blob for `m:<id>`. */
   openMedia(src: string): Promise<Blob | null>
@@ -86,6 +88,8 @@ interface Snapshot { doc: PdDoc; masks: Map<string, MaskCanvas> }
 const HEX = /^#[0-9a-f]{6}$/i
 const SHAPE_AR: Record<string, number> = { rect: 0.625, rounded: 0.625, arrow: 0.625, parallelogram: 0.6, trapezoid: 0.65, bubble: 0.8, half: 0.5 }
 const DEFAULT_CATS = ['Søndagsmøte', 'Kveldsbibelskole', 'Ungdomsmøte']
+/** «Kveldsbibelskole» er Livets Ord-standard: bare for menigheter som fantes før (churches.legacy_defaults). */
+const defaultCats = (legacy: boolean | undefined) => DEFAULT_CATS.filter((c) => legacy !== false || c !== 'Kveldsbibelskole')
 export const PAL = ['#ffffff', '#000000', '#111111', '#e9e7e2', '#f5b82c', '#e4411f', '#c0392b', '#1d2a3a', '#0495c0', '#2a9d8f', '#7b3fe4', '#e84393']
 
 const parse = <T>(s: string | null, d: T): T => {
@@ -124,7 +128,7 @@ export class PhotoController {
       brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false, busy: '', pct: 0, toast: null,
       saved: null, autosave: st.get('photodesign.autosave') === '1', guides: null, ltab: 'lag', fillOpen: true, linkCol: false,
       tplCat: tc && tc.length ? tc : null,
-      cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : [...DEFAULT_CATS],
+      cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
       adv: FX.isAdvanced(), fxCat: 'all', fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
     })
@@ -328,7 +332,7 @@ export class PhotoController {
 
   catNow(): string {
     const S = this.s
-    return S.tplCat && S.cats.includes(S.tplCat) ? S.tplCat : (S.cats[0] ?? DEFAULT_CATS[0] as string)
+    return S.tplCat && S.cats.includes(S.tplCat) ? S.tplCat : (S.cats[0] ?? defaultCats(this.d.legacyDefaults)[0] as string)
   }
 
   setTplCat(c: string): void {

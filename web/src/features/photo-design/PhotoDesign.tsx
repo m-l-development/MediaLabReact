@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendTargets } from '../../app/send-targets'
 import { useServices } from '../../app/services'
+import { legacyDefaults } from '../../services/shared-setup'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
@@ -41,7 +42,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   const tx = useTx()
   const lang = useLang()
   const tApp = useT()
-  const { router } = useServices()
+  const { router, auth } = useServices()
   // «Bruk i …» (SHR-02): resultatet lagres i Dine medier og åpnes i det andre verktøyet
   const sendTo = sendTargets('photo-design', 'image').map((tool) => ({ id: tool.id, label: tApp('share.useIn', { tool: tApp(toolTitleKey(tool.id)) }) }))
   const { assets, projects, userId } = useWorkspace()
@@ -57,7 +58,9 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
     const repo = new PdRepo(projects)
     const cutout = new PhotoCutout()
     const say = (p: Phrase, v?: Vars) => tr(langRef.current, p, v)
+    const st = auth.state.get()
     const c = new PhotoController({
+      legacyDefaults: legacyDefaults(st.status === 'ready' ? st.me : null),
       repo,
       openMedia: (src) => (src.startsWith('m:') ? assets.open(M_ID(src)).catch(() => null) : Promise.resolve(null)),
       async putImage(blob, name) {

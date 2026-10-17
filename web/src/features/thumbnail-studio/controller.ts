@@ -3,7 +3,7 @@ import type { SharedSetup } from '../../services/shared-setup'
 import { cleanCategory, DEFAULT_CATS, type Category, type Template } from './engine/backup'
 import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
 import type { ImageCache } from './engine/images'
-import { base, layout } from './engine/layouts'
+import { base, BASE_KEYS, layout, type BaseKey } from './engine/layouts'
 import { LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library'
 import { clone, countImgs, FONTS, H, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
 import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
@@ -83,6 +83,8 @@ export interface State {
 }
 
 export interface Deps {
+  /** Livets Ord-standardene («Kveldsbibelskole») bare for menigheter som fantes før (churches.legacy_defaults). Standard: ja. */
+  legacyDefaults?: boolean
   images: ImageCache
   renderer: Renderer
   /** Kategorier og maler i brukerens database. */
@@ -210,6 +212,11 @@ export class ThumbController {
   private quiet = false
   private lastLoc = ''
 
+  /** Grunnoppsettene som tilbys: «Kveldsbibelskole» bare med Livets Ord-standardene. */
+  baseKeys(): BaseKey[] {
+    return BASE_KEYS.filter((b) => b !== 'kbs' || this.d.legacyDefaults !== false)
+  }
+
   constructor(deps: Deps) {
     this.d = deps
     this.now = deps.now ?? Date.now
@@ -276,7 +283,7 @@ export class ThumbController {
       }
     }
     if (!this.alive) return
-    this.set({ ready: true, cats: cats ?? clone([...DEFAULT_CATS]), tpls })
+    this.set({ ready: true, cats: cats ?? clone(DEFAULT_CATS.filter((x) => this.baseKeys().includes(x.base))), tpls })
     this.restore(loc)
     void this.initShared()
   }

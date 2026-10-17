@@ -7,7 +7,7 @@ import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import type { ToolId } from '../../domain/tool'
-import { SharedSetup } from '../../services/shared-setup'
+import { legacyDefaults, SharedSetup } from '../../services/shared-setup'
 import { useLang, useT } from '../../shared/i18n/i18n'
 import { toolTitleKey } from '../../shared/i18n/messages'
 import { userStore } from '../../infrastructure/local-user'
@@ -75,6 +75,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
     const say = (p: Phrase, v?: Vars) => tr(langRef.current, p, v)
     let shared: SharedSetup<{ cats: unknown[] }> | null = null
     const c: ThumbController = new ThumbController({
+      legacyDefaults: legacyDefaults(me),
       images, renderer, repo,
       pickFile(target) {
         fileTarget.current = target

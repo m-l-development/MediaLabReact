@@ -1,7 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import type { ThumbController, State } from './controller'
-import { BASE_KEYS, BASE_LABELS } from './engine/layouts'
+import { BASE_LABELS } from './engine/layouts'
 import { MAX_TPL } from './engine/model'
 import type { Phrase, Tx } from './texts'
 import s from './ThumbnailStudio.module.css'
@@ -28,7 +28,7 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: ThumbController; S:
             <label className={s.catBase}>
               <span>{tx('Grunnoppsett')}</span>
               <select value={k.base} onChange={(e) => c.setCatBase(k, e.target.value as typeof k.base)}>
-                {BASE_KEYS.map((b) => <option key={b} value={b}>{tx(BASE_LABELS[b] as Phrase)}</option>)}
+                {c.baseKeys().map((b) => <option key={b} value={b}>{tx(BASE_LABELS[b] as Phrase)}</option>)}
               </select>
             </label>
           </div>

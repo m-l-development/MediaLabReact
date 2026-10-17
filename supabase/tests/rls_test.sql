@@ -2009,6 +2009,15 @@ select ch_test.cnt('Injeksjon: tilbakemeldingen er lagret ordrett', $q$select 1 
 select ch_test.cnt('Injeksjon: tabellene finnes fortsatt', $q$select 1 where to_regclass('public.churches') is not null and to_regclass('public.app_users') is not null and to_regclass('public.feedback') is not null$q$, 1);
 select ch_test.atleast('Injeksjon: tidligere tilbakemeldinger er urørt', $q$select 1 from public.feedback where description like 'RLS-test%'$q$, 1);
 
+-- ---------- Livets Ord-standarder (legacy_defaults) ----------
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-ga","aal":"aal1"}';
+select ch_test.cnt('Standarder: whoami har legacy_defaults per menighet (ny menighet: false)', $q$select 1 where (public.whoami() -> 'churches' -> 0 ->> 'legacy_defaults') = 'false'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Standarder: feltet kan ikke endres fra klienten (heller ikke av stab)', $q$update public.churches set legacy_defaults = true where id = 'c0c0c0c0-0000-4000-8000-0000000000c1'$q$, '42501');
+set local role postgres;
+select ch_test.cnt('Standarder: nye menigheter får false som standard', $q$select 1 from public.churches where id = 'c0c0c0c0-0000-4000-8000-0000000000c1' and legacy_defaults = false$q$, 1);
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
