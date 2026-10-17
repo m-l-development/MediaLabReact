@@ -97,8 +97,13 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
     if (document.fonts) for (const f of FONTS) for (const w of ['700', '400']) void document.fonts.load(`${w} 40px "${f}"`).catch(() => undefined)
     let live = true
     void (async () => {
-      const r = await importLegacyMotion(userId, assets, folders, repo).catch(() => ({ added: 0, waiting: [] }))
+      let failed = false
+      const r = await importLegacyMotion(userId, assets, folders, repo).catch(() => {
+        failed = true
+        return { added: 0, waiting: [] }
+      })
       if (!live) return
+      if (failed) c.flash('Prosjektene fra forrige versjon kunne ikke hentes nå. De ligger urørt og prøves igjen neste gang du åpner verktøyet.')
       await c.refresh()
       c.set({ waiting: r.waiting })
       if (r.added) c.flash('{n} prosjekter er hentet fra forrige versjon av Motion design.', { n: r.added })

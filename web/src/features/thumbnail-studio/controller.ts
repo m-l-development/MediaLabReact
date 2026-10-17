@@ -272,7 +272,10 @@ export class ThumbController {
     let cats = await this.d.repo.loadCats().catch(() => null)
     let tpls = await this.d.repo.listTpls().catch(() => [] as Template[])
     if (legacyImport) {
-      const r = await legacyImport().catch(() => ({ cats: null, added: 0 }))
+      const r = await legacyImport().catch(() => {
+        this.flash('Malene fra forrige versjon kunne ikke hentes nå. De ligger urørt og prøves igjen neste gang du åpner verktøyet.')
+        return { cats: null, added: 0 }
+      })
       if (r.added || (r.cats && !cats)) {
         if (r.cats && !cats) {
           cats = r.cats
