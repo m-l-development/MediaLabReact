@@ -1,7 +1,6 @@
 # PWA-identitet: dagens app og den nye appen
 
-Status 2026-10-11. **Ingenting er endret eller publisert.** Dette er et beslutningsgrunnlag for når den nye appen
-(`web/`) skal publiseres. Valget må godkjennes før publisering (krever endring i `media-lab/vercel.json` / ruting).
+Status 2026-10-17: **besluttet – A med omdirigering.** Den nye appen har egen identitet (`id`/`start_url`/`scope` = `/app/`). Ved lanseringen sendes `/`, `/home`, `/media-lab.dc.html` og de andre korte adressene og gamle sidene videre (307) til den nye appen (`media-lab/build/routes.js`, `vercel.json`), så en allerede installert app åpner den nye appen i det gamle vinduet. Dagens app har ingen service worker som kan holde igjen gamle sider. Ikke publisert ennå.
 
 ## Manifestene
 

@@ -537,13 +537,15 @@ function InviteDialog({ initial, onClose }: { initial: { church?: string | null 
   const churches = d.churches.filter((c) => c.status === 'active' && canManage(c.id))
   const [f, setF] = useState({ email: '', role: 'user', church: initial.church && churches.some((c) => c.id === initial.church) ? initial.church : churches[0]?.id || '' })
   const global = f.role === 'moderator' || f.role === 'developer'
+  // åpnet før menighetene var lastet: første menighet i listen (det nedtrekkslisten viser)
+  const church = churches.some((c) => c.id === f.church) ? f.church : churches[0]?.id || ''
   // brukergrensen for valgt menighet (vises og sperrer knappen; databasen avgjør uansett)
-  const usage = useMemberUsage(global ? null : f.church)
+  const usage = useMemberUsage(global ? null : church)
   const full = !global && isFull(usage)
   const send = (e: FormEvent) => {
     e.preventDefault()
     void act(async () => {
-      const r = await admin.invite(f.email.trim(), f.role, global ? null : f.church)
+      const r = await admin.invite(f.email.trim(), f.role, global ? null : church)
       say(r.email_sent ? t('Invitasjonen er sendt til') + ' ' + r.invitation.email + '.' : t('Invitasjonen er lagret, men e-posten kunne ikke sendes (e-posttjenesten er ikke satt opp ennå). Prøv «Send på nytt» senere.'), r.email_sent)
       await reload()
       onClose()
@@ -555,7 +557,7 @@ function InviteDialog({ initial, onClose }: { initial: { church?: string | null 
       <form onSubmit={send} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Field label="E-postadresse"><input className="ch-input" type="email" required maxLength={254} value={f.email} onChange={(e) => setF((x) => ({ ...x, email: e.target.value }))} autoFocus /></Field>
         <Field label="Rolle"><select className="ch-select" value={f.role} onChange={(e) => setF((x) => ({ ...x, role: e.target.value }))}>{roles.map((r) => <option key={r} value={r}>{t(ROLE[r] ?? r)}</option>)}</select></Field>
-        {!global && <Field label="Menighet"><select className="ch-select" value={f.church} onChange={(e) => setF((x) => ({ ...x, church: e.target.value }))} required>{churches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>}
+        {!global && <Field label="Menighet"><select className="ch-select" value={church} onChange={(e) => setF((x) => ({ ...x, church: e.target.value }))} required>{churches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>}
         {!global && <MemberUsageNote usage={usage} />}
         <div className="ch-row"><Btn kind="primary" type="submit" disabled={full}>{t('Send invitasjon')}</Btn><Btn onClick={onClose}>{t('Avbryt')}</Btn></div>
       </form>

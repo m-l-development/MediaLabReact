@@ -36,7 +36,7 @@ export interface Kit {
   files: Record<'blob' | 'upload' | 'list' | 'listLink' | 'urls' | 'remove' | 'copyToLink' | 'uploadToLink', ReturnType<typeof vi.fn>>
 }
 
-export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string, unknown[]>; rpc?: (fn: string, args?: Record<string, unknown>) => unknown; server?: (action: string, body: unknown) => unknown; sections?: Record<string, (p: { id?: string | undefined; sub?: string | undefined }) => ReactNode> } = {}): Kit {
+export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string, unknown[]>; rpc?: (fn: string, args?: Record<string, unknown>) => unknown; server?: (action: string, body: unknown) => unknown; sections?: Record<string, (p: { id?: string | undefined; sub?: string | undefined }) => ReactNode>; /** Holder igjen menighetene (som når siden vises før alt er lastet). */ loaded?: Promise<void> } = {}): Kit {
   location.hash = opts.hash ?? ''
   const tables: Record<string, unknown[]> = {
     churches: CH, app_users: USERS, invitations: [],
@@ -51,7 +51,7 @@ export function setupAdmin(me: Me, opts: { hash?: string; tables?: Record<string
     ...opts.tables,
   }
   const data = {
-    select: vi.fn(async (table: string) => tables[table] ?? []),
+    select: vi.fn(async (table: string) => { if (table === 'churches') await opts.loaded; return tables[table] ?? [] }),
     rpc: vi.fn(async (fn: string, args?: Record<string, unknown>) => {
       const r = opts.rpc?.(fn, args)
       if (r !== undefined) return r

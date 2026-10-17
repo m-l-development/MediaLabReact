@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { injectBackend } from './helpers'
 
 /**
  * Tilbakemelding fra innsending til innboks mot connecthub-dev. **Endrer data** (lagrer én tilbakemelding), så testen
@@ -15,6 +16,7 @@ const PASSWORD = process.env.ML_DEV_PASSWORD ?? ''
 const ALLOWED = process.env.ML_DEV_ALLOW_FEEDBACK === 'JA'
 test.skip(!EMAIL || !PASSWORD, 'ML_DEV_EMAIL og ML_DEV_PASSWORD må være satt i terminalen')
 test.skip(!ALLOWED, 'Lagrer en tilbakemelding i connecthub-dev: kjøres bare med ML_DEV_ALLOW_FEEDBACK=JA etter godkjenning')
+test.beforeEach(async ({ page }) => injectBackend(page))
 
 async function signIn(page: Page) {
   await page.goto('/app/')

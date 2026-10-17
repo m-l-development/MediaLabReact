@@ -29,6 +29,19 @@ describe('Brukergrense', () => {
     expect(server).not.toHaveBeenCalled()
   })
 
+  it('Ny invitasjon åpnet før menighetene er lastet: menigheten i listen brukes (teller og invitasjon)', async () => {
+    let done = () => undefined as void
+    const loaded = new Promise<void>((r) => { done = r })
+    const { server } = setupAdmin(ADM, { hash: '#/invitasjoner', rpc: usage(3), loaded })
+    fireEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: '+ Ny invitasjon' }))
+    done()
+    const dlg = screen.getByRole('dialog', { name: 'Ny invitasjon' })
+    expect((await within(dlg).findByText(/Brukere i menigheten/)).textContent).toContain('3 av 10')
+    fireEvent.change(within(dlg).getByLabelText('E-postadresse'), { target: { value: 'ny@b.no' } })
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Send invitasjon' }))
+    await waitFor(() => expect(server).toHaveBeenCalledWith('tok', 'invite.create', expect.objectContaining({ church_id: 'c1' })))
+  })
+
   it('databasen avviser likevel (f.eks. samtidig invitasjon): tydelig melding', async () => {
     setupAdmin(ADM, {
       hash: '#/menigheter/c1/innstillinger', sections, rpc: usage(9),

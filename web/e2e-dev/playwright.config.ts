@@ -13,7 +13,7 @@ export default defineConfig({
   retries: 0,
   timeout: 180_000,
   reporter: [['list']],
-  use: { baseURL: 'http://localhost:5180', trace: 'off', screenshot: 'off' },
+  use: { baseURL: process.env.ML_DEV_BASE ?? 'http://localhost:5180', trace: 'off', screenshot: 'off' },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1440, height: 900 } } },
     { name: 'mobil', use: { ...devices['Pixel 7'], channel: 'chrome' } },

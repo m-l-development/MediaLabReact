@@ -87,11 +87,13 @@ test('mappene, verktøy-lenker og tilbake/fram i nettleseren', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1, name: 'Tools' })).toBeVisible()
 })
 
-test('dagens forside (visuell fasit) – skjermbilde til sammenligning', async ({ page }, info) => {
-  await page.goto('http://localhost:5190/home')
-  await expect(page.getByRole('heading', { name: /Media Lab/i })).toBeVisible()
-  await page.waitForTimeout(800)
-  await page.screenshot({ path: info.outputPath('dagens-forside-mork.png'), fullPage: true })
+test('dagens forside er erstattet: /home og gamle adresser sender til den nye appen (307)', async ({ request }) => {
+  // full overgang 2026-10-17 (docs/lansering.md); innloggingen er den samme som før
+  for (const [from, to] of [['/home', '/app/'], ['/media-lab.dc.html', '/app/'], ['/photodesign', '/app/photo-design'], ['/fellesmappe', '/app/admin#/filer/felles']]) {
+    const r = await request.get('http://localhost:5190' + from, { maxRedirects: 0 })
+    expect([from, r.status(), r.headers().location]).toEqual([from, 307, to])
+  }
+  expect((await request.get('http://localhost:5190/login', { maxRedirects: 0 })).status()).toBe(200)
 })
 
 test('ny versjon: arbeidet lagres, «Senere» skjuler, «Oppdater nå» laster inn igjen uten tap (PLT-04)', async ({ page }, info) => {

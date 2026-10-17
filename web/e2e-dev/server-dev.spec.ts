@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { injectBackend } from './helpers'
 
 /**
  * Serverhandlingene (/api/ch) på dev-serveren mot connecthub-dev, bare de som leser (docs/lokal-servertest.md).
@@ -8,6 +9,7 @@ import { expect, test, type Page } from '@playwright/test'
 const EMAIL = process.env.ML_DEV_EMAIL ?? ''
 const PASSWORD = process.env.ML_DEV_PASSWORD ?? ''
 test.skip(!EMAIL || !PASSWORD, 'ML_DEV_EMAIL og ML_DEV_PASSWORD må være satt i terminalen')
+test.beforeEach(async ({ page }) => injectBackend(page))
 
 type Reply = { status: number; error?: string | undefined; ok: boolean; keys?: string[] | undefined }
 

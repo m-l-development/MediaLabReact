@@ -11,13 +11,13 @@ Krav (2026-10-12): En ny menighet starter **tom** – egne maler, grunnoppsett, 
 | Generelle standardmaler og demo (Photo Design-malene, Loop Studio Ukeprogram/Søndagsmøte/Ungdomsmøte/Tom, Motion-maler, Mockups-bildene) | Innebygd i appen | Vises | **Ja** (skal vises for alle) |
 | **Livets Ord-innhold**: logoene «Livets Ord-symbol», «Kveldsbibelskole» og «Word of Life» (`thumbnail-studio/engine/model.ts`), grunnoppsettet og kategorien «Kveldsbibelskole» (`engine/layouts.ts`, `engine/backup.ts`), standardkategoriene Søndagsmøte/Kveldsbibelskole/Ungdomsmøte i Photo Design (`photo-design/controller.ts`, `DEFAULT_CATS`) | Innebygd i appen, brukes når menigheten ikke har lagret egne | **Vises også for nye menigheter** | **Nei** |
 
-## Forslag (venter på godkjenning)
+## Gjennomført (beslutning 2026-10-17: felt i databasen)
 
-Mål: Livets Ord-innholdet vises bare for menigheter som fantes før endringen, og aldri for nye. Ingen eksisterende menighet mister noe.
+| Del | Endring | Test | Status |
+|---|---|---|---|
+| Database | Migreringen `supabase/migrations/20261018110000_church_legacy_defaults.sql`: `churches.legacy_defaults boolean not null default false`; alle menigheter som finnes når migreringen kjøres, settes til `true`; `whoami` returnerer feltet per menighet | `supabase/tests/rls_test.sql` (nye menigheter får `false`, eksisterende `true`, feltet i `whoami`; 984/984 lokalt). Kjørt i connecthub-dev etter tørrkjøring: alle 3 dev-menigheter `true` | Dev: ja. Produksjon: **ikke kjørt** (steg C i `docs/lansering.md`) |
+| Ny app | `legacyDefaults(me)` i `services/shared-setup.ts` (manglende felt = Livets Ord-innhold, så en eldre database aldri skjuler noe). Thumbnail Studio: grunnoppsettet og standardkategorien «Kveldsbibelskole» bare med `legacy_defaults`. Photo Design: standardkategorien «Kveldsbibelskole» likeså | `services/shared-setup.test.ts`, `features/legacy-defaults.test.ts` (eksisterende menighet ser Kveldsbibelskole; ny menighet ser bare Søndagsmøte/Ungdomsmøte og de øvrige grunnoppsettene) | Ja |
+| Logoene (Livets Ord-symbol, Kveldsbibelskole, Word of Life) | Tilbys ikke lenger i noen meny (bare vist i maler som allerede bruker dem); ingen standardmal inneholder dem | Gjennomgang av `engine/layouts.ts`, `engine/backup.ts` og logomenyene | Ja |
+| Eksisterende menigheter | Uendret: `legacy_defaults = true`; lagrede kategorier og maler i `church_settings` røres ikke | Som over | Ja |
 
-1. **Databasen (connecthub-dev først):** `whoami` returnerer også `created_at` for hver menighet (ren lesing, ingen data endres). Alternativt et eget felt `legacy_defaults boolean` på `churches`, satt til `true` for alle menigheter som finnes i dag og `false` som standard for nye – tydeligere og uavhengig av dato.
-2. **Appen:** Livets Ord-logoene, «Kveldsbibelskole» og Photo Design-kategoriene brukes bare når menigheten har `legacy_defaults` (eller er opprettet før skjæringsdatoen). Nye menigheter får bare de generelle standardmalene og tomme kategorier.
-3. **Eksisterende menigheter:** uendret. Det de har lagret selv, ligger i `church_settings` og `files` og røres ikke; de innebygde Livets Ord-standardene fortsetter å gjelde for dem.
-4. **Tester:** enhetstester for begge tilfeller (gammel menighet ser Livets Ord-standardene, ny ser dem ikke) og en nettlesertest; deretter kontroll mot connecthub-dev.
-
-**Trenger din beslutning:** (a) felt `legacy_defaults` eller dato, (b) godkjenning av migreringen i connecthub-dev, (c) senere godkjenning for produksjon. Ingenting av dette er gjort.
+Tilbakeføring: `supabase/checks/rollback_20261018110000.sql` (gir `whoami` tilbake uten feltet; appen viser da Livets Ord-innholdet for alle som før).

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { injectBackend } from './helpers'
 
 /**
  * Brukergrensen mot connecthub-dev med Admin-testkontoen (docs/plan-brukergrense.md).
@@ -11,6 +12,7 @@ const EMAIL = process.env.ML_DEV_EMAIL ?? ''
 const PASSWORD = process.env.ML_DEV_PASSWORD ?? ''
 const FULL = process.env.ML_DEV_LIMIT_FULL === 'JA'
 test.skip(!EMAIL || !PASSWORD, 'ML_DEV_EMAIL og ML_DEV_PASSWORD må være satt i terminalen')
+test.beforeEach(async ({ page }) => injectBackend(page))
 
 async function signIn(page: Page) {
   await page.goto('/app/')

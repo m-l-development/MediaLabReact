@@ -1456,3 +1456,36 @@ Plan og avvik: `docs/plan-brukergrense.md`. Migrering: `supabase/migrations/2026
 | Opprydding | «CH-test Menighet A» tilbake til 10 (logget); «CH-test Grense» og `ch-test-grense-*` fjernet; telling: 3 menigheter, ingen over grensen |
 
 Lokalt samme dag: PGlite 972/972, `media-lab` `npm test` 178/178, `web` 289/289 enhetstester og 92/92 nettlesertester (11 tidsavbrudd under høy maskinbelastning, bestått ved ny kjøring). Dagens app: feilmeldingen for `member_limit` er lagt inn (admin og innlogging), ikke prøvd i nettleser – den bruker samme serverhandling som er prøvd over.
+
+## Lanseringsklar gjennomgang – connecthub-dev og lokalt (2026-10-17)
+
+Bare connecthub-dev (`uatpdmhnwwjgzlxaucsx`) og lokale servere. Produksjonen er ikke rørt; ingen ekte e-post sendt (testpostkasse).
+
+**Hele dev-løpet uten manuelle steg:** `node web/e2e-dev/run-dev.mjs` bygger publiseringsbygget (samme ruter og `/api` som Vercel, `vite preview`), henter dev-nøkkelen via den innloggede Supabase-CLI-en (bare i minnet), gir de syntetiske testkontoene nye tilfeldige passord (aldri vist eller lagret), fjerner MFA-faktorer på stab før og etter, og rydder bort kontoer og bilder testene selv har laget.
+
+| Løp | Tester | Resultat |
+|---|---|---|
+| Bruker | innlogging via dagens `/login` → `/app/`, korte adresser (307), admin-seksjoner, tilgang i databasen, serverhandlinger, Photo Design innlogget, tilbakemelding sendt | 10/10 bestått |
+| Admin | admin-seksjoner, tilgang, serverhandlinger, brukergrense (teller, Admin kan ikke endre grensen), invitasjon → testpostkasse → tilbaketrekking (antall 7 → 6), opplasting/signert adresse/sletting, video forkledd som PNG → 415, «Glemt passord», Fellesmappe som bildekilde i Photo Design, Thumbnail Studio, Motion design og Loop Studio (bakgrunn og logo) | 7/7 bestått |
+| Developer | MFA-oppsett med TOTP; `system_status` før MFA 403 42501, etter 200; tilbakemeldingen fra Bruker-løpet funnet i innboksen og behandlet (status/notat/arkiv 204); `mail.test` til testpostkassen; `set_member_limit` med MFA | bestått |
+| Moderator | samme som Developer (ingen menighet, så overstyringen hoppes over) | bestått |
+| Livsløp | Developer inviterer ny konto til «CH-test Menighet B» → lenken fra e-posten åpnes i egen nettleser, «Fortsett», passord valgt → inn i `/app/` som medlem; Admin-rollen gitt (200) og trukket tilbake (204); medlemskap fjernet; «Slett kontoen min» i kontomenyen → utlogget, innlogging avvist, brukerraden borte | bestått |
+
+**Funn og rettelser underveis**
+- **Feil i begge appene, rettet:** «Ny invitasjon» åpnet før menighetene var lastet hadde tom menighet i tilstanden, mens listen viste den første – ingen teller, og invitasjonen kunne sendes uten menighet. Rettet i `web/src/features/admin/AdminPage.tsx` og `media-lab/src/pages/connecthub-admin/AdminPage.jsx`; ny komponenttest i `MemberLimit.test.tsx` (feiler uten rettelsen).
+- **Testoppsett:** en invitasjon via testpostkassen lager en innloggingskonto hos Supabase; testene etterlot slike (5 stk.) og to testbilder fra en avbrutt kjøring. Fjernet av kjørerens avgrensede opprydding (bare `ch-test-e2e-<tall>@example.com` og `e2e-(logo|fast)-<tall>.png`); kontroll etterpå: 0 igjen.
+- «Glemt passord» ga ingen e-post i siste løp: frekvensgrensen (3 per adresse per time) slo til – svaret er bevisst det samme, så adresser ikke kan kartlegges.
+- Én gang feilet Motion design-steget (velgeren ble ikke synlig i tide); bestått i de tre neste kjøringene.
+
+**Øvrige kontroller samme dag**
+
+| Kontroll | Resultat |
+|---|---|
+| `web` `npm run check` | 296/296 enhetstester (52 filer), typesjekk, lint, bygg |
+| `web` nettlesertester (PC + mobil) | 94/94 |
+| `web/e2e-real` (ekte Chrome, ekte SlimSAM/MODNet) | 4/4: grønn «Behold», tre punkter + fjerne merke, «Fyll med omgivelser», pensel Fjern/Gjenopprett |
+| `media-lab` `npm test` | 179/179 (ruter, omdirigeringer 307, `vercel.json` = `routes.js`) |
+| `supabase/tests/rls_test.sql` i connecthub-dev (rullet tilbake) | 984/984, inkl. injeksjonstester og `legacy_defaults` |
+| `supabase/checks/security_audit.sql` i dev | ingen SECURITY DEFINER uten `search_path`, ingen tabeller uten RLS, ingen anon-tabellrettigheter, ingen offentlige bøtter |
+| `supabase db advisors` (dev) | 90 varsler om SECURITY DEFINER-funksjoner for innloggede (tilsiktet; tilgang kontrolleres i funksjonene, dekket av rls_test), 1 varsel: beskyttelse mot lekkede passord er av (Auth-innstilling) |
+

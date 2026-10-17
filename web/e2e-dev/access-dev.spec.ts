@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { injectBackend } from './helpers'
 
 /**
  * Tilgang håndheves i databasen, ikke bare i grensesnittet (connecthub-dev, ekte testkonto, bare lesing).
@@ -13,6 +14,7 @@ import { expect, test, type Page } from '@playwright/test'
 const EMAIL = process.env.ML_DEV_EMAIL ?? ''
 const PASSWORD = process.env.ML_DEV_PASSWORD ?? ''
 test.skip(!EMAIL || !PASSWORD, 'ML_DEV_EMAIL og ML_DEV_PASSWORD må være satt i terminalen')
+test.beforeEach(async ({ page }) => injectBackend(page))
 
 type Probe = { status: number; code?: string | undefined; rows?: number | undefined; ok: boolean }
 

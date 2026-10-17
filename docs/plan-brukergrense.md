@@ -72,7 +72,7 @@ Gratis bivirkning: funksjonene trenger ingen egen telling – triggeren er enest
 - Admin → Brukere og Invitasjoner viser «7 av 10 brukere (inkl. 2 ventende invitasjoner)»; «Ny invitasjon» og «Aktiver» er sperret med forklaring når grensen er nådd (serveren avgjør uansett).
 - Stab: Menigheter → menighet → Innstillinger: «Brukergrense» med begrunnelse.
 
-**Dagens app (`media-lab/`):** samme melding og teller i `connecthub-admin` (`members.js`, `sections.jsx`) og på innloggingssiden for invitasjoner. Nødvendig fordi dagens admin brukes parallelt ved myk lansering.
+**Dagens app (`media-lab/`):** samme melding og teller i `connecthub-admin`: telleren og sperret «Send invitasjon» i «Ny invitasjon», «Brukergrense»-kortet i menighetens innstillinger (`pages/connecthub-admin/member-limit.jsx`, overstyring for stab), og meldingen på innloggingssiden for invitasjoner.
 
 ## 6. Tester
 
@@ -116,5 +116,5 @@ Gratis bivirkning: funksjonene trenger ingen egen telling – triggeren er enest
 1. **«Send på nytt» av en utløpt invitasjon var et hull.** Invitasjoner får status «utløpt» først når noen prøver å bruke dem; en utløpt invitasjon står ofte som «ventende», og `reissue_invitation` forlenger bare utløpsdatoen. Triggeren på `invitations` slår derfor også til ved endret `expires_at`, og sjekker grensen når en invitasjon går fra å ikke telle til å telle. Egen databasetest.
 2. **Aktivt medlemskap teller uansett kontostatus.** Ellers kunne stab låse opp en sperret konto og komme over grensen uten kontroll.
 3. **`accept_invitation` er ikke endret.** Å godta en invitasjon øker aldri antallet (personen er allerede talt), så triggeren slipper den alltid gjennom; serveren oversetter uansett CH013 til `member_limit`.
-4. **Dagens app viser bare feilmeldingen, ikke telleren.** Telleren og sperret knapp finnes i den nye appen. Dagens admin brukes bare i overgangen, og databasen stopper nr. 11 uansett hvilken app som brukes.
+4. **(Rettet 2026-10-17: dagens app har nå også telleren og sperret knapp, se over.)** Opprinnelig: dagens app viste bare feilmeldingen, ikke telleren. Telleren og sperret knapp finnes i den nye appen. Dagens admin brukes bare i overgangen, og databasen stopper nr. 11 uansett hvilken app som brukes.
 5. **Grensen kan ikke endres direkte i tabellen** – kolonnerettighetene på `churches` gjelder bare navn og status, så bare `set_member_limit` (stab med MFA og begrunnelse) kan endre den. Egen databasetest.

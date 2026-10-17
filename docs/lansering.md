@@ -2,11 +2,13 @@
 
 Status 2026-10-17. **Ingenting er publisert, merget eller endret i produksjonen.** Grenen `feature/onepage-rebuild` er klar for en samlet gjennomgang; punktene merket **[godkjenning]** krever din beslutning.
 
-## Anbefalt: myk lansering (minste trygge steg)
+## Besluttet: full overgang til den nye appen
 
-Den nye appen publiseres **ved siden av** dagens app, på samme domene, under `/app/`. Dagens app (`/home`, `/admin`, korte adresser, e-postlenker) er uendret og fungerer som før. Brukerne får lenken til `/app/`. Når den nye appen har vært i bruk en stund, flyttes de korte adressene dit i et eget steg (PLT-12).
+Den nye appen publiseres under `/app/` på samme domene, og **de korte adressene går dit** (beslutning 2026-10-17): `/` og `/home` → `/app/`, `/loopstudio` → `/app/loop-studio`, `/thumbnailstudio`, `/photodesign`, `/motiondesign`, `/isolate`, `/mockup`, `/admin` og mappeadressene (`/fellesmappe`, `/samarbeidsmappe`, `/fastebilder`, `/ressurser`) til sine sider i den nye appen. Gamle `.dc.html`-adresser og bokmerker følger med. Innloggingen (`/login`) og e-postlenkene er de samme som i dag.
 
-Hvorfor: ingen eksisterende lenke, installasjon eller e-postlenke brytes; dagens admin er fortsatt tilgjengelig for handlinger som ennå ikke er prøvd mot ekte data i den nye appen; tilbakeføring er bare å fjerne `/app/` igjen.
+- Alle omdirigeringer er **midlertidige (307)**, så nettlesere husker dem ikke: tilbakeføring virker straks.
+- PWA: den installerte appen åpner `/home` → omdirigeres til `/app/` (`docs/pwa-identitet.md`, «A med omdirigering»).
+- Én kilde for rutene: `media-lab/build/routes.js`, speilet i `vercel.json` og kontrollert av `build/routes.test.js`.
 
 ## Det som er gjort for publisering (på grenen, ikke publisert)
 
@@ -43,14 +45,14 @@ Alt under kjøres **av deg**, eller av meg først etter at du har godkjent **det
 | B2 | Panelets SQL-redigering: innholdet i `supabase/checks/member_limit_report.sql` (bare `select`; viser bare menighetsnavn og tall) | Liste over menigheter og antall. Menigheter med over 10 beholder alle sine; noter dem |
 | B3 | Samme sted: `supabase/checks/prod_fingerprint.sql` (bare `select`) – lagre svaret | Fingeravtrykk før migreringen |
 
-### C. Produksjonen – brukergrensen (**[godkjenning] for hvert steg**, før koden publiseres)
+### C. Produksjonen – brukergrensen og Livets Ord-standarder (**[godkjenning] for hvert steg**, før koden publiseres)
 
 | # | Handling | Endrer? | Forventet |
 |---|---|---|---|
 | C1 | Sikkerhetskopi: `supabase db dump --linked` (skjema) og `--data-only` (data), se `docs/produksjonsplan-samarbeidsgrupper.md` 2.1 | Leser databasen; lager lokale filer – datafila har personopplysninger, lagres utenfor repoet og slettes når alt er stabilt | To filer |
-| C2 | `npx supabase@latest db push --linked --project-ref cmuienhheklcgtfmpvbe --dry-run` | Ingen dataendring (CLI-en oppretter en midlertidig innloggingsrolle for tilkoblingen) | **Bare** `20261018100000_member_limit.sql`. Alt annet: stopp |
-| C3 | Samme kommando uten `--dry-run` | **Ja** – ny kolonne, funksjoner og triggere; ingen eksisterende rader endres | «Applying migration 20261018100000_member_limit.sql» uten feil |
-| C4 | Verifisering: B1 (nå **39**), B2 (samme antall per menighet, grense 10) og B3 (likt med før, bortsett fra `migrations`/`last_migration`) | Bare lesing | Som forventet |
+| C2 | `npx supabase@latest db push --linked --project-ref cmuienhheklcgtfmpvbe --dry-run` | Ingen dataendring (CLI-en oppretter en midlertidig innloggingsrolle for tilkoblingen) | **Bare** `20261018100000_member_limit.sql` og `20261018110000_church_legacy_defaults.sql`. Alt annet: stopp |
+| C3 | Samme kommando uten `--dry-run` | **Ja** – to nye kolonner (`member_limit`, `legacy_defaults`), funksjoner og triggere; `whoami` får feltet `legacy_defaults`. Eksisterende menigheter merkes `legacy_defaults = true` (beholder Livets Ord-innholdet); ingen andre rader endres | «Applying migration …» for begge, uten feil |
+| C4 | Verifisering: B1 (nå **40**), B2 (samme antall per menighet, grense 10) og B3 (likt med før, bortsett fra `migrations`/`last_migration`) | Bare lesing | Som forventet |
 
 Mellom C3 og publiseringen (D) bruker produksjonen fortsatt dagens kode. Den tåler migreringen; den eneste forskjellen er at en menighet som allerede er på eller over grensen, får en generell feilmelding ved ny invitasjon (den tydelige teksten kommer med koden). B2 viser om noen menighet berøres.
 
@@ -58,24 +60,28 @@ Mellom C3 og publiseringen (D) bruker produksjonen fortsatt dagens kode. Den tå
 
 | # | Handling | Merknad |
 |---|---|---|
-| D1 | Merge `feature/onepage-rebuild` → `main` | Publiserer den nye appen under `/app/`, brukergrensen i begge appene og rettelsene i dagens app (utklipp med ormbg/TB-7BF5C1, ingen automatisk sletting i delt mappe, `/app/assets` i sperren) |
+| D1 | Merge `feature/onepage-rebuild` → `main` | Publiserer den nye appen under `/app/` med de korte adressene, brukergrensen i begge appene og rettelsene i dagens app (utklipp med ormbg/TB-7BF5C1, ingen automatisk sletting i delt mappe, `/app/assets` i sperren) |
 | D2 | Kontroller i Vercel at produksjonsdeploymenten bygger merge-commiten, og at den er «Ready» | |
-| D3 | Etter publisering: logg inn, åpne `/app/`, ett verktøy, Dine medier og Admin → menighetens innstillinger (telleren); sjekk at `/home` og `/admin` virker som før | 5–10 minutter |
+| D3 | Etter publisering: logg inn, åpne `/app/`, ett verktøy, Dine medier og Admin → menighetens innstillinger (telleren); sjekk at `/home`, `/admin` og `/fellesmappe` sender til riktig side i den nye appen (307), og at en installert app åpner den nye appen | 5–10 minutter |
 
 ### E. Tilbakeføring
 
 - **Koden:** Vercel → Deployments → forrige produksjonsdeployment → «Instant Rollback» (sekunder, ingen git-endring). Deretter `git revert` av merge-commiten. Databasen kan bli stående – dagens kode tåler den.
+- **Korte adresser:** Instant Rollback over gir dagens adresser tilbake straks (omdirigeringene er 307 og huskes ikke).
 - **Brukergrensen i databasen:** `supabase/checks/rollback_20261018100000.sql` fjerner triggerne og funksjonene; ingen medlemskap eller invitasjoner endres (testet lokalt). Bare etter egen godkjenning.
+- **Livets Ord-feltet:** `supabase/checks/rollback_20261018110000.sql` gir `whoami` tilbake uten feltet (appen tolker manglende felt som Livets Ord-innhold). Kolonnen kan stå. Bare etter egen godkjenning.
 - **Data:** gjenoppretting fra sikkerhetskopien (C1) bare hvis data faktisk er skadet, og bare etter egen godkjenning. Migreringen sletter eller overskriver ingen rader.
 
-## Kan vente til etter lansering
+## Status per område (2026-10-17)
 
-| Punkt | Hvorfor det kan vente |
-|---|---|
-| PLT-12 korte adresser til den nye appen | Myk lansering: dagens adresser beholdes |
-| PWA-identitet (`docs/pwa-identitet.md`) | Den nye appen kan installeres i tillegg (mulig to ikoner); avklares når dagens app tas ned |
-| Developer/Moderator med MFA mot dev, endrende admin-handlinger (invitasjoner, e-post, roller, opplasting, sletting), kontosletting | Bygget og testet med falske tjenester; dagens admin er tilgjengelig i mellomtiden. Bør prøves mot dev med egne testkontoer før dagens admin tas ned |
-| Tilbakemelding fra innsending til innboks mot dev | Test klar (`web/e2e-dev/feedback-dev.spec.ts`, krever `ML_DEV_ALLOW_FEEDBACK=JA`); innboksen krever stab med MFA |
-| Livets Ord-standarder for nye menigheter | Forslag i `docs/ny-menighet-standardinnhold.md`; berører bare menigheter som opprettes etter endringen |
-| Photo Design «hvitt bilde» | Ikke gjenskapt uten innlogging (alle formater, maler, store bilder, gjenåpning tegner riktig); diagnosetest `web/e2e-dev/photo-dev.spec.ts` kan kjøres innlogget, også med ditt eget bilde (`ML_DEV_IMAGE`) |
-| Pensel, grønn «behold», flere SlimSAM-punkter | Manuell sjekkliste levert; ikke kjørt med ekte modell |
+| Område | Status | Bevis |
+|---|---|---|
+| Korte adresser og PWA (PLT-12, PLT-07-id) | Ferdig på grenen, ikke publisert | `build/routes.test.js`, `e2e/platform.spec.ts`, `e2e-dev/integration-dev.spec.ts` |
+| Livets Ord-standarder for nye menigheter | Ferdig; migrering kjørt i dev, venter på produksjon (C) | `features/legacy-defaults.test.ts`, `rls_test.sql` |
+| Brukergrense i begge appene | Ferdig; dev verifisert, venter på produksjon (C) | `member-limit-dev`, `MemberLimit.test.tsx`, `rls_test.sql` |
+| Developer/Moderator med MFA, tilbakemelding fra innsending til innboks | Testet mot dev | `staff-dev`, `feedback-dev` |
+| Adminhandlinger som endrer data (invitasjon, e-post, rolle, medlemskap, opplasting, sletting, kontosletting) | Testet mot dev | `admin-write-dev`, `lifecycle-dev` |
+| Fellesmappe som bildekilde i verktøyene | Testet mot dev | `sources-dev` |
+| Pensel, grønn «behold», SlimSAM-punkter | Testet med ekte modeller | `e2e-real/ai-tools.spec.ts` |
+| Sikkerhetsgjennomgang | Utført; ett innstillingspunkt hos deg (lekkede passord) | `supabase/checks/security_audit.sql`, `docs/testlogg.md` |
+| Photo Design «hvitt bilde» | **Ikke gjenskapt** – trenger bildet eller fremgangsmåten | `e2e-dev/photo-dev.spec.ts` (`ML_DEV_IMAGE`) |
