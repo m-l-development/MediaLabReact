@@ -175,3 +175,41 @@ export function snapPoint(u: number, v: number, tu: number, tv: number): { u: nu
   if (gv !== undefined) guides.push({ axis: 'v', at: gv })
   return { u: gu ?? u, v: gv ?? v, guides }
 }
+
+/**
+ * Sidens utoverrettede normal i flatens egne mål (u · aspect, v), normert. Side i går fra hjørne i til i + 1.
+ * «Utover» = bort fra designets midtpunkt, så det fungerer uansett rotasjon, speiling og skjev form.
+ */
+export function sideNormal(q: Quad, i: number, aspect: number): Point {
+  const a = q[i]!, b = q[(i + 1) % 4]!, [cu, cv] = centroid(q)
+  let nx = -(b[1] - a[1]), ny = (b[0] - a[0]) * aspect
+  const l = Math.hypot(nx, ny) || 1
+  nx /= l; ny /= l
+  const mx = ((a[0] + b[0]) / 2 - cu) * aspect, my = (a[1] + b[1]) / 2 - cv
+  return nx * mx + ny * my < 0 ? [-nx, -ny] : [nx, ny]
+}
+
+/** Flytt side i en avstand t (flatens egne mål) langs normalen: sidens to hjørner følger med, motsatt side står i ro. */
+export function moveSide(q: Quad, i: number, t: number, aspect: number): Quad {
+  const [nx, ny] = sideNormal(q, i, aspect), out = q.map((p) => [p[0], p[1]] as Point) as Quad
+  for (const j of [i, (i + 1) % 4]) out[j] = [q[j]![0] + (nx * t) / aspect, q[j]![1] + ny * t]
+  return out
+}
+
+/**
+ * Avstand langs sidens normal for et pekertrekk (du, dv), med magnetisk justering av sidens midtpunkt til objektets
+ * kanter og midtlinjer på den aksen normalen mest peker langs (ellers fri).
+ */
+export function sideDrag(q: Quad, i: number, du: number, dv: number, aspect: number, tu: number, tv: number): { t: number; guides: Guide[] } {
+  const [nx, ny] = sideNormal(q, i, aspect)
+  let t = du * aspect * nx + dv * ny
+  const m = sideMid(q, i), mu = m[0] + (nx * t) / aspect, mv = m[1] + ny * t
+  if (Math.abs(nx) >= Math.abs(ny)) {
+    const g = GUIDES.find((x) => Math.abs(x - mu) < tu)
+    if (g !== undefined && Math.abs(nx) > 1e-6) { t += ((g - mu) * aspect) / nx; return { t, guides: [{ axis: 'u', at: g }] } }
+  } else {
+    const g = GUIDES.find((x) => Math.abs(x - mv) < tv)
+    if (g !== undefined && Math.abs(ny) > 1e-6) { t += (g - mv) / ny; return { t, guides: [{ axis: 'v', at: g }] } }
+  }
+  return { t, guides: [] }
+}

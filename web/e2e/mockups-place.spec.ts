@@ -239,3 +239,62 @@ test('presis redigering: Shift + hjørne/side (perspektiv), hjelpelinjer, magnet
   }, b64)
   expect(marks).toBe(0)
 })
+
+test('sidehåndtakene flytter sin side utover og innover – motsatt side står i ro (skjevt kort)', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobil', 'pekerdraging testes på desktop')
+  test.setTimeout(180_000)
+  const id = 'card-black-hand' // skjevt kort i perspektiv
+  await page.goto(`/app/mockups?mockup=${id}`)
+  await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  const ch = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
+  await (await ch).setFiles({ name: 'design.png', mimeType: 'image/png', buffer: design() })
+  await page.getByRole('slider', { name: /Zoom/ }).fill('0.6') // plass til å dra utover
+  await page.locator('[data-mk-design-edit]').click()
+  const at = async (sel: string) => { const b = (await page.locator(`[class*="designHandle"]${sel}`).boundingBox())!; return [b.x + b.width / 2, b.y + b.height / 2] as const }
+  const corners = async () => Promise.all([0, 1, 2, 3].map((i) => at(`[data-c="${i}"]`)))
+  const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!)
+  const rows: string[] = []
+  // side i = mellom hjørne i og i + 1: 0 topp, 1 høyre, 2 bunn, 3 venstre (bildets egen retning)
+  for (const [i, name] of [[0, 'topp'], [1, 'høyre'], [2, 'bunn'], [3, 'venstre']] as const) {
+    for (const dir of [1, -1]) {
+      const c0 = await corners()
+      const s = await at(`[data-s="${i}"]`)
+      // utover = bort fra midten av designet (i skjermen)
+      const mid = [c0.reduce((a, p) => a + p[0], 0) / 4, c0.reduce((a, p) => a + p[1], 0) / 4]
+      const ox = s[0] - mid[0]!, oy = s[1] - mid[1]!, l = Math.hypot(ox, oy)
+      const dx = (ox / l) * 24 * dir, dy = (oy / l) * 24 * dir
+      await page.mouse.move(s[0], s[1])
+      await page.mouse.down()
+      await page.mouse.move(s[0] + dx / 2, s[1] + dy / 2, { steps: 3 })
+      await page.mouse.move(s[0] + dx, s[1] + dy, { steps: 3 })
+      await page.mouse.up()
+      const c1 = await corners()
+      const moved = [i, (i + 1) % 4], still = [(i + 2) % 4, (i + 3) % 4]
+      const mv = moved.map((j) => dist(c0[j]!, c1[j]!)), st = still.map((j) => dist(c0[j]!, c1[j]!))
+      rows.push(`${name} ${dir > 0 ? 'ut' : 'inn'}: sidens hjørner flyttet ${mv.map((v) => v.toFixed(1)).join('/')} px, motsatt ${st.map((v) => v.toFixed(2)).join('/')} px`)
+      for (const v of mv) expect(v).toBeGreaterThan(8) // sidens to hjørner fulgte med
+      for (const v of st) expect(v).toBeLessThan(0.6) // motsatt side står i ro
+      // riktig retning: sidens midtpunkt flyttet seg utover (dir 1) eller innover (dir −1)
+      const s1 = await at(`[data-s="${i}"]`)
+      expect(((s1[0] - s[0]) * ox + (s1[1] - s[1]) * oy) * dir).toBeGreaterThan(0)
+    }
+  }
+  console.log('\n' + rows.join('\n'))
+  // fri form lagret, og forhåndsvisning = eksport
+  const s = await saved(page, id)
+  expect(Array.isArray(s.dq)).toBe(true)
+  await page.waitForTimeout(500)
+  const pre = await centroids(page, null)
+  const dl = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Last ned', exact: true }).last().click()
+  const ex = await centroids(page, fs.readFileSync(await (await dl).path()).toString('base64'))
+  expect(Math.abs(ex.red.x - pre.red.x)).toBeLessThan(0.01)
+  expect(Math.abs(ex.red.y - pre.red.y)).toBeLessThan(0.01)
+  // Angre tar siste sideflytting tilbake (én draging = ett steg)
+  const before = await corners()
+  await page.locator('[data-mk-undo]').click()
+  const after = await corners()
+  expect(dist(before[3]!, after[3]!) + dist(before[0]!, after[0]!)).toBeGreaterThan(8) // venstre side tilbake
+  expect(dist(before[1]!, after[1]!)).toBeLessThan(0.6)
+})

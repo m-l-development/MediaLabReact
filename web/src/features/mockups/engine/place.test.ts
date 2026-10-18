@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { homography, project, type Quad } from './geometry'
-import { boxCorners, centroid, clampOffset, designBox, imageCorners, inBox, mirrorQuad, patchFreeform, snapMove, snapPoint, snapScale, unproject, zoomFromDrag } from './place'
+import { boxCorners, centroid, clampOffset, designBox, imageCorners, inBox, mirrorQuad, moveSide, patchFreeform, sideDrag, sideNormal, snapMove, snapPoint, snapScale, unproject, zoomFromDrag } from './place'
 import { DEFAULT_SETTINGS, validQuad } from './render'
 
 const quad: Quad = [[0.3, 0.2], [0.8, 0.25], [0.75, 0.7], [0.25, 0.65]]
@@ -93,5 +93,30 @@ describe('Mockups – plassering av designet', () => {
     const c = snapScale(q, 1.98, 0.01, 0.01) // høyre kant 0,4 + 0,2·1,98 = 0,796 – ikke nær 1; venstre 0,004 – nær 0
     expect(c.guides[0]).toEqual({ axis: 'u', at: 0 })
     expect(snapPoint(0.996, 0.3, 0.01, 0.01)).toEqual({ u: 1, v: 0.3, guides: [{ axis: 'u', at: 1 }] })
+  })
+
+  it('sidehåndtak: siden flyttes langs normalen, motsatt side står i ro – også skjevt', () => {
+    const sq = [[0.2, 0.2], [0.6, 0.2], [0.6, 0.6], [0.2, 0.6]] as Quad
+    expect(sideNormal(sq, 1, 1)[0]).toBeCloseTo(1, 9) // høyre side peker mot høyre
+    expect(sideNormal(sq, 0, 1)[1]).toBeCloseTo(-1, 9) // toppen peker opp
+    const r = moveSide(sq, 1, 0.1, 1)
+    expect(r[1]).toEqual([0.7, 0.2])
+    expect(r[2]).toEqual([0.7, 0.6])
+    expect([r[0], r[3]]).toEqual([sq[0], sq[3]])
+    // skjev form: pekertrekk langs siden gir ingen flytting (bare komponenten langs normalen teller)
+    const sk = [[0.2, 0.25], [0.6, 0.15], [0.65, 0.55], [0.25, 0.65]] as Quad
+    const n = sideNormal(sk, 1, 1.5)
+    const along = [-n[1] / 1.5, n[0]] // vinkelrett på normalen (i u, v)
+    expect(sideDrag(sk, 1, along[0]! * 0.05, along[1]! * 0.05, 1.5, 0, 0).t).toBeCloseTo(0, 9)
+    const m = moveSide(sk, 3, -0.08, 1.5) // venstre side innover
+    expect([m[1], m[2]]).toEqual([sk[1], sk[2]])
+    expect(m[0][0]).toBeGreaterThan(sk[0][0])
+  })
+
+  it('sidehåndtak: magnetisk mot objektets kant på riktig akse', () => {
+    const sq = [[0.2, 0.2], [0.6, 0.2], [0.6, 0.6], [0.2, 0.6]] as Quad
+    const d = sideDrag(sq, 1, 0.395, 0, 1, 0.01, 0.01) // høyre side → 0,995: fest til 1
+    expect(d.t).toBeCloseTo(0.4, 9)
+    expect(d.guides).toEqual([{ axis: 'u', at: 1 }])
   })
 })
