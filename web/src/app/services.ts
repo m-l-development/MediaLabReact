@@ -13,6 +13,7 @@ import { createRequestInbox, createRequestService, type RequestInbox, type Reque
 import { createAdminService, type AdminService } from '../services/admin'
 import { createMailService, type MailService } from '../services/mail'
 import { createCollabService, type CollabService } from '../services/collab'
+import { createLoopDiskService, type LoopDiskService } from '../services/loop-disk'
 import type { Router } from './router'
 import { presentTestRole } from './test-role'
 
@@ -26,6 +27,8 @@ export interface Services {
   files: FilesService
   /** Menighetens felles grunnoppsett (church_settings). */
   churchSettings: ChurchSettingsService
+  /** Loop Studio: menighetens delte disk (loop_disk). */
+  loopDisk: LoopDiskService
   /** Tilbakemeldinger (PLT-21). */
   feedback: FeedbackService
   /** Kontomenyen: varsler, e-postvarsler, passord, eksport og sletting (AUTH-05, AUTH-08). */
@@ -53,7 +56,7 @@ export function createServices(router: Router): Services {
     dev: import.meta.env.DEV,
     present: (me) => presentTestRole(me),
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), feedback: createFeedbackService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), mail: createMailService(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), loopDisk: createLoopDiskService(data), feedback: createFeedbackService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), mail: createMailService(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)

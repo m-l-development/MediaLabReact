@@ -1652,3 +1652,15 @@ Lokalt og i connecthub-dev med syntetiske data, gren `connecthub` (lokalt, ikke 
 
 **Regresjon:** `web` 310/310 enhetstester, typesjekk, lint, bygg; 102/102 nettlesertester (én tidsavbrudd under last i første runde, bestått alene og i ny full runde); `media-lab` 181/181; RLS 998/998 lokalt og i dev; fullt dev-løp 9 av 10 løp bestått i første runde (Loop-delingen, se over), deretter 5/5; `e2e-real` 7/7.
 
+
+### 2026-10-18 – Loop Studio: menighetens disk (TB-BB67CB)
+
+| Test | Resultat |
+|---|---|
+| RLS (20 nye for `loop_disk`, to menigheter) | 1018/1018 lokalt og i dev |
+| Enhet/komponent: `services/loop-disk.test.ts`, `LoopSharedDisk.test.tsx`, `App.test.tsx`, Loop Studio | 24/24 |
+| Lokale nettlesertester for Loop Studio (`e2e/loop-studio*.spec.ts`) | 21 bestått, 13 hoppet over (som før) |
+| Dev-E2E `loop-disk-dev` (Admin og Bruker samtidig) | bestått: lagre, se uten ny innlasting, endre (v2), eldre versjon avvist, Bruker får ikke slette (403), video avvist (400), annen menighet 0 rader/403, Admin sletter |
+| Typesjekk, lint | ingen feil |
+
+Migreringen `20261018130000_loop_shared_disk.sql` er kjørt i dev, ikke i produksjonen. Kjøreplan: `docs/kjoreplan-migreringer-2026-10-18.md`.

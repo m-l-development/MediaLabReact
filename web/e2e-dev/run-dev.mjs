@@ -147,7 +147,7 @@ const RUNS = [
   { name: 'konto', email: 'ch-test-user@example.com', role: 'user', specs: ['account-dev'] },
   { name: 'rolle-mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['test-role-dev'] },
   // to kontoer samtidig (Admin og Bruker i samme menighet): felles grunnoppsett, rollebytter og to brukere på samme PC
-  { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev', 'loop-sharing-dev'] },
+  { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev', 'loop-sharing-dev', 'loop-disk-dev'] },
 ].filter((r) => !only.length || only.includes(r.name))
 
 const results = []

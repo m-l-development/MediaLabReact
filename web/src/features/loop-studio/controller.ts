@@ -5,6 +5,8 @@
  */
 import type { Me } from '../../domain/account'
 import type { SharedSetup } from '../../services/shared-setup'
+import { ServiceError } from '../../services/errors'
+import { forSharedDisk, type LoopDiskData, type LoopDiskService } from '../../services/loop-disk'
 import { entryOf, type BaseEntry, type CentralBases, type KV, type PersonalBases } from './bases'
 import { __ukeloopAudioCtl, __ukeloopRendererFactory } from './engine/player.js'
 import type { AudioCtl, AudioSyncOpts } from './engine/player'
@@ -99,6 +101,8 @@ export interface State {
   saveOpen: boolean
   saveMsg: string
   saveName: string | null
+  /** Hvor lagringsdialogen lagrer: p = Min disk (nettleseren), f = Menighetens disk */
+  saveTarget: 'p' | 'f'
   autoAt: string
   addMenu: boolean
   addForm: Record<string, string> | null
@@ -133,6 +137,8 @@ export interface LoopDeps {
   kv: KV
   me: Me | null
   bases: { personal: PersonalBases; central: CentralBases | null }
+  /** Menighetens delte disk (TB-BB67CB): alle medlemmer leser og lagrer, bare Admin sletter. null uten menighet. */
+  sharedDisk: { svc: LoopDiskService; churchId: () => string | null; isAdmin: () => boolean } | null
   /** Menighetens grunnoppsett for en mal (null uten innlogging/menighet). */
   /** Statusteksten er allerede oversatt. */
   shared(scope: string, opts: { onRemote: (d: Cfg) => void; onStatus: (s: { state: string; text: string }) => void }): SharedSetup<Cfg & Record<string, unknown>> | null
@@ -199,6 +205,11 @@ export class LoopController {
   customName = ''
   diskId: string | null = null
   diskData: DiskEntry['data'] | null = null
+  /** Loop fra menighetens disk: id og versjonen som er åpnet (lagring mot eldre versjon avvises). */
+  sharedEntry: { id: string; version: number; name: string } | null = null
+  sharedData: LoopDiskData | null = null
+  private sharedCache = new Map<string, string | null>()
+  private sharedSaving = false
   fromBase: { kind: string; id: string; name: string; data: BaseEntry['data'] } | null = null
   demo = false
   baseCfg: Cfg = BASE_CFG
@@ -293,7 +304,7 @@ export class LoopController {
       ready: false, tab: 'program', tpl: 'week', programText: '', slides: [], cfg: { ...BASE_CFG }, videoName: '', audioName: '', selected: null, playing: true, playIdx: 0, urls: {},
       parseMsg: '', parseOk: true, rec: null, busy: '', beatInfo: null, mobile: false, mPane: 'preview', guideMode: 'none', guideFlip: 0, selEl: null, hexPop: null, eyedrop: false,
       vigEd: null, ovEd: null, crop: null, panOpen: false, sharedReady: false, sharedExists: false, sharedErr: false, sharedState: '', audioLib: [], audioDur: 0, hist: '', scrubT: null,
-      tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, autoAt: '', addMenu: false, addForm: null,
+      tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, saveTarget: 'p', autoAt: '', addMenu: false, addForm: null,
       rulesOpen: false, rulesDraft: null, galleryFor: null, stdOpen: false, stdDraft: null, rulePickOpen: false, fillOpen: false, panelEditFor: null, slideStyleOpen: false, fast: null, fastMsg: '',
     }
   }
@@ -1202,14 +1213,21 @@ export class LoopController {
         const ent = this.diskList().find((d) => d.id === did)
         if (ent) { this.diskId = did; this.customId = did; this.customName = ent.name; this.diskData = ent.data }
       }
+      const fd = q.fdisk || ''
+      if (/^[0-9a-f-]{36}$/.test(fd) && this.deps.sharedDisk && !this.diskId) {
+        const row = await this.deps.sharedDisk.svc.get(fd).catch(() => null)
+        if (stale()) return
+        if (row) { this.sharedEntry = { id: row.id, version: row.version, name: row.name }; this.sharedData = row.data; this.customId = 's' + fd.replace(/-/g, '').slice(0, 15); this.customName = row.name }
+        else this.deps.toast(this.t('Loopen finnes ikke lenger på menighetens disk.'))
+      }
       const gr = q.grunn || ''
-      if (/^[pf]-[a-z0-9]{4,16}$/.test(gr) && !this.diskId) {
+      if (/^[pf]-[a-z0-9]{4,16}$/.test(gr) && !this.diskId && !this.sharedEntry) {
         const kind = gr[0] ?? 'p', id = gr.slice(2)
         const e = kind === 'f' ? await (this.deps.bases.central?.get(id) ?? Promise.resolve(null)).catch(() => null) : this.deps.bases.personal.get(id)
         if (stale()) return
         if (e) { this.fromBase = { kind, id, name: e.name, data: e.data }; this.customId = 'g' + gr.replace('-', ''); this.customName = e.name }
       }
-      if (this.diskId || this.fromBase) {
+      if (this.diskId || this.fromBase || this.sharedEntry) {
         // navnet er satt over
       } else if (/^c-[a-z0-9]{4,16}$/.test(cid)) { this.customId = cid; this.customName = card && typeof card.title === 'string' ? card.title.slice(0, 60) : 'Egen mal' }
       else if (card && typeof card.title === 'string' && card.title.trim() && card.title !== TPL_NAMES[tpl]) this.customName = card.title.slice(0, 60)
@@ -1223,8 +1241,10 @@ export class LoopController {
     const dd = this.diskData && okSlides(this.diskData.slides).length ? { ...this.diskData, slides: okSlides(this.diskData.slides) } : null
     this.demo = q.demo === '1' && !this.customId && !this.diskId
     const fb = this.fromBase ? { ...this.fromBase.data, slides: okSlides(this.fromBase.data.slides) } : null
-    const saved = this.demo ? null : this.loadSaved(tpl)
-    const base: SavedData & Partial<WorkData> = this.demo ? await this.demoData(tpl) : (saved ?? dd ?? fb ?? this.defaults(tpl))
+    // en loop fra menighetens disk åpnes alltid med det som er lagret der (ikke en eldre lokal arbeidskopi)
+    const sd = this.sharedData ? { programText: this.sharedData.programText || '', slides: okSlides(this.sharedData.slides), cfg: (this.sharedData.cfg ?? {}) as Cfg } : null
+    const saved = this.demo || sd ? null : this.loadSaved(tpl)
+    const base: SavedData & Partial<WorkData> = this.demo ? await this.demoData(tpl) : (saved ?? dd ?? sd ?? fb ?? this.defaults(tpl))
     if (stale()) return
     /* arbeidskopien husker video og lyd; en ny serie fra Disk eller grunnoppsett starter uten */
     this.videoRef = saved?.video ?? null
@@ -2081,7 +2101,43 @@ export class LoopController {
     const t = new Date()
     this.setState({ autoAt: String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') })
   }
+  /** Lagre på menighetens disk (ny, eller endring av versjonen som er åpnet). Video og lyd følger aldri med. */
+  async saveToShared(asNew: boolean) {
+    const sd = this.deps.sharedDisk, church = sd?.churchId()
+    if (!sd || !church) { this.setState({ saveMsg: 'Menighetens disk er ikke tilgjengelig.' }); return }
+    const S = this.state, name = String(S.saveName || '').trim().slice(0, 60) || this.customName || 'Min loop'
+    const cur = asNew ? null : this.sharedEntry
+    if (this.sharedSaving) return // dobbeltklikk skal ikke lage to looper
+    this.sharedSaving = true
+    this.setState({ saveMsg: 'Lagrer …' })
+    try {
+      const cloud = this.deps.cloud
+      const data = await forSharedDisk({ programText: S.programText || '', slides: S.slides as unknown[], cfg: S.cfg as Record<string, unknown> }, async (ref) => {
+        const b = cloud ? await this.deps.media.get(ref).catch(() => null) : null
+        return b && cloud ? cloud.upload(await this.fitUpload(b, name + (/png/.test(b.type) ? '.png' : '.jpg')), 'bilder') : null
+      }, this.sharedCache)
+      const r = await sd.svc.save(church, { id: cur?.id ?? null, name, base: S.tpl || 'blank', data, version: cur?.version ?? null })
+      this.sharedEntry = { id: r.id, version: r.version, name }
+      this.customName = name
+      const q: Record<string, string> = { ...this.deps.query, mal: S.tpl || 'blank', fdisk: r.id }
+      delete q.disk
+      delete q.id
+      delete q.grunn
+      delete q.demo
+      this.deps.setQuery(q)
+      clearTimeout(this.smT)
+      this.smT = setTimeout(() => { if (this.alive) this.setState({ saveMsg: '' }) }, 3500)
+      this.setState({ saveOpen: false, saveMsg: 'Lagret på menighetens disk som «' + name + '»' })
+    } catch (e) {
+      const code = e instanceof ServiceError ? e.code : ''
+      this.setState({ saveMsg: code === 'settings_conflict' ? 'Loopen er endret av en annen i menigheten. Åpne den på nytt fra Loop Studio for å se endringene. Dine endringer er ikke lagret der.'
+        : code === 'rate_limited' ? 'Menighetens disk er full (30). Be Admin slette en loop.' : 'Kunne ikke lagre på menighetens disk. Prøv igjen.' })
+    } finally {
+      this.sharedSaving = false
+    }
+  }
   saveToDisk(asNew: boolean) {
+    if (this.state.saveTarget === 'f') { void this.saveToShared(asNew); return }
     const S = this.state, name = String(S.saveName || '').trim().slice(0, 60) || this.customName || 'Min loop'
     const list = this.diskList()
     const id = !asNew && this.diskId ? this.diskId : 'd-' + Math.random().toString(36).slice(2, 10)
@@ -3723,7 +3779,14 @@ export class LoopController {
         return { label: l, bg: o ? '#e9e7e2' : 'transparent', color: o ? '#000' : '#e9e7e2', border: o ? '#e9e7e2' : '#3a3a3a', onClick: () => { this.setState({ mPane: k }); try { window.scrollTo(0, 0) } catch { /* ingenting */ } } }
       }),
       saveOpen: S.saveOpen, saveClosed: !S.saveOpen, saveMsg: S.saveMsg || '',
-      hasSaveErr: S.saveOpen && /full|plass/i.test(S.saveMsg || ''), diskUsage: this.diskList().length + ' av 10 plasser brukt.',
+      hasSaveErr: S.saveOpen && /full|plass|endret av en annen|Kunne ikke|ikke tilgjengelig/i.test(S.saveMsg || ''),
+      diskUsage: S.saveTarget === 'f' ? '' : this.diskList().length + ' av 10 plasser brukt.',
+      saveNote: S.saveTarget === 'f'
+        ? 'Lagres på menighetens disk. Alle i menigheten kan åpne og endre loopen; bare Admin kan slette den. Bilder lastes opp til menighetens Fellesmappe. Video og musikk deles ikke.'
+        : ' Lagres på Disk i denne nettleseren. Du finner den igjen i Loop Studio. Video og lydspor lagres ikke.',
+      hasSharedDisk: !!this.deps.sharedDisk?.churchId(),
+      saveTargetP: S.saveTarget !== 'f', saveTargetF: S.saveTarget === 'f',
+      pickSaveP: () => this.setState({ saveTarget: 'p', saveMsg: '' }), pickSaveF: () => this.setState({ saveTarget: 'f', saveMsg: '' }),
       ...(() => {
         const o = !!this.diskId && S.cfg.autoSave === true
         return {
@@ -3735,9 +3798,10 @@ export class LoopController {
           },
         }
       })(),
-      saveBtnLabel: this.diskId ? 'Lagre' : 'Lagre på Disk', saveActionLabel: this.diskId ? 'Lagre endringer' : 'Lagre',
-      canSaveAsNew: !!this.diskId, saveName: S.saveName == null ? '' : S.saveName,
-      openSave: () => this.setState({ saveOpen: true, saveMsg: '', saveName: this.customName || TPL_NAMES[S.tpl] || '' }),
+      saveBtnLabel: this.diskId || this.sharedEntry ? 'Lagre' : 'Lagre på Disk',
+      saveActionLabel: (S.saveTarget === 'f' ? this.sharedEntry : this.diskId) ? 'Lagre endringer' : 'Lagre',
+      canSaveAsNew: S.saveTarget === 'f' ? !!this.sharedEntry : !!this.diskId, saveName: S.saveName == null ? '' : S.saveName,
+      openSave: () => this.setState({ saveOpen: true, saveMsg: '', saveName: this.customName || TPL_NAMES[S.tpl] || '', saveTarget: this.sharedEntry && !this.diskId ? 'f' : S.saveTarget }),
       closeSave: () => this.setState({ saveOpen: false }),
       onSaveName: (e: InputEv) => this.setState({ saveName: e.target.value.slice(0, 60) }),
       onSaveKey: (e: KeyEv) => { if (e.key === 'Enter') { e.preventDefault(); this.saveToDisk(false) } else if (e.key === 'Escape') this.setState({ saveOpen: false }) },

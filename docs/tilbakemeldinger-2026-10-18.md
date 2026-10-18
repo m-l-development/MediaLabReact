@@ -41,16 +41,29 @@ Behandlet én og én i den nye appen (`web/`), lokalt og i connecthub-dev med sy
 - **Disk:**
   - «Disk» (lagrede looper, høyst 10) har aldri vært delt, verken i dagens eller den nye appen. Den ligger i nettleseren (`loopstudio.disk.v1` i dagens app, brukerens lokale database i den nye).
   - Koden sier uttrykkelig at prosjektet (programtekst, slides, video og musikk) er personlig. Dette er altså en ny funksjon, ikke en feil som har oppstått.
-- **Forslag (ikke gjort):**
-  - **Lagring:** «Delt disk» for menigheten i `church_settings` med område `loopstudio:disk`. Det krever ingen skjemaendring, gir medlemskapskontroll, versjonering og sammenslåing per element (samme mekanisme som grunnoppsettet). Høyst 512 KB.
-  - **Bilder:** lastes opp til menighetens Fellesmappe som `ch:`-referanser, som grunnoppsettet gjør.
-  - **Video og musikk:** deles ikke. Video lagres aldri i skyen, og lydfiler kan ikke lastes opp. En delt loop åpnes uten disse hos andre.
-  - **Samtidige endringer:** versjonskontroll som i felles grunnoppsett. En eldre kopi kan aldri overskrive en nyere uten sammenslåing.
-- **Trenger din beslutning:**
-  1. Skal vi lage delt disk?
-  2. Skal den komme i tillegg til den personlige disken, eller erstatte den?
-  3. Hvem kan endre og slette delte looper: alle medlemmer eller bare Admin?
-  4. Er det greit at video og musikk ikke deles?
+- **Beslutning (2026-10-18):** delt disk kommer i tillegg til den personlige. Alle medlemmer i menigheten kan lese og redigere; bare Admin kan slette. Video og musikk deles ikke.
+- **Endring:**
+  - Migrering `20261018130000_loop_shared_disk.sql`: ny tabell `loop_disk` (en rad per loop, høyst 30 per menighet, høyst 512 KB per loop) med `loop_disk_save` og `loop_disk_delete`.
+  - Medlemmer kan bare lese tabellen direkte; all skriving går gjennom funksjonene. De sjekker medlemskap, og sletting krever Admin.
+  - Video, lyd og lokale filer avvises av databasen. Bilder må være menighetens egne felles filer («ch:»).
+  - Hver loop har sitt eget versjonsnummer. Lagring fra en eldre versjon avvises, så en eldre kopi kan ikke overskrive en nyere. Alt logges i `audit_logs`.
+  - Ingen eksisterende tabeller eller rader endres.
+  - **Loop Studio:** lagringsdialogen har valget «Min disk / Menighetens disk». Lokale bilder lastes opp til menighetens Fellesmappe; video, lydspor og QR fjernes før lagring.
+  - Startsiden har en liste «Menighetens disk» som oppdateres når fanen blir synlig og hvert 30. sekund. Bare Admin ser «Slett», med bekreftelse.
+  - Er loopen endret av en annen, får brukeren en melding, og ingenting overskrives.
+- **Tester:**
+  - **RLS:** 20 nye tester med to menigheter: medlem lager, Admin redigerer, en eldre versjon avvises, video, bilde og en annen menighets fil avvises. Medlem kan ikke slette, og ingen kan skrive direkte i tabellen. En bruker i menighet B ser 0 rader og kan verken lagre eller slette i A. Anonym avvises. 1018/1018 lokalt og i dev.
+  - **Enhet og komponent:** `services/loop-disk.test.ts` (3), `LoopSharedDisk.test.tsx` (4).
+  - **Dev-E2E** `e2e-dev/loop-disk-dev.spec.ts` (løpet «par», Admin og Bruker samtidig): bestått.
+    - A lagrer; B ser loopen uten ny innlasting og har ingen slett-knapp. B åpner, endrer og lagrer (versjon 2).
+    - A lagrer fra versjon 1 og blir avvist, og Bs endring står.
+    - Når B prøver å slette, gir databasen 403. Video gir 400. Lesing og lagring i en annen menighet gir 0 rader og 403.
+    - Admin sletter fra startsiden. Testens looper fjernes til slutt.
+- **Begrensninger:**
+  - I dev har ingen testkonto tilgang til menighet B fra løpet «par». Isolasjonen med en ekte B-bruker er derfor dekket av RLS-testene, ikke av nettlesertesten.
+  - Opplasting av lokale bilder er testet med enhetstester, ikke i dev-E2E.
+  - Ingen sammenslåing ved konflikt: brukeren må åpne loopen på nytt eller lagre som ny.
+- **Krever:** migreringen må kjøres i produksjonen før koden publiseres (se `docs/kjoreplan-migreringer-2026-10-18.md`).
 
 ## TB-9AF961 – Vis menighetens logo
 

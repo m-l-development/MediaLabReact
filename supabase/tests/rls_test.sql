@@ -394,6 +394,37 @@ select ch_test.err('Varsel: anonym kan ikke tømme varsler', $q$select public.cl
 select ch_test.err('Varsel: anonym kan ikke merke varsler', $q$select public.mark_my_notifications_read()$q$, '42501');
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+-- TB-BB67CB: delt disk i Loop Studio – medlemmer leser og lagrer, bare Admin sletter, versjon per loop, ingen video/lokale filer
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.ok('Delt disk: medlem lagrer ny loop', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', null, 'TB-delt', 'week', '{"programText":"Søndag kl 11","slides":[],"cfg":{}}', null)$q$);
+select ch_test.cnt('Delt disk: medlem ser menighetens loop', $q$select 1 from public.loop_disk where name = 'TB-delt'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Delt disk: annet medlem endrer (versjon 1)', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', (select id from public.loop_disk where name = 'TB-delt'), 'TB-delt', 'week', '{"programText":"Endret","slides":[],"cfg":{}}', 1)$q$);
+select ch_test.cnt('Delt disk: versjonen økte til 2', $q$select 1 from public.loop_disk where name = 'TB-delt' and version = 2 and data->>'programText' = 'Endret'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.err('Delt disk: lagring mot eldre versjon avvises', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', (select id from public.loop_disk where name = 'TB-delt'), 'TB-delt', 'week', '{"programText":"Gammel"}', 1)$q$, 'CH011');
+select ch_test.cnt('Delt disk: nyere innhold er urørt', $q$select 1 from public.loop_disk where name = 'TB-delt' and data->>'programText' = 'Endret'$q$, 1);
+select ch_test.err('Delt disk: video kan ikke deles', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', null, 'TB-video', 'week', '{"slides":[{"vid":"vid-abc"}]}', null)$q$, '22023');
+select ch_test.err('Delt disk: lokalt bilde kan ikke deles', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', null, 'TB-bilde', 'week', '{"slides":[{"bg":"img-abc"}]}', null)$q$, '22023');
+select ch_test.err('Delt disk: fremmed fil avvises', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', null, 'TB-fremmed', 'week', '{"slides":[{"bg":"ch:99999999-0000-4000-8000-000000000099"}]}', null)$q$, '42501');
+select ch_test.err('Delt disk: medlem kan ikke slette', $q$select public.loop_disk_delete((select id from public.loop_disk where name = 'TB-delt'))$q$, '42501');
+select ch_test.err('Delt disk: ingen direkte innsetting', $q$insert into public.loop_disk (church_id, name, base, data) values ('aaaaaaaa-0000-4000-8000-00000000000a', 'x', 'week', '{}')$q$, '42501');
+select ch_test.err('Delt disk: ingen direkte endring', $q$update public.loop_disk set name = 'x'$q$, '42501');
+select ch_test.err('Delt disk: ingen direkte sletting', $q$delete from public.loop_disk$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}';
+select ch_test.cnt('Delt disk: annen menighet ser ingenting', $q$select 1 from public.loop_disk$q$, 0);
+select ch_test.err('Delt disk: annen menighet kan ikke lagre', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', null, 'TB-inntrenger', 'week', '{}', null)$q$, '42501');
+select ch_test.err('Delt disk: annen menighet kan ikke slette', $q$select public.loop_disk_delete((select id from public.loop_disk limit 1))$q$, '22023');
+set local role postgres;
+select ch_test.err('Delt disk: annen menighet fant ikke loopen (sletting med kjent id)', $q$set local role authenticated; set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-5","aal":"aal1"}'; select public.loop_disk_delete((select id from public.loop_disk where name = 'TB-delt' limit 1))$q$, '22023');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.ok('Delt disk: Admin sletter', $q$select public.loop_disk_delete((select id from public.loop_disk where name = 'TB-delt'))$q$);
+select ch_test.cnt('Delt disk: loopen er borte', $q$select 1 from public.loop_disk where name = 'TB-delt'$q$, 0);
+set local role anon;
+select ch_test.err('Delt disk: anonym kan ikke lagre', $q$select public.loop_disk_save('aaaaaaaa-0000-4000-8000-00000000000a', null, 'x', 'week', '{}', null)$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
 
 -- ---------- Koblinger og Samarbeidsfiler (trinn 18): menigheter ser aldri hverandres vanlige filer ----------
 set local role postgres;
