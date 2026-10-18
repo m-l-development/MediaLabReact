@@ -67,6 +67,35 @@ describe('kontomenyen (AUTH-08)', () => {
     await waitFor(() => expect(data.update).toHaveBeenCalledWith('notifications', { id: 'n1' }, expect.objectContaining({ read_at: expect.any(String) })))
     await waitFor(() => expect(screen.getByText('Ny fil i Fellesmappe').closest('button')?.getAttribute('data-ch-notif')).toBe('lest'))
   })
+  it('varsler (TB-D9DE93): merk alle som lest, fjern leste og tøm loggen – via databasefunksjonene', async () => {
+    const calls: unknown[] = []
+    const { data } = setup(USER, { rpc: (fn) => { calls.push(fn); return fn === 'mark_my_notifications_read' ? 1 : fn === 'clear_my_notifications' ? 2 : null } })
+    fireEvent.click(screen.getByRole('button', { name: /Varsler/ }))
+    await screen.findByText('Ny fil i Fellesmappe')
+    fireEvent.click(screen.getByRole('button', { name: 'Merk alle som lest' }))
+    expect((await screen.findByRole('status')).textContent).toBe('Alle varsler er merket som lest.')
+    fireEvent.click(screen.getByRole('button', { name: 'Fjern leste varsler' }))
+    await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('clear_my_notifications', { p_only_read: true }))
+    expect((await screen.findByText('2 varsler fjernet.')).textContent).toBeTruthy()
+    // «Tøm» er permanent: avbrutt bekreftelse gjør ingenting
+    const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true)
+    const before = window.confirm
+    window.confirm = confirm
+    fireEvent.click(screen.getByRole('button', { name: 'Tøm varslingsloggen' }))
+    expect(data.rpc).not.toHaveBeenCalledWith('clear_my_notifications', { p_only_read: false })
+    fireEvent.click(screen.getByRole('button', { name: 'Tøm varslingsloggen' }))
+    await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('clear_my_notifications', { p_only_read: false }))
+    expect(confirm).toHaveBeenCalledTimes(2)
+    window.confirm = before
+  })
+  it('varsler: feil gir feilmelding, ikke «lyktes»', async () => {
+    setup(USER, { rpc: (fn) => { if (fn === 'clear_my_notifications') throw new ServiceError('network'); return null } })
+    fireEvent.click(screen.getByRole('button', { name: /Varsler/ }))
+    await screen.findByText('Gammelt varsel')
+    fireEvent.click(screen.getByRole('button', { name: 'Fjern leste varsler' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Det gikk ikke, og ingenting ble endret. Prøv igjen.')
+    expect(screen.queryByText(/varsler fjernet/)).toBe(null)
+  })
   it('e-postvarsler for Developer: av/på og egen adresse med kontroll; uten MFA vises forklaring', async () => {
     const { data } = setup(DEV, { rpc: (fn) => (fn === 'my_email_prefs' ? { on: true, notify_email: null, account_email: 'ola@b.no' } : null) })
     const sw = await screen.findByRole('switch')

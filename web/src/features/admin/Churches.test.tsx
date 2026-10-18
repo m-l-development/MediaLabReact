@@ -92,6 +92,16 @@ describe('Menighetens innstillinger (ADM-03)', () => {
   })
 })
 
+describe('Logo for stab uten Admin-rolle', () => {
+  it('ser logoen og en forklaring, men ingen opplasting (databasen krever Admin-rollen)', async () => {
+    const { files } = setupAdmin(DEV, { hash: '#/menigheter/c1/innstillinger', sections })
+    expect(await screen.findByText(/Som Developer eller Moderator kan du legge deg til som ekstra Admin/)).toBeTruthy()
+    expect(screen.queryByLabelText('Last opp logo', { selector: 'input' })).toBe(null)
+    expect(screen.queryByRole('button', { name: /Last opp logo|Bytt logo/ })).toBe(null)
+    expect(files.upload).not.toHaveBeenCalled()
+  })
+})
+
 describe('Invitasjoner (ADM-05)', () => {
   const invites = [
     { id: 'i1', email: 'venter@b.no', church_id: 'c1', role: 'user', status: 'pending', expires_at: '2099-01-01', created_at: '2026-10-01', accepted_at: null },

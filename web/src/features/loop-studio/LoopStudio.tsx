@@ -5,7 +5,8 @@ import { hrefFor } from '../../app/router'
 import { useServices } from '../../app/services'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
-import type { AssetId } from '../../domain/ids'
+import { isChurchAdmin } from '../../domain/account'
+import type { AssetId, ChurchId } from '../../domain/ids'
 import { activeChurch, SharedSetup } from '../../services/shared-setup'
 import { useLang, useT } from '../../shared/i18n/i18n'
 import { localStore } from '../../shared/lib/storage'
@@ -47,7 +48,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
   const t = useT()
   const theme = useTheme()
   const services = useServices()
-  const { router, files, churchSettings, auth } = services
+  const { router, files, churchSettings, auth, loopDisk } = services
   const authState = useStore(auth.state)
   const me = authState.status === 'ready' ? authState.me : null
   const { assets, projects, userId } = useWorkspace()
@@ -98,6 +99,10 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
 
   const churchId = () => activeChurch(me)?.id ?? null
   const bases = useMemo(() => ({ personal: personalBases(base.kv), central: churchSettings.available() ? centralBases(churchSettings, () => activeChurch(me)?.id ?? null) : null }), [base.kv, churchSettings, me])
+  // menighetens delte disk (TB-BB67CB): alle medlemmer leser og lagrer; slette-knappen vises bare for Admin (databasen avgjør)
+  const sharedDisk: LoopDeps['sharedDisk'] = loopDisk.available()
+    ? { svc: loopDisk, churchId, isAdmin: () => { const c = churchId(); return !!c && isChurchAdmin(me, c as ChurchId) } }
+    : null
   const editorHref = (q: Record<string, string>) => hrefFor({ name: 'tool', tool: 'loop-studio', query: q })
   const [session, setSession] = useState(0)
   const openEditor = (q: Record<string, string>) => {
@@ -147,6 +152,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
           editorHref={editorHref}
           openEditor={openEditor}
           bases={bases}
+          sharedDisk={sharedDisk}
         />
       )}
       {editing && (
@@ -166,6 +172,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
             kv: base.kv,
             me,
             bases,
+            sharedDisk,
             shared: (scope, opts) => {
               if (!churchSettings.available()) return null
               return new SharedSetup<Record<string, unknown>>(churchSettings, me, scope, {
@@ -217,6 +224,7 @@ function Home(p: {
   editorHref: (q: Record<string, string>) => string
   openEditor: (q: Record<string, string>) => void
   bases: { personal: ReturnType<typeof personalBases>; central: ReturnType<typeof centralBases> | null }
+  sharedDisk: LoopDeps['sharedDisk']
 }) {
   const [, tick] = useReducer((n: number) => n + 1, 0)
   const [c] = useState(() => new HomeController({ kv: p.kv, repo: p.repo, confirm: (m) => window.confirm(m), t: p.tx, lang: () => p.lang, light: () => p.light, editorHref: p.editorHref, openEditor: p.openEditor, hubHref: p.hubHref, goHub: p.goHub }))
@@ -235,7 +243,7 @@ function Home(p: {
   useEffect(() => {
     c.themeChanged(p.light)
   }, [c, p.light])
-  const v = { ...c.vals(), bases: { personal: p.bases.personal, central: p.bases.central, editorHref: p.editorHref, open: p.openEditor, confirm: (m: string) => window.confirm(m) } }
+  const v = { ...c.vals(), bases: { personal: p.bases.personal, central: p.bases.central, editorHref: p.editorHref, open: p.openEditor, confirm: (m: string) => window.confirm(m) }, sharedDisk: p.sharedDisk }
   return <HomeView v={v} tx={p.tx} />
 }
 

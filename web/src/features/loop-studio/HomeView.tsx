@@ -5,6 +5,7 @@ import React from 'react'
 import { css, interp, list, val } from './dc'
 import type { HomeVals } from './home-controller'
 import { LoopBases } from './LoopBases'
+import { LoopSharedDisk } from './LoopSharedDisk'
 import P from './Home.module.css'
 
 export function HomeView({ v, tx }: { v: HomeVals; tx: (s: unknown) => string }) {
@@ -307,6 +308,7 @@ export function HomeView({ v, tx }: { v: HomeVals; tx: (s: unknown) => string })
           </> : null}
           {"\n    "}
         </div>
+        <LoopSharedDisk v={v} tx={tx} />
         <LoopBases v={v} tx={tx} />
         {"\n  "}
       </main>

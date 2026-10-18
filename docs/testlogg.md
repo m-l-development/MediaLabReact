@@ -1609,3 +1609,58 @@ Etter C3 skal B3 være lik, bortsett fra `migrations` (40), `last_migration` (`2
 - **C4 (bare lesing):** B1 40 migreringer, siste `20261017100000, 20261018100000, 20261018110000`. B2 uendret (1 menighet, 2 av 10, ingen på/over grensen; `migrated` false → true). B3 likt før/etter bortsett fra `migrations` 38 → 40, `last_migration` → `20261018110000` og `audit` 93 → 94 (den nye raden er `churches.update` uten bruker, skrevet av migreringens `legacy_defaults = true`). Skjema: `churches.member_limit` (integer, standard 10) og `legacy_defaults` (boolean, standard false); menigheten har `legacy_defaults = true` og grense 10; 5 funksjoner og 2 triggere for brukergrensen; `whoami` returnerer `legacy_defaults`; ingen SECURITY DEFINER uten search_path. Ingen uventede endringer.
 - Publisert kode er fortsatt `main` (`2a1484b`) til D1; den tåler skjemaendringene.
 
+## D1 – publisering (2026-10-17, godkjent)
+
+- Merge `feature/onepage-rebuild` → `main`: merge-commit `ec34de9` (innhold identisk med grenen), pushet.
+- Vercel produksjon: `dpl_6pcNfbFfabE5B7cwr1kR2YzT1FXt` READY; `media-lab-react-vyef.vercel.app` peker på den.
+- Tilbakeføringsmål bekreftet før merge: `dpl_8PvjVcp3h2VoKrBPHKXHnx81KEHP` (main `2a1484b`) – ikke brukt.
+- Røyktest av produksjonen (`npm run check:preview -- https://media-lab-react-vyef.vercel.app --commit ec34de9`): 21/21 – riktig commit, `/app/` → 307 til innlogging, `/login` 200, én CSP uten dev-prosjektet, 6 sikkerhetshoder, hurtigbuffer, `/app/assets/` og manifest åpne, 24 korte/gamle adresser 307 til riktig mål, `/api` GET 405 og uten innlogging 401 (serveren er konfigurert).
+- Ikke automatisert: innlogget bruk i produksjonen (ingen testkontoer der; manuell kontroll av eier).
+- Sikkerhetskopien fra C1 (`F:/ML-backup/2026-10-17`) beholdes til eier sier fra.
+
+## Etter lansering: import, Admin- og kontohandlinger, tilbakemeldingssaker (2026-10-18)
+
+Lokalt og i connecthub-dev med syntetiske data, gren `connecthub` (lokalt, ikke pushet). Produksjonen er ikke rørt. Detaljer per sak: `docs/tilbakemeldinger-2026-10-18.md`.
+
+**Import fra forrige versjon** (`e2e/legacy-import.spec.ts`, ekte Chrome og ekte IndexedDB; Photo og Thumbnail laget via sikkerhetskopien i dagens format)
+
+| Verktøy | Resultat |
+|---|---|
+| Photo Design | prosjekt og bilde hentet; åpnes, redigeres, lagres; ingen dobling ved ny åpning; originalen urørt; ugyldig post hoppet over |
+| Thumbnail Studio | kategori og mal hentet; åpnes, redigeres, lagres; ingen dobling; bildene urørt |
+| Motion design | **feil funnet og rettet:** samtidige kjøringer lagret duplikater, og en ødelagt post ble et tomt prosjekt. Nå: ett prosjekt med bilde og tekst, manglende video beholdt som tomt klipp, ingen dobling, originalen urørt |
+| Mockups | tilbud vises, hentes én gang, originalen urørt, post uten bilde hoppet over |
+| Dine medier | tilbud vises, «1 fil(er) hentet. 0 feilet.», hentes én gang, originalen urørt |
+| Loop Studio | testet fra før (`e2e/loop-studio.spec.ts`) |
+| Feil ved lesing | **før: ingen melding.** Nå: forståelig melding i Photo, Thumbnail og Motion (testet med blokkert database) |
+
+**Admin- og kontohandlinger mot dev** (nye løp i `run-dev.mjs`: `drift`, `konto`; utvidet `livslop` og `par`)
+
+| Område | Resultat |
+|---|---|
+| Menighetens livsløp (egne testmenigheter) | opprett, nytt navn, logo (stab som ekstra Admin), egen kvote → tilbake, brukergrense, abonnement (be om → godkjent), samarbeidsgruppe (opprett, endre, avslutt), sett til sletting → endelig sletting; alt fjernet etterpå |
+| E-postmal | velkomstmalen endret, testutsending med nytt emne til testpostkassen, satt tilbake |
+| Kontoforespørsler | innsendt uten innlogging, notat, avslått, slettet; ny godkjent til testmenighet → invitasjon til testpostkassen, trukket tilbake, slettet |
+| Opprydning | oversikt (bare lesing) |
+| Bytt passord | i kontomenyen; gammelt passord avvist, nytt virker |
+| «Glemt passord» | fra `/login` → lenken i testpostkassen → «Fortsett» → nytt passord → innlogging virker |
+| Varsler (ny) | engangskonto i egen testmenighet: merk alle som lest, «2 varsler fjernet», «Tøm» med bekreftelse → tom logg |
+| Roller, medlemskap, invitasjoner, opplasting/sletting, brukergrense, tilgang | testet fra før (admin-write, livslop, member-limit, access) – bestått igjen |
+| **Funn rettet** | logokortet tilbød opplasting til stab uten Admin-rolle (databasen krever Admin) |
+
+**Tilbakemeldingssaker:** TB-D9DE93 bygget (ny migrering `20261018120000_notifications_clear.sql`, kjørt i dev, ikke i produksjon); TB-7BF5C1 ikke gjenskapt (permanent test med ekte modeller: Objekt 14,6 s og én fil, ny åpning ingen nedlasting); TB-596FE4 feil funnet og rettet (listen over felles grunnoppsett ble ikke oppdatert mens siden var åpen) – én uavklart kjøring av ni; TB-BB67CB grunnoppsett delt og verifisert, disk er personlig også i dagens app – forslag til delt disk venter på beslutning; TB-9AF961 logo og navn på forsiden; TB-3C000C ingen grunnlag.
+
+**Regresjon:** `web` 310/310 enhetstester, typesjekk, lint, bygg; 102/102 nettlesertester (én tidsavbrudd under last i første runde, bestått alene og i ny full runde); `media-lab` 181/181; RLS 998/998 lokalt og i dev; fullt dev-løp 9 av 10 løp bestått i første runde (Loop-delingen, se over), deretter 5/5; `e2e-real` 7/7.
+
+
+### 2026-10-18 – Loop Studio: menighetens disk (TB-BB67CB)
+
+| Test | Resultat |
+|---|---|
+| RLS (20 nye for `loop_disk`, to menigheter) | 1018/1018 lokalt og i dev |
+| Enhet/komponent: `services/loop-disk.test.ts`, `LoopSharedDisk.test.tsx`, `App.test.tsx`, Loop Studio | 24/24 |
+| Lokale nettlesertester for Loop Studio (`e2e/loop-studio*.spec.ts`) | 21 bestått, 13 hoppet over (som før) |
+| Dev-E2E `loop-disk-dev` (Admin og Bruker samtidig) | bestått: lagre, se uten ny innlasting, endre (v2), eldre versjon avvist, Bruker får ikke slette (403), video avvist (400), annen menighet 0 rader/403, Admin sletter |
+| Typesjekk, lint | ingen feil |
+
+Migreringen `20261018130000_loop_shared_disk.sql` er kjørt i dev, ikke i produksjonen. Kjøreplan: `docs/kjoreplan-migreringer-2026-10-18.md`.

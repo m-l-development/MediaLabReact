@@ -21,6 +21,45 @@
   text-transform: uppercase;
 }
 
+/* menighetens navn og logo under hilsenen (TB-9AF961) */
+.church {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: -18px;
+  max-width: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.church > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.churchLogo,
+.churchInitials {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.churchLogo {
+  object-fit: contain;
+}
+
+.churchInitials {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
 .greeting {
   margin-top: -28px;
   color: var(--color-text-muted);

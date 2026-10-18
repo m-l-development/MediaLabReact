@@ -309,4 +309,5 @@ export class HomeController {
 export type HomeVals = ReturnType<HomeController['vals']> & {
   /** Lagrede grunnoppsett (personlige og felles for menigheten). */
   bases: { personal: import('./bases').PersonalBases; central: import('./bases').CentralBases | null; editorHref: (q: Record<string, string>) => string; open: (q: Record<string, string>) => void; confirm: (m: string) => boolean }
+  sharedDisk?: import('./controller').LoopDeps['sharedDisk']
 }

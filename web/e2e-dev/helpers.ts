@@ -16,20 +16,20 @@ export async function signInPassword(page: Page) {
 }
 
 /** Kall direkte mot Supabase (REST/RPC/Auth) med brukerens økt. Bare status, feilkode og svar uten hemmeligheter. */
-export function rest(page: Page, path: string, init: { method?: string; body?: unknown } = {}) {
-  return page.evaluate(async ({ p, m, b }) => {
+export function rest(page: Page, path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}) {
+  return page.evaluate(async ({ p, m, b, h }) => {
     const cfg = (globalThis as { __CH_BACKEND__?: { url: string; key: string } }).__CH_BACKEND__
     const s = JSON.parse(localStorage.getItem('ch.auth') ?? 'null') as { access_token?: string } | null
     if (!cfg || !s?.access_token) return { status: 0, code: 'ingen økt', body: null as unknown }
     const r = await fetch(`${cfg.url}${p}`, {
       method: m ?? (b === undefined ? 'GET' : 'POST'),
-      headers: { apikey: cfg.key, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      headers: { apikey: cfg.key, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json', ...(h ?? {}) },
       ...(b === undefined ? {} : { body: JSON.stringify(b) }),
     })
     const body = (await r.json().catch(() => null)) as unknown
     const code = !r.ok && body && typeof body === 'object' && 'code' in body ? String((body as { code: unknown }).code) : undefined
     return { status: r.status, code, body }
-  }, { p: path, m: init.method, b: init.body })
+  }, { p: path, m: init.method, b: init.body, h: init.headers })
 }
 
 /** Serverhandling (/api/ch) med brukerens økt. */
@@ -144,3 +144,11 @@ export async function rpc(page: Page, fn: string, body: unknown) {
 /** Blir elementet synlig innen `ms`? (locator.isVisible venter ikke.) */
 export const appears = (l: import('@playwright/test').Locator, ms: number): Promise<boolean> =>
   l.waitFor({ state: 'visible', timeout: ms }).then(() => true, () => false)
+
+/** Første lenke til denne appen i siste e-post til `to` i testpostkassen (f.eks. «Glemt passord»). Skrives aldri ut. */
+export function mailLinkTo(to: string): string | null {
+  if (!MAILBOX || !fs.existsSync(MAILBOX)) return null
+  const all = fs.readFileSync(MAILBOX, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as { to: string; text?: string; html?: string })
+  const m = all.filter((x) => x.to === to).at(-1)
+  return /https?:\/\/[^\s"'<>]+(token_hash|flow=recovery)[^\s"'<>]*/.exec(m?.text ?? m?.html ?? '')?.[0]?.replace(/&amp;/g, '&') ?? null
+}

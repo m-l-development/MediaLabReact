@@ -12,6 +12,7 @@ export const EN = {
   '{n} av 5 maler brukt i {cat}.': '{n} of 5 templates used in {cat}.',
   '{n} lag er koblet til dette laget og flytter seg sammen med det.': '{n} layers are linked to this layer and move with it.',
   '{n} lag er valgt. Dra i ett av dem for å flytte alle. Shift-klikk for å legge til eller fjerne lag.': '{n} layers are selected. Drag one of them to move them all. Shift-click to add or remove layers.',
+  'Malene fra forrige versjon kunne ikke hentes nå. De ligger urørt og prøves igjen neste gang du åpner verktøyet.': 'The templates from the previous version could not be brought over right now. They are untouched and will be tried again the next time you open the tool.',
   '{n} maler er hentet fra forrige versjon av Thumbnail Studio.': '{n} templates were brought over from the previous version of Thumbnail Studio.',
   '• Punkt': '• Bullet',
   '← Rediger teksten': '← Edit the text',

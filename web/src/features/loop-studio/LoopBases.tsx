@@ -20,8 +20,19 @@ export function LoopBases({ v, tx }: { v: HomeVals; tx: (s: unknown) => string }
       () => setS((x) => ({ ...x, loading: false, err: 'Menighetens grunnoppsett kunne ikke hentes.' })),
     )
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- hentes én gang når siden åpnes
-  useEffect(load, [])
+  // hentes når siden åpnes, og på nytt når fanen blir synlig og hvert 30. sekund (TB-596FE4: grunnoppsett som andre
+  // i menigheten lagret mens siden var åpen, kom ikke fram før siden ble åpnet på nytt) – som felles grunnoppsett ellers
+  useEffect(() => {
+    load()
+    const tick = () => { if (document.visibilityState === 'visible') load() }
+    const t = setInterval(tick, 30_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', tick)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load bruker bare stabile tjenester
+  }, [])
   const del = async (e: BaseEntry, kind: 'f' | 'p') => {
     if (!B.confirm(tx('Slette grunnoppsettet') + ' «' + e.name + '»?\n\n' + tx(kind === 'f' ? 'Det slettes for hele menigheten. Serier som allerede er laget fra det, beholdes.' : 'Serier som allerede er laget fra det, beholdes.'))) return
     try {

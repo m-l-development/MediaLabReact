@@ -149,6 +149,32 @@
 .start {
   align-self: flex-start;
 }
+.notifHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.notifTools {
+  display: inline-flex;
+  gap: 4px;
+}
+.iconBtn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+}
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 .notifs {
   display: flex;
   flex-direction: column;

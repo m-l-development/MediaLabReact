@@ -136,6 +136,12 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               {"\n          "}
               <div style={{"display":"flex","flexDirection":"column","gap":"8px","padding":"12px","border":"1px solid #2b2b2b","borderRadius":"14px","background":"#101010"}}>
                 {"\n            "}
+                {v.hasSharedDisk ? (
+                  <div role="group" aria-label={tx("Lagre på")} style={{"display":"flex","gap":"6px","flexWrap":"wrap"}}>
+                    <button type="button" data-ch-save-target="p" aria-pressed={v.saveTargetP} onClick={v.pickSaveP} style={{"height":"30px","padding":"0 14px","border":"1px solid #3a3a3a","borderRadius":"999px","background":v.saveTargetP ? "#e9e7e2" : "transparent","color":v.saveTargetP ? "#000" : "#f3f1ec","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>{tx("Min disk")}</button>
+                    <button type="button" data-ch-save-target="f" aria-pressed={v.saveTargetF} onClick={v.pickSaveF} style={{"height":"30px","padding":"0 14px","border":"1px solid #3a3a3a","borderRadius":"999px","background":v.saveTargetF ? "#e9e7e2" : "transparent","color":v.saveTargetF ? "#000" : "#f3f1ec","font":"inherit","fontSize":"12px","fontWeight":"600","cursor":"pointer"}}>{tx("Menighetens disk")}</button>
+                  </div>
+                ) : null}
                 <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>
                   {tx("Navn på loopen")}
                 </span>
@@ -169,7 +175,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                 </> : null}
                 {"\n            "}
                 <span style={{"fontSize":"11.5px","color":"#6f6b64","lineHeight":"1.45"}}>
-                  {I(v.diskUsage)}{tx(" Lagres på Disk i denne nettleseren. Du finner den igjen i Loop Studio. Video og lydspor lagres ikke.")}
+                  {I(v.diskUsage)}{tx(v.saveNote)}
                 </span>
                 {"\n          "}
               </div>

@@ -18,6 +18,7 @@ export const EN: Readonly<Record<string, string>> = {
   '{n} filer kunne ikke brukes (bruk MP4, MOV, WebM, PNG, JPG, WebP, MP3, WAV eller M4A)': '{n} files could not be used (use MP4, MOV, WebM, PNG, JPG, WebP, MP3, WAV or M4A)',
   '{n} filer ligger i prosjektmappen. Gi tilgang under «Prosjektmappe».': '{n} files are in the project folder. Grant access under “Project folder”.',
   '{n} filer mangler og vises tomme.': '{n} files are missing and are shown empty.',
+  'Prosjektene fra forrige versjon kunne ikke hentes nå. De ligger urørt og prøves igjen neste gang du åpner verktøyet.': 'The projects from the previous version could not be brought over right now. They are untouched and will be tried again the next time you open the tool.',
   '{n} prosjekter er hentet fra forrige versjon av Motion design.': '{n} projects were brought over from the previous version of Motion design.',
   '{n} prosjekter fra forrige versjon ligger i prosjektmapper. Gi tilgang for å hente dem.': '{n} projects from the previous version are in project folders. Grant access to bring them over.',
   '{n} undertekster er importert.': '{n} subtitles have been imported.',

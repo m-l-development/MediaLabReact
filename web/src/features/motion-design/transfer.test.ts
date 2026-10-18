@@ -48,10 +48,34 @@ describe('prosjekter fra forrige versjon av Motion design', () => {
     expect(await (await w.assets.open(aid as NonNullable<typeof aid>)).text()).toBe('PNG')
 
     expect((await importLegacyMotion(userId, w.assets, w.folders, repo)).added).toBe(0)
+    // to samtidige kjøringer (visningen montert to ganger) gir ikke duplikater
+    const [x, y] = await Promise.all([importLegacyMotion(userId, w.assets, w.folders, repo), importLegacyMotion(userId, w.assets, w.folders, repo)])
+    expect([x.added, y.added]).toEqual([0, 0])
+    expect(await repo.list()).toHaveLength(1)
     const check = await openDatabase(legacyName('motiondesign', userId, null), 1, () => {})
     expect(await request(check.transaction('projects').objectStore('projects').count())).toBe(1)
     expect(await request(check.transaction('media').objectStore('media').count())).toBe(1)
     check.close()
+    close()
+  })
+
+  it('samtidig første import gir ett prosjekt; en ødelagt post uten klippliste hoppes over', async () => {
+    const userId = `md2-${Date.now()}` as UserId
+    const { workspace: w, close } = await createWorkspace(userId, { probe, blobCloneable: false })
+    const old = await openDatabase(legacyName('motiondesign', userId, null), 1, (db) => {
+      db.createObjectStore('projects', { keyPath: 'id' })
+      db.createObjectStore('media')
+    })
+    const tx = old.transaction(['projects'], 'readwrite')
+    tx.objectStore('projects').put({ id: 'p1', name: 'Ett', fmt: 'wide', w: 1920, h: 1080, media: [], clips: [], texts: [] })
+    tx.objectStore('projects').put({ id: 'odelagt' })
+    await new Promise((r) => (tx.oncomplete = r))
+    old.close()
+    const repo = new MdRepo(w.projects)
+    const [a, b] = await Promise.all([importLegacyMotion(userId, w.assets, w.folders, repo), importLegacyMotion(userId, w.assets, w.folders, repo)])
+    // begge kallene får samme resultat (én import), og prosjektet finnes bare én gang
+    expect([a.added, b.added]).toEqual([1, 1])
+    expect((await repo.list()).map((e) => e.name)).toEqual(['Ett'])
     close()
   })
 })

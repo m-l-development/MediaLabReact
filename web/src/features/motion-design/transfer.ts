@@ -16,6 +16,8 @@ import { mediaIdOf, type MdRepo } from './repo'
 export interface LegacyImportResult { added: number; waiting: { pid: string; name: string }[] }
 
 async function convert(raw: Record<string, unknown>, L: LegacyMotion, assets: AssetService, folders: FolderRegistry, done: Map<string, string>): Promise<ReturnType<typeof normalize> | 'waiting' | null> {
+  // dagens app lagret alltid klipplisten; en post uten den er ødelagt og blir ikke et tomt prosjekt
+  if (!Array.isArray(raw.clips)) return null
   let p
   try {
     p = normalize(raw)
@@ -60,7 +62,24 @@ async function convert(raw: Record<string, unknown>, L: LegacyMotion, assets: As
   return remapMedia(p, map)
 }
 
+// Én import om gangen per bruker: to samtidige kjøringer (f.eks. at visningen monteres to ganger) så begge
+// «ikke importert ennå» og lagret samme prosjekt to ganger. Et kall mens en import pågår, får samme resultat.
+const running = new Map<string, Promise<LegacyImportResult>>()
+
 export async function importLegacyMotion(userId: string | null, assets: AssetService, folders: FolderRegistry, repo: MdRepo): Promise<LegacyImportResult> {
+  const key = userId ?? ''
+  const busy = running.get(key)
+  if (busy) return busy
+  const job = importOnce(userId, assets, folders, repo)
+  running.set(key, job)
+  try {
+    return await job
+  } finally {
+    running.delete(key)
+  }
+}
+
+async function importOnce(userId: string | null, assets: AssetService, folders: FolderRegistry, repo: MdRepo): Promise<LegacyImportResult> {
   const L = await readLegacyMotion(userId)
   if (!L) return { added: 0, waiting: [] }
   const res: LegacyImportResult = { added: 0, waiting: [] }

@@ -1,0 +1,102 @@
+# Vercel media-lab-react-vyef – deployments og anbefaling (bare gjennomgang, ingenting slettet)
+# deployment-id | mål | status | gren | commit | dato | anbefaling | begrunnelse
+dpl_6pcNfbFfabE5B7cwr1kR2YzT1FXt | production | READY | main | ec34de9 | 2026-10-17 | BEHOLD | aktiv produksjon (produksjonsadressen og git-main peker hit)
+dpl_BkYcUqLjoQBpHrAuURp3Jdyv9sbk | preview | READY | feature/onepage-rebuild | 42976b7 | 2026-10-17 | BEHOLD | grenalias feature/onepage-rebuild (nyeste forhåndsvisning)
+dpl_7n8DHMbZadFZRpuaaNBf1Cbw4DUg | preview | READY | feature/onepage-rebuild | 93ad851 | 2026-10-17 | BEHOLD | blant de 3 nyeste forhåndsvisningene av feature/onepage-rebuild (brukt i testene)
+dpl_2TJsUKm7yiLQ1hMuaMUZzz5ZvA5y | preview | READY | feature/onepage-rebuild | 5f38966 | 2026-10-17 | BEHOLD | blant de 3 nyeste forhåndsvisningene av feature/onepage-rebuild (brukt i testene)
+dpl_GJUv7NfkSGhpqbtvb46tDaU9LmmP | preview | READY | feature/onepage-rebuild | 65a6e1d | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_HtaPLuSmACgRP2yHDacL9wfS8pwg | preview | READY | feature/onepage-rebuild | 08e0b9f | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_7mfAw3rWRjZ2gCD51muYXPZWjrPM | preview | READY | feature/onepage-rebuild | 3695c6a | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_5Nqq61DKCeTUKCmrQyHRQTVsftcj | preview | READY | feature/onepage-rebuild | 49e2ea8 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_5RFm9cCAK4KvWAGmnRVUsqpVvMfS | preview | READY | feature/onepage-rebuild | 7798aa5 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_3dqV5XxCy53GFv2J2zkobLJZtTQE | preview | READY | feature/onepage-rebuild | e3e913f | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_8ULFWQETCQp6YEdP5y5MbYH7AJzn | preview | READY | feature/onepage-rebuild | ade515b | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_8ExcsqCdoffrMbkStaUtX47k6Nhw | preview | READY | feature/onepage-rebuild | 0220cd6 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_AcixYLGV6EfhQ1Gxoty29T7qnchN | preview | READY | feature/onepage-rebuild | 8e617f2 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_Bfnjp4ABzgR3ctRwwtqDFpfv6e2x | preview | READY | feature/onepage-rebuild | e98e258 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_c7ccsuu6fY73HeJvChrspAPRafaT | preview | READY | feature/onepage-rebuild | 098c712 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_CKRiaUAUMcN9JxbVCXeJ3N8D7xZk | preview | READY | feature/onepage-rebuild | 6513ec7 | 2026-10-17 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_4xH6nixUwjYcnAVDkqx1oq4FfhPg | preview | READY | feature/onepage-rebuild | e922bc8 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_3ZSaEp3yz6uv7qFo3ABUsyvVXE8T | preview | READY | feature/onepage-rebuild | 4e601c6 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_8jxK96ws6Eb9BqJvYiewGq8F324L | preview | READY | feature/onepage-rebuild | a11e57f | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_BpLXrmS5jbGDHKBs3NPRHTerQ2EA | preview | READY | feature/onepage-rebuild | fe6b3bb | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_73DJuZ8GSwDQxcdSFnq1HG779PEz | preview | READY | feature/onepage-rebuild | 629f463 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_8hHAnXnAGQd9LXTwVTbVVNkqxewD | preview | READY | feature/onepage-rebuild | 3c3dfa0 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_4TWimNhRuN76RNxjGircB8m4E4aM | preview | READY | feature/onepage-rebuild | 3187813 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_HzyKKoCQDRJEg7FpAqQX9xWtGa77 | preview | READY | feature/onepage-rebuild | 3c8c63c | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_ErKDeSM8AFM7wJWGXHMURpkcdG6e | preview | READY | feature/onepage-rebuild | 774ad5c | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_jGG1iRLSCDVQgAsxL3vSGoRPp9JU | preview | READY | feature/onepage-rebuild | 680a93a | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_9YgUkcysKbnbJFSMV39fJtpi6SJm | preview | READY | feature/onepage-rebuild | e384422 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_FsuJyZym6DvLaGxLi8fVFDm9GyyB | preview | READY | feature/onepage-rebuild | 5ad7318 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_EjZjknHJHUCiP3xQhgVH6RopE9xJ | preview | READY | feature/onepage-rebuild | 4ef2f33 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_CXCN1G52Mwyp33JG9ufy5XzVqHA9 | preview | READY | feature/onepage-rebuild | 65bc1b3 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_C54DQkC61Y9YUK8KR8qKCLtoD9ER | preview | ERROR | feature/onepage-rebuild | da51469 | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_Cz6r3abdBtz9VucK1qvEuCs9Xncn | preview | READY | feature/onepage-rebuild | 7206059 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_DvZA1XjWf8JfqxRSWQQVvdfLko5T | preview | READY | feature/onepage-rebuild | cfd969e | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_9HDB9yjFLXbCBk2pgsFE2Gbz52SR | preview | READY | feature/onepage-rebuild | b8419b1 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_3z5QScwHJX13XyHKxW7G57hFdjbT | preview | READY | feature/onepage-rebuild | 4c8729b | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_GELvdmJxJ2woP4HhvaoNJbpmo1ud | preview | READY | feature/onepage-rebuild | cb30f84 | 2026-10-12 | KAN SLETTES | eldre forhåndsvisning av feature/onepage-rebuild – erstattet av nyere bygg, ikke aliasert
+dpl_967JiibqUsL1kkguPHzyTGLLkVT5 | preview | ERROR | feature/onepage-rebuild | 7a76d16 | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_2VucnC2nobyeJiUHegimwCKHWnt3 | preview | ERROR | feature/onepage-rebuild | 62d232b | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_BCv6GdKothNVF2JAURSWdLBL4tBQ | preview | ERROR | feature/onepage-rebuild | ae3d91e | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_5SqSvvSD2N5jCZasKXZ6PiKETqxL | preview | ERROR | feature/onepage-rebuild | a0180d5 | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_6j77pEQPKKXVnWC113NcQuV3ah49 | preview | ERROR | feature/onepage-rebuild | ada80fb | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_DbmWhh7WqG8fLHSUsrzWgoQJXTGK | preview | ERROR | feature/onepage-rebuild | a32a39d | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_5izS4B5cVbibZs5d9Ry19wHXKz2M | preview | ERROR | feature/onepage-rebuild | 10b6562 | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_9oCZ47fWCbcGw5m9G3eqCD3tsr1K | preview | ERROR | feature/onepage-rebuild | fc4cadc | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_8SBxvnGRKz62oinSzWgYuVYdzxY1 | preview | ERROR | feature/onepage-rebuild | f02c56d | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_F26ssbJAZjftoYoSJjLvLo2TZBZD | preview | ERROR | feature/onepage-rebuild | 237656b | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_7BprUoznWoSLTDjyPSqfBZ9d8ZUg | preview | ERROR | feature/onepage-rebuild | 5c24892 | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_5a7xXTCzgvidmt4VTzutf44V4q9r | preview | ERROR | feature/onepage-rebuild | 118cc7a | 2026-10-12 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_BvdpVYGaXJcdTqp1Kfzesa62AD2z | preview | ERROR | feature/onepage-rebuild | 62fc66b | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_BqhRSWpajwtEwFyWuu9bVCuEw24P | preview | ERROR | feature/onepage-rebuild | c685da6 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_54bZAkdc1AM83cPtQXsQtwFvCw9n | preview | ERROR | feature/onepage-rebuild | 247e11d | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_3qrLmLK55Vr2SU9Q4qSKVVeQeVE3 | preview | ERROR | feature/onepage-rebuild | e2f927d | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_7XvML9bWHXxbEwzTTQahn6azpweL | preview | ERROR | feature/onepage-rebuild | 5a1bcba | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_GFXhoMScnbt3ZnUxeMRVGyGbiEVG | preview | ERROR | feature/onepage-rebuild | 28196c6 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_4u1exrCnGqjNWR4g79Kvp7bcfg8o | preview | ERROR | feature/onepage-rebuild | f23d72a | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_6dbpE2PQFQpRxbyX5Z2SpUTj5GYy | preview | ERROR | feature/onepage-rebuild | 7cbab3c | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_99QwZtK3SMVCf9i1aLuYsgP1syXp | preview | ERROR | feature/onepage-rebuild | 2730b25 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_DoWweYqUwE77TXifhP2KeSzSxJ68 | preview | ERROR | feature/onepage-rebuild | 14c2e12 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_Cr6RCPqf1Fa86JrdradgPf38Zusp | preview | ERROR | feature/onepage-rebuild | 143d9b6 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_EZEw27v6fbfhXDdcXhKzMTv1UT1B | preview | ERROR | feature/onepage-rebuild | d610527 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_D3UMFDrxGBt2zmoVyCVbNTei5zrY | preview | ERROR | feature/onepage-rebuild | 09193c3 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_7Riyis5YyitMe6jy6dcBTCJ5Q98L | preview | ERROR | feature/onepage-rebuild | 445d726 | 2026-10-11 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_J8M8fPiGPd8bCKWc6TmGVMyo2PVs | preview | ERROR | feature/onepage-rebuild | 64bd84a | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_68sRPjaQdWYnePnBaoZFgAB9AZRt | preview | ERROR | feature/onepage-rebuild | aab3b32 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_FokN42FVjf7M2wWvqFApMfiqBrRw | preview | ERROR | feature/onepage-rebuild | a0201e3 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_3szFQj1V2jdjPUX8DTSAUkMojsxt | preview | ERROR | feature/onepage-rebuild | 3785ea6 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_7vQDDrHXZ236SVXmQVK3EXFLGe7v | preview | ERROR | feature/onepage-rebuild | fecdfa4 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_BLUoVCWQ8cWVtEkoTtZxUEQHmTUn | preview | ERROR | feature/onepage-rebuild | 136c17c | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_CkA9MrBtUNkb3dWA12HHcTLysWau | preview | ERROR | feature/onepage-rebuild | 12446d8 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_3pUqQ1oW9bEmCurNRBKHhjsDDH2m | preview | ERROR | feature/onepage-rebuild | e69e828 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_2i9N8SnRrxeM9oqCT5kuuxKCjbhH | preview | ERROR | feature/onepage-rebuild | 4ec8467 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_BPxeQPr5iccLL9FQ2sk57aEbVo1q | preview | ERROR | feature/onepage-rebuild | db16723 | 2026-10-10 | KAN SLETTES | error bygg – ingen kjørende versjon, gir lite eller ingen lagring
+dpl_B5BEC3ddcAZCGfYQdQMu2ebiu5HL | preview | READY | connecthub | 674f318 | 2026-10-03 | BEHOLD | grenalias connecthub (grenen finnes)
+dpl_8PvjVcp3h2VoKrBPHKXHnx81KEHP | production | READY | main | 2a1484b | 2026-10-03 | BEHOLD | tilbakeføringsmål (forrige produksjon, 2a1484b)
+dpl_4yzeiTLVctSz3Y27CeQ7npNDPkYX | production | READY | main | e6947a8 | 2026-10-03 | BEHOLD | blant de 4 nyeste produksjonene (Vercel beskytter de 3 siste; ekstra sikkerhet)
+dpl_6LvHL2E1dp7rdt9mcZA7JCpKdrvH | production | READY | main | c7163dd | 2026-10-03 | BEHOLD | blant de 4 nyeste produksjonene (Vercel beskytter de 3 siste; ekstra sikkerhet)
+dpl_3EdNLMCXP1SYJY4Xuz1KqhnJUCUU | production | READY | main | f13c02e | 2026-10-03 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_BqzXBQdWmimHWbtjLGjP3iyhFj7M | production | READY | main | 25216f4 | 2026-10-03 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_AaXqqkdSeB9anJ3okf8CHL5mB3bG | production | READY | main | cfbecc4 | 2026-10-02 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_9VSEYC7Wua9mnAbjQJJR11UVX7Xx | production | READY | main | 4d878ac | 2026-10-02 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_25TSHvP2dm35gatDPQx5ereiiiom | production | READY | main | c6757e8 | 2026-10-02 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_47qLzz1G3qn599hxFgQse6CVS2gX | production | READY | main | 9c536f9 | 2026-10-01 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_59aGooZshGMsvCuhJZLeNiE7JMWn | preview | READY | hotfix/api-ml | 9c536f9 | 2026-10-01 | BEHOLD | grenalias hotfix/api-ml (grenen finnes)
+dpl_4s9So2gKzq8tpSAnJKxtwLx9y9CW | production | READY | main | 747bc15 | 2026-10-01 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_7YQJFSjNg7ncXYo6UA1YEpaxwC5r | production | READY | main | dd6b0d4 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_GtYzfj8sL5DPRafs6TcL6XGSiAKo | production | READY | main | dd6b0d4 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_32YAc7ZviQSRcXpvti6ePazbR564 | production | READY | main | 3004b29 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_GUiWRMuSADZD7hPH6CUeyZms2LMa | production | READY | main | df4288e | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_9Doyko2WmvPTnwUcqAM5B1QL7rac | production | READY | main | fb73cef | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_6Nxb1zFLLsRhbHTSeTRiFLTjffeZ | production | READY | main | 0c659e0 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_ABBgV7VVgCMAc4sgHvtb2X9rEATW | production | READY | main | b5798c0 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_5VQRTZcfRWk9QjmuPxzMtGFQDPb9 | production | READY | main | 4e9f02b | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_12dDCsuUUcA7oicgdu3mcymw456X | production | READY | main | e0b2096 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_6gYJMtRpopRRosdhg7g9kn477H9U | production | READY | main | 126dcbc | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_AtZzH7fXhzh4r6HNmnWNwdv8m4H5 | production | READY | main | 34fc926 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_H6NYYXF1hVkHMpd75Cj5u9zPvjcX | production | READY | main | ce595cc | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_6Gw6G2iVRpy4XLZg2VTbEQk9bxaN | production | READY | main | 56eee53 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_8AzAvXszssJBVRfF2jUsuutrWWf3 | production | READY | main | 4aae907 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_FeLMmrhdLcf2iu2vfkwbVddJjbAx | production | READY | main | 142de67 | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)
+dpl_2U36ZTk7muhhnccuhE8Jj9TotZd1 | production | READY | main | d468d6c | 2026-09-30 | KAN SLETTES | eldre produksjon – ikke tilbakeføringsmål (Hobby kan bare rulle tilbake til forrige)

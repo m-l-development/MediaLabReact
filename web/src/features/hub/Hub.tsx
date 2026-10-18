@@ -7,6 +7,7 @@ import { displayName, type Me } from '../../domain/account'
 import type { ToolId } from '../../domain/tool'
 import { useT } from '../../shared/i18n/i18n'
 import { toolDescKey, toolTitleKey } from '../../shared/i18n/messages'
+import { activeChurch } from '../../services/shared-setup'
 import { Button } from '../../shared/ui/Button'
 import { Icon } from '../../shared/ui/Icon'
 import styles from './Hub.module.css'
@@ -24,8 +25,32 @@ function readFolder(): Folder {
 /** Dashboardet (HUB-01–03), med samme oppsett og uttrykk som dagens forside. */
 export function Hub({ me }: { me: Me | null }) {
   const t = useT()
-  const { community } = useServices()
+  const { community, files } = useServices()
   const member = !!me && me.churches.length > 0
+  // menigheten brukeren arbeider i (bare egne medlemskap finnes i whoami), med logoen hvis den er satt (TB-9AF961)
+  const church = activeChurch(me)
+  const logoId = church?.logo_file_id ?? null
+  const [logo, setLogo] = useState<{ id: string; url: string } | null>(null)
+  useEffect(() => {
+    if (!logoId) return
+    let live = true, url = ''
+    // som bilde fra egen opprinnelse (blob:), siden innholdsreglene ikke tillater lagringens adresser i <img>
+    files.blob(logoId).then(
+      (b) => {
+        if (!live || !b) return
+        url = URL.createObjectURL(b)
+        setLogo({ id: logoId, url })
+      },
+      () => {
+        // ingen logo ved feil; forbokstavene vises
+      },
+    )
+    return () => {
+      live = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [files, logoId])
+  const logoUrl = logo && logo.id === logoId ? logo.url : null
   const [collab, setCollab] = useState(false)
   const [folder, setFolderState] = useState<Folder>(readFolder)
 
@@ -66,6 +91,14 @@ export function Hub({ me }: { me: Me | null }) {
     <div className={styles.hub}>
       <h1 className={styles.title}>{folder === 'some' ? 'SoMe' : folder === 'tools' ? 'Tools' : t('app.name')}</h1>
       {!folder && me && <p className={styles.greeting}>{t('hub.greeting', { name: firstName })}</p>}
+      {!folder && church && (
+        <p className={styles.church} data-ch-hub-church={church.id}>
+          {logoUrl
+            ? <img className={styles.churchLogo} src={logoUrl} alt="" />
+            : <span className={styles.churchInitials} aria-hidden="true">{church.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('')}</span>}
+          <span>{church.name}</span>
+        </p>
+      )}
 
       {folder === null && (
         <div className={styles.grid}>

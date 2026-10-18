@@ -10,6 +10,7 @@ import { createCommunityService } from '../services/community'
 import { createFilesService } from '../services/files'
 import { createChurchSettings } from '../services/shared-setup'
 import { createFeedbackService } from '../services/feedback'
+import { createLoopDiskService } from '../services/loop-disk'
 import { App } from './App'
 import { createRouter } from './router'
 
@@ -17,7 +18,7 @@ function setup(path = '/app/') {
   history.replaceState(null, '', path)
   const router = createRouter()
   const auth = createAuthService({ auth: null, data: null, dev: true })
-  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), churchSettings: createChurchSettings(null), feedback: createFeedbackService(null), account: createAccountService({ auth: null, data: null, token: async () => null }), requests: createRequestService(async () => { throw new Error('ingen server') }), admin: createAdminService(null, async () => null), collab: createCollabService(null, async () => null), requestInbox: createRequestInbox(null, async () => null), mail: createMailService(null, async () => null), router }
+  const services = { auth, community: createCommunityService(null), files: createFilesService(null, () => auth.accessToken()), churchSettings: createChurchSettings(null), feedback: createFeedbackService(null), account: createAccountService({ auth: null, data: null, token: async () => null }), requests: createRequestService(async () => { throw new Error('ingen server') }), admin: createAdminService(null, async () => null), collab: createCollabService(null, async () => null), requestInbox: createRequestInbox(null, async () => null), mail: createMailService(null, async () => null), loopDisk: createLoopDiskService(null), router }
   render(<App services={services} />)
   return services
 }
