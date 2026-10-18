@@ -8,8 +8,8 @@
   font: 500 14px/1.45 Archivo, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 :root[data-theme="light"] [data-ml-theme="admin"] {
-  --bg: #e9e6df; --panel: #f7f5f0; --panel2: #efece5; --line: rgba(0,0,0,.10); --line2: rgba(0,0,0,.18);
-  --text: #141414; --muted: #5f5b53; --accent: #9b1c3c; --accent-text: #8a1534; --ok: #1f7a6f; --ok-text: #155e55;
+  --bg: #e9e6df; --panel: #f7f5f0; --panel2: #efece5; --line: rgba(0,0,0,.16); --line2: rgba(0,0,0,.28);
+  --text: #141414; --muted: #4f4b44; --accent: #9b1c3c; --accent-text: #8a1534; --ok: #1f7a6f; --ok-text: #155e55;
   --warn: #a8700f; --warn-text: #7a520b; --inv: #141414; --inv-text: #f7f5f0; --shadow: 0 18px 50px rgba(0,0,0,.18);
 }
 [data-ml-theme="admin"] * { box-sizing: border-box; }

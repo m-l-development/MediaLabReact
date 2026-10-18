@@ -144,7 +144,7 @@
 :root[data-theme='light'] .tplCard,
 :root[data-theme='light'] .projCard,
 :root[data-theme='light'] .chip {
-  background: rgba(213, 210, 203, 0.6);
+  background: var(--color-surface);
 }
 
 .formatIcon {

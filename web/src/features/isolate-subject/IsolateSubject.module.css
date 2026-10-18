@@ -345,7 +345,7 @@
 }
 
 :root[data-theme='light'] .kind {
-  border-color: rgba(0, 0, 0, 0.18);
+  border-color: var(--color-border);
 }
 
 .kind span {

@@ -110,8 +110,8 @@
 }
 
 :root[data-theme='light'] .cats button {
-  border-color: rgba(0, 0, 0, 0.18);
-  background: rgba(213, 210, 203, 0.6);
+  border-color: var(--color-border);
+  background: var(--color-surface);
 }
 
 .cats button span {
