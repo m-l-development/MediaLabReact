@@ -9,3 +9,55 @@
 .scp7:hover{color:#ffffff !important;border-color:rgba(255,255,255,0.45) !important}
 .scp8:hover{background:#f3f1ec !important;color:#000 !important}
 .scp9:hover{color:#f3f1ec !important;border-color:rgba(255,255,255,0.55) !important}
+
+/* Lys modus: malkortene og «Velg» som kortene på forsiden (samme lyse flate, kant og skygge). Kortet har innebygde
+   mørke farger som lys-omregningen gjør grå; her brukes de felles lys-verdiene (var(), som omregningen ikke endrer).
+   Bare under data-theme=light – mørk modus er uendret. */
+:root[data-theme='light'] .scp5 {
+  border-color: var(--color-border) !important;
+  background: var(--color-surface) !important;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: none !important;
+}
+:root[data-theme='light'] .scp5:hover,
+:root[data-theme='light'] .scp5:focus-visible {
+  border-color: var(--color-border-strong) !important;
+  background: var(--color-surface-raised) !important;
+  color: var(--color-text-strong) !important;
+  box-shadow: var(--shadow-card-hover);
+}
+:root[data-theme='light'] .scp5:focus-visible {
+  box-shadow: var(--focus-ring), var(--shadow-card-hover);
+}
+:root[data-theme='light'] .tplBtn {
+  border-color: var(--color-text-strong) !important;
+  background: var(--color-surface-hover);
+  color: var(--color-text-strong) !important;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+:root[data-theme='light'] .scp5:hover .tplBtn,
+:root[data-theme='light'] .scp5:focus-visible .tplBtn {
+  background: var(--color-text-strong);
+  color: var(--color-on-accent) !important;
+}
+/* Lys modus: «Menighetens disk» og «Lagrede grunnoppsett» ligger over bakgrunnsmønsteret; en svak tone i
+   bakgrunnsfargen bak seksjonen (tones ut mot kantene) demper linjene bak teksten. Mønsteret er ellers uendret. */
+:root[data-theme='light'] :global([data-ch-loop-bases]),
+:root[data-theme='light'] :global([data-ch-loop-shared]) {
+  background: radial-gradient(ellipse 75% 140% at 40% 50%, color-mix(in srgb, var(--color-bg) 90%, transparent) 55%, transparent 100%);
+  border-radius: var(--radius-lg);
+}
+/* Lys modus: «Se demo (lagres ikke)» diskret – lys, nesten gjennomsiktig flate, tynn dempet kant og rolig tekst i
+   stedet for oransje. Mørk modus er uendret. */
+:root[data-theme='light'] :global([data-ch-demo-link]) {
+  border-color: var(--color-border) !important;
+  background: color-mix(in srgb, var(--color-surface-raised) 55%, transparent);
+  color: var(--color-text-muted) !important;
+  transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+:root[data-theme='light'] :global([data-ch-demo-link]):hover,
+:root[data-theme='light'] :global([data-ch-demo-link]):focus-visible {
+  border-color: var(--color-border-strong) !important;
+  background: var(--color-surface-raised);
+  color: var(--color-text-strong) !important;
+}

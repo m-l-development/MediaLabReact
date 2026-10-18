@@ -209,3 +209,42 @@ button.card {
   border-color: var(--color-border-strong);
   border-left-color: var(--folder-color);
 }
+
+/* Lys modus (v2): kort og mappelenker løftes fra off-white-bakgrunnen med lys flate, tydelig kant og skygge;
+   «Åpne» har en svak fylt tone og fylles helt ved hover/fokus; ikoner og etiketter får full kontrast. Mørk modus er uendret. */
+:root[data-theme='light'] .card,
+:root[data-theme='light'] .folderLink {
+  box-shadow: var(--shadow-card);
+  backdrop-filter: none;
+}
+:root[data-theme='light'] .card:hover,
+:root[data-theme='light'] .card:focus-visible,
+:root[data-theme='light'] .folderLink:hover,
+:root[data-theme='light'] .folderLink:focus-visible {
+  box-shadow: var(--shadow-card-hover);
+}
+:root[data-theme='light'] .card:focus-visible {
+  box-shadow: var(--focus-ring), var(--shadow-card-hover);
+}
+:root[data-theme='light'] .open {
+  background: rgba(20, 20, 20, 0.07);
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+:root[data-theme='light'] .card:hover .open,
+:root[data-theme='light'] .card:focus-visible .open {
+  background: var(--color-text-strong);
+  color: var(--color-on-accent);
+}
+:root[data-theme='light'] .label,
+:root[data-theme='light'] .labelRow {
+  color: var(--color-text-muted);
+}
+:root[data-theme='light'] .labelRow svg,
+:root[data-theme='light'] .folderLink svg {
+  color: var(--color-text-strong);
+}
+/* «Dine medier» har lys mappefarge (#f3f1ec, satt i Hub.tsx) som forsvinner mot off-white; i lys modus brukes tekstfargen */
+:root[data-theme='light'] .folderLink[style*='#f3f1ec'],
+:root[data-theme='light'] .folderLink[style*='#f3f1ec']:hover {
+  border-left-color: var(--color-text-strong);
+}

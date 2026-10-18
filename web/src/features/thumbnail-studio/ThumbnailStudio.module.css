@@ -74,7 +74,7 @@
 
 :root[data-theme='light'] .pill,
 :root[data-theme='light'] .pillSm {
-  border-color: rgba(0, 0, 0, 0.22);
+  border-color: var(--color-border);
   background: rgba(228, 225, 218, 0.6);
 }
 

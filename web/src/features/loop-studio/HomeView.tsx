@@ -204,7 +204,7 @@ export function HomeView({ v, tx }: { v: HomeVals; tx: (s: unknown) => string })
                   </div>
                   {"\n            "}
                   <div style={{"marginTop":"auto","paddingTop":"12px","display":"flex"}}>
-                    <span style={{"display":"inline-flex","alignItems":"center","height":"40px","padding":"0 24px","border":"1px solid #f3f1ec","borderRadius":"999px","fontSize":"12.5px","fontWeight":"600","letterSpacing":"0.14em","textTransform":"uppercase","color":"#f3f1ec"}}>
+                    <span className={P.tplBtn} style={{"display":"inline-flex","alignItems":"center","height":"40px","padding":"0 24px","border":"1px solid #f3f1ec","borderRadius":"999px","fontSize":"12.5px","fontWeight":"600","letterSpacing":"0.14em","textTransform":"uppercase","color":"#f3f1ec"}}>
                       {I(v1.c?.btn)}
                     </span>
                   </div>
