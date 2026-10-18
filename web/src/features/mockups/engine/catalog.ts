@@ -32,7 +32,7 @@ export function niceName(fileName: string): string {
 /** De innebygde bildene er kjente, så galleriet virker selv om index.json mangler på serveren. */
 const BUILTIN_FALLBACK = ['card-black-hand', 'card-white-hand', 'imac-desk', 'imac-white', 'iphone-angled', 'iphone-desk', 'iphone-hand', 'macbook-air', 'macbook-pro', 'paper-marble', 'tv-livingroom', 'tv-wall']
 
-interface ConfigEntry { name?: unknown; cat?: unknown; corners?: unknown; aspect?: unknown; keepHoles?: unknown; occl?: unknown }
+interface ConfigEntry { name?: unknown; cat?: unknown; corners?: unknown; aspect?: unknown; keepHoles?: unknown; occl?: unknown; shadowMin?: unknown; lit?: unknown }
 
 function parseCorners(v: unknown): Quad | null {
   if (!Array.isArray(v) || v.length !== 4) return null
@@ -69,6 +69,8 @@ export async function loadFolder(root: string, source: 'builtin' | 'folder'): Pr
       corners: parseCorners(c.corners),
       aspect: Number.isFinite(aspect) && aspect > 0.1 && aspect < 10 ? aspect : null,
       keepHoles: !!c.keepHoles,
+      ...(c.lit === false ? { lit: false } : {}),
+      ...(Number(c.shadowMin) > 0 && Number(c.shadowMin) < 1 ? { shadowMin: Number(c.shadowMin) } : {}),
       occl: c.occl !== false,
       source,
     }

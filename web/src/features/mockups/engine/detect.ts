@@ -111,7 +111,7 @@ export function detectScreen(P: Pixels): Quad | null {
  * skjermens farge fylles innenfra, og bare det som henger sammen med skjermen, blir en del av den.
  * Returnerer null hvis skjermen ikke kan skilles fra det som er foran (da brukes hele firkanten).
  */
-export function occlusionMask(P: Pixels, qn: readonly Point[], keepHoles: boolean): Uint8Array | null {
+export function occlusionMask(P: Pixels, qn: readonly Point[], keepHoles: boolean, shadowMin = 0.3): Uint8Array | null {
   const { w, h, d } = P
   const qs = qn.map((p) => [p[0] * (w - 1), p[1] * (h - 1)] as Point)
   const cx = qs.reduce((s, p) => s + p[0], 0) / 4
@@ -181,16 +181,161 @@ export function occlusionMask(P: Pixels, qn: readonly Point[], keepHoles: boolea
     }
     for (let p = 0; p < m.length; p++) if (lim[p] && !m[p] && !reach[p]) m[p] = 1
   }
-  // Utvid tre piksler så kanten ikke får en mørk stripe.
-  for (let it = 0; it < 3; it++) {
-    const next = new Uint8Array(m)
+  // Skygger på skjermen (samme fargetone som skjermen, bare mørkere) hører til skjermen, ikke til fingeren:
+  // ellers vises fotoets egen skjerm i skyggen. Hud og andre gjenstander har en annen fargetone og blir stående.
+  {
+    let sr = 0, sg = 0, sb = 0, sl = 0, n = 0
     for (let p = 0; p < m.length; p++) {
-      if (m[p] || !lim[p]) continue
-      const x = p % w
-      const y = (p - x) / w
-      if ((x > 0 && m[p - 1]) || (x < w - 1 && m[p + 1]) || (y > 0 && m[p - w]) || (y < h - 1 && m[p + w])) next[p] = 1
+      if (!m[p]) continue
+      const k = p * 4, r = d[k] ?? 0, g = d[k + 1] ?? 0, b = d[k + 2] ?? 0, s = r + g + b + 1
+      sr += r / s; sg += g / s; sb += b / s; sl += s; n++
     }
-    m = next
+    if (n) {
+      sr /= n; sg /= n; sb /= n; sl /= n
+      // bare skygger som henger sammen med skjermen (vokser fra skjermkanten), så lyse flekker i en finger
+      // (f.eks. en negl) som er omgitt av hud, ikke blir regnet som skjerm
+      const like = (p: number) => {
+        const x = p % w, y = (p - x) / w
+        if (!lim[p] || !inQuad(qs, x, y)) return false
+        const k = p * 4, r = d[k] ?? 0, g = d[k + 1] ?? 0, b = d[k + 2] ?? 0, s = r + g + b + 1
+        return Math.hypot(r / s - sr, g / s - sg, b / s - sb) < 0.065 && s > sl * shadowMin && s <= sl * 1.08
+      }
+      const stack: number[] = []
+      for (let p = 0; p < m.length; p++) if (m[p]) stack.push(p)
+      while (stack.length) {
+        const c = stack.pop() as number
+        const x = c % w
+        for (const nq of [x > 0 ? c - 1 : -1, x < w - 1 ? c + 1 : -1, c - w, c + w]) {
+          if (nq < 0 || nq >= m.length || m[nq] || !like(nq)) continue
+          m[nq] = 1
+          stack.push(nq)
+        }
+      }
+    }
   }
+  // (ingen utvidelse: kantene mot fingre, rammer og bakgrunn får myke overganger i edgeMatte i full oppløsning)
   return m
+}
+
+const BAND = 9 // bredden (i analysepiksler, 720 px) på hver side av en maskekant der overgangen regnes ut fra fargen
+const NEAR = 5 // radius for lokale fargesnitt (skjerm og ikke-skjerm) – lokalt, så hud og bakgrunn ikke blandes
+const FAR = 14 // reserve når det er for få sikre piksler nær kanten
+const SURE = 3 // piksler så langt fra kanten regnes som sikre når fargesnittene lages
+
+/**
+ * Myke, naturlige kanter i full oppløsning. Analysen (`m`, 720 px) avgjør hva som er skjerm; nær kantene blandes
+ * designet etter hvor pikselens farge ligger mellom lokal skjermfarge (S) og lokal farge på det som dekker/omgir
+ * skjermen (F: fingre, hud, ramme, bakgrunn): andel skjerm = 1 − proj(I − S på F − S). Da følger kanten fotoets
+ * egen kant (også uskarpe fingre ute av fokus), uten trappetrinn eller lyse/mørke glorier, og designet maler ikke
+ * over huden. Ingen oppskarping. Returnerer skjermandel 0–255 for utsnittet (bx, by, bw, bh) av bildet W×H.
+ */
+export function edgeMatte(P: Pixels, m: Uint8Array, base: Uint8ClampedArray, bx: number, by: number, bw: number, bh: number, W: number, H: number, qn?: readonly Point[]): Uint8ClampedArray {
+  const { w, h, d } = P
+  // avstand (i bildepiksler) til skjermfirkantens kanter: ved lav kontrast like ved kanten avgjør firkantens glatte kant
+  const edgeNear = (() => {
+    if (!qn) return () => false
+    const Q = qn.map((p) => [p[0] * W, p[1] * H] as Point)
+    const lim = (W / w) * 6
+    const L = [0, 1, 2, 3].map((i) => { const a = Q[i]!, b = Q[(i + 1) % 4]!, dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [a[0], a[1], dx / l, dy / l] as const })
+    return (x: number, y: number) => L.some(([ax, ay, ux, uy]) => Math.abs((x - ax) * uy - (y - ay) * ux) < lim)
+  })()
+  // masken mellom analysepikslene (bilineært) der fargen ikke kan avgjøre – ingen trappetrinn
+  const mAt = (fx: number, fy: number) => {
+    const x0 = Math.max(0, Math.min(w - 1, Math.floor(fx))), y0 = Math.max(0, Math.min(h - 1, Math.floor(fy)))
+    const x1 = Math.min(w - 1, x0 + 1), y1 = Math.min(h - 1, y0 + 1), tx = clamp(fx - x0, 0, 1), ty = clamp(fy - y0, 0, 1)
+    const v = (x: number, y: number) => (m[y * w + x] ? 1 : 0)
+    return (v(x0, y0) * (1 - tx) + v(x1, y0) * tx) * (1 - ty) + (v(x0, y1) * (1 - tx) + v(x1, y1) * tx) * ty
+  }
+  // avstand (4-nabo) til nærmeste kant, opp til BAND + SURE
+  const MAXD = BAND + SURE
+  const dist = new Uint8Array(w * h).fill(MAXD)
+  let front: number[] = []
+  for (let p = 0; p < m.length; p++) {
+    const x = p % w, y = (p - x) / w, v = m[p]
+    if ((x > 0 && m[p - 1] !== v) || (x < w - 1 && m[p + 1] !== v) || (y > 0 && m[p - w] !== v) || (y < h - 1 && m[p + w] !== v)) { dist[p] = 0; front.push(p) }
+  }
+  for (let k = 1; k < MAXD && front.length; k++) {
+    const next: number[] = []
+    for (const p of front) {
+      const x = p % w
+      for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p - w, p + w]) {
+        if (q < 0 || q >= m.length || dist[q]! <= k) continue
+        dist[q] = k
+        next.push(q)
+      }
+    }
+    front = next
+  }
+  // summerte tabeller for sikre skjerm- og ikke-skjerm-farger
+  const W1 = w + 1
+  const sum = [0, 1].map(() => [0, 1, 2, 3].map(() => new Float64Array(W1 * (h + 1))))
+  for (let y = 0; y < h; y++) {
+    const row = [[0, 0, 0, 0], [0, 0, 0, 0]]
+    for (let x = 0; x < w; x++) {
+      const p = y * w + x, k = p * 4
+      if (dist[p]! >= SURE) {
+        const r = row[m[p] ? 0 : 1]!
+        r[0]! += d[k] ?? 0; r[1]! += d[k + 1] ?? 0; r[2]! += d[k + 2] ?? 0; r[3]! += 1
+      }
+      for (let s = 0; s < 2; s++) for (let c = 0; c < 4; c++) {
+        const t = sum[s]![c]!, i = (y + 1) * W1 + (x + 1)
+        t[i] = t[i - W1]! + row[s]![c]!
+      }
+    }
+  }
+  const box = (s: number, x: number, y: number, R = NEAR): number[] | null => {
+    const x0 = Math.max(0, x - R), x1 = Math.min(w, x + R + 1), y0 = Math.max(0, y - R), y1 = Math.min(h, y + R + 1)
+    const v = [0, 1, 2, 3].map((c) => { const t = sum[s]![c]!; return t[y1 * W1 + x1]! - t[y0 * W1 + x1]! - t[y1 * W1 + x0]! + t[y0 * W1 + x0]! })
+    return v[3]! >= 4 ? [v[0]! / v[3]!, v[1]! / v[3]!, v[2]! / v[3]!] : R < FAR ? box(s, x, y, FAR) : null
+  }
+  const cache = new Map<number, number[] | null>()
+  const local = (p: number) => {
+    let v = cache.get(p)
+    if (v === undefined) {
+      const x = p % w, y = (p - x) / w, S = box(0, x, y), F = box(1, x, y)
+      v = S && F ? [...S, ...F] : null
+      cache.set(p, v)
+    }
+    return v
+  }
+  const out = new Uint8ClampedArray(bw * bh)
+  const sx = w / W, sy = h / H
+  for (let j = 0; j < bh; j++) {
+    const Y = by + j, py = Math.min(h - 1, Math.max(0, Math.floor((Y + 0.5) * sy)))
+    for (let i = 0; i < bw; i++) {
+      const X = bx + i, px = Math.min(w - 1, Math.max(0, Math.floor((X + 0.5) * sx))), p = py * w + px
+      let a = m[p] ? 1 : 0
+      if (dist[p]! <= BAND) {
+        const L = local(p)
+        let done = false, sameTone = false
+        // fargen jevnes ut over 3×3 bildepiksler (mindre korn i mørke skygger; ingen oppskarping)
+        let ir = 0, ig = 0, ib = 0, nn = 0
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+          const jj = j + dj, ii = i + di
+          if (jj < 0 || ii < 0 || jj >= bh || ii >= bw) continue
+          const k = (jj * bw + ii) * 4
+          ir += base[k] ?? 0; ig += base[k + 1] ?? 0; ib += base[k + 2] ?? 0; nn++
+        }
+        ir /= nn; ig /= nn; ib /= nn
+        if (L) {
+          const s0 = L[0]! + L[1]! + L[2]! + 1, s1 = ir + ig + ib + 1
+          sameTone = Math.hypot(ir / s1 - L[0]! / s0, ig / s1 - L[1]! / s0, ib / s1 - L[2]! / s0) < 0.05
+          const dr = L[3]! - L[0]!, dg = L[4]! - L[1]!, db = L[5]! - L[2]!, den = dr * dr + dg * dg + db * db
+          if (den > 900) {
+            const t = ((ir - L[0]!) * dr + (ig - L[1]!) * dg + (ib - L[2]!) * db) / den
+            a = 1 - clamp(t, 0, 1)
+            done = true
+          }
+        }
+        // for lav kontrast til å avgjøre: der analysen fant skjerm, like ved skjermkanten og med skjermens fargetone, er det
+        // skjerm (firkanten gir kanten); ellers myk maske (aldri skjerm utenfor avrundede hjørner)
+        if (!done) a = m[p] && sameTone && edgeNear(X + 0.5, Y + 0.5) ? 1 : mAt((X + 0.5) * sx - 0.5, (Y + 0.5) * sy - 0.5)
+        // utenfor skjermen analysen fant, kan fargen bare gi skjerm like ved kanten (uskarpe fingre), ikke på andre siden
+        // av en ramme (f.eks. lys bordflate utenfor et avrundet hjørne)
+        if (!m[p]) a = Math.min(a, clamp(1 - dist[p]! / 3, 0, 1))
+      }
+      out[j * bw + i] = Math.round(a * 255)
+    }
+  }
+  return out
 }
