@@ -13,7 +13,7 @@ import { CloudPicker } from '../cloud-picker/CloudPicker'
 import type { MockupCategory, MockupEntry } from './engine/catalog'
 import { aspectOf, clamp, inQuad, project, type Point, type Quad } from './engine/geometry'
 import { clampPlacement, defaultPlacement, drawLogo, heightOf, readLogo, resizeFrom, type Logo, type LogoPlacement } from './engine/logo'
-import { centroid, clampOffset, designBox, imageCorners, patchFreeform, projectQuad, scaleQuad, sideMid, snapMove, snapPoint, snapScale, toImage, translateQuad, unproject, ZOOM_MAX, ZOOM_MIN, type Guide } from './engine/place'
+import { centroid, clampOffset, designBox, imageCorners, moveSide, patchFreeform, sideDrag, projectQuad, scaleQuad, sideMid, snapMove, snapPoint, snapScale, toImage, translateQuad, unproject, ZOOM_MAX, ZOOM_MIN, type Guide } from './engine/place'
 import { DEFAULT_SETTINGS, detect, render, validQuad, warp, type MockupSettings } from './engine/render'
 import styles from './Mockups.module.css'
 import { useMockupLibrary } from './useMockupLibrary'
@@ -773,8 +773,9 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   /**
    * Draging i designet:
    * - flaten: flytt hele designet (med eller uten Shift – alltid samme flytting);
-   * - hjørne eller side uten Shift: proporsjonal skalering rundt midtpunktet;
-   * - Shift + hjørne: flytt hjørnet fritt (perspektiv); Shift + side: flytt hele siden.
+   * - hjørne uten Shift: proporsjonal skalering rundt midtpunktet;
+   * - side uten Shift: flytt siden utover/innover (vinkelrett i flaten) – motsatt side står i ro;
+   * - Shift + hjørne: flytt hjørnet fritt (perspektiv); Shift + side: flytt hele siden fritt.
    * Magnetisk mot objektets kanter og midtlinjer (Alt slår det av). Koordinatene er flatens, så det følger pekeren.
    */
   function dragDesign(e: ReactPointerEvent, h: null | { k: 'c' | 's'; i: number }) {
@@ -811,6 +812,12 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         setGuides(sn.guides)
         if (isFree) onPatch({ dq: translateQuad(q0, sn.du, sn.dv) })
         else onPatch(clampOffset(box0, st0.ox + sn.du, st0.oy + sn.dv))
+      } else if (!free && h.k === 's') {
+        // siden flyttes langs sin normal; de to hjørnene følger med, motsatt side står i ro; ugyldige former avvises
+        const sd = sideDrag(q0, h.i, du, dv, flatAspect, tu, tv)
+        setGuides(sd.guides)
+        const q = moveSide(q0, h.i, sd.t, flatAspect)
+        if (validQuad(q)) onPatch({ dq: q })
       } else if (!free) {
         // proporsjonal skalering rundt midtpunktet
         const d1 = Math.hypot((grab[0] + du - c0u) * flatAspect, grab[1] + dv - c0v)
