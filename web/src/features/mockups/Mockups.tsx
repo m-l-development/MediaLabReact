@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useServices } from '../../app/services'
 import { TOOLS, type ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
@@ -9,13 +9,27 @@ import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import { Button } from '../../shared/ui/Button'
 import { AssetPicker } from '../media-library/AssetPicker'
+import { CloudPicker } from '../cloud-picker/CloudPicker'
 import type { MockupCategory, MockupEntry } from './engine/catalog'
 import { clamp, type Quad } from './engine/geometry'
+import { clampPlacement, defaultPlacement, drawLogo, heightOf, readLogo, resizeFrom, type Logo, type LogoPlacement } from './engine/logo'
 import { DEFAULT_SETTINGS, detect, render, type MockupSettings } from './engine/render'
 import styles from './Mockups.module.css'
 import { useMockupLibrary } from './useMockupLibrary'
 
 const CATS: readonly ('all' | MockupCategory)[] = ['all', 'phone', 'laptop', 'screen', 'print', 'other', 'collab']
+/** Små linjeikoner for retning (samme strekstil som ikonene ellers i appen). */
+const ROT_ICONS = {
+  left: 'M4 4v5h5M4.6 9A8 8 0 1 1 6 17',
+  right: 'M20 4v5h-5M19.4 9A8 8 0 1 0 18 17',
+  flipH: 'M12 3v18M8 7l-5 5 5 5zM16 7l5 5-5 5z',
+  flipV: 'M3 12h18M7 8l5-5 5 5zM7 16l5 5 5-5z',
+} as const
+function RotIcon({ d }: { d: keyof typeof ROT_ICONS }) {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ROT_ICONS[d]} /></svg>
+}
+const norm = (v: number) => ((Math.round(v) % 360) + 360) % 360
+
 const CORNER_KEYS: readonly MessageKey[] = ['mockups.corner.tl', 'mockups.corner.tr', 'mockups.corner.br', 'mockups.corner.bl']
 
 interface Design { img: HTMLImageElement; url: string; name: string; assetId: AssetId | null; blob: Blob }
@@ -41,7 +55,7 @@ function readDesign(blob: Blob, name: string, assetId: AssetId | null): Promise<
 /** Mockups (MK-01–MK-13): ett design vises i alle mockupene; velg én for å justere og eksportere. */
 export default function Mockups({ query, registerLifecycle }: ToolProps) {
   const t = useT()
-  const { router } = useServices()
+  const { router, files } = useServices()
   const { assets, userId } = useWorkspace()
   const lib = useMockupLibrary()
   const [cat, setCat] = useState<'all' | MockupCategory>('all')
@@ -49,6 +63,9 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   const [all, setAll] = useState<Record<string, Partial<MockupSettings>>>(() => readMockupSettings(userId) as Record<string, Partial<MockupSettings>>)
   const [toast, setToast] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
+  const [logo, setLogo] = useState<Logo | null>(null)
+  const [pickingLogo, setPickingLogo] = useState(false)
+  const logoInput = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const ownInput = useRef<HTMLInputElement>(null)
@@ -63,6 +80,20 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   useEffect(() => () => {
     if (designUrl) URL.revokeObjectURL(designUrl)
   }, [designUrl])
+
+  // Frigjør logoens object-URL når den byttes eller verktøyet lukkes.
+  const logoUrl = logo?.url
+  useEffect(() => () => {
+    if (logoUrl) URL.revokeObjectURL(logoUrl)
+  }, [logoUrl])
+
+  function applyLogo(blob: Blob, name: string, ref: string | null) {
+    void readLogo(blob, name, ref).then((r) => {
+      if (!r.ok) return setToast(t(r.error === 'type' ? 'mockups.logo.bad' : r.error === 'size' ? 'mockups.logo.tooBig' : 'mockups.logo.unreadable'))
+      setLogo(r.logo)
+      setToast(t('mockups.logo.added'))
+    })
+  }
 
   useEffect(() => {
     if (!toast) return
@@ -156,6 +187,11 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
         e.currentTarget.value = ''
         if (f) applyDesign(f, f.name, null)
       }} />
+      <input ref={logoInput} type="file" hidden accept="image/svg+xml,.svg,image/png,image/webp,image/jpeg,image/gif" data-mk-logo-input="" onChange={(e) => {
+        const f = e.currentTarget.files?.[0]
+        e.currentTarget.value = ''
+        if (f) applyLogo(f, f.name, null)
+      }} />
       <input ref={ownInput} type="file" hidden multiple accept="image/png,image/jpeg,image/webp" onChange={(e) => {
         const fs = [...(e.currentTarget.files ?? [])]
         e.currentTarget.value = ''
@@ -196,10 +232,18 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           onToast={setToast}
           onDesignAsset={(assetId) => setDesign((d) => (d ? { ...d, assetId } : d))}
           dragOver={dragOver}
+          logo={logo}
+          onLogoUpload={() => logoInput.current?.click()}
+          onLogoCloud={files.available() ? () => setPickingLogo(true) : null}
+          onLogoRemove={() => setLogo(null)}
         />
       )}
 
       {toast && <div className={styles.toast} role="status">{toast}</div>}
+      {pickingLogo && (
+        <CloudPicker title="cloud.pickLogo" start="ressurser" onClose={() => setPickingLogo(false)}
+          onPick={(p) => { setPickingLogo(false); applyLogo(p.blob, p.name, p.ref) }} />
+      )}
       {picking && <AssetPicker kinds={['image']} onPick={(a: Asset) => void assets.open(a.id).then((b) => applyDesign(b, a.name, a.id))} onClose={() => setPicking(false)} />}
     </div>
   )
@@ -320,9 +364,14 @@ interface EditorProps {
   onToast: (s: string) => void
   onDesignAsset: (id: AssetId) => void
   dragOver: boolean
+  logo: Logo | null
+  onLogoUpload: () => void
+  /** null når menighetens filer ikke er tilgjengelige (uten innlogging/menighet). */
+  onLogoCloud: (() => void) | null
+  onLogoRemove: () => void
 }
 
-function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver }: EditorProps) {
+function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove }: EditorProps) {
   const t = useT()
   const { router } = useServices()
   const { assets } = useWorkspace()
@@ -334,6 +383,11 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   const [fmt, setFmt] = useState<'png' | 'jpg'>('png')
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [logoSel, setLogoSel] = useState(false)
+  const imgAspect = image ? image.naturalWidth / image.naturalHeight : 1
+  // plasseringen lagres per mockup (andeler av bildet); uten lagret plassering: øvre høyre hjørne, 5 % fra kantene
+  // (lagret plassering fra en logo med andre proporsjoner holdes innenfor bildet)
+  const lp: LogoPlacement | null = logo ? clampPlacement(st.logo ?? defaultPlacement(logo.aspect, imgAspect), logo.aspect, imgAspect) : null
 
   const step = (d: number) => {
     if (!list.length) return
@@ -346,6 +400,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (el as HTMLInputElement).type !== 'range') return
+      if (el?.closest('[data-mk-logo]')) return // piltastene flytter logoen når den har fokus
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
         step(-1)
@@ -353,7 +408,8 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         e.preventDefault()
         step(1)
       } else if (e.key === 'Escape') {
-        if (adj) setAdj(false)
+        if (logoSel) setLogoSel(false)
+        else if (adj) setAdj(false)
         else onOpen(null)
       }
     }
@@ -383,7 +439,8 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     return () => ro.disconnect()
   }, [image])
 
-  const settingsKey = JSON.stringify(st)
+  // logoen tegnes ikke på lerretet, så flytting av den skal ikke tegne mockupen på nytt
+  const settingsKey = JSON.stringify({ ...st, logo: undefined })
   useEffect(() => {
     const c = canvas.current
     if (!c || !image) return
@@ -411,6 +468,8 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     const g = c.getContext('2d')
     if (!g) return null
     render(g, W, H, image, design?.img ?? null, mockup, st, { N: 28 })
+    // logoen tegnes til slutt, i full oppløsning (SVG gjengis først her); håndtak og markering er aldri med
+    if (logo && lp) await drawLogo(g, W, H, logo, lp)
     return new Promise((res) => c.toBlob(res, fmt === 'jpg' ? 'image/jpeg' : 'image/png', 0.92))
   }
 
@@ -494,6 +553,49 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     window.addEventListener('pointercancel', up)
   }
 
+  /** Flytter logoen (hele flaten) eller skalerer proporsjonalt fra et hjørne. Koordinater som andeler av bildet. */
+  function dragLogo(e: ReactPointerEvent, corner: number | null) {
+    if (!logo || !lp || e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    setLogoSel(true)
+    const el = wrap.current
+    if (!el) return
+    ;(e.currentTarget as HTMLElement).closest<HTMLElement>('[data-mk-logo]')?.focus({ preventScroll: true })
+    const r = el.getBoundingClientRect()
+    const start = { ...lp }, sx = e.clientX, sy = e.clientY
+    const move = (ev: PointerEvent) => {
+      const next = corner === null
+        ? { ...start, x: start.x + (ev.clientX - sx) / r.width, y: start.y + (ev.clientY - sy) / r.height }
+        : resizeFrom(start, corner, (ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height, logo.aspect, imgAspect)
+      onPatch({ logo: clampPlacement(next, logo.aspect, imgAspect) })
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
+
+  function nudgeLogo(e: ReactKeyboardEvent) {
+    if (!logo || !lp) return
+    const d = e.shiftKey ? 0.02 : 0.005
+    const k: Record<string, [number, number]> = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }
+    const v = k[e.key]
+    if (v) {
+      e.preventDefault()
+      setLogoSel(true)
+      onPatch({ logo: clampPlacement({ ...lp, x: lp.x + v[0], y: lp.y + v[1] }, logo.aspect, imgAspect) })
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setLogoSel(false)
+      ;(e.currentTarget as HTMLElement).blur()
+    }
+  }
+
   const pct = (v: number) => `${Math.round(v * 100)} %`
   const range = (label: MessageKey, k: 'zoom' | 'ox' | 'oy' | 'shade' | 'gloss', min: number, max: number, stepV: number, def: number) => (
     <label key={k} className={styles.range}>
@@ -515,9 +617,20 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
       </header>
 
       <div className={styles.editorBody}>
-        <section ref={stage} className={styles.stage}>
+        <section ref={stage} className={styles.stage} onPointerDown={(e) => { if (!(e.target as HTMLElement).closest('[data-mk-logo]')) setLogoSel(false) }}>
           <div ref={wrap} className={styles.wrap} style={{ width: box.w, height: box.h }}>
             <canvas ref={canvas} className={styles.stageCanvas} />
+            {logo && lp && (
+              <div data-mk-logo="" className={styles.logo} data-selected={logoSel || undefined} tabIndex={0} role="group" aria-label={t('mockups.logo.label')}
+                style={{ left: `${lp.x * 100}%`, top: `${lp.y * 100}%`, width: `${lp.w * 100}%`, height: `${heightOf(lp, logo.aspect, imgAspect) * 100}%` }}
+                onPointerDown={(e) => dragLogo(e, null)} onKeyDown={nudgeLogo} onFocus={() => setLogoSel(true)}>
+                {/* SVG vises som vektor av nettleseren (ingen omgjøring til bitmap under redigeringen) */}
+                <img src={logo.url} alt="" draggable={false} />
+                {logoSel && [0, 1, 2, 3].map((i) => (
+                  <span key={i} className={styles.logoHandle} data-c={i} title={t('mockups.logo.corner')} onPointerDown={(e) => dragLogo(e, i)} />
+                ))}
+              </div>
+            )}
             {adj && q.length === 4 && (
               <>
                 <svg className={styles.quad} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -541,12 +654,42 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
             <Button size="small" variant="ghost" onClick={onPick}>{t('mockups.fromMedia')}</Button>
           </div>
 
+          <h2 className={styles.section}>{t('mockups.section.logo')}</h2>
+          {logo ? (
+            <div className={styles.logoRow}>
+              <span className={styles.logoThumb}><img src={logo.url} alt="" /></span>
+              <span className={styles.designName}>{logo.name}{logo.svg !== null ? ' · SVG' : ''}</span>
+            </div>
+          ) : <p className={styles.designName}>{t('mockups.logo.none')}</p>}
+          <div className={styles.row}>
+            <Button size="small" onClick={onLogoUpload}>{logo ? t('mockups.logo.replace') : t('mockups.logo.add')}</Button>
+            {onLogoCloud && <Button size="small" variant="ghost" onClick={onLogoCloud}>{t('mockups.logo.fromCloud')}</Button>}
+            {logo && <Button size="small" variant="ghost" onClick={() => { onLogoRemove(); setLogoSel(false) }}>{t('mockups.logo.remove')}</Button>}
+          </div>
+          {logo && <p className={styles.hint}>{t('mockups.logo.hint')}</p>}
+
           <h2 className={styles.section}>{t('mockups.section.placement')}</h2>
           <div className={styles.segmented} role="group">
             {(['cover', 'contain'] as const).map((f) => (
               <button key={f} type="button" aria-pressed={st.fit === f} onClick={() => onPatch({ fit: f })}>{t(`mockups.fit.${f}`)}</button>
             ))}
           </div>
+          <div className={styles.row} role="group" aria-label={t('mockups.orient.group')}>
+            {([
+              ['left', 'mockups.orient.left', () => onPatch({ rot: norm(st.rot - 90) })],
+              ['right', 'mockups.orient.right', () => onPatch({ rot: norm(st.rot + 90) })],
+              // speilingen er i bildets egne akser; står bildet på siden (≈90°/270°), byttes aksen så «vannrett» er vannrett på skjermen
+              ['flipH', 'mockups.orient.flipH', () => (Math.round(norm(st.rot) / 90) % 2 ? onPatch({ flipY: !st.flipY }) : onPatch({ flipX: !st.flipX }))],
+              ['flipV', 'mockups.orient.flipV', () => (Math.round(norm(st.rot) / 90) % 2 ? onPatch({ flipX: !st.flipX }) : onPatch({ flipY: !st.flipY }))],
+            ] as const).map(([icon, label, act]) => (
+              <Button key={icon} size="small" variant="ghost" iconOnly disabled={!design} title={t(label)} aria-label={t(label)} onClick={act}><RotIcon d={icon} /></Button>
+            ))}
+            <Button size="small" variant="ghost" disabled={!design || (!st.rot && !st.flipX && !st.flipY)} onClick={() => onPatch({ rot: 0, flipX: false, flipY: false })}>{t('mockups.orient.reset')}</Button>
+          </div>
+          <label className={styles.range}>
+            <span>{t('mockups.orient.angle')} <em>{norm(st.rot)}°</em></span>
+            <input type="range" min={0} max={359} step={1} value={norm(st.rot)} disabled={!design} onChange={(e) => onPatch({ rot: Number(e.target.value) })} onDoubleClick={() => onPatch({ rot: 0 })} />
+          </label>
           {range('mockups.zoom', 'zoom', 0.5, 3, 0.01, 1)}
           {range('mockups.offsetX', 'ox', -0.5, 0.5, 0.005, 0)}
           {range('mockups.offsetY', 'oy', -0.5, 0.5, 0.005, 0)}

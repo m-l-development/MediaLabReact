@@ -181,8 +181,40 @@ export function occlusionMask(P: Pixels, qn: readonly Point[], keepHoles: boolea
     }
     for (let p = 0; p < m.length; p++) if (lim[p] && !m[p] && !reach[p]) m[p] = 1
   }
-  // Utvid tre piksler så kanten ikke får en mørk stripe.
-  for (let it = 0; it < 3; it++) {
+  // Skygger på skjermen (samme fargetone som skjermen, bare mørkere) hører til skjermen, ikke til fingeren:
+  // ellers vises fotoets egen skjerm i skyggen. Hud og andre gjenstander har en annen fargetone og blir stående.
+  {
+    let sr = 0, sg = 0, sb = 0, sl = 0, n = 0
+    for (let p = 0; p < m.length; p++) {
+      if (!m[p]) continue
+      const k = p * 4, r = d[k] ?? 0, g = d[k + 1] ?? 0, b = d[k + 2] ?? 0, s = r + g + b + 1
+      sr += r / s; sg += g / s; sb += b / s; sl += s; n++
+    }
+    if (n) {
+      sr /= n; sg /= n; sb /= n; sl /= n
+      // bare skygger som henger sammen med skjermen (vokser fra skjermkanten), så lyse flekker i en finger
+      // (f.eks. en negl) som er omgitt av hud, ikke blir regnet som skjerm
+      const like = (p: number) => {
+        const x = p % w, y = (p - x) / w
+        if (!lim[p] || !inQuad(qs, x, y)) return false
+        const k = p * 4, r = d[k] ?? 0, g = d[k + 1] ?? 0, b = d[k + 2] ?? 0, s = r + g + b + 1
+        return Math.hypot(r / s - sr, g / s - sg, b / s - sb) < 0.045 && s > sl * 0.3 && s <= sl * 1.08
+      }
+      const stack: number[] = []
+      for (let p = 0; p < m.length; p++) if (m[p]) stack.push(p)
+      while (stack.length) {
+        const c = stack.pop() as number
+        const x = c % w
+        for (const nq of [x > 0 ? c - 1 : -1, x < w - 1 ? c + 1 : -1, c - w, c + w]) {
+          if (nq < 0 || nq >= m.length || m[nq] || !like(nq)) continue
+          m[nq] = 1
+          stack.push(nq)
+        }
+      }
+    }
+  }
+  // Utvid én piksel så overgangen mot fingre og kanter ikke får en lys eller mørk stripe.
+  for (let it = 0; it < 1; it++) {
     const next = new Uint8Array(m)
     for (let p = 0; p < m.length; p++) {
       if (m[p] || !lim[p]) continue

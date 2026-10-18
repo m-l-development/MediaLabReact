@@ -457,3 +457,71 @@
     max-height: none;
   }
 }
+
+/* Logo oppå mockupen: eget lag i andeler av bildet (følger bildet ved zoom og vindusstørrelse). Markering og
+   håndtak vises bare når logoen er valgt, og er aldri med i eksporten (den tegnes på eget lerret). */
+.logo {
+  position: absolute;
+  cursor: move;
+  touch-action: none;
+  outline: none;
+}
+
+.logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.logo[data-selected] {
+  box-shadow: 0 0 0 1px #f5b82c, 0 0 0 2px rgba(0, 0, 0, 0.45);
+}
+
+.logo:focus-visible {
+  box-shadow: 0 0 0 2px #f5b82c, 0 0 0 4px rgba(0, 0, 0, 0.55);
+}
+
+.logoHandle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: #f5b82c;
+  touch-action: none;
+}
+
+.logoHandle[data-c='0'] { left: 0; top: 0; cursor: nwse-resize; }
+.logoHandle[data-c='1'] { left: 100%; top: 0; cursor: nesw-resize; }
+.logoHandle[data-c='2'] { left: 100%; top: 100%; cursor: nwse-resize; }
+.logoHandle[data-c='3'] { left: 0; top: 100%; cursor: nesw-resize; }
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Miniatyr med rutemønster, så gjennomsiktighet synes */
+.logoThumb {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: repeating-conic-gradient(rgba(128, 128, 128, 0.25) 0% 25%, transparent 0% 50%) 50% / 12px 12px;
+}
+
+.logoThumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}

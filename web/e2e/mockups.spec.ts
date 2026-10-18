@@ -86,7 +86,7 @@ test('juster hjørnene, finn automatisk og tilbakestill', async ({ page }) => {
   await page.mouse.up()
   const corners = await page.evaluate(() => JSON.parse(localStorage.getItem('mockups.settings') ?? '{}')['tv-wall']?.corners)
   expect(Array.isArray(corners) && corners.length === 4).toBe(true)
-  await page.getByRole('button', { name: 'Tilbakestill' }).click()
+  await page.getByRole('button', { name: 'Tilbakestill', exact: true }).click()
   const reset = await page.evaluate(() => JSON.parse(localStorage.getItem('mockups.settings') ?? '{}')['tv-wall']?.corners)
   expect(reset).toBeNull()
 })
