@@ -1,5 +1,5 @@
 {
- "_info": "Valgfritt oppsett per bilde. corners = skjermens hjørner [øverst venstre, øverst høyre, nederst høyre, nederst venstre] som andel av bildet (0–1). Uten corners finner siden skjermen selv. occl:false = ikke behold fingre/objekter foran skjermen. keepHoles:true = behold hull i skjermen (f.eks. kamerahull). aspect = skjermens bredde/høyde.",
+ "_info": "Valgfritt oppsett per bilde. corners = skjermens hjørner [øverst venstre, øverst høyre, nederst høyre, nederst venstre] som andel av bildet (0–1). Uten corners finner siden skjermen selv. occl:false = ikke behold fingre/objekter foran skjermen. keepHoles:true = behold hull i skjermen (f.eks. kamerahull). aspect = skjermens bredde/høyde. shadowMin = hvor mørk en skygge på flaten kan være (andel av lysstyrken, standard 0,3) og fortsatt regnes som flate. lit:false = skjermen i fotoet viser et eget motiv, så lys og glans hentes ikke fra fotoet.",
  "imac-desk.jpg": {
   "name": "iMac på skrivebord",
   "aspect": 1.7778
@@ -42,12 +42,12 @@
     0.2309
    ],
    [
-    0.7862,
-    0.6173
+    0.7873,
+    0.621
    ],
    [
-    0.3268,
-    0.713
+    0.3274,
+    0.7207
    ]
   ],
   "aspect": 1.75
@@ -56,8 +56,8 @@
   "name": "iPhone på skrå",
   "corners": [
    [
-    0.2925,
-    0.128
+    0.3019,
+    0.1315
    ],
    [
     0.703,
@@ -87,18 +87,36 @@
     0.1403
    ],
    [
-    0.7634,
-    0.6837
+    0.7615,
+    0.6829
    ],
    [
-    0.3903,
-    0.676
+    0.3866,
+    0.6846
    ]
   ],
   "aspect": 0.4615
  },
  "iphone-desk.jpg": {
   "name": "iPhone på bordet",
+  "corners": [
+   [
+    0.4487,
+    0.1839
+   ],
+   [
+    0.8122,
+    0.6521
+   ],
+   [
+    0.6723,
+    0.895
+   ],
+   [
+    0.3058,
+    0.4488
+   ]
+  ],
   "aspect": 2.1667
  },
  "macbook-air.jpg": {
@@ -114,15 +132,16 @@
    ],
    [
     0.7283,
-    0.4201
+    0.4182
    ],
    [
-    0.2902,
-    0.4201
+    0.2953,
+    0.4182
    ]
   ],
   "aspect": 1.6,
-  "occl": false
+  "occl": false,
+  "lit": false
  },
  "macbook-pro.jpg": {
   "name": "MacBook Pro",
@@ -145,7 +164,8 @@
    ]
   ],
   "aspect": 1.6,
-  "occl": false
+  "occl": false,
+  "lit": false
  },
  "tv-wall.jpg": {
   "name": "TV på veggen",
@@ -155,45 +175,47 @@
   "name": "TV i stua",
   "corners": [
    [
-    0.3527,
-    0.3316
+    0.3545,
+    0.3343
    ],
    [
-    0.6439,
-    0.3316
+    0.6428,
+    0.3343
    ],
    [
-    0.6439,
-    0.5804
+    0.6428,
+    0.5777
    ],
    [
-    0.3527,
-    0.5804
+    0.3545,
+    0.5777
    ]
   ],
   "aspect": 1.7778,
-  "occl": false
+  "occl": false,
+  "lit": false
  },
  "paper-marble.jpg": {
   "name": "Papir på marmor",
   "corners": [
    [
-    0.056,
-    0.289
+    0.0605,
+    0.2912
    ],
    [
-    0.5606,
-    0.1953
+    0.56,
+    0.195
    ],
    [
-    0.7384,
-    0.746
+    0.7541,
+    0.7196
    ],
    [
-    0.254,
-    0.874
+    0.2588,
+    0.8219
    ]
   ],
-  "aspect": 0.7071
+  "aspect": 0.7071,
+  "shadowMin": 0.05
  }
 }

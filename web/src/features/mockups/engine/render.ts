@@ -1,4 +1,4 @@
-import { detectScreen, occlusionMask, type Pixels } from './detect'
+import { detectScreen, edgeMatte, occlusionMask, type Pixels } from './detect'
 import { aspectOf, clamp, growQuad, homography, project, type Point, type Quad } from './geometry'
 
 /** Innstillinger per mockup (samme felt og standardverdier som i dag, lagres under `mockups.settings`). */
@@ -12,6 +12,12 @@ export interface MockupSettings {
   gloss: number
   occl: boolean
   corners: Quad | null
+  /**
+   * Fritt formet design (Shift + hjørne/side): designbildets fire hjørner (øvre venstre, øvre høyre, nedre høyre, nedre
+   * venstre i bildets egen retning) i skjermflaten (u, v ∈ 0–1). Når den er satt, ligger plassering, størrelse, rotasjon
+   * og speiling i den; ellers gjelder fit/zoom/ox/oy/rot/flip som før.
+   */
+  dq?: Quad | null
   /** Designets retning: rotasjon i grader (0–359, med klokken) og speiling (i bildets egne akser). */
   rot: number
   flipX: boolean
@@ -28,6 +34,10 @@ export interface MockupInfo {
   corners: Quad | null
   aspect: number | null
   keepHoles: boolean
+  /** Hvor mørk en skygge på skjermen/flaten kan være (andel av lysstyrken) og fortsatt regnes som flate. Standard 0,3. */
+  shadowMin?: number
+  /** false = skjermen i fotoet viser et eget motiv: ikke lys/skygge/glans fra fotoet (ellers trykkes motivet inn i designet). */
+  lit?: boolean
   /** false = ikke behold ting foran skjermen (f.eks. papir og kort). */
   occl: boolean
 }
@@ -154,7 +164,16 @@ function texture(design: Img | null, aspect: number, tw: number, st: MockupSetti
   const g = ctx2d(c)
   g.fillStyle = st.bg || '#ffffff'
   g.fillRect(0, 0, tw, th)
-  if (design) {
+  if (design && validQuad(st.dq)) {
+    // fritt formet: designet tegnes i perspektiv inn i flaten (samme forvrengning som mot fotoet)
+    const { w: dw, h: dh } = size(design)
+    const k = Math.min(1, 4096 / Math.max(dw, dh))
+    const src = canvas(dw * k, dh * k)
+    const sg = ctx2d(src)
+    sg.imageSmoothingQuality = 'high'
+    sg.drawImage(design, 0, 0, src.width, src.height)
+    warp(g, src, (st.dq as Quad).map(([u, v]) => [u * tw, v * th] as Point) as Quad, 20)
+  } else if (design) {
     const { w: dw, h: dh } = size(design)
     // rotasjon og speiling i samme tegning (ingen mellomlagring): «Fyll»/«Vis hele» regnes ut fra rammen rundt det
     // roterte bildet, så stående og liggende bilder passer også etter 90°/270°
@@ -175,28 +194,53 @@ function texture(design: Img | null, aspect: number, tw: number, st: MockupSetti
   return c
 }
 
+/** Gyldig fritt formet design: fire endelige punkter, konveks og ikke for liten (ellers brukes den vanlige plasseringen). */
+export function validQuad(q: unknown): q is Quad {
+  if (!Array.isArray(q) || q.length !== 4 || !q.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v) && Math.abs(v) < 20))) return false
+  const P = q as Point[]
+  let sign = 0
+  for (let i = 0; i < 4; i++) {
+    const a = P[i]!, b = P[(i + 1) % 4]!, c = P[(i + 2) % 4]!
+    const cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])
+    if (Math.abs(cr) < 1e-6) return false
+    if (sign && Math.sign(cr) !== sign) return false
+    sign = Math.sign(cr)
+  }
+  let area = 0
+  for (let i = 0; i < 4; i++) area += P[i]![0] * P[(i + 1) % 4]![1] - P[(i + 1) % 4]![0] * P[i]![1]
+  return Math.abs(area) / 2 > 1e-4
+}
+
 const maskCache = new Map<string, HTMLCanvasElement>()
 
 function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, occl: boolean): HTMLCanvasElement {
-  const key = `v2|${mk.id}|${W}x${H}|${qn.map((p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join(';')}|${occl ? 1 : 0}${mk.keepHoles ? 1 : 0}`
+  const key = `v3|${mk.id}|${W}x${H}|${qn.map((p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join(';')}|${occl ? 1 : 0}${mk.keepHoles ? 1 : 0}|${mk.shadowMin ?? ""}`
   const hit = maskCache.get(key)
   if (hit) return hit
   const out = canvas(W, H)
   const g = ctx2d(out)
   const m = occl ? (() => {
     const P = pixels(base, 720)
-    const mm = occlusionMask(P, qn, mk.keepHoles)
+    const mm = occlusionMask(P, qn, mk.keepHoles, mk.shadowMin)
     return mm ? { mm, P } : null
   })() : null
   if (m) {
-    const sc = canvas(m.P.w, m.P.h)
-    const sg = ctx2d(sc)
-    const id = sg.createImageData(m.P.w, m.P.h)
-    for (let p = 0; p < m.mm.length; p++) id.data[p * 4 + 3] = m.mm[p] ? 255 : 0
-    sg.putImageData(id, 0, 0)
-    g.imageSmoothingEnabled = true
-    g.imageSmoothingQuality = 'high'
-    g.drawImage(sc, 0, 0, W, H)
+    // skjermandel i full oppløsning, med myke kanter fra fotoets egne farger (edgeMatte), innenfor skjermens ramme
+    const qq0 = qn.map((p) => [p[0] * W, p[1] * H] as Point)
+    const xs = qq0.map((p) => p[0]), ys = qq0.map((p) => p[1])
+    const bx = Math.max(0, Math.floor(Math.min(...xs)) - 2), by = Math.max(0, Math.floor(Math.min(...ys)) - 2)
+    const bw = Math.min(W, Math.ceil(Math.max(...xs)) + 2) - bx, bh = Math.min(H, Math.ceil(Math.max(...ys)) + 2) - by
+    if (bw > 0 && bh > 0) {
+      const bc = canvas(W, H)
+      const bg = ctx2d(bc, true)
+      bg.imageSmoothingEnabled = true
+      bg.imageSmoothingQuality = 'high'
+      bg.drawImage(base, 0, 0, W, H)
+      const a = edgeMatte(m.P, m.mm, bg.getImageData(bx, by, bw, bh).data, bx, by, bw, bh, W, H, qn)
+      const id = g.createImageData(bw, bh)
+      for (let p = 0; p < a.length; p++) id.data[p * 4 + 3] = a[p]!
+      g.putImageData(id, bx, by)
+    }
   } else {
     const q = growQuad(qn.map((p) => [p[0] * W, p[1] * H] as Point), 1.006)
     g.fillStyle = '#000'
@@ -249,8 +293,8 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
   lg.drawImage(screenMask(mk, base, qn, W, H, st.occl !== false && mk.occl !== false), 0, 0)
   lg.globalCompositeOperation = 'source-over'
 
-  let shade = st.shade ?? 0.6
-  let gloss = st.gloss ?? 0.35
+  let shade = mk.lit === false ? 0 : st.shade ?? 0.6
+  let gloss = mk.lit === false ? 0 : st.gloss ?? 0.35
   if (shade > 0.01 || gloss > 0.01) {
     const xs = q.map((p) => p[0])
     const ys = q.map((p) => p[1])

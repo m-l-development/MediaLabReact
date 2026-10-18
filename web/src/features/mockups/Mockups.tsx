@@ -11,9 +11,10 @@ import { Button } from '../../shared/ui/Button'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import type { MockupCategory, MockupEntry } from './engine/catalog'
-import { clamp, type Quad } from './engine/geometry'
+import { aspectOf, clamp, inQuad, project, type Point, type Quad } from './engine/geometry'
 import { clampPlacement, defaultPlacement, drawLogo, heightOf, readLogo, resizeFrom, type Logo, type LogoPlacement } from './engine/logo'
-import { DEFAULT_SETTINGS, detect, render, type MockupSettings } from './engine/render'
+import { centroid, clampOffset, designBox, imageCorners, patchFreeform, projectQuad, scaleQuad, sideMid, snapMove, snapPoint, snapScale, toImage, translateQuad, unproject, ZOOM_MAX, ZOOM_MIN, type Guide } from './engine/place'
+import { DEFAULT_SETTINGS, detect, render, validQuad, warp, type MockupSettings } from './engine/render'
 import styles from './Mockups.module.css'
 import { useMockupLibrary } from './useMockupLibrary'
 
@@ -29,6 +30,35 @@ function RotIcon({ d }: { d: keyof typeof ROT_ICONS }) {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ROT_ICONS[d]} /></svg>
 }
 const norm = (v: number) => ((Math.round(v) % 360) + 360) % 360
+
+/** Objektets midtlinjer (vises svakt mens designet dras). */
+const MID_GUIDES: readonly Guide[] = [{ axis: 'u', at: 0.5 }, { axis: 'v', at: 0.5 }]
+
+/**
+ * Tallet ved en slider: klikk for å skrive inn verdien (Enter eller klikk utenfor lagrer, Esc avbryter).
+ * Vises i prosent (scale 100) eller grader (scale 1, unit «°»); verdien holdes innenfor sliderens grenser.
+ */
+function NumEdit({ value, min, max, onCommit, label, unit = ' %', scale = 100, disabled = false }: { value: number; min: number; max: number; onCommit: (v: number) => void; label: string; unit?: string; scale?: number; disabled?: boolean }) {
+  const [text, setText] = useState<string | null>(null)
+  const shown = Math.round(value * scale)
+  const commit = () => {
+    if (text === null) return
+    const n = Number(text.replace(',', '.').replace(/[^\d.-]/g, ''))
+    setText(null)
+    if (text.trim() !== '' && Number.isFinite(n)) onCommit(Math.min(max, Math.max(min, n / scale)))
+  }
+  if (text !== null) {
+    return (
+      <input className={styles.numEdit} type="text" inputMode="decimal" autoFocus aria-label={label} value={text}
+        onChange={(e) => setText(e.target.value)} onBlur={commit} onFocus={(e) => e.currentTarget.select()}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setText(null) } }} />
+    )
+  }
+  return (
+    <button type="button" className={styles.numBtn} disabled={disabled} title={label} aria-label={label + ': ' + shown + unit.trim()}
+      onClick={(e) => { e.preventDefault(); setText(String(shown)) }}>{shown}{unit}</button>
+  )
+}
 
 const CORNER_KEYS: readonly MessageKey[] = ['mockups.corner.tl', 'mockups.corner.tr', 'mockups.corner.br', 'mockups.corner.bl']
 
@@ -75,21 +105,62 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
     registerLifecycle({ dispose: () => undefined })
   }, [registerLifecycle])
 
-  // Frigjør designets object-URL når det byttes eller verktøyet lukkes.
+  /* ---------- Angre: øyeblikksbilder av innstillinger, design og logo ---------- */
+  // Én fullført draging (design, logo, skjermhjørner, slider) er ett steg; hver annen endring (knapp, skrevet tall,
+  // piltast) er ett steg. Steget lagres først når noe faktisk endres. Design og logo som kan hentes tilbake, beholder
+  // sin object-URL til de faller ut av historikken.
+  const hist = useRef<Snap[]>([])
+  const [histN, setHistN] = useState(0)
+  const gesture = useRef<'off' | 'pending' | 'saved'>('off')
+  const cur = useRef<Snap>({ all, design, logo })
+  useEffect(() => { cur.current = { all, design, logo } })
+  const inHist = (url: string) => hist.current.some((h) => h.design?.url === url || h.logo?.url === url)
+  function release(s: Snap) {
+    for (const u of [s.design?.url, s.logo?.url]) {
+      if (u && !inHist(u) && u !== cur.current.design?.url && u !== cur.current.logo?.url) URL.revokeObjectURL(u)
+    }
+  }
+  function checkpoint() {
+    hist.current.push({ ...cur.current })
+    if (hist.current.length > 40) release(hist.current.shift() as Snap)
+    setHistN(hist.current.length)
+  }
+  function undo() {
+    const s = hist.current.pop()
+    if (!s) return
+    gesture.current = 'off'
+    setAll(s.all)
+    writeMockupSettings(userId, s.all)
+    setDesign(s.design)
+    setLogo(s.logo)
+    setHistN(hist.current.length)
+    setToast(t('mockups.undone'))
+  }
+  const beginGesture = () => { gesture.current = 'pending' }
+  const endGesture = () => { gesture.current = 'off' }
+  // fjerning med Backspace/Delete og knappene «Fjern»: kan angres
+  function removeDesign() { if (!cur.current.design) return; checkpoint(); setDesign(null) }
+  function removeLogo() { if (!cur.current.logo) return; checkpoint(); setLogo(null) }
+
+  // Frigjør designets og logoens object-URL når de byttes eller verktøyet lukkes – men ikke mens de kan hentes tilbake.
   const designUrl = design?.url
   useEffect(() => () => {
-    if (designUrl) URL.revokeObjectURL(designUrl)
+    if (designUrl && !inHist(designUrl)) URL.revokeObjectURL(designUrl)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- inHist leser bare historikken (ref)
   }, [designUrl])
-
-  // Frigjør logoens object-URL når den byttes eller verktøyet lukkes.
   const logoUrl = logo?.url
   useEffect(() => () => {
-    if (logoUrl) URL.revokeObjectURL(logoUrl)
+    if (logoUrl && !inHist(logoUrl)) URL.revokeObjectURL(logoUrl)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- inHist leser bare historikken (ref)
   }, [logoUrl])
+  useEffect(() => () => {
+    for (const s of hist.current) for (const u of [s.design?.url, s.logo?.url]) if (u) URL.revokeObjectURL(u)
+  }, [])
 
   function applyLogo(blob: Blob, name: string, ref: string | null) {
     void readLogo(blob, name, ref).then((r) => {
       if (!r.ok) return setToast(t(r.error === 'type' ? 'mockups.logo.bad' : r.error === 'size' ? 'mockups.logo.tooBig' : 'mockups.logo.unreadable'))
+      checkpoint()
       setLogo(r.logo)
       setToast(t('mockups.logo.added'))
     })
@@ -104,6 +175,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   function applyDesign(blob: Blob, name: string, assetId: AssetId | null) {
     void readDesign(blob, name, assetId).then((r) => {
       if (!r.ok) return setToast(t(r.error))
+      checkpoint()
       setDesign(r.design)
       setToast(t(selId ? 'mockups.toast.designSwitched' : 'mockups.toast.designAll'))
     })
@@ -145,6 +217,9 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   }
 
   function patch(id: string, p: Partial<MockupSettings>) {
+    // innenfor en gest lagres bare tilstanden før første endring
+    if (gesture.current !== 'saved') checkpoint()
+    if (gesture.current === 'pending') gesture.current = 'saved'
     setAll((prev) => {
       const next = { ...prev, [id]: { ...(prev[id] ?? {}), ...p } }
       writeMockupSettings(userId, next)
@@ -211,7 +286,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           onOpen={open}
           onUpload={() => fileInput.current?.click()}
           onPick={() => setPicking(true)}
-          onClearDesign={() => setDesign(null)}
+          onClearDesign={removeDesign}
           onAddOwn={() => ownInput.current?.click()}
           onToast={setToast}
         />
@@ -235,7 +310,11 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           logo={logo}
           onLogoUpload={() => logoInput.current?.click()}
           onLogoCloud={files.available() ? () => setPickingLogo(true) : null}
-          onLogoRemove={() => setLogo(null)}
+          onLogoRemove={removeLogo}
+          onClearDesign={removeDesign}
+          canUndo={histN > 0}
+          onUndo={undo}
+          onGesture={(on) => (on ? beginGesture() : endGesture())}
         />
       )}
 
@@ -351,6 +430,8 @@ function CardPreview({ mockup, image, design, settings }: { mockup: MockupEntry;
   return <canvas ref={canvas} className={styles.cardCanvas} style={{ aspectRatio: ratio } as CSSProperties} width={480} height={320} />
 }
 
+interface Snap { all: Record<string, Partial<MockupSettings>>; design: Design | null; logo: Logo | null }
+
 interface EditorProps {
   mockup: MockupEntry
   list: MockupEntry[]
@@ -369,9 +450,14 @@ interface EditorProps {
   /** null når menighetens filer ikke er tilgjengelige (uten innlogging/menighet). */
   onLogoCloud: (() => void) | null
   onLogoRemove: () => void
+  onClearDesign: () => void
+  canUndo: boolean
+  onUndo: () => void
+  /** Start (true) og slutt (false) på en draging: alt i mellom blir ett angresteg. */
+  onGesture: (on: boolean) => void
 }
 
-function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove }: EditorProps) {
+function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove, onClearDesign, canUndo, onUndo, onGesture }: EditorProps) {
   const t = useT()
   const { router } = useServices()
   const { assets } = useWorkspace()
@@ -384,6 +470,13 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [logoSel, setLogoSel] = useState(false)
+  // «Flytt og skaler design»: redigeringsmodus (knapp eller dobbeltklikk), valgt design og visning av hele designet
+  const [edit, setEdit] = useState<null | 'button' | 'dbl'>(null)
+  const [full, setFull] = useState(false)
+  const [designSel, setDesignSel] = useState(false)
+  const [guides, setGuides] = useState<Guide[]>([])
+  const overlay = useRef<HTMLCanvasElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const imgAspect = image ? image.naturalWidth / image.naturalHeight : 1
   // plasseringen lagres per mockup (andeler av bildet); uten lagret plassering: øvre høyre hjørne, 5 % fra kantene
   // (lagret plassering fra en logo med andre proporsjoner holdes innenfor bildet)
@@ -400,7 +493,22 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (el as HTMLInputElement).type !== 'range') return
-      if (el?.closest('[data-mk-logo]')) return // piltastene flytter logoen når den har fokus
+      // angre: Ctrl/Cmd + Z (ikke mens man skriver i et felt)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        onUndo()
+        return
+      }
+      if (el?.closest('[data-mk-logo]')) return // piltastene flytter logoen når den har fokus (Backspace håndteres der)
+      // Backspace/Delete fjerner det valgte objektet (ikke når en slider har fokus)
+      if ((e.key === 'Backspace' || e.key === 'Delete') && (el as HTMLInputElement | null)?.type !== 'range') {
+        if (designSel && design) {
+          e.preventDefault()
+          endEdit()
+          onClearDesign()
+        }
+        return
+      }
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
         step(-1)
@@ -409,6 +517,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         step(1)
       } else if (e.key === 'Escape') {
         if (logoSel) setLogoSel(false)
+        else if (edit) endEdit()
         else if (adj) setAdj(false)
         else onOpen(null)
       }
@@ -537,12 +646,14 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     const r = el.getBoundingClientRect()
     const base: Quad = (st.corners ?? [[0.3, 0.3], [0.7, 0.3], [0.7, 0.7], [0.3, 0.7]]).map((p) => [...p]) as Quad
     setDragging(true)
+    onGesture(true)
     const move = (ev: PointerEvent) => {
       const q = base.map((p) => [...p]) as Quad
       q[i as 0 | 1 | 2 | 3] = [clamp((ev.clientX - r.left) / r.width, 0, 1), clamp((ev.clientY - r.top) / r.height, 0, 1)]
       onPatch({ corners: q })
     }
     const up = () => {
+      onGesture(false)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
@@ -564,6 +675,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     ;(e.currentTarget as HTMLElement).closest<HTMLElement>('[data-mk-logo]')?.focus({ preventScroll: true })
     const r = el.getBoundingClientRect()
     const start = { ...lp }, sx = e.clientX, sy = e.clientY
+    onGesture(true)
     const move = (ev: PointerEvent) => {
       const next = corner === null
         ? { ...start, x: start.x + (ev.clientX - sx) / r.width, y: start.y + (ev.clientY - sy) / r.height }
@@ -571,6 +683,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
       onPatch({ logo: clampPlacement(next, logo.aspect, imgAspect) })
     }
     const up = () => {
+      onGesture(false)
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
@@ -593,15 +706,192 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
       e.preventDefault()
       setLogoSel(false)
       ;(e.currentTarget as HTMLElement).blur()
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      // fjern den valgte logoen (kan angres)
+      e.preventDefault()
+      setLogoSel(false)
+      onLogoRemove()
     }
   }
 
-  const pct = (v: number) => `${Math.round(v * 100)} %`
+  /* ---------- Flytt og skaler design ---------- */
+  // samme hjørner og forhold som render(): designet ligger i flaten (u, v) og sendes til bildet med homografien
+  const qn = (st.corners ?? mockup.corners) as Quad | null
+  const flatAspect = qn && image ? mockup.aspect ?? aspectOf(qn.map((p) => [p[0] * image.naturalWidth, p[1] * image.naturalHeight] as Point)) : 1
+  const H = qn ? toImage(qn) : null
+  const dw = design?.img.naturalWidth ?? 1, dh = design?.img.naturalHeight ?? 1
+  // designbildets fire hjørner i flaten (fritt formet dq, eller vanlig plassering med rotasjon og speiling)
+  const iq: Quad | null = design && H ? imageCorners(validQuad(st.dq) ? st : { ...st, dq: null }, dw, dh, flatAspect) : null
+  const dQuad = iq && H ? projectQuad(H, iq) : null
+  const editing = !!edit && !!iq && !adj
+
+  /** Endringer fra glidere og knapper: når designet er fritt formet, anvendes de på hjørnene (formen beholdes). */
+  function patchDesign(p: Partial<MockupSettings>) {
+    onPatch(validQuad(st.dq) ? patchFreeform(st, p, flatAspect) : p)
+  }
+
+  function endEdit() {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setDesignSel(false)
+    setFull(false)
+    setEdit(null)
+  }
+  // vanlig klikk utenfor designet: fjern markeringen; i visningen av hele designet (dobbeltklikk) avsluttes redigeringen
+  // – litt forsinket, så et dobbeltklikk ikke først lukker og så åpner
+  function clickOutside() {
+    setDesignSel(false)
+    if (!full) return
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => {
+      setFull(false)
+      setEdit((e) => (e === 'dbl' ? null : e))
+    }, 260)
+  }
+  function openFull() {
+    if (!design || adj || !H) return
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setEdit((e) => e ?? 'dbl')
+    setFull(true)
+    setDesignSel(true)
+  }
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
+
+  const uvAt = (ev: { clientX: number; clientY: number }): Point | null => {
+    const el = wrap.current
+    if (!el || !H) return null
+    const r = el.getBoundingClientRect()
+    return unproject(H, (ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height)
+  }
+  /** Terskel for magnetisk justering: ca. 7 skjermpiksler, regnet om til flatens enheter (u og v hver for seg). */
+  const snapTol = (): [number, number] => {
+    if (!H) return [0.01, 0.01]
+    const d = (a: Point, b: Point) => Math.hypot((a[0] - b[0]) * box.w, (a[1] - b[1]) * box.h)
+    const wpx = d(project(H, 0, 0.5), project(H, 1, 0.5)), hpx = d(project(H, 0.5, 0), project(H, 0.5, 1))
+    return [7 / Math.max(1, wpx), 7 / Math.max(1, hpx)]
+  }
+
+  /**
+   * Draging i designet:
+   * - flaten: flytt hele designet (med eller uten Shift – alltid samme flytting);
+   * - hjørne eller side uten Shift: proporsjonal skalering rundt midtpunktet;
+   * - Shift + hjørne: flytt hjørnet fritt (perspektiv); Shift + side: flytt hele siden.
+   * Magnetisk mot objektets kanter og midtlinjer (Alt slår det av). Koordinatene er flatens, så det følger pekeren.
+   */
+  function dragDesign(e: ReactPointerEvent, h: null | { k: 'c' | 's'; i: number }) {
+    if (!iq || e.button !== 0) return
+    const p0 = uvAt(e)
+    if (!p0) return
+    if (h === null && !inQuad(iq, p0[0], p0[1])) {
+      clickOutside()
+      return
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setDesignSel(true)
+    const free = !!h && e.shiftKey
+    const q0 = iq.map((p) => [p[0], p[1]] as Point) as Quad
+    const isFree = validQuad(st.dq)
+    const st0 = { ox: st.ox, oy: st.oy, zoom: st.zoom }
+    const box0 = designBox(st, dw, dh, flatAspect)
+    const [c0u, c0v] = centroid(q0)
+    const grab: Point = h ? (h.k === 'c' ? q0[h.i]! : sideMid(q0, h.i)) : p0
+    const d0 = Math.hypot((grab[0] - c0u) * flatAspect, grab[1] - c0v)
+    let moved = false
+    onGesture(true)
+    const move = (ev: PointerEvent) => {
+      const p = uvAt(ev)
+      if (!p) return
+      if (!moved) { moved = true; setDragging(true) }
+      const [tu, tv] = ev.altKey ? [0, 0] : snapTol()
+      const du = p[0] - p0[0], dv = p[1] - p0[1]
+      if (!h) {
+        // flytt
+        const sn = snapMove(q0, du, dv, tu, tv)
+        setGuides(sn.guides)
+        if (isFree) onPatch({ dq: translateQuad(q0, sn.du, sn.dv) })
+        else onPatch(clampOffset(box0, st0.ox + sn.du, st0.oy + sn.dv))
+      } else if (!free) {
+        // proporsjonal skalering rundt midtpunktet
+        const d1 = Math.hypot((grab[0] + du - c0u) * flatAspect, grab[1] + dv - c0v)
+        let f = d0 > 1e-6 ? d1 / d0 : 1
+        f = Math.min(Math.max(f, ZOOM_MIN / Math.max(st0.zoom, 0.01)), ZOOM_MAX / Math.max(st0.zoom, 0.01))
+        const sn = snapScale(q0, f, tu, tv)
+        setGuides(sn.guides)
+        if (isFree) onPatch({ dq: scaleQuad(q0, sn.f) })
+        else onPatch({ zoom: Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, st0.zoom * sn.f)) })
+      } else {
+        // fritt hjørne eller side (perspektiv); ugyldige former (kryssende/innbuktet) avvises
+        const sp = snapPoint(grab[0] + du, grab[1] + dv, tu, tv)
+        setGuides(sp.guides)
+        const mu = sp.u - grab[0], mv = sp.v - grab[1]
+        const q = q0.map((pt) => [pt[0], pt[1]] as Point) as Quad
+        const idx = h.k === 'c' ? [h.i] : [h.i, (h.i + 1) % 4]
+        for (const j of idx) q[j] = [q0[j]![0] + mu, q0[j]![1] + mv]
+        if (validQuad(q)) onPatch({ dq: q })
+      }
+    }
+    const up = () => {
+      onGesture(false)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      setDragging(false)
+      setGuides([])
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
+
+  /** Hjelpelinje i flaten, projisert til bildet (rett linje også i perspektiv). */
+  const guideLine = (g: Guide): [Point, Point] | null => {
+    if (!H) return null
+    const a: Point = g.axis === 'u' ? [g.at, -0.15] : [-0.15, g.at], b: Point = g.axis === 'u' ? [g.at, 1.15] : [1.15, g.at]
+    return [project(H, a[0], a[1]), project(H, b[0], b[1])]
+  }
+  const pts = (q: readonly Point[]) => q.map((p) => `${(p[0] * 100).toFixed(2)},${(p[1] * 100).toFixed(2)}`).join(' ')
+
+  // hele designet (også utenfor objektet) som halvgjennomsiktig lag, med samme perspektiv; bare i redigeringen.
+  // Designbildets egne hjørner projiseres til fotoet, så rotasjon, speiling og fri form følger med av seg selv.
+  const fullKey = full && iq ? JSON.stringify([iq, qn, box]) : ''
+  useEffect(() => {
+    const c = overlay.current
+    if (!c) return
+    const g = c.getContext('2d')
+    if (!g) return
+    const W = Math.max(2, Math.round(box.w)), Hh = Math.max(2, Math.round(box.h))
+    if (c.width !== W || c.height !== Hh) { c.width = W; c.height = Hh }
+    g.clearRect(0, 0, W, Hh)
+    if (!fullKey || !iq || !H || !design || !qn) return
+    const k = Math.min(1, 1600 / Math.max(dw, dh))
+    const bc = document.createElement('canvas')
+    bc.width = Math.max(2, Math.round(dw * k))
+    bc.height = Math.max(2, Math.round(dh * k))
+    const bg = bc.getContext('2d')
+    if (!bg) return
+    bg.imageSmoothingQuality = 'high'
+    bg.drawImage(design.img, 0, 0, bc.width, bc.height)
+    g.save()
+    g.globalAlpha = 0.5
+    warp(g, bc, projectQuad(H, iq).map(([x, y]) => [x * W, y * Hh]) as Quad, 18)
+    g.restore()
+    // innenfor objektet vises den vanlige mockupen (klippet og med masker) – ikke dobbelt
+    g.save()
+    g.globalCompositeOperation = 'destination-out'
+    g.beginPath()
+    qn.forEach(([x, y], i) => (i ? g.lineTo(x * W, y * Hh) : g.moveTo(x * W, y * Hh)))
+    g.closePath()
+    g.fill()
+    g.restore()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fullKey samler alt som påvirker tegningen
+  }, [fullKey, design])
+
   const range = (label: MessageKey, k: 'zoom' | 'ox' | 'oy' | 'shade' | 'gloss', min: number, max: number, stepV: number, def: number) => (
-    <label key={k} className={styles.range}>
-      <span>{t(label)} <em>{pct(st[k])}</em></span>
-      <input type="range" min={min} max={max} step={stepV} value={st[k]} onChange={(e) => onPatch({ [k]: Number(e.target.value) })} onDoubleClick={() => onPatch({ [k]: def })} />
-    </label>
+    <div key={k} className={styles.range}>
+      <span>{t(label)} <NumEdit value={st[k]} min={min} max={max} label={t(label)} onCommit={(v) => (k === 'zoom' || k === 'ox' || k === 'oy' ? patchDesign : onPatch)({ [k]: v })} /></span>
+      <input type="range" aria-label={t(label)} min={min} max={max} step={stepV} value={st[k]} onPointerDown={() => onGesture(true)} onPointerUp={() => onGesture(false)} onPointerCancel={() => onGesture(false)} onChange={(e) => (k === 'zoom' || k === 'ox' || k === 'oy' ? patchDesign : onPatch)({ [k]: Number(e.target.value) })} onDoubleClick={() => (k === 'zoom' || k === 'ox' || k === 'oy' ? patchDesign : onPatch)({ [k]: def })} />
+    </div>
   )
   const q = st.corners ?? []
   const targets = TOOLS.filter((tool) => tool.id !== 'mockups' && tool.load && tool.accepts.includes('image'))
@@ -613,13 +903,42 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         <span className={styles.selName}>{mockup.name}<small>{t(`mockups.cat.${mockup.cat}`)}</small></span>
         <Button size="small" variant="ghost" iconOnly onClick={() => step(-1)} title={t('mockups.prev')} aria-label={t('mockups.prev')}>‹</Button>
         <Button size="small" variant="ghost" iconOnly onClick={() => step(1)} title={t('mockups.next')} aria-label={t('mockups.next')}>›</Button>
+        <Button size="small" variant="ghost" iconOnly disabled={!canUndo} onClick={onUndo} title={t('mockups.undo')} aria-label={t('mockups.undo')} data-mk-undo="">↶</Button>
         <Button size="small" variant="primary" onClick={() => void download()}>{busy ? t('mockups.downloading') : t('mockups.download')}</Button>
       </header>
 
       <div className={styles.editorBody}>
-        <section ref={stage} className={styles.stage} onPointerDown={(e) => { if (!(e.target as HTMLElement).closest('[data-mk-logo]')) setLogoSel(false) }}>
-          <div ref={wrap} className={styles.wrap} style={{ width: box.w, height: box.h }}>
+        <section ref={stage} className={styles.stage} data-mk-full={full || undefined}
+          onPointerDown={(e) => {
+            const el = e.target as HTMLElement
+            if (!el.closest('[data-mk-logo]')) setLogoSel(false)
+            // klikk på bakgrunnen utenfor mockupen: samme som klikk utenfor designet
+            if (editing && !el.closest('[data-mk-wrap]')) clickOutside()
+          }}>
+          <div ref={wrap} className={styles.wrap} data-mk-wrap="" style={{ width: box.w, height: box.h }} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-mk-logo]')) openFull() }}>
             <canvas ref={canvas} className={styles.stageCanvas} />
+            <canvas ref={overlay} className={styles.fullLayer} aria-hidden="true" />
+            {editing && dQuad && iq && H && (
+              <div className={styles.designLayer} data-mk-design="" onPointerDown={(e) => dragDesign(e, null)}>
+                <svg className={styles.designFrame} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  {full && qn && <polygon className={styles.objectEdge} points={pts(qn)} />}
+                  {/* objektets midtlinjer mens det dras (rettesnor); hjelpelinjene vises bare når noe flukter */}
+                  {dragging && MID_GUIDES.map((g) => { const l = guideLine(g); return l && <line key={`m${g.axis}`} className={styles.midLine} x1={l[0][0] * 100} y1={l[0][1] * 100} x2={l[1][0] * 100} y2={l[1][1] * 100} /> })}
+                  {guides.map((g) => { const l = guideLine(g); return l && <line key={`${g.axis}${g.at}`} className={styles.guide} data-mk-guide={`${g.axis}${g.at}`} x1={l[0][0] * 100} y1={l[0][1] * 100} x2={l[1][0] * 100} y2={l[1][1] * 100} /> })}
+                  <polygon data-selected={designSel || undefined} points={pts(dQuad)} />
+                  {/* designets egne midtlinjer (rette linjer i designet) mens det dras */}
+                  {dragging && [0, 1].map((i) => { const a = sideMid(iq, i + 2), b = sideMid(iq, i), pa = project(H, a[0], a[1]), pb = project(H, b[0], b[1]); return <line key={`d${i}`} className={styles.designMid} x1={pa[0] * 100} y1={pa[1] * 100} x2={pb[0] * 100} y2={pb[1] * 100} /> })}
+                </svg>
+                {designSel && dQuad.map((p, i) => (
+                  <span key={`c${i}`} className={styles.designHandle} data-c={i} style={{ left: `${p[0] * 100}%`, top: `${p[1] * 100}%` }}
+                    title={t('mockups.place.corner')} onPointerDown={(e) => dragDesign(e, { k: 'c', i })} />
+                ))}
+                {designSel && [0, 1, 2, 3].map((i) => { const a = sideMid(iq, i), m = project(H, a[0], a[1]); return (
+                  <span key={`s${i}`} className={styles.designHandle} data-s={i} style={{ left: `${m[0] * 100}%`, top: `${m[1] * 100}%` }}
+                    title={t('mockups.place.side')} onPointerDown={(e) => dragDesign(e, { k: 's', i })} />
+                ) })}
+              </div>
+            )}
             {logo && lp && (
               <div data-mk-logo="" className={styles.logo} data-selected={logoSel || undefined} tabIndex={0} role="group" aria-label={t('mockups.logo.label')}
                 style={{ left: `${lp.x * 100}%`, top: `${lp.y * 100}%`, width: `${lp.w * 100}%`, height: `${heightOf(lp, logo.aspect, imgAspect) * 100}%` }}
@@ -671,36 +990,45 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
           <h2 className={styles.section}>{t('mockups.section.placement')}</h2>
           <div className={styles.segmented} role="group">
             {(['cover', 'contain'] as const).map((f) => (
-              <button key={f} type="button" aria-pressed={st.fit === f} onClick={() => onPatch({ fit: f })}>{t(`mockups.fit.${f}`)}</button>
+              <button key={f} type="button" aria-pressed={st.fit === f} onClick={() => patchDesign({ fit: f })}>{t(`mockups.fit.${f}`)}</button>
             ))}
           </div>
           <div className={styles.row} role="group" aria-label={t('mockups.orient.group')}>
             {([
-              ['left', 'mockups.orient.left', () => onPatch({ rot: norm(st.rot - 90) })],
-              ['right', 'mockups.orient.right', () => onPatch({ rot: norm(st.rot + 90) })],
+              ['left', 'mockups.orient.left', () => patchDesign({ rot: norm(st.rot - 90) })],
+              ['right', 'mockups.orient.right', () => patchDesign({ rot: norm(st.rot + 90) })],
               // speilingen er i bildets egne akser; står bildet på siden (≈90°/270°), byttes aksen så «vannrett» er vannrett på skjermen
-              ['flipH', 'mockups.orient.flipH', () => (Math.round(norm(st.rot) / 90) % 2 ? onPatch({ flipY: !st.flipY }) : onPatch({ flipX: !st.flipX }))],
-              ['flipV', 'mockups.orient.flipV', () => (Math.round(norm(st.rot) / 90) % 2 ? onPatch({ flipX: !st.flipX }) : onPatch({ flipY: !st.flipY }))],
+              ['flipH', 'mockups.orient.flipH', () => (Math.round(norm(st.rot) / 90) % 2 ? patchDesign({ flipY: !st.flipY }) : patchDesign({ flipX: !st.flipX }))],
+              ['flipV', 'mockups.orient.flipV', () => (Math.round(norm(st.rot) / 90) % 2 ? patchDesign({ flipX: !st.flipX }) : patchDesign({ flipY: !st.flipY }))],
             ] as const).map(([icon, label, act]) => (
               <Button key={icon} size="small" variant="ghost" iconOnly disabled={!design} title={t(label)} aria-label={t(label)} onClick={act}><RotIcon d={icon} /></Button>
             ))}
-            <Button size="small" variant="ghost" disabled={!design || (!st.rot && !st.flipX && !st.flipY)} onClick={() => onPatch({ rot: 0, flipX: false, flipY: false })}>{t('mockups.orient.reset')}</Button>
+            <Button size="small" variant="ghost" disabled={!design || (!st.rot && !st.flipX && !st.flipY)} onClick={() => patchDesign({ rot: 0, flipX: false, flipY: false })}>{t('mockups.orient.reset')}</Button>
           </div>
-          <label className={styles.range}>
-            <span>{t('mockups.orient.angle')} <em>{norm(st.rot)}°</em></span>
-            <input type="range" min={0} max={359} step={1} value={norm(st.rot)} disabled={!design} onChange={(e) => onPatch({ rot: Number(e.target.value) })} onDoubleClick={() => onPatch({ rot: 0 })} />
-          </label>
-          {range('mockups.zoom', 'zoom', 0.5, 3, 0.01, 1)}
-          {range('mockups.offsetX', 'ox', -0.5, 0.5, 0.005, 0)}
-          {range('mockups.offsetY', 'oy', -0.5, 0.5, 0.005, 0)}
+          <div className={styles.range}>
+            <span>{t('mockups.orient.angle')} <NumEdit value={norm(st.rot)} min={0} max={359} unit="°" scale={1} label={t('mockups.orient.angle')} disabled={!design} onCommit={(v) => patchDesign({ rot: norm(v) })} /></span>
+            <input type="range" aria-label={t('mockups.orient.angle')} min={0} max={359} step={1} value={norm(st.rot)} disabled={!design} onPointerDown={() => onGesture(true)} onPointerUp={() => onGesture(false)} onPointerCancel={() => onGesture(false)} onChange={(e) => patchDesign({ rot: Number(e.target.value) })} onDoubleClick={() => patchDesign({ rot: 0 })} />
+          </div>
+          <div className={styles.row}>
+            <Button size="small" variant={edit ? 'primary' : 'default'} disabled={!design} data-mk-design-edit=""
+              onClick={() => { if (edit) endEdit(); else { setAdj(false); setEdit('button'); setDesignSel(true) } }}>
+              {edit ? t('mockups.place.done') : t('mockups.place.edit')}
+            </Button>
+            <Button size="small" variant="ghost" disabled={!design || (st.zoom === 1 && !st.ox && !st.oy && !st.dq)} onClick={() => onPatch({ zoom: 1, ox: 0, oy: 0, dq: null })}>{t('mockups.place.reset')}</Button>
+          </div>
+          {edit && <p className={styles.hint}>{t('mockups.place.hint')}</p>}
+          {range('mockups.zoom', 'zoom', ZOOM_MIN, ZOOM_MAX, 0.01, 1)}
+          {range('mockups.offsetX', 'ox', -1.5, 1.5, 0.005, 0)}
+          {range('mockups.offsetY', 'oy', -1.5, 1.5, 0.005, 0)}
           <label className={styles.color}>
             {t('mockups.background')}
             <input type="color" value={st.bg} onChange={(e) => onPatch({ bg: e.target.value })} />
           </label>
 
           <h2 className={styles.section}>{t('mockups.section.realism')}</h2>
-          {range('mockups.shade', 'shade', 0, 1, 0.01, 0.6)}
-          {range('mockups.gloss', 'gloss', 0, 1, 0.01, 0.35)}
+          {/* skjermer som lyser selv (lit: false) får ikke lys fra fotoet – da har bryterne ingen virkning */}
+          {mockup.lit !== false && range('mockups.shade', 'shade', 0, 1, 0.01, 0.6)}
+          {mockup.lit !== false && range('mockups.gloss', 'gloss', 0, 1, 0.01, 0.35)}
           {mockup.occl !== false && (
             <button type="button" role="switch" aria-checked={st.occl !== false} className={styles.switch} onClick={() => onPatch({ occl: st.occl === false })}>
               {t('mockups.occl')}<i aria-hidden="true" />
@@ -708,7 +1036,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
           )}
 
           <h2 className={styles.section}>{t('mockups.section.screen')}</h2>
-          <Button size="small" variant={adj ? 'primary' : 'default'} onClick={() => setAdj((v) => !v)}>{adj ? t('mockups.adjustDone') : t('mockups.adjust')}</Button>
+          <Button size="small" variant={adj ? 'primary' : 'default'} onClick={() => { if (!adj) endEdit(); setAdj((v) => !v) }}>{adj ? t('mockups.adjustDone') : t('mockups.adjust')}</Button>
           {adj && <p className={styles.hint}>{t('mockups.adjustHint')}</p>}
           <div className={styles.row}>
             <Button size="small" variant="ghost" onClick={() => {

@@ -525,3 +525,127 @@
   max-height: 100%;
   object-fit: contain;
 }
+
+/* «Flytt og skaler design»: ramme og hjørnehåndtak over forhåndsvisningen (aldri med i eksporten – eget lag).
+   Hele designet (også utenfor objektet) vises halvgjennomsiktig i fullLayer etter dobbeltklikk. */
+.fullLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.designLayer {
+  position: absolute;
+  inset: 0;
+  cursor: move;
+  touch-action: none;
+}
+
+.designFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.designFrame polygon {
+  fill: none;
+  stroke: #f5b82c;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.designFrame polygon[data-selected] {
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+/* objektets synlige flate (der designet vises i mockupen) */
+.designFrame .objectEdge {
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+}
+
+.designHandle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: #f5b82c;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.designHandle[data-c='1'],
+.designHandle[data-c='3'] {
+  cursor: nesw-resize;
+}
+
+/* sidehåndtak: litt mindre og firkantede, så de skilles fra hjørnene */
+.designHandle[data-s] {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 3px;
+  cursor: move;
+}
+
+/* hjelpelinjer mens designet dras (aldri med i eksporten – eget lag) */
+.designFrame line {
+  vector-effect: non-scaling-stroke;
+}
+
+.designFrame .midLine {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.designFrame .designMid {
+  stroke: rgba(245, 184, 44, 0.6);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+/* flukter med objektets kant eller midtlinje */
+.designFrame .guide {
+  stroke: #ff3ea5;
+  stroke-width: 1.5;
+}
+
+/* tallet ved en slider: klikkbart, og blir et felt for å skrive inn verdien */
+.numBtn {
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-style: normal;
+  cursor: text;
+}
+
+.numBtn:hover:not(:disabled),
+.numBtn:focus-visible {
+  border-color: var(--color-border);
+}
+
+.numEdit {
+  width: 5.5em;
+  padding: 0 4px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--color-bg);
+  color: var(--color-text-strong);
+  font: inherit;
+  text-align: right;
+}

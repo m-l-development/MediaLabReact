@@ -1,0 +1,63 @@
+# Automatiske kontroller for ConnectHub / Media Lab.
+# Kjører ved push til main og connecthub og ved pull requests mot main. Deploy til Vercel skjer fortsatt bare via
+# Vercels Git-integrasjon (main → produksjon, andre greiner → forhåndsvisning), så det blir aldri doble deployer herfra.
+# Ingen hemmeligheter brukes: nye-app-bygget kjøres uten backend (som de lokale testene).
+name: CI
+
+on:
+  push:
+    branches: [main, connecthub]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            media-lab/package-lock.json
+            web/package-lock.json
+
+      - name: Installer (media-lab)
+        working-directory: media-lab
+        run: npm ci
+
+      - name: Tester (media-lab – server, tjenester og bygg)
+        working-directory: media-lab
+        run: npm test
+
+      - name: Installer (web)
+        working-directory: web
+        run: npm ci
+
+      - name: Typesjekk (web)
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Lint (web)
+        working-directory: web
+        run: npm run lint
+
+      - name: Enhetstester (web)
+        working-directory: web
+        run: npm test
+
+      - name: Bygg (web, uten backend)
+        working-directory: web
+        env:
+          ML_TEST_NO_BACKEND: '1'
+        run: npx vite build --mode development --outDir dist-ci --logLevel warn
