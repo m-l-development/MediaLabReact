@@ -6,6 +6,7 @@ import { toolById } from '../../app/tools'
 import { displayName, type Me } from '../../domain/account'
 import type { ToolId } from '../../domain/tool'
 import { useT } from '../../shared/i18n/i18n'
+import { cachedChurchLogo, churchLogo } from '../../shared/media/church-logo'
 import { toolDescKey, toolTitleKey } from '../../shared/i18n/messages'
 import { activeChurch } from '../../services/shared-setup'
 import { Button } from '../../shared/ui/Button'
@@ -31,26 +32,23 @@ export function Hub({ me }: { me: Me | null }) {
   const church = activeChurch(me)
   const logoId = church?.logo_file_id ?? null
   const [logo, setLogo] = useState<{ id: string; url: string } | null>(null)
+  const uid = me?.id ?? ''
   useEffect(() => {
-    if (!logoId) return
-    let live = true, url = ''
-    // som bilde fra egen opprinnelse (blob:), siden innholdsreglene ikke tillater lagringens adresser i <img>
-    files.blob(logoId).then(
-      (b) => {
-        if (!live || !b) return
-        url = URL.createObjectURL(b)
-        setLogo({ id: logoId, url })
-      },
+    if (!logoId || !uid || cachedChurchLogo(uid, logoId)) return
+    let live = true
+    // fra minnet eller brukerens lagrede, nedskalerte kopi; ellers hentes den én gang (shared/media/church-logo.ts).
+    // data:-adresse, siden innholdsreglene ikke tillater lagringens adresser i <img>
+    churchLogo(files, uid, logoId).then(
+      (url) => { if (live && url) setLogo({ id: logoId, url }) },
       () => {
         // ingen logo ved feil; forbokstavene vises
       },
     )
     return () => {
       live = false
-      if (url) URL.revokeObjectURL(url)
     }
-  }, [files, logoId])
-  const logoUrl = logo && logo.id === logoId ? logo.url : null
+  }, [files, logoId, uid])
+  const logoUrl = (logo && logo.id === logoId ? logo.url : null) ?? (logoId && uid ? cachedChurchLogo(uid, logoId) : null)
   const [collab, setCollab] = useState(false)
   const [folder, setFolderState] = useState<Folder>(readFolder)
 

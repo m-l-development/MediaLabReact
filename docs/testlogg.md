@@ -1664,3 +1664,18 @@ Lokalt og i connecthub-dev med syntetiske data, gren `connecthub` (lokalt, ikke 
 | Typesjekk, lint | ingen feil |
 
 Migreringen `20261018130000_loop_shared_disk.sql` er kjørt i dev, ikke i produksjonen. Kjøreplan: `docs/kjoreplan-migreringer-2026-10-18.md`.
+
+### 2026-10-18 – Lastetid: menighetslogoen på forsiden
+
+**Årsak (målt):** logoen ble hentet på nytt hver gang forsiden ble vist – først et serverkall (`file.urls`) for en ny signert adresse, så nedlasting i full størrelse. Den signerte adressen er ny hver gang, så nettleserens hurtigbuffer traff aldri. Produksjonslogoen er en JPEG på 268 KB (bare metadata lest) som vises i 32×32 px. Statiske filer (`/assets`, `/images`, `/fonts`) har allerede riktige cache-headere.
+
+**Endring:** `shared/media/church-logo.ts` – logoen holdes i minnet og som nedskalert kopi (høyst 128 px, PNG, ellers WebP 0,92) under brukerens eget prefiks `ml2:<bruker>:` (fjernes av «Slett lokale data»). Nøkkelen er fil-id-en, så en ny logo hentes med en gang og den gamle kopien fjernes. Tilgang uendret.
+
+| Måling (dev, `e2e-dev/hub-logo-perf-dev.spec.ts`) | Før | Etter |
+|---|---|---|
+| Retur til forsiden i appen | 348 ms, 1 serverkall + 1 nedlasting | 31 ms, 0 kall |
+| Ny innlasting (F5) | 928 ms, 1 + 1 | 100 ms, 0 kall |
+| Første visning | 945 ms, 1 + 1 | 429 ms, 1 + 1 (variasjon; ingen forbedring påstått) |
+| Nedskalering i Chrome (syntetisk JPEG 1500 px, 258 KB) | – | 128 px, ca. 13 KB, 73 ms, én gang |
+
+Tester: Hub 5/5 (ny: hentes én gang, ingen ny henting ved retur/ny innlasting, ny logo hentes, gammel kopi fjernes), App-tester, typesjekk, lint.
