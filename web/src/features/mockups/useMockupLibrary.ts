@@ -136,7 +136,7 @@ export function useMockupLibrary(): MockupLibrary {
         images.set(m.id, im)
         if (!m.corners) {
           try {
-            auto.set(m.id, detect(im))
+            auto.set(m.id, detect(im, m.inset))
           } catch {
             auto.set(m.id, null)
           }

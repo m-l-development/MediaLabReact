@@ -107,6 +107,90 @@ export function detectScreen(P: Pixels): Quad | null {
 }
 
 /**
+ * Flytter hver side av en funnet skjermfirkant ut (eller inn) til fotoets faktiske kant. Gjenkjenningen over går på et
+ * grovt bilde og fyller bare piksler som er helt like skjermen, så firkanten havner litt innenfor kanten (og avrundede
+ * hjørner trekker ytterpunktene innover) – da blir en stripe av fotoets egen skjerm (svart glass, hvit flate) stående
+ * rundt designet. Her måles kanten langs normalen på mange steder på hver side (første tydelige overgang innenfra og
+ * ut), det legges en rett linje gjennom målingene (avvikere, f.eks. en finger over kanten, tas bort), og hjørnene blir
+ * skjæringspunktene mellom linjene – også utenfor et avrundet hjørne, der masken senere følger fotoets egen rundning.
+ * Sider uten tydelig kant beholdes. `reach` = hvor langt (andel av bildets lengste side) kanten kan ligge fra siden.
+ */
+export function refineQuad(P: Pixels, qn: Quad, reach = 0.015): Quad {
+  const { w, h, d } = P
+  const lum = (x: number, y: number) => {
+    // bilineært, med pikselsentre i i + 0,5
+    const fx = clamp(x - 0.5, 0, w - 1), fy = clamp(y - 0.5, 0, h - 1)
+    const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(w - 1, x0 + 1), y1 = Math.min(h - 1, y0 + 1), tx = fx - x0, ty = fy - y0
+    const L = (xx: number, yy: number) => { const k = (yy * w + xx) * 4; return 0.3 * (d[k] ?? 0) + 0.59 * (d[k + 1] ?? 0) + 0.11 * (d[k + 2] ?? 0) }
+    return (L(x0, y0) * (1 - tx) + L(x1, y0) * tx) * (1 - ty) + (L(x0, y1) * (1 - tx) + L(x1, y1) * tx) * ty
+  }
+  const Q = qn.map((p) => [p[0] * w, p[1] * h] as Point)
+  const cx = Q.reduce((s, p) => s + p[0], 0) / 4, cy = Q.reduce((s, p) => s + p[1], 0) / 4
+  const R = Math.max(3, reach * Math.max(w, h))
+  const STEP = 0.5
+  type Line = { px: number; py: number; dx: number; dy: number }
+  const lines: Line[] = []
+  for (let i = 0; i < 4; i++) {
+    const a = Q[i]!, b = Q[(i + 1) % 4]!
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
+    const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len
+    let nx = uy, ny = -ux
+    if (nx * (cx - a[0]) + ny * (cy - a[1]) > 0) { nx = -nx; ny = -ny } // normalen peker utover
+    const pts: Point[] = []
+    const S = 40
+    for (let s = 0; s <= S; s++) {
+      const t = 0.08 + (0.84 * s) / S // ikke helt ut i hjørnene (avrundinger)
+      const sx = a[0] + (b[0] - a[0]) * t, sy = a[1] + (b[1] - a[1]) * t
+      const n = Math.round((2 * R) / STEP)
+      const prof: number[] = []
+      for (let k = 0; k <= n; k++) { const o = -R + k * STEP; prof.push(lum(sx + nx * o, sy + ny * o)) }
+      const gr = prof.map((_, k) => (k < 2 || k > n - 2 ? 0 : Math.abs(prof[k + 2]! - prof[k - 2]!)))
+      const top = Math.max(...gr)
+      if (top < 24) continue
+      // første tydelige overgang innenfra og ut (ikke en kant lenger ute, f.eks. ytterkanten av en ramme)
+      let k = -1
+      for (let j = 2; j < n - 1; j++) if (gr[j]! >= top * 0.5 && gr[j]! >= gr[j - 1]! && gr[j]! >= gr[j + 1]!) { k = j; break }
+      if (k < 0) continue
+      const g0 = gr[k - 1]!, g1 = gr[k]!, g2 = gr[k + 1]!, den = g0 - 2 * g1 + g2
+      const o = -R + (k + (den < 0 ? clamp((0.5 * (g0 - g2)) / den, -0.5, 0.5) : 0)) * STEP // toppen mellom punktene
+      pts.push([sx + nx * o, sy + ny * o])
+    }
+    let line: Line | null = null
+    let use = pts
+    for (let it = 0; it < 4 && use.length >= 8; it++) {
+      // rett linje gjennom punktene (minste kvadraters avstand vinkelrett på linjen)
+      const mx = use.reduce((s, p) => s + p[0], 0) / use.length, my = use.reduce((s, p) => s + p[1], 0) / use.length
+      let sxx = 0, sxy = 0, syy = 0
+      for (const p of use) { const ex = p[0] - mx, ey = p[1] - my; sxx += ex * ex; sxy += ex * ey; syy += ey * ey }
+      const th = 0.5 * Math.atan2(2 * sxy, sxx - syy)
+      line = { px: mx, py: my, dx: Math.cos(th), dy: Math.sin(th) }
+      const L = line
+      const res = use.map((p) => Math.abs((p[0] - L.px) * L.dy - (p[1] - L.py) * L.dx))
+      const med = [...res].sort((x, y) => x - y)[res.length >> 1]!
+      const keep = use.filter((_, j) => res[j]! <= Math.max(1, med * 3))
+      if (keep.length === use.length) break
+      use = keep
+    }
+    // nok målinger som ligger på linjen, og linjen nesten parallell med siden; ellers beholdes siden
+    if (!line || use.length < 0.45 * 41 || Math.abs(line.dx * uy - line.dy * ux) > 0.05) lines.push({ px: a[0], py: a[1], dx: ux, dy: uy })
+    else lines.push(line)
+  }
+  const out: Point[] = []
+  for (let i = 0; i < 4; i++) {
+    const L1 = lines[(i + 3) % 4]!, L2 = lines[i]!
+    const den = L1.dx * L2.dy - L1.dy * L2.dx
+    if (Math.abs(den) < 1e-6) return qn
+    const t = ((L2.px - L1.px) * L2.dy - (L2.py - L1.py) * L2.dx) / den
+    const p: Point = [L1.px + L1.dx * t, L1.py + L1.dy * t]
+    if (Math.hypot(p[0] - Q[i]![0], p[1] - Q[i]![1]) > R * 2.5) return qn // urimelig flytting: behold firkanten
+    out.push(p)
+  }
+  const a0 = area(Q), a1 = area(out)
+  if (!a0 || a1 / a0 < 0.85 || a1 / a0 > 1.2) return qn
+  return out.map((p) => [clamp(p[0] / w, 0, 1), clamp(p[1] / h, 0, 1)]) as Quad
+}
+
+/**
  * Maske for skjermflaten (0/1 per piksel i P-oppløsning) som tar med fingre og ting foran skjermen (MK-07):
  * skjermens farge fylles innenfra, og bare det som henger sammen med skjermen, blir en del av den.
  * Returnerer null hvis skjermen ikke kan skilles fra det som er foran (da brukes hele firkanten).
@@ -228,8 +312,10 @@ const SURE = 3 // piksler så langt fra kanten regnes som sikre når fargesnitte
  * skjermen (F: fingre, hud, ramme, bakgrunn): andel skjerm = 1 − proj(I − S på F − S). Da følger kanten fotoets
  * egen kant (også uskarpe fingre ute av fokus), uten trappetrinn eller lyse/mørke glorier, og designet maler ikke
  * over huden. Ingen oppskarping. Returnerer skjermandel 0–255 for utsnittet (bx, by, bw, bh) av bildet W×H.
+ * `surf` (valgfri, bw·bh·4) fylles med den lokale skjermfargen S nær kantene (A = 255 der den er kjent), så overgangen
+ * kan tegnes uten fotoets egen skjermfarge (se render: ingen svart/hvit stripe langs kanten).
  */
-export function edgeMatte(P: Pixels, m: Uint8Array, base: Uint8ClampedArray, bx: number, by: number, bw: number, bh: number, W: number, H: number, qn?: readonly Point[]): Uint8ClampedArray {
+export function edgeMatte(P: Pixels, m: Uint8Array, base: Uint8ClampedArray, bx: number, by: number, bw: number, bh: number, W: number, H: number, qn?: readonly Point[], surf?: Uint8ClampedArray): Uint8ClampedArray {
   const { w, h, d } = P
   // avstand (i bildepiksler) til skjermfirkantens kanter: ved lav kontrast like ved kanten avgjør firkantens glatte kant
   const edgeNear = (() => {
@@ -318,6 +404,7 @@ export function edgeMatte(P: Pixels, m: Uint8Array, base: Uint8ClampedArray, bx:
         }
         ir /= nn; ig /= nn; ib /= nn
         if (L) {
+          if (surf) { const o = (j * bw + i) * 4; surf[o] = L[0]!; surf[o + 1] = L[1]!; surf[o + 2] = L[2]!; surf[o + 3] = 255 }
           const s0 = L[0]! + L[1]! + L[2]! + 1, s1 = ir + ig + ib + 1
           sameTone = Math.hypot(ir / s1 - L[0]! / s0, ig / s1 - L[1]! / s0, ib / s1 - L[2]! / s0) < 0.05
           const dr = L[3]! - L[0]!, dg = L[4]! - L[1]!, db = L[5]! - L[2]!, den = dr * dr + dg * dg + db * db

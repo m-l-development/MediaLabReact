@@ -109,6 +109,20 @@ export function aspectOf(q: readonly Point[]): number {
   return (d(p0, p1) + d(p3, p2)) / 2 / Math.max(1, (d(p0, p3) + d(p1, p2)) / 2)
 }
 
+/** Innfelling per side (topp, høyre, bunn, venstre) som andel av flatens bredde/høyde. */
+export type Inset = [number, number, number, number]
+
+/**
+ * Firkanten innfelt i perspektiv: sidene flyttes innover med andeler av flaten (i flatens egne koordinater, så en
+ * jevn ramme i virkeligheten blir smalere der flaten er lenger unna). Brukes når fotoets skjerm er svart og går i ett
+ * med den svarte rammen: glassets ytterkant finnes, og det aktive skjermområdet ligger rammens tykkelse innenfor.
+ */
+export function insetQuad(q: Quad, [t, r, b, l]: Inset): Quad {
+  const h = homography(q)
+  if (!h) return q
+  return [project(h, l, t), project(h, 1 - r, t), project(h, 1 - r, 1 - b), project(h, l, 1 - b)]
+}
+
 /** Skalerer en firkant rundt sentrum (f.eks. 1.025 for å dekke kanten av skjermen). */
 export function growQuad(q: readonly Point[], f: number): Quad {
   const cx = q.reduce((s, p) => s + p[0], 0) / 4

@@ -3,9 +3,10 @@ import { fillStops, type Fill } from '../../shared/fill/fill'
 import * as FX from '../../shared/fx/fx'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
 import {
-  ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, newDoc, SHAPES, shapeLayer, textLayer, uid,
-  type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Vig,
+  ADJ, bleedLayers, clamp, dims, emptySlot, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, textLayer, uid,
+  type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
+import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
 import { baseOf, cover, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
@@ -64,6 +65,10 @@ export interface PState {
   fxStr: number
   fxCk: string | null
   picker: Picker
+  /** Malfargene på startsiden (null = malenes egne farger); gjelder malene som ikke har egne farger. */
+  scheme: Scheme | null
+  /** Farger og rekkefølge per mal (satt i editoren); beholdes når du bytter mellom maler. */
+  tplSchemes: Record<string, Scheme | null>
 }
 
 export interface PDeps {
@@ -100,6 +105,21 @@ const parse = <T>(s: string | null, d: T): T => {
   }
 }
 
+/** Lagrede malfarger (eldre «photodesign.palette» = en ferdig kombinasjon). */
+function loadScheme(st: PDeps['storage']): Scheme | null {
+  const v = parse<unknown>(st.get('photodesign.scheme'), undefined)
+  if (v !== undefined) return validScheme(v) ? v : null
+  const old = st.get('photodesign.palette')
+  return old ? schemeOfPreset(old) : null
+}
+
+function loadTplSchemes(st: PDeps['storage']): Record<string, Scheme | null> {
+  const v = parse<unknown>(st.get('photodesign.tplschemes'), null)
+  const out: Record<string, Scheme | null> = {}
+  if (v && typeof v === 'object') for (const [k, x] of Object.entries(v as Record<string, unknown>)) if (x === null || validScheme(x)) out[k.slice(0, 40)] = x
+  return out
+}
+
 /** Photo Design: tilstand og handlinger (samme oppførsel som media-lab/src/pages/photo-design/logic.js). */
 export class PhotoController {
   readonly state: Store<PState>
@@ -131,6 +151,7 @@ export class PhotoController {
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
       adv: FX.isAdvanced(), fxCat: 'all', fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
+      scheme: loadScheme(st), tplSchemes: loadTplSchemes(st),
     })
   }
 
@@ -175,9 +196,41 @@ export class PhotoController {
     return f ? [f.w, f.h] : [Math.round(Math.min(8000, Math.max(64, +S.cw || 1200))), Math.round(Math.min(8000, Math.max(64, +S.ch || 800)))]
   }
 
+  /** Malfargene på startsiden (forhåndsvisningene tegnes på nytt med en gang). */
+  setScheme(sc: Scheme | null): void {
+    this.d.storage.set('photodesign.scheme', JSON.stringify(sc))
+    this.set({ scheme: sc })
+  }
+
+  /** Fargene en mal får: dens egne (satt i editoren), ellers fargene på startsiden. */
+  schemeFor(tpl: string): Scheme | null {
+    const t = this.s.tplSchemes
+    return Object.prototype.hasOwnProperty.call(t, tpl) ? (t[tpl] ?? null) : this.s.scheme
+  }
+
+  /** Malen bruker fargene på startsiden igjen (glemmer dens egne). */
+  forgetTplScheme(tpl: string): void {
+    const t = { ...this.s.tplSchemes }
+    delete t[tpl]
+    this.d.storage.set('photodesign.tplschemes', JSON.stringify(t))
+    this.set({ tplSchemes: t })
+  }
+
+  /** Farger i det åpne prosjektet (lagres med prosjektet, kan angres) – og huskes for malen det er laget fra. */
+  setDocScheme(sc: Scheme | null): void {
+    const d = this.s.doc
+    if (!d) return
+    this.setDoc((x) => applyScheme(x, sc), 'scheme')
+    if (d.tplK && d.tplK !== 'blank') {
+      const t = { ...this.s.tplSchemes, [d.tplK]: sc }
+      this.d.storage.set('photodesign.tplschemes', JSON.stringify(t))
+      this.set({ tplSchemes: t })
+    }
+  }
+
   create(tpl: string): void {
     const [w, h] = this.fmtWH()
-    const d = newDoc(w, h, tpl, this.now())
+    const d = tplDoc(w, h, tpl, this.schemeFor(tpl), this.now())
     const f = FORMATS.find((x) => x.k === this.s.fmt)
     d.name = tpl === 'card2' ? this.d.t('Visittkort') : this.d.t((f ? f.l : 'Egendefinert') as Phrase)
     this.M.media.clear()
@@ -239,6 +292,7 @@ export class PhotoController {
   openDoc(doc: PdDoc, projectId: string | null, isNew: boolean): void {
     this.past = []
     this.future = []
+    this.hk = null
     this.dirty = isNew
     this.fmtBase = null
     this.set({ view: 'edit', doc, projectId, sel: null, multi: [], tool: 'move', tab: 'layer', zoom: 1, expOpen: false, saved: isNew && !this.s.autosave ? { kind: 'unsaved' } : null, hist: 0 })
@@ -593,7 +647,9 @@ export class PhotoController {
 
   /**
    * Et nytt bilde (fil, utklippstavle, Dine medier eller Fellesmappe). Legges inn i bildeplassen under punktet,
-   * i en valgt tom bildeplass, eller som nytt lag. `src` = allerede lagret i Dine medier.
+   * i en valgt tom bildeplass, ellers i malens første tomme bildeplass (uten at noe er valgt), og først når det ikke
+   * finnes noen, som nytt lag. Før ble bildet alltid et nytt lag øverst når bildeplassen ikke var valgt: det dekket
+   * malens tekst, og bildeplassen ble stående tom. `src` = allerede lagret i Dine medier.
    */
   async addBlob(blob: Blob, name: string, at: Pt | null = null, src?: string, replace?: string): Promise<void> {
     const d = this.s.doc
@@ -620,7 +676,7 @@ export class PhotoController {
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
     const tgt = at ? hit(doc, at[0], at[1]) : null
     const sl = this.selL()
-    const ph = rep ?? (tgt?.type === 'image' ? tgt : !at && sl?.type === 'image' && !sl.src ? sl : null)
+    const ph = rep ?? (tgt?.type === 'image' ? tgt : at ? null : sl?.type === 'image' && !sl.src ? sl : emptySlot(doc))
     const nm = String(name || this.d.t('Bilde')).replace(/\.[a-z0-9]+$/i, '').slice(0, 40)
     if (ph && ph.type === 'image') {
       this.patchL(ph.id, { src: key, cz: 1, cx: 0, cy: 0, name: ph.src ? ph.name : nm, mask: null })
