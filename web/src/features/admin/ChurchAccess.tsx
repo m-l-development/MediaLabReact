@@ -59,7 +59,7 @@ export function NewChurchCard() {
   }
   return (
     <Card title="Ny menighet">
-      <form className="ch-form" onSubmit={create} data-ch-newchurch="">
+      <form className="ch-form ch-newchurch" onSubmit={create} data-ch-newchurch="">
         <div className="ch-row">
           <input className="ch-input" style={{ flex: '1 1 240px' }} placeholder={t('Navn på ny menighet')} aria-label={t('Navn på ny menighet')} value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={120} required />
         </div>
@@ -67,7 +67,7 @@ export function NewChurchCard() {
           <div className="ch-newlogo-box" data-ch-newlogo-preview={logo ? 'on' : 'off'}>
             {url ? <img src={url} alt={t('Forhåndsvisning av logoen')} /> : <span className="ch-muted">{t('Ingen logo')}</span>}
           </div>
-          <div className="ch-form">
+          <div className="ch-newlogo-side">
             <input ref={input} type="file" accept={LOGO_TYPES.join(',')} style={{ display: 'none' }} onChange={pick} data-ch-newlogo-input="" aria-label={t('Velg logo')} />
             <div className="ch-row">
               <Btn small onClick={() => input.current?.click()}>{t(logo ? 'Bytt logo' : 'Velg logo (valgfritt)')}</Btn>
