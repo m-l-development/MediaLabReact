@@ -566,9 +566,9 @@ class Component extends DCLogic {
       if (ok && first && this.shared.exists) { this.setState({ sharedExists: true }); toast('Grunnoppsettet er nå felles for menigheten. Andre i menigheten ser endringene.'); }
     }, 900);
   }
-  /* Bilder under 4 MB i et format serveren godtar. */
+  /* Bilder under 30 MB i et format serveren godtar. */
   async fitUpload(b, name) {
-    if (b.size <= 4 * 1048576 && /^image\/(png|jpeg|webp|gif)$/.test(b.type)) return new File([b], name, { type: b.type });
+    if (b.size <= 30 * 1048576 && /^image\/(png|jpeg|webp|gif)$/.test(b.type)) return new File([b], name, { type: b.type });
     const bmp = await createImageBitmap(b), k = Math.min(1, 3200 / Math.max(bmp.width, bmp.height));
     const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();

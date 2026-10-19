@@ -3,6 +3,8 @@
 
 const VIDEO_NAME = /\.(mp4|m4v|mov|qt|webm|mkv|avi|wmv|mpe?g|mts|m2ts|ts|3gp|3g2|flv|f4v|ogv|vob|mxf|hevc|h264|h265)$/i;
 const ascii = (b, o, n) => String.fromCharCode(...b.subarray(o, o + n));
+/* Videonavn avvises allerede før en direkte opplasting starter (innholdet kontrolleres etterpå). */
+export const isVideoName = name => VIDEO_NAME.test(String(name || ''));
 
 /* Kjenner igjen vanlige videoformater (for tydelig avvisning og logging). */
 export function looksLikeVideo(b) {

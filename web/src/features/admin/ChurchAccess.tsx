@@ -15,7 +15,7 @@ const confirmOr = (text: string) => { if (!window.confirm(text)) throw new Cance
 const DURATION_LABEL: Record<AccessDuration, string> = { '1d': '1 dag', '30d': '30 dager', '6m': '6 måneder', '1y': '1 år', indef: 'Ubestemt tid' }
 const ROLE_LABEL: Record<string, string> = { developer: 'Developer', moderator: 'Moderator' }
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
-const LOGO_MAX = 4 * 1024 * 1024
+const LOGO_MAX = 10 * 1024 * 1024
 
 /** Omtrentlig utløp (vises før godkjenning; databasen regner det eksakte ut fra servertiden). */
 function expiryPreview(d: AccessDuration, from = new Date()): Date | null {
@@ -42,7 +42,7 @@ export function NewChurchCard() {
     e.target.value = ''
     if (!f) return
     if (!LOGO_TYPES.includes(f.type)) { setErr(t('Logoen må være et bilde (PNG, JPG, WebP eller GIF).')); return }
-    if (f.size > LOGO_MAX) { setErr(t('Logoen kan være høyst 4 MB.')); return }
+    if (f.size > LOGO_MAX) { setErr(t('Logoen kan være høyst 10 MB.')); return }
     setErr('')
     setLogo(f)
   }
@@ -73,7 +73,7 @@ export function NewChurchCard() {
               <Btn small onClick={() => input.current?.click()}>{t(logo ? 'Bytt logo' : 'Velg logo (valgfritt)')}</Btn>
               {logo && <Btn small onClick={() => setLogo(null)}>{t('Fjern logo')}</Btn>}
             </div>
-            {err ? <span className="ch-error" role="alert">{err}</span> : <span className="ch-muted">{t('PNG, JPG, WebP eller GIF, høyst 4 MB. Logoen tilhører menigheten.')}</span>}
+            {err ? <span className="ch-error" role="alert">{err}</span> : <span className="ch-muted">{t('PNG, JPG, WebP eller GIF, høyst 10 MB. Logoen tilhører menigheten.')}</span>}
           </div>
         </div>
         <p className="ch-muted">{t('Du blir ikke Admin i menigheten ved å opprette den, og kan ikke endre logoen senere uten Admin-tilgang.')}</p>

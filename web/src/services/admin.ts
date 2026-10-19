@@ -1,4 +1,4 @@
-import { callServer } from '../infrastructure/api/server'
+import { callServer, directUpload } from '../infrastructure/api/server'
 import type { DataAdapter } from './auth/types'
 import { ServiceError } from './errors'
 
@@ -71,7 +71,7 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     createChurch: async (name: string) => data().insert<Pick<Church, 'id' | 'name' | 'status'>>('churches', { name: name.trim() }, 'id, name, status'),
     /** Ny menighet med logo (Developer/Moderator): bildet kontrolleres på serveren; den som oppretter blir verken medlem eller Admin. */
     createChurchWithLogo: async (name: string, logo: Blob & { name?: string }) =>
-      (await server<{ church: Pick<Church, 'id' | 'name' | 'logo_file_id'> }>(await token(), 'church.create_with_logo', null, { raw: logo, contentType: 'application/octet-stream', query: { name: name.trim(), file: logo.name || 'logo' } })).church,
+      (await directUpload<{ church: Pick<Church, 'id' | 'name' | 'logo_file_id'> }>(token, { kind: 'church_logo', church_name: name.trim() }, logo, { church_name: name.trim() }, { server })).church,
     renameChurch: async (id: string, name: string) => data().update('churches', { id }, { name: name.trim() }),
 
     /** Medlemmer i en menighet med brukeropplysninger (bare synlige brukere returneres av RLS). */

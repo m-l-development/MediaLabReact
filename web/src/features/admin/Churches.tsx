@@ -34,8 +34,11 @@ function useQuotaOverview(on: boolean, dep: unknown): Record<string, QuotaRow> {
 const confirmOr = (text: string) => { if (!window.confirm(text)) throw new Cancelled('cancel') }
 
 export function ChurchesView() {
-  const { d, staff, isUser, userName, t } = useAdmin()
+  const { d, staff, isUser, userName, files, t } = useAdmin()
   const [q, setQ] = useState(''), [st, setSt] = useState('all')
+  // logoen ved siden av hver menighet (forbokstaver når den mangler eller ikke kan hentes)
+  const logos = useLogos(files, d.churches.map((c) => c.logo_file_id))
+  const logo = (c: Church) => <ChurchLogo url={c.logo_file_id ? logos[c.logo_file_id] : null} name={c.name} size={36} />
   const qo = useQuotaOverview(staff, d.churches)
   const list = d.churches.filter((c) => (!q || norm(c.name).includes(norm(q))) && (st === 'all' || c.status === st))
   const count = (id: string) => d.memberships.filter((m) => m.church_id === id && m.status === 'active').length
@@ -51,14 +54,14 @@ export function ChurchesView() {
       {isUser ? (
         <List cols="minmax(200px,1fr) auto" head={['Menighet', 'Status']} empty="Du er ikke medlem av noen menighet ennå." onRow={(r) => go('menigheter', r.key)}
           rows={list.map((c) => ({ key: c.id, cells: [
-            <div key="c" className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{t('Du er medlem')}</span></div></div>,
+            <div key="c" className="ch-who" data-ch-church-row={c.id}>{logo(c)}<div><b>{c.name}</b><span>{t('Du er medlem')}</span></div></div>,
             <div key="s" className="ch-end"><StatusBadge s={c.status} /></div>] }))} />
       ) : (
         <List cols={staff ? 'minmax(200px,2fr) auto minmax(140px,1.5fr) auto auto' : 'minmax(200px,2fr) auto minmax(140px,1.5fr) auto'}
           head={staff ? ['Menighet', 'Medlemmer', 'Admin', 'Lagring', 'Status'] : ['Menighet', 'Medlemmer', 'Admin', 'Status']} empty="Ingen menigheter passer med søket."
           onRow={(r) => go('menigheter', r.key)}
           rows={list.map((c) => ({ key: c.id, cells: [
-            <div key="c" className="ch-who"><Avatar name={c.name} /><div><b>{c.name}</b><span>{t('Opprettet')} {fmtDate(c.created_at)}</span></div></div>,
+            <div key="c" className="ch-who" data-ch-church-row={c.id}>{logo(c)}<div><b>{c.name}</b><span>{t('Opprettet')} {fmtDate(c.created_at)}</span></div></div>,
             <span key="n">{count(c.id)} <span className="ch-muted">{t('medlemmer')}</span></span>,
             <span key="a" className="ch-muted">{admins(c.id).join(', ') || '–'}</span>,
             ...(staff ? [<span key="q" className="ch-row"><QuotaBadge church={c} /><span className="ch-muted">{qo[c.id] ? mb(qo[c.id]?.used_bytes) + ' / ' : ''}{c.storage_quota_mb} MB</span></span>] : []),
@@ -153,7 +156,7 @@ function MembersView({ church }: { church: Church }) {
 
 /**
  * Logo: Admin i menigheten (også ekstra Admin) laster opp et bilde til Faste → Logoer med den vanlige, kontrollerte
- * opplastingen (bare bilder, 4 MB, innholdet sjekkes på serveren) og velger det som logo. Gamle logoer slettes aldri.
+ * opplastingen (bare bilder, høyst 10 MB, innholdet sjekkes på serveren) og velger det som logo. Gamle logoer slettes aldri.
  * Stab uten Admin-rolle ser logoen, men databasen krever Admin-rollen for å laste opp i Logoer – derfor en forklaring
  * i stedet for en knapp som ville gitt «ingen tilgang».
  */
@@ -190,7 +193,7 @@ function LogoCard({ church, canUpload }: { church: Church; canUpload: boolean })
         <Btn kind="primary" onClick={() => input.current?.click()}>{t(church.logo_file_id ? 'Bytt logo' : 'Last opp logo')}</Btn>
         {church.logo_file_id && <Btn onClick={clear}>{t('Fjern logo')}</Btn>}
       </div>
-      <p className="ch-muted">{t('PNG, JPG, WebP eller GIF, høyst 4 MB. Kvadratiske logoer blir finest.')}</p>
+      <p className="ch-muted">{t('PNG, JPG, WebP eller GIF, høyst 10 MB. Kvadratiske logoer blir finest.')}</p>
       </> : <p className="ch-muted" data-ch-logo-staffnote="">{t('Logoen endres av menighetens Admin. Som Developer eller Moderator kan du be om midlertidig Admin-tilgang under Medlemmer for å endre den.')}</p>}
     </Card>
   )

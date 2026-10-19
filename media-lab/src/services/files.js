@@ -1,19 +1,20 @@
 /* Delte filer (bare bilder): oversikt via databasen (RLS), opplasting/lenker/sletting via serveren.
    Video avvises her for god tilbakemelding, men kontrollen som gjelder, skjer på serveren (innholdet) og i databasen. */
 import { data } from './port.js';
-import { callServer } from './server.js';
+import { callServer, directUpload } from './server.js';
 import { ServiceError } from './errors.js';
 
 export const FOLDERS = ['bilder', 'logoer', 'bakgrunner', 'mockups', 'faste'];
-export const MAX_BYTES = 4 * 1024 * 1024;
+export const MAX_BYTES = 30 * 1024 * 1024, LOGO_MAX_BYTES = 10 * 1024 * 1024;   /* som serveren og databasen */
 const OK_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const COLS = 'id, church_id, file_name, mime_type, file_size, folder, visibility, uploaded_by, created_at';
 
 /* Rask kontroll i nettleseren for god tilbakemelding; serveren kontrollerer innholdet på nytt. */
-function precheck(file) {
+function precheck(file, logo = false) {
   if (!file) throw new ServiceError('invalid');
   if (/^video\//i.test(file.type || '') || /\.(mp4|m4v|mov|webm|mkv|avi|wmv|mpe?g|3gp|flv|ogv|mts|m2ts)$/i.test(file.name || '')) throw new ServiceError('video_not_allowed');
   if (!OK_TYPES.includes(file.type)) throw new ServiceError('type_not_allowed');
+  if (logo && file.size > LOGO_MAX_BYTES) throw new ServiceError('logo_too_large');
   if (file.size > MAX_BYTES) throw new ServiceError('too_large');
 }
 
@@ -22,8 +23,8 @@ export const files = {
   usage: churchId => data().rpc('storage_usage', { p_church: churchId }),
   /* Bare felles opplasting: nye private bilder er stengt (serveren og databasen avviser dem). */
   async upload(file, { churchId, folder = 'bilder' }) {
-    precheck(file);
-    const r = await callServer('file.upload', null, { raw: file, contentType: 'application/octet-stream', query: { church: churchId, folder, name: file.name || 'bilde' } });
+    precheck(file, folder === 'logoer');
+    const r = await directUpload({ kind: 'file', church: churchId, folder }, file);
     return r.file;
   },
   async urls(ids) { if (!ids.length) return {}; return (await callServer('file.urls', { ids })).urls || {}; },
@@ -35,7 +36,7 @@ export const files = {
   /* Direkte opplasting til Samarbeidsmappen i en aktiv gruppe. Filen tilhører egen menighet (churchId) og teller i dens kvote. */
   async uploadToLink(file, { linkId, churchId }) {
     precheck(file);
-    const r = await callServer('file.upload_link', null, { raw: file, contentType: 'application/octet-stream', query: { link: linkId, church: churchId, name: file.name || 'bilde' } });
+    const r = await directUpload({ kind: 'link', link: linkId, church: churchId }, file);
     return r.file;
   },
   /* Opprydning av private filer fra fjernede medlemmer (Developer/Moderator). Oversikt og liste fra databasen (bare

@@ -56,7 +56,19 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
     ok('Oppretteren ble verken medlem eller Admin', mem.length === 0 && roles.length === 0)
     await page.goto(`/app/admin#/menigheter/${created}/innstillinger`)
     await expect(page.locator('[data-ch-logocard]')).toBeVisible({ timeout: 30_000 })
-    ok('Oppretteren ser logoen, men kan ikke bytte den (forklaring i stedet for knapp)', await page.locator('[data-ch-logo-staffnote]').isVisible() && (await page.getByRole('button', { name: /Bytt logo|Last opp logo/ }).count()) === 0)
+    await expect(page.locator('[data-ch-logocard] img[data-ch-logo]')).toBeVisible({ timeout: 30_000 })
+    ok('Oppretteren ser logoen (bildet), men kan ikke bytte den (forklaring i stedet for knapp)', await page.locator('[data-ch-logo-staffnote]').isVisible() && (await page.getByRole('button', { name: /Bytt logo|Last opp logo/ }).count()) === 0)
+    // menighetsoversikten: logoen ved siden av menigheten (Developer er ikke medlem), også etter sideoppdatering
+    for (const pass of ['oversikten', 'etter sideoppdatering']) {
+      if (pass === 'oversikten') await page.goto('/app/admin#/menigheter')
+      else await page.reload()
+      const img = page.locator(`[data-ch-church-row="${created}"] img[data-ch-logo]`)
+      await expect(img).toBeVisible({ timeout: 30_000 })
+      const loaded = await img.evaluate((el) => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0)
+      ok(`Logoen vises i menighetsoversikten (${pass})`, loaded)
+    }
+    const noLogo = page.locator('[data-ch-church-row] [data-ch-logo-fallback]')
+    ok(`Menigheter uten logo vises med forbokstaver (${await noLogo.count()} i listen)`, (await page.locator('[data-ch-church-row] [data-ch-logo], [data-ch-church-row] [data-ch-logo-fallback]').count()) === (await page.locator('[data-ch-church-row]').count()))
     const fake = await rpc(page, 'set_church_logo', { p_church: created, p_file: null })
     ok(`Uautorisert API-kall: oppretteren kan ikke fjerne logoen (${fake.status})`, fake.status === 403)
 

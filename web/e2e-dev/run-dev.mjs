@@ -138,7 +138,7 @@ async function cleanupInvited() {
 
 const RUNS = [
   { name: 'user', email: 'ch-test-user@example.com', role: 'user', specs: ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'photo-dev', 'feedback-dev'], env: { ML_DEV_ALLOW_FEEDBACK: 'JA' } },
-  { name: 'admin', email: 'ch-test-admin@example.com', role: 'admin', specs: ['admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'admin-write-dev', 'sources-dev'] },
+  { name: 'admin', email: 'ch-test-admin@example.com', role: 'admin', specs: ['admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'admin-write-dev', 'sources-dev', 'upload-limits-dev'] },
   { name: 'dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['staff-dev', 'admin-prodlink-dev'] },
   { name: 'mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['staff-dev', 'admin-prodlink-dev'] },
   { name: 'livslop', email: 'ch-test-dev@example.com', role: 'staff', specs: ['lifecycle-dev'] },

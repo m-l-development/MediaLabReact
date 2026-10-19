@@ -313,7 +313,7 @@ export function FilesView({ churchId, area: routeArea }) {
         <div className="ch-row" style={{ justifyContent: 'center' }}>
           <label className={'ch-btn primary' + (busy ? ' busy' : '')} data-ch-upload>{T('Last opp')}<input type="file" multiple disabled={busy} accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }} onChange={e => { const l = [...e.target.files]; e.target.value = ''; upload(l); }} /></label>
         </div>
-        <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {folderLabel}. {T('Bare bilder (PNG, JPG, WebP eller GIF), høyst 4 MB. Video kan aldri lastes opp.')}</p>
+        <p className="ch-muted" style={{ marginTop: 8 }}>{T('…eller dra bildene hit')} → {folderLabel}. {T('Bare bilder (PNG, JPG, WebP eller GIF), høyst 30 MB (logoer 10 MB). Video kan aldri lastes opp.')}</p>
       </div> : fl.area === 'faste' && <p className="ch-note warn">{T('Faste-mappen vedlikeholdes av Admin. Du kan se og laste ned filene.')}</p>}
     </section>
 

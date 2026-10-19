@@ -1012,9 +1012,9 @@ export class LoopController {
       })()
     }, 900)
   }
-  /** Bilder under 4 MB i et format serveren godtar. */
+  /** Bilder under 30 MB i et format serveren godtar. */
   async fitUpload(b: Blob, name: string): Promise<File> {
-    if (b.size <= 4 * 1048576 && /^image\/(png|jpeg|webp|gif)$/.test(b.type)) return new File([b], name, { type: b.type })
+    if (b.size <= 30 * 1048576 && /^image\/(png|jpeg|webp|gif)$/.test(b.type)) return new File([b], name, { type: b.type })
     const bmp = await createImageBitmap(b), k = Math.min(1, 3200 / Math.max(bmp.width, bmp.height))
     const c = document.createElement('canvas')
     c.width = Math.round(bmp.width * k)
