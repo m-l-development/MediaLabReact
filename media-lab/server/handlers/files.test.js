@@ -304,3 +304,102 @@ test('church.create_with_logo: uten rett lagres ingenting; feil ved registrering
   const put = feil.log.find(x => x[0] === 'put'), del = feil.log.find(x => x[0] === 'del');
   assert.deepEqual(del[1], [put[1]], 'den lagrede logoen er fjernet igjen');
 });
+
+/* --- store filer: direkte opplasting til lagringen (upload.start → nettleseren → upload.finish) --- */
+const jcall = async (a, body, backend) => {
+  const r = await handle(new Request('https://x/api/ch?a=' + a, { method: 'POST', headers: { authorization: 'Bearer ' + await token(), 'content-type': 'application/json' }, body: JSON.stringify(body) }), ENV, { fetchFn, backend });
+  return { status: r.status, body: await r.json() };
+};
+const big = (head, n) => { const b = new Uint8Array(n); b.set(head); return b; };
+function direct(over = {}, stored = null) {
+  const b = fake({ upload_begin: () => '66666666-6666-4666-8666-666666666666', upload_expired_take: () => ['c/gammel.png'], ...over });
+  b.storageSignUpload = async k => { b.log.push(['signup', k]); return 'https://lagring/upload/sign/' + k + '?token=t'; };
+  b.storageGet = async k => { b.log.push(['get', k]); if (!stored) throw Object.assign(new Error('x'), { status: 400 }); return stored; };
+  return b;
+}
+const pending = (o = {}) => ({ id: '66666666-6666-4666-8666-666666666666', kind: 'file', church_id: CH, folder: 'bilder', link_id: null, storage_key: 'c/' + CH + '/u.png', file_name: 'stor.png', mime_type: 'image/png', file_size: 26214400, ...o });
+
+test('upload.start: 25 MB i Fellesmappe – rettighet og kvote sjekkes med brukerens token, signert lenke til én nøkkel; ingenting lagres av serveren', async () => {
+  const b = direct();
+  const r = await jcall('upload.start', { kind: 'file', church: CH, folder: 'bilder', name: 'stor.png', mime: 'image/png', size: 26214400 }, b);
+  assert.equal(r.status, 200);
+  assert.deepEqual(b.log.find(x => x[1] === 'can_upload'), ['user', 'can_upload', { p_church: CH, p_folder: 'bilder', p_private: false, p_size: 26214400 }]);
+  const beg = b.log.find(x => x[1] === 'upload_begin')[2];
+  assert.match(beg.p_key, new RegExp('^c/' + CH + '/[0-9a-f-]{36}\\.png$')); assert.equal(beg.p_subject, 's1'); assert.equal(beg.p_size, 26214400);
+  assert.equal(b.log.find(x => x[0] === 'signup')[1], beg.p_key);
+  assert.equal(r.body.url, 'https://lagring/upload/sign/' + beg.p_key + '?token=t'); assert.equal(r.body.mime, 'image/png');
+  assert.ok(!b.log.some(x => x[0] === 'put'), 'serveren lagrer ikke selv');
+  assert.deepEqual(b.log.find(x => x[0] === 'del'), ['del', ['c/gammel.png']], 'uferdige opplastinger ryddes');
+});
+
+test('upload.start: grenser (30 MB, logoer 10 MB), video, andre typer og private avvises før databasen', async () => {
+  const cases = [
+    [{ kind: 'file', church: CH, folder: 'bilder', name: 'x.png', mime: 'image/png', size: 31457281 }, 413, 'too_large'],
+    [{ kind: 'file', church: CH, folder: 'logoer', name: 'x.png', mime: 'image/png', size: 10485761 }, 413, 'logo_too_large'],
+    [{ kind: 'church_logo', church_name: 'Ny', name: 'x.png', mime: 'image/png', size: 10485761 }, 413, 'logo_too_large'],
+    [{ kind: 'link', link: LINK, church: CH, name: 'x.png', mime: 'image/png', size: 31457281 }, 413, 'too_large'],
+    [{ kind: 'file', church: CH, name: 'film.mp4', mime: 'image/png', size: 100 }, 415, 'video_not_allowed'],
+    [{ kind: 'file', church: CH, name: 'x.png', mime: 'video/mp4', size: 100 }, 415, 'video_not_allowed'],
+    [{ kind: 'file', church: CH, name: 'x.svg', mime: 'image/svg+xml', size: 100 }, 415, 'type_not_allowed'],
+    [{ kind: 'file', church: CH, name: 'x.png', mime: 'image/png', size: 100, private: true }, 403, 'private_not_allowed'],
+    [{ kind: 'file', church: 'ikke-uuid', name: 'x.png', mime: 'image/png', size: 100 }, 400, 'invalid'],
+    [{ kind: 'file', church: CH, name: 'x.png', mime: 'image/png', size: 0 }, 400, 'invalid'],
+  ];
+  for (const [body, status, error] of cases) {
+    const b = direct(); const r = await jcall('upload.start', body, b);
+    assert.deepEqual([r.status, r.body.error], [status, error], JSON.stringify(body));
+    assert.equal(b.log.length, 0, 'ingenting sjekkes eller lagres');
+  }
+  const nei = direct({ can_upload: () => { throw Object.assign(new Error(), { code: '42501' }); } });
+  assert.equal((await jcall('upload.start', { kind: 'file', church: CH, folder: 'faste', name: 'x.png', mime: 'image/png', size: 100 }, nei)).status, 403);
+  assert.ok(!nei.log.some(x => x[1] === 'upload_begin' || x[0] === 'signup'), 'ingen lenke uten rettighet');
+  const db = direct({ upload_begin: () => { throw Object.assign(new Error(), { code: 'CH030' }); } });
+  assert.equal((await jcall('upload.start', { kind: 'file', church: CH, name: 'x.png', mime: 'image/png', size: 100 }, db)).body.error, 'too_large');
+});
+
+test('upload.finish: filen kontrolleres (bytene) og registreres for innlogget bruker med SHA-256', async () => {
+  const bytes = big(PNG, 26214400), b = direct({ upload_take: () => pending() }, bytes);
+  const r = await jcall('upload.finish', { id: '66666666-6666-4666-8666-666666666666' }, b);
+  assert.equal(r.status, 200);
+  assert.equal(b.log.find(x => x[1] === 'upload_take')[2].p_subject, 's1');
+  const reg = b.log.find(x => x[1] === 'register_file')[2];
+  assert.deepEqual([reg.p_church, reg.p_folder, reg.p_key, reg.p_mime, reg.p_size, reg.p_name], [CH, 'bilder', 'c/' + CH + '/u.png', 'image/png', 26214400, 'stor.png']);
+  assert.match(reg.p_sha256, /^[0-9a-f]{64}$/);
+  assert.ok(!b.log.some(x => x[0] === 'del'));
+});
+
+test('upload.finish: video, feil type eller størrelse, manglende fil og avslag ved registrering – filen slettes', async () => {
+  const id = { id: '66666666-6666-4666-8666-666666666666' };
+  const cases = [
+    [big(MP4, 1000), pending({ file_size: 1000 }), 415, 'video_not_allowed'],
+    [big(B(str('<svg ')), 1000), pending({ file_size: 1000 }), 415, 'type_not_allowed'],
+    [big(PNG, 1000), pending({ file_size: 999 }), 422, 'upload_mismatch'],
+    [big(JPG, 1000), pending({ file_size: 1000 }), 422, 'upload_mismatch'],
+    [null, pending(), 409, 'upload_missing'],
+  ];
+  for (const [bytes, row, status, error] of cases) {
+    const b = direct({ upload_take: () => row }, bytes);
+    const r = await jcall('upload.finish', id, b);
+    assert.deepEqual([r.status, r.body.error], [status, error]);
+    assert.deepEqual(b.log.find(x => x[0] === 'del'), ['del', [row.storage_key]]);
+    assert.ok(!b.log.some(x => x[1] === 'register_file'));
+  }
+  const kvote = direct({ upload_take: () => pending({ file_size: 1000 }), register_file: () => { throw Object.assign(new Error(), { code: '54000' }); } }, big(PNG, 1000));
+  const k = await jcall('upload.finish', id, kvote);
+  assert.ok(k.status >= 400); assert.ok(kvote.log.some(x => x[0] === 'del'));
+  const gone = direct({ upload_take: () => null });
+  assert.deepEqual([(await jcall('upload.finish', id, gone)).status, gone.log.some(x => x[0] === 'get')], [410, false], 'utløpt, annen brukers eller allerede fullført');
+});
+
+test('upload.finish: Samarbeidsmappe og ny menighet med logo registreres med riktige funksjoner', async () => {
+  const id = { id: '66666666-6666-4666-8666-666666666666' };
+  const l = direct({ upload_take: () => pending({ kind: 'link', link_id: LINK, folder: null, file_size: 1000 }) }, big(PNG, 1000));
+  assert.equal((await jcall('upload.finish', id, l)).status, 200);
+  assert.equal(l.log.find(x => x[1] === 'register_link_upload')[2].p_link, LINK);
+  const NEW = '77777777-7777-4777-8777-777777777777';
+  const c = direct({ upload_take: () => pending({ kind: 'church_logo', church_id: NEW, folder: null, storage_key: 'c/' + NEW + '/l.png', file_size: 1000 }), create_church_with_logo: a => ({ id: a.p_church, name: a.p_name }) }, big(PNG, 1000));
+  const r = await jcall('upload.finish', { ...id, church_name: '  Ny menighet ' }, c);
+  assert.equal(r.status, 200); assert.equal(r.body.church.id, NEW);
+  const a = c.log.find(x => x[1] === 'create_church_with_logo')[2];
+  assert.deepEqual([a.p_church, a.p_name, a.p_key, a.p_size], [NEW, 'Ny menighet', 'c/' + NEW + '/l.png', 1000]);
+});

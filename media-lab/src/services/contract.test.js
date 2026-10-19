@@ -84,7 +84,8 @@ test('files.upload: video, feil type og for store filer stoppes før noe sendes'
   await rejects(files.upload(f('bilde.png', 'video/quicktime', 10), { churchId: 'c1' }), 'video_not_allowed');
   await rejects(files.upload(f('KLIPP.MOV', '', 10), { churchId: 'c1' }), 'video_not_allowed');
   await rejects(files.upload(f('x.svg', 'image/svg+xml', 10), { churchId: 'c1' }), 'type_not_allowed');
-  await rejects(files.upload(f('x.png', 'image/png', 5 * 1024 * 1024), { churchId: 'c1' }), 'too_large');
+  await rejects(files.upload(f('x.png', 'image/png', 30 * 1024 * 1024 + 1), { churchId: 'c1' }), 'too_large');
+  await rejects(files.upload(f('logo.png', 'image/png', 10 * 1024 * 1024 + 1), { churchId: 'c1', folder: 'logoer' }), 'logo_too_large');
 });
 
 test('trinn 19/21: kvote og plan endres bare via loggførte databasefunksjoner – aldri ved direkte skriving', async () => {

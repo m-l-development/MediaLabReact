@@ -1,4 +1,4 @@
-import { callServer } from '../infrastructure/api/server'
+import { callServer, directUpload } from '../infrastructure/api/server'
 import { ServiceError } from './errors'
 import type { DataAdapter } from './auth/types'
 
@@ -25,14 +25,16 @@ export interface CloudFile {
   link_upload?: boolean | null
 }
 
-/** Samme grenser som dagens app; serveren kontrollerer innholdet på nytt. */
-export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024
+/** Samme grenser som serveren og databasen: bilder og filer høyst 30 MB, logoer (mappen «logoer») høyst 10 MB. */
+export const UPLOAD_MAX_BYTES = 30 * 1024 * 1024
+export const LOGO_MAX_BYTES = 10 * 1024 * 1024
 const UPLOAD_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 
-/** Rask kontroll i nettleseren for god tilbakemelding (video avvises alltid). */
-export function precheckUpload(file: { type: string; size: number; name?: string }): void {
+/** Rask kontroll i nettleseren for god tilbakemelding (video avvises alltid); serveren kontrollerer innholdet på nytt. */
+export function precheckUpload(file: { type: string; size: number; name?: string }, opts: { logo?: boolean } = {}): void {
   if (/^video\//i.test(file.type || '') || /\.(mp4|m4v|mov|webm|mkv|avi|wmv|mpe?g|3gp|flv|ogv|mts|m2ts)$/i.test(file.name || '')) throw new ServiceError('video_not_allowed')
   if (!UPLOAD_TYPES.includes(file.type)) throw new ServiceError('type_not_allowed')
+  if (opts.logo && file.size > LOGO_MAX_BYTES) throw new ServiceError('logo_too_large')
   if (file.size > UPLOAD_MAX_BYTES) throw new ServiceError('too_large')
 }
 
@@ -46,7 +48,7 @@ export interface FilesService {
   urls(ids: string[]): Promise<Record<string, string>>
   /** Henter selve filen (for import til Dine medier eller bruk i et verktøy). */
   blob(id: string): Promise<Blob | null>
-  /** Laster opp et bilde som deles med menigheten (Fellesmappe). Samme endepunkt som i dag: `file.upload`. */
+  /** Laster opp et bilde som deles med menigheten (Fellesmappe). Store filer lastes opp direkte til lagringen (se directUpload). */
   upload(file: File, opts: { churchId: string; folder?: CloudFolder }): Promise<CloudFile>
   /** Samarbeidsmappen i én gruppe (kopier og direkte opplastinger). */
   listLink(linkId: string): Promise<CloudFile[]>
@@ -82,8 +84,8 @@ export function createFilesService(data: DataAdapter | null, token: () => Promis
       return r.ok ? r.blob() : null
     },
     async upload(file, { churchId, folder = 'bilder' }) {
-      precheckUpload(file)
-      const r = await callServer<{ file: CloudFile }>(await token(), 'file.upload', null, { raw: file, contentType: 'application/octet-stream', query: { church: churchId, folder, name: file.name || 'bilde' } })
+      precheckUpload(file, { logo: folder === 'logoer' })
+      const r = await directUpload<{ file: CloudFile }>(token, { kind: 'file', church: churchId, folder }, file)
       return r.file
     },
     async listLink(linkId) {
@@ -98,7 +100,7 @@ export function createFilesService(data: DataAdapter | null, token: () => Promis
     },
     async uploadToLink(file, { linkId, churchId }) {
       precheckUpload(file)
-      const r = await callServer<{ file: CloudFile }>(await token(), 'file.upload_link', null, { raw: file, contentType: 'application/octet-stream', query: { link: linkId, church: churchId, name: file.name || 'bilde' } })
+      const r = await directUpload<{ file: CloudFile }>(token, { kind: 'link', link: linkId, church: churchId }, file)
       return r.file
     },
   }

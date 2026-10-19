@@ -3,9 +3,9 @@ import { ServiceError } from './errors'
 import { precheckUpload, UPLOAD_MAX_BYTES } from './files'
 
 /** Fellesmappe: bare bilder i skyen (SHR-05); video avvises alltid (SHR-08). Serveren kontrollerer innholdet på nytt. */
-const code = (f: { type: string; size: number; name?: string }) => {
+const code = (f: { type: string; size: number; name?: string }, logo = false) => {
   try {
-    precheckUpload(f)
+    precheckUpload(f, { logo })
     return 'ok'
   } catch (e) {
     return e instanceof ServiceError ? e.code : String(e)
@@ -13,7 +13,7 @@ const code = (f: { type: string; size: number; name?: string }) => {
 }
 
 describe('precheckUpload', () => {
-  it('godtar PNG, JPEG, WebP og GIF opp til 4 MB', () => {
+  it('godtar PNG, JPEG, WebP og GIF opp til 30 MB', () => {
     for (const type of ['image/png', 'image/jpeg', 'image/webp', 'image/gif']) expect(code({ type, size: UPLOAD_MAX_BYTES, name: 'a' })).toBe('ok')
   })
   it('video avvises, både etter type og etter filnavn (også med feil eller tom type)', () => {
@@ -26,5 +26,9 @@ describe('precheckUpload', () => {
     expect(code({ type: 'image/svg+xml', size: 10, name: 'a.svg' })).toBe('type_not_allowed')
     expect(code({ type: 'audio/mpeg', size: 10, name: 'a.mp3' })).toBe('type_not_allowed')
     expect(code({ type: 'image/png', size: UPLOAD_MAX_BYTES + 1, name: 'a.png' })).toBe('too_large')
+    expect(UPLOAD_MAX_BYTES).toBe(30 * 1024 * 1024)
+    expect(code({ type: 'image/png', size: 10 * 1024 * 1024 + 1, name: 'logo.png' }, true)).toBe('logo_too_large')
+    expect(code({ type: 'image/png', size: 10 * 1024 * 1024, name: 'logo.png' }, true)).toBe('ok')
+    expect(code({ type: 'image/png', size: 25 * 1024 * 1024, name: 'a.png' })).toBe('ok')
   })
 })

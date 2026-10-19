@@ -52,9 +52,16 @@ export function supabaseServer(cfg, fetchFn = fetch) {
     storageDelete: keys => call('/storage/v1/object/' + BUCKET, { method: 'DELETE', headers: asServer, body: { prefixes: keys } }),
     /* Kopi i lagringen (for Samarbeidsfiler). Originalen røres ikke. */
     storageCopy: (from, to) => call('/storage/v1/object/copy', { method: 'POST', headers: asServer, body: { bucketId: BUCKET, sourceKey: from, destinationKey: to } }),
-    /* Henter innholdet (bytes) – brukes til å kontrollere at kopien er identisk med originalen. */
+    /* Kortlivet signert opplastingslenke (2 timer) til ÉN bestemt nøkkel; nettleseren laster opp direkte dit (store filer går
+       ikke gjennom serveren). Bøtta avgjør type og maks størrelse; serveren kontrollerer innholdet etterpå (upload.finish). */
+    async storageSignUpload(key) {
+      const r = await call('/storage/v1/object/upload/sign/' + BUCKET + '/' + key, { method: 'POST', headers: asServer, body: {} });
+      if (!r || typeof r.url !== 'string') throw Object.assign(new Error('backend sign'), { status: 502 });
+      return cfg.url + '/storage/v1' + r.url;
+    },
+    /* Henter innholdet (bytes) – for kontroll av kopier og av filer som er lastet opp direkte (høyst 30 MB). */
     async storageGet(key) {
-      const r = await fetchFn(cfg.url + '/storage/v1/object/' + BUCKET + '/' + key, { signal: AbortSignal.timeout(20000), headers: asServer });
+      const r = await fetchFn(cfg.url + '/storage/v1/object/' + BUCKET + '/' + key, { signal: AbortSignal.timeout(45000), headers: asServer });
       if (!r.ok) { const e = new Error('backend ' + r.status); e.status = r.status; throw e; }
       return new Uint8Array(await r.arrayBuffer());
     },

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAdmin } from './context'
 import { initials } from './lib'
 import { Select } from './ui'
@@ -11,10 +12,12 @@ export function ChurchPicker({ onlyMine }: { onlyMine?: boolean }) {
   return <Select label="Menighet" value={(list.some((c) => c.id === ctxChurch) ? ctxChurch : list[0]?.id) || ''} onChange={setCtxChurch} options={list.map((c) => [c.id, c.name] as const)} />
 }
 
+/** Menighetens logo; forbokstaver når den mangler, ikke kan hentes eller ikke lar seg vise. */
 export function ChurchLogo({ url, name, size = 40 }: { url: string | null | undefined; name: string; size?: number }) {
+  const [failed, setFailed] = useState<string | null>(null)
   const s = { width: size, height: size, borderRadius: Math.round(size / 4), flex: '0 0 auto' }
-  return url
-    ? <img src={url} alt="" data-ch-logo="" style={{ ...s, objectFit: 'contain', background: '#fff', border: '1px solid var(--line)' }} />
+  return url && failed !== url
+    ? <img src={url} alt="" data-ch-logo="" onError={() => setFailed(url)} style={{ ...s, objectFit: 'contain', background: '#fff', border: '1px solid var(--line)' }} />
     : <span className="ch-avatar" aria-hidden="true" data-ch-logo-fallback="" style={{ ...s, display: 'grid', placeItems: 'center', fontSize: Math.round(size / 2.8) }}>{initials(name)}</span>
 }
 

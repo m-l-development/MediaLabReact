@@ -118,7 +118,11 @@ describe('Admin i menigheten: godkjenning, avslag og fjerning', () => {
 describe('Ny menighet med logo (Developer/Moderator)', () => {
   it('forhåndsviser logoen, avviser ikke-bilder, og oppretter via serveren (oppretteren blir ikke Admin)', async () => {
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:logo'), revokeObjectURL: vi.fn() }))
-    const { server, data } = setupAdmin(DEV, { hash: '#/menigheter', sections, server: (action) => (action === 'church.create_with_logo' ? { ok: true, church: { id: 'c7', name: 'Logo-menighet', logo_file_id: 'f7' } } : undefined) })
+    const put = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', put)
+    const { server, data } = setupAdmin(DEV, { hash: '#/menigheter', sections, server: (action) =>
+      action === 'upload.start' ? { ok: true, id: 'u1', url: 'https://lagring/sign/c/x/l.png?token=t', mime: 'image/png' }
+        : action === 'upload.finish' ? { ok: true, church: { id: 'c7', name: 'Logo-menighet', logo_file_id: 'f7' } } : undefined })
     expect(await screen.findByText(/Du blir ikke Admin i menigheten ved å opprette den/)).toBeTruthy()
     const input = document.querySelector('[data-ch-newlogo-input]') as HTMLInputElement
     fireEvent.change(input, { target: { files: [new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })] } })
@@ -128,8 +132,30 @@ describe('Ny menighet med logo (Developer/Moderator)', () => {
     expect(await screen.findByAltText('Forhåndsvisning av logoen')).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Navn på ny menighet'), { target: { value: 'Logo-menighet' } })
     fireEvent.click(screen.getByRole('button', { name: 'Opprett menighet' }))
-    await waitFor(() => expect(server).toHaveBeenCalledWith('tok', 'church.create_with_logo', null, { raw: png, contentType: 'application/octet-stream', query: { name: 'Logo-menighet', file: 'logo.png' } }))
+    // store filer går direkte til lagringen: kontroll og signert lenke → opplasting → innholdskontroll og registrering
+    await waitFor(() => expect(server).toHaveBeenCalledWith('tok', 'upload.finish', { id: 'u1', church_name: 'Logo-menighet' }))
+    expect(server).toHaveBeenCalledWith('tok', 'upload.start', { kind: 'church_logo', church_name: 'Logo-menighet', name: 'logo.png', mime: 'image/png', size: 4 })
+    expect(put).toHaveBeenCalledWith('https://lagring/sign/c/x/l.png?token=t', expect.objectContaining({ method: 'PUT', body: png }))
     expect(data.insert).not.toHaveBeenCalled()
     await waitFor(() => expect(location.hash).toBe('#/menigheter/c7'))
+  })
+})
+
+describe('Menighetsoversikten: logo ved siden av hver menighet', () => {
+  it('viser logoen når den finnes, og forbokstaver når den mangler eller ikke kan hentes', async () => {
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:logo-a'), revokeObjectURL: vi.fn() }))
+    const churches = [
+      { id: 'c1', name: 'Menighet A', status: 'active', created_at: '2026-01-01', delete_after: null, storage_quota_mb: 200, quota_custom: false, logo_file_id: 'logo-a' },
+      { id: 'c2', name: 'Menighet B', status: 'active', created_at: '2026-01-05', delete_after: null, storage_quota_mb: 200, quota_custom: false, logo_file_id: null },
+      { id: 'c3', name: 'Menighet C', status: 'active', created_at: '2026-01-06', delete_after: null, storage_quota_mb: 200, quota_custom: false, logo_file_id: 'borte' },
+    ]
+    const { files } = setupAdmin(DEV, { hash: '#/menigheter', sections, tables: { churches } })
+    files.blob.mockImplementation(async (id: string) => (id === 'logo-a' ? new Blob(['x'], { type: 'image/png' }) : null))
+    const rowA = await screen.findByText('Menighet A')
+    await waitFor(() => expect(document.querySelector('[data-ch-church-row="c1"] img[data-ch-logo]')?.getAttribute('src')).toBe('blob:logo-a'))
+    expect(rowA).toBeTruthy()
+    expect(document.querySelector('[data-ch-church-row="c2"] [data-ch-logo-fallback]')?.textContent).toBe('MB')
+    expect(document.querySelector('[data-ch-church-row="c3"] [data-ch-logo-fallback]')).toBeTruthy()
+    expect(files.blob).toHaveBeenCalledWith('logo-a')
   })
 })
