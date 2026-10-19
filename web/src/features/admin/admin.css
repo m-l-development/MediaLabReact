@@ -243,6 +243,9 @@
 [data-ml-theme="admin"] .ch-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
 [data-ml-theme="admin"] .ch-error { color: var(--accent-text); font-size: 13px; }
 [data-ml-theme="admin"] .ch-newlogo-box { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 88px; height: 88px; border: 1px dashed var(--line2); border-radius: 14px; overflow: hidden; background: var(--panel2); }
+[data-ml-theme="admin"] .ch-form.ch-newchurch { grid-template-columns: minmax(0, 1fr); align-items: start; }
+[data-ml-theme="admin"] .ch-newchurch .ch-logo-preview { align-items: flex-start; flex-wrap: wrap; }
+[data-ml-theme="admin"] .ch-newlogo-side { display: flex; flex-direction: column; gap: 8px; flex: 1 1 220px; min-width: 0; }
 [data-ml-theme="admin"] .ch-newlogo-box img { width: 100%; height: 100%; object-fit: contain; }
 [data-ml-theme="admin"] .ch-newlogo-box .ch-muted { font-size: 11px; text-align: center; padding: 4px; }
 [data-ml-theme="admin"] .ch-durations { display: flex; flex-wrap: wrap; gap: 6px; }
