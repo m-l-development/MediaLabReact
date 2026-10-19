@@ -58,6 +58,31 @@ export const routes = {
       throw e;
     }
   },
+  /* Ny menighet med logo (Developer/Moderator med MFA). Logoen kontrolleres som ved file.upload (bare bilder, magiske
+     bytes, 4 MB), rettigheten sjekkes med brukerens token før noe lagres, og menigheten og logoen opprettes i én
+     transaksjon i databasen (create_church_with_logo, aal fra det verifiserte tokenet). Den som oppretter blir verken
+     medlem eller Admin. Feiler registreringen, fjernes den lagrede filen igjen. */
+  async 'church.create_with_logo'(ctx) {
+    const q = new URL(ctx.request.url).searchParams;
+    const name = String(q.get('name') || '').trim().slice(0, 120), file = String(q.get('file') || '').slice(0, 200);
+    if (name.length < 2) return fail('invalid');
+    const bytes = await readBody(ctx.request);
+    const chk = checkUpload(bytes, file);
+    if (!chk.ok) return fail(chk.error, 415);
+    await ctx.backend.rpcAsUser(ctx.token, 'can_create_church', {});
+    const church = crypto.randomUUID();
+    const key = 'c/' + church + '/' + crypto.randomUUID() + '.' + chk.ext;
+    const sha = hex(await crypto.subtle.digest('SHA-256', bytes));
+    await ctx.backend.storagePut(key, bytes, chk.mime);
+    try {
+      const c = await ctx.backend.rpcAsServer('create_church_with_logo', { p_issuer: ctx.claims.iss, p_subject: ctx.claims.sub, p_aal: ctx.claims.aal || 'aal1',
+        p_church: church, p_name: name, p_key: key, p_file_name: cleanName(file, chk.ext), p_mime: chk.mime, p_size: bytes.length, p_sha256: sha });
+      return json({ ok: true, church: c });
+    } catch (e) {
+      await ctx.backend.storageDelete([key]).catch(() => {});
+      throw e;
+    }
+  },
   /* Direkte opplasting til en samarbeidsgruppes Samarbeidsmappe (bare bilder, samme kontroller som file.upload). Filen
      tilhører menigheten som bidro (kvote og samlet grense). Databasen avgjør tilgang med brukerens token (can_upload_link:
      aktivt medlem av menigheten, menigheten aktivt medlem av en AKTIV gruppe) og på nytt ved registreringen (med lås). */
@@ -150,3 +175,4 @@ export const routes = {
 };
 routes['file.upload'].raw = true;
 routes['file.upload_link'].raw = true;
+routes['church.create_with_logo'].raw = true;

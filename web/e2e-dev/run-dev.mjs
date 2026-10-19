@@ -6,7 +6,7 @@
 //  4. gir de syntetiske testkontoene nye tilfeldige passord (aldri vist eller lagret) og fjerner MFA-faktorer på stab
 //  5. kjører testene per rolle, og gir kontoene nye ukjente passord til slutt
 // Bare connecthub-dev: stopper hvis .env.local eller nøkkelen gjelder et annet prosjekt.
-//   node e2e-dev/run-dev.mjs [--no-build] [--only=user,admin,dev,mod,livslop,rolle-dev,rolle-mod,par,drift,konto]
+//   node e2e-dev/run-dev.mjs [--no-build] [--only=user,admin,dev,mod,livslop,rolle-dev,rolle-mod,par,drift,konto,tilgang]
 import { spawn, spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -147,6 +147,7 @@ const RUNS = [
   { name: 'konto', email: 'ch-test-user@example.com', role: 'user', specs: ['account-dev'] },
   { name: 'rolle-mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['test-role-dev'] },
   // to kontoer samtidig (Admin og Bruker i samme menighet): felles grunnoppsett, rollebytter og to brukere på samme PC
+  { name: 'tilgang', email: 'ch-test-dev@example.com', email2: 'ch-test-admin@example.com', role: 'access', specs: ['church-access-dev'] },
   { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev', 'loop-sharing-dev', 'loop-disk-dev', 'loop-base-load-dev'] },
 ].filter((r) => !only.length || only.includes(r.name))
 
@@ -158,7 +159,7 @@ try {
     const pw = await newPassword(id)
     const id2 = run.email2 ? userId(run.email2) : null
     const pw2 = id2 ? await newPassword(id2) : ''
-    if (run.role === 'staff') say(`${run.name}: ${await dropFactors(id)} MFA-faktor(er) fjernet før testen`)
+    if (run.role === 'staff' || run.role === 'access') say(`${run.name}: ${await dropFactors(id)} MFA-faktor(er) fjernet før testen`)
     // ML_DEV_SPECS=a,b kjører bare disse testene i løpet (f.eks. for gjentatte kjøringer)
     const READ_ONLY = ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'photo-dev']
     const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : REMOTE ? run.specs.filter((x) => READ_ONLY.includes(x)) : run.specs

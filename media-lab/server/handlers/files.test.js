@@ -267,3 +267,40 @@ test('file.upload_link: feiler registreringen (gruppen avsluttet, kvote), fjerne
     assert.deepEqual(b.log.find(x => x[0] === 'del')[1], [b.log.find(x => x[0] === 'put')[1]]);
   }
 });
+
+/* --- ny menighet med logo --- */
+const mk = async (bytes, q, backend) => {
+  const r = await handle(new Request('https://x/api/ch?a=church.create_with_logo&' + new URLSearchParams(q), { method: 'POST', headers: { authorization: 'Bearer ' + await token(), 'content-type': 'application/octet-stream' }, body: bytes }), ENV, { fetchFn, backend });
+  return { status: r.status, body: await r.json() };
+};
+
+test('church.create_with_logo: rett sjekkes før lagring; logoen lagres under den nye menighetens sti og registreres i én transaksjon', async () => {
+  const b = fake({ create_church_with_logo: (a) => ({ id: a.p_church, name: a.p_name, logo_file_id: 'f9' }) });
+  const r = await mk(PNG, { name: ' Ny menighet ', file: 'logo.jpg' }, b);
+  assert.equal(r.status, 200);
+  assert.deepEqual(b.log.map(x => x[0] === 'put' ? 'put' : x[1]), ['can_create_church', 'put', 'create_church_with_logo']);
+  const put = b.log.find(x => x[0] === 'put'), reg = b.log.find(x => x[1] === 'create_church_with_logo')[2];
+  assert.equal(put[1].startsWith('c/' + reg.p_church + '/'), true, 'logoen ligger under menighetens egen sti');
+  assert.equal(reg.p_name, 'Ny menighet'); assert.equal(reg.p_mime, 'image/png'); assert.equal(reg.p_file_name, 'logo.png');
+  assert.equal(reg.p_aal, 'aal1', 'aal fra det verifiserte tokenet (ikke antatt MFA)'); assert.equal(reg.p_subject, 's1');
+  assert.equal(r.body.church.logo_file_id, 'f9');
+});
+
+test('church.create_with_logo: ikke-bilder, for stor fil og for kort navn avvises før noe skjer', async () => {
+  for (const [bytes, q] of [[B(str('<svg xmlns="http://www.w3.org/2000/svg">')), { name: 'Ny', file: 'x.png' }], [MP4, { name: 'Ny', file: 'x.png' }], [PNG, { name: 'N', file: 'x.png' }]]) {
+    const b = fake(); const r = await mk(bytes, q, b);
+    assert.ok([400, 415].includes(r.status)); assert.equal(b.log.length, 0);
+  }
+  const big = new Uint8Array(4 * 1024 * 1024 + 1); big.set(PNG);
+  const b = fake(); assert.equal((await mk(big, { name: 'Ny', file: 'x.png' }, b)).status, 413); assert.equal(b.log.length, 0);
+});
+
+test('church.create_with_logo: uten rett lagres ingenting; feil ved registrering fjerner den lagrede logoen', async () => {
+  const nei = fake({ can_create_church: () => { throw Object.assign(new Error(), { code: '42501' }); } });
+  assert.equal((await mk(PNG, { name: 'Ny', file: 'x.png' }, nei)).status, 403);
+  assert.ok(!nei.log.some(x => x[0] === 'put'));
+  const feil = fake({ create_church_with_logo: () => { throw Object.assign(new Error(), { code: '42501' }); } });
+  assert.equal((await mk(PNG, { name: 'Ny', file: 'x.png' }, feil)).status, 403);
+  const put = feil.log.find(x => x[0] === 'put'), del = feil.log.find(x => x[0] === 'del');
+  assert.deepEqual(del[1], [put[1]], 'den lagrede logoen er fjernet igjen');
+});
