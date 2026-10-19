@@ -3,7 +3,7 @@ import { fillStops, type Fill } from '../../shared/fill/fill'
 import * as FX from '../../shared/fx/fx'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
 import {
-  ADJ, bleedLayers, clamp, dims, emptySlot, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, textLayer, uid,
+  ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, targetSlot, textLayer, uid,
   type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
@@ -649,9 +649,10 @@ export class PhotoController {
    * Et nytt bilde (fil, utklippstavle, Dine medier eller Fellesmappe). Legges inn i bildeplassen under punktet,
    * i en valgt tom bildeplass, ellers i malens første tomme bildeplass (uten at noe er valgt), og først når det ikke
    * finnes noen, som nytt lag. Før ble bildet alltid et nytt lag øverst når bildeplassen ikke var valgt: det dekket
-   * malens tekst, og bildeplassen ble stående tom. `src` = allerede lagret i Dine medier.
+   * malens tekst, og bildeplassen ble stående tom. `src` = allerede lagret i Dine medier. En logo (`opt.logo`, fra
+   * «Logo → Fellesmappe») blir alltid et eget lag – den fyller aldri malens bildeplass (targetSlot).
    */
-  async addBlob(blob: Blob, name: string, at: Pt | null = null, src?: string, replace?: string): Promise<void> {
+  async addBlob(blob: Blob, name: string, at: Pt | null = null, src?: string, replace?: string, opt: { logo?: boolean } = {}): Promise<void> {
     const d = this.s.doc
     if (!d) return
     if (!/^image\/(png|jpeg|webp|gif)$/.test(blob.type || '')) {
@@ -674,9 +675,7 @@ export class PhotoController {
     const doc = this.s.doc
     if (!doc) return
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
-    const tgt = at ? hit(doc, at[0], at[1]) : null
-    const sl = this.selL()
-    const ph = rep ?? (tgt?.type === 'image' ? tgt : at ? null : sl?.type === 'image' && !sl.src ? sl : emptySlot(doc))
+    const ph = targetSlot(doc, { replace: rep, at: !!at, hit: at ? hit(doc, at[0], at[1]) : null, sel: this.selL(), ...(opt.logo ? { logo: true } : {}) })
     const nm = String(name || this.d.t('Bilde')).replace(/\.[a-z0-9]+$/i, '').slice(0, 40)
     if (ph && ph.type === 'image') {
       this.patchL(ph.id, { src: key, cz: 1, cx: 0, cy: 0, name: ph.src ? ph.name : nm, mask: null })

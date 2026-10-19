@@ -335,7 +335,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         <CloudPicker title={picker.target.logo ? 'cloud.pickLogo' : 'cloud.pickImage'} start={picker.start === 'samarbeid' ? 'felles' : (picker.start ?? 'faste')}
           onClose={() => c.closePicker()} onPick={(p) => {
             c.closePicker()
-            void c.addBlob(p.blob, p.name, null, undefined, picker.target.replace)
+            void c.addBlob(p.blob, p.name, null, undefined, picker.target.replace, { logo: !!picker.target.logo })
           }} />
       )}
       {S.toast && <div className={s.toast} role="status">{tx(S.toast.p, S.toast.v)}</div>}

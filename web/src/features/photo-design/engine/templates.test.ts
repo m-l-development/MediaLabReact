@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { luma } from '../../thumbnail-studio/engine/colors'
 import { PhotoController, type PDeps } from '../controller'
-import { emptySlot, FORMATS, imageLayer, newDoc, TEMPLATES, textBox, type PdDoc, type PdLayer, type Scheme, type TextLayer } from './model'
+import { emptySlot, FORMATS, imageLayer, newDoc, targetSlot, TEMPLATES, textBox, type PdDoc, type PdLayer, type Scheme, type TextLayer } from './model'
 import { applyScheme, assignRole, lowContrast, ORDERS, PALETTES, rolesOf, schemeOfPreset, STARTER, tplDoc } from './palette'
 
 /** Malene i Photo Design: de eksisterende, de 10 nye, bildeplassen og fargepalettene. */
@@ -54,6 +54,20 @@ describe('Photo Design – malene', () => {
   it('de nye malene med bilde har en tom bildeplass som et nytt bilde havner i', () => {
     for (const k of ['split', 'verse', 'series', 'poster', 'staff', 'photo', 'event']) expect(emptySlot(newDoc(1080, 1080, k))?.type, k).toBe('image')
     for (const k of ['countdown', 'news', 'thanks', 'facts', 'minimal']) expect(emptySlot(newDoc(1080, 1080, k)), k).toBeNull()
+  })
+
+  it('nytt bilde: bytte, slipp på bildeplass, valgt tom plass, ellers malens tomme plass – en logo blir alltid et eget lag', () => {
+    const d = newDoc(1080, 1080, 'photo')
+    const slot = emptySlot(d)
+    const title = d.layers.find((L) => L.type === 'text') ?? null
+    expect(targetSlot(d, { at: false })?.id).toBe(slot?.id)
+    expect(targetSlot(d, { at: false, logo: true })).toBeNull() // Logo → Fellesmappe fyller ikke bakgrunnsbildet
+    expect(targetSlot(d, { at: false, logo: true, replace: slot ?? undefined })?.id).toBe(slot?.id) // bytte gjelder fortsatt
+    expect(targetSlot(d, { at: true, hit: slot })?.id).toBe(slot?.id)
+    expect(targetSlot(d, { at: true, hit: title })).toBeNull() // sluppet på tekst: nytt lag
+    expect(targetSlot(d, { at: false, replace: title ?? undefined })).toBeNull()
+    const full = imageLayer({ name: 'Fylt', src: 'm:1' })
+    expect(targetSlot({ layers: [full] }, { at: false, sel: full })).toBeNull()
   })
 
   it('bildeplassen: første tomme, synlige og ulåste bildelag – ikke et som allerede har bilde', () => {
