@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DEFAULT_QUOTA_MB, type Church } from '../../services/admin'
 import { downloadJson } from '../../services/account'
-import { clearMe } from '../../services/auth/me-cache'
+import { AccessCard, NewChurchCard, TempAdminCard } from './ChurchAccess'
 import { ChurchLogo, Head } from './common'
 import { MemberLimitCard, MemberUsageCard } from './MemberLimit'
 import { FilesView } from './Folders'
 import { useAdmin } from './context'
 import { SubsView } from './Subs'
 import { fmtDate, forgetLogo, go, href, mb, norm, useLogos } from './lib'
-import { Cancelled, fill, memberActions, type MemberTarget } from './members'
+import { Cancelled, memberActions, type MemberTarget } from './members'
 import { Avatar, Badge, Btn, Card, Empty, Field, List, RoleBadge, Search, Select, StatusBadge } from './ui'
 
 /**
@@ -34,27 +34,16 @@ function useQuotaOverview(on: boolean, dep: unknown): Record<string, QuotaRow> {
 const confirmOr = (text: string) => { if (!window.confirm(text)) throw new Cancelled('cancel') }
 
 export function ChurchesView() {
-  const { d, staff, isUser, act, say, reload, userName, admin, t } = useAdmin()
-  const [q, setQ] = useState(''), [st, setSt] = useState('all'), [name, setName] = useState('')
+  const { d, staff, isUser, userName, t } = useAdmin()
+  const [q, setQ] = useState(''), [st, setSt] = useState('all')
   const qo = useQuotaOverview(staff, d.churches)
   const list = d.churches.filter((c) => (!q || norm(c.name).includes(norm(q))) && (st === 'all' || c.status === st))
   const count = (id: string) => d.memberships.filter((m) => m.church_id === id && m.status === 'active').length
   const admins = (id: string) => d.roles.filter((r) => r.role === 'church_admin' && r.church_id === id).map((r) => userName(r.user_id))
-  const create = (e: FormEvent) => {
-    e.preventDefault()
-    void act(async () => { const c = await admin.createChurch(name); setName(''); say(t('Menigheten er opprettet.')); await reload(); go('menigheter', c.id) })()
-  }
   return (
     <>
       <Head title="Menigheter" sub={staff ? 'Alle menigheter i ConnectHub.' : 'Menighetene du er med i.'} />
-      {staff && (
-        <Card title="Ny menighet">
-          <form className="ch-row" onSubmit={create}>
-            <input className="ch-input" style={{ flex: '1 1 240px' }} placeholder={t('Navn på ny menighet')} aria-label={t('Navn på ny menighet')} value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={120} required />
-            <Btn kind="primary" type="submit">{t('Opprett menighet')}</Btn>
-          </form>
-        </Card>
-      )}
+      {staff && <NewChurchCard />}
       <div className="ch-row">
         <Search value={q} onChange={setQ} placeholder="Søk etter menighet …" />
         <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle statuser'], ['active', 'Aktiv'], ['temporarily_disabled', 'Midlertidig deaktivert'], ['pending_deletion', 'Venter på sletting']]} />
@@ -100,35 +89,6 @@ export function ChurchDetail({ id, tab: tab0 }: { id: string; tab?: string | und
   )
 }
 
-/**
- * Developer/Moderator: legg deg til eller fjern deg som EKSTRA Admin. Den faste Admin er uendret. Databasen kontrollerer
- * rolle og MFA, varsler Admin og loggfører. Siden lastes på nytt etterpå, så egne rettigheter (whoami) oppdateres.
- */
-function ExtraAdminCard({ church }: { church: Church }) {
-  const { me, d, act, admin, t } = useAdmin()
-  const mine = d.roles.find((r) => r.role === 'church_admin' && r.church_id === church.id && r.user_id === me.id)
-  if (mine && !mine.extra_admin) return null
-  const done = () => { clearMe(); location.reload() }
-  const add = act(async () => {
-    confirmOr(fill(t('Legge deg til som ekstra Admin i «{church}»?'), { church: church.name }) + '\n\n' + t('Du får Admin-tilgang i menigheten (medlemmer, filer og Faste) i tillegg til menighetens faste Admin, som er uendret. Er du ikke medlem, blir du lagt til som medlem. Admin i menigheten varsles, og handlingen loggføres.'))
-    await admin.addSelfAsAdmin(church.id)
-    done()
-  })
-  const remove = act(async () => {
-    confirmOr(fill(t('Fjerne deg som ekstra Admin i «{church}»?'), { church: church.name }) + '\n\n' + t('Ble du medlem da du la deg til, fjernes også medlemskapet. Den faste Admin er uendret.'))
-    await admin.removeSelfAsAdmin(church.id)
-    done()
-  })
-  return (
-    <Card title="Ekstra Admin">
-      <div data-ch-extraadmin="">
-        <p className="ch-muted">{t(mine ? 'Du er ekstra Admin i denne menigheten. Den faste Admin-rollen er uendret.' : 'Som Developer eller Moderator kan du legge deg til som ekstra Admin, for eksempel for å hjelpe menigheten. Den faste Admin-rollen er uendret.')}</p>
-        <div className="ch-row">{mine ? <Btn small kind="danger" onClick={remove}>{t('Fjern meg som ekstra Admin')}</Btn> : <Btn small kind="primary" onClick={add}>{t('Legg meg til som ekstra Admin')}</Btn>}</div>
-      </div>
-    </Card>
-  )
-}
-
 function MembersView({ church }: { church: Church }) {
   const { me, d, staff, canManage, act, say, reload, openInvite, admin, collabSvc, t } = useAdmin()
   const [q, setQ] = useState(''), [st, setSt] = useState('all'), [msg, setMsg] = useState({ title: '', body: '' })
@@ -152,7 +112,8 @@ function MembersView({ church }: { church: Church }) {
   }
   return (
     <>
-      {staff && <ExtraAdminCard church={church} />}
+      {staff && <TempAdminCard church={church} />}
+      <AccessCard church={church} />
       <div className="ch-row">
         <Search value={q} onChange={setQ} placeholder="Søk etter medlem …" />
         <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle'], ['active', 'Aktive'], ['disabled', 'Deaktiverte'], ['admin', 'Admin'], ['removed', 'Fjernet (tidligere medlemmer)']]} />
@@ -230,7 +191,7 @@ function LogoCard({ church, canUpload }: { church: Church; canUpload: boolean })
         {church.logo_file_id && <Btn onClick={clear}>{t('Fjern logo')}</Btn>}
       </div>
       <p className="ch-muted">{t('PNG, JPG, WebP eller GIF, høyst 4 MB. Kvadratiske logoer blir finest.')}</p>
-      </> : <p className="ch-muted" data-ch-logo-staffnote="">{t('Logoen endres av menighetens Admin. Som Developer eller Moderator kan du legge deg til som ekstra Admin under Medlemmer for å endre den.')}</p>}
+      </> : <p className="ch-muted" data-ch-logo-staffnote="">{t('Logoen endres av menighetens Admin. Som Developer eller Moderator kan du be om midlertidig Admin-tilgang under Medlemmer for å endre den.')}</p>}
     </Card>
   )
 }

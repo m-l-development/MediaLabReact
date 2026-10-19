@@ -66,7 +66,7 @@ test('Admin (Developer): menighetens livsløp, kvote, grense, abonnement, samarb
     })
     await step('Logo: stab uten Admin-rolle avvises; som ekstra Admin: last opp til Logoer og sett som logo', async () => {
       const denied = await api(page, 'file.upload', null, { query: `&church=${c1.id}&folder=logoer&name=e2e-avvist.png`, raw: PNG, contentType: 'application/octet-stream' })
-      const self = await rpc(page, 'add_self_as_admin', { p_church: c1.id })
+      const self = await rpc(page, 'request_admin_access', { p_church: c1.id, p_duration: '1d' }) // menigheten har ingen Admin: midlertidig tilgang uten godkjenning
       const up = await api(page, 'file.upload', null, { query: `&church=${c1.id}&folder=logoer&name=e2e-logo-${stamp}.png`, raw: PNG, contentType: 'application/octet-stream' })
       const fid = (up.body?.file as { id?: string } | undefined)?.id
       must(up.ok && !!fid, `opplasting ${up.status} ${up.error ?? ''}`)
@@ -94,7 +94,7 @@ test('Admin (Developer): menighetens livsløp, kvote, grense, abonnement, samarb
       const plans = (await rpc(page, 'plans_admin', {})).body as { code: string; active: boolean }[]
       const plan = plans.find((p) => p.active)?.code
       must(!!plan, 'ingen aktiv plan')
-      const self = await rpc(page, 'add_self_as_admin', { p_church: c1.id })
+      const self = await rpc(page, 'request_admin_access', { p_church: c1.id, p_duration: '1d' }) // menigheten har ingen Admin: midlertidig tilgang uten godkjenning
       const req = await rpc(page, 'request_subscription', { p_church: c1.id, p_plan: plan, p_free: true, p_reason: 'Automatisk test (e2e-dev)' })
       const sr = one<{ id: string; status: string }>(await rest(page, `/rest/v1/subscription_requests?select=id,status&church_id=eq.${c1.id}&order=created_at.desc&limit=1`))
       must(!!sr, `forespørsel ${req.status} ${req.code ?? ''}`)
