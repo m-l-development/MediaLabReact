@@ -37,7 +37,7 @@ export interface AccessRequest { id: string; user_id: string; name: string; emai
 export interface TempAdmin { user_id: string; name: string; email: string; role: 'developer' | 'moderator' | null; granted_at: string; duration: AccessDuration | null; expires_at: string | null; granted_by: string | null }
 export interface AccessDecision { id: string; name: string; role: string; status: 'approved' | 'rejected' | 'cancelled'; duration: AccessDuration | null; auto: boolean; decided_at: string; decided_by: string | null }
 export interface AccessOverview { pending: AccessRequest[]; active: TempAdmin[]; recent: AccessDecision[]; has_admin: boolean }
-export interface MyAccess { church_id: string; state: 'pending' | 'active'; id?: string; expires_at?: string | null; duration?: AccessDuration | null }
+export interface MyAccess { church_id: string; state: 'pending' | 'active' | 'rejected'; id?: string; expires_at?: string | null; duration?: AccessDuration | null; decided_at?: string | null }
 /** Midlertidig rolle som er utløpt (databasen avviser den uansett; her skjules den til oppryddingen har kjørt). */
 export const roleLive = (r: Pick<RoleRow, 'expires_at'>, now = Date.now()) => !r.expires_at || Date.parse(r.expires_at) > now
 export interface Invitation { id: string; email: string; church_id: string | null; role: string; status: string; expires_at: string; created_at: string; accepted_at: string | null }

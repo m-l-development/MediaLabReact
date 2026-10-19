@@ -16,19 +16,38 @@ const rpcWith = (ov: Record<string, unknown>, mine: unknown[] = []) => (fn: stri
 describe('Developer/Moderator: midlertidig Admin-tilgang', () => {
   it('menigheten har Admin: forespørselen sendes (ingen varighet – Admin velger)', async () => {
     const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => (fn === 'request_admin_access' ? { state: 'pending' } : rpcWith(overview())(fn)) })
-    fireEvent.click(await screen.findByRole('button', { name: 'Be om midlertidig Admin-tilgang' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' }))
     await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('request_admin_access', { p_church: 'c1', p_duration: null }))
-    expect((await screen.findByRole('status')).textContent).toContain('Forespørselen er sendt')
+    expect((await screen.findByRole('status')).textContent).toContain('Forespørsel sendt – venter på svar.')
   })
 
-  it('ventende forespørsel vises som «Venter»; aktiv tilgang viser utløp og kan gis fra seg', async () => {
+  it('ventende forespørsel: «Forespørsel sendt – venter på svar»', async () => {
     setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: rpcWith(overview(), [{ church_id: 'c1', state: 'pending', id: 'q1' }]) })
-    expect(await screen.findByText('Forespørselen venter på godkjenning fra menighetens Admin.')).toBeTruthy()
+    expect((await screen.findByRole('status')).textContent).toContain('Forespørsel sendt – venter på svar.')
+  })
+
+  it('avslått: «Avslått av menighetsadmin» og ny forespørsel kan sendes', async () => {
+    setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: rpcWith(overview(), [{ church_id: 'c1', state: 'rejected', id: 'q1' }]) })
+    expect((await screen.findByRole('status')).textContent).toContain('Avslått av menighetsadmin.')
+    expect(screen.getByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' })).toBeTruthy()
+  })
+
+  it('venter → godkjent: status hentes på nytt og siden lastes på nytt med Admin-rettighetene', async () => {
+    const reload = vi.fn()
+    vi.stubGlobal('location', { ...location, reload })
+    let mine: unknown[] = [{ church_id: 'c1', state: 'pending', id: 'q1' }]
+    setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => rpcWith(overview(), mine)(fn) })
+    await screen.findByText('Forespørsel sendt – venter på svar.')
+    expect(reload).not.toHaveBeenCalled()
+    mine = [{ church_id: 'c1', state: 'active', expires_at: '2026-11-18T10:00:00Z', duration: '30d' }]
+    document.dispatchEvent(new Event('visibilitychange'))
+    await waitFor(() => expect(reload).toHaveBeenCalled())
   })
 
   it('aktiv midlertidig tilgang: utløpsdato og «Gi fra meg tilgangen» (med bekreftelse)', async () => {
     const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: rpcWith(overview(), [{ church_id: 'c1', state: 'active', expires_at: '2026-11-18T10:00:00Z', duration: '30d' }]) })
-    expect(await screen.findByText(/Du har midlertidig Admin-tilgang til 18\.11\.2026/)).toBeTruthy()
+    expect(await screen.findByText('Godkjent – du har nå midlertidig admin-tilgang.')).toBeTruthy()
+    expect(screen.getByText(/Tilgangen varer til 18\.11\.2026/)).toBeTruthy()
     vi.stubGlobal('confirm', vi.fn(() => false))
     fireEvent.click(screen.getByRole('button', { name: 'Gi fra meg tilgangen' }))
     await waitFor(() => expect(window.confirm).toHaveBeenCalled())
@@ -43,7 +62,7 @@ describe('Developer/Moderator: midlertidig Admin-tilgang', () => {
     expect(within(group).getAllByRole('radio').map((r) => (r as HTMLInputElement).value)).toEqual(['1d', '30d', '6m', '1y', 'indef'])
     fireEvent.click(within(group).getByLabelText('1 år'))
     vi.stubGlobal('confirm', vi.fn(() => true))
-    fireEvent.click(screen.getByRole('button', { name: 'Bli midlertidig Admin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Legg meg til som ekstra admin' }))
     await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('request_admin_access', { p_church: 'c1', p_duration: '1y' }))
   })
 })
