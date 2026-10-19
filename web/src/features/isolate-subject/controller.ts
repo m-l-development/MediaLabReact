@@ -4,7 +4,7 @@ import { inpaint } from './engine/inpaint'
 import { pendingMask, applyKeyMask, hitMark, type Mark } from './engine/marks'
 import { colorKey, cropBox, hasContent, maxMask, refineMask, subtractMask, type Mask } from './engine/mask'
 import { ACCEPT, cloneCanvas, crop, keyBox, loadToCanvas, makeCanvas, maskCanvas, MAX_BYTES, putRgba, rgbaOf, toBlob } from './engine/raster'
-import { Segmenter, type Phase } from './engine/segmenter'
+import { Segmenter, StallError, type Phase } from './engine/segmenter'
 
 export type Kind = 'person' | 'object' | 'logo' | 'text'
 export type Mode = Kind | 'point' | null
@@ -308,8 +308,9 @@ export class IsolateController {
     void this.runModel(kind === 'person' ? 'fast' : 'fine', tok, null)
   }
 
-  private offlineOr(key: MessageKey): MessageKey {
-    return typeof navigator !== 'undefined' && navigator.onLine === false ? 'isolate.error.offline' : key
+  private offlineOr(key: MessageKey, e?: unknown): MessageKey {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'isolate.error.offline'
+    return e instanceof StallError ? 'isolate.error.stalled' : key
   }
 
   private async runModel(key: 'fine' | 'fast', tok: number, note: MessageKey | null) {
@@ -320,8 +321,8 @@ export class IsolateController {
       const a = await this.segmenter.removeBackground(key, src, (busy) => tok === this.token && this.set({ busy }), (pct) => tok === this.token && this.set({ pct }))
       if (tok !== this.token || !this.alive) return
       this.setAlpha(a, note)
-    } catch {
-      if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.model') })
+    } catch (e) {
+      if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.model', e) })
     }
   }
 
@@ -439,8 +440,8 @@ export class IsolateController {
       this.alpha = subtractMask(this.alpha, r)
       this.pend = null
       this.redraw({ busy: null, ready: true, marks: [], error: null, note: null })
-    } catch {
-      if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.notFound') })
+    } catch (e) {
+      if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.notFound', e) })
     }
   }
 

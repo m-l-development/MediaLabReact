@@ -363,6 +363,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Grunnoppsettet er lagret og er felles for menigheten. Du finner det på Loop Studio-siden.': 'The base setup is saved and shared by the church. You\'ll find it on the Loop Studio page.',
   'Grunnoppsettet er nå felles for menigheten. Andre i menigheten ser endringene.': 'The base setup is now shared by the church. Others in the church see the changes.',
   'Grunnoppsettet er oppdatert med endringer fra menigheten.': 'The base setup has been updated with changes from the church.',
+  'Grunnoppsettet finnes ikke lenger (det kan være slettet). Lagre serien som et nytt grunnoppsett.': 'The base setup no longer exists (it may have been deleted). Save the series as a new base setup.',
   'Grunnoppsettet er oppdatert.': 'The base setup has been updated.',
   'Legg til minst én slide først (skriv inn programmet eller trykk «+ Legg til»), så kan du redigere vignetten.': 'Add at least one slide first (type in the programme or tap “+ Add”), then you can edit the vignette.',
   'Grunnoppsettet kunne ikke lagres. Prøv igjen.': 'The base setup could not be saved. Try again.',

@@ -18,15 +18,26 @@ const ENVS = [['all', 'Alle miljøer'], ['production', 'Produksjon'], ['preview'
 const ENV_NAME: Record<string, string> = { production: 'Produksjon', preview: 'ConnectHub Dev', local: 'Lokal utvikling' }
 const norm = (s: string | null | undefined) => (s || '').toLowerCase()
 
+/**
+ * Listene i fanen: «Nye saker» (Ny) og «Under behandling» (Under behandling og Trenger mer informasjon – ikke ferdig,
+ * venter på svar) er aktive; «Arkiv» har de avsluttede statusene (Løst og Avvist). Ukjente statuser regnes som aktive,
+ * så ingen sak skjules ved en feil. Arkivet er bare en visning etter status – saken og historikken endres ikke.
+ */
+type FbList = 'new' | 'work' | 'archive'
+const DONE = new Set(['resolved', 'rejected'])
+const listOf = (status: string): FbList => (status === 'new' ? 'new' : DONE.has(status) ? 'archive' : 'work')
+const LIST_NAME: Record<FbList | 'removed', string> = { new: 'Nye saker', work: 'Under behandling', archive: 'Arkiv', removed: 'Fjernede saker' }
+const LIST_EMPTY: Record<FbList | 'removed', string> = { new: 'Ingen nye saker.', work: 'Ingen saker under behandling.', archive: 'Ingen saker i arkivet.', removed: 'Ingen fjernede saker.' }
+
 export function FeedbackView({ selected }: { selected?: string | undefined }) {
   const { act, say, t } = useAdmin()
   const { feedback: FB } = useServices()
   const [list, setList] = useState<FeedbackCase[] | null>(null)
   const [f, setF] = useState({ q: '', kind: 'all', app: 'all', status: 'all', env: 'all', from: '', to: '' })
-  const [pick, setPick] = useState<Set<string>>(() => new Set())
   const [parts, setParts] = useState<string[] | null>(null)
   const [manual, setManual] = useState<string | null>(null)
   const [archived, setArchived] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
   const load = async () => setList(await FB.inbox.list(archived))
   useEffect(() => { void act(async () => setList(await FB.inbox.list(archived)))() }, [act, FB, archived])
   /** Historikk for mange saker, åtte om gangen. */
@@ -56,17 +67,44 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
     if (!cases.length) { say(t('Ingen saker å kopiere.'), false); return }
     const ps = formatCases(cases, await eventsFor(cases.map((c) => c.id)), { scope })
     if (ps.length > 1) { setParts(ps); say(t('Sakene er for mange til å kopieres på én gang. Kopier dem del for del.'), false); return }
-    copied(await copyText(ps[0] ?? ''), 'Alle valgte saker er kopiert og klare til å limes inn i Claude Code.', ps[0] ?? '')
+    copied(await copyText(ps[0] ?? ''), cases.length === 1 ? 'Saken er kopiert og klar til å limes inn i Claude Code.' : 'Alle valgte saker er kopiert og klare til å limes inn i Claude Code.', ps[0] ?? '')
   })()
-  const togglePick = (id: string) => setPick((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  const chosen = rows.filter((c) => pick.has(c.id))
+  /** «Slett valgte» = den etablerte fjerningen (arkivering): sakene forsvinner fra innboksen, men historikken beholdes og de kan gjenopprettes. */
+  const removeMany = (cases: FeedbackCase[], listName: string) => act(async () => {
+    if (!cases.length) return
+    if (!window.confirm(fill(t('Slette {n} valgte saker fra «{list}»?'), { n: String(cases.length), list: t(listName) }) + '\n\n' + cases.map((c) => c.ref).join(', ') + '\n\n' + t('Sakene fjernes fra innboksen, men historikken beholdes, og de kan gjenopprettes under «Fjernede saker».'))) throw new Cancelled('cancel')
+    let ok = 0
+    const failed: string[] = []
+    for (const c of cases) {
+      try { await FB.inbox.archive(c.id, 'Slettet fra listen «' + listName + '»'); ok++ } catch { failed.push(c.ref) }
+    }
+    await load()
+    if (failed.length) say(fill(t('{ok} saker er slettet. Disse kunne ikke slettes: {refs}'), { ok: String(ok), refs: failed.join(', ') }), false)
+    else say(fill(t('{n} saker er slettet fra innboksen.'), { n: String(ok) }))
+    return ok
+  })()
+  /** Statusendring fra listen: lagres først, så hentes listen på nytt – saken flytter seg bare når lagringen lyktes. */
+  const changeStatus = (c: FeedbackCase, status: string) => act(async () => {
+    if (status === c.status) return
+    let reason = ''
+    if (status === 'rejected') {
+      reason = (window.prompt(fill(t('Begrunnelse for å avvise {ref}:'), { ref: c.ref })) ?? '').trim()
+      if (reason.length < 3) { say(t('Skriv en begrunnelse for avvisningen.'), false); return }
+    }
+    await FB.inbox.setStatus(c.id, status, reason)
+    say(fill(t('{ref} har fått status «{status}».'), { ref: c.ref, status: t(STATUS[status] ?? status) }))
+    await load()
+  })()
   const cur = selected ? (list ?? []).find((c) => c.id === selected) : undefined
+  const by = (k: FbList) => rows.filter((c) => listOf(c.status) === k)
+  const listProps = { onCopy: copyMany, onCopyOne: copyOne, onRemove: removeMany, onStatus: changeStatus, loading: list === null }
 
   return (
     <>
       <Head title="Tilbakemeldinger" sub="Feil, forbedringsforslag og ønsker fra brukerne. Bare Moderator og Developer ser og behandler sakene." />
       <div className="ch-row">
-        <Select label="Visning" value={archived ? 'archived' : 'inbox'} onChange={(v) => { setList(null); setArchived(v === 'archived'); setPick(new Set()) }} options={[['inbox', 'Innboks'], ['archived', 'Fjernede saker']]} />
+        <Select label="Visning" value={archived ? 'archived' : 'inbox'} onChange={(v) => { setList(null); setArchived(v === 'archived'); setShowArchive(false) }} options={[['inbox', 'Innboks'], ['archived', 'Fjernede saker']]} />
+        {!archived && <Btn {...(showArchive ? { kind: 'primary' } : {})} data-fb-archive-toggle="" onClick={() => setShowArchive((v) => !v)}>{t(showArchive ? 'Tilbake til aktive saker' : 'Åpne arkiv')}</Btn>}
         <Search value={f.q} onChange={set('q')} placeholder="Søk i referanse, tekst eller avsender …" />
         <Select label="Kategori" value={f.kind} onChange={set('kind')} options={[['all', 'Alle kategorier'], ...Object.entries(KIND)]} />
         <Select label="Applikasjon" value={f.app} onChange={set('app')} options={[['all', 'Alle applikasjoner'], ...apps.map((a) => [a, a] as const)]} />
@@ -78,10 +116,8 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
       <Card title="Kopier saker" sub={rows.length + ' ' + t('saker vises')}>
         <div className="ch-row" data-fb-copybar="">
           <Btn kind="primary" onClick={() => copyMany(rows, 'alle viste saker med gjeldende filter (' + rows.length + ')')} disabled={!rows.length}>{t('Kopier alle saker')}</Btn>
-          {chosen.length > 0 && <Btn onClick={() => copyMany(chosen, 'valgte saker (' + chosen.length + ')')}>{t('Kopier valgte saker')} ({chosen.length})</Btn>}
-          {chosen.length > 0 && <Btn small onClick={() => setPick(new Set())}>{t('Fjern utvalg')}</Btn>}
         </div>
-        <p className="ch-muted">{t('«Kopier alle saker» tar med alle saker som vises med gjeldende filter og søk. Huk av saker for å kopiere bare et utvalg. Kopiering endrer ikke status eller notater. Hemmeligheter fjernes, og avsenderens navn og e-post tas ikke med.')}</p>
+        <p className="ch-muted">{t('«Kopier alle saker» tar med alle saker som vises med gjeldende filter og søk. Hver liste har egne knapper for å velge og kopiere eller slette valgte saker. Kopiering endrer ikke status eller notater. Hemmeligheter fjernes, og avsenderens navn og e-post tas ikke med.')}</p>
       </Card>
       {parts && (
         <Card title="Eksport i flere deler" sub={parts.length}>
@@ -92,16 +128,14 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
           </div>
         </Card>
       )}
-      <List cols="28px minmax(90px,auto) minmax(180px,2fr) minmax(120px,1fr) auto auto" head={['', 'Referanse', 'Sak', 'Applikasjon og side', 'Status', '']}
-        empty={list === null ? 'Laster …' : archived ? 'Ingen fjernede saker.' : 'Ingen tilbakemeldinger passer med filteret.'} onRow={(r) => go('tilbakemeldinger', r.key)}
-        rows={rows.map((c) => ({ key: c.id, cells: [
-          <input key="p" type="checkbox" aria-label={t('Velg') + ' ' + c.ref} checked={pick.has(c.id)} onClick={(e) => e.stopPropagation()} onChange={() => togglePick(c.id)} />,
-          <div key="r"><b>{c.ref}</b><div className="ch-muted">{fmt(c.created_at)}</div></div>,
-          <div key="s"><Badge tone={c.kind === 'bug' ? 'bad' : ''}>{t(KIND[c.kind] ?? c.kind)}</Badge> <span>{scrubText(c.title || c.description).slice(0, 110)}</span>
-            <div className="ch-muted">{t('Fra')} {c.submitter_name || t('ukjent')}{c.church_name ? ' · ' + c.church_name : ''}{c.marked ? ' · 📍 ' + t('markering') : ''}{c.context?.errors?.length ? ' · ⚠ ' + c.context.errors.length + ' ' + t('feilmeldinger') : ''}{c.note_count ? ' · ' + c.note_count + ' ' + t('notater') : ''}</div></div>,
-          <div key="a"><span>{c.app_name || c.app || '–'}</span><div className="ch-muted">{c.page}{c.view ? ' ' + c.view : ''} · {t(ENV_NAME[c.context?.env ?? ''] ?? '')}</div></div>,
-          <Badge key="st" tone={TONE[c.status]}>{t(STATUS[c.status] ?? c.status)}</Badge>,
-          <div key="c" className="ch-end"><Btn small onClick={(e) => { e.stopPropagation(); copyOne(c) }}>{t('Kopier sak')}</Btn></div>] }))} />
+      {archived
+        ? <CaseList id="removed" cases={rows} {...listProps} canRemove={false} />
+        : showArchive
+          ? <CaseList id="archive" cases={by('archive')} {...listProps} />
+          : <>
+            <CaseList id="new" cases={by('new')} {...listProps} />
+            <CaseList id="work" cases={by('work')} {...listProps} />
+          </>}
       {cur && <CaseDrawer key={cur.id + cur.status} c={cur} onClose={() => go('tilbakemeldinger')} onCopy={() => copyOne(cur)} reload={load} />}
       {selected && list && !cur && !archived && <p className="ch-muted">{t('Finner du ikke saken? Den kan være fjernet – se «Fjernede saker».')}</p>}
       {selected && list && !cur && <Drawer title={t('Sak')} onClose={() => go('tilbakemeldinger')}><Empty>{t('Fant ikke saken, eller du har ikke tilgang.')}</Empty></Drawer>}
@@ -112,6 +146,51 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
         </Dialog>
       )}
     </>
+  )
+}
+
+/**
+ * Én liste med egne valg og handlinger: «Velg alle» velger bare sakene i denne listen som vises med gjeldende filter;
+ * valg i én liste påvirker aldri en annen. Saker som flytter til en annen liste (ny status), faller ut av valget.
+ */
+function CaseList({ id, cases, loading, onCopy, onCopyOne, onRemove, onStatus, canRemove = true }: {
+  id: FbList | 'removed'; cases: FeedbackCase[]; loading: boolean; canRemove?: boolean
+  onCopy: (cases: FeedbackCase[], scope: string) => void; onCopyOne: (c: FeedbackCase) => void
+  onRemove: (cases: FeedbackCase[], listName: string) => Promise<number | undefined>; onStatus: (c: FeedbackCase, status: string) => void
+}) {
+  const { t } = useAdmin()
+  const [pick, setPick] = useState<Set<string>>(() => new Set())
+  const chosen = cases.filter((c) => pick.has(c.id))
+  const toggle = (cid: string) => setPick((s) => { const n = new Set(s); if (n.has(cid)) n.delete(cid); else n.add(cid); return n })
+  const name = LIST_NAME[id]
+  return (
+    <section data-fb-list={id} aria-label={t(name)} style={{ display: 'grid', gap: 8, marginTop: 16 }}>
+      <div className="ch-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <h3 style={{ margin: 0 }}>{t(name)} <span className="ch-badge" data-fb-count="">{cases.length}</span></h3>
+        <div className="ch-row" style={{ flexWrap: 'wrap' }}>
+          <Btn small disabled={!cases.length || chosen.length === cases.length} onClick={() => setPick(new Set(cases.map((c) => c.id)))}>{t('Velg alle')}</Btn>
+          {chosen.length > 0 && <span className="ch-muted" data-fb-picked="">{chosen.length} {t('valgt')}</span>}
+          {chosen.length > 0 && <Btn small onClick={() => setPick(new Set())}>{t('Fjern valg')}</Btn>}
+          <Btn small disabled={!chosen.length} onClick={() => onCopy(chosen, 'valgte saker i «' + name + '» (' + chosen.length + ')')}>{t('Kopier valgte')}</Btn>
+          {canRemove && <Btn small kind="danger" disabled={!chosen.length} style={{ marginLeft: 8 }} onClick={() => void onRemove(chosen, name).then((n) => { if (n) setPick(new Set()) })}>{t('Slett valgte')}</Btn>}
+        </div>
+      </div>
+      <List cols="28px minmax(90px,auto) minmax(180px,2fr) minmax(120px,1fr) auto auto" head={['', 'Referanse', 'Sak', 'Applikasjon og side', 'Status', '']}
+        empty={loading ? 'Laster …' : LIST_EMPTY[id]} onRow={(r) => go('tilbakemeldinger', r.key)}
+        rows={cases.map((c) => ({ key: c.id, cells: [
+          <input key="p" type="checkbox" aria-label={t('Velg') + ' ' + c.ref} checked={pick.has(c.id)} onClick={(e) => e.stopPropagation()} onChange={() => toggle(c.id)} />,
+          <div key="r"><b>{c.ref}</b><div className="ch-muted">{fmt(c.created_at)}</div></div>,
+          <div key="s"><Badge tone={c.kind === 'bug' ? 'bad' : ''}>{t(KIND[c.kind] ?? c.kind)}</Badge> <span>{scrubText(c.title || c.description).slice(0, 110)}</span>
+            <div className="ch-muted">{t('Fra')} {c.submitter_name || t('ukjent')}{c.church_name ? ' · ' + c.church_name : ''}{c.marked ? ' · 📍 ' + t('markering') : ''}{c.context?.errors?.length ? ' · ⚠ ' + c.context.errors.length + ' ' + t('feilmeldinger') : ''}{c.note_count ? ' · ' + c.note_count + ' ' + t('notater') : ''}</div></div>,
+          <div key="a"><span>{c.app_name || c.app || '–'}</span><div className="ch-muted">{c.page}{c.view ? ' ' + c.view : ''} · {t(ENV_NAME[c.context?.env ?? ''] ?? '')}</div></div>,
+          <div key="st" onClick={(e) => e.stopPropagation()}>
+            <Badge tone={TONE[c.status]}>{t(STATUS[c.status] ?? c.status)}</Badge>
+            {id !== 'removed' && <select className="ch-select" aria-label={t('Endre status for') + ' ' + c.ref} value={c.status} onChange={(e) => onStatus(c, e.target.value)} style={{ marginTop: 4, height: 30 }}>
+              {Object.entries(STATUS).map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}
+            </select>}
+          </div>,
+          <div key="c" className="ch-end"><Btn small onClick={(e) => { e.stopPropagation(); onCopyOne(c) }}>{t('Kopier sak')}</Btn></div>] }))} />
+    </section>
   )
 }
 
