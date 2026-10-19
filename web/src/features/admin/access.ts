@@ -3,22 +3,22 @@
  * media-lab/src/pages/connecthub-admin/access.js. Rettighetene håndheves uansett av RLS og serveren.
  * - Developer: systemadministrasjon og Samarbeid; i tillegg utviklerkortet og å gi/fjerne/invitere Developer og Moderator.
  * - Moderator: den samme systemadministrasjonen og Samarbeid.
- * - Admin: brukere, menigheter, invitasjoner, filer, abonnement og logg i egen menighet.
+ * - Admin: brukere, menigheter, Admin-tilgang (forespørsler fra Developer/Moderator), invitasjoner, filer, abonnement og logg i egen menighet.
  * - User: egne menigheter og filer.
  */
 export const NAV = [
-  ['oversikt', 'Oversikt'], ['brukere', 'Brukere'], ['menigheter', 'Menigheter'], ['invitasjoner', 'Invitasjoner'],
+  ['oversikt', 'Oversikt'], ['brukere', 'Brukere'], ['menigheter', 'Menigheter'], ['tilgang', 'Admin-tilgang'], ['invitasjoner', 'Invitasjoner'],
   ['filer', 'Filer'], ['samarbeid', 'Samarbeid'], ['abonnement', 'Abonnement'], ['tilbakemeldinger', 'Tilbakemeldinger'],
   ['opprydning', 'Opprydning'], ['foresporsler', 'Forespørsler'], ['mail', 'Mail'], ['logg', 'Logg'],
 ] as const
 export type Section = (typeof NAV)[number][0]
 export const isSection = (s: string): s is Section => NAV.some(([k]) => k === s)
 
-const SYSTEM: Section[] = ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'samarbeid', 'abonnement', 'tilbakemeldinger', 'opprydning', 'foresporsler', 'mail', 'logg']
+const SYSTEM: Section[] = ['oversikt', 'brukere', 'menigheter', 'tilgang', 'invitasjoner', 'filer', 'samarbeid', 'abonnement', 'tilbakemeldinger', 'opprydning', 'foresporsler', 'mail', 'logg']
 export const SECTIONS: Record<'developer' | 'moderator' | 'admin' | 'member', Section[]> = {
   developer: SYSTEM,
   moderator: SYSTEM,
-  admin: ['oversikt', 'brukere', 'menigheter', 'invitasjoner', 'filer', 'abonnement', 'logg'],
+  admin: ['oversikt', 'brukere', 'menigheter', 'tilgang', 'invitasjoner', 'filer', 'abonnement', 'logg'],
   member: ['oversikt', 'menigheter', 'filer'],
 }
 

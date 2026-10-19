@@ -37,7 +37,7 @@ export interface AccessRequest { id: string; user_id: string; name: string; emai
 export interface TempAdmin { user_id: string; name: string; email: string; role: 'developer' | 'moderator' | null; granted_at: string; duration: AccessDuration | null; expires_at: string | null; granted_by: string | null }
 export interface AccessDecision { id: string; name: string; role: string; status: 'approved' | 'rejected' | 'cancelled'; duration: AccessDuration | null; auto: boolean; decided_at: string; decided_by: string | null }
 export interface AccessOverview { pending: AccessRequest[]; active: TempAdmin[]; recent: AccessDecision[]; has_admin: boolean }
-export interface MyAccess { church_id: string; state: 'pending' | 'active' | 'rejected'; id?: string; expires_at?: string | null; duration?: AccessDuration | null; decided_at?: string | null }
+export interface MyAccess { church_id: string; state: 'pending' | 'active' | 'rejected' | 'cancelled'; id?: string; expires_at?: string | null; duration?: AccessDuration | null; decided_at?: string | null }
 /** Midlertidig rolle som er utløpt (databasen avviser den uansett; her skjules den til oppryddingen har kjørt). */
 export const roleLive = (r: Pick<RoleRow, 'expires_at'>, now = Date.now()) => !r.expires_at || Date.parse(r.expires_at) > now
 export interface Invitation { id: string; email: string; church_id: string | null; role: string; status: string; expires_at: string; created_at: string; accepted_at: string | null }
@@ -113,6 +113,8 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     revokeAdminAccess: async (churchId: string, userId: string) => data().rpc('revoke_admin_access', { p_church: churchId, p_user: userId }),
     adminAccessOverview: async (churchId: string) => data().rpc<AccessOverview>('admin_access_overview', { p_church: churchId }),
     myAdminAccess: async () => data().rpc<MyAccess[]>('my_admin_access'),
+    /** Developer/Moderator trekker tilbake sin egen ventende forespørsel (beholdes som historikk). */
+    withdrawAdminAccess: async (requestId: string) => data().rpc<{ status: string }>('withdraw_admin_access', { p_request: requestId }),
     /** Én menighet om gangen for User/Admin håndheves i databasen. */
     addMembership: async (userId: string, churchId: string) => data().rpc('add_membership', { p_user: userId, p_church: churchId }),
     /** Status «fjernet», historikken beholdes. Er brukeren Admin der, må allowNoAdmin være true. */

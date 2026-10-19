@@ -6,7 +6,7 @@ import { activeOf, canJoinAnother, Cancelled, isGlobal, mainRole, memberActions,
 /** Portert fra access.test.js og members.test.js i dagens admin (samme forventninger). */
 const sec = (o: Partial<Parameters<typeof sectionsFor>[0]>) => [...sectionsFor({ dev: false, collab: false, adminOf: [], churches: [], ...o })].sort()
 const A = { id: 'a' }, B = { id: 'b' }
-const STAFF = ['abonnement', 'brukere', 'filer', 'foresporsler', 'invitasjoner', 'logg', 'mail', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger']
+const STAFF = ['abonnement', 'brukere', 'filer', 'foresporsler', 'invitasjoner', 'logg', 'mail', 'menigheter', 'opprydning', 'oversikt', 'samarbeid', 'tilbakemeldinger', 'tilgang']
 
 describe('admin: seksjoner per rolle (ADM, som access.test.js)', () => {
   it('Developer, Developer+Moderator og Moderator: hele systemadministrasjonen', () => {
@@ -15,7 +15,7 @@ describe('admin: seksjoner per rolle (ADM, som access.test.js)', () => {
     expect(sec({ collab: true })).toEqual(STAFF)
   })
   it('Admin: brukere, menigheter, invitasjoner, filer, abonnement og logg – ikke samarbeid, opprydning, innboks eller mail', () => {
-    expect(sec({ adminOf: ['a'], churches: [A] })).toEqual(['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt'])
+    expect(sec({ adminOf: ['a'], churches: [A] })).toEqual(['abonnement', 'brukere', 'filer', 'invitasjoner', 'logg', 'menigheter', 'oversikt', 'tilgang'])
     const s = sectionsFor({ dev: false, collab: false, adminOf: ['a'], churches: [A, B] })
     for (const k of ['samarbeid', 'opprydning', 'tilbakemeldinger', 'mail', 'foresporsler'] as const) expect(s.has(k)).toBe(false)
   })

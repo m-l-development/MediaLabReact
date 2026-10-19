@@ -8,6 +8,7 @@ import type { AuditRow, Invitation } from '../../services/admin'
 import { activeMembers, type Group } from '../../services/collab'
 import { useLang } from '../../shared/i18n/i18n'
 import { NAV, brandOf, isSection, sectionsFor, type Kind } from './access'
+import { PendingAccessNotice } from './ChurchAccess'
 import { ChurchLogo, Head } from './common'
 import { MemberUsageNote } from './MemberLimit'
 import { isFull, useMemberUsage } from './member-limit'
@@ -210,6 +211,7 @@ function Overview({ pendingInvites }: { pendingInvites: Invitation[] }) {
   return (
     <>
       <Welcome />
+      <PendingAccessNotice />
       <FolderButtons />
       <div className="ch-stats">
         <a className="ch-stat" href={href('brukere')}><b>{s ? s.users : d.users.filter((u) => u.status === 'active').length}</b><span>{t('Aktive brukere')}</span></a>
