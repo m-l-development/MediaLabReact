@@ -6,7 +6,8 @@ import { FillEditor } from '../../shared/fill/FillEditor'
 import * as FX from '../../shared/fx/fx'
 import { ColorBar } from './Colors'
 import { PAL, type Interaction, type PhotoController, type PState, type Pt } from './controller'
-import { BLEED, dims, SHAPES, type PdLayer } from './engine/model'
+import { BLEED, dims, SHAPES, type PdDoc, type PdLayer } from './engine/model'
+import { applyScheme, liveScheme } from './engine/palette'
 import { hit, render, shapePath } from './engine/render'
 import { Props } from './Props'
 import { Range } from './Ui'
@@ -510,31 +511,38 @@ function Stage({ c, S, tx }: EditorProps) {
     // Én tegning som alltid setter lerretets størrelse først. Før satte bare den første tegningen størrelsen; når
     // skriftene allerede var lastet (fonts.ready løst med en gang, f.eks. ved mal nummer to), ble den avbrutt av
     // tegningen etter fonts.ready, og lerretet ble stående på 10 × 10 – malen så tom ut (bare bakgrunnsfargen).
-    const draw = () => {
+    // `doc`: mens du drar i fargevelgeren tegnes lerretet direkte med de foreløpige fargene (liveScheme), uten setDoc
+    const draw = (doc: PdDoc = d) => {
       const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const k = Math.min(dpr * sc, 3200 / Math.max(d.w, d.h))
-      const W = Math.max(1, Math.round(d.w * k))
-      const Hh = Math.max(1, Math.round(d.h * k))
+      const k = Math.min(dpr * sc, 3200 / Math.max(doc.w, doc.h))
+      const W = Math.max(1, Math.round(doc.w * k))
+      const Hh = Math.max(1, Math.round(doc.h * k))
       if (cv.width !== W || cv.height !== Hh) {
         cv.width = W
         cv.height = Hh
       }
       const g = cv.getContext('2d')
       try {
-        if (g) render(g, d, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
+        if (g) render(g, doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
       } catch (e) {
         console.warn(e)
       }
     }
-    let raf = requestAnimationFrame(draw)
+    let raf = requestAnimationFrame(() => draw())
     let live = true
     void document.fonts?.ready.then(() => {
       if (!live) return
       cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(draw)
+      raf = requestAnimationFrame(() => draw())
+    })
+    const off = liveScheme.sub((scope, scheme) => {
+      if (scope !== 'doc' || scheme === undefined) return
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => draw(applyScheme(d, scheme)))
     })
     return () => {
       live = false
+      off()
       cancelAnimationFrame(raf)
     }
   }, [c, d, sc, hist, tx])
