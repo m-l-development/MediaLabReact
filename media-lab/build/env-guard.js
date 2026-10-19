@@ -10,6 +10,10 @@ export const REFS = { preview: 'uatpdmhnwwjgzlxaucsx', production: 'cmuienhheklc
    Inneholder ingen prosjekt-ID, så den er tillatt i produksjonsbygget. */
 export const DEV_SITE = 'https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app';
 
+/* Fast adresse til ConnectHub produksjon (= SITE.production i server/lib/backend.js, testet). Brukes av knappen
+   «Åpne ConnectHub produksjon» for Developer i ConnectHub Dev. Inneholder ingen prosjekt-ID. */
+export const PROD_SITE = 'https://media-lab-react-vyef.vercel.app';
+
 /* Hvilke miljøvariabler som leses per mål. Vercel-integrasjonen setter databasens navn foran variabelnavnet.
    Lokalt (og hos en annen vert) brukes nøytrale navn i .env.local. Bytte av vert = bytte av denne tabellen. */
 export const ENV_NAMES = {

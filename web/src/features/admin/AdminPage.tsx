@@ -22,6 +22,9 @@ import './admin.css'
 declare const __CH_DEV_SITE__: string | null
 /** ConnectHub Dev (utviklingsmiljøet): adressen legges inn ved bygging (env-guard DEV_SITE). */
 const DEV_SITE = typeof __CH_DEV_SITE__ !== 'undefined' ? __CH_DEV_SITE__ : null
+declare const __CH_PROD_SITE__: string | null
+/** ConnectHub produksjon: adressen legges inn ved bygging (env-guard PROD_SITE). */
+const PROD_SITE = typeof __CH_PROD_SITE__ !== 'undefined' ? __CH_PROD_SITE__ : null
 const isProduction = () => backend?.target === 'production'
 /** «Handling»: viser feil som melding (avbrutt av brukeren gir ingen), og teller pågående arbeid for fremdriftslinjen. */
 function makeAct(say: (text: string, ok?: boolean, err?: unknown) => void, setPending: (f: (n: number) => number) => void): AdminCtx['act'] {
@@ -255,7 +258,16 @@ function DevCard() {
           </div>
           <p className="ch-muted">{t('Åpner utviklingsmiljøet i en ny fane. Det har egen database og egne kontoer, så du logger inn der på nytt. Endringer der påvirker ikke produksjon.')}</p>
         </>
-      ) : <p className="ch-note warn" data-ch-devhere="">{t('Du er i ConnectHub Dev (utvikling). Egen database og egne kontoer – endringer her påvirker ikke produksjon.')}</p>}
+      ) : (
+        <>
+          {PROD_SITE && (
+            <div className="ch-row">
+              <a className="ch-btn primary" data-ch-prodlink="" href={PROD_SITE + '/admin'} target="_blank" rel="noopener noreferrer">{t('Åpne ConnectHub produksjon')} ↗</a>
+            </div>
+          )}
+          <p className="ch-note warn" data-ch-devhere="">{t('Du er i ConnectHub Dev (utvikling). Egen database og egne kontoer – endringer her påvirker ikke produksjon.')}</p>
+        </>
+      )}
     </Card>
   )
 }
