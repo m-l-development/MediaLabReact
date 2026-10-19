@@ -165,7 +165,7 @@ function MembersView({ church }) {
 }
 
 /* Logo: Admin i menigheten (eller stab som er medlem) laster opp et bilde til Faste → Logoer med den vanlige, kontrollerte
-   opplastingen (bare bilder, 4 MB, innholdet sjekkes på serveren) og velger det som logo. Gamle logoer slettes aldri. */
+   opplastingen (bare bilder, høyst 10 MB, innholdet sjekkes på serveren) og velger det som logo. Gamle logoer slettes aldri. */
 function LogoCard({ church }) {
   const { act, say, reload } = useAdmin();
   const logos = useLogos([church.logo_file_id]), url = logos[church.logo_file_id];
@@ -191,7 +191,7 @@ function LogoCard({ church }) {
       <Btn kind="primary" onClick={() => input.current && input.current.click()}>{T(church.logo_file_id ? 'Bytt logo' : 'Last opp logo')}</Btn>
       {church.logo_file_id && <Btn onClick={clear}>{T('Fjern logo')}</Btn>}
     </div>
-    <p className="ch-muted">{T('PNG, JPG, WebP eller GIF, høyst 4 MB. Kvadratiske logoer blir finest.')}</p>
+    <p className="ch-muted">{T('PNG, JPG, WebP eller GIF, høyst 10 MB. Kvadratiske logoer blir finest.')}</p>
   </Card>;
 }
 

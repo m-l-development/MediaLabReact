@@ -21,7 +21,7 @@ const ERR = {
   group_member_exists: 'Menigheten er allerede med i gruppen.',
   account_exists: 'E-postadressen har allerede en konto.',
   last_admin: 'Brukeren er Admin i menigheten. Bekreft at menigheten kan stå uten Admin, eller utnevn en ny Admin først.',
-  too_large: 'Filen er for stor (maks 4 MB).', http_413: 'Filen er for stor (maks 4 MB).',
+  too_large: 'Filen er for stor (maks 30 MB).', http_413: 'Filen er for stor (maks 30 MB).', logo_too_large: 'Logoen er for stor (maks 10 MB).', upload_expired: 'Opplastingen tok for lang tid eller er allerede fullført. Prøv igjen.', upload_missing: 'Filen kom ikke frem til lagringen. Prøv igjen.', upload_mismatch: 'Filen ble endret under opplastingen. Prøv igjen.', upload_failed: 'Opplastingen feilet. Prøv igjen.',
 };
 const CONFIG = { publishable_key_missing: 'Serveren mangler den offentlige nøkkelen.', secret_key_missing: 'Serveren mangler den hemmelige nøkkelen.' };
 export const errText = e => {

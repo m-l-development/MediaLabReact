@@ -11,7 +11,7 @@ import { activeChurch } from './shared-setup.js';
 
 const T = s => (window.MLI18N && window.MLI18N.t ? window.MLI18N.t(s) : s);
 const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
-const ERR = { video_not_allowed: 'Video kan aldri lastes opp.', type_not_allowed: 'Bare bilder (PNG, JPG, WebP eller GIF) kan lastes opp.', too_large: 'Filen er for stor (maks 4 MB).',
+const ERR = { video_not_allowed: 'Video kan aldri lastes opp.', type_not_allowed: 'Bare bilder (PNG, JPG, WebP eller GIF) kan lastes opp.', too_large: 'Filen er for stor (maks 30 MB).', logo_too_large: 'Logoen er for stor (maks 10 MB).',
   quota_exceeded: 'Lagringskvoten er brukt opp.', storage_full: 'Lagringsplassen i ConnectHub er full. Kontakt Developer.', forbidden: 'Du har ikke tilgang til dette.' };
 const el = (tag, css, text) => { const e = document.createElement(tag); if (css) e.style.cssText = css; if (text != null) e.textContent = text; return e; };
 const BTN = 'height:34px;padding:0 14px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:transparent;color:#f3f1ec;font:inherit;font-size:13px;font-weight:600;cursor:pointer';
