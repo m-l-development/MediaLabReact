@@ -608,6 +608,19 @@ export function emptySlot(d: Pick<PdDoc, 'layers'>): ImageLayer | null {
   return (d.layers.find((L) => L.type === 'image' && !L.src && !L.hidden && !L.locked) as ImageLayer | undefined) ?? null
 }
 
+/**
+ * Hvor et nytt bilde havner: laget som skal byttes (`replace`), bildeplassen under punktet (`hit` når bildet slippes),
+ * en valgt tom bildeplass, eller malens første tomme bildeplass – ellers et nytt lag (null). En logo (`logo`) blir alltid
+ * et eget lag (eller bytter laget den er bedt om å bytte); den fyller aldri en bildeplass i malen.
+ */
+export function targetSlot(d: Pick<PdDoc, 'layers'>, o: { replace?: PdLayer | undefined; at: boolean; hit?: PdLayer | null; sel?: PdLayer | null; logo?: boolean }): ImageLayer | null {
+  if (o.replace) return o.replace.type === 'image' ? o.replace : null
+  if (o.logo) return null
+  if (o.at) return o.hit?.type === 'image' ? o.hit : null
+  if (o.sel?.type === 'image' && !o.sel.src) return o.sel
+  return emptySlot(d)
+}
+
 /** Bildekilder og masker et prosjekt bruker (begge sider). */
 export function mediaIds(p: Pick<PdDoc, 'layers' | 'back'>): string[] {
   const o: string[] = []
