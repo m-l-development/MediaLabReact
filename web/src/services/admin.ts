@@ -29,7 +29,17 @@ export interface AppUser {
   updated_at?: string
 }
 export interface Membership { user_id: string; church_id: string; status: string; created_at: string; updated_at?: string }
-export interface RoleRow { id: string; user_id: string; role: string; church_id: string | null; assigned_at?: string; extra_admin?: boolean; revoked_at?: string | null }
+export interface RoleRow { id: string; user_id: string; role: string; church_id: string | null; assigned_at?: string; extra_admin?: boolean; revoked_at?: string | null; expires_at?: string | null; duration?: AccessDuration | null }
+/** Varighet for midlertidig Admin-tilgang (Developer/Moderator i en menighet). */
+export type AccessDuration = '1d' | '30d' | '6m' | '1y' | 'indef'
+export const ACCESS_DURATIONS: readonly AccessDuration[] = ['1d', '30d', '6m', '1y', 'indef']
+export interface AccessRequest { id: string; user_id: string; name: string; email: string; role: 'developer' | 'moderator'; created_at: string }
+export interface TempAdmin { user_id: string; name: string; email: string; role: 'developer' | 'moderator' | null; granted_at: string; duration: AccessDuration | null; expires_at: string | null; granted_by: string | null }
+export interface AccessDecision { id: string; name: string; role: string; status: 'approved' | 'rejected' | 'cancelled'; duration: AccessDuration | null; auto: boolean; decided_at: string; decided_by: string | null }
+export interface AccessOverview { pending: AccessRequest[]; active: TempAdmin[]; recent: AccessDecision[]; has_admin: boolean }
+export interface MyAccess { church_id: string; state: 'pending' | 'active'; id?: string; expires_at?: string | null; duration?: AccessDuration | null }
+/** Midlertidig rolle som er utløpt (databasen avviser den uansett; her skjules den til oppryddingen har kjørt). */
+export const roleLive = (r: Pick<RoleRow, 'expires_at'>, now = Date.now()) => !r.expires_at || Date.parse(r.expires_at) > now
 export interface Invitation { id: string; email: string; church_id: string | null; role: string; status: string; expires_at: string; created_at: string; accepted_at: string | null }
 export interface AuditRow { id: string; actor_user_id?: string | null; action: string; target_type: string | null; target_id?: string | null; church_id: string | null; reason?: string | null; meta: Record<string, unknown> | null; created_at: string }
 export interface SystemStatus { users: number; files: number; files_bytes: number; audit_last_24h: number; [k: string]: unknown }
@@ -59,13 +69,16 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     /** Navn på en annen bruker: Admin i brukerens menighet, eller stab. */
     setUserName: async (userId: string, first: string, last: string) => data().rpc('set_user_name', { p_user: userId, p_first: first, p_last: last }),
     createChurch: async (name: string) => data().insert<Pick<Church, 'id' | 'name' | 'status'>>('churches', { name: name.trim() }, 'id, name, status'),
+    /** Ny menighet med logo (Developer/Moderator): bildet kontrolleres på serveren; den som oppretter blir verken medlem eller Admin. */
+    createChurchWithLogo: async (name: string, logo: Blob & { name?: string }) =>
+      (await server<{ church: Pick<Church, 'id' | 'name' | 'logo_file_id'> }>(await token(), 'church.create_with_logo', null, { raw: logo, contentType: 'application/octet-stream', query: { name: name.trim(), file: logo.name || 'logo' } })).church,
     renameChurch: async (id: string, name: string) => data().update('churches', { id }, { name: name.trim() }),
 
     /** Medlemmer i en menighet med brukeropplysninger (bare synlige brukere returneres av RLS). */
     async members(churchId: string) {
       const [ms, roles] = await Promise.all([
         data().select<Membership>('memberships', { columns: 'user_id, church_id, status, created_at', eq: { church_id: churchId } }),
-        data().select<RoleRow>('user_roles', { columns: 'id, user_id, role, church_id', eq: { church_id: churchId }, isNull: ['revoked_at'] }),
+        data().select<RoleRow>('user_roles', { columns: 'id, user_id, role, church_id, expires_at', eq: { church_id: churchId }, isNull: ['revoked_at'] }).then((rs) => rs.filter((r) => roleLive(r))),
       ])
       const ids = ms.map((m) => m.user_id)
       const users = ids.length ? await data().select<AppUser>('app_users', { columns: USER_COLS, inList: { id: ids } }) : []
@@ -89,10 +102,18 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
     revokeInvitation: async (id: string) => data().rpc('revoke_invitation', { p_id: id }),
 
     allMemberships: async () => data().select<Membership>('memberships', { columns: 'user_id, church_id, status, created_at, updated_at' }),
-    allRoles: async () => data().select<RoleRow>('user_roles', { columns: 'id, user_id, role, church_id, assigned_at, extra_admin', isNull: ['revoked_at'] }),
+    allRoles: async () => (await data().select<RoleRow>('user_roles', { columns: 'id, user_id, role, church_id, assigned_at, extra_admin, expires_at, duration', isNull: ['revoked_at'] })).filter((r) => roleLive(r)),
     /** Developer/Moderator (med MFA) som EKSTRA Admin i en menighet, i tillegg til menighetens faste Admin. */
     addSelfAsAdmin: async (churchId: string) => data().rpc('add_self_as_admin', { p_church: churchId }),
     removeSelfAsAdmin: async (churchId: string) => data().rpc('remove_self_as_admin', { p_church: churchId }),
+    /** Midlertidig Admin-tilgang: forespørsel (uten Admin i menigheten gis den med en gang med valgt varighet). */
+    requestAdminAccess: async (churchId: string, duration?: AccessDuration) => data().rpc<{ state: 'pending' | 'granted' | 'already'; expires_at?: string | null }>('request_admin_access', { p_church: churchId, p_duration: duration ?? null }),
+    /** Admin i menigheten godkjenner (med varighet) eller avslår en forespørsel. */
+    decideAdminAccess: async (requestId: string, approve: boolean, duration?: AccessDuration) => data().rpc<{ status: string }>('decide_admin_access', { p_request: requestId, p_approve: approve, p_duration: duration ?? null }),
+    /** Fjerner en midlertidig Admin (Admin i menigheten, eller personen selv). Kontoen, den globale rollen og data består. */
+    revokeAdminAccess: async (churchId: string, userId: string) => data().rpc('revoke_admin_access', { p_church: churchId, p_user: userId }),
+    adminAccessOverview: async (churchId: string) => data().rpc<AccessOverview>('admin_access_overview', { p_church: churchId }),
+    myAdminAccess: async () => data().rpc<MyAccess[]>('my_admin_access'),
     /** Én menighet om gangen for User/Admin håndheves i databasen. */
     addMembership: async (userId: string, churchId: string) => data().rpc('add_membership', { p_user: userId, p_church: churchId }),
     /** Status «fjernet», historikken beholdes. Er brukeren Admin der, må allowNoAdmin være true. */

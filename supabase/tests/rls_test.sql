@@ -1761,52 +1761,163 @@ set local role postgres;
 select ch_test.cnt('I bruk: ingen filer slettet av de avviste forsøkene', $q$select 1 from public.files where id in (select id from ch_test.gf where file_name in ('g1-delt.png', 'g2-delt.png'))$q$, 2);
 update public.churches set logo_file_id = null where id = '62626262-0000-4000-8000-000000000062';
 
--- ---------- Ekstra Admin: Developer og Moderator legger seg selv til / fjerner seg selv ----------
--- Bruker N1 (41 = fast Admin, 42 = medlem) fra navneblokken. Developer (sub-1) og Moderator (sub-2) er ikke medlemmer i N1.
+-- ---------- Midlertidig Admin-tilgang (Developer/Moderator) og menighetens data ----------
+-- N1 (41 = fast Admin, 42 = medlem). Developer = sub-1 (…001), Moderator = sub-2 (…002); ingen av dem er medlem i N1.
+set local role postgres;
+create temp table ch_test_n1 as select (select count(*) from public.files where church_id = '41414141-0000-4000-8000-000000000041') as files,
+  (select logo_file_id from public.churches where id = '41414141-0000-4000-8000-000000000041') as logo;
+grant select on ch_test_n1 to authenticated;
 set local role authenticated;
+-- tilgangskontroll for forespørselen
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
-select ch_test.err('Ekstra Admin: Admin kan ikke bruke funksjonen', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: Admin kan ikke be om tilgang (bare stab)', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
-select ch_test.err('Ekstra Admin: medlem kan ikke bruke funksjonen', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: medlem kan ikke be om tilgang', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
+select ch_test.err('Midlertidig Admin: eldre funksjon (add_self_as_admin) gir heller ikke medlem tilgang', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
-select ch_test.err('Ekstra Admin: Moderator uten MFA avvises', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: Moderator uten MFA avvises', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
-select ch_test.err('Ekstra Admin: Developer uten MFA avvises', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: Developer uten MFA avvises', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.err('Ekstra Admin: ukjent menighet avvises', $q$select public.add_self_as_admin(gen_random_uuid())$q$, '22023');
-select ch_test.cnt('Ekstra Admin: Developer legger seg til i N1 (medlemskap legges til)', $q$select 1 where (public.add_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'membership_added')::boolean$q$, 1);
-select ch_test.cnt('Ekstra Admin: to ganger er ufarlig (allerede Admin)', $q$select 1 where (public.add_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'already')::boolean$q$, 1);
-select ch_test.cnt('Ekstra Admin: Developer er Admin i N1', $q$select 1 where app.is_church_admin('41414141-0000-4000-8000-000000000041')$q$, 1);
-select ch_test.ok('Ekstra Admin: Developer kan vedlikeholde Faste i N1', $q$select public.can_upload('41414141-0000-4000-8000-000000000041', 'faste', false, 10)$q$);
-select ch_test.err('Ekstra Admin: en ny FAST Admin kan fortsatt ikke legges til (én fast Admin)', $q$select public.assign_role('00000000-0000-4000-8000-000000000042', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, '23505');
-select ch_test.err('Ekstra Admin: ingen kan endre egne roller via assign_role', $q$select public.assign_role('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: ukjent menighet avvises', $q$select public.request_admin_access(gen_random_uuid(), '30d')$q$, '22023');
+-- menigheten har Admin: ventende forespørsel, ingen tilgang ennå
+select ch_test.cnt('Midlertidig Admin: Developer ber om tilgang i N1 – venter på godkjenning', $q$select 1 where public.request_admin_access('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
+select ch_test.cnt('Midlertidig Admin: gjentatt klikk gir samme ventende forespørsel (ingen dobbel)', $q$select 1 where (public.request_admin_access('41414141-0000-4000-8000-000000000041') ->> 'already')::boolean$q$, 1);
+select ch_test.cnt('Midlertidig Admin: ingen Admin-rettigheter før godkjenning', $q$select 1 where not app.is_church_admin('41414141-0000-4000-8000-000000000041') and not app.is_member('41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.err('Midlertidig Admin: kan ikke vedlikeholde Faste før godkjenning', $q$select public.can_upload('41414141-0000-4000-8000-000000000041', 'faste', false, 10)$q$, '42501');
+select ch_test.err('Midlertidig Admin: kan ikke godkjenne sin egen forespørsel', $q$select public.decide_admin_access((select id from public.admin_access_requests where requester = '00000000-0000-4000-8000-000000000001' and status = 'pending' limit 1), true, '1y')$q$, '42501');
+select ch_test.err('Midlertidig Admin: ingen kan gi seg selv Admin via assign_role', $q$select public.assign_role('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: ingen direkte tilgang til forespørslene', $q$insert into public.admin_access_requests (church_id, requester, requester_role, status) values ('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000001', 'developer', 'approved')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.ok('Ekstra Admin: Moderator legger seg også til', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$);
+select ch_test.cnt('Midlertidig Admin: Moderator ber også om tilgang (via eldre funksjon: samme regler)', $q$select 1 where public.add_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
 set local role postgres;
-select ch_test.cnt('Ekstra Admin: den faste Admin er uendret, og to ekstra Admin er lagt til', $q$select 1 from public.user_roles where church_id = '41414141-0000-4000-8000-000000000041' and role = 'church_admin' and revoked_at is null and ((user_id = '00000000-0000-4000-8000-000000000041' and not extra_admin) or (user_id in ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002') and extra_admin and extra_membership))$q$, 3);
-select ch_test.cnt('Ekstra Admin: den faste Admin fikk varsel om begge', $q$select 1 from public.notifications where user_id = '00000000-0000-4000-8000-000000000041' and title = 'Ekstra Admin i menigheten'$q$, 2);
-select ch_test.cnt('Ekstra Admin: loggført', $q$select 1 from public.audit_logs where action = 'roles.extra_admin_add' and church_id = '41414141-0000-4000-8000-000000000041'$q$, 2);
-select ch_test.err('Ekstra Admin: kan ikke settes på andre roller enn Admin', $q$update public.user_roles set extra_admin = true where role = 'developer' and user_id = '00000000-0000-4000-8000-000000000001'$q$, '23514');
+create temp table ch_test_req as select requester, id from public.admin_access_requests where church_id = '41414141-0000-4000-8000-000000000041' and status = 'pending';
+grant select on ch_test_req to authenticated;
+select ch_test.cnt('Midlertidig Admin: én ventende forespørsel per person (2 personer)', $q$select 1 from ch_test_req$q$, 2);
+select ch_test.err('Midlertidig Admin: databasen hindrer to ventende forespørsler fra samme person', $q$insert into public.admin_access_requests (church_id, requester, requester_role) values ('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000001', 'developer')$q$, '23505');
+select ch_test.cnt('Midlertidig Admin: Admin i N1 er varslet om begge forespørslene', $q$select 1 from public.notifications where user_id = '00000000-0000-4000-8000-000000000041' and title = 'Forespørsel om Admin-tilgang'$q$, 2);
 set local role authenticated;
+-- uvedkommende kan ikke behandle
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.err('Midlertidig Admin: medlem kan ikke godkjenne', $q$select public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'), true, '30d')$q$, '42501');
+select ch_test.err('Midlertidig Admin: medlem ser ikke oversikten', $q$select public.admin_access_overview('41414141-0000-4000-8000-000000000041')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-g61","aal":"aal1"}';
+select ch_test.err('Midlertidig Admin: Admin i en annen menighet kan ikke godkjenne', $q$select public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'), true, '30d')$q$, '42501');
+-- Admin i N1 behandler
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
-select ch_test.cnt('Ekstra Admin: fast Admin ser de ekstra Admin-rollene', $q$select 1 from public.user_roles where church_id = '41414141-0000-4000-8000-000000000041' and extra_admin and revoked_at is null$q$, 2);
-select ch_test.err('Ekstra Admin: fast Admin kan ikke fjerne seg selv med funksjonen', $q$select public.remove_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '22023');
-select ch_test.err('Ekstra Admin: fast Admin kan ikke fjerne en ekstra Admin (bare stab)', $q$select public.remove_membership('00000000-0000-4000-8000-000000000002', '41414141-0000-4000-8000-000000000041')$q$, '42501');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.cnt('Ekstra Admin: stab fjerner en ekstra Admin uten «stå uten Admin»-bekreftelse', $q$select 1 where not (public.remove_membership('00000000-0000-4000-8000-000000000002', '41414141-0000-4000-8000-000000000041') ->> 'church_without_admin')::boolean$q$, 1);
-select ch_test.err('Ekstra Admin: den faste Admin krever fortsatt bekreftelsen (CH003)', $q$select public.remove_membership('00000000-0000-4000-8000-000000000041', '41414141-0000-4000-8000-000000000041')$q$, 'CH003');
-set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
-select ch_test.cnt('Ekstra Admin: Developer fjerner seg selv (også uten MFA), medlemskapet som kom med rollen fjernes', $q$select 1 where (public.remove_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'membership_removed')::boolean$q$, 1);
-select ch_test.err('Ekstra Admin: kan ikke fjernes to ganger', $q$select public.remove_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '22023');
+select ch_test.cnt('Midlertidig Admin: Admin ser ventende forespørsler med rolle', $q$select 1 from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'pending') e where e ->> 'role' in ('developer', 'moderator')$q$, 2);
+select ch_test.err('Midlertidig Admin: godkjenning krever varighet', $q$select public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'), true, null)$q$, '22023');
+select ch_test.err('Midlertidig Admin: ugyldig varighet avvises', $q$select public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'), true, '5y')$q$, '22023');
+select ch_test.cnt('Midlertidig Admin: Admin godkjenner Developer i 30 dager (grønn hake)', $q$select 1 where public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'), true, '30d') ->> 'status' = 'approved'$q$, 1);
+select ch_test.err('Midlertidig Admin: samme forespørsel kan ikke behandles igjen (gjentatt klikk)', $q$select public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'), true, '30d')$q$, 'CH020');
+select ch_test.cnt('Midlertidig Admin: Admin avslår Moderator (rød X)', $q$select 1 where public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000002'), false) ->> 'status' = 'rejected'$q$, 1);
+select ch_test.err('Midlertidig Admin: avslått forespørsel kan ikke godkjennes etterpå', $q$select public.decide_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000002'), true, '1d')$q$, 'CH020');
 set local role postgres;
-select ch_test.cnt('Ekstra Admin: bare den faste Admin er igjen, og Developer er ikke lenger aktivt medlem', $q$select 1 from public.user_roles where church_id = '41414141-0000-4000-8000-000000000041' and role = 'church_admin' and revoked_at is null and user_id = '00000000-0000-4000-8000-000000000041' and not extra_admin union all select 1 from public.memberships where user_id = '00000000-0000-4000-8000-000000000001' and church_id = '41414141-0000-4000-8000-000000000041' and status = 'active'$q$, 1);
-select ch_test.cnt('Ekstra Admin: fjerningen er loggført', $q$select 1 from public.audit_logs where action = 'roles.extra_admin_remove' and church_id = '41414141-0000-4000-8000-000000000041'$q$, 1);
--- Developer som allerede er medlem (B): medlemskapet beholdes når den ekstra Admin-rollen fjernes
+select ch_test.cnt('Midlertidig Admin: Developer har en egen, midlertidig Admin-rolle (30 dager, servertid)', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000001' and church_id = '41414141-0000-4000-8000-000000000041' and role = 'church_admin' and extra_admin and extra_membership and duration = '30d' and expires_at between now() + interval '29 days' and now() + interval '31 days' and revoked_at is null$q$, 1);
+select ch_test.cnt('Midlertidig Admin: den faste Admin er uendret (flere Admin samtidig)', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000041' and church_id = '41414141-0000-4000-8000-000000000041' and role = 'church_admin' and not extra_admin and revoked_at is null$q$, 1);
+select ch_test.cnt('Midlertidig Admin: avslag gir ingen rolle', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000002' and church_id = '41414141-0000-4000-8000-000000000041' and revoked_at is null$q$, 0);
+select ch_test.cnt('Midlertidig Admin: de globale rollene er uendret', $q$select 1 from public.user_roles where ((user_id = '00000000-0000-4000-8000-000000000001' and role = 'developer') or (user_id = '00000000-0000-4000-8000-000000000002' and role = 'moderator')) and church_id is null and revoked_at is null$q$, 2);
+select ch_test.cnt('Midlertidig Admin: søkerne er varslet (godkjent og avslått)', $q$select 1 from public.notifications where (user_id = '00000000-0000-4000-8000-000000000001' and title = 'Admin-tilgang godkjent') or (user_id = '00000000-0000-4000-8000-000000000002' and title = 'Admin-tilgang avslått')$q$, 2);
+select ch_test.cnt('Midlertidig Admin: forespørsel, godkjenning og avslag er loggført', $q$select 1 from public.audit_logs where church_id = '41414141-0000-4000-8000-000000000041' and action in ('roles.temp_admin_request', 'roles.temp_admin_approve', 'roles.temp_admin_reject', 'roles.temp_admin_grant')$q$, 5);
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
-select ch_test.cnt('Ekstra Admin: Developer som allerede er medlem av B får ingen nytt medlemskap', $q$select 1 where not (public.add_self_as_admin('bbbbbbbb-0000-4000-8000-00000000000b') ->> 'membership_added')::boolean$q$, 1);
-select ch_test.cnt('Ekstra Admin: fjerning i B melder at medlemskapet beholdes', $q$select 1 where not (public.remove_self_as_admin('bbbbbbbb-0000-4000-8000-00000000000b') ->> 'membership_removed')::boolean$q$, 1);
-select ch_test.cnt('Ekstra Admin: Developer er fortsatt medlem av B, men ikke Admin', $q$select 1 where app.is_member('bbbbbbbb-0000-4000-8000-00000000000b') and not app.is_church_admin('bbbbbbbb-0000-4000-8000-00000000000b')$q$, 1);
+select ch_test.cnt('Midlertidig Admin: Developer er Admin i N1 mens tilgangen varer', $q$select 1 where app.is_church_admin('41414141-0000-4000-8000-000000000041') and app.is_member('41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.ok('Midlertidig Admin: kan vedlikeholde Faste i N1', $q$select public.can_upload('41414141-0000-4000-8000-000000000041', 'faste', false, 10)$q$);
+select ch_test.cnt('Midlertidig Admin: min status viser aktiv tilgang med utløp', $q$select 1 from jsonb_array_elements(public.my_admin_access()) e where e ->> 'church_id' = '41414141-0000-4000-8000-000000000041' and e ->> 'state' = 'active' and e ->> 'expires_at' is not null$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.cnt('Midlertidig Admin: oversikten viser aktiv midlertidig Admin med varighet og utløp', $q$select 1 from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'active') e where e ->> 'role' = 'developer' and e ->> 'duration' = '30d' and e ->> 'expires_at' is not null and e ->> 'granted_at' is not null$q$, 1);
+select ch_test.cnt('Midlertidig Admin: oversikten viser behandlede forespørsler', $q$select 1 from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'recent') e where e ->> 'status' in ('approved', 'rejected')$q$, 2);
+
+-- varighetene (servertid, UTC-kalender – også over sommertid og månedsslutt)
+set local role postgres;
+select ch_test.cnt('Varighet: 1 dag, 30 dager, 6 måneder, 1 år og ubestemt tid', $q$select 1 where app.access_expiry('2026-03-28T23:30:00Z', '1d') = '2026-03-29T23:30:00Z' and app.access_expiry('2026-01-31T12:00:00Z', '30d') = '2026-03-02T12:00:00Z' and app.access_expiry('2026-08-31T12:00:00Z', '6m') = '2027-02-28T12:00:00Z' and app.access_expiry('2028-02-29T12:00:00Z', '1y') = '2029-02-28T12:00:00Z' and app.access_expiry(now(), 'indef') is null$q$, 1);
+select ch_test.cnt('Varighet: bare de fem valgene er gyldige', $q$select 1 where app.valid_duration('1d') and app.valid_duration('30d') and app.valid_duration('6m') and app.valid_duration('1y') and app.valid_duration('indef') and not app.valid_duration('2y') and not coalesce(app.valid_duration(null), false)$q$, 1);
+
+-- utløp: avvises med en gang, også før oppryddingen har kjørt
+update public.user_roles set expires_at = now() - interval '1 minute' where user_id = '00000000-0000-4000-8000-000000000001' and church_id = '41414141-0000-4000-8000-000000000041' and extra_admin and revoked_at is null;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.cnt('Utløp: utløpt tilgang gir verken Admin eller medlemskap (før oppryddingen)', $q$select 1 where not app.is_church_admin('41414141-0000-4000-8000-000000000041') and not app.is_member('41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.err('Utløp: kan ikke vedlikeholde Faste etter utløp', $q$select public.can_upload('41414141-0000-4000-8000-000000000041', 'faste', false, 10)$q$, '42501');
+select ch_test.err('Utløp: kan ikke endre logoen etter utløp', $q$select public.set_church_logo('41414141-0000-4000-8000-000000000041', null)$q$, '42501');
+select ch_test.err('Utløp: kan ikke fjerne andres tilgang etter utløp', $q$select public.revoke_admin_access('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000002')$q$, '42501');
+select ch_test.cnt('Utløp: whoami viser ikke den utløpte rollen eller menigheten', $q$select 1 where not exists (select 1 from jsonb_array_elements(public.whoami() -> 'roles') e where e ->> 'church_id' = '41414141-0000-4000-8000-000000000041') and not exists (select 1 from jsonb_array_elements(public.whoami() -> 'churches') e where e ->> 'id' = '41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.cnt('Utløp: oppryddingen tilbakekaller utløpte roller', $q$select 1 where public.expire_admin_access() >= 1$q$, 1);
+set local role postgres;
+select ch_test.cnt('Utløp: rollen er tilbakekalt og medlemskapet som fulgte med, fjernet', $q$select 1 from public.user_roles r where r.user_id = '00000000-0000-4000-8000-000000000001' and r.church_id = '41414141-0000-4000-8000-000000000041' and r.revoked_at is not null and r.reason = 'Midlertidig Admin-tilgang utløpt' and exists (select 1 from public.memberships m where m.user_id = r.user_id and m.church_id = r.church_id and m.status = 'removed')$q$, 1);
+select ch_test.cnt('Utløp: Developer-rollen er beholdt', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000001' and role = 'developer' and revoked_at is null$q$, 1);
+
+-- ubestemt tid og manuell fjerning
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Ubestemt tid: Moderator kan be på nytt etter avslag', $q$select 1 where public.request_admin_access('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.ok('Ubestemt tid: Admin godkjenner uten utløp', $q$select public.decide_admin_access((select (e ->> 'id')::uuid from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'pending') e where e ->> 'user_id' = '00000000-0000-4000-8000-000000000002'), true, 'indef')$q$);
+select ch_test.cnt('Ubestemt tid: oppryddingen rører den ikke', $q$select 1 where public.expire_admin_access() = 0$q$, 1);
+set local role postgres;
+select ch_test.cnt('Ubestemt tid: ingen utløpstid', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000002' and church_id = '41414141-0000-4000-8000-000000000041' and duration = 'indef' and expires_at is null and revoked_at is null$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
+select ch_test.err('Fjern tilgang: medlem kan ikke fjerne en midlertidig Admin', $q$select public.revoke_admin_access('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000002')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Fjern tilgang: midlertidig Admin kan ikke fjerne den faste Admin', $q$select public.revoke_admin_access('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000041')$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.cnt('Fjern tilgang: Admin fjerner Moderator før utløp (også ubestemt tid)', $q$select 1 where (public.revoke_admin_access('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000002') ->> 'ok')::boolean$q$, 1);
+select ch_test.err('Fjern tilgang: kan ikke fjernes to ganger', $q$select public.revoke_admin_access('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000002')$q$, '22023');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Fjern tilgang: Moderator mister tilgangen med en gang', $q$select 1 where not app.is_church_admin('41414141-0000-4000-8000-000000000041') and not app.is_member('41414141-0000-4000-8000-000000000041')$q$, 1);
+set local role postgres;
+select ch_test.cnt('Fjern tilgang: kontoen og Moderator-rollen består', $q$select 1 from public.app_users u join public.user_roles r on r.user_id = u.id where u.id = '00000000-0000-4000-8000-000000000002' and r.role = 'moderator' and r.revoked_at is null$q$, 1);
+select ch_test.cnt('Fjern tilgang: den faste Admin er urørt', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000041' and church_id = '41414141-0000-4000-8000-000000000041' and not extra_admin and revoked_at is null$q$, 1);
+select ch_test.cnt('Data: menighetens filer og logo er urørt gjennom alle rolleendringene', $q$select 1 from ch_test_n1 t where t.files = (select count(*) from public.files where church_id = '41414141-0000-4000-8000-000000000041') and t.logo is not distinct from (select logo_file_id from public.churches where id = '41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.cnt('Fjern tilgang: loggført', $q$select 1 from public.audit_logs where action = 'roles.temp_admin_revoke' and church_id = '41414141-0000-4000-8000-000000000041'$q$, 1);
+
+-- menighet uten Admin: første midlertidige Admin uten godkjenning (fortsatt med varighet)
+insert into public.churches (id, name) values ('7a7a7a7a-0000-4000-8000-00000000007a', 'Uten Admin');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Uten Admin: varighet må velges', $q$select public.request_admin_access('7a7a7a7a-0000-4000-8000-00000000007a')$q$, '22023');
+select ch_test.cnt('Uten Admin: Developer får tilgang med en gang (1 dag)', $q$select 1 where public.request_admin_access('7a7a7a7a-0000-4000-8000-00000000007a', '1d') ->> 'state' = 'granted'$q$, 1);
+select ch_test.cnt('Uten Admin: Developer er Admin', $q$select 1 where app.is_church_admin('7a7a7a7a-0000-4000-8000-00000000007a')$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Uten Admin: når en Admin finnes, krever neste forespørsel godkjenning', $q$select 1 where public.request_admin_access('7a7a7a7a-0000-4000-8000-00000000007a', '1y') ->> 'state' = 'pending'$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.ok('Uten Admin: den midlertidige Admin kan godkjenne (6 måneder)', $q$select public.decide_admin_access((select (e ->> 'id')::uuid from jsonb_array_elements(public.admin_access_overview('7a7a7a7a-0000-4000-8000-00000000007a') -> 'pending') e limit 1), true, '6m')$q$);
+select ch_test.cnt('Uten Admin: Developer gir fra seg tilgangen selv', $q$select 1 where (public.revoke_admin_access('7a7a7a7a-0000-4000-8000-00000000007a', '00000000-0000-4000-8000-000000000001') ->> 'ok')::boolean$q$, 1);
+set local role postgres;
+select ch_test.cnt('Uten Admin: Moderator er fortsatt Admin (6 måneder), Developer ikke', $q$select 1 from public.user_roles where church_id = '7a7a7a7a-0000-4000-8000-00000000007a' and role = 'church_admin' and revoked_at is null and user_id = '00000000-0000-4000-8000-000000000002' and duration = '6m'$q$, 1);
+select ch_test.cnt('Uten Admin: den automatiske tildelingen er registrert som godkjent forespørsel', $q$select 1 from public.admin_access_requests where church_id = '7a7a7a7a-0000-4000-8000-00000000007a' and auto_granted and status = 'approved' and duration = '1d'$q$, 1);
+update public.user_roles set revoked_at = now() where church_id = '7a7a7a7a-0000-4000-8000-00000000007a' and revoked_at is null;
+update public.memberships set status = 'removed' where church_id = '7a7a7a7a-0000-4000-8000-00000000007a';
+
+-- logo: bare Admin endrer den; opprettelse med logo gir ingen Admin- eller redigeringsrett
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Logo: Developer som er medlem (B), men ikke Admin, kan ikke endre logoen', $q$select public.set_church_logo('bbbbbbbb-0000-4000-8000-00000000000b', null)$q$, '42501');
+select ch_test.err('Logo: opprettelse med logo kan ikke kalles fra klienten', $q$select public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-1', 'aal2', gen_random_uuid(), 'Ny menighet', 'c/x/logo.png', 'logo.png', 'image/png', 100, null)$q$, '42501');
+select ch_test.err('Logo: oppretter kan ikke settes av klienten', $q$insert into public.churches (name, created_by) values ('Falsk oppretter', '00000000-0000-4000-8000-000000000041')$q$, '42501');
+set local role postgres;
+select ch_test.err('Logo: vanlig bruker kan ikke opprette menighet med logo', $q$select public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-n42', 'aal2', '7d7d7d7d-0000-4000-8000-00000000007d', 'Ny menighet', 'c/7d7d7d7d-0000-4000-8000-00000000007d/n42.png', 'logo.png', 'image/png', 100, null)$q$, '42501');
+select ch_test.err('Logo: ikke et bilde avvises', $q$select public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-2', 'aal2', '7d7d7d7d-0000-4000-8000-00000000007d', 'Ny menighet', 'c/7d7d7d7d-0000-4000-8000-00000000007d/m.svg', 'logo.svg', 'image/svg+xml', 100, null)$q$, '22023');
+select ch_test.err('Logo: større enn 4 MB avvises', $q$select public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-2', 'aal2', '7d7d7d7d-0000-4000-8000-00000000007d', 'Ny menighet', 'c/7d7d7d7d-0000-4000-8000-00000000007d/m.png', 'logo.png', 'image/png', 4194305, null)$q$, '22023');
+select ch_test.err('Logo: uten MFA avvises', $q$select public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-2', 'aal1', '7d7d7d7d-0000-4000-8000-00000000007d', 'Ny menighet', 'c/7d7d7d7d-0000-4000-8000-00000000007d/m.png', 'logo.png', 'image/png', 100, null)$q$, '42501');
+select ch_test.err('Logo: logoen må ligge under menighetens egen sti', $q$select public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-2', 'aal2', '7d7d7d7d-0000-4000-8000-00000000007d', 'Ny menighet', 'c/41414141-0000-4000-8000-000000000041/m.png', 'logo.png', 'image/png', 100, null)$q$, '22023');
+select ch_test.cnt('Logo: Moderator oppretter menighet med logo', $q$select 1 where public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-2', 'aal2', '7b7b7b7b-0000-4000-8000-00000000007b', 'Moderatorens menighet', 'c/7b7b7b7b-0000-4000-8000-00000000007b/mod-logo.png', 'mod-logo.png', 'image/png', 1000, null) ->> 'logo_file_id' is not null$q$, 1);
+select ch_test.cnt('Logo: Developer oppretter menighet med logo', $q$select 1 where public.create_church_with_logo('https://test.invalid/auth/v1', 'sub-1', 'aal2', '7c7c7c7c-0000-4000-8000-00000000007c', 'Developerens menighet', 'c/7c7c7c7c-0000-4000-8000-00000000007c/dev-logo.png', 'dev-logo.png', 'image/png', 1000, null) ->> 'logo_file_id' is not null$q$, 1);
+set local request.jwt.claims to '';
+select ch_test.cnt('Logo: logoen tilhører menigheten (Logoer, felles) og oppretteren er registrert', $q$select 1 from public.churches c join public.files f on f.id = c.logo_file_id where c.name in ('Moderatorens menighet', 'Developerens menighet') and f.church_id = c.id and f.folder = 'logoer' and f.visibility = 'church' and c.created_by = f.uploaded_by$q$, 2);
+select ch_test.cnt('Logo: oppretteren ble verken medlem eller Admin', $q$select 1 from public.churches c where c.name in ('Moderatorens menighet', 'Developerens menighet') and (exists (select 1 from public.memberships m where m.church_id = c.id) or exists (select 1 from public.user_roles r where r.church_id = c.id))$q$, 0);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.err('Logo: oppretteren kan ikke bytte logoen etterpå', $q$select public.set_church_logo((select id from public.churches where name = 'Moderatorens menighet'), null)$q$, '42501');
+select ch_test.err('Logo: oppretteren kan ikke slette logofila', $q$select public.delete_file((select logo_file_id from public.churches where name = 'Moderatorens menighet'))$q$, '42501');
+select ch_test.cnt('Logo: menigheten har ingen Admin – Moderator kan få midlertidig tilgang (30 dager)', $q$select 1 where public.request_admin_access((select id from public.churches where name = 'Moderatorens menighet'), '30d') ->> 'state' = 'granted'$q$, 1);
+select ch_test.ok('Logo: som midlertidig Admin kan oppretteren endre logoen', $q$select public.set_church_logo((select id from public.churches where name = 'Moderatorens menighet'), (select logo_file_id from public.churches where name = 'Moderatorens menighet'))$q$);
+select ch_test.ok('Logo: gir fra seg tilgangen', $q$select public.revoke_admin_access((select id from public.churches where name = 'Moderatorens menighet'), '00000000-0000-4000-8000-000000000002')$q$);
+select ch_test.err('Logo: etter at tilgangen er avsluttet, kan logoen ikke endres', $q$select public.set_church_logo((select id from public.churches where name = 'Moderatorens menighet'), null)$q$, '42501');
+set local role postgres;
+select ch_test.cnt('Logo: logoen er uendret etter at tilgangen er avsluttet', $q$select 1 from public.churches c join public.files f on f.id = c.logo_file_id where c.name = 'Moderatorens menighet' and f.file_name = 'mod-logo.png'$q$, 1);
+delete from public.audit_logs where false;
 set local role postgres;
 
 -- ---------- E-post: maler, logo, utsendingslogg og grenser før innlogging ----------
