@@ -1,5 +1,5 @@
-import { detectScreen, edgeMatte, occlusionMask, type Pixels } from './detect'
-import { aspectOf, clamp, growQuad, homography, project, type Point, type Quad } from './geometry'
+import { detectScreen, edgeMatte, occlusionMask, refineQuad, type Pixels } from './detect'
+import { aspectOf, clamp, growQuad, homography, insetQuad, project, type Inset, type Point, type Quad } from './geometry'
 
 /** Innstillinger per mockup (samme felt og standardverdier som i dag, lagres under `mockups.settings`). */
 export interface MockupSettings {
@@ -32,6 +32,11 @@ export interface MockupInfo {
   id: string
   /** Hjørner fra config.json (andeler), eller null = finnes automatisk. */
   corners: Quad | null
+  /**
+   * Svart skjerm i en svart ramme (config.json «inset»): det som finnes automatisk, er glassets ytterkant; det aktive
+   * skjermområdet ligger så mye innenfor (topp, høyre, bunn, venstre, andeler av glasset), og rammen blir stående.
+   */
+  inset?: Inset | null
   aspect: number | null
   keepHoles: boolean
   /** Hvor mørk en skygge på skjermen/flaten kan være (andel av lysstyrken) og fortsatt regnes som flate. Standard 0,3. */
@@ -70,9 +75,15 @@ export function pixels(img: Img, maxSide: number): Pixels {
   return { w, h, d: g.getImageData(0, 0, w, h).data }
 }
 
-/** Finner skjermen automatisk (360 px analyse). */
-export function detect(img: Img): Quad | null {
-  return detectScreen(pixels(img, 360))
+/**
+ * Finner skjermen automatisk (360 px analyse), og flytter sidene ut til fotoets faktiske kanter (1200 px). Med `inset`
+ * (svart skjerm i svart ramme) felles firkanten inn til det aktive skjermområdet.
+ */
+export function detect(img: Img, inset?: Inset | null): Quad | null {
+  const found = detectScreen(pixels(img, 360))
+  if (!found) return null
+  const q = refineQuad(pixels(img, 1200), found)
+  return inset ? insetQuad(q, inset) : q
 }
 
 /**
@@ -211,14 +222,40 @@ export function validQuad(q: unknown): q is Quad {
   return Math.abs(area) / 2 > 1e-4
 }
 
-const maskCache = new Map<string, HTMLCanvasElement>()
+/** Firkanten med hver side flyttet `px` utover (parallelt), hjørnene i skjæringspunktene. */
+function outset(q: Quad, px: number): Quad {
+  if (!px) return q
+  const cx = q.reduce((s, p) => s + p[0], 0) / 4, cy = q.reduce((s, p) => s + p[1], 0) / 4
+  const L = q.map((a, i) => {
+    const b = q[(i + 1) % 4]!
+    let nx = b[1] - a[1], ny = a[0] - b[0]
+    const l = Math.hypot(nx, ny) || 1
+    nx /= l; ny /= l
+    if (nx * (cx - a[0]) + ny * (cy - a[1]) > 0) { nx = -nx; ny = -ny }
+    return { p: [a[0] + nx * px, a[1] + ny * px] as Point, d: [b[0] - a[0], b[1] - a[1]] as Point }
+  })
+  return q.map((v, i) => {
+    const A = L[(i + 3) % 4]!, B = L[i]!
+    const den = A.d[0] * B.d[1] - A.d[1] * B.d[0]
+    if (Math.abs(den) < 1e-9) return v
+    const t = ((B.p[0] - A.p[0]) * B.d[1] - (B.p[1] - A.p[1]) * B.d[0]) / den
+    return [A.p[0] + A.d[0] * t, A.p[1] + A.d[1] * t] as Point
+  }) as Quad
+}
 
-function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, occl: boolean): HTMLCanvasElement {
-  const key = `v3|${mk.id}|${W}x${H}|${qn.map((p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join(';')}|${occl ? 1 : 0}${mk.keepHoles ? 1 : 0}|${mk.shadowMin ?? ""}`
+/** Lokal skjermfarge S nær maskens kanter (utsnitt av bildet; A = 255 der den er kjent). */
+interface Surface { bx: number; by: number; bw: number; bh: number; d: Uint8ClampedArray }
+interface Mask { c: HTMLCanvasElement; surf: Surface | null }
+
+const maskCache = new Map<string, Mask>()
+
+function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, occl: boolean): Mask {
+  const key = `v4|${mk.id}|${W}x${H}|${qn.map((p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join(';')}|${occl ? 1 : 0}${mk.keepHoles ? 1 : 0}|${mk.shadowMin ?? ""}|${mk.inset ? 1 : 0}`
   const hit = maskCache.get(key)
   if (hit) return hit
   const out = canvas(W, H)
   const g = ctx2d(out)
+  let surf: Surface | null = null
   const m = occl ? (() => {
     const P = pixels(base, 720)
     const mm = occlusionMask(P, qn, mk.keepHoles, mk.shadowMin)
@@ -236,7 +273,8 @@ function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, o
       bg.imageSmoothingEnabled = true
       bg.imageSmoothingQuality = 'high'
       bg.drawImage(base, 0, 0, W, H)
-      const a = edgeMatte(m.P, m.mm, bg.getImageData(bx, by, bw, bh).data, bx, by, bw, bh, W, H, qn)
+      surf = { bx, by, bw, bh, d: new Uint8ClampedArray(bw * bh * 4) }
+      const a = edgeMatte(m.P, m.mm, bg.getImageData(bx, by, bw, bh).data, bx, by, bw, bh, W, H, qn, surf.d)
       const id = g.createImageData(bw, bh)
       for (let p = 0; p < a.length; p++) id.data[p * 4 + 3] = a[p]!
       g.putImageData(id, bx, by)
@@ -250,8 +288,11 @@ function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, o
     g.closePath()
     g.fill()
   }
-  // klipp til skjermfirkanten (antialiasert): rette, skarpe ytterkanter og ingen lekkasje ut over rammen
-  const qq = qn.map((p) => [p[0] * W, p[1] * H] as Point)
+  // klipp til skjermfirkanten (antialiasert): rette, skarpe ytterkanter og ingen lekkasje ut over rammen. Når kanten
+  // følger fotoets egen kant (edgeMatte), ligger klippet 2 px utenfor, så en firkant som ligger en piksel innenfor
+  // fotoets kant ikke kutter overgangen (da ble kantpikslene mest fotoets egen flate: svart linje på et svart kort).
+  // Med innfelling (svart skjerm i svart ramme) er kanten geometrisk, og klippet er nøyaktig.
+  const qq = outset(qn.map((p) => [p[0] * W, p[1] * H] as Point) as Quad, m && !mk.inset ? 2 : 0)
   g.globalCompositeOperation = 'destination-in'
   g.fillStyle = '#000'
   g.beginPath()
@@ -264,8 +305,9 @@ function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, o
     const first = maskCache.keys().next().value
     if (first) maskCache.delete(first)
   }
-  maskCache.set(key, out)
-  return out
+  const res = { c: out, surf }
+  maskCache.set(key, res)
+  return res
 }
 
 /**
@@ -290,8 +332,18 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
   const lg = ctx2d(layer, true)
   warp(lg, tex, growQuad(q, 1.025), opt.N ?? (W > 1200 ? 22 : 12))
   lg.globalCompositeOperation = 'destination-in'
-  lg.drawImage(screenMask(mk, base, qn, W, H, st.occl !== false && mk.occl !== false), 0, 0)
+  const mask = screenMask(mk, base, qn, W, H, st.occl !== false && mk.occl !== false)
+  lg.drawImage(mask.c, 0, 0)
   lg.globalCompositeOperation = 'source-over'
+  const sf = mask.surf
+  /** Lokal skjermfarge S i bildepunktet (x, y) når den er kjent: indeks i sf.d, ellers −1. */
+  const sAt = (x: number, y: number) => {
+    if (!sf) return -1
+    const i = x - sf.bx, j = y - sf.by
+    if (i < 0 || j < 0 || i >= sf.bw || j >= sf.bh) return -1
+    const o = (j * sf.bw + i) * 4
+    return sf.d[o + 3] ? o : -1
+  }
 
   let shade = mk.lit === false ? 0 : st.shade ?? 0.6
   let gloss = mk.lit === false ? 0 : st.gloss ?? 0.35
@@ -331,7 +383,11 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
       const bright = mean >= 90
       for (let i = 0; i < D.length; i += 4) {
         if (!D[i + 3]) continue
-        const L = 0.3 * (B[i] ?? 0) + 0.59 * (B[i + 1] ?? 0) + 0.11 * (B[i + 2] ?? 0)
+        // i overgangen mot kanten er fotoets piksel en blanding av skjermen og det rundt; lyset tas da fra skjermfargen,
+        // ellers blir kanten av en lys flate mørkere (og av en mørk flate lysere) enn resten av flaten
+        const p = i >> 2, o = (D[i + 3] ?? 0) < 250 ? sAt(x0 + (p % bw), y0 + ((p / bw) | 0)) : -1
+        const C = o >= 0 && sf ? sf.d : B, c = o >= 0 ? o : i
+        const L = 0.3 * (C[c] ?? 0) + 0.59 * (C[c + 1] ?? 0) + 0.11 * (C[c + 2] ?? 0)
         const f = bright ? clamp(1 + shade * (L / mean - 1) * 1.4, 0.35, 1.25) : 1 - shade * 0.08
         const add = bright ? gloss * Math.max(0, L - mean) * 1.2 : gloss * Math.max(0, L - mean) * 2.2
         D[i] = clamp((D[i] ?? 0) * f + add, 0, 255)
@@ -340,6 +396,24 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
       }
       lg.putImageData(Ly, x0, y0)
     }
+  }
+  if (sf) {
+    // Overgangen ved kantene (skjermandel a mellom 0 og 1): fotoets piksel I er allerede en blanding a·S + (1 − a)·F av
+    // skjermen S og det rundt/foran F (bakgrunn, ramme, finger). Legges designet D bare oppå I, blir S (svart kort, svart
+    // glass, hvit flate) med i blandingen og synes som en mørk eller lys stripe langs kanten. Riktig er a·D + (1 − a)·F,
+    // altså laget tegnet med fargen D + I − S i overgangspikslene (samme andel a, ingen ekstra maske eller strekking).
+    const bc = canvas(W, H)
+    const bg = ctx2d(bc, true)
+    bg.drawImage(base, 0, 0, W, H)
+    const B = bg.getImageData(sf.bx, sf.by, sf.bw, sf.bh).data
+    const Ly = lg.getImageData(sf.bx, sf.by, sf.bw, sf.bh)
+    const D = Ly.data
+    for (let i = 0; i < D.length; i += 4) {
+      const a = D[i + 3] ?? 0
+      if (!a || a >= 250 || !sf.d[i + 3]) continue
+      for (let c = 0; c < 3; c++) D[i + c] = clamp((D[i + c] ?? 0) + (B[i + c] ?? 0) - (sf.d[i + c] ?? 0), 0, 255)
+    }
+    lg.putImageData(Ly, sf.bx, sf.by)
   }
   g.drawImage(layer, 0, 0)
   g.restore()
