@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent as RPE } from 'react'
 import type { ToolId } from '../../domain/tool'
 import { FillEditor } from '../../shared/fill/FillEditor'
 import * as FX from '../../shared/fx/fx'
+import { ColorBar } from './Colors'
 import { PAL, type Interaction, type PhotoController, type PState, type Pt } from './controller'
 import { BLEED, dims, SHAPES, type PdLayer } from './engine/model'
 import { hit, render, shapePath } from './engine/render'
@@ -196,6 +197,9 @@ function StylePanel({ c, S, tx }: EditorProps) {
   const fill = c.fillOf(d)
   return (
     <div className={s.stack}>
+      <span className={s.eyebrowSm}>{tx('Malfarger')}</span>
+      <ColorBar value={d.scheme ?? null} onChange={(sc) => c.setDocScheme(sc)} tx={tx} scope="doc" />
+      <div className={s.hr} />
       <span className={s.eyebrowSm}>{tx('Farge på nye elementer')}</span>
       <div className={s.swatches}>
         <button type="button" className={s.autoChip} aria-pressed={!S.newCol} onClick={() => c.setNewCol(null)}>{tx('Auto')}</button>
