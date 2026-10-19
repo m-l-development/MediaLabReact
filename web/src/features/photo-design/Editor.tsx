@@ -503,11 +503,14 @@ function Stage({ c, S, tx }: EditorProps) {
   useEffect(() => {
     const cv = canvas.current
     if (!cv || hist < 0) return
-    let raf = requestAnimationFrame(function draw() {
+    // Én tegning som alltid setter lerretets størrelse først. Før satte bare den første tegningen størrelsen; når
+    // skriftene allerede var lastet (fonts.ready løst med en gang, f.eks. ved mal nummer to), ble den avbrutt av
+    // tegningen etter fonts.ready, og lerretet ble stående på 10 × 10 – malen så tom ut (bare bakgrunnsfargen).
+    const draw = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       const k = Math.min(dpr * sc, 3200 / Math.max(d.w, d.h))
-      const W = Math.round(d.w * k)
-      const Hh = Math.round(d.h * k)
+      const W = Math.max(1, Math.round(d.w * k))
+      const Hh = Math.max(1, Math.round(d.h * k))
       if (cv.width !== W || cv.height !== Hh) {
         cv.width = W
         cv.height = Hh
@@ -518,17 +521,13 @@ function Stage({ c, S, tx }: EditorProps) {
       } catch (e) {
         console.warn(e)
       }
-    })
+    }
+    let raf = requestAnimationFrame(draw)
     let live = true
     void document.fonts?.ready.then(() => {
       if (!live) return
       cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => {
-        const dpr = Math.min(2, window.devicePixelRatio || 1)
-        const k = Math.min(dpr * sc, 3200 / Math.max(d.w, d.h))
-        const g = cv.getContext('2d')
-        if (g) render(g, d, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
-      })
+      raf = requestAnimationFrame(draw)
     })
     return () => {
       live = false

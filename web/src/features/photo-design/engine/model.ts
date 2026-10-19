@@ -165,16 +165,21 @@ let MC: CanvasRenderingContext2D | null = null
 /** Tekstboksens størrelse (bredeste linje × antall linjer), med strekk (tsx/tsy). */
 export function textBox(L: TextLayer): { w: number; h: number; lines: string[] } {
   if (!MC) MC = document.createElement('canvas').getContext('2d')
-  const g = MC as CanvasRenderingContext2D
-  g.font = `${L.weight || 400} ${L.size}px "${L.font}", Archivo, sans-serif`
-  try {
-    g.letterSpacing = `${L.ls || 0}px`
-  } catch {
-    // eldre nettlesere uten letterSpacing
-  }
+  const g = MC
   const lines = String(L.upper ? L.text.toUpperCase() : L.text).split('\n')
   let w = 0
-  for (const s of lines) w = Math.max(w, g.measureText(s || ' ').width)
+  if (g) {
+    g.font = `${L.weight || 400} ${L.size}px "${L.font}", Archivo, sans-serif`
+    try {
+      g.letterSpacing = `${L.ls || 0}px`
+    } catch {
+      // eldre nettlesere uten letterSpacing
+    }
+    for (const s of lines) w = Math.max(w, g.measureText(s || ' ').width)
+  } else {
+    // uten lerret (tester): anslag ut fra antall tegn
+    for (const s of lines) w = Math.max(w, (s || ' ').length * (L.size * 0.56 + (L.ls || 0)))
+  }
   return { w: Math.max(L.size * 0.4, w + (L.strokeW || 0)) * (L.tsx || 1), h: lines.length * L.size * (L.lh || 1.1) * (L.tsy || 1), lines }
 }
 
@@ -192,6 +197,42 @@ function pinText(L: TextLayer, edge: number): TextLayer {
   L.x = L.align === 'right' ? edge - b.w / 2 : L.align === 'left' ? edge + b.w / 2 : edge
   return L
 }
+
+/** Malhjelp: krymper teksten til den er høyst `max` bred (blir aldri større). */
+function fitW(L: TextLayer, max: number): TextLayer {
+  const b = textBox(L)
+  if (b.w > max) L.size = Math.max(8, Math.floor((L.size * max) / b.w))
+  return L
+}
+
+/**
+ * Malhjelp: tekstlag under hverandre mellom `top` og `bottom` med `gap` mellom. Hver tekst krympes til bredden `maxW`,
+ * og alle krympes likt hvis de ikke får plass i høyden, så ingen tekst går utenfor området eller oppå en annen, uansett
+ * format. `valign`: 0 = øverst, 0,5 = midt (standard), 1 = nederst. Venstre-/høyrejusterte lag får kanten på `edge`.
+ */
+function stack(ls: TextLayer[], o: { top: number; bottom: number; gap: number; maxW: number; edge: number; valign?: number }): TextLayer[] {
+  for (const L of ls) fitW(L, o.maxW)
+  const gaps = o.gap * Math.max(0, ls.length - 1)
+  const sum = () => ls.reduce((s, L) => s + textBox(L).h, 0)
+  const avail = o.bottom - o.top
+  if (sum() + gaps > avail) {
+    const k = Math.max(0.2, (avail - gaps) / sum())
+    for (const L of ls) L.size = Math.max(8, Math.floor(L.size * k))
+  }
+  let y = o.top + Math.max(0, avail - sum() - gaps) * (o.valign ?? 0.5)
+  for (const L of ls) {
+    const bh = textBox(L).h
+    L.y = y + bh / 2
+    y += bh + o.gap
+    pinText(L, o.edge)
+  }
+  return ls
+}
+
+/** Malhjelp: størrelse som andel av den korteste siden, avrundet. */
+const sz = (d: PdDoc, f: number): number => Math.round(Math.min(d.w, d.h) * f)
+/** Liggende format (bredere enn høyt): malene legger bilde og tekst side om side. */
+const isLand = (d: PdDoc): boolean => d.w > d.h * 1.15
 
 export interface Template { k: string; l: string; make: (d: PdDoc) => void }
 
@@ -235,11 +276,17 @@ export const TEMPLATES: readonly Template[] = [
   { k: 'event', l: 'Arrangement', make: (d) => {
     const { w, h } = d
     const m = Math.min(w, h)
+    const land = isLand(d)
     d.bg = '#f3f1ec'
-    d.layers.push(imageLayer({ name: 'Bilde', x: w / 2, y: h * 0.32, w, h: h * 0.64 }))
-    d.layers.push(textLayer({ name: 'Dato', text: 'FREDAG 12. OKTOBER', x: w / 2, y: h * 0.72, size: Math.round(m * 0.034), weight: 700, ls: 3, color: '#c0392b' }))
-    d.layers.push(textLayer({ name: 'Tittel', text: 'Navn på\narrangementet', x: w / 2, y: h * 0.82, size: Math.round(m * 0.085), font: 'Montserrat', weight: 800, color: '#111111', lh: 1.02 }))
-    d.layers.push(textLayer({ name: 'Sted', text: 'Sted · kl. 19:00', x: w / 2, y: h * 0.93, size: Math.round(m * 0.03), weight: 500, color: '#555555' }))
+    // liggende: bildet til venstre og teksten ved siden av; ellers bildet øverst (dato, tittel og sted stables under
+    // hverandre i plassen som er igjen, så de aldri overlapper)
+    d.layers.push(land ? imageLayer({ name: 'Bilde', x: w * 0.275, y: h / 2, w: w * 0.55, h }) : imageLayer({ name: 'Bilde', x: w / 2, y: h * 0.32, w, h: h * 0.64 }))
+    const cx = land ? w * 0.775 : w / 2
+    d.layers.push(...stack([
+      textLayer({ name: 'Dato', text: 'FREDAG 12. OKTOBER', size: sz(d, 0.034), weight: 700, ls: 3, color: '#c0392b' }),
+      textLayer({ name: 'Tittel', text: 'Navn på\narrangementet', size: sz(d, 0.085), font: 'Montserrat', weight: 800, color: '#111111', lh: 1.02 }),
+      textLayer({ name: 'Sted', text: 'Sted · kl. 19:00', size: sz(d, 0.03), weight: 500, color: '#555555' }),
+    ], land ? { top: h * 0.12, bottom: h * 0.88, gap: m * 0.03, maxW: w * 0.38, edge: cx } : { top: h * 0.66, bottom: h * 0.97, gap: m * 0.018, maxW: w * 0.86, edge: cx }))
   } },
   { k: 'week', l: 'Ukeprogram', make: (d) => {
     const { w, h } = d
@@ -316,6 +363,176 @@ export const TEMPLATES: readonly Template[] = [
     d.layers.push(textLayer({ name: 'Overskrift', text: 'VIKTIG\nBESKJED', x: w / 2, y: h * 0.45, size: Math.round(m * 0.16), font: 'Anton', weight: 400, color: '#111111', lh: 0.95 }))
     d.layers.push(textLayer({ name: 'Tekst', text: 'Skriv detaljene her', x: w / 2, y: h * 0.7, size: Math.round(m * 0.04), weight: 600, color: '#111111' }))
   } },
+  // ── Nye maler: hver har en bildeplass og/eller tekst som stables (stack), så de passer i alle formater ──
+  { k: 'split', l: 'Bilde og tekst', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const land = isLand(d)
+    d.bg = '#f3f1ec'
+    d.layers.push(land ? imageLayer({ name: 'Bilde', x: w * 0.25, y: h / 2, w: w * 0.5, h }) : imageLayer({ name: 'Bilde', x: w / 2, y: h * 0.275, w, h: h * 0.55 }))
+    const x0 = land ? w * 0.5 + m * 0.08 : m * 0.08
+    d.layers.push(...stack([
+      textLayer({ name: 'Etikett', text: 'NYHET', size: sz(d, 0.032), weight: 700, ls: 5, color: '#c0392b', align: 'left' }),
+      textLayer({ name: 'Tittel', text: 'En overskrift\nsom fanger', size: sz(d, 0.085), font: 'Montserrat', weight: 800, color: '#111111', align: 'left', lh: 1.05 }),
+      textLayer({ name: 'Tekst', text: 'Skriv noen linjer om hva det gjelder,\nhvor det skjer og hvem som er velkommen.', size: sz(d, 0.03), weight: 500, color: '#555555', align: 'left', lh: 1.4 }),
+      textLayer({ name: 'Lenke', text: 'Les mer · www.menighet.no', size: sz(d, 0.03), weight: 700, color: '#c0392b', align: 'left' }),
+    ], land ? { top: h * 0.1, bottom: h * 0.9, gap: m * 0.035, maxW: w * 0.5 - m * 0.16, edge: x0 } : { top: h * 0.6, bottom: h * 0.95, gap: m * 0.025, maxW: w - m * 0.16, edge: x0 }))
+  } },
+  { k: 'verse', l: 'Bibelvers', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    d.bg = '#111111'
+    d.layers.push(imageLayer({ name: 'Bakgrunnsbilde', x: w / 2, y: h / 2, w, h }))
+    d.layers.push(shapeLayer({ name: 'Mørk toning', x: w / 2, y: h / 2, w, h, fill: '#000000', op: 0.5 }))
+    const [verse, ref] = stack([
+      textLayer({ name: 'Vers', text: '«For så har Gud elsket verden\nat han gav sin Sønn, den enbårne»', size: sz(d, 0.07), font: 'Playfair Display', weight: 600, lh: 1.25 }),
+      textLayer({ name: 'Henvisning', text: 'JOHANNES 3,16', size: sz(d, 0.03), weight: 700, ls: 6, color: '#f5b82c' }),
+    ], { top: h * 0.15, bottom: h * 0.85, gap: m * 0.07, maxW: w * 0.84, edge: w / 2 }) as [TextLayer, TextLayer]
+    const ly = (verse.y + textBox(verse).h / 2 + ref.y - textBox(ref).h / 2) / 2
+    d.layers.push(shapeLayer({ name: 'Strek', x: w / 2, y: ly, w: m * 0.1, h: Math.max(3, m * 0.005), fill: '#f5b82c' }))
+    d.layers.push(verse, ref)
+  } },
+  { k: 'series', l: 'Prekenserie', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const land = isLand(d)
+    const x0 = m * 0.08
+    d.bg = '#141414'
+    if (land) {
+      d.layers.push(imageLayer({ name: 'Bilde', x: w * 0.75, y: h / 2, w: w * 0.5, h }))
+      d.layers.push(shapeLayer({ name: 'Aksentstripe', x: w * 0.5, y: h / 2, w: Math.max(6, m * 0.012), h, fill: '#f5b82c' }))
+    } else {
+      d.layers.push(imageLayer({ name: 'Bilde', x: w / 2, y: h * 0.75, w, h: h * 0.5 }))
+      d.layers.push(shapeLayer({ name: 'Aksentstripe', x: w / 2, y: h * 0.5, w, h: Math.max(6, m * 0.012), fill: '#f5b82c' }))
+    }
+    d.layers.push(...stack([
+      textLayer({ name: 'Etikett', text: 'PREKENSERIE', size: sz(d, 0.03), weight: 700, ls: 6, color: '#f5b82c', align: 'left' }),
+      textLayer({ name: 'Tittel', text: 'Håp i\nhverdagen', size: sz(d, 0.14), font: 'Anton', weight: 400, upper: true, color: '#f3f1ec', align: 'left', lh: 1.08 }), // med større mellomrom: plass til Å-ringen over linjen
+      textLayer({ name: 'Info', text: 'Del 2 av 4 · Søndag kl. 11:00', size: sz(d, 0.032), weight: 500, color: '#9d998f', align: 'left' }),
+      textLayer({ name: 'Taler', text: 'Tale: Navn Navnesen', size: sz(d, 0.03), weight: 700, color: '#f3f1ec', align: 'left' }),
+    ], land ? { top: h * 0.12, bottom: h * 0.88, gap: m * 0.045, maxW: w * 0.5 - m * 0.16, edge: x0 } : { top: h * 0.06, bottom: h * 0.47, gap: m * 0.04, maxW: w - m * 0.16, edge: x0 }))
+  } },
+  { k: 'countdown', l: 'Nedtelling', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    d.bg = '#1d2a3a'
+    const ts = stack([
+      textLayer({ name: 'Tall', text: '3', size: sz(d, 0.34), font: 'Anton', weight: 400, color: '#f5b82c', lh: 0.95 }),
+      textLayer({ name: 'Enhet', text: 'DAGER IGJEN', size: sz(d, 0.045), weight: 800, ls: 8, color: '#f3f1ec' }),
+      textLayer({ name: 'Tittel', text: 'til sommerleiren', size: sz(d, 0.07), font: 'Playfair Display', weight: 600, color: '#f3f1ec' }),
+      textLayer({ name: 'Detaljer', text: 'Fredag 27. juni · Påmelding på nett', size: sz(d, 0.03), weight: 500, color: '#c9c5bc' }),
+    ], { top: h * 0.1, bottom: h * 0.9, gap: m * 0.045, maxW: w * 0.84, edge: w / 2 })
+    const n = ts[0] as TextLayer
+    const r = Math.max(textBox(n).w, textBox(n).h) * 1.12
+    d.layers.push(shapeLayer({ name: 'Ring', kind: 'ellipse', x: n.x, y: n.y, w: r, h: r, fill: 'rgba(0,0,0,0)', strokeC: '#f5b82c', strokeW: Math.max(4, m * 0.008) }))
+    d.layers.push(...ts)
+  } },
+  { k: 'news', l: 'Nyhet', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const mx = m * 0.08
+    const band = h * (isLand(d) ? 0.18 : 0.13)
+    d.bg = '#ffffff'
+    d.layers.push(shapeLayer({ name: 'Toppfelt', x: w / 2, y: band / 2, w, h: band, fill: '#1d2a3a' }))
+    d.layers.push(...stack([textLayer({ name: 'Etikett', text: 'NYTT FRA MENIGHETEN', size: sz(d, 0.032), weight: 700, ls: 5, color: '#f5b82c', align: 'left' })], { top: 0, bottom: band, gap: 0, maxW: w - 2 * mx, edge: mx }))
+    d.layers.push(...stack([
+      textLayer({ name: 'Tittel', text: 'Overskrift på\nnyheten', size: sz(d, 0.08), font: 'Montserrat', weight: 800, color: '#111111', align: 'left', lh: 1.05 }),
+      textLayer({ name: 'Tekst', text: 'Her kan du skrive mer om saken. Hold det kort\nog konkret, og fortell hva leseren kan gjøre.', size: sz(d, 0.032), weight: 500, color: '#444444', align: 'left', lh: 1.45 }),
+    ], { top: band + m * 0.07, bottom: h * 0.84, gap: m * 0.04, maxW: w - 2 * mx, edge: mx, valign: 0 }))
+    d.layers.push(shapeLayer({ name: 'Skillelinje', x: w / 2, y: h * 0.87, w: w - 2 * mx, h: Math.max(2, m * 0.003), fill: '#e4e1da' }))
+    d.layers.push(...stack([textLayer({ name: 'Bunntekst', text: 'www.menighet.no', size: sz(d, 0.028), weight: 700, color: '#1d2a3a', align: 'left' })], { top: h * 0.88, bottom: h * 0.97, gap: 0, maxW: w - 2 * mx, edge: mx }))
+  } },
+  { k: 'poster', l: 'Konsertplakat', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const land = isLand(d)
+    d.bg = '#e4411f'
+    d.layers.push(land ? imageLayer({ name: 'Bilde', x: w * 0.225, y: h / 2, w: w * 0.45, h }) : imageLayer({ name: 'Bilde', x: w / 2, y: h * 0.25, w, h: h * 0.5 }))
+    const cx = land ? w * 0.725 : w / 2
+    d.layers.push(...stack([
+      textLayer({ name: 'Arrangør', text: 'GOSPELKORET PRESENTERER', size: sz(d, 0.03), weight: 700, ls: 5, color: '#111111' }),
+      textLayer({ name: 'Tittel', text: 'KONSERT', size: sz(d, 0.22), font: 'Anton', weight: 400, color: '#111111', lh: 0.95 }),
+      textLayer({ name: 'Tid', text: 'Fredag 14. november kl. 19:00', size: sz(d, 0.042), font: 'Montserrat', weight: 700, color: '#ffffff' }),
+      textLayer({ name: 'Info', text: 'Fri entré · Kollekt ved utgangen', size: sz(d, 0.03), weight: 500, color: '#111111' }),
+    ], land ? { top: h * 0.1, bottom: h * 0.9, gap: m * 0.03, maxW: w * 0.55 - m * 0.12, edge: cx } : { top: h * 0.53, bottom: h * 0.96, gap: m * 0.025, maxW: w - m * 0.12, edge: cx }))
+  } },
+  { k: 'thanks', l: 'Takk', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    d.bg = '#f3f1ec'
+    d.layers.push(shapeLayer({ name: 'Sirkel 1', kind: 'ellipse', x: w * 0.1, y: h * 0.1, w: m * 0.5, h: m * 0.5, fill: '#f5b82c', op: 0.22 }))
+    d.layers.push(shapeLayer({ name: 'Sirkel 2', kind: 'ellipse', x: w * 0.92, y: h * 0.9, w: m * 0.6, h: m * 0.6, fill: '#c0392b', op: 0.14 }))
+    d.layers.push(...stack([
+      textLayer({ name: 'Tittel', text: 'Tusen takk!', size: sz(d, 0.15), font: 'DM Serif Display', weight: 400, color: '#111111' }),
+      textLayer({ name: 'Tekst', text: 'til alle frivillige som gjorde\nbasaren til en fest', size: sz(d, 0.042), weight: 500, color: '#555555', lh: 1.35 }),
+      textLayer({ name: 'Hilsen', text: '— Menighetsrådet', size: sz(d, 0.04), font: 'Playfair Display', weight: 600, color: '#c0392b' }),
+    ], { top: h * 0.15, bottom: h * 0.85, gap: m * 0.05, maxW: w * 0.8, edge: w / 2 }))
+  } },
+  { k: 'facts', l: 'Tall og fakta', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const land = isLand(d)
+    const mx = m * 0.08
+    d.bg = '#141414'
+    const head = land ? { top: h * 0.08, bottom: h * 0.32 } : { top: h * 0.06, bottom: h * 0.27 }
+    d.layers.push(...stack([
+      textLayer({ name: 'Etikett', text: 'MENIGHETEN 2026', size: sz(d, 0.028), weight: 700, ls: 6, color: '#f5b82c' }),
+      textLayer({ name: 'Tittel', text: 'Året i tall', size: sz(d, 0.085), font: 'Montserrat', weight: 800, color: '#f3f1ec' }),
+    ], { ...head, gap: m * 0.02, maxW: w - 2 * mx, edge: w / 2 }))
+    const items = [['312', 'i snitt på gudstjenestene'], ['48', 'frivillige i sving'], ['1 250', 'kopper kirkekaffe']] as const
+    const y0 = head.bottom + m * 0.04
+    const y1 = h - mx
+    items.forEach(([num, label], i) => {
+      const n = i + 1
+      const cell = land
+        ? { top: y0, bottom: y1, maxW: ((w - 2 * mx) / 3) * 0.9, edge: mx + ((w - 2 * mx) / 3) * (i + 0.5) }
+        : { top: y0 + ((y1 - y0) / 3) * i, bottom: y0 + ((y1 - y0) / 3) * (i + 1), maxW: w - 2 * mx, edge: w / 2 }
+      if (i > 0) {
+        d.layers.push(land
+          ? shapeLayer({ name: `Skillelinje ${i}`, x: mx + ((w - 2 * mx) / 3) * i, y: (y0 + y1) / 2, w: Math.max(2, m * 0.003), h: (y1 - y0) * 0.7, fill: 'rgba(255,255,255,0.16)' })
+          : shapeLayer({ name: `Skillelinje ${i}`, x: w / 2, y: cell.top, w: (w - 2 * mx) * 0.6, h: Math.max(2, m * 0.003), fill: 'rgba(255,255,255,0.16)' }))
+      }
+      d.layers.push(...stack([
+        textLayer({ name: `Tall ${n}`, text: num, size: sz(d, land ? 0.2 : 0.14), font: 'Bebas Neue', weight: 400, ls: 1, color: '#f5b82c', lh: 1 }),
+        textLayer({ name: `Forklaring ${n}`, text: label, size: sz(d, 0.032), weight: 500, color: '#c9c5bc' }),
+      ], { ...cell, gap: m * 0.012 }))
+    })
+  } },
+  { k: 'staff', l: 'Presentasjon', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const land = isLand(d)
+    d.bg = '#f3f1ec'
+    const side = land ? Math.min(h * 0.76, w * 0.42) : Math.min(w * 0.62, h * 0.42)
+    const ix = land ? m * 0.1 + side / 2 : w / 2
+    const iy = land ? h / 2 : h * 0.08 + side / 2
+    const off = m * 0.025
+    d.layers.push(shapeLayer({ name: 'Ramme', x: ix + off, y: iy + off, w: side, h: side, fill: '#f5b82c' }))
+    d.layers.push(imageLayer({ name: 'Portrett', x: ix, y: iy, w: side, h: side }))
+    const texts = [
+      textLayer({ name: 'Etikett', text: 'NY MEDARBEIDER', size: sz(d, 0.03), weight: 700, ls: 5, color: '#c0392b', align: land ? 'left' : 'center' }),
+      textLayer({ name: 'Navn', text: 'Fornavn Etternavn', size: sz(d, 0.075), font: 'Montserrat', weight: 800, color: '#111111', align: land ? 'left' : 'center' }),
+      textLayer({ name: 'Rolle', text: 'Ungdomsarbeider', size: sz(d, 0.04), weight: 600, color: '#555555', align: land ? 'left' : 'center' }),
+      textLayer({ name: 'Tekst', text: 'Et par linjer om personen og\nhva vedkommende skal jobbe med.', size: sz(d, 0.03), weight: 500, color: '#555555', lh: 1.4, align: land ? 'left' : 'center' }),
+    ]
+    const x0 = m * 0.1 + side + off + m * 0.08
+    d.layers.push(...stack(texts, land ? { top: h * 0.12, bottom: h * 0.88, gap: m * 0.025, maxW: w - x0 - m * 0.08, edge: x0 } : { top: iy + side / 2 + off + m * 0.05, bottom: h * 0.96, gap: m * 0.02, maxW: w * 0.84, edge: w / 2 }))
+  } },
+  { k: 'minimal', l: 'Minimal', make: (d) => {
+    const { w, h } = d
+    const m = Math.min(w, h)
+    const mx = m * 0.09
+    d.bg = '#ffffff'
+    d.layers.push(...stack([textLayer({ name: 'Etikett', text: 'HØSTEN 2026', size: sz(d, 0.028), weight: 700, ls: 6, color: '#111111', align: 'left' })], { top: mx * 0.6, bottom: mx * 1.4, gap: 0, maxW: (w - 2 * mx) * 0.55, edge: mx }))
+    d.layers.push(...stack([textLayer({ name: 'Nettside', text: 'menighet.no', size: sz(d, 0.026), weight: 500, color: '#6b675f', align: 'right' })], { top: mx * 0.6, bottom: mx * 1.4, gap: 0, maxW: (w - 2 * mx) * 0.4, edge: w - mx }))
+    const [title, sub] = stack([
+      textLayer({ name: 'Tittel', text: 'Enkelt\nog luftig', size: sz(d, 0.14), font: 'Space Grotesk', weight: 700, color: '#111111', align: 'left', lh: 1 }),
+      textLayer({ name: 'Undertekst', text: 'En kort undertekst om hva det gjelder', size: sz(d, 0.035), weight: 500, color: '#6b675f', align: 'left' }),
+    ], { top: h * 0.45, bottom: h - mx, gap: m * 0.03, maxW: w - 2 * mx, edge: mx, valign: 1 }) as [TextLayer, TextLayer]
+    const lw = m * 0.12
+    d.layers.push(shapeLayer({ name: 'Strek', x: mx + lw / 2, y: title.y - textBox(title).h / 2 - m * 0.05, w: lw, h: Math.max(4, m * 0.008), fill: '#c0392b' }))
+    d.layers.push(title, sub)
+  } },
 ]
 
 export function newDoc(w: number, h: number, tpl?: string, now = Date.now()): PdDoc {
@@ -372,6 +589,11 @@ export function fromCMYK(c: readonly number[]): string {
   const f = (v: number) => Math.round(255 * (1 - v / 100) * (1 - k))
   const h = (v: number) => ('0' + clamp(v, 0, 255).toString(16)).slice(-2)
   return '#' + h(f(c[0] ?? 0)) + h(f(c[1] ?? 0)) + h(f(c[2] ?? 0))
+}
+
+/** Malens første tomme bildeplass (synlig og ulåst, nederst først), eller null. */
+export function emptySlot(d: Pick<PdDoc, 'layers'>): ImageLayer | null {
+  return (d.layers.find((L) => L.type === 'image' && !L.src && !L.hidden && !L.locked) as ImageLayer | undefined) ?? null
 }
 
 /** Bildekilder og masker et prosjekt bruker (begge sider). */

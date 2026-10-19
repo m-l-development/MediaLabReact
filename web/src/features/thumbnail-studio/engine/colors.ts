@@ -58,7 +58,7 @@ function hsl(h: string): { l: number; s: number } | null {
   return { l, s: d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1)) }
 }
 
-function mapCol(h: string, use: 'bg' | 'fill' | 'acc' | 'text', P: Palette): string {
+export function mapCol(h: string, use: 'bg' | 'fill' | 'acc' | 'text', P: Palette): string {
   const c = hsl(h)
   if (!c) return h
   const neu = c.s < 0.2

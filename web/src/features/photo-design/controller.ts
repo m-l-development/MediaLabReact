@@ -3,9 +3,10 @@ import { fillStops, type Fill } from '../../shared/fill/fill'
 import * as FX from '../../shared/fx/fx'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
 import {
-  ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, newDoc, SHAPES, shapeLayer, textLayer, uid,
+  ADJ, bleedLayers, clamp, dims, emptySlot, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, textLayer, uid,
   type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Vig,
 } from './engine/model'
+import { paletteOf, tplDoc } from './engine/palette'
 import { baseOf, cover, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
@@ -64,6 +65,9 @@ export interface PState {
   fxStr: number
   fxCk: string | null
   picker: Picker
+  /** Fargepalett for malene (samme kombinasjoner som i Thumbnail Studio); beholdes mellom maler og besøk. */
+  pal: string
+  palOpen: boolean
 }
 
 export interface PDeps {
@@ -131,6 +135,7 @@ export class PhotoController {
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
       adv: FX.isAdvanced(), fxCat: 'all', fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
+      pal: paletteOf(st.get('photodesign.palette')).k, palOpen: false,
     })
   }
 
@@ -175,9 +180,20 @@ export class PhotoController {
     return f ? [f.w, f.h] : [Math.round(Math.min(8000, Math.max(64, +S.cw || 1200))), Math.round(Math.min(8000, Math.max(64, +S.ch || 800)))]
   }
 
+  /** Velger fargepaletten for malene (forhåndsvisningene tegnes på nytt med en gang). */
+  setPal(k: string): void {
+    const p = paletteOf(k).k
+    this.d.storage.set('photodesign.palette', p)
+    this.set({ pal: p, palOpen: false })
+  }
+
+  togglePal(open = !this.s.palOpen): void {
+    this.set({ palOpen: open })
+  }
+
   create(tpl: string): void {
     const [w, h] = this.fmtWH()
-    const d = newDoc(w, h, tpl, this.now())
+    const d = tplDoc(w, h, tpl, this.s.pal, this.now())
     const f = FORMATS.find((x) => x.k === this.s.fmt)
     d.name = tpl === 'card2' ? this.d.t('Visittkort') : this.d.t((f ? f.l : 'Egendefinert') as Phrase)
     this.M.media.clear()
@@ -593,7 +609,9 @@ export class PhotoController {
 
   /**
    * Et nytt bilde (fil, utklippstavle, Dine medier eller Fellesmappe). Legges inn i bildeplassen under punktet,
-   * i en valgt tom bildeplass, eller som nytt lag. `src` = allerede lagret i Dine medier.
+   * i en valgt tom bildeplass, ellers i malens første tomme bildeplass (uten at noe er valgt), og først når det ikke
+   * finnes noen, som nytt lag. Før ble bildet alltid et nytt lag øverst når bildeplassen ikke var valgt: det dekket
+   * malens tekst, og bildeplassen ble stående tom. `src` = allerede lagret i Dine medier.
    */
   async addBlob(blob: Blob, name: string, at: Pt | null = null, src?: string, replace?: string): Promise<void> {
     const d = this.s.doc
@@ -620,7 +638,7 @@ export class PhotoController {
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
     const tgt = at ? hit(doc, at[0], at[1]) : null
     const sl = this.selL()
-    const ph = rep ?? (tgt?.type === 'image' ? tgt : !at && sl?.type === 'image' && !sl.src ? sl : null)
+    const ph = rep ?? (tgt?.type === 'image' ? tgt : at ? null : sl?.type === 'image' && !sl.src ? sl : emptySlot(doc))
     const nm = String(name || this.d.t('Bilde')).replace(/\.[a-z0-9]+$/i, '').slice(0, 40)
     if (ph && ph.type === 'image') {
       this.patchL(ph.id, { src: key, cz: 1, cx: 0, cy: 0, name: ph.src ? ph.name : nm, mask: null })
