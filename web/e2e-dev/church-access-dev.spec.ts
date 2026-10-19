@@ -86,9 +86,16 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
     ok(`Omgåelse: Developer kan ikke invitere seg selv som Admin (${selfInv.status})`, selfInv.status === 403)
     const wP = await whoami(page)
     ok('Mens forespørselen venter: Developer har ingen Admin-rolle i A', !wP.roles.some((r) => r.role === 'church_admin' && r.church_id === a.id))
-    await q.goto(`/app/admin#/menigheter/${a.id}/medlemmer`)
+    // Admin: varselet på Oversikt fører til den egne seksjonen «Admin-tilgang» (der forespørslene behandles)
+    await q.goto('/app/admin#/oversikt')
+    const notice = q.locator('[data-ch-access-notice]')
+    await expect(notice).toBeVisible({ timeout: 30_000 })
+    ok('Oversikten viser Admin at forespørsler venter', Number(await notice.getAttribute('data-ch-access-notice')) >= 1)
+    await notice.getByRole('link', { name: 'Behandle forespørsler' }).click()
+    await expect(q.getByRole('heading', { level: 1, name: 'Admin-tilgang' })).toBeVisible({ timeout: 20_000 })
     const pend = q.locator(`[data-ch-access-pending="${devId}"]`)
     await expect(pend).toBeVisible({ timeout: 30_000 })
+    ok('Seksjonen «Admin-tilgang» viser forespørselen med rolle og tidspunkt', /Developer/.test((await pend.textContent()) ?? '') && /Ba om tilgang \d{2}\.\d{2}\.\d{4}/.test((await pend.textContent()) ?? ''))
     await q.setViewportSize({ width: 390, height: 844 })
     await pend.locator('[data-ch-access-approve]').click()
     const dlg = q.getByRole('dialog', { name: 'Godkjenn Admin-tilgang' })
@@ -137,6 +144,25 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
     const after = (await rest(q, `/rest/v1/churches?select=logo_file_id&id=eq.${a.id}`)).body as { logo_file_id: string | null }[]
     const filesAfter = ((await rest(q, `/rest/v1/files?select=id&church_id=eq.${a.id}`)).body as unknown[]).length
     ok('Menighetens logo og filer er uendret gjennom rolleendringene', after[0]?.logo_file_id === before[0]?.logo_file_id && filesAfter === filesBefore)
+
+    // 4. tilbaketrekking: begge parter ser statusen; historikken beholdes
+    await page.getByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' }).click()
+    await expect(page.locator('[data-ch-tempadmin-withdraw]')).toBeVisible({ timeout: 20_000 })
+    await expect(q.locator(`[data-ch-access-pending="${devId}"]`)).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-ch-tempadmin-withdraw]').click()
+    await expect(page.locator('[data-ch-tempadmin-cancelled]')).toBeVisible({ timeout: 20_000 })
+    ok('Avsenderen trekker tilbake forespørselen og ser «Trukket tilbake»', ((await page.locator('[data-ch-tempadmin-cancelled]').textContent()) ?? '').includes('Trukket tilbake'))
+    await expect(q.locator(`[data-ch-access-pending="${devId}"]`)).toHaveCount(0, { timeout: 30_000 })
+    await expect(q.locator('[data-ch-access-recent="cancelled"]').first()).toBeVisible({ timeout: 20_000 })
+    ok('Hos Admin forsvinner den fra ventende og vises som «Trukket tilbake» i historikken', true)
+    // samtidig tilbaketrekking og godkjenning: nøyaktig én av dem lykkes
+    const req = await rpc(page, 'request_admin_access', { p_church: a.id, p_duration: null })
+    const rid = (req.body as { id?: string } | null)?.id
+    const [wd, dc] = await Promise.all([rpc(page, 'withdraw_admin_access', { p_request: rid }), rpc(q, 'decide_admin_access', { p_request: rid, p_approve: true, p_duration: '1d' })])
+    const st = ((await rpc(page, 'my_admin_access', {})).body as { church_id: string; state: string }[]).find((m) => m.church_id === a.id)?.state
+    ok(`Samtidig tilbaketrekking og godkjenning: nøyaktig én lykkes (${wd.status}/${dc.status}), status ${st}`, [wd, dc].filter((r) => r.status < 300).length === 1 && (wd.status < 300 ? st === 'cancelled' : st === 'active'))
+    const late = await rpc(page, 'withdraw_admin_access', { p_request: rid })
+    ok(`Behandlet forespørsel kan ikke trekkes tilbake (${late.status})`, late.status >= 400)
   } finally {
     await rpc(page, 'revoke_admin_access', { p_church: a.id, p_user: devId }).catch(() => undefined)
     if (created) {

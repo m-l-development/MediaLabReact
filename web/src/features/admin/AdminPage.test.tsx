@@ -54,7 +54,7 @@ describe('ConnectHub Admin: ramme og roller (ADM-01)', () => {
   it('Developer: hele menyen, rollen i toppfeltet, utviklermerke, velkomst og tall fra databasen', async () => {
     setup(DEV)
     expect(screen.getByText('CONNECTHUB · DEVELOPER')).toBeTruthy()
-    expect(navLabels()).toEqual(['Oversikt', 'Brukere', 'Menigheter', 'Invitasjoner', 'Filer', 'Samarbeid', 'Abonnement', 'Tilbakemeldinger', 'Opprydning', 'Forespørsler', 'Mail', 'Logg'])
+    expect(navLabels()).toEqual(['Oversikt', 'Brukere', 'Menigheter', 'Admin-tilgang', 'Invitasjoner', 'Filer', 'Samarbeid', 'Abonnement', 'Tilbakemeldinger', 'Opprydning', 'Forespørsler', 'Mail', 'Logg'])
     expect(screen.getByRole('heading', { level: 1, name: 'Velkommen, Dev Eloper' })).toBeTruthy()
     expect(await screen.findByText('Hendelser siste døgn')).toBeTruthy()
     expect(screen.getByText('Medlem lagt til · Menighet A')).toBeTruthy()
@@ -63,7 +63,7 @@ describe('ConnectHub Admin: ramme og roller (ADM-01)', () => {
   it('Admin: bare egne seksjoner; direkte adresse til en annen seksjon gir kontrollert avvisning', async () => {
     setup(ADM)
     expect(screen.getByText('CONNECTHUB · ADMIN')).toBeTruthy()
-    expect(navLabels()).toEqual(['Oversikt', 'Brukere', 'Menigheter', 'Invitasjoner', 'Filer', 'Abonnement', 'Logg'])
+    expect(navLabels()).toEqual(['Oversikt', 'Brukere', 'Menigheter', 'Admin-tilgang', 'Invitasjoner', 'Filer', 'Abonnement', 'Logg'])
     act(() => { location.hash = '#/mail'; window.dispatchEvent(new HashChangeEvent('hashchange')) })
     expect(await screen.findByRole('heading', { name: 'Ingen tilgang' })).toBeTruthy()
     expect(screen.queryByText('Utvikler')).toBe(null)
