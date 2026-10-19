@@ -62,7 +62,7 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
 
     // 2. forespørsel og godkjenning
     await page.goto(`/app/admin#/menigheter/${a.id}/medlemmer`)
-    await page.getByRole('button', { name: 'Be om midlertidig Admin-tilgang' }).click()
+    await page.getByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' }).click()
     await expect(page.locator('[data-ch-tempadmin="pending"]')).toBeVisible({ timeout: 20_000 })
     ok('Developer ber om tilgang: forespørselen venter', true)
     const self = await rpc(page, 'decide_admin_access', { p_request: '00000000-0000-4000-8000-000000000000', p_approve: true, p_duration: 'indef' })
@@ -85,19 +85,22 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
     ok('Godkjenningsdialogen viser menigheten og passer på mobil (390 px)', (await dlg.textContent())?.includes('CH-test Menighet A') === true && !!box && box.x >= 0 && box.x + box.width <= 391)
     ok('Godkjenn er låst til varighet er valgt', await dlg.locator('[data-ch-approve-confirm]').isDisabled())
     await dlg.locator('label:has([data-ch-duration="1d"])').click()
+    const reloaded = page.waitForEvent('load', { timeout: 30_000 }) // avsenderens side lastes på nytt av seg selv ved godkjenning
     await dlg.locator('[data-ch-approve-confirm]').click()
     await q.setViewportSize({ width: 1280, height: 800 })
     const act = q.locator(`[data-ch-access-active="${devId}"]`)
     await expect(act).toBeVisible({ timeout: 20_000 })
     ok('Admin godkjenner med grønn hake og 1 dag: vises som aktiv med utløp', (await act.textContent())?.includes('1 dag') === true && /utløper/.test((await act.textContent()) ?? ''))
+    // uten å laste siden på nytt i testen: avsenderens visning oppdateres av seg selv
+    await reloaded
+    await expect(page.locator('[data-ch-tempadmin="active"]')).toBeVisible({ timeout: 30_000 })
+    const actText = (await page.locator('[data-ch-tempadmin]').textContent()) ?? ''
+    ok('Avsenderen ser automatisk «Godkjent – du har nå midlertidig admin-tilgang» med utløpstid', actText.includes('Godkjent – du har nå midlertidig admin-tilgang') && /til \d{2}\.\d{2}\.\d{4}/.test(actText))
     const w1 = await whoami(page)
     const r1 = w1.roles.find((r) => r.role === 'church_admin' && r.church_id === a.id)
     const exp = r1?.expires_at ? Date.parse(r1.expires_at) - Date.now() : 0
     ok('Developer er Admin i A i omtrent 1 døgn (servertid), og fortsatt Developer', !!r1 && exp > 23 * 3600e3 && exp < 25 * 3600e3 && w1.roles.some((r) => r.role === 'developer'))
     ok('Den faste Admin er fortsatt Admin', (await whoami(q)).roles.some((r) => r.role === 'church_admin' && r.church_id === a.id))
-    await page.reload()
-    await expect(page.locator('[data-ch-tempadmin="active"]')).toBeVisible({ timeout: 20_000 })
-    ok('Developer ser aktiv midlertidig tilgang med utløpstid', /til \d{2}\.\d{2}\.\d{4}/.test((await page.locator('[data-ch-tempadmin]').textContent()) ?? ''))
 
     // 3. fjerning og avslag
     await act.locator('[data-ch-access-revoke]').click()
@@ -106,14 +109,19 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
     const up = await rpc(page, 'can_upload', { p_church: a.id, p_folder: 'faste', p_private: false, p_size: 10 })
     ok(`Admin fjerner tilgangen: borte med en gang (Faste ${up.status}), Developer-rollen beholdt`, !w2.roles.some((r) => r.church_id === a.id) && up.status === 403 && w2.roles.some((r) => r.role === 'developer'))
     await page.reload()
-    await page.getByRole('button', { name: 'Be om midlertidig Admin-tilgang' }).click()
+    await page.getByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' }).click()
     await expect(page.locator('[data-ch-tempadmin="pending"]')).toBeVisible({ timeout: 20_000 })
-    await q.reload()
+    ok('Avsenderen ser straks «Forespørsel sendt – venter på svar»', ((await page.locator('[data-ch-tempadmin]').textContent()) ?? '').includes('Forespørsel sendt – venter på svar'))
+    // Admin-siden er åpen fra før: forespørselen dukker opp uten at siden lastes på nytt
+    await expect(q.locator(`[data-ch-access-pending="${devId}"]`)).toBeVisible({ timeout: 30_000 })
+    ok('Admin mottar forespørselen automatisk (uten å laste siden på nytt)', true)
     await q.locator(`[data-ch-access-pending="${devId}"] [data-ch-access-reject]`).click()
     await expect(q.locator(`[data-ch-access-pending="${devId}"]`)).toHaveCount(0, { timeout: 20_000 })
     ok('Ny forespørsel avslås med rød X og vises som avslått', await q.locator('[data-ch-access-recent="rejected"]').first().isVisible())
     const w3 = await whoami(page)
     ok('Avslag gir ingen Admin-rettigheter', !w3.roles.some((r) => r.church_id === a.id))
+    await expect(page.locator('[data-ch-tempadmin-rejected]')).toBeVisible({ timeout: 30_000 })
+    ok('Avsenderen ser automatisk «Avslått av menighetsadmin»', ((await page.locator('[data-ch-tempadmin-rejected]').textContent()) ?? '').includes('Avslått av menighetsadmin'))
     const after = (await rest(q, `/rest/v1/churches?select=logo_file_id&id=eq.${a.id}`)).body as { logo_file_id: string | null }[]
     const filesAfter = ((await rest(q, `/rest/v1/files?select=id&church_id=eq.${a.id}`)).body as unknown[]).length
     ok('Menighetens logo og filer er uendret gjennom rolleendringene', after[0]?.logo_file_id === before[0]?.logo_file_id && filesAfter === filesBefore)

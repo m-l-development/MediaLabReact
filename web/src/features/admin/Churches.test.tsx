@@ -41,7 +41,7 @@ describe('Menigheter (ADM-03)', () => {
 describe('Medlemmer i menigheten (ADM-04)', () => {
   it('liste med Admin-merke, midlertidig Admin-tilgang for stab, og melding til alle', async () => {
     const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => (fn === 'send_church_message' ? 3 : fn === 'admin_access_overview' ? { pending: [], active: [], recent: [], has_admin: true } : fn === 'my_admin_access' ? [] : undefined) })
-    expect(await screen.findByRole('button', { name: 'Be om midlertidig Admin-tilgang' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' })).toBeTruthy()
     const ada = screen.getAllByRole('row').find((r) => r.textContent?.includes('Ada Admin'))
     expect(ada?.textContent).toContain('Admin')
     expect(within(ada as HTMLElement).getByRole('button', { name: 'Fjern admin-rollen' })).toBeTruthy()
@@ -53,7 +53,7 @@ describe('Medlemmer i menigheten (ADM-04)', () => {
   it('uten Admin i menigheten: midlertidig tilgang spør først; avbrutt gir ingen endring', async () => {
     const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => (fn === 'admin_access_overview' ? { pending: [], active: [], recent: [], has_admin: false } : fn === 'my_admin_access' ? [] : undefined) })
     vi.stubGlobal('confirm', vi.fn(() => false))
-    fireEvent.click(await screen.findByRole('button', { name: 'Bli midlertidig Admin' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Legg meg til som ekstra admin' }))
     await waitFor(() => expect(window.confirm).toHaveBeenCalled())
     expect(data.rpc).not.toHaveBeenCalledWith('request_admin_access', expect.anything())
   })
