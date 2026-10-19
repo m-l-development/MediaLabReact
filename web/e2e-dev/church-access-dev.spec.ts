@@ -67,6 +67,13 @@ test('midlertidig Admin-tilgang og ny menighet med logo', async ({ page, browser
     ok('Developer ber om tilgang: forespørselen venter', true)
     const self = await rpc(page, 'decide_admin_access', { p_request: '00000000-0000-4000-8000-000000000000', p_approve: true, p_duration: 'indef' })
     ok(`Uautorisert API-kall: Developer kan ikke godkjenne (${self.status})`, self.status >= 400)
+    // omgåelser av forespørselen (rotårsaken): eldre «legg meg til», invitasjon til seg selv, ingen rettigheter mens den venter
+    const addSelf = await rpc(page, 'add_self_as_admin', { p_church: a.id })
+    ok(`Omgåelse: eldre «legg meg til som Admin» er stengt (${addSelf.status})`, addSelf.status >= 400)
+    const selfInv = await api(page, 'invite.create', { email: EMAIL, role: 'church_admin', church_id: a.id })
+    ok(`Omgåelse: Developer kan ikke invitere seg selv som Admin (${selfInv.status})`, selfInv.status === 403)
+    const wP = await whoami(page)
+    ok('Mens forespørselen venter: Developer har ingen Admin-rolle i A', !wP.roles.some((r) => r.role === 'church_admin' && r.church_id === a.id))
     await q.goto(`/app/admin#/menigheter/${a.id}/medlemmer`)
     const pend = q.locator(`[data-ch-access-pending="${devId}"]`)
     await expect(pend).toBeVisible({ timeout: 30_000 })

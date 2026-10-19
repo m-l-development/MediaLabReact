@@ -135,6 +135,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Brukeren blir vanlig medlem. Menigheten står uten Admin til en ny utnevnes.': 'The user becomes a regular member. The church has no Admin until a new one is appointed.',
   'Brukeren er Admin i menigheten. Bekreft at menigheten kan stå uten Admin, eller utnevn en ny Admin først.': 'The user is Admin of the church. Confirm that the church may be left without an Admin, or appoint a new Admin first.',
   'Brukeren er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen – fjern brukeren fra den andre menigheten først.': 'The user is already a member of another church. A user can only be a member of one church at a time – remove the user from the other church first.',
+  'Forespørselen er allerede behandlet. Last siden på nytt for å se status.': 'The request has already been handled. Reload the page to see its status.',
+  'Developer og Moderator får Admin-tilgang i en menighet bare via «Be om midlertidig Admin-tilgang», som menighetens Admin godkjenner.': 'Developers and Moderators only get Admin access in a church via «Request temporary Admin access», which the church Admin approves.',
   'Menigheten har nådd grensen for antall brukere (aktive medlemmer og ventende invitasjoner). Fjern en bruker eller trekk tilbake en invitasjon før du inviterer flere. I særtilfeller kan Developer eller Moderator heve grensen.': 'The congregation has reached its user limit (active members and pending invitations). Remove a user or revoke an invitation before inviting more. In special cases a Developer or Moderator can raise the limit.',
   'Brukeren er lagt til i menigheten.': 'The user has been added to the church.',
   'Brukeren er nå admin.': 'The user is now admin.',
