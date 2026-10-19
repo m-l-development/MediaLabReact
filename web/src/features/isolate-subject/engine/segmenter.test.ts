@@ -116,3 +116,44 @@ describe('Segmenter: modellen lastes én gang og henger ikke', () => {
     expect(await run(s)).toBe(good)
   })
 })
+
+/** TB-7BF5C1: en nedlasting som stopper opp uten feil, skal ikke låse verktøyet for alltid. */
+describe('Segmenter: nedlasting som stopper opp', () => {
+  beforeEach(() => {
+    pipeline.mockReset()
+    gpu.ok = false
+    localStorage.clear()
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:x', revokeObjectURL: () => undefined }))
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('stallGuard avbryter uten fremdrift, men ikke så lenge det kommer fremdrift', async () => {
+    vi.useFakeTimers()
+    const { stallGuard, StallError, STALL_MS } = await import('./segmenter')
+    const dead = stallGuard(() => new Promise(() => undefined))
+    const deadErr = dead.catch((e: unknown) => e)
+    await vi.advanceTimersByTimeAsync(STALL_MS + 1)
+    expect(await deadErr).toBeInstanceOf(StallError)
+    // fremdrift hvert 60. sekund i 5 minutter: ingen avbrudd, og resultatet kommer frem
+    const alive = stallGuard<string>((act) => new Promise((res) => {
+      let n = 0
+      const t = setInterval(() => { act(); if (++n === 5) { clearInterval(t); res('ok') } }, 60_000)
+    }))
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 10)
+    expect(await alive).toBe('ok')
+  })
+
+  it('stoppet nedlasting gir feil, og neste forsøk starter en ny nedlasting', async () => {
+    vi.useFakeTimers()
+    const { STALL_MS, StallError } = await import('./segmenter')
+    pipeline.mockImplementationOnce(() => new Promise(() => undefined)) // henger uten fremdrift
+    const s = new Segmenter()
+    const first = run(s).catch((e: unknown) => e)
+    await vi.advanceTimersByTimeAsync(STALL_MS + 1)
+    expect(await first).toBeInstanceOf(StallError)
+    models({})
+    vi.useRealTimers()
+    expect(await run(s)).toBe(good)
+    expect(pipeline).toHaveBeenCalledTimes(2) // ikke hengende igjen på den gamle nedlastingen
+  })
+})

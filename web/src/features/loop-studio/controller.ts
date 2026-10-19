@@ -451,7 +451,8 @@ export class LoopController {
     this.listeners.push(() => this.mq?.removeEventListener('change', onMq))
     this.on(window, 'keydown', this.onKey)
     this.on(window, 'resize', () => { this.cboxCache = null })
-    void this.init()
+    // feiler innlastingen, vises redigeringen likevel (som før) i stedet for å bli stående på «Laster …»
+    void this.init().catch(() => { if (this.alive && !this.state.ready) this.setState({ ready: true }) })
   }
 
   unmount() {
@@ -921,15 +922,16 @@ export class LoopController {
   /** Serie fra et grunnoppsett: brukeren kan bevisst oppdatere grunnoppsettet med serien. */
   updateBase = async () => {
     const g = this.fromBase
-    if (!g) return
+    if (!g || !this.state.ready) return
     if (!this.deps.confirm(this.t('Oppdatere grunnoppsettet') + ' «' + g.name + '» ' + this.t('med denne serien?') + (g.kind === 'f' ? '\n\n' + this.t('Det gjelder for hele menigheten.') : ''))) return
     const S = this.state, d = entryOf({ name: g.name, base: S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg }).data
     try {
       if (g.kind === 'f' && this.deps.bases.central) await this.deps.bases.central.update(g.id, d)
       else this.deps.bases.personal.update(g.id, d)
       this.deps.toast(this.t('Grunnoppsettet er oppdatert.'))
-    } catch {
-      this.deps.toast(this.t('Grunnoppsettet kunne ikke oppdateres. Prøv igjen.'))
+    } catch (x) {
+      const code = (x as { code?: string } | null)?.code
+      this.deps.toast(this.t(code === 'missing' ? 'Grunnoppsettet finnes ikke lenger (det kan være slettet). Lagre serien som et nytt grunnoppsett.' : 'Grunnoppsettet kunne ikke oppdateres. Prøv igjen.'))
     }
   }
   closeBanner = () => {

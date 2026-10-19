@@ -46,6 +46,36 @@ function markGpuFailed(key: ModelKey): void {
   localStore.set(GPU_FAIL_KEY, JSON.stringify({ ...readGpuFails(), [key]: Date.now() }))
 }
 
+/** Så lenge uten fremdrift i nedlastingen/klargjøringen av en modell før ventingen avbrytes (TB-7BF5C1). */
+export const STALL_MS = 90_000
+
+/** Nedlastingen eller klargjøringen av en modell stoppet opp (ingen fremdrift på STALL_MS). */
+export class StallError extends Error {
+  constructor() {
+    super('stalled')
+    this.name = 'StallError'
+  }
+}
+
+/**
+ * Avbryter ventingen når det ikke kommer fremdrift på `ms` (f.eks. en nedlasting som stopper uten feil), i stedet for å
+ * henge for alltid med alle knapper låst. `start` får en funksjon den kaller ved hver fremdrift.
+ */
+export function stallGuard<T>(start: (activity: () => void) => Promise<T>, ms = STALL_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let t: ReturnType<typeof setTimeout> | undefined
+    const arm = () => {
+      clearTimeout(t)
+      t = setTimeout(() => reject(new StallError()), ms)
+    }
+    arm()
+    start(arm).then(
+      (v) => { clearTimeout(t); resolve(v) },
+      (e: unknown) => { clearTimeout(t); reject(e instanceof Error ? e : new Error(String(e))) },
+    )
+  })
+}
+
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('timeout')), ms)
@@ -85,7 +115,8 @@ export class Segmenter {
     const id = `${key}:${wasmOnly ? 'wasm' : 'any'}`
     const running = this.loading.get(id)
     if (running) return running
-    const p = this.loadPipe(T, key, onPct, wasmOnly).finally(() => this.loading.delete(id))
+    // en nedlasting som stopper opp, avbrytes og fjernes fra køen, så neste forsøk starter på nytt
+    const p = stallGuard((activity) => this.loadPipe(T, key, (n) => { activity(); onPct(n) }, wasmOnly)).finally(() => this.loading.delete(id))
     this.loading.set(id, p)
     return p
   }
@@ -156,11 +187,13 @@ export class Segmenter {
     const T = await loadTransformers()
     if (!this.sam) {
       onPhase('model')
-      const cb = progressTracker(onPct)
-      const [model, proc] = await Promise.all([
-        T.SamModel.from_pretrained(SAM_ID, { progress_callback: cb }),
-        T.AutoProcessor.from_pretrained(SAM_ID, { progress_callback: cb }),
-      ])
+      const [model, proc] = await stallGuard((activity) => {
+        const cb = progressTracker((n) => { activity(); onPct(n) })
+        return Promise.all([
+          T.SamModel.from_pretrained(SAM_ID, { progress_callback: cb }),
+          T.AutoProcessor.from_pretrained(SAM_ID, { progress_callback: cb }),
+        ])
+      })
       this.sam = { model, proc }
     }
     const { model, proc } = this.sam

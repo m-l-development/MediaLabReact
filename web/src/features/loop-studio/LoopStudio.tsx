@@ -283,7 +283,9 @@ function Editor({ deps, tx, homeHref, registerLifecycle }: { deps: LoopDeps; tx:
   }
   return (
     <div data-loop-editor="1" className={L.editor}>
-      <EditorView v={{ ...v, homeHref, goHome }} tx={tx} />
+      {/* TB-596FE4: redigeringen vises først når loopen (f.eks. et felles grunnoppsett) er lastet – ellers overskrev
+          innlastingen det brukeren rakk å skrive, og «Oppdater grunnoppsettet» lagret det gamle innholdet */}
+      {c.state.ready ? <EditorView v={{ ...v, homeHref, goHome }} tx={tx} /> : <div className={L.loading} data-loop-loading="1">{tx('LASTER …')}</div>}
       <Banners c={c} tx={tx} />
     </div>
   )

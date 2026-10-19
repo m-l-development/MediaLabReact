@@ -26,7 +26,7 @@ const clean = (e: unknown): e is BaseEntry => {
   return !!x && okId(x.id) && typeof x.name === 'string' && !!x.data && Array.isArray(x.data.slides)
 }
 export class BaseError extends Error {
-  code: 'full' | 'forbidden' | 'settings_conflict'
+  code: 'full' | 'forbidden' | 'settings_conflict' | 'missing'
   constructor(code: BaseError['code']) {
     super(code)
     this.code = code
@@ -74,7 +74,9 @@ export function personalBases(kv: KV) {
       return e
     },
     update(id: string, data: BaseEntry['data']) {
-      write(read().map((e) => (e.id === id ? { ...e, data, savedAt: Date.now() } : e)))
+      const l = read()
+      if (!l.some((e) => e.id === id)) throw new BaseError('missing')
+      write(l.map((e) => (e.id === id ? { ...e, data, savedAt: Date.now() } : e)))
     },
     remove(id: string) {
       write(read().filter((e) => e.id !== id))
@@ -120,7 +122,11 @@ export function centralBases(cs: ChurchSettingsService, churchId: () => string |
       })
       return x
     },
-    update: (id: string, data: BaseEntry['data']) => mutate((l) => l.map((e) => (e.id === id ? { ...e, data: forChurch(data), savedAt: Date.now() } : e))),
+    // finnes ikke grunnoppsettet (slettet av en annen), er det en feil – ikke en «vellykket» lagring av samme liste
+    update: (id: string, data: BaseEntry['data']) => mutate((l) => {
+      if (!l.some((e) => e.id === id)) throw new BaseError('missing')
+      return l.map((e) => (e.id === id ? { ...e, data: forChurch(data), savedAt: Date.now() } : e))
+    }),
     remove: (id: string) => mutate((l) => l.filter((e) => e.id !== id)),
   }
 }

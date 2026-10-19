@@ -49,6 +49,19 @@ test('logokopien: bytte av logo og «Slett lokale data»', async ({ page }, info
     await expect.poll(async () => (await img.getAttribute('src')) === before, { timeout: 30_000 }).toBe(true)
     rows.push('| Originallogoen satt tilbake og vist | ja |')
 
+    // TB-9AF961: logo og navn også på mobil (390 px): synlig, riktig størrelse, og navnet flyter ikke over
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/app/')
+    await expect(img).toBeVisible({ timeout: 30_000 })
+    const m = await page.locator('[data-ch-hub-church]').evaluate((el) => {
+      const i = (el.querySelector('img') as HTMLImageElement).getBoundingClientRect(), r = el.getBoundingClientRect()
+      return { w: Math.round(i.width), h: Math.round(i.height), over: el.scrollWidth > el.clientWidth + 1, inside: r.right <= window.innerWidth + 0.5 }
+    })
+    await page.locator('[data-ch-hub-church]').screenshot({ path: info.outputPath('logo-mobil.png') })
+    rows.push(`| Mobil (390 px): logo ${m.w}×${m.h}, innenfor skjermen, ingen overflyt | ${m.inside && !m.over ? 'ja' : '**NEI**'} |`)
+    expect([m.w, m.h, m.inside, m.over]).toEqual([32, 32, true, false])
+    await page.setViewportSize({ width: 1280, height: 800 })
+
     // 2. «Logg ut og fjern mine lokale data»
     await page.getByRole('button', { name: 'Konto' }).click()
     await page.getByRole('button', { name: /Konto og sikkerhet/ }).click()
