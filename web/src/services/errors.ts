@@ -26,6 +26,8 @@ const SQL_STATE: Record<string, string> = {
   CH011: 'settings_conflict',
   CH012: 'file_in_use',
   CH013: 'member_limit',
+  CH020: 'request_handled',
+  CH021: 'staff_use_request',
   // som media-lab/src/services/errors.js
   '22023': 'invalid',
   '23514': 'invalid',

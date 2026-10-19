@@ -103,8 +103,7 @@ export function createAdminService(d: DataAdapter | null, token: () => Promise<s
 
     allMemberships: async () => data().select<Membership>('memberships', { columns: 'user_id, church_id, status, created_at, updated_at' }),
     allRoles: async () => (await data().select<RoleRow>('user_roles', { columns: 'id, user_id, role, church_id, assigned_at, extra_admin, expires_at, duration', isNull: ['revoked_at'] })).filter((r) => roleLive(r)),
-    /** Developer/Moderator (med MFA) som EKSTRA Admin i en menighet, i tillegg til menighetens faste Admin. */
-    addSelfAsAdmin: async (churchId: string) => data().rpc('add_self_as_admin', { p_church: churchId }),
+    /** Developer/Moderator fjerner sin egen midlertidige Admin-tilgang (gis bare via requestAdminAccess). */
     removeSelfAsAdmin: async (churchId: string) => data().rpc('remove_self_as_admin', { p_church: churchId }),
     /** Midlertidig Admin-tilgang: forespørsel (uten Admin i menigheten gis den med en gang med valgt varighet). */
     requestAdminAccess: async (churchId: string, duration?: AccessDuration) => data().rpc<{ state: 'pending' | 'granted' | 'already'; expires_at?: string | null }>('request_admin_access', { p_church: churchId, p_duration: duration ?? null }),

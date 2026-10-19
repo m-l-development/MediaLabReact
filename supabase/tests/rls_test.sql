@@ -1155,8 +1155,12 @@ insert into public.memberships (user_id, church_id) values
   ('00000000-0000-4000-8000-000000000026', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000026', '32323232-0000-4000-8000-000000000032'),
   ('00000000-0000-4000-8000-000000000029', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000029', '32323232-0000-4000-8000-000000000032'),
   ('00000000-0000-4000-8000-000000000027', '31313131-0000-4000-8000-000000000031');
+-- eldre data (fra før 20261020110000): Developer/Moderator som allerede er fast Admin. Vakten rører ikke eksisterende rader,
+-- så den slås av bare her for å lage dem.
+alter table public.user_roles disable trigger user_roles_staff_admin_guard;
 insert into public.user_roles (user_id, role, church_id) values
   ('00000000-0000-4000-8000-000000000025', 'church_admin', '31313131-0000-4000-8000-000000000031'), ('00000000-0000-4000-8000-000000000029', 'church_admin', '32323232-0000-4000-8000-000000000032');
+alter table public.user_roles enable trigger user_roles_staff_admin_guard;
 create table ch_test.groles as select id, user_id, role from public.user_roles where user_id::text like '00000000-0000-4000-8000-0000000000%' and role in ('developer', 'moderator') and church_id is null;
 grant select on ch_test.groles to authenticated;
 
@@ -1773,7 +1777,7 @@ set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"su
 select ch_test.err('Midlertidig Admin: Admin kan ikke be om tilgang (bare stab)', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n42","aal":"aal1"}';
 select ch_test.err('Midlertidig Admin: medlem kan ikke be om tilgang', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
-select ch_test.err('Midlertidig Admin: eldre funksjon (add_self_as_admin) gir heller ikke medlem tilgang', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.err('Midlertidig Admin: eldre funksjon (add_self_as_admin) er stengt også for medlem', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal1"}';
 select ch_test.err('Midlertidig Admin: Moderator uten MFA avvises', $q$select public.request_admin_access('41414141-0000-4000-8000-000000000041', '30d')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
@@ -1789,7 +1793,29 @@ select ch_test.err('Midlertidig Admin: kan ikke godkjenne sin egen forespørsel'
 select ch_test.err('Midlertidig Admin: ingen kan gi seg selv Admin via assign_role', $q$select public.assign_role('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, '42501');
 select ch_test.err('Midlertidig Admin: ingen direkte tilgang til forespørslene', $q$insert into public.admin_access_requests (church_id, requester, requester_role, status) values ('41414141-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000001', 'developer', 'approved')$q$, '42501');
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
-select ch_test.cnt('Midlertidig Admin: Moderator ber også om tilgang (via eldre funksjon: samme regler)', $q$select 1 where public.add_self_as_admin('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
+select ch_test.err('Omgåelse: eldre «legg meg til som ekstra Admin» er stengt (Moderator med MFA)', $q$select public.add_self_as_admin('41414141-0000-4000-8000-000000000041')$q$, '42501');
+select ch_test.cnt('Midlertidig Admin: Moderator ber også om tilgang (forespørsel)', $q$select 1 where public.request_admin_access('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
+select ch_test.cnt('Omgåelse: Moderator har ingen Admin-rettigheter mens forespørselen venter', $q$select 1 where not app.is_church_admin('41414141-0000-4000-8000-000000000041')$q$, 1);
+select ch_test.err('Omgåelse: kan ikke invitere seg selv som Admin', $q$select public.create_invitation('mod@test.invalid', '41414141-0000-4000-8000-000000000041', 'church_admin', md5('self-a') || md5('self-b'), 7)$q$, null);
+select ch_test.err('Omgåelse: kan ikke invitere en Developer som Admin', $q$select public.create_invitation((select email from public.app_users where id = '00000000-0000-4000-8000-000000000001'), '41414141-0000-4000-8000-000000000041', 'church_admin', md5('stab-a') || md5('stab-b'), 7)$q$, 'CH021');
+set local role postgres;
+-- Developer gjøres til medlem av N1 (som stab kan); en kollega (Moderator) prøver så å gjøre Developer til fast Admin
+insert into public.memberships (user_id, church_id) values ('00000000-0000-4000-8000-000000000001', '41414141-0000-4000-8000-000000000041') on conflict (user_id, church_id) do update set status = 'active';
+set local role authenticated;
+select ch_test.err('Omgåelse: Moderator kan ikke gjøre en Developer til fast Admin (assign_role)', $q$select public.assign_role('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041')$q$, 'CH021');
+set local role postgres;
+select ch_test.err('Omgåelse: databasen stopper fast Admin-rolle for stab (direkte innsetting)', $q$insert into public.user_roles (user_id, role, church_id) values ('00000000-0000-4000-8000-000000000001', 'church_admin', '7a7a7a7a-0000-4000-8000-00000000007a')$q$, 'CH021');
+select ch_test.err('Omgåelse: databasen stopper midlertidig Admin-rolle uten forespørsel', $q$insert into public.user_roles (user_id, role, church_id, extra_admin, expires_at, duration) values ('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041', true, now() + interval '1 day', '1d')$q$, 'CH021');
+select ch_test.err('Omgåelse: forespørsel for en annen person kan ikke brukes', $q$insert into public.user_roles (user_id, role, church_id, extra_admin, expires_at, duration, granted_via) values ('00000000-0000-4000-8000-000000000001', 'church_admin', '41414141-0000-4000-8000-000000000041', true, now() + interval '1 day', '1d', (select id from public.admin_access_requests where requester = '00000000-0000-4000-8000-000000000002' and status = 'pending' limit 1))$q$, 'CH021');
+-- en eldre Admin-invitasjon til en som er Developer, gir ingen Admin-rolle
+insert into public.invitations (email, church_id, role, token_hash, expires_at, created_by)
+select email, '41414141-0000-4000-8000-000000000041', 'church_admin', md5('gammel-a') || md5('gammel-b'), now() + interval '7 days', '00000000-0000-4000-8000-000000000002' from public.app_users where id = '00000000-0000-4000-8000-000000000001';
+select ch_test.cnt('Omgåelse: eldre Admin-invitasjon til Developer gir ingen Admin-rolle (staff_use_request)', $q$select 1 where public.accept_invitation(md5('gammel-a') || md5('gammel-b'), 'https://test.invalid/auth/v1', 'sub-1', (select email from public.app_users where id = '00000000-0000-4000-8000-000000000001')) ->> 'error' = 'staff_use_request'$q$, 1);
+select ch_test.cnt('Omgåelse: Developer har fortsatt ingen Admin-rolle i N1', $q$select 1 from public.user_roles where user_id = '00000000-0000-4000-8000-000000000001' and church_id = '41414141-0000-4000-8000-000000000041' and revoked_at is null$q$, 0);
+update public.memberships set status = 'removed' where user_id = '00000000-0000-4000-8000-000000000001' and church_id = '41414141-0000-4000-8000-000000000041';
+update public.invitations set status = 'revoked' where token_hash = md5('gammel-a') || md5('gammel-b');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
 set local role postgres;
 create temp table ch_test_req as select requester, id from public.admin_access_requests where church_id = '41414141-0000-4000-8000-000000000041' and status = 'pending';
 grant select on ch_test_req to authenticated;
