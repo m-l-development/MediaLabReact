@@ -8,6 +8,13 @@ import { createCollabService } from '../../services/collab'
 import { setLang } from '../../shared/i18n/i18n'
 import { AdminPage } from './AdminPage'
 
+// Miljøet (Dev/produksjon) styres per test; ellers uten backend som før.
+const env = vi.hoisted(() => ({ target: null as string | null }))
+vi.mock('../../infrastructure/config', async (orig) => {
+  const m = await orig<typeof import('../../infrastructure/config')>()
+  return { ...m, get backend() { return env.target ? { ...(m.backend ?? {}), target: env.target } : m.backend } }
+})
+
 /** Komponenttester med falsk database og server: rammen, rollene og flytene – ikke at ConnectHub svarer slik. */
 const CH = [{ id: 'c1', name: 'Menighet A', status: 'active', created_at: '2026-01-01', delete_after: null, storage_quota_mb: 200, quota_custom: false, logo_file_id: null }]
 const USERS = [
@@ -41,7 +48,7 @@ function setup(me: Me) {
 }
 const navLabels = () => within(screen.getByRole('navigation', { name: 'Admin' })).getAllByRole('link').map((a) => a.textContent)
 
-beforeEach(() => { location.hash = ''; setLang('no') })
+beforeEach(() => { location.hash = ''; setLang('no'); env.target = null })
 
 describe('ConnectHub Admin: ramme og roller (ADM-01)', () => {
   it('Developer: hele menyen, rollen i toppfeltet, utviklermerke, velkomst og tall fra databasen', async () => {
@@ -60,6 +67,23 @@ describe('ConnectHub Admin: ramme og roller (ADM-01)', () => {
     act(() => { location.hash = '#/mail'; window.dispatchEvent(new HashChangeEvent('hashchange')) })
     expect(await screen.findByRole('heading', { name: 'Ingen tilgang' })).toBeTruthy()
     expect(screen.queryByText('Utvikler')).toBe(null)
+  })
+  it('ConnectHub Dev: Developer får «Åpne ConnectHub produksjon» (ny fane, produksjonsadressen), ikke dev-knappen', () => {
+    setup(DEV)
+    const a = screen.getByRole('link', { name: /Åpne ConnectHub produksjon/ })
+    expect(a.getAttribute('href')).toBe('https://media-lab-react-vyef.vercel.app/admin')
+    expect([a.getAttribute('target'), a.getAttribute('rel')]).toEqual(['_blank', 'noopener noreferrer'])
+    expect(screen.queryByRole('link', { name: /Åpne ConnectHub Dev/ })).toBe(null)
+  })
+  it('ConnectHub produksjon: bare «Åpne ConnectHub Dev», ingen produksjonsknapp', () => {
+    env.target = 'production'
+    setup(DEV)
+    expect(screen.getByRole('link', { name: /Åpne ConnectHub Dev/ }).getAttribute('href')).toBe('https://media-lab-react-vyef-git-connecthub-media-lab3.vercel.app/admin')
+    expect(screen.queryByRole('link', { name: /Åpne ConnectHub produksjon/ })).toBe(null)
+  })
+  it('Admin i ConnectHub Dev: ingen produksjonsknapp', () => {
+    setup(ADM)
+    expect(screen.queryByRole('link', { name: /Åpne ConnectHub produksjon/ })).toBe(null)
   })
   it('User: egen oversikt med menigheten', async () => {
     setup(USR)

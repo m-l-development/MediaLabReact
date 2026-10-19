@@ -827,6 +827,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Ønsket funksjon': 'Requested feature',
   'Åpne': 'Open',
   'Åpne ConnectHub Dev': 'Open ConnectHub Dev',
+  'Åpne ConnectHub produksjon': 'Open ConnectHub production',
   'Åpne filer': 'Open files',
   'Åpne i dagens admin': 'Open in the current admin',
   'Åpne menigheten': 'Open the church',

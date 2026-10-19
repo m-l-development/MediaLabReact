@@ -18,7 +18,7 @@ const resolveSupabaseEnv = envGuard.resolveSupabaseEnv as (env: Record<string, s
   warnings: string[]
 }
 const scanText = envGuard.scanText as (text: string, opts: { target: string; secrets?: [string, string | undefined][] }) => string[]
-const { SCAN_EXT, REFS, DEV_SITE } = envGuard
+const { SCAN_EXT, REFS, DEV_SITE, PROD_SITE } = envGuard
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url))
 const LEGACY = path.resolve(ROOT, '../media-lab')
@@ -45,6 +45,7 @@ export function connecthubEnv(): Plugin {
           __CH_BACKEND__: JSON.stringify(r.public),
           __CH_DEV_REF__: JSON.stringify(r.target === 'production' ? null : REFS.preview),
           __CH_DEV_SITE__: JSON.stringify(DEV_SITE),
+          __CH_PROD_SITE__: JSON.stringify(PROD_SITE),
         },
       }
     },

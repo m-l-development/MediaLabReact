@@ -28,6 +28,7 @@
           "__CH_BACKEND__",
           "__CH_DEV_REF__",
           "__CH_DEV_SITE__",
+          "__CH_PROD_SITE__",
           "__ukeloopRendererFactory",
           "__ukeloopAudioCtl",
           "__ukeloopPlayerBoot",
