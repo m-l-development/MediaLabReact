@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { luma } from '../../thumbnail-studio/engine/colors'
 import { PhotoController, type PDeps } from '../controller'
-import { emptySlot, FORMATS, imageLayer, newDoc, TEMPLATES, textBox, type PdDoc, type TextLayer } from './model'
-import { applyPalette, PALETTES, paletteOf, tplDoc } from './palette'
+import { emptySlot, FORMATS, imageLayer, newDoc, TEMPLATES, textBox, type PdDoc, type PdLayer, type Scheme, type TextLayer } from './model'
+import { applyScheme, assignRole, lowContrast, ORDERS, PALETTES, rolesOf, schemeOfPreset, STARTER, tplDoc } from './palette'
 
 /** Malene i Photo Design: de eksisterende, de 10 nye, bildeplassen og fargepalettene. */
 const NEW = ['split', 'verse', 'series', 'countdown', 'news', 'poster', 'thanks', 'facts', 'staff', 'minimal']
@@ -66,56 +66,129 @@ describe('Photo Design – malene', () => {
   })
 })
 
-describe('Photo Design – fargepaletter (samme som Thumbnail Studio)', () => {
-  it('«Standard» lar malens farger være; «Tomt» er alltid hvitt', () => {
-    expect(tplDoc(1080, 1080, 'quote', 'default').bg).toBe(newDoc(1080, 1080, 'quote').bg)
-    expect(tplDoc(1080, 1080, 'blank', 'wbl').bg).toBe('#ffffff')
-    expect(paletteOf('finnes-ikke').k).toBe('default')
-    expect(PALETTES.length).toBeGreaterThan(5)
+describe('Photo Design – malfarger (tre farger og roller)', () => {
+  const RED: Scheme = { k: 'custom', c: ['#d7191f', '#ffffff', '#f6c1c7'], r: [0, 1, 2] }
+  const textCols = (d: PdDoc) => texts(d).map((L) => L.color.toLowerCase())
+  const HEXRE = /^#[0-9a-f]{6}$/i
+
+  /** Flaten under teksten (fylt form med hel farge, ellers bakgrunnen; bilder og toning hoppes over). */
+  const underOf = (d: PdDoc, i: number, L: TextLayer): string | null => {
+    for (let j = i - 1; j >= 0; j--) {
+      const S = d.layers[j] as PdLayer
+      if (S.type === 'text' || S.type === 'glow' || S.type === 'fx' || Math.abs(L.x - S.x) > S.w / 2 || Math.abs(L.y - S.y) > S.h / 2) continue
+      if (S.type === 'image') return null
+      if (S.type === 'shape') {
+        const f = HEXRE.test(S.fill) ? S.fill : S.fill2 && HEXRE.test(S.fill2) ? S.fill2 : null
+        if (f && ((S.op ?? 1) >= 0.5 || !HEXRE.test(S.fill))) return f
+      }
+    }
+    return d.bg
+  }
+
+  it('«Standard» og «Tomt» beholder malens egne farger', () => {
+    expect(tplDoc(1080, 1080, 'quote', null).bg).toBe(newDoc(1080, 1080, 'quote').bg)
+    expect(tplDoc(1080, 1080, 'blank', RED).bg).toBe('#ffffff')
+    expect(schemeOfPreset('default')).toBeNull()
+    expect(schemeOfPreset('wbl')).toEqual({ k: 'wbl', c: ['#0b4fd6', '#ffffff', '#cfe0ff'], r: [0, 1, 2] })
   })
 
-  it.each(PALETTES.filter((p) => p.p).map((p) => p.k))('%s: farger byttes, og tekst på flater er lesbar i alle malene', (pk) => {
-    const P = paletteOf(pk).p as NonNullable<ReturnType<typeof paletteOf>['p']>
-    const cols = new Set([P.bg, P.bg2, P.fg, P.fill, P.acc, P.mid].map((c) => c.toLowerCase()))
+  it('fargene brukes i malens design: bakgrunn, tekst og støttefarge', () => {
+    const d = tplDoc(1080, 1080, 'countdown', RED)
+    expect(d.bg).toBe('#d7191f')
+    expect(textCols(d)).toContain('#ffffff')
+    expect(textCols(d)).toContain('#f6c1c7')
+    const ring = d.layers.find((L) => L.name === 'Ring')
+    expect(ring?.type === 'shape' && ring.strokeC).toBe('#f6c1c7')
+  })
+
+  it('rekkefølgen kan byttes fritt: hvit bakgrunn med rød tekst, rosa bakgrunn med rød tekst', () => {
+    const white = tplDoc(1080, 1080, 'thanks', { ...RED, r: [1, 0, 2] })
+    expect(white.bg).toBe('#ffffff')
+    expect(textCols(white)).toContain('#d7191f')
+    const pink = tplDoc(1080, 1080, 'thanks', { ...RED, r: [2, 0, 1] })
+    expect(pink.bg).toBe('#f6c1c7')
+    expect(textCols(pink)).toContain('#d7191f')
+  })
+
+  it('rollebytte uten doble farger, og seks hurtigvalg for rekkefølgen', () => {
+    expect(assignRole(RED, 'bg', 1).r).toEqual([1, 0, 2])
+    expect(assignRole(RED, 'off', 0).r).toEqual([2, 1, 0])
+    expect(new Set(ORDERS.map((o) => o.join(''))).size).toBe(6)
+    for (const o of ORDERS) expect(new Set(o).size).toBe(3)
+    expect(rolesOf({ ...RED, r: [2, 0, 1] })).toEqual({ bg: '#f6c1c7', text: '#d7191f', off: '#ffffff' })
+    expect(lowContrast({ k: 'custom', c: ['#ffffff', '#f6c1c7', '#d7191f'], r: [0, 1, 2] })).toBe(true)
+    expect(lowContrast(RED)).toBe(false)
+  })
+
+  it.each([...PALETTES.filter((p) => p.p).map((p) => p.k), 'red', 'white', 'pink'])('%s: tekst på flater er lesbar i alle malene', (k) => {
+    const sc = k === 'red' ? RED : k === 'white' ? { ...RED, r: [1, 0, 2] as Scheme['r'] } : k === 'pink' ? { ...RED, r: [2, 0, 1] as Scheme['r'] } : schemeOfPreset(k)
     for (const t of TEMPLATES.filter((x) => x.k !== 'blank')) {
-      const d = tplDoc(1080, 1350, t.k, pk)
-      if (d.bg?.startsWith('#')) expect(cols.has(d.bg.toLowerCase()), `${pk}/${t.k}: bakgrunn fra paletten`).toBe(true)
+      const d = tplDoc(1080, 1350, t.k, sc)
       d.layers.forEach((L, i) => {
         if (L.type !== 'text') return
-        // flaten under teksten: fylt form med hel farge, ellers bakgrunnen (bilder og toning hoppes over)
-        let under: string | null = d.bg
-        for (let j = i - 1; j >= 0; j--) {
-          const S = d.layers[j]!
-          if (S.type === 'text' || Math.abs(L.x - S.x) > S.w / 2 || Math.abs(L.y - S.y) > S.h / 2) continue
-          under = S.type === 'shape' && /^#[0-9a-f]{6}$/i.test(S.fill) && (S.op ?? 1) >= 0.5 ? S.fill : S.type === 'image' || S.type === 'shape' ? null : under
-          break
-        }
-        if (under) expect(Math.abs(luma(L.color) - luma(under)), `${pk}/${t.k}: «${L.name}» lesbar`).toBeGreaterThanOrEqual(70)
+        const u = underOf(d, i, L)
+        if (u && HEXRE.test(u)) expect(Math.abs(luma(L.color) - luma(u)), `${k}/${t.k}: «${L.name}» lesbar`).toBeGreaterThanOrEqual(70)
       })
     }
   })
 
-  it('toning over bildet beholder den mørke fargen (bildet vaskes ikke ut av en lys palett)', () => {
-    const before = newDoc(1080, 1080, 'photo').layers.find((L) => L.name === 'Toning')
-    const after = applyPalette(newDoc(1080, 1080, 'photo'), 'bw').layers.find((L) => L.name === 'Toning')
-    expect(after).toEqual({ ...before, id: after?.id })
+  it('bytte farger flere ganger gir samme resultat som å bruke dem direkte, og «Standard» gir malen tilbake', () => {
+    const base = newDoc(1080, 1350, 'split')
+    const cols = (d: PdDoc) => d.layers.map((L) => (L.type === 'text' ? L.color : L.type === 'shape' ? L.fill : ''))
+    const once = applyScheme(base, RED)
+    const many = applyScheme(applyScheme(applyScheme(base, schemeOfPreset('wbl')), STARTER), RED)
+    expect(cols(many)).toEqual(cols(once))
+    const back = applyScheme(many, null)
+    expect(back.bg).toBe(base.bg)
+    expect(cols(back)).toEqual(cols(base))
   })
 
-  it('valgt palett lagres, beholdes når du bytter mal, og brukes på den nye malen', () => {
+  it('en farge du har endret selv på et lag, røres ikke når du bytter malfarger', () => {
+    const d = applyScheme(newDoc(1080, 1080, 'quote'), RED)
+    const edited = { ...d, layers: d.layers.map((L) => (L.type === 'text' && L.name === 'Kilde' ? { ...L, color: '#123456' } : L)) }
+    const next = applyScheme(edited, schemeOfPreset('wg'))
+    expect(texts(next).find((L) => L.name === 'Kilde')?.color).toBe('#123456')
+    expect(next.scheme?.k).toBe('wg')
+  })
+
+  it('toning over bildet beholder den mørke fargen', () => {
+    const before = newDoc(1080, 1080, 'photo').layers.find((L) => L.name === 'Toning')
+    const after = applyScheme(newDoc(1080, 1080, 'photo'), { ...RED, r: [1, 0, 2] }).layers.find((L) => L.name === 'Toning')
+    expect(after?.type === 'shape' && [after.fill, after.fill2]).toEqual(before?.type === 'shape' && [before.fill, before.fill2])
+  })
+
+  it('fellesfarger, egne farger per mal, prosjektets farger i dokumentet og huskes for malen', () => {
     const m = new Map<string, string>()
     const storage = { get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) }
     const deps = { storage, t: (p: string) => p, confirm: () => true, repo: { save: async () => 'p1', list: async () => [] } } as unknown as PDeps
     const c = new PhotoController(deps)
-    expect(c.s.pal).toBe('default')
-    c.togglePal()
-    expect(c.s.palOpen).toBe(true)
-    c.setPal('wbl')
-    expect([c.s.pal, c.s.palOpen, m.get('photodesign.palette')]).toEqual(['wbl', false, 'wbl'])
+    expect(c.s.scheme).toBeNull()
+    c.setScheme(schemeOfPreset('wbl'))
     c.create('bold')
-    expect(c.s.doc?.bg).toBe(tplDoc(1080, 1080, 'bold', 'wbl').bg)
+    expect(c.s.doc?.bg).toBe('#0b4fd6')
+    expect(c.s.doc?.tplK).toBe('bold')
+    c.setDocScheme({ ...RED, r: [2, 0, 1] })
+    expect(c.s.doc?.bg).toBe('#f6c1c7')
+    expect(c.s.doc?.scheme).toEqual({ ...RED, r: [2, 0, 1] })
+    expect(c.schemeFor('bold')).toEqual({ ...RED, r: [2, 0, 1] })
     c.create('quote')
-    expect(c.s.doc?.bg).toBe(tplDoc(1080, 1080, 'quote', 'wbl').bg)
-    expect(c.s.pal).toBe('wbl')
-    expect(new PhotoController(deps).s.pal).toBe('wbl') // også neste gang verktøyet åpnes
+    expect(c.s.doc?.bg).toBe('#0b4fd6')
+    c.create('bold')
+    expect(c.s.doc?.bg).toBe('#f6c1c7')
+    c.setDocScheme(RED)
+    expect(c.s.doc?.bg).toBe('#d7191f')
+    c.undo()
+    expect(c.s.doc?.bg).toBe('#f6c1c7')
+    const c2 = new PhotoController(deps)
+    expect(c2.s.scheme?.k).toBe('wbl')
+    expect(c2.schemeFor('bold')).toEqual(RED)
+    c2.forgetTplScheme('bold')
+    expect(c2.schemeFor('bold')?.k).toBe('wbl')
+  })
+
+  it('eldre lagret palett («photodesign.palette») blir til fellesfarger', () => {
+    const m = new Map<string, string>([['photodesign.palette', 'wg']])
+    const storage = { get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) }
+    expect(new PhotoController({ storage, t: (p: string) => p } as unknown as PDeps).s.scheme?.k).toBe('wg')
   })
 })

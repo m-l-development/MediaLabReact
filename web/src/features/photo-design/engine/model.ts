@@ -50,7 +50,15 @@ interface Base {
   locked: boolean
   /** Gruppe-ID (lag i samme gruppe flyttes og skaleres sammen). */
   grp?: string | null
+  /** Malens opprinnelige farger på laget (fargevalget regnes ut fra dem, se engine/palette.ts). */
+  tc?: TplColors
 }
+
+/** Fargefeltene et lag kan ha. */
+export interface TplColors { color?: string; fill?: string; fill2?: string | null; strokeC?: string }
+
+/** Malfarger: tre farger og hvilken som er bakgrunn, tekst og støttefarge (indekser i c). k = ferdig kombinasjon eller «custom». */
+export interface Scheme { k: string; c: [string, string, string]; r: [number, number, number] }
 
 export interface ImageLayer extends Base {
   type: 'image'
@@ -126,7 +134,7 @@ export type PdLayer = ImageLayer | TextLayer | ShapeLayer | GlowLayer | FxLayer
 
 export interface Vig { on: boolean; amt: number; size: number; color: string; top: boolean }
 
-export interface Side { bg: string | null; layers: PdLayer[] }
+export interface Side { bg: string | null; layers: PdLayer[]; bg0?: string | null }
 
 export interface PdDoc {
   id: string
@@ -143,6 +151,10 @@ export interface PdDoc {
   back?: Side | null
   side?: 'front' | 'back'
   bleed?: boolean
+  /** Malen dokumentet ble laget fra, malens opprinnelige bakgrunn og fargevalget (null = malens egne farger). */
+  tplK?: string
+  bg0?: string | null
+  scheme?: Scheme | null
   created: number
   updated: number
 }

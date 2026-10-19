@@ -149,7 +149,7 @@ test('fargepalett over malene: samme valg som i Thumbnail Studio, oppdaterer for
   await expect(btn).toContainText('Standard')
   await expect.poll(() => blueIn(page, 'bold')).toBeLessThan(0.05)
   await btn.click()
-  await expect(page.locator('[data-pd-pal]')).toHaveCount(11)
+  await expect(page.locator('[data-pd-pal]')).toHaveCount(12) // Standard, 10 kombinasjoner og «Egne farger …»
   await page.locator('[data-pd-pal="wbl"]').click()
   await expect(page.locator('[data-pd-pal]')).toHaveCount(0) // menyen lukkes
   await expect(btn).toContainText('Hvit og blå')
@@ -224,5 +224,99 @@ test('alle malene vises på lerretet, også når de åpnes etter hverandre (skri
     await page.getByRole('button', { name: /Prosjekter/ }).first().click()
     await expect(page.locator('[data-tpl]').first()).toBeVisible()
   }
+  expect(errors).toEqual([])
+})
+
+/** Andel piksler i et lerret som ligger nær fargen `hex` (±28 per kanal). */
+const shareOf = (page: Page, sel: string, hex: string) => page.locator(sel).first().evaluate((c: HTMLCanvasElement, h: string) => {
+  const n = parseInt(h.slice(1), 16), R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255
+  const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data
+  let k = 0
+  for (let i = 0; i < d.length; i += 16) if (Math.abs((d[i] ?? 0) - R) < 28 && Math.abs((d[i + 1] ?? 0) - G) < 28 && Math.abs((d[i + 2] ?? 0) - B) < 28) k++
+  return k / (d.length / 16)
+}, hex)
+
+test('egne farger: tre fargevelgere, roller, hurtigvalg – forhåndsvisningen oppdateres med en gang', async ({ page }) => {
+  const errors = await errorsOf(page)
+  await page.goto('/app/photo-design')
+  const prev = '[data-tpl="countdown"] canvas'
+  await page.locator('[data-pd-roles-btn]').click()
+  const pop = page.locator('[data-pd-roles]')
+  await expect(pop).toBeVisible()
+  // popupen ligger innenfor skjermen (også på mobil)
+  const vp = page.viewportSize() as { width: number; height: number }
+  const bb = await pop.boundingBox()
+  expect(bb && bb.x >= 0 && bb.x + bb.width <= vp.width + 1).toBe(true)
+  // startfargene: rød bakgrunn, hvit tekst, rosa støttefarge
+  await expect.poll(() => shareOf(page, prev, '#d7191f')).toBeGreaterThan(0.4)
+  // hurtigvalg: hvit bakgrunn, rød tekst
+  await pop.locator('[data-pd-order="102"]').click()
+  await expect(pop.locator('[data-pd-order="102"]')).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(() => shareOf(page, prev, '#ffffff')).toBeGreaterThan(0.4)
+  // hurtigvalg: rosa bakgrunn, rød tekst
+  await pop.locator('[data-pd-order="201"]').click()
+  await expect.poll(() => shareOf(page, prev, '#f6c1c7')).toBeGreaterThan(0.4)
+  // manuell rolle: farge 1 (rød, nå tekst) som bakgrunn → bakgrunn og tekst bytter plass (ingen dobbel farge)
+  await pop.locator('[data-pd-role="bg-0"]').click()
+  await expect(pop.locator('[data-pd-role="bg-0"]')).toHaveAttribute('aria-checked', 'true')
+  await expect(pop.locator('[data-pd-role="text-2"]')).toHaveAttribute('aria-checked', 'true')
+  await expect(pop.locator('[data-pd-role="off-1"]')).toHaveAttribute('aria-checked', 'true')
+  await expect.poll(() => shareOf(page, prev, '#d7191f')).toBeGreaterThan(0.4)
+  // egen farge med fargevelgeren: farge 1 blir grønn
+  await pop.locator('[data-pd-color="0"]').fill('#118844')
+  await expect.poll(() => shareOf(page, prev, '#118844')).toBeGreaterThan(0.4)
+  await expect(page.locator('[data-pd-pal-btn]')).toContainText('Egne farger')
+  await pop.locator('[data-pd-roles-done]').click()
+  await expect(pop).toHaveCount(0)
+  // valget beholdes når du bytter mal og etter ny innlasting
+  await page.reload()
+  await expect.poll(() => shareOf(page, '[data-tpl="thanks"] canvas', '#118844')).toBeGreaterThan(0.3)
+  // ferdig kombinasjon fyller de tre fargene, og kan justeres videre
+  await page.locator('[data-pd-pal-btn]').click()
+  await page.locator('[data-pd-pal="wbl"]').click()
+  await expect.poll(() => shareOf(page, prev, '#0b4fd6')).toBeGreaterThan(0.4)
+  await page.locator('[data-pd-roles-btn]').click()
+  await expect(page.locator('[data-pd-color="0"]')).toHaveValue('#0b4fd6')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-pd-roles]')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('farger i prosjektet: endres i editoren, lagres med prosjektet, huskes for malen – andre maler beholder sine', async ({ page }) => {
+  test.slow()
+  const errors = await errorsOf(page)
+  page.on('dialog', (d) => void d.dismiss())
+  await page.goto('/app/photo-design')
+  await page.locator('[data-tpl="countdown"]').click()
+  await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
+  const cv = '[data-pd-view="edit"] canvas'
+  await expect.poll(() => shareOf(page, cv, '#1d2a3a')).toBeGreaterThan(0.4) // malens egen bakgrunn
+  await page.getByRole('button', { name: 'Stil', exact: true }).click()
+  const bar = page.locator('[data-pd-scheme="doc"]')
+  await bar.locator('[data-pd-roles-btn]').click()
+  await bar.locator('[data-pd-order="201"]').click() // rosa bakgrunn, rød tekst, hvit støtte
+  await expect.poll(() => shareOf(page, cv, '#f6c1c7')).toBeGreaterThan(0.4)
+  await bar.locator('[data-pd-roles-done]').click()
+  // angre og gjør om
+  await page.getByRole('button', { name: /^Angre/ }).first().click()
+  await expect.poll(() => shareOf(page, cv, '#f6c1c7')).toBeLessThan(0.1) // det rosa er borte
+  await page.getByRole('button', { name: /^Gjør om/ }).first().click()
+  await expect.poll(() => shareOf(page, cv, '#f6c1c7')).toBeGreaterThan(0.4)
+  // lagre prosjektet og gå tilbake
+  await page.getByRole('button', { name: 'Lagre', exact: true }).click()
+  await expect(page.getByText('Prosjektet er lagret.')).toBeVisible()
+  await page.getByRole('button', { name: /Prosjekter/ }).first().click()
+  // malen husker fargene (merket), en annen mal bruker fellesfargene (Standard = malens egne)
+  await expect(page.locator('[data-tpl-own="countdown"]')).toBeVisible()
+  await expect.poll(() => shareOf(page, '[data-tpl="countdown"] canvas', '#f6c1c7')).toBeGreaterThan(0.4)
+  await expect(page.locator('[data-tpl-own="quote"]')).toHaveCount(0)
+  await expect.poll(() => shareOf(page, '[data-tpl="quote"] canvas', '#1d2a3a')).toBeGreaterThan(0.4)
+  // prosjektet åpnes igjen med fargene
+  await page.reload()
+  await page.locator('[data-project] button').first().click()
+  await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
+  await expect.poll(() => shareOf(page, cv, '#f6c1c7')).toBeGreaterThan(0.4)
+  await page.getByRole('button', { name: 'Stil', exact: true }).click()
+  await expect(page.locator('[data-pd-scheme="doc"] [data-pd-pal-btn]')).toContainText('Egne farger')
   expect(errors).toEqual([])
 })

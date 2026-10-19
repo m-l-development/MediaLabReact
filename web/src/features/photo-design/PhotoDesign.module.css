@@ -1664,12 +1664,6 @@ button:disabled {
   height: 20px;
 }
 
-.palHint {
-  padding: 6px 9px 4px;
-  font-size: 11.5px;
-  opacity: 0.6;
-}
-
 :root[data-theme='light'] .palBtn,
 :root[data-theme='light'] .palSw {
   border-color: rgba(0, 0, 0, 0.2);
@@ -1683,4 +1677,318 @@ button:disabled {
 :root[data-theme='light'] .palMenu button[aria-pressed='true'],
 :root[data-theme='light'] .palMenu button:hover {
   background: rgba(0, 0, 0, 0.07);
+}
+
+/* Malfarger: ferdige kombinasjoner, tre egne farger og roller (Colors.tsx) */
+.schemeBar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.schemeTrio {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.schemeTrio:hover,
+.schemeTrio[aria-expanded='true'] {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.schemeChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.schemeChip i {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+}
+
+.schemePop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: #141414;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+}
+
+.schemeHead,
+.schemeFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.schemeX {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.schemeColors {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.schemeColor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schemeColor input[type='color'] {
+  width: 100%;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.schemeColor input[type='text'] {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+.schemeRoles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.schemeRole {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.schemeRole > div {
+  display: flex;
+  gap: 6px;
+}
+
+.schemeRole button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.schemeRole button[aria-checked='true'] {
+  outline: 2px solid #f3f1ec;
+  outline-offset: 2px;
+}
+
+.schemeOrders {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.schemeOrders button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.schemeOrders button[aria-pressed='true'] {
+  outline: 2px solid #f3f1ec;
+  outline-offset: 2px;
+}
+
+.schemeOrders i {
+  position: absolute;
+  right: 6px;
+  bottom: 5px;
+  left: 6px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.schemeWarn {
+  font-size: 11.5px;
+  color: #f5b82c;
+}
+
+.schemeBtn {
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* i editorens smale panel: meny og popup i flyten (ikke over kanten) */
+.schemeBar[data-pd-scheme='doc'] .palMenu,
+.schemeBar[data-pd-scheme='doc'] .schemePop {
+  position: static;
+  width: 100%;
+}
+
+.schemeBar[data-pd-scheme='doc'] .schemeOrders {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.schemeBar[data-pd-scheme='doc'] .palWrap,
+.schemeBar[data-pd-scheme='doc'] .palBtn,
+.schemeBar[data-pd-scheme='doc'] .schemeTrio {
+  width: 100%;
+}
+
+.schemeBar[data-pd-scheme='doc'] .schemeTrio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 14px;
+}
+
+.schemeBar[data-pd-scheme='doc'] .schemeChip {
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px 2px;
+  border-radius: 10px;
+  font-size: 10.5px;
+}
+
+.schemeBar[data-pd-scheme='doc'] .schemePop {
+  padding: 10px;
+}
+
+.schemeBar[data-pd-scheme='doc'] .schemeColor input[type='text'] {
+  padding: 4px 1px;
+  font-size: 10.5px;
+}
+
+.schemeBar[data-pd-scheme='doc'] .schemeRole button {
+  width: 24px;
+  height: 24px;
+}
+
+.schemeFoot {
+  flex-wrap: wrap;
+}
+
+/* mobil: popupen som et ark nederst på skjermen */
+@media (max-width: 600px) {
+  .schemeBar[data-pd-scheme='home'] .schemePop {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+    z-index: 1000;
+    max-height: 80dvh;
+    padding-bottom: 72px;
+    overflow: auto;
+  }
+}
+
+.tplItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tplOwn {
+  padding: 0 4px;
+  font-size: 11.5px;
+  color: #f5b82c;
+}
+
+.tplReset {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+:root[data-theme='light'] .schemeTrio,
+:root[data-theme='light'] .schemeBtn,
+:root[data-theme='light'] .tplReset,
+:root[data-theme='light'] .schemeColor input {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme='light'] .schemeChip {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme='light'] .schemePop {
+  border-color: rgba(0, 0, 0, 0.16);
+  background: #efece6;
+}
+
+:root[data-theme='light'] .schemeRole button[aria-checked='true'],
+:root[data-theme='light'] .schemeOrders button[aria-pressed='true'] {
+  outline-color: #111111;
+}
+
+:root[data-theme='light'] .tplOwn,
+:root[data-theme='light'] .schemeWarn {
+  color: #9a6b00;
 }
