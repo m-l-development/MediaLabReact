@@ -1881,6 +1881,27 @@ select ch_test.cnt('Utløp: Developer-rollen er beholdt', $q$select 1 from publi
 -- ubestemt tid og manuell fjerning
 set local role authenticated;
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+-- Trekk tilbake: bare egen ventende forespørsel; historikken beholdes; admin ser den ikke lenger som ventende
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Trekk tilbake: Moderator sender en ny forespørsel', $q$select 1 where public.request_admin_access('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
+create temp table ch_test_wd as select (e ->> 'id')::uuid as id from jsonb_array_elements(public.my_admin_access()) e where e ->> 'church_id' = '41414141-0000-4000-8000-000000000041' and e ->> 'state' = 'pending';
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.err('Trekk tilbake: Admin kan ikke trekke tilbake andres forespørsel', $q$select public.withdraw_admin_access((select id from ch_test_wd))$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal2"}';
+select ch_test.err('Trekk tilbake: en annen Developer kan ikke trekke den tilbake', $q$select public.withdraw_admin_access((select id from ch_test_wd))$q$, '42501');
+select ch_test.err('Trekk tilbake: godkjent forespørsel kan ikke trekkes tilbake', $q$select public.withdraw_admin_access((select id from ch_test_req where requester = '00000000-0000-4000-8000-000000000001'))$q$, 'CH020');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
+select ch_test.cnt('Trekk tilbake: Moderator trekker tilbake sin ventende forespørsel', $q$select 1 where public.withdraw_admin_access((select id from ch_test_wd)) ->> 'status' = 'cancelled'$q$, 1);
+select ch_test.cnt('Trekk tilbake: avsenderen ser «Trukket tilbake»', $q$select 1 from jsonb_array_elements(public.my_admin_access()) e where e ->> 'church_id' = '41414141-0000-4000-8000-000000000041' and e ->> 'state' = 'cancelled'$q$, 1);
+select ch_test.err('Trekk tilbake: kan ikke trekkes tilbake to ganger', $q$select public.withdraw_admin_access((select id from ch_test_wd))$q$, 'CH020');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
+select ch_test.cnt('Trekk tilbake: forsvinner fra Admins ventende liste', $q$select 1 from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'pending') e where (e ->> 'id')::uuid = (select id from ch_test_wd)$q$, 0);
+select ch_test.cnt('Trekk tilbake: vises som trukket tilbake i Admins historikk', $q$select 1 from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'recent') e where (e ->> 'id')::uuid = (select id from ch_test_wd) and e ->> 'status' = 'cancelled'$q$, 1);
+select ch_test.err('Trekk tilbake: Admin kan ikke godkjenne en tilbaketrukket forespørsel', $q$select public.decide_admin_access((select id from ch_test_wd), true, '1d')$q$, 'CH020');
+set local role postgres;
+select ch_test.cnt('Trekk tilbake: forespørselen er beholdt (historikk), og ingen rolle er gitt', $q$select 1 from public.admin_access_requests q where q.id = (select id from ch_test_wd) and q.status = 'cancelled' and q.decided_at is not null and not exists (select 1 from public.user_roles r where r.user_id = q.requester and r.church_id = q.church_id and r.revoked_at is null)$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-2","aal":"aal2"}';
 select ch_test.cnt('Ubestemt tid: Moderator kan be på nytt etter avslag', $q$select 1 where public.request_admin_access('41414141-0000-4000-8000-000000000041') ->> 'state' = 'pending'$q$, 1);
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-n41","aal":"aal1"}';
 select ch_test.ok('Ubestemt tid: Admin godkjenner uten utløp', $q$select public.decide_admin_access((select (e ->> 'id')::uuid from jsonb_array_elements(public.admin_access_overview('41414141-0000-4000-8000-000000000041') -> 'pending') e where e ->> 'user_id' = '00000000-0000-4000-8000-000000000002'), true, 'indef')$q$);

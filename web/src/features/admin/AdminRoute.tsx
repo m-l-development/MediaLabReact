@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Me } from '../../domain/account'
 import { AdminPage } from './AdminPage'
+import { AccessSection } from './ChurchAccess'
 import { ChurchDetail, ChurchesView, InvitesView } from './Churches'
 import { CleanupView } from './Cleanup'
 import { ChurchPicker, Head } from './common'
@@ -39,6 +40,7 @@ function LogSection() {
 
 const SECTIONS: Partial<Record<string, (p: { id?: string | undefined; sub?: string | undefined }) => ReactNode>> = {
   menigheter: ({ id, sub }) => (id ? <ChurchDetail id={id} tab={sub} /> : <ChurchesView />),
+  tilgang: () => <AccessSection />,
   invitasjoner: () => <InvitesView />,
   filer: ({ id }) => <FilesSection area={id} />,
   samarbeid: () => <><Head title="Samarbeid" sub="Samarbeidsgrupper med to eller flere menigheter. Hver gruppe har sin egen Samarbeidsmappe." /><LinksView /></>,

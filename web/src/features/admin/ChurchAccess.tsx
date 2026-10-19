@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ACCESS_DURATIONS, type AccessDuration, type AccessOverview, type AccessRequest, type Church, type MyAccess } from '../../services/admin'
 import { clearMe } from '../../services/auth/me-cache'
+import { Head } from './common'
 import { useAdmin } from './context'
-import { fmtDate, go } from './lib'
+import { fmtDate, go, href } from './lib'
 import { Cancelled, fill } from './members'
 import { Badge, Btn, Card, Dialog, Empty } from './ui'
 
@@ -125,7 +126,7 @@ export function TempAdminCard({ church }: { church: Church }) {
   const { ov, mine, load } = useAccess(church.id, !fixed, { pending: POLL_PENDING_MS })
   const [dur, setDur] = useState<AccessDuration>('30d')
   const lang = t('nb-NO')
-  const active = mine.find((x) => x.state === 'active'), pending = mine.find((x) => x.state === 'pending'), rejected = mine.find((x) => x.state === 'rejected')
+  const active = mine.find((x) => x.state === 'active'), pending = mine.find((x) => x.state === 'pending'), rejected = mine.find((x) => x.state === 'rejected'), cancelled = mine.find((x) => x.state === 'cancelled')
   // Venter forespørselen, hentes status jevnlig; blir den godkjent, lastes siden på nytt så Admin-rettighetene gjelder med en gang.
   const wasPending = useRef(false)
   useEffect(() => {
@@ -138,6 +139,13 @@ export function TempAdminCard({ church }: { church: Church }) {
   const ask = act(async () => {
     const r = await admin.requestAdminAccess(church.id)
     say(t(r?.state === 'pending' ? 'Forespørsel sendt – venter på svar.' : 'Du har allerede tilgang.'))
+    await load()
+  })
+  const withdraw = act(async () => {
+    if (!pending?.id) return
+    confirmOr(fill(t('Trekke tilbake forespørselen om Admin-tilgang i «{church}»?'), { church: church.name }))
+    await admin.withdrawAdminAccess(pending.id)
+    say(t('Forespørselen er trukket tilbake.'))
     await load()
   })
   const grant = act(async () => {
@@ -160,10 +168,14 @@ export function TempAdminCard({ church }: { church: Church }) {
             <div className="ch-row"><Btn small kind="danger" onClick={leave} data-ch-tempadmin-leave="">{t('Gi fra meg tilgangen')}</Btn></div>
           </>
         ) : pending ? (
-          <p role="status"><Badge tone="warn">{t('Venter')}</Badge> {t('Forespørsel sendt – venter på svar.')}</p>
+          <>
+            <p role="status"><Badge tone="warn">{t('Venter')}</Badge> {t('Forespørsel sendt – venter på svar.')}</p>
+            <div className="ch-row"><Btn small onClick={withdraw} data-ch-tempadmin-withdraw="">{t('Trekk tilbake forespørsel')}</Btn></div>
+          </>
         ) : ov.has_admin ? (
           <>
             {rejected && <p role="status" data-ch-tempadmin-rejected=""><Badge tone="bad">{t('Avslått')}</Badge> {t('Avslått av menighetsadmin.')}</p>}
+            {cancelled && <p role="status" data-ch-tempadmin-cancelled=""><Badge>{t('Trukket tilbake')}</Badge> {t('Du trakk tilbake forespørselen. Du kan sende en ny når som helst.')}</p>}
             <p className="ch-muted">{t('Menigheten har Admin. Send en forespørsel; en Admin i menigheten godkjenner og velger hvor lenge tilgangen varer. Du får ingen tilgang før forespørselen er godkjent, og eksisterende Admin beholder sin tilgang.')}</p>
             <div className="ch-row"><Btn small kind="primary" onClick={ask} data-ch-tempadmin-ask="">{t('Send forespørsel om midlertidig admin-tilgang')}</Btn></div>
           </>
@@ -231,7 +243,7 @@ function ApproveDialog({ req, church, onClose, onDone }: { req: AccessRequest; c
  * Admin i menigheten (og stab, som bare ser): ventende forespørsler (grønn hake / rød X), aktive midlertidige Admin med
  * varighet og utløp (Fjern tilgang), og nylig behandlede forespørsler.
  */
-export function AccessCard({ church }: { church: Church }) {
+export function AccessCard({ church, named }: { church: Church; named?: boolean }) {
   const { me, d, staff, act, say, reload, admin, t } = useAdmin()
   const isAdmin = d.roles.some((r) => r.role === 'church_admin' && r.church_id === church.id && r.user_id === me.id)
   const { ov, load } = useAccess(church.id, isAdmin || staff, { always: isAdmin ? POLL_ADMIN_MS : 0 })
@@ -253,7 +265,7 @@ export function AccessCard({ church }: { church: Church }) {
     await after()
   })
   return (
-    <Card title="Tilgang for Developer og Moderator">
+    <Card title="Tilgang for Developer og Moderator" sub={named ? church.name : undefined}>
       <div className="ch-form" data-ch-access="">
         <span className="ch-eyebrow">{t('Ventende forespørsler')}</span>
         {ov.pending.length ? ov.pending.map((q) => (
@@ -288,7 +300,7 @@ export function AccessCard({ church }: { church: Church }) {
               <div key={r.id} className="ch-access-row small" data-ch-access-recent={r.status}>
                 <div><b>{r.name}</b> <span className="ch-muted">{ROLE_LABEL[r.role] ?? r.role}</span></div>
                 <div className="ch-row">
-                  <Badge tone={r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'bad' : ''}>{t(r.status === 'approved' ? (r.auto ? 'Gitt (ingen Admin)' : 'Godkjent') : r.status === 'rejected' ? 'Avslått' : 'Avbrutt')}</Badge>
+                  <Badge tone={r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'bad' : ''}>{t(r.status === 'approved' ? (r.auto ? 'Gitt (ingen Admin)' : 'Godkjent') : r.status === 'rejected' ? 'Avslått' : 'Trukket tilbake')}</Badge>
                   <span className="ch-muted">{r.duration ? t(DURATION_LABEL[r.duration]) + ' · ' : ''}{fmtDate(r.decided_at)}</span>
                 </div>
               </div>
@@ -298,5 +310,95 @@ export function AccessCard({ church }: { church: Church }) {
       </div>
       {approving && <ApproveDialog req={approving} church={church} onClose={() => setApproving(null)} onDone={after} />}
     </Card>
+  )
+}
+
+/** Summen av ventende forespørsler i menighetene der innlogget er Admin (hentes på nytt jevnlig mens siden er synlig). */
+function usePendingAccess(churchIds: string[]) {
+  const { admin } = useAdmin()
+  const key = churchIds.join(',')
+  const [n, setN] = useState<number | null>(null)
+  useEffect(() => {
+    const ids = key ? key.split(',') : []
+    if (!ids.length) return
+    let live = true
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return
+      void Promise.all(ids.map((id) => admin.adminAccessOverview(id).catch(() => null)))
+        .then((r) => { if (live) setN(r.reduce((a, o) => a + (o?.pending.length ?? 0), 0)) })
+    }
+    tick()
+    const t = window.setInterval(tick, POLL_ADMIN_MS)
+    return () => { live = false; window.clearInterval(t) }
+  }, [admin, key])
+  return key ? n : 0
+}
+
+/** Oversikten: Admin ser straks at forespørsler venter, med lenke til seksjonen der de behandles (også fra varslene). */
+export function PendingAccessNotice() {
+  const { d, adminOf, t } = useAdmin()
+  const n = usePendingAccess(d.churches.filter((c) => c.status === 'active' && adminOf.includes(c.id)).map((c) => c.id))
+  if (!n) return null
+  return (
+    <Card title="Forespørsler om Admin-tilgang">
+      <div className="ch-row" data-ch-access-notice={n}>
+        <p style={{ margin: 0, flex: '1 1 260px' }}><Badge tone="warn">{n}</Badge> {t(n === 1 ? 'Én forespørsel om midlertidig Admin-tilgang venter på deg.' : '{n} forespørsler om midlertidig Admin-tilgang venter på deg.').replace('{n}', String(n))}</p>
+        <a className="ch-btn primary" href={href('tilgang')}>{t('Behandle forespørsler')}</a>
+      </div>
+    </Card>
+  )
+}
+
+const MY_STATE: Record<MyAccess['state'], [string, string]> = {
+  pending: ['warn', 'Venter på svar'], active: ['ok', 'Godkjent'], rejected: ['bad', 'Avslått'], cancelled: ['', 'Trukket tilbake'],
+}
+/** Developer/Moderator: egne forespørsler i alle menigheter (status, og tilbaketrekking mens den venter). */
+function MyRequestsCard() {
+  const { admin, act, say, churchName, t } = useAdmin()
+  const [mine, setMine] = useState<MyAccess[] | null>(null)
+  const load = useCallback(async () => setMine((await admin.myAdminAccess()) ?? []), [admin])
+  useEffect(() => {
+    let live = true
+    const tick = () => { if (document.visibilityState === 'visible') admin.myAdminAccess().then((m) => { if (live) setMine(m ?? []) }, () => undefined) }
+    tick()
+    const id = window.setInterval(tick, POLL_PENDING_MS)
+    return () => { live = false; window.clearInterval(id) }
+  }, [admin])
+  const lang = t('nb-NO')
+  const withdraw = (m: MyAccess) => act(async () => {
+    if (!m.id) return
+    confirmOr(fill(t('Trekke tilbake forespørselen om Admin-tilgang i «{church}»?'), { church: churchName(m.church_id) }))
+    await admin.withdrawAdminAccess(m.id)
+    say(t('Forespørselen er trukket tilbake.'))
+    await load()
+  })
+  return (
+    <Card title="Mine forespørsler" sub={t('Be om tilgang under Menigheter → menigheten → Medlemmer.')}>
+      <div className="ch-form" data-ch-myrequests="">
+        {mine === null ? null : mine.length ? mine.map((m) => (
+          <div key={m.church_id + m.state} className="ch-access-row" data-ch-myrequest={m.state}>
+            <div>
+              <a href={href('menigheter', m.church_id, 'medlemmer')}><b>{churchName(m.church_id)}</b></a> <Badge tone={MY_STATE[m.state][0]}>{t(MY_STATE[m.state][1])}</Badge>
+              {m.state === 'active' && <div className="ch-muted">{m.expires_at ? fill(t('Tilgangen varer til {when}.'), { when: fmtWhen(m.expires_at, lang) }) : t('Tilgangen varer på ubestemt tid.')}</div>}
+            </div>
+            {m.state === 'pending' && <Btn small onClick={withdraw(m)} data-ch-myrequest-withdraw="">{t('Trekk tilbake forespørsel')}</Btn>}
+          </div>
+        )) : <Empty>{t('Du har ingen forespørsler om Admin-tilgang.')}</Empty>}
+      </div>
+    </Card>
+  )
+}
+
+/** Egen seksjon «Admin-tilgang»: Admin behandler forespørsler for hver menighet hen er Admin i; Developer/Moderator ser sine egne. */
+export function AccessSection() {
+  const { d, adminOf, staff, t } = useAdmin()
+  const mine = d.churches.filter((c) => c.status === 'active' && adminOf.includes(c.id))
+  return (
+    <>
+      <Head title="Admin-tilgang" sub="Forespørsler fra Developer og Moderator om midlertidig Admin-tilgang til menigheten. Godkjenn med grønn hake (velg varighet) eller avslå med rød X." />
+      {mine.map((c) => <AccessCard key={c.id} church={c} named />)}
+      {!mine.length && !staff && <Card><Empty>{t('Du er ikke Admin i noen menighet.')}</Empty></Card>}
+      {staff && <MyRequestsCard />}
+    </>
   )
 }

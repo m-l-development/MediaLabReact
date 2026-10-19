@@ -1,11 +1,13 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AccessSection } from './ChurchAccess'
 import { ChurchDetail, ChurchesView } from './Churches'
 import { ADM, DEV, setupAdmin } from './testkit'
 
 /** Midlertidig Admin-tilgang og ny menighet med logo i grensesnittet (falsk database og server, se testkit.tsx). */
 const sections = {
   menigheter: ({ id, sub }: { id?: string | undefined; sub?: string | undefined }) => (id ? <ChurchDetail id={id} tab={sub} /> : <ChurchesView />),
+  tilgang: () => <AccessSection />,
 }
 afterEach(() => vi.unstubAllGlobals())
 
@@ -157,5 +159,40 @@ describe('Menighetsoversikten: logo ved siden av hver menighet', () => {
     expect(document.querySelector('[data-ch-church-row="c2"] [data-ch-logo-fallback]')?.textContent).toBe('MB')
     expect(document.querySelector('[data-ch-church-row="c3"] [data-ch-logo-fallback]')).toBeTruthy()
     expect(files.blob).toHaveBeenCalledWith('logo-a')
+  })
+})
+
+describe('Egen seksjon «Admin-tilgang» og tilbaketrekking', () => {
+  it('Admin: seksjonen viser ventende forespørsler med rolle, menighet og tid, med grønn hake og rød X', async () => {
+    const { data } = setupAdmin(ADM, { hash: '#/tilgang', sections, rpc: (fn) => (fn === 'decide_admin_access' ? { status: 'rejected' } : rpcWith(overview({ pending: [PENDING] }))(fn)) })
+    const row = (await screen.findByText('Dev Eloper', { selector: '[data-ch-access-pending] b' })).closest('[data-ch-access-pending]') as HTMLElement
+    expect(within(row).getByText('Developer')).toBeTruthy()
+    expect(row.textContent).toMatch(/Ba om tilgang \d{2}\.\d{2}\.\d{4}/)
+    expect(screen.getByText('Menighet A')).toBeTruthy()
+    expect(within(row).getByRole('button', { name: 'Godkjenn Dev Eloper' })).toBeTruthy()
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    fireEvent.click(within(row).getByRole('button', { name: 'Avslå Dev Eloper' }))
+    await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('decide_admin_access', { p_request: 'q1', p_approve: false, p_duration: null }))
+  })
+
+  it('Developer: «Trekk tilbake forespørsel» mens den venter; status blir «Trukket tilbake»', async () => {
+    let mine: unknown[] = [{ church_id: 'c1', state: 'pending', id: 'q1' }]
+    const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => {
+      if (fn === 'withdraw_admin_access') { mine = [{ church_id: 'c1', state: 'cancelled', id: 'q1' }]; return { status: 'cancelled' } }
+      return rpcWith(overview(), mine)(fn)
+    } })
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    fireEvent.click(await screen.findByRole('button', { name: 'Trekk tilbake forespørsel' }))
+    await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('withdraw_admin_access', { p_request: 'q1' }))
+    expect((await screen.findByText(/Du trakk tilbake forespørselen/)).closest('[data-ch-tempadmin-cancelled]')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Trekk tilbake forespørsel' })).toBe(null)
+    expect(screen.getByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' })).toBeTruthy()
+  })
+
+  it('Developer: seksjonen viser egne forespørsler; ingen tilbaketrekking etter godkjenning', async () => {
+    setupAdmin(DEV, { hash: '#/tilgang', sections, rpc: rpcWith(overview(), [{ church_id: 'c1', state: 'active', expires_at: '2026-11-18T10:00:00Z' }]) })
+    const row = await screen.findByText('Menighet A', { selector: '[data-ch-myrequest] b' })
+    expect(row.closest('[data-ch-myrequest]')?.getAttribute('data-ch-myrequest')).toBe('active')
+    expect(screen.queryByRole('button', { name: 'Trekk tilbake forespørsel' })).toBe(null)
   })
 })
