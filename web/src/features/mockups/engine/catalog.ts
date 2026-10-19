@@ -1,4 +1,4 @@
-import { clamp, type Quad } from './geometry'
+import { clamp, type Inset, type Quad } from './geometry'
 import type { MockupInfo } from './render'
 
 export type MockupCategory = 'phone' | 'laptop' | 'screen' | 'print' | 'other' | 'collab'
@@ -32,12 +32,18 @@ export function niceName(fileName: string): string {
 /** De innebygde bildene er kjente, så galleriet virker selv om index.json mangler på serveren. */
 const BUILTIN_FALLBACK = ['card-black-hand', 'card-white-hand', 'imac-desk', 'imac-white', 'iphone-angled', 'iphone-desk', 'iphone-hand', 'macbook-air', 'macbook-pro', 'paper-marble', 'tv-livingroom', 'tv-wall']
 
-interface ConfigEntry { name?: unknown; cat?: unknown; corners?: unknown; aspect?: unknown; keepHoles?: unknown; occl?: unknown; shadowMin?: unknown; lit?: unknown }
+interface ConfigEntry { name?: unknown; cat?: unknown; corners?: unknown; inset?: unknown; aspect?: unknown; keepHoles?: unknown; occl?: unknown; shadowMin?: unknown; lit?: unknown }
 
 function parseCorners(v: unknown): Quad | null {
   if (!Array.isArray(v) || v.length !== 4) return null
   const ok = v.every((p) => Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
   return ok ? (v.map((p: number[]) => [clamp(Number(p[0]), 0, 1), clamp(Number(p[1]), 0, 1)]) as Quad) : null
+}
+
+/** Innfelling (topp, høyre, bunn, venstre) som andeler 0–0,3; ellers ingen. */
+function parseInset(v: unknown): Inset | null {
+  if (!Array.isArray(v) || v.length !== 4 || !v.every((x) => Number.isFinite(x) && x >= 0 && x <= 0.3)) return null
+  return v.map(Number) as Inset
 }
 
 async function json(url: string): Promise<unknown> {
@@ -67,6 +73,7 @@ export async function loadFolder(root: string, source: 'builtin' | 'folder'): Pr
       name: typeof c.name === 'string' ? c.name.slice(0, 60) : niceName(file),
       cat: typeof c.cat === 'string' ? (c.cat as MockupCategory) : categoryOf(file),
       corners: parseCorners(c.corners),
+      ...(parseInset(c.inset) ? { inset: parseInset(c.inset) } : {}),
       aspect: Number.isFinite(aspect) && aspect > 0.1 && aspect < 10 ? aspect : null,
       keepHoles: !!c.keepHoles,
       ...(c.lit === false ? { lit: false } : {}),

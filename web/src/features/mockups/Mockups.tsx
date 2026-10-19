@@ -1047,7 +1047,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
           {adj && <p className={styles.hint}>{t('mockups.adjustHint')}</p>}
           <div className={styles.row}>
             <Button size="small" variant="ghost" onClick={() => {
-              const d = image ? (() => { try { return detect(image) } catch { return null } })() : null
+              const d = image ? (() => { try { return detect(image, mockup.inset) } catch { return null } })() : null
               if (d) {
                 onPatch({ corners: d })
                 onToast(t('mockups.toast.found'))

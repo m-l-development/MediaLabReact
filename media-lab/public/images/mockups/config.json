@@ -1,8 +1,14 @@
 {
- "_info": "Valgfritt oppsett per bilde. corners = skjermens hjørner [øverst venstre, øverst høyre, nederst høyre, nederst venstre] som andel av bildet (0–1). Uten corners finner siden skjermen selv. occl:false = ikke behold fingre/objekter foran skjermen. keepHoles:true = behold hull i skjermen (f.eks. kamerahull). aspect = skjermens bredde/høyde. shadowMin = hvor mørk en skygge på flaten kan være (andel av lysstyrken, standard 0,3) og fortsatt regnes som flate. lit:false = skjermen i fotoet viser et eget motiv, så lys og glans hentes ikke fra fotoet.",
+ "_info": "Valgfritt oppsett per bilde. corners = skjermens hjørner [øverst venstre, øverst høyre, nederst høyre, nederst venstre] som andel av bildet (0–1). Uten corners finner siden skjermen selv. occl:false = ikke behold fingre/objekter foran skjermen. keepHoles:true = behold hull i skjermen (f.eks. kamerahull). aspect = skjermens bredde/høyde. shadowMin = hvor mørk en skygge på flaten kan være (andel av lysstyrken, standard 0,3) og fortsatt regnes som flate. lit:false = skjermen i fotoet viser et eget motiv, så lys og glans hentes ikke fra fotoet. inset = svart skjerm i svart ramme: hvor mye det aktive skjermområdet ligger innenfor glassets ytterkant [topp, høyre, bunn, venstre] som andel av glasset.",
  "imac-desk.jpg": {
   "name": "iMac på skrivebord",
-  "aspect": 1.7778
+  "aspect": 1.7778,
+  "inset": [
+   0.0741,
+   0.042,
+   0.0613,
+   0.042
+  ]
  },
  "imac-white.jpg": {
   "name": "iMac hvit",

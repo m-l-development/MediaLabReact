@@ -2,13 +2,14 @@
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef } from 'react'
 import type { PhotoController, PState } from './controller'
-import { FORMATS, newDoc, TEMPLATES, type Format } from './engine/model'
+import { FORMATS, TEMPLATES, type Format } from './engine/model'
+import { PALETTES, paletteOf, tplDoc } from './engine/palette'
 import { render } from './engine/render'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
 
-/** Miniatyr av en mal i valgt format (tegnet med samme motor som lerretet). */
-function TplPreview({ k, w, h, tx }: { k: string; w: number; h: number; tx: Tx }) {
+/** Miniatyr av en mal i valgt format og palett (tegnet med samme motor som lerretet). */
+function TplPreview({ k, w, h, pal, tx }: { k: string; w: number; h: number; pal: string; tx: Tx }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const c = ref.current
@@ -16,7 +17,7 @@ function TplPreview({ k, w, h, tx }: { k: string; w: number; h: number; tx: Tx }
     let live = true
     const draw = () => {
       if (!live) return
-      const d = newDoc(w, h, k)
+      const d = tplDoc(w, h, k, pal)
       const sc = Math.min(160 / d.w, 160 / d.h)
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       c.width = Math.round(d.w * sc * dpr)
@@ -31,8 +32,54 @@ function TplPreview({ k, w, h, tx }: { k: string; w: number; h: number; tx: Tx }
     return () => {
       live = false
     }
-  }, [k, w, h, tx])
+  }, [k, w, h, pal, tx])
   return <canvas ref={ref} width={10} height={10} className={s.tplCanvas} />
+}
+
+/**
+ * «Velg farge» over malene: samme kombinasjoner, utseende og oppførsel som fargevalget i Thumbnail Studio.
+ * Valget gjelder alle malene (forhåndsvisningene tegnes på nytt med en gang) og beholdes når du bytter mal.
+ */
+function PalettePicker({ c, S, tx }: { c: PhotoController; S: PState; tx: Tx }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const open = S.palOpen
+  useEffect(() => {
+    if (!open) return
+    const out = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) c.togglePal(false)
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') c.togglePal(false)
+    }
+    document.addEventListener('pointerdown', out)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', out)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open, c])
+  const cur = paletteOf(S.pal)
+  return (
+    <div className={s.palWrap} ref={ref}>
+      <button type="button" className={s.palBtn} aria-expanded={open} aria-haspopup="true" data-pd-pal-btn="" onClick={() => c.togglePal()}>
+        <span className={s.palSw}>{cur.sw.map((x, i) => <i key={i} style={{ background: x }} />)}</span>
+        <span>{tx('Velg farge')}</span>
+        <span className={s.palName}>{tx(cur.name as Phrase)}</span>
+      </button>
+      {open && (
+        <div className={s.palMenu} role="group" aria-label={tx('Velg farge')}>
+          {PALETTES.map((x) => (
+            <button key={x.k} type="button" aria-pressed={x.k === S.pal} data-pd-pal={x.k} onClick={() => c.setPal(x.k)}>
+              <span className={s.palSw}>{x.sw.map((col, i) => <i key={i} style={{ background: col }} />)}</span>
+              <span>{tx(x.name as Phrase)}</span>
+              <span aria-hidden="true" style={{ opacity: x.k === S.pal ? 1 : 0 }}>✓</span>
+            </button>
+          ))}
+          <span className={s.palHint}>{tx('Fargene brukes på malen du velger.')}</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S: PState; tx: Tx; onBackup: () => void; onRestore: () => void }) {
@@ -73,11 +120,14 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
         )}
       </section>
       <section className={s.section}>
-        <span className={s.eyebrow}>{tx('2 · Mal')}</span>
+        <div className={s.rowBetween}>
+          <span className={s.eyebrow}>{tx('2 · Mal')}</span>
+          <PalettePicker c={c} S={S} tx={tx} />
+        </div>
         <div className={s.tplGrid}>
           {TEMPLATES.map((t) => (
             <button key={t.k} type="button" className={s.tplCard} data-tpl={t.k} onClick={() => c.create(t.k)}>
-              <div className={s.tplBox}><TplPreview k={t.k} w={w} h={h} tx={tx} /></div>
+              <div className={s.tplBox}><TplPreview k={t.k} w={w} h={h} pal={S.pal} tx={tx} /></div>
               <span className={s.tplName}>{tx(t.l as Phrase)}</span>
             </button>
           ))}
