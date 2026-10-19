@@ -1,6 +1,6 @@
 'use no memo'
 import { useEffect, useRef, useState } from 'react'
-import { assignRole, lowContrast, ORDERS, PALETTES, paletteOf, ROLES, rolesOf, STARTER, schemeOfPreset, type Role } from './engine/palette'
+import { assignRole, liveScheme, lowContrast, ORDERS, PALETTES, paletteOf, ROLES, rolesOf, STARTER, schemeOfPreset, type Role } from './engine/palette'
 import type { Scheme } from './engine/model'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
@@ -47,39 +47,50 @@ function HexInput({ label, value, onChange }: { label: string; value: string; on
   )
 }
 
-/** Hvor ofte (ms) en farge sendes videre mens du drar i fargevelgeren. */
-const DRAG_MS = 120
+/** Så lenge (ms) uten ny bevegelse før valget lagres mens fargevelgeren fortsatt er åpen. */
+const IDLE_MS = 350
 
 /**
- * Fargefelt med vanlig fargevelger og heksadesimal verdi. Mens du drar, vises fargen med en gang i feltet selv, men den
- * sendes videre (malene fargelegges og tegnes) høyst hvert DRAG_MS – og alltid til slutt. Før ble hele fargevalget
- * regnet ut og alle forhåndsvisningene tegnet for hvert steg, så fargevelgeren hakket.
+ * Fargefelt med vanlig fargevelger og heksadesimal verdi. Mens du drar, går fargen bare til feltet selv og til lerretene
+ * (`onLive`, ingen React-oppdatering av siden); valget lagres (`onChange`) når du slipper/lukker fargevelgeren
+ * (change/blur) eller holder stille et øyeblikk. Profilen viste at hver bevegelse ellers rendret hele startsiden eller
+ * editoren og alle miniatyrene på nytt, så fargevelgeren hakket – mest på tregere maskiner.
  */
-function ColorField({ label, value, onChange, testId }: { label: string; value: string; onChange: (v: string) => void; testId: string }) {
+function ColorField({ label, value, onChange, onLive, testId }: { label: string; value: string; onChange: (v: string) => void; onLive: (v: string) => void; testId: string }) {
   const [drag, setDrag] = useState<string | null>(null)
-  const q = useRef<{ last: number; timer: number | undefined; pending: string | null; cb: (v: string) => void }>({ last: 0, timer: undefined, pending: null, cb: onChange })
+  const el = useRef<HTMLInputElement>(null)
+  const q = useRef<{ timer: number | undefined; pending: string | null; cb: (v: string) => void }>({ timer: undefined, pending: null, cb: onChange })
   useEffect(() => {
     q.current.cb = onChange
   })
-  const flush = () => {
+  const commit = () => {
     const t = q.current
     if (t.timer !== undefined) window.clearTimeout(t.timer)
     t.timer = undefined
-    t.last = performance.now()
     const v = t.pending
     t.pending = null
     if (v) t.cb(v)
     setDrag(null)
   }
-  const push = (v: string) => {
+  const move = (v: string) => {
     const t = q.current
     t.pending = v
     setDrag(v)
-    const wait = DRAG_MS - (performance.now() - t.last)
-    if (wait <= 0) flush()
-    else if (t.timer === undefined) t.timer = window.setTimeout(flush, wait)
+    onLive(v)
+    if (t.timer !== undefined) window.clearTimeout(t.timer)
+    t.timer = window.setTimeout(commit, IDLE_MS)
   }
-  // ved lukking: send det siste valget
+  // fargevelgeren sender «change» når du slipper/lukker den: lagre med en gang
+  useEffect(() => {
+    const i = el.current
+    if (!i) return
+    const end = () => {
+      if (q.current.pending) commit()
+    }
+    i.addEventListener('change', end)
+    return () => i.removeEventListener('change', end)
+  })
+  // ved lukking av popupen: lagre det siste valget
   useEffect(() => () => {
     const t = q.current
     if (t.timer !== undefined) window.clearTimeout(t.timer)
@@ -87,7 +98,7 @@ function ColorField({ label, value, onChange, testId }: { label: string; value: 
   }, [])
   return (
     <div className={s.schemeColor}>
-      <input type="color" value={drag ?? value} aria-label={label} data-pd-color={testId} onChange={(e) => push(e.target.value)} onBlur={() => { if (q.current.pending) flush() }} />
+      <input ref={el} type="color" value={drag ?? value} aria-label={label} data-pd-color={testId} onChange={(e) => move(e.target.value)} onBlur={() => { if (q.current.pending) commit() }} />
       <HexInput key={value} label={label} value={value} onChange={onChange} />
     </div>
   )
@@ -110,10 +121,27 @@ export function ColorBar({ value, onChange, tx, scope }: { value: Scheme | null;
   const R = cur ? rolesOf(cur) : null
   const name = !cur ? tx('Standard') : cur.k === 'custom' ? tx('Egne farger') : tx(paletteOf(cur.k).name as Phrase)
   const edit = cur ?? STARTER
-  const setColor = (i: number, v: string) => {
+  const withColor = (i: number, v: string): Scheme => {
     const c = [...edit.c] as Scheme['c']
     c[i] = v
-    onChange({ ...edit, k: 'custom', c })
+    return { ...edit, k: 'custom', c }
+  }
+  // dragging: høyst én live-oppdatering av lerretene per bilde
+  const raf = useRef(0)
+  const nextLive = useRef<Scheme | null>(null)
+  const liveColor = (i: number, v: string) => {
+    nextLive.current = withColor(i, v)
+    if (!raf.current) raf.current = requestAnimationFrame(() => {
+      raf.current = 0
+      if (nextLive.current) liveScheme.set(scope, nextLive.current)
+    })
+  }
+  const setColor = (i: number, v: string) => {
+    if (raf.current) cancelAnimationFrame(raf.current)
+    raf.current = 0
+    nextLive.current = null
+    onChange(withColor(i, v))
+    liveScheme.set(scope, undefined)
   }
   return (
     <div className={s.schemeBar} ref={ref} data-pd-scheme={scope}>
@@ -158,7 +186,7 @@ export function ColorBar({ value, onChange, tx, scope }: { value: Scheme | null;
             <button type="button" className={s.schemeX} aria-label={tx('Lukk')} onClick={() => setPop(false)}>×</button>
           </div>
           <div className={s.schemeColors}>
-            {edit.c.map((col, i) => <ColorField key={i} label={tx('Farge {n}', { n: i + 1 })} value={col} testId={String(i)} onChange={(v) => setColor(i, v)} />)}
+            {edit.c.map((col, i) => <ColorField key={i} label={tx('Farge {n}', { n: i + 1 })} value={col} testId={String(i)} onChange={(v) => setColor(i, v)} onLive={(v) => liveColor(i, v)} />)}
           </div>
           <div className={s.schemeRoles}>
             {ROLES.map((r) => (

@@ -3,8 +3,8 @@
 import { useEffect, useRef } from 'react'
 import type { PhotoController, PState } from './controller'
 import { ColorBar } from './Colors'
-import { FORMATS, TEMPLATES, type Format, type Scheme } from './engine/model'
-import { tplDoc } from './engine/palette'
+import { FORMATS, TEMPLATES, type Format, type PdDoc, type Scheme } from './engine/model'
+import { applyScheme, liveScheme, tplDoc } from './engine/palette'
 import { render } from './engine/render'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
@@ -26,32 +26,62 @@ function runDraws() {
   if (drawQueue.length) drawRaf = requestAnimationFrame(runDraws)
 }
 
-/** Miniatyr av en mal i valgt format og med malens farger (tegnet med samme motor som lerretet). */
-function TplPreview({ k, w, h, scheme, tx }: { k: string; w: number; h: number; scheme: Scheme | null; tx: Tx }) {
+/** Malene uten farger per format (oppsettet med tekstmåling lages én gang; fargene legges på ved hver tegning). */
+const baseDocs = new Map<string, PdDoc>()
+function baseDoc(k: string, w: number, h: number): PdDoc {
+  const id = `${k}|${w}|${h}`
+  let d = baseDocs.get(id)
+  if (!d) {
+    d = tplDoc(w, h, k, null)
+    baseDocs.set(id, d)
+  }
+  return d
+}
+
+/**
+ * Miniatyr av en mal i valgt format og med malens farger (tegnet med samme motor som lerretet). Mens du drar i
+ * fargevelgeren (liveScheme), tegnes miniatyren på nytt direkte – uten at startsiden rendres på nytt.
+ */
+function TplPreview({ k, w, h, scheme, own, tx }: { k: string; w: number; h: number; scheme: Scheme | null; own: boolean; tx: Tx }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const key = JSON.stringify(scheme)
   useEffect(() => {
     const c = ref.current
     if (!c) return
-    let live = true
-    const draw = () => {
-      if (!live) return
-      const d = tplDoc(w, h, k, JSON.parse(key) as Scheme | null)
-      const sc = Math.min(160 / d.w, 160 / d.h)
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
-      c.width = Math.round(d.w * sc * dpr)
-      c.height = Math.round(d.h * sc * dpr)
-      c.style.width = `${Math.round(d.w * sc)}px`
-      c.style.height = `${Math.round(d.h * sc)}px`
-      const g = c.getContext('2d')
-      if (g) render(g, d, sc * dpr, { media: new Map(), masks: new Map() }, { phText: tx('Bilde') })
+    let ver = 0
+    const draw = (sc: Scheme | null) => {
+      const v = ++ver
+      queueDraw(() => {
+        if (v !== ver) return // utdatert (en nyere tegning er bestilt)
+        const base = baseDoc(k, w, h)
+        const d = k === 'blank' || !sc ? base : applyScheme(base, sc)
+        const z = Math.min(160 / d.w, 160 / d.h)
+        const dpr = Math.min(2, window.devicePixelRatio || 1)
+        const W = Math.round(d.w * z * dpr), H = Math.round(d.h * z * dpr)
+        if (c.width !== W || c.height !== H) {
+          c.width = W
+          c.height = H
+          c.style.width = `${Math.round(d.w * z)}px`
+          c.style.height = `${Math.round(d.h * z)}px`
+        }
+        const g = c.getContext('2d')
+        if (g) render(g, d, z * dpr, { media: new Map(), masks: new Map() }, { phText: tx('Bilde') })
+      })
     }
-    queueDraw(draw)
-    void document.fonts?.ready.then(() => queueDraw(draw))
+    const saved = JSON.parse(key) as Scheme | null
+    draw(saved)
+    void document.fonts?.ready.then(() => {
+      baseDocs.clear() // tekstmålene med de riktige skriftene
+      if (ver >= 0) draw(saved)
+    })
+    const off = own ? () => undefined : liveScheme.sub((scope, sc) => {
+      if (scope === 'home' && sc !== undefined) draw(sc)
+    })
     return () => {
-      live = false
+      ver = -1e9
+      off()
     }
-  }, [k, w, h, key, tx])
+  }, [k, w, h, key, own, tx])
   return <canvas ref={ref} width={10} height={10} className={s.tplCanvas} />
 }
 
@@ -104,7 +134,7 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
             return (
               <div key={t.k} className={s.tplItem}>
                 <button type="button" className={s.tplCard} data-tpl={t.k} onClick={() => c.create(t.k)}>
-                  <div className={s.tplBox}><TplPreview k={t.k} w={w} h={h} scheme={c.schemeFor(t.k)} tx={tx} /></div>
+                  <div className={s.tplBox}><TplPreview k={t.k} w={w} h={h} scheme={c.schemeFor(t.k)} own={own} tx={tx} /></div>
                   <span className={s.tplName}>{tx(t.l as Phrase)}</span>
                   {own && <span className={s.tplOwn} data-tpl-own={t.k}>{tx('Egne farger for malen')}</span>}
                 </button>

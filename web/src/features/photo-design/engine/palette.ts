@@ -182,5 +182,24 @@ export function tplDoc(w: number, h: number, tpl: string, s: Scheme | null, now?
   return tpl === 'blank' || !s ? d : applyScheme(d, s)
 }
 
+/**
+ * Fargene mens du drar i fargevelgeren: sendes rett til lerretene (miniatyrene på startsiden, editorens lerret), uten
+ * React-oppdatering, tilstand eller lagring. `undefined` = dragningen er slutt (lerretene bruker det lagrede valget igjen).
+ * Profilen viste at hver dragbevegelse ellers rendret hele startsiden/editoren og alle miniatyrene på nytt.
+ */
+type LiveFn = (scope: 'home' | 'doc', s: Scheme | null | undefined) => void
+const liveSubs = new Set<LiveFn>()
+export const liveScheme = {
+  set(scope: 'home' | 'doc', s: Scheme | null | undefined): void {
+    for (const f of liveSubs) f(scope, s)
+  },
+  sub(f: LiveFn): () => void {
+    liveSubs.add(f)
+    return () => {
+      liveSubs.delete(f)
+    }
+  },
+}
+
 /** Lav kontrast mellom tekst og bakgrunn i valget (vises som et varsel; teksten justeres automatisk der det trengs). */
 export const lowContrast = (s: Scheme): boolean => Math.abs(luma(rolesOf(s).text) - luma(rolesOf(s).bg)) < MIN_CONTRAST
