@@ -39,9 +39,9 @@ describe('Menigheter (ADM-03)', () => {
 })
 
 describe('Medlemmer i menigheten (ADM-04)', () => {
-  it('liste med Admin-merke, ekstra Admin for stab, og melding til alle', async () => {
-    const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => (fn === 'send_church_message' ? 3 : undefined) })
-    expect(await screen.findByText('Legg meg til som ekstra Admin')).toBeTruthy()
+  it('liste med Admin-merke, midlertidig Admin-tilgang for stab, og melding til alle', async () => {
+    const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => (fn === 'send_church_message' ? 3 : fn === 'admin_access_overview' ? { pending: [], active: [], recent: [], has_admin: true } : fn === 'my_admin_access' ? [] : undefined) })
+    expect(await screen.findByRole('button', { name: 'Send forespørsel om midlertidig admin-tilgang' })).toBeTruthy()
     const ada = screen.getAllByRole('row').find((r) => r.textContent?.includes('Ada Admin'))
     expect(ada?.textContent).toContain('Admin')
     expect(within(ada as HTMLElement).getByRole('button', { name: 'Fjern admin-rollen' })).toBeTruthy()
@@ -50,12 +50,12 @@ describe('Medlemmer i menigheten (ADM-04)', () => {
     await waitFor(() => expect(data.rpc).toHaveBeenCalledWith('send_church_message', { p_church: 'c1', p_title: 'Velkommen', p_body: null }))
     expect((await screen.findByRole('status')).textContent).toBe('Meldingen er sendt til 3 medlemmer.')
   })
-  it('ekstra Admin spør først; avbrutt gir ingen endring', async () => {
-    const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections })
+  it('uten Admin i menigheten: midlertidig tilgang spør først; avbrutt gir ingen endring', async () => {
+    const { data } = setupAdmin(DEV, { hash: '#/menigheter/c1/medlemmer', sections, rpc: (fn) => (fn === 'admin_access_overview' ? { pending: [], active: [], recent: [], has_admin: false } : fn === 'my_admin_access' ? [] : undefined) })
     vi.stubGlobal('confirm', vi.fn(() => false))
-    fireEvent.click(await screen.findByRole('button', { name: 'Legg meg til som ekstra Admin' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Legg meg til som ekstra admin' }))
     await waitFor(() => expect(window.confirm).toHaveBeenCalled())
-    expect(data.rpc).not.toHaveBeenCalledWith('add_self_as_admin', expect.anything())
+    expect(data.rpc).not.toHaveBeenCalledWith('request_admin_access', expect.anything())
   })
 })
 
@@ -95,7 +95,7 @@ describe('Menighetens innstillinger (ADM-03)', () => {
 describe('Logo for stab uten Admin-rolle', () => {
   it('ser logoen og en forklaring, men ingen opplasting (databasen krever Admin-rollen)', async () => {
     const { files } = setupAdmin(DEV, { hash: '#/menigheter/c1/innstillinger', sections })
-    expect(await screen.findByText(/Som Developer eller Moderator kan du legge deg til som ekstra Admin/)).toBeTruthy()
+    expect(await screen.findByText(/Som Developer eller Moderator kan du be om midlertidig Admin-tilgang/)).toBeTruthy()
     expect(screen.queryByLabelText('Last opp logo', { selector: 'input' })).toBe(null)
     expect(screen.queryByRole('button', { name: /Last opp logo|Bytt logo/ })).toBe(null)
     expect(files.upload).not.toHaveBeenCalled()

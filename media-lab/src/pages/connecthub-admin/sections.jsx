@@ -112,17 +112,13 @@ function ExtraAdminCard({ church }) {
   const mine = d.roles.find(r => r.role === 'church_admin' && r.church_id === church.id && r.user_id === me.id);
   if (mine && !mine.extra_admin) return null;   // fast Admin i menigheten
   const done = () => { clearMe(); location.reload(); };
-  const add = act(async () => {
-    if (!confirm(fill(T('Legge deg til som ekstra Admin i «{church}»?'), { church: church.name }) + '\n\n' + T('Du får Admin-tilgang i menigheten (medlemmer, filer og Faste) i tillegg til menighetens faste Admin, som er uendret. Er du ikke medlem, blir du lagt til som medlem. Admin i menigheten varsles, og handlingen loggføres.'))) return;
-    await admin.addSelfAsAdmin(church.id); done();
-  });
   const remove = act(async () => {
     if (!confirm(fill(T('Fjerne deg som ekstra Admin i «{church}»?'), { church: church.name }) + '\n\n' + T('Ble du medlem da du la deg til, fjernes også medlemskapet. Den faste Admin er uendret.'))) return;
     await admin.removeSelfAsAdmin(church.id); done();
   });
   return <Card title="Ekstra Admin"><div data-ch-extraadmin>
-    <p className="ch-muted">{T(mine ? 'Du er ekstra Admin i denne menigheten. Den faste Admin-rollen er uendret.' : 'Som Developer eller Moderator kan du legge deg til som ekstra Admin, for eksempel for å hjelpe menigheten. Den faste Admin-rollen er uendret.')}</p>
-    <div className="ch-row">{mine ? <Btn small kind="danger" onClick={remove}>{T('Fjern meg som ekstra Admin')}</Btn> : <Btn small kind="primary" onClick={add}>{T('Legg meg til som ekstra Admin')}</Btn>}</div>
+    <p className="ch-muted">{T(mine ? 'Du er ekstra Admin i denne menigheten. Den faste Admin-rollen er uendret.' : 'Som Developer eller Moderator får du Admin-tilgang bare ved å be om midlertidig Admin-tilgang på den nye adminsiden (/app/admin). Menighetens Admin godkjenner.')}</p>
+    {mine && <div className="ch-row"><Btn small kind="danger" onClick={remove}>{T('Fjern meg som ekstra Admin')}</Btn></div>}
   </div></Card>;
 }
 

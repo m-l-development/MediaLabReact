@@ -26,6 +26,7 @@ const ERR = {
   email_not_confirmed: 'E-postadressen din er ikke bekreftet. Åpne lenken fra e-posten på nytt.',
   user_disabled: 'Kontoen er deaktivert. Kontakt administrator.',
   admin_exists: 'Menigheten har allerede en administrator. Kontakt den som inviterte deg.',
+  staff_use_request: 'Som Developer eller Moderator får du Admin-tilgang i en menighet bare ved å be om midlertidig Admin-tilgang. Invitasjonen gir ingen Admin-rolle.',
   already_member_elsewhere: 'Du er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen. Kontakt den som inviterte deg.',
   member_limit: 'Menigheten har nådd grensen for antall brukere. Kontakt den som inviterte deg.',
   church_inactive: 'Menigheten er ikke aktiv. Kontakt den som inviterte deg.',
