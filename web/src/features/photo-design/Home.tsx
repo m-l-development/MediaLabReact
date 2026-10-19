@@ -9,6 +9,23 @@ import { render } from './engine/render'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
 
+/**
+ * Kø for miniatyrene: tegnes noen få om gangen per bilde (et lite tidsbudsjett), ikke alle 19 samtidig, så siden og
+ * fargevelgeren ikke hakker når fargene endres. Miniatyrer som er utdatert før de tegnes, hoppes over.
+ */
+const drawQueue: (() => void)[] = []
+let drawRaf = 0
+function queueDraw(fn: () => void) {
+  drawQueue.push(fn)
+  if (!drawRaf) drawRaf = requestAnimationFrame(runDraws)
+}
+function runDraws() {
+  drawRaf = 0
+  const t0 = performance.now()
+  while (drawQueue.length && performance.now() - t0 < 8) (drawQueue.shift() as () => void)()
+  if (drawQueue.length) drawRaf = requestAnimationFrame(runDraws)
+}
+
 /** Miniatyr av en mal i valgt format og med malens farger (tegnet med samme motor som lerretet). */
 function TplPreview({ k, w, h, scheme, tx }: { k: string; w: number; h: number; scheme: Scheme | null; tx: Tx }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -29,8 +46,8 @@ function TplPreview({ k, w, h, scheme, tx }: { k: string; w: number; h: number; 
       const g = c.getContext('2d')
       if (g) render(g, d, sc * dpr, { media: new Map(), masks: new Map() }, { phText: tx('Bilde') })
     }
-    draw()
-    void document.fonts?.ready.then(draw)
+    queueDraw(draw)
+    void document.fonts?.ready.then(() => queueDraw(draw))
     return () => {
       live = false
     }

@@ -47,11 +47,47 @@ function HexInput({ label, value, onChange }: { label: string; value: string; on
   )
 }
 
-/** Fargefelt med vanlig fargevelger (blir værende åpen mens du drar) og heksadesimal verdi. */
+/** Hvor ofte (ms) en farge sendes videre mens du drar i fargevelgeren. */
+const DRAG_MS = 120
+
+/**
+ * Fargefelt med vanlig fargevelger og heksadesimal verdi. Mens du drar, vises fargen med en gang i feltet selv, men den
+ * sendes videre (malene fargelegges og tegnes) høyst hvert DRAG_MS – og alltid til slutt. Før ble hele fargevalget
+ * regnet ut og alle forhåndsvisningene tegnet for hvert steg, så fargevelgeren hakket.
+ */
 function ColorField({ label, value, onChange, testId }: { label: string; value: string; onChange: (v: string) => void; testId: string }) {
+  const [drag, setDrag] = useState<string | null>(null)
+  const q = useRef<{ last: number; timer: number | undefined; pending: string | null; cb: (v: string) => void }>({ last: 0, timer: undefined, pending: null, cb: onChange })
+  useEffect(() => {
+    q.current.cb = onChange
+  })
+  const flush = () => {
+    const t = q.current
+    if (t.timer !== undefined) window.clearTimeout(t.timer)
+    t.timer = undefined
+    t.last = performance.now()
+    const v = t.pending
+    t.pending = null
+    if (v) t.cb(v)
+    setDrag(null)
+  }
+  const push = (v: string) => {
+    const t = q.current
+    t.pending = v
+    setDrag(v)
+    const wait = DRAG_MS - (performance.now() - t.last)
+    if (wait <= 0) flush()
+    else if (t.timer === undefined) t.timer = window.setTimeout(flush, wait)
+  }
+  // ved lukking: send det siste valget
+  useEffect(() => () => {
+    const t = q.current
+    if (t.timer !== undefined) window.clearTimeout(t.timer)
+    if (t.pending) t.cb(t.pending)
+  }, [])
   return (
     <div className={s.schemeColor}>
-      <input type="color" value={value} aria-label={label} data-pd-color={testId} onChange={(e) => onChange(e.target.value)} />
+      <input type="color" value={drag ?? value} aria-label={label} data-pd-color={testId} onChange={(e) => push(e.target.value)} onBlur={() => { if (q.current.pending) flush() }} />
       <HexInput key={value} label={label} value={value} onChange={onChange} />
     </div>
   )

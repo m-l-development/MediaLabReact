@@ -320,3 +320,32 @@ test('farger i prosjektet: endres i editoren, lagres med prosjektet, huskes for 
   await expect(page.locator('[data-pd-scheme="doc"] [data-pd-pal-btn]')).toContainText('Egne farger')
   expect(errors).toEqual([])
 })
+
+test('fargevelgeren under dragging: mange endringer raskt, siste farge havner i malen (og feltet følger med)', async ({ page }) => {
+  const errors = await errorsOf(page)
+  await page.goto('/app/photo-design')
+  await page.locator('[data-pd-roles-btn]').click()
+  const inp = page.locator('[data-pd-color="0"]')
+  // 30 endringer i strekk, slik fargevelgeren sender dem mens du drar
+  const frames = await inp.evaluate(async (el: HTMLInputElement) => {
+    const set = (Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value') as PropertyDescriptor).set as (v: string) => void
+    const gaps: number[] = []
+    let last = performance.now()
+    for (let i = 0; i < 30; i++) {
+      set.call(el, `#${(0x200000 + i * 0x040302).toString(16).slice(-6)}`)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      const now = performance.now()
+      gaps.push(now - last)
+      last = now
+    }
+    set.call(el, '#2266aa')
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    return gaps.sort((a, b) => a - b)[15] as number
+  })
+  expect(frames).toBeLessThan(50) // ikke låst: fargevelgeren får tegne mellom endringene
+  await expect(inp).toHaveValue('#2266aa')
+  await expect.poll(() => shareOf(page, '[data-tpl="countdown"] canvas', '#2266aa')).toBeGreaterThan(0.4)
+  await expect(page.locator('[data-pd-roles] input[type="text"]').first()).toHaveValue('#2266aa')
+  expect(errors).toEqual([])
+})
