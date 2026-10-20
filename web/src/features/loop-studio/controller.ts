@@ -1371,6 +1371,12 @@ export class LoopController {
     if (!S.ready) return
     this.trackHistory()
     const L = this.last
+    // Valgt slide skal alltid finnes. Angre/gjør om, nytt program og felles oppsett bytter ut slidene; uten dette la
+    // «Legg til på sliden» bildet/teksten på en slide som ikke fantes, og det forsvant stille («+ Bilde» virket ikke).
+    if (L?.slides !== S.slides && S.selected && !S.slides.some((x) => x.id === S.selected)) {
+      this.setState({ selected: S.slides[0]?.id ?? null, selEl: null })
+      return
+    }
     if (L?.slides !== S.slides) S.slides.forEach((s) => { if (s.bg) void this.ensureImg(s.bg); if (s.bgPort) void this.ensureImg(s.bgPort); (s.pips ?? []).forEach((p) => p?.src && void this.ensureImg(p.src)) })
     if (L?.cfg !== S.cfg && S.cfg.logoSrc) void this.ensureImg(S.cfg.logoSrc)
     if (L?.cfg !== S.cfg) (S.cfg.imgRules ?? []).forEach((r) => { if (r.bg) void this.ensureImg(r.bg); if (r.bgPort) void this.ensureImg(r.bgPort) })
@@ -2609,6 +2615,13 @@ export class LoopController {
     for (let k = P.length - 1; k >= 0; k--) { const r = P[k]; if (r && p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad) return r }
     return null
   }
+  /** Sliden «Legg til på sliden» gjelder: den valgte hvis den finnes. Ellers en forklaring i stedet for en stille feil. */
+  addTarget(): string | null {
+    const S = this.state
+    if (S.selected && S.slides.some((x) => x.id === S.selected)) return S.selected
+    this.deps.alert(this.t(S.slides.length ? 'Velg en slide først.' : 'Legg til en slide først.'))
+    return null
+  }
   addPipFor(id: string | null, i: number | null) {
     this.pipTarget = { id, i }
     this.filePip.current?.click()
@@ -2624,6 +2637,8 @@ export class LoopController {
     const tg = this.pipTarget || { id: this.state.selected, i: null }
     const tid = tg.id
     if (!tid) return
+    // sliden kan ha forsvunnet mens bildet ble valgt og beskåret (angre, nytt program): si fra i stedet for å forkaste stille
+    if (!this.state.slides.some((x) => x.id === tid)) { this.deps.alert(this.t('Sliden finnes ikke lenger. Velg en slide og prøv igjen.')); return }
     const id = await this.storeImage(f)
     if (!id) return
     let idx = tg.i
@@ -2640,7 +2655,7 @@ export class LoopController {
     this.hardStopAudio()
   }
   addFtext() {
-    const id = this.state.selected
+    const id = this.addTarget()
     if (!id) return
     const sl = this.state.slides.find((x) => x.id === id), i = (sl?.ftexts ?? []).length
     if (i >= 12) return
@@ -2648,7 +2663,7 @@ export class LoopController {
     this.setState((st) => ({ playing: false, scrubT: null, slides: st.slides.map((x) => (x.id === id ? { ...x, ftexts: [...(x.ftexts ?? []), { text: 'Skriv tekst her', x: 0.5, y: 0.3 + (i % 4) * 0.08, size: 1, color: '#ffffff', bold: true }] } : x)), selEl: { kind: 'ftext', id, i } }))
   }
   addFqr() {
-    const id = this.state.selected
+    const id = this.addTarget()
     if (!id) return
     const sl = this.state.slides.find((x) => x.id === id)
     this.hardStopAudio()
@@ -4359,7 +4374,7 @@ export class LoopController {
     const freeAdd = [
       { label: 'Tekst', hint: 'Fri tekst hvor som helst', onClick: () => this.addFtext() },
       { label: 'QR-kode', hint: 'Lenke med kontakt', onClick: () => this.addFqr() },
-      { label: 'Bilde', hint: 'Fra filer eller galleri', onClick: () => { const sid = this.state.selected; if (sid) this.addPipFor(sid, null) } },
+      { label: 'Bilde', hint: 'Fra filer eller galleri', onClick: () => { const sid = this.addTarget(); if (sid) this.addPipFor(sid, null) } },
     ]
     const sl = S.slides.find((x) => x.id === S.selected)
     const chip = (o: boolean) => ({ bg: o ? '#f3f1ec' : 'transparent', color: o ? '#000' : '#b3afa6', border: o ? '#f3f1ec' : '#2b2b2b' })
