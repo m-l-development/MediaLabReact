@@ -362,3 +362,23 @@ test('fargevelgeren under dragging: mange endringer raskt, siste farge havner i 
   await expect(page.locator('[data-pd-roles] input[type="text"]').first()).toHaveValue('#2266aa')
   expect(errors).toEqual([])
 })
+
+test('«Bytt bilde» tar ikke tilbake valget hvis du har valgt et annet lag mens bildet behandles', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobil', 'kjøres én gang')
+  // treg maskin: bildet bruker 2 s på å bli klart
+  await page.addInitScript(() => {
+    const decode = HTMLImageElement.prototype.decode
+    HTMLImageElement.prototype.decode = function () { return new Promise<void>((r) => setTimeout(r, 2000)).then(() => decode.call(this)) }
+  })
+  await page.goto('/app/photo-design')
+  await page.locator('[data-tpl="photo"]').click()
+  await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
+  await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Bytt bilde' }).click()
+  await (await chooser).setFiles({ name: 'rod.png', mimeType: 'image/png', buffer: png(300, 300, () => [230, 20, 20, 255]) })
+  await page.locator('[data-layer]').filter({ hasText: /tekst|Tittel|Overskrift/i }).first().click()
+  await expect(page.locator('textarea[data-pd-text]')).toBeVisible()
+  await page.waitForTimeout(3000) // bildet er ferdig behandlet
+  await expect(page.locator('textarea[data-pd-text]')).toBeVisible()
+})
