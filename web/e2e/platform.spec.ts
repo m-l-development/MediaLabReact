@@ -57,7 +57,8 @@ test('opplastet bilde lagres i nettleseren med miniatyr og finnes etter ny innla
   await expect(card).toBeVisible()
   const thumb = card.locator('img')
   await expect(thumb).toBeVisible()
-  expect(await thumb.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
+  // miniatyren er synlig før den er dekodet (Edge er litt tregere enn Chrome): vent på bildet
+  await expect.poll(() => thumb.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
 
   // Samme fil på nytt gir ikke duplikat.
   const again = page.waitForEvent('filechooser')
