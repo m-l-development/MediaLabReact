@@ -7,6 +7,7 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: '.',
+  testMatch: '**/*.spec.ts', // preview-noise.test.ts o.l. er enhetstester (vitest)
   outputDir: '../test-results/dev',
   fullyParallel: false,
   workers: 1,

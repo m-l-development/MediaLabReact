@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { dropOwnFactors, EMAIL, expectHub, injectBackend, PASSWORD, setupMfa, signInPassword } from './helpers'
+import { isPreview, isVercelLiveCsp, isVercelLiveRequest } from './preview-noise'
 
 /**
  * Gjennomgang av hele nettstedet for én rolle mot connecthub-dev (kjøres av run-dev.mjs i løpene user, admin, dev og mod).
@@ -16,18 +17,16 @@ const ALL = ['oversikt', 'brukere', 'menigheter', 'tilgang', 'invitasjoner', 'fi
 const STAFF_ONLY = ['samarbeid', 'tilbakemeldinger', 'opprydning', 'foresporsler', 'mail']
 const SIZES = [['desktop', { width: 1440, height: 900 }], ['mobil', { width: 390, height: 844 }]] as const
 
-// Vercel legger sitt eget verktøylinjeskript (vercel.live) inn i forhåndsvisninger; appens CSP blokkerer det, som den skal.
-// Det finnes ikke i produksjonen og er ikke appens feil, så det telles bare ikke mot en forhåndsvisning.
-// bare forhåndsvisninger (samme mønster som run-dev.mjs --remote); produksjonsadressen media-lab-react-vyef.vercel.app er ikke med
-const PREVIEW = /^https:\/\/media-lab-react-vyef-[a-z0-9-]+-media-lab3\.vercel\.app\/?$/.test(process.env.ML_DEV_BASE ?? '')
-const vercelLive = (s: string) => PREVIEW && s.includes('vercel.live')
+// Vercels verktøylinjeskript blokkeres av CSP i forhåndsvisninger (preview-noise.ts); bare den kjente blokkeringen ignoreres.
+const BASE = process.env.ML_DEV_BASE ?? ''
+const PREVIEW = isPreview(BASE)
 
 function watch(page: Page) {
   const problems: string[] = []
   page.on('pageerror', (e) => problems.push(`sidefeil: ${e.message.slice(0, 160)}`))
   page.on('console', (m) => {
     // Nettleseren logger selv 4xx-svar som konsollfeil; de fanges (med adresse) av response-lytteren under.
-    if (m.type() === 'error' && !/Failed to load resource/.test(m.text()) && !vercelLive(m.text())) problems.push(`konsoll: ${m.text().slice(0, 160)}`)
+    if (m.type() === 'error' && !/Failed to load resource/.test(m.text()) && !isVercelLiveCsp(BASE, m.text())) problems.push(`konsoll: ${m.text().slice(0, 160)}`)
   })
   page.on('response', (r) => {
     const u = r.url()
@@ -35,7 +34,7 @@ function watch(page: Page) {
   })
   page.on('requestfailed', (r) => {
     const f = r.failure()?.errorText ?? ''
-    if (!/ERR_ABORTED|NS_BINDING_ABORTED|cancelled/i.test(f) && !vercelLive(r.url())) problems.push(`nett: ${f} ${r.url().replace(/\?.*$/, '').slice(0, 120)}`)
+    if (!/ERR_ABORTED|NS_BINDING_ABORTED|cancelled/i.test(f) && !isVercelLiveRequest(BASE, r.url())) problems.push(`nett: ${f} ${r.url().replace(/\?.*$/, '').slice(0, 120)}`)
   })
   return problems
 }

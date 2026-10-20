@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { EMAIL, expectHub, injectBackend, PASSWORD, signInPassword } from './helpers'
+import { isVercelLiveCsp } from './preview-noise'
 
 /**
  * Loop Studio «Legg til på sliden → + Bilde» innlogget mot connecthub-dev (kjøres av run-dev.mjs i løpet «admin»):
@@ -15,7 +16,8 @@ test('Loop Studio: «+ Bilde» på sliden (innlogget)', async ({ page }, info) =
   test.setTimeout(180_000)
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message.slice(0, 200)))
-  page.on('console', (m) => { if (m.type() === 'error') errors.push('konsoll: ' + m.text().slice(0, 200)) })
+  // bare den kjente vercel.live-blokkeringen i en forhåndsvisning ignoreres (preview-noise.ts); alt annet telles
+  page.on('console', (m) => { if (m.type() === 'error' && !isVercelLiveCsp(process.env.ML_DEV_BASE ?? '', m.text())) errors.push('konsoll: ' + m.text().slice(0, 200)) })
   await signInPassword(page)
   await expectHub(page)
   await page.goto('/app/loop-studio?mal=week')
