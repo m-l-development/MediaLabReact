@@ -41,6 +41,7 @@ for (const id of ['card-white-hand', 'iphone-hand', 'tv-wall']) {
     test.setTimeout(180_000)
     await page.goto(`/app/mockups?mockup=${id}`)
     await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
     await expect(page.locator('[data-mk-design-edit]')).toBeDisabled() // uten design
     const ch = page.waitForEvent('filechooser')
     await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
@@ -135,6 +136,7 @@ test('presis redigering: Shift + hjørne/side (perspektiv), hjelpelinjer, magnet
   const id = 'tv-wall'
   await page.goto(`/app/mockups?mockup=${id}`)
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   const ch = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
   await (await ch).setFiles({ name: 'design.png', mimeType: 'image/png', buffer: design() })
@@ -246,6 +248,7 @@ test('sidehåndtakene flytter sin side utover og innover – motsatt side står 
   const id = 'card-black-hand' // skjevt kort i perspektiv
   await page.goto(`/app/mockups?mockup=${id}`)
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   const ch = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
   await (await ch).setFiles({ name: 'design.png', mimeType: 'image/png', buffer: design() })

@@ -38,8 +38,13 @@ test('galleri med de innebygde mockupene, kategorier og design i alle', async ({
   const phones = await page.locator('main li').count()
   expect(phones).toBeGreaterThanOrEqual(3)
   await page.getByRole('button', { name: /^Alle/ }).click()
+  // Varselet står bare 2,6 s; under last kan det komme og gå mellom to kontroller. Alle varsler som vises, registreres.
+  await page.evaluate(() => {
+    const seen: string[] = ((window as unknown as { __toasts: string[] }).__toasts = [])
+    new MutationObserver(() => document.querySelectorAll('[role="status"]').forEach((e) => { const x = e.textContent ?? ''; if (x && !seen.includes(x)) seen.push(x) })).observe(document.body, { childList: true, subtree: true, characterData: true })
+  })
   await uploadDesign(page)
-  await expect(page.getByText('Designet er lagt inn i alle mockupene. Velg den du vil bruke.')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __toasts: string[] }).__toasts)).toContain('Designet er lagt inn i alle mockupene. Velg den du vil bruke.')
   expect(errors).toEqual([])
 })
 
@@ -107,4 +112,20 @@ test('egne mockup-bilder og lagring av resultatet i Dine medier', async ({ page 
   const item = page.locator('li', { hasText: /mockup-own-/ })
   await expect(item).toBeVisible()
   await expect(item.getByText('Ny versjon')).toBeVisible()
+})
+
+test('eksportknappene er av til fotografiet er lastet (klikk gjorde før ingenting på trege maskiner)', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobil', 'kjøres én gang')
+  let release: () => void = () => undefined
+  const held = new Promise<void>((r) => { release = r })
+  await page.route('**/images/mockups/tv-wall.jpg', async (route) => { await held; await route.continue() })
+  await page.goto('/app/mockups?mockup=tv-wall')
+  const dl = page.getByRole('button', { name: 'Last ned', exact: true }).last()
+  await expect(dl).toBeVisible({ timeout: 30_000 })
+  for (const name of ['Last ned', 'Kopier bilde', 'Lagre i Dine medier']) await expect(page.getByRole('button', { name, exact: true }).last()).toBeDisabled()
+  release()
+  await expect(dl).toBeEnabled({ timeout: 30_000 })
+  const file = page.waitForEvent('download')
+  await dl.click()
+  expect((await file).suggestedFilename()).toBe('mockup-tv-wall.png')
 })

@@ -61,6 +61,8 @@ export async function loadFolder(root: string, source: 'builtin' | 'folder'): Pr
   const list = Array.isArray(idx) ? idx : Array.isArray((idx as { files?: unknown } | null)?.files) ? (idx as { files: unknown[] }).files : []
   let files = list.filter((f): f is string => typeof f === 'string' && /\.(jpe?g|png|webp)$/i.test(f))
   if (!files.length && source === 'builtin') files = BUILTIN_FALLBACK.map((n) => `${root}${n}.jpg`)
+  // Tom mappe: ingen grunn til å spørre etter den valgfrie config.json (ga 404 i nettverket hver gang Mockups åpnes).
+  if (!files.length) return []
   const cfg = ((await json(`${root}config.json`)) ?? {}) as Record<string, ConfigEntry>
   return files.map((f) => {
     const file = f.split('/').pop() ?? f

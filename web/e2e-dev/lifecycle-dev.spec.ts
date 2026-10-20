@@ -69,7 +69,12 @@ test('konto fra invitasjon til sletting: lenke, passord, rolle, medlemskap og «
     expect([ar.status, asAdmin, rr.status, after]).toEqual([200, true, 204, false])
 
     // 3b. varsler (TB-D9DE93) – testkontoen er eneste medlem, så bare dens egne varsler berøres
-    for (const n of [1, 2]) await rest(page, '/rest/v1/rpc/send_church_message', { body: { p_church: church, p_title: `E2E-varsel ${n}`, p_body: 'Automatisk test' } })
+    // Avsenderen har en døgngrense (20 meldinger, feilkode 54000); svaret sjekkes, så en nådd grense ikke ser ut som et manglende varsel.
+    const send = async (title: string) => {
+      const r = await rest(page, '/rest/v1/rpc/send_church_message', { body: { p_church: church, p_title: title, p_body: 'Automatisk test' } })
+      expect(r.status, `send_church_message «${title}»: ${r.code ?? r.status}${r.code === '54000' ? ' – døgngrensen for testkontoen er nådd, kjør igjen senere' : ''}`).toBe(200)
+    }
+    for (const n of [1, 2]) await send(`E2E-varsel ${n}`)
     await u.goto('/app/')
     await u.getByRole('button', { name: 'Konto' }).click()
     await u.getByRole('button', { name: /Varsler/ }).click()
@@ -80,7 +85,7 @@ test('konto fra invitasjon til sletting: lenke, passord, rolle, medlemskap og «
     await expect(u.getByText(/varsler fjernet./)).toBeVisible({ timeout: 20_000 })
     await expect(u.getByText('E2E-varsel 1')).toHaveCount(0)
     const note1 = (await u.locator('[data-ch-notif-note]').textContent()) ?? ''
-    await rest(page, '/rest/v1/rpc/send_church_message', { body: { p_church: church, p_title: 'E2E-varsel 3', p_body: 'Automatisk test' } })
+    await send('E2E-varsel 3')
     await u.keyboard.press('Escape')
     await u.getByRole('button', { name: 'Konto' }).click()
     await u.getByRole('button', { name: /Varsler/ }).click()
