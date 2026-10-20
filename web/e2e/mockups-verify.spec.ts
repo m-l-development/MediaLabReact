@@ -35,6 +35,7 @@ test('Kopier og Lagre i Dine medier: samme resultat som Last ned (design, rotasj
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.goto('/app/mockups?mockup=tv-wall')
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   const ch = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
   await (await ch).setFiles({ name: 'design.png', mimeType: 'image/png', buffer: quad() })

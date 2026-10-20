@@ -190,6 +190,21 @@ describe('katalog', () => {
     }
   })
 
+  it('tom egen mappe: config.json hentes ikke (ingen 404 i nettverket)', async () => {
+    const asked: string[] = []
+    const real = globalThis.fetch
+    globalThis.fetch = (async (u: string) => {
+      asked.push(u)
+      return u === '/mockups/index.json' ? { ok: true, json: async () => ({ generated: 'tom', files: [] }) } : { ok: false, json: async () => null }
+    }) as unknown as typeof fetch
+    try {
+      expect(await loadFolder('/mockups/', 'folder')).toEqual([])
+      expect(asked).toEqual(['/mockups/index.json'])
+    } finally {
+      globalThis.fetch = real
+    }
+  })
+
   it('kategori og navn fra filnavnet, som i dag', () => {
     expect(categoryOf('iphone-hand.jpg')).toBe('phone')
     expect(categoryOf('MacBook-Air.jpg')).toBe('laptop')

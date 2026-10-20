@@ -29,6 +29,7 @@ const redCentroid = (page: Page, b64: string | null) => page.evaluate(async (dat
 async function setup(page: Page, id: string) {
   await page.goto(`/app/mockups?mockup=${id}`)
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   await expect(page.locator('[data-mk-undo]')).toBeDisabled() // ingenting å angre ennå
   const ch = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
@@ -37,6 +38,8 @@ async function setup(page: Page, id: string) {
 }
 /** Midten av designet (snitt av de 8 håndtakene) i redigeringsmodus. */
 async function designMid(page: Page) {
+  // Håndtakene tegnes etter klikket på «Rediger design»; uten ventingen ble snittet av null håndtak NaN (ustabil test).
+  await expect(page.locator('[class*="designHandle"]').first()).toBeVisible()
   const h = await page.locator('[class*="designHandle"]').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] }))
   return [h.reduce((s, p) => s + p[0]!, 0) / h.length, h.reduce((s, p) => s + p[1]!, 0) / h.length] as const
 }

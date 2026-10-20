@@ -137,10 +137,10 @@ async function cleanupInvited() {
 }
 
 const RUNS = [
-  { name: 'user', email: 'ch-test-user@example.com', role: 'user', specs: ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'photo-dev', 'feedback-dev'], env: { ML_DEV_ALLOW_FEEDBACK: 'JA' } },
-  { name: 'admin', email: 'ch-test-admin@example.com', role: 'admin', specs: ['admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'admin-write-dev', 'sources-dev', 'upload-limits-dev', 'loop-pip-dev', 'avatar-dev'] },
-  { name: 'dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['staff-dev', 'admin-prodlink-dev'] },
-  { name: 'mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['staff-dev', 'admin-prodlink-dev'] },
+  { name: 'user', email: 'ch-test-user@example.com', role: 'user', specs: ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'photo-dev', 'feedback-dev', 'site-crawl-dev'], env: { ML_DEV_ALLOW_FEEDBACK: 'JA' } },
+  { name: 'admin', email: 'ch-test-admin@example.com', role: 'admin', specs: ['admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'admin-write-dev', 'sources-dev', 'upload-limits-dev', 'loop-pip-dev', 'avatar-dev', 'site-crawl-dev'] },
+  { name: 'dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['staff-dev', 'admin-prodlink-dev', 'site-crawl-dev'] },
+  { name: 'mod', email: 'ch-test-mod@example.com', role: 'staff', specs: ['staff-dev', 'admin-prodlink-dev', 'site-crawl-dev'] },
   { name: 'livslop', email: 'ch-test-dev@example.com', role: 'staff', specs: ['lifecycle-dev'] },
   { name: 'rolle-dev', email: 'ch-test-dev@example.com', role: 'staff', specs: ['test-role-dev'] },
   { name: 'drift', email: 'ch-test-dev@example.com', role: 'staff', specs: ['admin-ops-dev'] },
@@ -161,7 +161,7 @@ try {
     const pw2 = id2 ? await newPassword(id2) : ''
     if (run.role === 'staff' || run.role === 'access') say(`${run.name}: ${await dropFactors(id)} MFA-faktor(er) fjernet før testen`)
     // ML_DEV_SPECS=a,b kjører bare disse testene i løpet (f.eks. for gjentatte kjøringer)
-    const READ_ONLY = ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'photo-dev']
+    const READ_ONLY = ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'photo-dev', 'site-crawl-dev']
     const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : REMOTE ? run.specs.filter((x) => READ_ONLY.includes(x)) : run.specs
     if (!specs.length) { results.push([run.name, 'hoppet over (ingen tester som bare leser)']); continue }
     say(`${run.name}: kjører ${specs.join(', ')}`)

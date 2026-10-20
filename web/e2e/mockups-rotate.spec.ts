@@ -55,6 +55,7 @@ test('retning på designet: roter, vend, tilbakestill, fri vinkel, logo og ekspo
   test.setTimeout(180_000)
   await page.goto('/app/mockups?mockup=tv-wall')
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   await expect(page.getByRole('button', { name: 'Roter 90° mot høyre' })).toBeDisabled() // uten design
   const ch = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
@@ -105,6 +106,7 @@ test('retning på designet: roter, vend, tilbakestill, fri vinkel, logo og ekspo
   expect([saved.rot, saved.flipX, saved.flipY]).toEqual([45, false, false])
   await page.getByRole('button', { name: 'Roter 90° mot høyre' }).click() // 45 → 135
   await page.reload()
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   await expect(page.getByRole('slider', { name: /Rotasjon/ })).toHaveValue('135')
   await expect(page.getByRole('button', { name: 'Roter 90° mot høyre' })).toBeDisabled() // designet huskes ikke etter ny innlasting
 
@@ -146,6 +148,7 @@ test('skjermkvalitet: ingen sømmer i forvrengningen og ingenting utenfor skjerm
   test.setTimeout(120_000)
   await page.goto('/app/mockups?mockup=imac-desk')
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
   const ch = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: /Last opp design|Bytt design/ }).first().click()
   await (await ch).setFiles({ name: 'rod.png', mimeType: 'image/png', buffer: png(400, 250, () => [200, 30, 30, 255]) })

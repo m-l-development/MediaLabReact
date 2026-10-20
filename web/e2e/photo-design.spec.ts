@@ -326,6 +326,18 @@ test('fargevelgeren under dragging: mange endringer raskt, siste farge havner i 
   await page.goto('/app/photo-design')
   await page.locator('[data-pd-roles-btn]').click()
   const inp = page.locator('[data-pd-color="0"]')
+  // Maskinens egen bildetakt (samme side, uten endringer): under last er den tregere, og en fast grense ga ustabil test.
+  const idle = await page.evaluate(async () => {
+    const gaps: number[] = []
+    let last = performance.now()
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      const now = performance.now()
+      gaps.push(now - last)
+      last = now
+    }
+    return gaps.sort((a, b) => a - b)[15] as number
+  })
   // 30 endringer i strekk, slik fargevelgeren sender dem mens du drar
   const frames = await inp.evaluate(async (el: HTMLInputElement) => {
     const set = (Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value') as PropertyDescriptor).set as (v: string) => void
@@ -343,7 +355,8 @@ test('fargevelgeren under dragging: mange endringer raskt, siste farge havner i 
     el.dispatchEvent(new Event('input', { bubbles: true }))
     return gaps.sort((a, b) => a - b)[15] as number
   })
-  expect(frames).toBeLessThan(50) // ikke låst: fargevelgeren får tegne mellom endringene
+  // ikke låst: fargevelgeren får tegne mellom endringene (en synkron omtegning per endring gir langt over dette)
+  expect(frames, `median ${frames.toFixed(1)} ms, bildetakt uten endringer ${idle.toFixed(1)} ms`).toBeLessThan(Math.max(50, idle * 2.5))
   await expect(inp).toHaveValue('#2266aa')
   await expect.poll(() => shareOf(page, '[data-tpl="countdown"] canvas', '#2266aa')).toBeGreaterThan(0.4)
   await expect(page.locator('[data-pd-roles] input[type="text"]').first()).toHaveValue('#2266aa')

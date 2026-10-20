@@ -20,6 +20,7 @@ test('logo på mockup: SVG som vektor, flytt, skaler, zoom og eksport', async ({
   test.slow()
   await page.goto('/app/mockups?mockup=tv-wall')
   await expect(page.locator('canvas').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('button', { name: 'Last ned', exact: true }).last()).toBeEnabled({ timeout: 60_000 }) // fotografiet er lastet
 
   // 1. Legg til logo fra enheten (SVG)
   const chooser = page.waitForEvent('filechooser')

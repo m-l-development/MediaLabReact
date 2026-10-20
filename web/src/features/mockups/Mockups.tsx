@@ -911,7 +911,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         <Button size="small" variant="ghost" iconOnly onClick={() => step(-1)} title={t('mockups.prev')} aria-label={t('mockups.prev')}>‹</Button>
         <Button size="small" variant="ghost" iconOnly onClick={() => step(1)} title={t('mockups.next')} aria-label={t('mockups.next')}>›</Button>
         <Button size="small" variant="ghost" iconOnly disabled={!canUndo} onClick={onUndo} title={t('mockups.undo')} aria-label={t('mockups.undo')} data-mk-undo="">↶</Button>
-        <Button size="small" variant="primary" onClick={() => void download()}>{busy ? t('mockups.downloading') : t('mockups.download')}</Button>
+        <Button disabled={!image} size="small" variant="primary" onClick={() => void download()}>{busy ? t('mockups.downloading') : t('mockups.download')}</Button>
       </header>
 
       <div className={styles.editorBody}>
@@ -1065,12 +1065,12 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
             </div>
             <span className={styles.hint}>{image ? `${image.naturalWidth} × ${image.naturalHeight} px` : ''}</span>
           </div>
-          <Button variant="primary" block onClick={() => void download()}>{busy ? t('mockups.downloading') : t('mockups.download')}</Button>
+          <Button disabled={!image} variant="primary" block onClick={() => void download()}>{busy ? t('mockups.downloading') : t('mockups.download')}</Button>
           <div className={styles.row}>
-            <Button size="small" onClick={() => void copy()}>{t('mockups.copy')}</Button>
-            <Button size="small" onClick={() => void saveToMedia()}>{t('mockups.saveMedia')}</Button>
+            <Button disabled={!image} size="small" onClick={() => void copy()}>{t('mockups.copy')}</Button>
+            <Button disabled={!image} size="small" onClick={() => void saveToMedia()}>{t('mockups.saveMedia')}</Button>
             {targets.map((tool) => (
-              <Button key={tool.id} size="small" onClick={() => void saveToMedia().then((id) => id && router.navigate({ name: 'tool', tool: tool.id, query: { asset: id } }))}>
+              <Button key={tool.id} disabled={!image} size="small" onClick={() => void saveToMedia().then((id) => id && router.navigate({ name: 'tool', tool: tool.id, query: { asset: id } }))}>
                 {t('mockups.useIn', { tool: t(toolTitleKey(tool.id)) })}
               </Button>
             ))}
