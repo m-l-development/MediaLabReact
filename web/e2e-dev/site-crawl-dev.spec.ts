@@ -18,7 +18,8 @@ const SIZES = [['desktop', { width: 1440, height: 900 }], ['mobil', { width: 390
 
 // Vercel legger sitt eget verktøylinjeskript (vercel.live) inn i forhåndsvisninger; appens CSP blokkerer det, som den skal.
 // Det finnes ikke i produksjonen og er ikke appens feil, så det telles bare ikke mot en forhåndsvisning.
-const PREVIEW = /\.vercel\.app/.test(process.env.ML_DEV_BASE ?? '')
+// bare forhåndsvisninger (samme mønster som run-dev.mjs --remote); produksjonsadressen media-lab-react-vyef.vercel.app er ikke med
+const PREVIEW = /^https:\/\/media-lab-react-vyef-[a-z0-9-]+-media-lab3\.vercel\.app\/?$/.test(process.env.ML_DEV_BASE ?? '')
 const vercelLive = (s: string) => PREVIEW && s.includes('vercel.live')
 
 function watch(page: Page) {

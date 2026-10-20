@@ -655,6 +655,7 @@ export class PhotoController {
   async addBlob(blob: Blob, name: string, at: Pt | null = null, src?: string, replace?: string, opt: { logo?: boolean } = {}): Promise<void> {
     const d = this.s.doc
     if (!d) return
+    const sel0 = this.s.sel // valget da bildet ble valgt; lasting og lagring tar tid
     if (!/^image\/(png|jpeg|webp|gif)$/.test(blob.type || '')) {
       this.flash('Bruk PNG, JPG, WebP eller GIF.')
       return
@@ -680,7 +681,8 @@ export class PhotoController {
     if (ph && ph.type === 'image') {
       this.patchL(ph.id, { src: key, cz: 1, cx: 0, cy: 0, name: ph.src ? ph.name : nm, mask: null })
       this.M.masks.delete(ph.id)
-      this.set({ sel: ph.id })
+      // har brukeren valgt et annet lag mens bildet ble behandlet, beholdes det valget (før forsvant f.eks. tekstfeltet)
+      if (this.s.sel === sel0) this.set({ sel: ph.id })
       return
     }
     const s = Math.min((doc.w * 0.8) / E.w, (doc.h * 0.8) / E.h, 1e9)
