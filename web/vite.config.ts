@@ -221,7 +221,7 @@ export default defineConfig({
   build: { outDir: 'dist', emptyOutDir: true, sourcemap: false },
   test: {
     environment: 'happy-dom',
-    include: ['src/**/*.test.{ts,tsx}', 'build/**/*.test.ts', 'e2e-dev/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'build/**/*.test.ts', 'e2e-dev/**/*.test.ts', 'e2e-prod/**/*.test.ts'],
     setupFiles: ['src/test/setup.ts'],
     restoreMocks: true,
   },

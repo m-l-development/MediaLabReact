@@ -149,11 +149,47 @@ const RUNS = [
   // to kontoer samtidig (Admin og Bruker i samme menighet): felles grunnoppsett, rollebytter og to brukere på samme PC
   { name: 'tilgang', email: 'ch-test-dev@example.com', email2: 'ch-test-admin@example.com', role: 'access', specs: ['church-access-dev'] },
   { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev', 'loop-sharing-dev', 'loop-disk-dev', 'loop-base-load-dev'] },
-].filter((r) => !only.length || only.includes(r.name))
+  // prøvekjøring av produksjonstesten (e2e-prod) mot connecthub-dev: Bruker, Admin og stabsøkt i Admin-kontoens menighet.
+  // Bare med --only=prodtest (ikke i standardløpet).
+  { name: 'prodtest', email: 'ch-test-dev@example.com', role: 'prodtest', optIn: true, specs: ['e2e-prod'] },
+].filter((r) => (only.length ? only.includes(r.name) : !r.optIn))
+
+/** Prøvekjøring av e2e-prod mot dev: samme tester og skrivesperre som i produksjonen, men med dev-testkontoene. */
+async function prodtest() {
+  const acc = { user: 'ch-test-user@example.com', admin: 'ch-test-admin@example.com', staff: 'ch-test-dev@example.com' }
+  const pw = {}
+  for (const [k, e] of Object.entries(acc)) { const id = userId(e); if (!id) throw new Error(`mangler ${k}-kontoen`); pw[k] = await newPassword(id) }
+  say(`prodtest: ${await dropFactors(userId(acc.staff))} MFA-faktor(er) fjernet før stabsøkten`)
+  // testmenigheten = menigheten dev-Admin-kontoen er Admin i (oppslag med dev-nøkkelen, bare her i dev)
+  const ident = await (await fetch(`${SUPA}/rest/v1/user_identities?select=user_id&subject=eq.${userId(acc.admin)}`, { headers: H })).json()
+  const roles = await (await fetch(`${SUPA}/rest/v1/user_roles?select=church_id&role=eq.church_admin&revoked_at=is.null&user_id=eq.${ident[0]?.user_id}`, { headers: H })).json()
+  if (roles.length !== 1) throw new Error(`dev-Admin er Admin i ${roles.length} menigheter (forventet 1)`)
+  const church = (await (await fetch(`${SUPA}/rest/v1/churches?select=id,name&id=eq.${roles[0].church_id}`, { headers: H })).json())[0]
+  const session = path.join(os.tmpdir(), `ch-dev-staff-${process.pid}.json`)
+  process.on('exit', () => fs.rmSync(session, { force: true }))
+  const common = { ...process.env, ML_DEV_BASE: BASE, ML_DEV_SUPABASE_URL: SUPA, ML_DEV_PUBLISHABLE_KEY: PUBLISHABLE, ...(REMOTE ? { ML_DEV_STORAGE: STORAGE } : {}) }
+  const s = spawnSync('npx', ['playwright', 'test', '-c', 'e2e-dev', 'staff-session-dev', '--project=desktop'], {
+    cwd: WEB, stdio: 'inherit', shell: win, env: { ...common, ML_DEV_EMAIL: acc.staff, ML_DEV_PASSWORD: pw.staff, ML_DEV_ROLE: 'staff-session', ML_DEV_SESSION_OUT: session },
+  })
+  if (s.status !== 0 || !fs.existsSync(session)) throw new Error('stabsøkten ble ikke laget')
+  say(`prodtest: testmenighet «${church.name}», kjører e2e-prod (lesing, verktøy, Admin-tilgang, opprydding)`)
+  const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : ['1-read', '2-tools', '3-access', '4-cleanup']
+  const r = spawnSync('npx', ['playwright', 'test', '-c', 'e2e-prod', ...specs.map((x) => `${x}.spec.ts`)], {
+    cwd: WEB, stdio: 'inherit', shell: win,
+    env: {
+      ...process.env, ML_E2E_TARGET: 'dev', ML_E2E_BASE: BASE, ML_E2E_REF: REF, ML_E2E_PUBLISHABLE_KEY: PUBLISHABLE,
+      ML_E2E_CHURCH_ID: church.id, ML_E2E_CHURCH_NAME: church.name,
+      ML_E2E_USER_EMAIL: acc.user, ML_E2E_USER_PASSWORD: pw.user, ML_E2E_ADMIN_EMAIL: acc.admin, ML_E2E_ADMIN_PASSWORD: pw.admin,
+      ML_E2E_STAFF_EMAIL: acc.staff, ML_E2E_STAFF_STORAGE: session, ML_E2E_STEPS: 'access', ML_E2E_BYPASS_STORAGE: REMOTE ? STORAGE : '',
+    },
+  })
+  return r.status === 0
+}
 
 const results = []
 try {
   for (const run of RUNS) {
+    if (run.role === 'prodtest') { results.push([run.name, (await prodtest().catch((e) => { say(`prodtest: ${e.message}`); return false })) ? 'bestått' : 'FEILET']); continue }
     const id = userId(run.email)
     if (!id) { results.push([run.name, 'mangler kontoen']); continue }
     const pw = await newPassword(id)
@@ -172,8 +208,9 @@ try {
     results.push([run.name, r.status === 0 ? 'bestått' : `FEILET (rc ${r.status})`])
   }
 } finally {
-  for (const e of new Set(RUNS.flatMap((r) => [r.email, r.email2].filter(Boolean)))) { const id = userId(e); if (id) await newPassword(id).catch(() => undefined) }
-  for (const run of RUNS.filter((x) => x.role === 'staff')) { const id = userId(run.email); if (id) await dropFactors(id).catch(() => undefined) }
+  const extra = RUNS.some((r) => r.role === 'prodtest') ? ['ch-test-user@example.com', 'ch-test-admin@example.com', 'ch-test-dev@example.com'] : []
+  for (const e of new Set([...RUNS.flatMap((r) => [r.email, r.email2].filter(Boolean)), ...extra])) { const id = userId(e); if (id) await newPassword(id).catch(() => undefined) }
+  for (const run of RUNS.filter((x) => x.role === 'staff' || x.role === 'prodtest')) { const id = userId(run.email); if (id) await dropFactors(id).catch(() => undefined) }
   // invitasjoner via testpostkassen lager en innloggingskonto hos Supabase (generateLink); de som aldri ble godtatt
   // (ingen brukerprofil), og bare med testenes egne adresser, fjernes igjen
   say(`opprydding: ${await cleanupSettings().catch((e) => `feilet (${e.message})`)} testområde(r) i felles grunnoppsett (e2etest:*) fjernet`)
