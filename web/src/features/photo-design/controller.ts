@@ -1,4 +1,5 @@
 import { createStore, type Store } from '../../shared/lib/store'
+import { snapActive } from '../../shared/lib/snap'
 import { fillStops, type Fill } from '../../shared/fill/fill'
 import * as FX from '../../shared/fx/fx'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
@@ -903,7 +904,7 @@ export class PhotoController {
           moved = true
           this.push()
         }
-        const sn = snapAt(d, P, { x0: b0.x0 + dx, x1: b0.x1 + dx, y0: b0.y0 + dy, y1: b0.y1 + dy }, 7 / this.sc(), 2 / this.sc(), ev.altKey)
+        const sn = snapAt(d, P, { x0: b0.x0 + dx, x1: b0.x1 + dx, y0: b0.y0 + dy, y1: b0.y1 + dy }, 7 / this.sc(), 2 / this.sc(), !snapActive(ev.altKey))
         dx += sn.dx
         dy += sn.dy
         this.set((s) => (s.doc ? {

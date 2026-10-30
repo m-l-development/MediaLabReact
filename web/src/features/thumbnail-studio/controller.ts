@@ -1,4 +1,5 @@
 import { createStore, type Store } from '../../shared/lib/store'
+import { snapActive } from '../../shared/lib/snap'
 import type { SharedSetup } from '../../services/shared-setup'
 import { cleanCategory, DEFAULT_CATS, type Category, type Template } from './engine/backup'
 import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
@@ -1418,7 +1419,7 @@ export class ThumbController {
       let x = L0.x + dx
       let y = L0.y + dy
       const th = 8 * k
-      if (!alt) {
+      if (snapActive(alt)) {
         const xs = [0, W / 2, W]
         const ys = [0, H / 2, H]
         for (const o of doc.layers) {

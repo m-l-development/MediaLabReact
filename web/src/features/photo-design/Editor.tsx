@@ -1,6 +1,8 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState, type PointerEvent as RPE } from 'react'
+import { setSnap, snapPref } from '../../shared/lib/snap'
+import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
 import { FillEditor } from '../../shared/fill/FillEditor'
 import * as FX from '../../shared/fx/fx'
@@ -78,6 +80,7 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
 
 export function Editor(p: EditorProps) {
   const { c, S, tx, onExport } = p
+  const snapOn = useStore(snapPref)
   const d = S.doc
   if (!d) return null
   const saved = S.saved?.kind === 'unsaved' ? tx('Ikke lagret') : S.saved?.kind === 'saved' ? `${tx('Lagret')} ${new Date(S.saved.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
@@ -89,6 +92,9 @@ export function Editor(p: EditorProps) {
         <div className={s.barGroup}>
           <button type="button" className={s.barRound} disabled={!c.canUndo} title={tx('Angre (Ctrl+Z)')} aria-label={tx('Angre')} onClick={() => c.undo()}>↶</button>
           <button type="button" className={s.barRound} disabled={!c.canRedo} title={tx('Gjør om (Ctrl+Shift+Z)')} aria-label={tx('Gjør om')} onClick={() => c.redo()}>↷</button>
+          <button type="button" className={s.barRound} data-snap-toggle="" aria-pressed={snapOn} aria-label={tx('Snapping')} style={{ opacity: snapOn ? 1 : 0.45 }}
+            title={tx(snapOn ? 'Snapping er på: lag fester seg til kanter og midtlinjer. Trykk for fri plassering (Alt snur valget mens du drar).' : 'Snapping er av: fri plassering. Trykk for å slå på hjelpelinjer (Alt snur valget mens du drar).')}
+            onClick={() => setSnap(!snapOn)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3v8a6 6 0 0 0 12 0V3M6 7h4M14 7h4" /></svg></button>
         </div>
         <div className={s.zoom}>
           <button type="button" aria-label={tx('Zoom ut')} onClick={() => c.ui({ zoom: Math.max(0.1, S.zoom / 1.25) })}>−</button>
