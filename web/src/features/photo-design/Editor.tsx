@@ -157,7 +157,8 @@ export function Editor(p: EditorProps) {
             </div>
             {S.ltab === 'lag' && <AddPanel {...p} />}
             {S.ltab === 'stil' && <StylePanel {...p} />}
-            {S.ltab === 'fx' && <FxLibrary {...p} />}
+            {S.ltab === 'fx' && <FxPanel {...p} />}
+            {S.fxOpen && S.adv && <FxPicker {...p} />}
           </div>
           <LayerList {...p} />
         </aside>
@@ -170,34 +171,54 @@ export function Editor(p: EditorProps) {
   )
 }
 
+/** «Legg til»: elementer i fire grupper (Innhold, Former og grafikk, Lys og effekter, Medier) – ingen duplikater. */
 function AddPanel({ c, S, tx, pickFile }: EditorProps) {
-  const btns: [Phrase, () => void, boolean?][] = [
-    ['Bilde', () => pickFile()], ['Tekst', () => c.addText()], ['Form', () => c.addShape('rect')], ['Sirkel', () => c.addShape('ellipse')],
-    ['Former', () => c.ui({ shapesOpen: !S.shapesOpen }), S.shapesOpen], ['Toning', () => c.addGrad()], ['Lys', () => c.addGlow()],
-    ['Logo', () => c.ui({ logoOpen: !S.logoOpen }), S.logoOpen], ['Dine medier', () => c.openPicker('media')], ['Bibliotek', () => c.openPicker('cloud', {}, 'ressurser')],
-  ]
+  const group = (label: Phrase, btns: [Phrase, () => void, string, (boolean | undefined)?, Phrase?][]) => (
+    <div className={s.addGroup} role="group" aria-label={tx(label)}>
+      <span className={s.addHead}>{tx(label)}</span>
+      <div className={s.addGrid}>
+        {btns.map(([l, on, icon, active, tip]) => (
+          <button key={l} type="button" aria-pressed={active == null ? undefined : !!active} title={tip ? tx(tip) : undefined} onClick={on}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icon} /></svg>
+            {tx(l)}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
   return (
     <>
       <span className={s.eyebrowSm}>{tx('Legg til')}</span>
-      <div className={s.addGrid}>
-        {btns.map(([l, on, active]) => <button key={l} type="button" aria-pressed={!!active} onClick={on}>{tx(l)}</button>)}
-      </div>
-      {S.shapesOpen && (
-        <div className={s.shapeGrid}>
-          {['rect', 'rounded', ...SHAPES.map((x) => x[0]).filter((k) => k !== 'rect')].map((k) => {
-            const name = tx((k === 'rounded' ? 'Avrundet rektangel' : (SHAPES.find((x) => x[0] === k)?.[1] ?? k)) as Phrase)
-            return <button key={k} type="button" title={name} aria-label={name} style={{ backgroundImage: `url("${shapeIcon(k)}")` }} onClick={() => c.addShape(k)} />
-          })}
-        </div>
-      )}
+      {group('Innhold', [
+        ['Bilde', () => pickFile(), 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9.5h.01', undefined, 'Velg et bilde fra enheten'],
+        ['Tekst', () => c.addText(), 'M5 6h14M12 6v13M9 19h6', undefined, 'Legg til en tekst du kan skrive i'],
+        ['Logo', () => c.ui({ logoOpen: !S.logoOpen }), 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z', S.logoOpen, 'Velg menighetens logo'],
+      ])}
       {S.logoOpen && (
         <div className={s.logoBox}>
           <button type="button" className={s.pillDark} data-ch-felles-logo="1" onClick={() => c.openPicker('cloud', { logo: true }, 'ressurser')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" /></svg>
             {tx('Fellesmappe')}
           </button>
         </div>
       )}
+      <div className={s.addGroup} role="group" aria-label={tx('Former og grafikk')}>
+        <span className={s.addHead}>{tx('Former og grafikk')}</span>
+        <div className={s.shapeGrid} data-pd-shapes="">
+          {['rect', 'rounded', ...SHAPES.map((x) => x[0]).filter((k) => k !== 'rect')].map((k) => {
+            const name = tx((k === 'rounded' ? 'Avrundet rektangel' : (SHAPES.find((x) => x[0] === k)?.[1] ?? k)) as Phrase)
+            return <button key={k} type="button" title={name} aria-label={name} data-shape={k} style={{ backgroundImage: `url("${shapeIcon(k)}")` }} onClick={() => c.addShape(k)} />
+          })}
+        </div>
+      </div>
+      {group('Lys og effekter', [
+        ['Lys', () => c.addGlow(), 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', undefined, 'Et mykt lys over bildet'],
+        ['Toning', () => c.addGrad(), 'M4 4h16v16H4zM4 20 20 4', undefined, 'En fargeovergang over hele bildet'],
+        ...(S.adv ? [['Effekt …', () => c.openFx(), 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', S.fxOpen, 'Velg en effekt, se den på bildet og legg den til som et eget lag'] as [Phrase, () => void, string, (boolean | undefined)?, Phrase?]] : []),
+      ])}
+      {group('Medier', [
+        ['Dine medier', () => c.openPicker('media'), 'M4 7h6l2 2h8v10H4z', undefined, 'Bilder du har lagret i Media Lab'],
+        ['Fellesmappe', () => c.openPicker('cloud', {}, 'ressurser'), 'M3 7h7l2 2h9v10H3zM12 13h6', undefined, 'Felles ressurser for menigheten'],
+      ])}
     </>
   )
 }
@@ -246,8 +267,20 @@ function StylePanel({ c, S, tx }: EditorProps) {
 }
 
 
+/** Effekter-fanen (kompakt): åpner effektvelgeren. Utforskingen skjer i popupen, ikke i sidepanelet. */
+function FxPanel({ c, S, tx }: EditorProps) {
+  if (!S.adv) return <div className={s.stack}><span className={s.note}>{tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')} {tx('Slå på «Avansert modus» ved Autolagring øverst.')}</span></div>
+  return (
+    <div className={s.stack}>
+      <button type="button" className={s.bigBtn} data-pd-fx-open="" onClick={() => c.openFx()}>{tx('Legg til effekt …')}</button>
+      <span className={s.note}>{tx('Velg en effekt, se den på bildet, og legg den til som et eget lag. Effektlag redigeres i høyrepanelet.')}</span>
+    </div>
+  )
+}
+
+/** Effektvelgeren (popup): søk, kategorier, favoritter, nylig brukt, egne; forhåndsvisning på bildet før «Legg til effekt». */
 /** Effektbiblioteket (Avansert modus): 1920 forhåndsvalg, favoritter, nylig brukt og egne. */
-function FxLibrary({ c, S, tx }: EditorProps) {
+function FxPicker({ c, S, tx }: EditorProps) {
   const [, setTick] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   const on = S.adv
@@ -272,12 +305,17 @@ function FxLibrary({ c, S, tx }: EditorProps) {
 
   const cats: [string, string][] = [['all', 'Alle'], ['fav', 'Favoritter'], ['recent', 'Nylig brukt'], ['custom', 'Egne'], ...Object.keys(FX.KINDS).map((k) => [k, FX.KINDS[k]?.l ?? k] as [string, string])]
   const vis = cat !== 'fav' && cat !== 'recent' && cat !== 'custom'
+  const pick = S.fxPick
   return (
-    <div className={s.stack}>
-      {!on && <span className={s.note}>{tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')} {tx('Slå på «Avansert modus» ved Autolagring øverst.')}</span>}
+    <div className={s.fxPop} role="dialog" aria-modal="false" aria-label={tx('Legg til effekt')} data-pd-fxpicker="" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); c.cancelFx() } }}>
+      <div className={s.fxPopHead}>
+        <strong>{tx('Legg til effekt')}</strong>
+        <button type="button" className={s.resetBtn} onClick={() => c.cancelFx()}>{tx('Lukk')}</button>
+      </div>
+      <div className={s.fxPopBody}>
       {on && (
         <>
-          <input className={s.search} value={S.fxQ} placeholder={tx('Søk i effekter …')} aria-label={tx('Søk i effekter')} onChange={(e) => c.ui({ fxQ: e.target.value.slice(0, 60), fxN: 24 })} />
+          <input autoFocus className={s.search} value={S.fxQ} placeholder={tx('Søk i effekter …')} aria-label={tx('Søk i effekter')} onChange={(e) => c.ui({ fxQ: e.target.value.slice(0, 60), fxN: 24 })} />
           <div className={s.fxCats}>
             {cats.map(([k, l]) => <button key={k} type="button" aria-pressed={cat === k} onClick={() => c.ui({ fxCat: k, fxN: 24 })}>{tx(l as Phrase)}</button>)}
           </div>
@@ -297,7 +335,7 @@ function FxLibrary({ c, S, tx }: EditorProps) {
             {shown.map((pr) => {
               return (
                 <div key={keyOf(pr)} className={s.fxItem}>
-                  <button type="button" title={nm(pr)} data-fx={pr.id} onClick={() => c.addFx(pr)}
+                  <button type="button" title={nm(pr)} data-fx={pr.id} aria-pressed={S.fxPick?.preset === pr.id} onClick={() => c.previewFx(pr)}
                     onContextMenu={(e) => {
                       if (!pr.custom) return
                       e.preventDefault()
@@ -361,6 +399,19 @@ function FxLibrary({ c, S, tx }: EditorProps) {
           <span className={s.note}>{tx('Hver effekt blir et eget lag som kan flyttes, skaleres og endres senere. Høyreklikk på egne forhåndsvalg for å slette, dobbeltklikk for å gi nytt navn. Bakgrunn, retusj og fargegradering finner du under Motiv og Farge på et bildelag.')}</span>
         </>
       )}
+      </div>
+      <div className={s.fxPopFoot}>
+        {pick ? (
+          <label className={s.fxPopOp}>
+            <span>{tx('Synlighet')} {Math.round(pick.op * 100)} %</span>
+            <input type="range" min={0} max={100} step={1} value={Math.round(pick.op * 100)} aria-label={tx('Synlighet')} onChange={(e) => c.setFxPickOp(Number(e.target.value) / 100)} />
+          </label>
+        ) : <span className={s.dimSm}>{tx('Velg en effekt for å se den på bildet.')}</span>}
+        <div className={s.row2}>
+          <button type="button" className={s.smallBtn} data-pd-fx-cancel="" onClick={() => c.cancelFx()}>{tx('Avbryt')}</button>
+          <button type="button" className={s.bigBtn} data-pd-fx-add="" disabled={!pick} onClick={() => c.confirmFx()}>{tx('Legg til effekt')}</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -533,7 +584,8 @@ function Stage({ c, S, tx }: EditorProps) {
       }
       const g = cv.getContext('2d')
       try {
-        if (g) render(g, doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
+        const pick = c.s.fxPick // effektvelgerens forhåndsvisning (ikke i prosjektet)
+        if (g) render(g, pick ? { ...doc, layers: [...doc.layers, pick] } : doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
       } catch (e) {
         console.warn(e)
       }

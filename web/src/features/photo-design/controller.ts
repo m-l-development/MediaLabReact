@@ -63,6 +63,10 @@ export interface PState {
   /** Avansert framkalling er kopiert og kan limes inn. */
   devClip?: boolean
   fxCat: string
+  /** Effektvelgeren (popup) er åpen. */
+  fxOpen: boolean
+  /** Effekten som forhåndsvises (tegnes øverst, er ikke i prosjektet før «Legg til effekt»). */
+  fxPick: FxLayer | null
   fxQ: string
   fxN: number
   fxPal: number
@@ -154,7 +158,7 @@ export class PhotoController {
       tplCat: tc && tc.length ? tc : null,
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st),
     })
   }
@@ -1341,6 +1345,42 @@ export class PhotoController {
 
   // ---------- effekter ----------
 
+  /** Åpner effektvelgeren (bare i Avansert modus). */
+  openFx(): void {
+    if (!this.s.adv || !this.s.doc) return
+    this.set({ fxOpen: true, fxPick: null })
+  }
+
+  /** Forhåndsvis et forhåndsvalg: erstatter forrige forhåndsvisning (aldri ekstra lag). Synligheten beholdes. */
+  previewFx(pr: FX.Preset): void {
+    const d = this.s.doc
+    if (!d) return
+    const K = FX.KINDS[pr.fx]
+    const name = pr.custom ? pr.name : `${this.d.t((pr.look ?? K?.l ?? '') as Phrase)}${pr.pal ? ` · ${this.d.t(pr.pal as Phrase)}` : ''}`
+    const op = this.s.fxPick?.op ?? 1
+    this.set((s) => ({ fxPick: { ...(FX.fxLayer(pr, d.w, d.h, name) as FxLayer), op }, hist: s.hist + 1 }))
+  }
+
+  setFxPickOp(op: number): void {
+    const p = this.s.fxPick
+    if (p) this.set((s) => ({ fxPick: { ...p, op: clamp(op, 0, 1) }, hist: s.hist + 1 }))
+  }
+
+  /** «Legg til effekt»: forhåndsvisningen blir et vanlig, redigerbart lag (med angre). */
+  confirmFx(): void {
+    const p = this.s.fxPick
+    if (!p) return
+    if (p.preset) FX.pushRecent(p.preset)
+    this.set({ fxOpen: false, fxPick: null })
+    this.addLayer({ ...p })
+  }
+
+  /** «Avbryt»: forhåndsvisningen forsvinner; prosjektet er uendret. */
+  cancelFx(): void {
+    if (!this.s.fxOpen && !this.s.fxPick) return
+    this.set((s) => ({ fxOpen: false, fxPick: null, hist: s.hist + 1 }))
+  }
+
   addFx(pr: FX.Preset): void {
     const d = this.s.doc
     if (!d) return
@@ -1353,7 +1393,8 @@ export class PhotoController {
   toggleAdv(): void {
     const on = !this.s.adv
     FX.setAdvanced(on)
-    this.set({ adv: on })
+    // avanserte paneler lukkes når Avansert slås av (prosjektet og lagene er urørt)
+    this.set((s) => (on ? { adv: on } : { adv: on, fxOpen: false, fxPick: null, hist: s.hist + 1 }))
   }
 
   // ---------- eksport ----------

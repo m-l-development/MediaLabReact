@@ -21,10 +21,10 @@ for (const width of [1440, 1024]) {
     const sw = page.locator('[data-adv-toggle]')
     await expect(sw).toHaveAttribute('aria-checked', 'false')
     await page.getByRole('button', { name: 'Effekter', exact: true }).click()
-    await expect(page.getByPlaceholder('Søk i effekter …')).toHaveCount(0)
+    await expect(page.locator('[data-pd-fx-open]')).toHaveCount(0)
     await sw.click()
     await expect(sw).toHaveAttribute('aria-checked', 'true')
-    await expect(page.getByPlaceholder('Søk i effekter …')).toBeVisible()
+    await expect(page.locator('[data-pd-fx-open]')).toBeVisible()
   })
 
   test(`Motion Design (${width} px): Avansert ved Autolagring, huskes etter omlasting`, async ({ page }) => {
