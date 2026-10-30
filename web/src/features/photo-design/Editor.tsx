@@ -109,9 +109,14 @@ export function Editor(p: EditorProps) {
         <span className={s.flex} />
         <span className={S.saved?.kind === 'unsaved' ? s.savedWarn : s.saved}>{saved}</span>
         {!S.autosave && <button type="button" className={s.barBtn} title={tx('Lagre i nettleseren (Ctrl+S)')} onClick={() => void c.saveNow().then(() => !c.dirty && c.flash('Prosjektet er lagret.'))}>{tx('Lagre')}</button>}
-        <button type="button" role="switch" aria-checked={S.autosave} className={s.autoBtn} title={tx('Lagre endringer automatisk i nettleseren')} onClick={() => c.toggleAutosave()}>
-          <i aria-hidden="true" /><span>{tx('Autolagring')}</span>
-        </button>
+        <span data-autosave-row="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+          <button type="button" role="switch" aria-checked={S.autosave} className={s.autoBtn} title={tx('Lagre endringer automatisk i nettleseren')} onClick={() => c.toggleAutosave()}>
+            <i aria-hidden="true" /><span>{tx('Autolagring')}</span>
+          </button>
+          <button type="button" role="switch" aria-checked={S.adv} className={s.autoBtn} data-adv-toggle="" title={tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')} onClick={() => c.toggleAdv()}>
+            <i aria-hidden="true" /><span>{tx('Avansert modus')}</span>
+          </button>
+        </span>
         <button type="button" className={s.exportBtn} aria-expanded={S.expOpen} onClick={() => c.ui({ expOpen: !S.expOpen })}>{tx('Eksporter')}</button>
         {S.expOpen && (
           <div className={s.expMenu}>
@@ -269,8 +274,7 @@ function FxLibrary({ c, S, tx }: EditorProps) {
   const vis = cat !== 'fav' && cat !== 'recent' && cat !== 'custom'
   return (
     <div className={s.stack}>
-      <Toggle label={tx('Avansert modus')} on={on} onClick={() => c.toggleAdv()} />
-      {!on && <span className={s.note}>{tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')}</span>}
+      {!on && <span className={s.note}>{tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')} {tx('Slå på «Avansert modus» ved Autolagring øverst.')}</span>}
       {on && (
         <>
           <input className={s.search} value={S.fxQ} placeholder={tx('Søk i effekter …')} aria-label={tx('Søk i effekter')} onChange={(e) => c.ui({ fxQ: e.target.value.slice(0, 60), fxN: 24 })} />

@@ -53,6 +53,8 @@ export interface MState {
   toast: Msg | null
   saved: Phrase
   autosave: boolean
+  /** Avansert modus (huskes på enheten): ekstra verktøy i egenskapspanelet. */
+  adv: boolean
   pv: { w: number; h: number; cw: number; ch: number }
   narrow: boolean
   vw: number
@@ -223,7 +225,7 @@ export class MotionController {
     this.state = createStore<MState>({
       ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
-      toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, narrow: false, vw: 1440, dragOver: false,
+      toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, narrow: false, vw: 1440, dragOver: false,
       clipDrag: null, packing: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
       folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, rev: 0,
     })
@@ -697,6 +699,12 @@ export class MotionController {
   async saveBrowser(): Promise<void> {
     await this.saveNow()
     if (!this.dirty) this.flash('Prosjektet er lagret.')
+  }
+
+  toggleAdv(): void {
+    const on = !this.s.adv
+    this.d.storage.set('motiondesign.advanced', on ? '1' : '0')
+    this.set({ adv: on })
   }
 
   toggleAutosave(): void {

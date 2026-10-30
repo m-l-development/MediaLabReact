@@ -7,6 +7,7 @@ import { format, useLang, type Lang } from '../../shared/i18n/i18n'
 export type Vars = Record<string, string | number>
 
 export const EN = {
+  'Slå på «Avansert modus» ved Autolagring øverst.': 'Turn on «Advanced mode» next to Auto-save at the top.',
   'Avansert framkalling': 'Advanced development',
   'Hvitpunkt': 'Whites',
   'Svartpunkt': 'Blacks',

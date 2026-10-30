@@ -1,7 +1,7 @@
 # Avansert modus: LightCraft (Photo Design) og FilmCraft (Motion Design)
 
-Status 2026-10-30: **kartlegging og plan (fase 1–2)**. Ingen integrasjonskode er skrevet ennå; tre beslutninger må tas
-først (nederst).
+Status 2026-10-30: **Valgt: selvstendig implementasjon.** LightCraft og FilmCraft brukes bare som funksjonelle referanser;
+ingen kode, pakker eller kjøretidsavhengigheter fra dem. Kartleggingen under er grunnlaget.
 
 ## 1. Hva referanseprosjektene er
 
@@ -65,7 +65,17 @@ Gjenbruk: **N** = via ferdig nettapp uten kodeendring, **A** = krever adapter i 
 4. **Standardmodus er uendret.** Photo Design og Motion Design beholder egne prosjekter; de avanserte appene har egne
    bibliotek/prosjekter i OPFS. Ingen blanding av prosjektformater.
 
-## 4. Beslutninger som trengs før integrasjonskoden skrives
+## 4. Beslutning (2026-10-30)
+
+Funksjonene skrives selvstendig i MediaLabReact og legges i de eksisterende Avansert-modusene (standardmodus uendret).
+De ferdige nettpakkene og WASM-integrasjon ble vurdert og forkastet (alternativene under er beholdt som dokumentasjon).
+
+Implementert hittil (se commits på connecthub):
+- Photo Design → Avansert: avansert framkalling (): hvit-/svartpunkt, vibrance, klarhet, skarphet,
+  auto-tone, histogram, før/etter, kopier/lim inn framkalling.
+- «Avansert modus» ved Autolagring i Photo Design og Motion Design.
+
+### Alternativene som ble vurdert
 
 1. **Isolasjon (sikkerhet).** Innloggingsøkten (`ch.auth`) og «Dine medier» ligger i nettleserens lagring for
    appens domene. Kjøres tredjeparts-WASM på **samme domene**, kan den i prinsippet lese dem.
@@ -77,7 +87,7 @@ Gjenbruk: **N** = via ferdig nettapp uten kodeendring, **A** = krever adapter i 
      og broen blir svært begrenset.
 2. **CSP.** WASM krever `'wasm-unsafe-eval'` (og workers/blob for LightCraft) – bare for editorenes sti/domene, ikke for
    resten av appen.
-3. **Størrelse og hosting.** ~50 MB WASM komprimert til ~13 MB i nett; legges som låste filer i repoet/bygget eller
-   hentes ved bygging med kontrollert hash.
+3. **Størrelse og hosting.** ~77 MB WASM (komprimeres av Vercel); lagt som låste filer i repoet (valgt) i stedet for
+   å hentes ved bygging.
 
 Rust-verktøy trengs bare hvis vi senere vil bygge fra kilde i stedet for å bruke de publiserte pakkene.

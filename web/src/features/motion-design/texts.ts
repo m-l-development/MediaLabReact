@@ -7,6 +7,8 @@ import { format, useLang, type Lang } from '../../shared/i18n/i18n'
 export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
+  'Avansert modus': 'Advanced mode',
+  'Avanserte verktøy for klipp: fargekorrigering og mer. Standardvisningen er uendret når dette er av.': 'Advanced clip tools: colour correction and more. The standard view is unchanged when this is off.',
   '{a}.': '{a}.',
   '{a}. {b}.': '{a}. {b}.',
   '{n} elementer er fjernet. Angre med Ctrl+Z.': '{n} items have been removed. Undo with Ctrl+Z.',

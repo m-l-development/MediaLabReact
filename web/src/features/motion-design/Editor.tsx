@@ -108,9 +108,14 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
         <span className={s.flex} />
         <span className={`${s.saved} ${S.saved === 'Ikke lagret' ? s.savedWarn : ''}`} role="status">{S.saved ? tx(S.saved) : ''}</span>
         {!S.autosave && <button type="button" className={s.barBtn} title={tx('Lagre i nettleseren (Ctrl+S)')} onClick={() => void c.saveBrowser()}>{tx('Lagre')}</button>}
-        <button type="button" className={s.auto} role="switch" aria-checked={S.autosave} title={tx('Lagre endringer automatisk i nettleseren')} onClick={() => c.toggleAutosave()}>
-          <span className={s.autoTrack}><span className={s.autoKnob} /></span><span>{tx('Autolagring')}</span>
-        </button>
+        <span data-autosave-row="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+          <button type="button" className={s.auto} role="switch" aria-checked={S.autosave} title={tx('Lagre endringer automatisk i nettleseren')} onClick={() => c.toggleAutosave()}>
+            <span className={s.autoTrack}><span className={s.autoKnob} /></span><span>{tx('Autolagring')}</span>
+          </button>
+          <button type="button" className={s.auto} role="switch" aria-checked={S.adv} data-adv-toggle="" title={tx('Avanserte verktøy for klipp: fargekorrigering og mer. Standardvisningen er uendret når dette er av.')} onClick={() => c.toggleAdv()}>
+            <span className={s.autoTrack}><span className={s.autoKnob} /></span><span>{tx('Avansert modus')}</span>
+          </button>
+        </span>
         <span style={{ display: 'flex', gap: 4 }}>
           <button type="button" className={s.barRound} title={tx('Angre (Ctrl+Z)')} aria-label={tx('Angre')} disabled={!c.canUndo} onClick={() => c.undo()}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
