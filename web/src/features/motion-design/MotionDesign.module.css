@@ -2355,3 +2355,210 @@
   font-size: 13px;
   line-height: 1.55;
 }
+
+/* ---------- lys modus i editoren (samme feil som TB-905D74 i Photo Design) ----------
+   Editoren var bygget bare med mørke, innebygde farger og forble svart i lys modus. Lerretet (prosjektets bilde),
+   klippfargene i tidslinjen og avspillingshodet beholder fargene sine: temaet endrer aldri prosjektet. */
+:root[data-theme='light'] .editor,
+:root[data-theme='light'] .bar,
+:root[data-theme='light'] .aside,
+:root[data-theme='light'] .tabs,
+:root[data-theme='light'] .transport,
+:root[data-theme='light'] .tlWrap {
+  border-color: var(--color-border);
+  background: #f1eee8;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .stage {
+  background: #d9d5cd;
+}
+:root[data-theme='light'] .barBtn,
+:root[data-theme='light'] .barRound,
+:root[data-theme='light'] .act,
+:root[data-theme='light'] .chip,
+:root[data-theme='light'] .name,
+:root[data-theme='light'] .auto,
+:root[data-theme='light'] .replace,
+:root[data-theme='light'] .med,
+:root[data-theme='light'] .mini,
+:root[data-theme='light'] .preset,
+:root[data-theme='light'] .box,
+:root[data-theme='light'] .segs,
+:root[data-theme='light'] .subItem,
+:root[data-theme='light'] .subTime,
+:root[data-theme='light'] .track,
+:root[data-theme='light'] .lib,
+:root[data-theme='light'] .libBtn,
+:root[data-theme='light'] .trTile,
+:root[data-theme='light'] .select,
+:root[data-theme='light'] .num,
+:root[data-theme='light'] .area,
+:root[data-theme='light'] .zBtn {
+  border-color: rgba(40, 34, 26, 0.24);
+  background: #ffffff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .ctxMenu,
+:root[data-theme='light'] .ghost,
+:root[data-theme='light'] .toast,
+:root[data-theme='light'] .modal,
+:root[data-theme='light'] .modalWide {
+  border-color: var(--color-border);
+  background: #fbfaf7;
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .asideL,
+:root[data-theme='light'] .asideR,
+:root[data-theme='light'] .acts,
+:root[data-theme='light'] .secHead,
+:root[data-theme='light'] .subStyle,
+:root[data-theme='light'] .tlBody,
+:root[data-theme='light'] .heads,
+:root[data-theme='light'] .headRuler,
+:root[data-theme='light'] .headRow,
+:root[data-theme='light'] .ruler,
+:root[data-theme='light'] .tRow {
+  border-color: var(--color-border);
+}
+:root[data-theme='light'] .tick {
+  border-left-color: rgba(20, 20, 20, 0.2);
+}
+:root[data-theme='light'] .dashed,
+:root[data-theme='light'] .logoAdd,
+:root[data-theme='light'] .vo,
+:root[data-theme='light'] .curveBtn,
+:root[data-theme='light'] .chan {
+  border-color: rgba(20, 20, 20, 0.35);
+}
+:root[data-theme='light'] .chan {
+  box-shadow: inset 0 0 0 2px #f1eee8;
+}
+:root[data-theme='light'] .tab[aria-pressed='true'],
+:root[data-theme='light'] .seg[aria-pressed='true'],
+:root[data-theme='light'] .drawer[aria-pressed='true'],
+:root[data-theme='light'] .bigLight,
+:root[data-theme='light'] .play,
+:root[data-theme='light'] .exportBtn {
+  background: #141414;
+  color: #f3f1ec;
+}
+:root[data-theme='light'] .bigLight:hover,
+:root[data-theme='light'] .play:hover,
+:root[data-theme='light'] .exportBtn:hover {
+  background: #000000;
+}
+:root[data-theme='light'] .dim,
+:root[data-theme='light'] .saved,
+:root[data-theme='light'] .tab,
+:root[data-theme='light'] .hint,
+:root[data-theme='light'] .note,
+:root[data-theme='light'] .lead2,
+:root[data-theme='light'] .eyebrowSm,
+:root[data-theme='light'] .linkBtn,
+:root[data-theme='light'] .presetD,
+:root[data-theme='light'] .seg,
+:root[data-theme='light'] .subTime,
+:root[data-theme='light'] .x,
+:root[data-theme='light'] .voTime,
+:root[data-theme='light'] .trackMeta,
+:root[data-theme='light'] .time,
+:root[data-theme='light'] .keys,
+:root[data-theme='light'] .propTitle,
+:root[data-theme='light'] .secHead,
+:root[data-theme='light'] .lbl,
+:root[data-theme='light'] .lblTop,
+:root[data-theme='light'] .toggle,
+:root[data-theme='light'] .heads,
+:root[data-theme='light'] .ico,
+:root[data-theme='light'] .lane,
+:root[data-theme='light'] .tick,
+:root[data-theme='light'] .menuKey,
+:root[data-theme='light'] .modalLead,
+:root[data-theme='light'] .aiMsg,
+:root[data-theme='light'] .logoOpt {
+  color: #4a4640;
+}
+:root[data-theme='light'] .dashed,
+:root[data-theme='light'] .subText,
+:root[data-theme='light'] .vo,
+:root[data-theme='light'] .track,
+:root[data-theme='light'] .libBtn,
+:root[data-theme='light'] .trTile,
+:root[data-theme='light'] .menuItem,
+:root[data-theme='light'] .curveBtn,
+:root[data-theme='light'] .logoAdd,
+:root[data-theme='light'] .linkBtn:hover,
+:root[data-theme='light'] .secHead:hover,
+:root[data-theme='light'] .subTime:hover,
+:root[data-theme='light'] .ico:hover,
+:root[data-theme='light'] .logoNone:hover {
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .ico:hover,
+:root[data-theme='light'] .menuItem:hover {
+  background: rgba(20, 20, 20, 0.08);
+}
+:root[data-theme='light'] .menuSep {
+  background: var(--color-border);
+}
+:root[data-theme='light'] .subText:focus {
+  border-color: rgba(40, 34, 26, 0.24);
+  background: #ffffff;
+}
+:root[data-theme='light'] .autoTrack,
+:root[data-theme='light'] .tTrack {
+  background: rgba(20, 20, 20, 0.22);
+}
+:root[data-theme='light'] .autoKnob,
+:root[data-theme='light'] .tKnob {
+  background: #ffffff;
+}
+:root[data-theme='light'] .auto[aria-checked='true'] .autoTrack,
+:root[data-theme='light'] .toggle[aria-checked='true'] .tTrack {
+  background: #141414;
+}
+:root[data-theme='light'] .auto[aria-checked='true'] .autoKnob,
+:root[data-theme='light'] .toggle[aria-checked='true'] .tKnob {
+  background: #ffffff;
+}
+:root[data-theme='light'] .savedWarn,
+:root[data-theme='light'] .icoOn,
+:root[data-theme='light'] .ghostSub {
+  color: var(--color-warning);
+}
+:root[data-theme='light'] .danger,
+:root[data-theme='light'] .aiErr,
+:root[data-theme='light'] .icoHid,
+:root[data-theme='light'] .x:hover,
+:root[data-theme='light'] .icoDel:hover,
+:root[data-theme='light'] .medDel:hover {
+  color: var(--color-danger);
+}
+:root[data-theme='light'] .name:focus,
+:root[data-theme='light'] .subItemSel,
+:root[data-theme='light'] .trackSel,
+:root[data-theme='light'] .logoOpt[aria-pressed='true'],
+:root[data-theme='light'] .mini:hover,
+:root[data-theme='light'] .preset:hover,
+:root[data-theme='light'] .dashed:hover,
+:root[data-theme='light'] .logoAdd:hover,
+:root[data-theme='light'] .curveBtn:hover,
+:root[data-theme='light'] .chan[aria-pressed='true'],
+:root[data-theme='light'] .barBtn:hover,
+:root[data-theme='light'] .barRound:hover,
+:root[data-theme='light'] .act:hover,
+:root[data-theme='light'] .chip:hover,
+:root[data-theme='light'] .zBtn:hover {
+  border-color: #141414;
+}
+:root[data-theme='light'] .medThumb,
+:root[data-theme='light'] .logoOpt {
+  background-color: #e2ded6;
+}
+:root[data-theme='light'] .range {
+  accent-color: #141414;
+}
+:root[data-theme='light'] .modalBack {
+  background: rgba(20, 20, 20, 0.35);
+}

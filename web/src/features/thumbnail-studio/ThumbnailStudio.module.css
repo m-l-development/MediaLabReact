@@ -2501,3 +2501,9 @@ button:disabled {
     max-height: none;
   }
 }
+
+/* Arbeidsflaten rundt lerretet i lys modus, som i Photo Design og Motion Design (selve designet endres ikke). */
+:root[data-theme='light'] .stage,
+:root[data-theme='light'] .stageInner {
+  background: #d9d5cd;
+}

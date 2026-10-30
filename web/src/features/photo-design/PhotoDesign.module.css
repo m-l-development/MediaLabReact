@@ -1992,3 +1992,179 @@ button:disabled {
 :root[data-theme='light'] .schemeWarn {
   color: #9a6b00;
 }
+
+/* ---------- lys modus i editoren (TB-905D74) ----------
+   Editoren var bygget bare med mørke, innebygde farger, så den forble svart i lys modus. Her får verktøylinje, paneler,
+   felt, menyer og lagliste lyse flater med appens fargevariabler. Lerretet (brukerens design), hjelpelinjer, håndtak og
+   markeringer beholder fargene sine: temaet endrer aldri designet. */
+:root[data-theme='light'] .editor {
+  border-color: var(--color-border);
+  background: #f1eee8;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .bar,
+:root[data-theme='light'] .left,
+:root[data-theme='light'] .right {
+  border-color: var(--color-border);
+  background: #f1eee8;
+}
+:root[data-theme='light'] .layers {
+  border-top-color: var(--color-border);
+  background: #ebe7e0;
+}
+:root[data-theme='light'] .stage {
+  background: #d9d5cd;
+}
+:root[data-theme='light'] .hr,
+:root[data-theme='light'] .row3,
+:root[data-theme='light'] .printBox,
+:root[data-theme='light'] .sectionHead {
+  border-top-color: var(--color-border);
+}
+:root[data-theme='light'] .barBtn,
+:root[data-theme='light'] .barRound,
+:root[data-theme='light'] .zoom,
+:root[data-theme='light'] .seg,
+:root[data-theme='light'] .busy,
+:root[data-theme='light'] .autoBtn,
+:root[data-theme='light'] .addGrid button,
+:root[data-theme='light'] .shapeGrid,
+:root[data-theme='light'] .logoBox,
+:root[data-theme='light'] .curve,
+:root[data-theme='light'] .fxItem > button:first-child,
+:root[data-theme='light'] .kindGrid button,
+:root[data-theme='light'] .looks button,
+:root[data-theme='light'] .colorRow select,
+:root[data-theme='light'] .field select,
+:root[data-theme='light'] .catRow select,
+:root[data-theme='light'] .fontRow select,
+:root[data-theme='light'] .search,
+:root[data-theme='light'] .field input,
+:root[data-theme='light'] .field textarea,
+:root[data-theme='light'] .cmyk input,
+:root[data-theme='light'] .layerNameInput {
+  border-color: rgba(40, 34, 26, 0.24);
+  background: #ffffff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .layerNameInput {
+  border-color: #3d8bff;
+}
+:root[data-theme='light'] .zoom button {
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .addGrid button[aria-pressed='true'],
+:root[data-theme='light'] .kindGrid button[aria-pressed='true'],
+:root[data-theme='light'] .looks button[aria-pressed='true'] {
+  border-color: #141414;
+  background: rgba(20, 20, 20, 0.08);
+}
+:root[data-theme='light'] .seg button {
+  color: #4a4640;
+}
+:root[data-theme='light'] .seg button[aria-pressed='true'] {
+  background: #141414;
+  color: #f3f1ec;
+}
+:root[data-theme='light'] .docName {
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .docName:hover,
+:root[data-theme='light'] .docName:focus {
+  border-color: var(--color-border);
+}
+:root[data-theme='light'] .zoom .zoomLabel,
+:root[data-theme='light'] .expNote,
+:root[data-theme='light'] .colorRow,
+:root[data-theme='light'] .range > span,
+:root[data-theme='light'] .fxItem > span,
+:root[data-theme='light'] .field > span,
+:root[data-theme='light'] .fieldLabel,
+:root[data-theme='light'] .fontRow > span,
+:root[data-theme='light'] .cmyk,
+:root[data-theme='light'] .layerDel,
+:root[data-theme='light'] .resetBtn,
+:root[data-theme='light'] .saved {
+  color: #4a4640;
+}
+:root[data-theme='light'] .resetBtn {
+  border-color: rgba(40, 34, 26, 0.24);
+}
+:root[data-theme='light'] .layerDel:hover {
+  color: var(--color-danger);
+}
+:root[data-theme='light'] .savedWarn,
+:root[data-theme='light'] .schemeWarn,
+:root[data-theme='light'] .tplOwn {
+  color: var(--color-warning);
+}
+:root[data-theme='light'] .exportBtn {
+  background: #141414;
+  color: #f3f1ec;
+}
+:root[data-theme='light'] .expMenu,
+:root[data-theme='light'] .palMenu,
+:root[data-theme='light'] .schemePop {
+  border-color: var(--color-border);
+  background: #fbfaf7;
+  box-shadow: var(--shadow-md);
+}
+:root[data-theme='light'] .layerRow:hover {
+  background: rgba(20, 20, 20, 0.05);
+}
+:root[data-theme='light'] .layerOn,
+:root[data-theme='light'] .layerOn:hover {
+  background: rgba(61, 139, 255, 0.12);
+}
+:root[data-theme='light'] .layerIcon {
+  background: rgba(20, 20, 20, 0.08);
+  color: #4a4640;
+}
+:root[data-theme='light'] .sw22,
+:root[data-theme='light'] .sw24,
+:root[data-theme='light'] .palDot,
+:root[data-theme='light'] .colorRow input[type='color'],
+:root[data-theme='light'] .colorInput,
+:root[data-theme='light'] .palBtn,
+:root[data-theme='light'] .palSw,
+:root[data-theme='light'] .schemeTrio,
+:root[data-theme='light'] .schemeChip i,
+:root[data-theme='light'] .schemeColor input[type='color'],
+:root[data-theme='light'] .schemeColor input[type='text'],
+:root[data-theme='light'] .schemeBtn,
+:root[data-theme='light'] .tplReset,
+:root[data-theme='light'] .fxColTabs i {
+  border-color: rgba(20, 20, 20, 0.28);
+}
+:root[data-theme='light'] .sw22[aria-pressed='true'],
+:root[data-theme='light'] .sw24[aria-pressed='true'],
+:root[data-theme='light'] .palDot[aria-pressed='true'] {
+  border-color: #141414;
+}
+:root[data-theme='light'] .schemeChip {
+  background: rgba(20, 20, 20, 0.06);
+}
+:root[data-theme='light'] .schemeX {
+  background: rgba(20, 20, 20, 0.08);
+}
+:root[data-theme='light'] .toggle {
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .autoBtn i,
+:root[data-theme='light'] .toggle i {
+  background: rgba(20, 20, 20, 0.22);
+}
+:root[data-theme='light'] .autoBtn i::after,
+:root[data-theme='light'] .toggle i::after {
+  background: #ffffff;
+}
+:root[data-theme='light'] .autoBtn[aria-checked='true'] i,
+:root[data-theme='light'] .toggle[aria-checked='true'] i {
+  background: #141414;
+}
+:root[data-theme='light'] .range input {
+  accent-color: #141414;
+}
+:root[data-theme='light'] .range .rangeAccent {
+  accent-color: #b07800;
+}
