@@ -6,6 +6,8 @@ import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
 import { ADJ, BLEED, BLENDS, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type PdLayer } from './engine/model'
 import { curveFn } from './engine/render'
+import { DEV, type Dev, type Histogram } from './engine/develop'
+import { useEffect, useRef } from 'react'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
 
@@ -277,6 +279,57 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
   )
 }
 
+const DEVL: [keyof Dev, Phrase, number, number][] = [['whites', 'Hvitpunkt', -100, 100], ['blacks', 'Svartpunkt', -100, 100], ['vib', 'Vibrance', -100, 100], ['clarity', 'Klarhet', -100, 100], ['sharp', 'Skarphet', 0, 100]]
+
+/** Histogram (lyshet + RGB) for valgt bildelag, tegnet på et lite lerret. */
+function HistView({ h }: { h: Histogram | null }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const cv = ref.current, g = cv?.getContext('2d')
+    if (!cv || !g) return
+    g.clearRect(0, 0, cv.width, cv.height)
+    if (!h || !h.n) return
+    let mx = 1
+    for (const a of [h.r, h.g, h.b]) for (let i = 2; i < 254; i++) mx = Math.max(mx, a[i] ?? 0)
+    g.globalCompositeOperation = 'lighter'
+    for (const [a, col] of [[h.r, 'rgba(255,70,70,0.55)'], [h.g, 'rgba(70,220,90,0.55)'], [h.b, 'rgba(80,130,255,0.6)']] as const) {
+      g.beginPath()
+      g.moveTo(0, cv.height)
+      for (let i = 0; i < 256; i++) g.lineTo((i / 255) * cv.width, cv.height - Math.min(1, (a[i] ?? 0) / mx) * cv.height)
+      g.lineTo(cv.width, cv.height)
+      g.fillStyle = col
+      g.fill()
+    }
+  }, [h])
+  return <canvas ref={ref} width={256} height={72} data-pd-hist="" className={s.curve} style={{ width: '100%', height: 72, background: '#111' }} />
+}
+
+/** Avansert framkalling (Avansert modus): hvit-/svartpunkt, vibrance, klarhet, skarphet, auto-tone, histogram, kopier/lim inn og før/etter. */
+function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
+  const dev = { ...DEV, ...L.dev }
+  const h = c.histOfLayer(L.id)
+  const hold = (on: boolean) => c.setBefore(on ? L.id : null)
+  return (
+    <div data-pd-adv-dev="">
+      <div className={s.sectionHead}>
+        <span className={s.eyebrowSm}>{tx('Avansert framkalling')}</span>
+        <button type="button" className={s.resetBtn} onClick={() => c.resetDev(L.id)}>{tx('Nullstill')}</button>
+      </div>
+      <HistView h={h} />
+      <div className={s.looks}>
+        <button type="button" data-pd-auto="" title={tx('Auto-tone: eksponering, hvit- og svartpunkt ut fra bildet')} onClick={() => c.autoTone(L.id)}>{tx('Auto')}</button>
+        <button type="button" data-pd-before="" onPointerDown={() => hold(true)} onPointerUp={() => hold(false)} onPointerLeave={() => hold(false)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') hold(true) }} onKeyUp={() => hold(false)}>{tx('Hold for før')}</button>
+        <button type="button" data-pd-copydev="" onClick={() => c.copyDev(L.id)}>{tx('Kopier framkalling')}</button>
+        <button type="button" data-pd-pastedev="" disabled={!c.s.devClip} onClick={() => c.pasteDev(L.id)}>{tx('Lim inn framkalling')}</button>
+      </div>
+      {DEVL.map(([k, l, mn, mx]) => {
+        const v = Number(dev[k] ?? 0)
+        return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${v > 0 && mn < 0 ? '+' : ''}${Math.round(v)}`} on={(x) => c.setDev(L.id, k, x, `dev${k}`)} reset={() => c.setDev(L.id, k, 0)} />
+      })}
+    </div>
+  )
+}
+
 function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
   const adj = { ...ADJ, ...L.adj }
   const curve = adj.curve ?? [[0, 0], [1, 1]]
@@ -350,6 +403,7 @@ function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type
         {curve.map((p, i) => <circle key={i} cx={(p[0] * 100).toFixed(1)} cy={((1 - p[1]) * 100).toFixed(1)} r="2.6" fill="#0e0e0e" stroke="#e9e7e2" strokeWidth="1.2" />)}
       </svg>
       <span className={s.dimSm}>{tx('Klikk for å legge til punkt. Dra for å flytte. Dobbeltklikk på et punkt fjerner det.')}</span>
+      {c.s.adv && <AdvDevelop c={c} L={L} tx={tx} />}
     </>
   )
 }

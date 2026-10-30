@@ -1,3 +1,4 @@
+import type { Dev } from './develop'
 import type { Fill } from '../../../shared/fill/fill'
 
 /**
@@ -74,6 +75,8 @@ export interface ImageLayer extends Base {
   look: string
   mask: string | null
   tint?: string | null
+  /** Avansert framkalling (bare i Avansert modus; mangler = ingen). Se engine/develop.ts. */
+  dev?: Dev | null
 }
 
 export interface TextLayer extends Base {

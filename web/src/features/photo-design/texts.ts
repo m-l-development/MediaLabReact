@@ -7,6 +7,18 @@ import { format, useLang, type Lang } from '../../shared/i18n/i18n'
 export type Vars = Record<string, string | number>
 
 export const EN = {
+  'Avansert framkalling': 'Advanced development',
+  'Hvitpunkt': 'Whites',
+  'Svartpunkt': 'Blacks',
+  'Vibrance': 'Vibrance',
+  'Klarhet': 'Clarity',
+  'Kopier framkalling': 'Copy development',
+  'Lim inn framkalling': 'Paste development',
+  'Hold for før': 'Hold for before',
+  'Histogram': 'Histogram',
+  'Auto-tone: eksponering, hvit- og svartpunkt ut fra bildet': 'Auto tone: exposure, whites and blacks from the image',
+  'Framkallingen er kopiert.': 'Development copied.',
+  'Framkallingen er limt inn.': 'Development pasted.',
   '{n} farger': '{n} colours',
   'Prosjektene fra forrige versjon kunne ikke hentes nå. De ligger urørt og prøves igjen neste gang du åpner verktøyet.': 'The projects from the previous version could not be brought over right now. They are untouched and will be tried again the next time you open the tool.',
   '{n} prosjekter er hentet fra forrige versjon av Photo design.': '{n} projects were brought over from the previous version of Photo design.',

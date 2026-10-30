@@ -7,8 +7,9 @@ import {
   ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, targetSlot, textLayer, uid,
   type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
+import { autoTone, cleanDev, DEV, type Dev, type Histogram } from './engine/develop'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
-import { baseOf, cover, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
+import { baseOf, cover, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
 
@@ -59,6 +60,8 @@ export interface PState {
   shapesOpen: boolean
   logoOpen: boolean
   adv: boolean
+  /** Avansert framkalling er kopiert og kan limes inn. */
+  devClip?: boolean
   fxCat: string
   fxQ: string
   fxN: number
@@ -1220,6 +1223,56 @@ export class PhotoController {
 
   setCurve(id: string, pts: [number, number][] | null, key?: string): void {
     this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, curve: pts } } : {}), key)
+  }
+
+  /** Avansert framkalling (engine/develop.ts, bare i Avansert modus). Nøytral verdi fjerner feltet helt. */
+  setDev(id: string, k: keyof Dev, v: number, key?: string): void {
+    this.patchL(id, (q) => (q.type === 'image' ? { dev: cleanDev({ ...DEV, ...q.dev, [k]: v }) } : {}), key)
+  }
+
+  resetDev(id: string): void {
+    this.patchL(id, { dev: null })
+  }
+
+  /** Histogram for bildelaget (raw = originalen). Null uten bilde. */
+  histOfLayer(id: string, raw = false): Histogram | null {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!L || L.type !== 'image' || !E) return null
+    return histOf(E, raw ? null : { ...ADJ, ...L.adj }, raw ? null : cleanDev(L.dev))
+  }
+
+  /** Auto-tone ut fra originalens histogram: eksponering, hvit- og svartpunkt (fargene røres ikke). */
+  autoTone(id: string): void {
+    const h = this.histOfLayer(id, true)
+    if (!h) return
+    const t = autoTone(h)
+    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, exp: t.exp }, dev: cleanDev({ ...DEV, ...q.dev, whites: t.whites, blacks: t.blacks }) } : {}))
+  }
+
+  private devClip: { adj: Adj; look: string; dev: Dev | null } | null = null
+  /** Kopier framkalling (justeringer, look og avansert) fra et bildelag … */
+  copyDev(id: string): void {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    if (L?.type !== 'image') return
+    this.devClip = { adj: { ...ADJ, ...L.adj }, look: L.look || 'none', dev: cleanDev(L.dev) }
+    this.set({ devClip: true })
+    this.flash('Framkallingen er kopiert.')
+  }
+
+  /** … og lim den inn på et annet (bildet, utsnittet og masken beholdes). */
+  pasteDev(id: string): void {
+    const c = this.devClip
+    if (!c) return
+    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...c.adj }, look: c.look, dev: c.dev ? { ...c.dev } : null } : {}))
+    this.flash('Framkallingen er limt inn.')
+  }
+
+  /** Før/etter: viser bildelaget uten justeringer og framkalling mens knappen holdes inne (endrer ikke prosjektet). */
+  setBefore(id: string | null): void {
+    if ((this.M.before ?? null) === id) return
+    this.M.before = id
+    this.set((s) => ({ hist: s.hist + 1 }))
   }
 
   setAdj(id: string, k: keyof Adj, v: number, key?: string): void {
