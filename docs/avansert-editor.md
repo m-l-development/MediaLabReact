@@ -71,7 +71,7 @@ Funksjonene skrives selvstendig i MediaLabReact og legges i de eksisterende Avan
 De ferdige nettpakkene og WASM-integrasjon ble vurdert og forkastet (alternativene under er beholdt som dokumentasjon).
 
 Implementert hittil (se commits på connecthub):
-- Photo Design → Avansert: avansert framkalling (): hvit-/svartpunkt, vibrance, klarhet, skarphet,
+- Photo Design → Avansert: avansert framkalling (`web/src/features/photo-design/engine/develop.ts`): hvit-/svartpunkt, vibrance, klarhet, skarphet,
   auto-tone, histogram, før/etter, kopier/lim inn framkalling.
 - «Avansert modus» ved Autolagring i Photo Design og Motion Design.
 
