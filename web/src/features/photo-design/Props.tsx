@@ -197,7 +197,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               <div className={s.seg}>
                 {([['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={L.align === k} onClick={() => P({ align: k })}>{tx(l)}</button>)}
               </div>
-              <ColorPick val={L.color} label={tx('Tekstfarge')} cmyk set={(v) => c.setCol(L, 'color', v, 'tcolor')} />
+              <ColorPick val={L.color} label={tx('Tekstfarge')} cmyk={S.adv} set={(v) => c.setCol(L, 'color', v, 'tcolor')} />
               <Toggle label={tx('Store bokstaver')} on={L.upper} onClick={() => P({ upper: !L.upper })} />
               <label className={s.colorRow}><span>{tx('Konturfarge')}</span><input type="color" value={hex(L.strokeC)} onChange={(e) => P({ strokeC: e.target.value }, 'tsc')} /></label>
               <Toggle label={tx('Understrek')} on={!!L.bar} onClick={() => P({ bar: !L.bar, barColor: L.barColor || L.color, barH: L.barH ?? Math.max(2, Math.round(L.size * 0.07)), barW: L.barW ?? 1, barGap: L.barGap ?? 1 })} />
@@ -216,7 +216,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               <div className={s.kindGrid}>
                 {SHAPES.map(([k, l]) => <button key={k} type="button" aria-pressed={(L.kind || 'rect') === k} onClick={() => P((q) => ({ kind: k, ...(k === 'line' && q.type === 'shape' ? { h: Math.max(2, Math.min(q.h, q.w * 0.05)) } : {}) }))}>{tx(l as Phrase)}</button>)}
               </div>
-              <ColorPick val={L.fill} label={tx('Fyllfarge')} cmyk set={(v) => c.setCol(L, 'fill', v, 'sfill')} />
+              <ColorPick val={L.fill} label={tx('Fyllfarge')} cmyk={S.adv} set={(v) => c.setCol(L, 'fill', v, 'sfill')} />
               <Toggle label={tx('Ingen fyll')} on={L.fill === 'rgba(0,0,0,0)'} onClick={() => P({ fill: L.fill === 'rgba(0,0,0,0)' ? '#f5b82c' : 'rgba(0,0,0,0)' })} />
               <Toggle label={tx('Toning')} on={!!L.fill2} onClick={() => P({ fill2: L.fill2 ? null : '#000000' })} />
               {L.fill2 && <label className={s.colorRow}><span>{tx('Toning til')}</span><input type="color" value={hex(L.fill2)} onChange={(e) => P({ fill2: e.target.value }, 'sf2')} /></label>}
@@ -231,12 +231,12 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           )}
           {L.type === 'fx' && <FxEdit c={c} S={S} tx={tx} />}
           {layerRanges}
-          <label className={s.colorRow}>
+          {S.adv && <label className={s.colorRow}>
             <span>{tx('Blandingsmodus')}</span>
             <select value={L.blend || 'source-over'} onChange={(e) => P({ blend: e.target.value as GlobalCompositeOperation })}>
               {BLENDS.map(([v, l]) => <option key={v} value={v}>{tx(l as Phrase)}</option>)}
             </select>
-          </label>
+          </label>}
           <div className={s.row3}>
             <button type="button" className={s.smallBtn} onClick={() => P({ x: d.w / 2, y: d.h / 2 })}>{tx('Midtstill')}</button>
             <button type="button" className={s.smallBtn} onClick={() => c.dup()}>{tx('Dupliser')}</button>
