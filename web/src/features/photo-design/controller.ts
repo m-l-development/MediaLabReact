@@ -5,7 +5,7 @@ import * as FX from '../../shared/fx/fx'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
 import {
   ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, targetSlot, textLayer, uid,
-  type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
+  type Adj, type CurveKey, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
 import { autoTone, cleanDev, DEV, type Dev, type Histogram } from './engine/develop'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
@@ -1221,8 +1221,8 @@ export class PhotoController {
 
   // ---------- kurve ----------
 
-  setCurve(id: string, pts: [number, number][] | null, key?: string): void {
-    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, curve: pts } } : {}), key)
+  setCurve(id: string, pts: [number, number][] | null, key?: string, ch: CurveKey = 'curve'): void {
+    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, [ch]: pts } } : {}), key)
   }
 
   /** Avansert framkalling (engine/develop.ts, bare i Avansert modus). Nøytral verdi fjerner feltet helt. */

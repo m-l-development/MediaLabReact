@@ -7,6 +7,13 @@ import { format, useLang, type Lang } from '../../shared/i18n/i18n'
 export type Vars = Record<string, string | number>
 
 export const EN = {
+  'RGB': 'RGB',
+  'Blå': 'Blue',
+  'Inn': 'In',
+  'Ut': 'Out',
+  'Før/etter': 'Before/after',
+  'Hold inne for å se bildet uten justeringer': 'Hold to see the image without adjustments',
+  'Flere verktøy (kurver, høylys og skygger, framkalling) finnes i Avansert modus.': 'More tools (curves, highlights and shadows, development) are in Advanced mode.',
   'Slå på «Avansert modus» ved Autolagring øverst.': 'Turn on «Advanced mode» next to Auto-save at the top.',
   'Avansert framkalling': 'Advanced development',
   'Hvitpunkt': 'Whites',

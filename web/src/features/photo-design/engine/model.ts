@@ -23,7 +23,12 @@ export const FONTS = ['Archivo', 'Bebas Neue', 'Montserrat', 'Anton', 'Oswald', 
 export interface Adj {
   exp: number; bri: number; con: number; hi: number; sh: number; sat: number; temp: number; tint: number; hue: number; fade: number; blur: number; vig: number; grain: number
   curve: [number, number][] | null
+  /** Kanalkurver (Avansert): rød, grønn, blå. Mangler = ingen. */
+  curveR?: [number, number][] | null
+  curveG?: [number, number][] | null
+  curveB?: [number, number][] | null
 }
+export type CurveKey = 'curve' | 'curveR' | 'curveG' | 'curveB'
 export const ADJ: Adj = { exp: 0, bri: 0, con: 0, hi: 0, sh: 0, sat: 0, temp: 0, tint: 0, hue: 0, fade: 0, blur: 0, vig: 0, grain: 0, curve: null }
 export const LOOKS: readonly [string, string, Partial<Adj>][] = [
   ['none', 'Original', {}], ['warm', 'Varm', { temp: 35, sat: 8, con: 6 }], ['cool', 'Kjølig', { temp: -35, tint: -5, con: 4 }],

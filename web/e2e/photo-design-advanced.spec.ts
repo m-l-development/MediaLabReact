@@ -72,3 +72,58 @@ test('avansert framkalling: bare i Avansert modus, virker på lerretet, før/ett
   await expect(panel).toBeVisible()
   await expect(panel.locator('input[type="range"]').nth(0)).toHaveValue(saved)
 })
+
+const channelMeans = (page: Page) => page.locator('[data-pd-wrap] canvas').first().evaluate((c: HTMLCanvasElement) => {
+  const d = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data
+  let r = 0, g = 0, n = 0
+  for (let i = 0; i < d.length; i += 4 * 97) { r += d[i]!; g += d[i + 1]!; n++ }
+  return { r: r / n, g: g / n }
+})
+
+test('Standard viser bare grunnleggende justeringer; Avansert har kanalkurver som virker på bildet og lagres', async ({ page }) => {
+  await open(page)
+  await page.getByRole('button', { name: 'Farge', exact: true }).click()
+  // Standard: fem enkle justeringer, ingen kurve; før/etter virker
+  const ranges = page.locator('[data-pd-view="edit"] input[type="range"]')
+  await expect(page.locator('[data-pd-curves]')).toHaveCount(0)
+  await expect(page.getByText('Høylys', { exact: true })).toHaveCount(0)
+  for (const l of ['Eksponering', 'Lysstyrke', 'Kontrast', 'Metning', 'Temperatur']) await expect(page.getByText(l, { exact: true }).first()).toBeVisible()
+  const m0 = await mean(page)
+  await page.getByText('Lysstyrke', { exact: true }).first().locator('xpath=ancestor::*[.//input[@type="range"]][1]').locator('input[type="range"]').fill('60')
+  await expect.poll(() => mean(page)).toBeGreaterThan(m0 + 2)
+  const lit = await mean(page)
+  await page.locator('[data-pd-before-std]').hover()
+  await page.mouse.down()
+  await expect.poll(() => mean(page)).toBeLessThan(lit - 2)
+  await page.mouse.up()
+  expect(await ranges.count()).toBeLessThanOrEqual(8)
+
+  // Avansert: kanalkurve (rød) løfter rødt mer enn grønt
+  await page.locator('[data-adv-toggle]').click()
+  const curves = page.locator('[data-pd-curves]')
+  await expect(curves).toBeVisible()
+  await expect(page.getByText('Høylys', { exact: true }).first()).toBeVisible()
+  const c0 = await channelMeans(page)
+  await curves.locator('[data-pd-ch="curveR"]').click()
+  const svg = curves.locator('[data-pd-curve-svg]')
+  const b = (await svg.boundingBox())!
+  // ny punkt midt på diagonalen, dra det opp
+  const px = b.x + b.width * (3 + 50) / 106, py = b.y + b.height * (3 + 50) / 106
+  await page.mouse.move(px, py)
+  await page.mouse.down()
+  await page.mouse.move(px, py - b.height * 0.25, { steps: 5 })
+  await page.mouse.up()
+  await expect(curves.locator('[data-pd-curve-read]')).toContainText('→')
+  await expect.poll(async () => { const c1 = await channelMeans(page); return (c1.r - c0.r) - (c1.g - c0.g) }, { message: 'rødkurven løfter rødt mer enn grønt' }).toBeGreaterThan(8)
+
+  // lagring og gjenåpning: kanalkurven er der fortsatt
+  await page.getByRole('button', { name: 'Lagre', exact: true }).click()
+  await expect(page.getByText('Prosjektet er lagret.')).toBeVisible()
+  await page.getByRole('button', { name: /Prosjekter/ }).first().click()
+  await page.reload()
+  await page.locator('[data-project]').first().click()
+  await page.locator('[data-layer]').filter({ hasText: /grad|Bakgrunnsbilde/ }).first().click()
+  await page.getByRole('button', { name: 'Farge', exact: true }).click()
+  await page.locator('[data-pd-curves] [data-pd-ch="curveR"]').click()
+  await expect(page.locator('[data-pd-curve-svg] circle')).toHaveCount(6) // 3 punkter × (treffsone + punkt)
+})

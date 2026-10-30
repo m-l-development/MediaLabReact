@@ -107,6 +107,7 @@ function luts(a: Adj): [Uint8ClampedArray, Uint8ClampedArray, Uint8ClampedArray]
   const Gc = new Uint8ClampedArray(256)
   const B = new Uint8ClampedArray(256)
   const cf = curveFn(a.curve)
+  const cr = curveFn(a.curveR), cg = curveFn(a.curveG), cb = curveFn(a.curveB)
   const ex = Math.pow(2, (a.exp || 0) / 50)
   const c = a.con || 0
   const cm = c > 0 ? 1 + (c / 100) * 1.4 : 1 + (c / 100) * 0.9
@@ -125,9 +126,10 @@ function luts(a: Adj): [Uint8ClampedArray, Uint8ClampedArray, Uint8ClampedArray]
     x = clamp(x, 0, 1)
     x = x * (1 - f * 0.28) + f * 0.14
     if (cf) x = cf(x)
-    R[v] = x * gr * 255
-    Gc[v] = x * gg * 255
-    B[v] = x * gb * 255
+    const r = x * gr, g2 = x * gg, b2 = x * gb
+    R[v] = (cr ? cr(clamp(r, 0, 1)) : r) * 255
+    Gc[v] = (cg ? cg(clamp(g2, 0, 1)) : g2) * 255
+    B[v] = (cb ? cb(clamp(b2, 0, 1)) : b2) * 255
   }
   return [R, Gc, B]
 }
@@ -152,7 +154,7 @@ function satHue(a: Adj): number[] {
 export function neutral(a: Adj): boolean {
   for (const k of Object.keys(ADJ) as (keyof Adj)[]) {
     if (k === 'curve') {
-      if (a.curve?.length) return false
+      if (a.curve?.length || a.curveR?.length || a.curveG?.length || a.curveB?.length) return false
     } else if (a[k]) return false
   }
   return true

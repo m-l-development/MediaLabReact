@@ -2168,3 +2168,73 @@ button:disabled {
 :root[data-theme='light'] .range .rangeAccent {
   accent-color: #b07800;
 }
+
+/* ---------- kurveeditor (Avansert) ----------
+   Tydelig hierarki: mørk flate, dempet rutenett, histogram som svak flate bak, kurven sterkest, store punkter. */
+.curveBig {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 1;
+  height: auto;
+  margin: 6px 0 4px;
+  color: #f3f1ec;
+  cursor: crosshair;
+  touch-action: none;
+}
+.curveBig:focus-visible {
+  outline: 2px solid #3d8bff;
+  outline-offset: 2px;
+}
+.curveBg {
+  fill: #0a0a0a;
+}
+.curveHist {
+  fill: #f3f1ec;
+  opacity: 0.12;
+}
+.curveGrid {
+  stroke: #2a2a2a;
+  stroke-width: 0.5;
+  fill: none;
+}
+.curveDiag {
+  stroke: #3a3a3a;
+  stroke-width: 0.5;
+  stroke-dasharray: 2 2;
+  fill: none;
+}
+.curveLine {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.curvePt {
+  fill: #0a0a0a;
+  stroke: #f3f1ec;
+  stroke-width: 1.4;
+}
+.curvePtOn {
+  fill: #3d8bff;
+  stroke: #ffffff;
+  stroke-width: 1.4;
+}
+:root[data-theme='light'] .curveBig {
+  color: #141414;
+}
+:root[data-theme='light'] .curveBg {
+  fill: #ffffff;
+}
+:root[data-theme='light'] .curveHist {
+  fill: #141414;
+  opacity: 0.1;
+}
+:root[data-theme='light'] .curveGrid {
+  stroke: #dad6ce;
+}
+:root[data-theme='light'] .curveDiag {
+  stroke: #c3beb4;
+}
+:root[data-theme='light'] .curvePt {
+  fill: #ffffff;
+  stroke: #141414;
+}
