@@ -2531,6 +2531,12 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                   <button onClick={v.moveLater} style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className={P.scp2}>
                     {tx("Flytt →")}
                   </button>
+                  <button onClick={v.moveFirst} style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}}>
+                    {tx("⇤ Først")}
+                  </button>
+                  <button onClick={v.moveLast} style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}}>
+                    {tx("Sist ⇥")}
+                  </button>
                   {"\n              "}
                   <button onClick={v.duplicate} style={{"height":"34px","padding":"0 12px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className={P.scp2}>
                     {tx("Dupliser")}
@@ -4410,7 +4416,9 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               const v1 = { ...v, "c": $it1, $index: $i1 };
               return <React.Fragment key={$i1}>
                 {"\n          "}
-                <div data-loop-card={v1.c?.num} style={{"position":"relative","flex":"0 0 172px","display":"flex"}}>
+                <div data-loop-card={v1.c?.num} draggable={true} onDragStart={v1.c?.onDragStart} onDragOver={v1.c?.onDragOver} onDrop={v1.c?.onDrop} onDragEnd={v1.c?.onDragEnd} onKeyDown={v1.c?.onKeyDown} title={tx("Dra for å flytte (Alt + piltast med tastaturet)")} style={{"position":"relative","flex":"0 0 172px","display":"flex"}}>
+                  {v1.c?.dropBefore ? <div data-loop-drop="" style={{"position":"absolute","left":"-7px","top":"0","bottom":"0","width":"3px","borderRadius":"2px","background":"#f3f1ec","boxShadow":"0 0 8px rgba(255,255,255,0.6)","zIndex":"3","pointerEvents":"none"}} /> : null}
+                  {v1.c?.dropAfter ? <div data-loop-drop="" style={{"position":"absolute","right":"-7px","top":"0","bottom":"0","width":"3px","borderRadius":"2px","background":"#f3f1ec","boxShadow":"0 0 8px rgba(255,255,255,0.6)","zIndex":"3","pointerEvents":"none"}} /> : null}
                   {"\n          "}
                   <button onClick={v1.c?.onClick} style={css(`flex:1 1 auto; min-width:0; display:flex; flex-direction:column; padding:0; border:1px solid ${v1.c?.border ?? ""}; box-shadow:${v1.c?.shadow ?? ""}; border-radius:14px; background:#0a0a0a; overflow:hidden; cursor:pointer; text-align:left; font:inherit; color:#f3f1ec; opacity:${v1.c?.opacity ?? ""};`)}>
                     {"\n            "}

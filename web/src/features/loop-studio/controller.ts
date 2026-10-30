@@ -15,10 +15,13 @@ import { detectBeat, embeddedFontCSS, FONT_CSS, keyOf, parse, serialize, toDataU
 import type { BeatInfo } from './engine/program'
 import type { BgFill, Box, Cfg, FText, FQr, ImgRule, Loc, LoopData, LoopMedia, Pip, Slide, SlideOv, VigLayer } from './engine/types'
 import {
-  adjustHex, BASE_CFG, cleanFill, cleanFqr, cleanFtexts, cleanLegacyCfg, cleanOv, cleanPanels, cleanPips, cleanTcol, cleanToff, cleanTsc, cleanVigs, cssUrl, daySlides, DEF_PANELS,
+  adjustHex, BASE_CFG, cleanFill, cleanFqr, cleanFtexts, cleanLegacyCfg, cleanOv, cleanPanels, cleanPips, cleanTcol, cleanToff, cleanTsc, cleanVigs, cssUrl, daySlides, DEF_PANELS, mergeDaySlides, moveSlideTo,
   FILLM, fillStops, fmtLen, GENRES, harmonyColors, hexToHsv, hsvToHex, isHex, isLegacySample, isSlide, isStored, isTpl, normHex, OVT, ovOwn, PRESETS, randPanels, safeSrc, sampleData,
   slotOf, TPL_NAMES, TPL_TITLES, VCMAP, VIG_TYPE_OPTS, VIGT, VSMAP, type LoopData as SavedData, type Tpl, type VigKey,
 } from './model'
+
+/** Dra-og-slipp fra visningen (React- eller DOM-hendelse). */
+type DragEv = { dataTransfer: DataTransfer | null; clientX: number; currentTarget: EventTarget | null; preventDefault(): void }
 import type { DiskEntry, LoopMediaStore, LoopRepo, WorkData } from './store'
 import { loadMuxer, loadQr, loadTesseract, type QrFactory } from './engine/vendor'
 
@@ -64,6 +67,8 @@ export interface State {
   videoName: string
   audioName: string
   selected: string | null
+  /** Dra-og-slipp i slidestripen: innsettingsplassen i hele lista (0 = før første), ellers null. */
+  dropAt?: number | null
   playing: boolean
   playIdx: number
   urls: Record<string, string>
@@ -2196,12 +2201,10 @@ export class LoopController {
     const p = parse(this.state.programText), n = p.days.reduce((a, d) => a + d.events.length, 0)
     if (!n) { this.setState({ parseMsg: 'Fant ingen møter. Skriv ukedag, tid og navn, for eksempel «Tirsdag kl 19:00 Kveldsmat i kafeen».', parseOk: false }); return }
     this.setState((s) => {
-      const days = this.daySlides(p.days, s.slides), first = s.slides.findIndex((x) => x.type === 'day')
-      const rest = s.slides.filter((x) => x.type !== 'day')
-      const at = first < 0 ? 0 : s.slides.slice(0, first).filter((x) => x.type !== 'day').length
+      const days = this.daySlides(p.days, s.slides)
       const wd = p.days.filter((d) => !d.extra), ex = p.days.filter((d) => d.extra).reduce((a, d) => a + d.events.length, 0), m = n - ex
       return {
-        slides: [...rest.slice(0, at), ...days, ...rest.slice(at)], playing: true, playIdx: 0, selected: days[0]?.id ?? s.selected,
+        slides: mergeDaySlides(s.slides, days), playing: true, playIdx: 0, selected: days[0]?.id ?? s.selected,
         parseMsg: 'Fant ' + m + (m === 1 ? ' møte' : ' møter') + ' på ' + wd.length + (wd.length === 1 ? ' dag' : ' dager') + (ex ? ' og ' + ex + ' ekstra utenom uka' : '') + '. Videoen er oppdatert.', parseOk: true,
       }
     })
@@ -2230,6 +2233,14 @@ export class LoopController {
     this.setCfg('standard', t)
     this.setState({ parseMsg: 'Teksten er lagret som ny standarduke.', parseOk: true })
   }
+  /** Flytter sliden til plass `to` (indeks uten sliden selv). Ukedag og innhold følger sliden, ingenting annet endres. */
+  reorder(id: string, to: number) {
+    this.setState((s) => {
+      const a = moveSlideTo(s.slides, id, to)
+      return a === s.slides ? { dropAt: null } : { slides: a, dropAt: null, selected: id, playing: false }
+    })
+  }
+  private dragId: string | null = null
   move(id: string, dir: number) {
     this.setState((s) => {
       const a = [...s.slides], i = a.findIndex((x) => x.id === id), j = i + dir
@@ -2261,7 +2272,7 @@ export class LoopController {
       if (!cur) return null
       const c = { ...cur, id: cur.id + '-k' + Date.now().toString(36) }
       a.splice(i + 1, 0, c)
-      return { slides: a, selected: c.id }
+      return cur.type === 'day' ? { slides: a, selected: c.id, programText: serialize(a.filter((x) => x.type === 'day')) } : { slides: a, selected: c.id }
     })
   }
   del(id: string) {
@@ -3484,6 +3495,29 @@ export class LoopController {
       thumbBg: (() => { const b = this.bgOf(s); return b ? cssUrl(S.urls[b] ?? b) : 'none' })(),
       border: s.id === id ? '#e9e7e2' : '#2b2b2b', shadow: s.id === id ? '0 0 0 1px #e9e7e2' : 'none',
       opacity: s.hidden ? 0.45 : 1, playing: s.id === playingId, onClick: () => this.select(s.id),
+      dropBefore: S.dropAt === i, dropAfter: S.dropAt === all.length && i === all.length - 1,
+      onDragStart: (e: DragEv) => { this.dragId = s.id; e.dataTransfer?.setData('text/plain', s.id); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move' },
+      onDragOver: (e: DragEv) => {
+        if (!this.dragId) return
+        e.preventDefault()
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect(), after = e.clientX > r.left + r.width / 2
+        const slot = i + (after ? 1 : 0)
+        if (S.dropAt !== slot) this.setState({ dropAt: slot })
+      },
+      onDrop: (e: DragEv) => {
+        e.preventDefault()
+        const d = this.dragId, slot = this.state.dropAt, from = this.state.slides.findIndex((x) => x.id === d)
+        this.dragId = null
+        if (d && slot != null && from >= 0) this.reorder(d, slot - (from < slot ? 1 : 0)); else this.setState({ dropAt: null })
+      },
+      onDragEnd: () => { this.dragId = null; if (this.state.dropAt != null) this.setState({ dropAt: null }) },
+      onKeyDown: (e: { altKey: boolean; key: string; preventDefault(): void }) => {
+        if (!e.altKey) return
+        const k = e.key, to = k === 'ArrowLeft' ? i - 1 : k === 'ArrowRight' ? i + 1 : k === 'Home' ? 0 : k === 'End' ? all.length - 1 : null
+        if (to == null) return
+        e.preventDefault()
+        this.reorder(s.id, to)
+      },
       onRemove: (e?: { stopPropagation(): void }) => { e?.stopPropagation(); this.del(s.id) },
       hasVid: !!s.vid, vidSoundOn: s.vidSound !== false, vidSoundOff: s.vidSound === false,
       vidSoundColor: s.vidSound === false ? '#8a867e' : '#ffffff',
@@ -3992,6 +4026,7 @@ export class LoopController {
       onSelDur: (e: InputEv) => { if (id) this.setF(id, 'dur', Number(e.target.value)) },
       selVisible: !!sel && !sel.hidden, onVisible: (e: CheckEv) => { if (id) this.setF(id, 'hidden', !e.target.checked) },
       moveEarlier: () => { if (id) this.move(id, -1) }, moveLater: () => { if (id) this.move(id, 1) },
+      moveFirst: () => { if (id) this.reorder(id, 0) }, moveLast: () => { if (id) this.reorder(id, S.slides.length - 1) },
       duplicate: () => { if (id) this.duplicate(id) }, del: () => { if (id) this.del(id) },
       addText: () => this.add('text'), addContact: () => this.add('contact'), addOutro: () => this.add('outro'),
 

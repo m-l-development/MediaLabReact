@@ -300,6 +300,48 @@ export function daySlides(days: ProgramDay[], old: Slide[], ruleFor: (title: str
   return [...out.filter((x) => !x.extra), ...out.filter((x) => x.extra)]
 }
 
+/**
+ * Flytter en slide til plass `to` (indeks i lista etter flyttingen). Bare rekkefølgen endres: id, ukedag, dato og alt
+ * innhold er urørt (TB-2CD75B: en slide mellom mandag og tirsdag skal ikke gjøre tirsdag til onsdag). Ukjent id: uendret.
+ */
+export function moveSlideTo(slides: Slide[], id: string, to: number): Slide[] {
+  const from = slides.findIndex((s) => s.id === id)
+  if (from < 0) return slides
+  const rest = slides.filter((s) => s.id !== id)
+  const at = Math.max(0, Math.min(rest.length, Math.round(to)))
+  if (at === from) return slides
+  return [...rest.slice(0, at), slides[from]!, ...rest.slice(at)]
+}
+
+/**
+ * «Oppdater videoen»: fletter de nye ukedagsslidene inn i brukerens rekkefølge i stedet for å samle dem i én blokk
+ * (TB-2CD75B). En slide som finnes fra før (samme id, ellers samme dag), blir stående der den var; egne slider mellom
+ * dagene blir der de er; møter som er fjernet fra programmet forsvinner; nye møter legges etter siste slide for samme
+ * dag, ellers etter siste ukedagsslide (eller først, som før, hvis det ikke finnes noen).
+ */
+export function mergeDaySlides(old: Slide[], days: Slide[]): Slide[] {
+  const used = new Set<string>()
+  const out: Slide[] = []
+  const take = (d: Slide) => { used.add(d.id); out.push(d) }
+  for (const s of old) {
+    if (s.type !== 'day') { out.push(s); continue }
+    const same = days.find((d) => d.id === s.id && !used.has(d.id))
+    const base = s.dayBase || s.dayKey
+    const sameDay = same ?? days.find((d) => !used.has(d.id) && !old.some((o) => o.id === d.id) && (d.dayBase || d.dayKey) === base)
+    if (sameDay) take(sameDay)
+  }
+  for (const d of days) {
+    if (used.has(d.id)) continue
+    const base = d.dayBase || d.dayKey
+    let at = -1
+    for (let i = out.length - 1; i >= 0; i--) if (out[i]!.type === 'day' && (out[i]!.dayBase || out[i]!.dayKey) === base) { at = i; break }
+    if (at < 0) for (let i = out.length - 1; i >= 0; i--) if (out[i]!.type === 'day') { at = i; break }
+    out.splice(at + 1, 0, d)
+    used.add(d.id)
+  }
+  return out
+}
+
 export interface LoopData { programText: string; slides: Slide[]; cfg: Cfg; videoName?: string; audioName?: string }
 
 /** Eksempelinnholdet (bare demoen bruker slides; nye serier starter tomme med malens stil). */
