@@ -114,13 +114,32 @@ test('TB-2CD75B Loop Studio: slide mellom mandag og tirsdag; tirsdag forblir tir
   console.log('[saker-dev] TB-2CD75B: dra-og-slipp mellom dager, dagene følger slidene OK')
 })
 
+/** Sletter alle «Dev-kat …»-prosjekter på testkontoen (også fra tidligere kjøringer). Dialogene godtas av testens håndtering. */
+async function cleanupPhoto(page: Page) {
+  const all = page.locator('[data-pd-projects] [data-pd-projcat="*"]')
+  if (await all.count()) await all.click()
+  const cards = page.locator('[data-pd-projects] [data-project^="Dev-kat "]')
+  let n = 0
+  for (let i = 0; i < 10 && (await cards.count()); i++) {
+    const before = await cards.count()
+    await cards.first().getByRole('button', { name: 'Slett prosjekt' }).click()
+    await expect(cards).toHaveCount(before - 1, { timeout: 15_000 })
+    n++
+  }
+  console.log(`[saker-dev] opprydding: ${n} Dev-kat-prosjekt(er) slettet`)
+}
+
 test('TB-905D74 og TB-8E2793 Photo Design: lys modus overalt, kategorier for prosjekter', async ({ page }) => {
+  // én håndtering av nettleserens dialoger: navn fra køen, bekreftelser godtas
+  const queue: string[] = []
+  page.on('dialog', (d) => void (d.type() === 'prompt' ? d.accept(queue.shift() ?? '') : d.accept()))
   await signIn(page)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => localStorage.setItem('medialab.theme', 'light'))
   await page.goto('/app/photo-design')
   await page.reload()
   await expect(page.locator('[data-tpl="photo"]')).toBeVisible({ timeout: 30_000 })
+  await cleanupPhoto(page)
   const problems: string[] = []
   await check(page, 'startside', problems)
   await page.locator('[data-tpl="photo"]').click()
@@ -134,12 +153,11 @@ test('TB-905D74 og TB-8E2793 Photo Design: lys modus overalt, kategorier for pro
   // kategori: nytt prosjekt i en ny kategori, vises under kategorien på startsiden; slettes til slutt
   const name = `Dev-kat ${Date.now()}`
   await page.getByLabel('Prosjektnavn').fill(name)
-  page.once('dialog', (d) => void d.accept('Dev-test-kategori'))
+  queue.push('Dev-test-kategori')
   await page.getByRole('button', { name: 'Ny kategori for prosjektet' }).click()
   await expect(page.locator('[data-pd-doc-cat]')).toHaveValue('Dev-test-kategori')
   await page.getByRole('button', { name: 'Lagre', exact: true }).click()
   await expect(page.getByText(/^Lagret/).first()).toBeVisible()
-  page.once('dialog', (d) => void d.accept())
   await page.getByRole('button', { name: /Prosjekter/ }).first().click()
   const card = page.locator(`[data-pd-projects] [data-project="${name}"]`)
   try {
@@ -148,10 +166,7 @@ test('TB-905D74 og TB-8E2793 Photo Design: lys modus overalt, kategorier for pro
     await expect(card.locator('[data-pd-proj-cat]')).toHaveValue('Dev-test-kategori')
     console.log('[saker-dev] TB-8E2793: prosjekt i ny kategori, filter OK')
   } finally {
-    await page.locator('[data-pd-projects] [data-pd-projcat="*"]').click().catch(() => undefined)
-    page.once('dialog', (d) => void d.accept())
-    await card.getByRole('button', { name: 'Slett prosjekt' }).click().catch(() => undefined)
+    await cleanupPhoto(page)
     await expect(card).toHaveCount(0)
-    console.log('[saker-dev] testprosjektet er slettet')
   }
 })
