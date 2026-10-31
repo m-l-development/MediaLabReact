@@ -78,9 +78,21 @@ export function Hub({ me }: { me: Me | null }) {
   }, [folder])
 
   function openFolder(f: Folder) {
-    // Mappen står i adressen, så tilbake-knappen i nettleseren lukker den.
-    if (f) location.hash = f
-    else history.back()
+    // Mappen står i adressen, så tilbake-knappen i nettleseren lukker den. Åpnet fra hovedmenyen merkes oppføringen,
+    // så «← Tilbake» vet at forrige oppføring er hovedmenyen.
+    if (f) {
+      history.pushState({ ...(history.state as object | null), mlFolderFrom: 'hub' }, '', `${location.pathname}${location.search}#${f}`)
+      setFolderState(f)
+      return
+    }
+    // «← Tilbake» går alltid til hovedmenyen: kom brukeren derfra, er det ett steg tilbake i historikken; ellers (f.eks.
+    // fra «← SoMe-mappen» i et verktøy eller en direkte lenke til #some) ville history.back() gått inn i appen eller
+    // ut av Media Lab, så da byttes mappen ut med hovedmenyen.
+    if ((history.state as { mlFolderFrom?: string } | null)?.mlFolderFrom === 'hub') history.back()
+    else {
+      history.replaceState(null, '', `${location.pathname}${location.search}`)
+      setFolderState(null)
+    }
   }
 
   const firstName = me ? (displayName(me).split(' ')[0] ?? '') : ''
