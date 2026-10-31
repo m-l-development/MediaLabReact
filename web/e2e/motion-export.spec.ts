@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
+import { framesAt, near, rmsAt } from './media-probe'
 import { readMp4 } from './mp4'
 import { importFiles, main, newAdvProject, recordVideo, seekTo, solid, wav } from './motion-helpers'
 
@@ -9,58 +10,6 @@ import { importFiles, main, newAdvProject, recordVideo, seekTo, solid, wav } fro
  */
 test.use({ channel: 'chrome' })
 
-/**
- * Fargen midt i bildet ved hver tid (sekunder), slik filen faktisk spilles: videoen spilles av i nettleseren, og hvert
- * bilde som vises leses sammen med tidsstempelet (requestVideoFrameCallback). For hver tid brukes bildet som vises da.
- */
-async function framesAt(page: Page, file: Buffer, times: number[]): Promise<number[][]> {
-  return page.evaluate(async ({ b64, ts }) => {
-    const bin = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))
-    const v = document.createElement('video')
-    v.muted = true
-    v.playbackRate = 0.5
-    v.src = URL.createObjectURL(new Blob([bin], { type: 'video/mp4' }))
-    await new Promise((r, j) => { v.onloadeddata = r; v.onerror = () => j(new Error('video kan ikke spilles')) })
-    const c = document.createElement('canvas')
-    c.width = v.videoWidth
-    c.height = v.videoHeight
-    const g = c.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
-    const seen: [number, number[]][] = []
-    await new Promise<void>((r) => {
-      const step = (_: number, m: VideoFrameCallbackMetadata) => {
-        g.drawImage(v, 0, 0)
-        const d = g.getImageData(c.width >> 1, c.height >> 1, 1, 1).data
-        seen.push([m.mediaTime, [d[0] ?? 0, d[1] ?? 0, d[2] ?? 0]])
-        if (!v.ended) v.requestVideoFrameCallback(step)
-      }
-      v.requestVideoFrameCallback(step)
-      v.onended = () => r()
-      void v.play()
-    })
-    return ts.map((t) => (seen.filter(([mt]) => mt <= t + 1e-3).pop() ?? seen[0] ?? [0, [0, 0, 0]])[1])
-  }, { b64: file.toString('base64'), ts: times })
-}
-
-/** Lydstyrke (RMS) i vinduene [fra, til] i filens lyd, dekodet av nettleseren. */
-async function rmsAt(page: Page, file: Buffer, wins: [number, number][]): Promise<{ dur: number; rms: number[] }> {
-  return page.evaluate(async ({ b64, ws }) => {
-    const bin = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))
-    const ac = new AudioContext()
-    const ab = await ac.decodeAudioData(bin.buffer)
-    const d = ab.getChannelData(0)
-    const rms = ws.map(([a, b]) => {
-      const i0 = Math.floor(a * ab.sampleRate)
-      const i1 = Math.min(d.length, Math.floor(b * ab.sampleRate))
-      let s = 0
-      for (let i = i0; i < i1; i++) s += (d[i] ?? 0) ** 2
-      return Math.sqrt(s / Math.max(1, i1 - i0))
-    })
-    await ac.close()
-    return { dur: ab.duration, rms }
-  }, { b64: file.toString('base64'), ws: wins })
-}
-
-const near = (c: number[], rgb: number[], tol = 70) => c.every((v, i) => Math.abs(v - (rgb[i] ?? 0)) <= tol)
 const gray = (c: number[]) => Math.max(...c) - Math.min(...c) < 30 && (c[0] ?? 0) > 50
 
 async function exportNow(page: Page): Promise<{ name: string; buf: Buffer }> {
@@ -148,7 +97,7 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   expect(a1?.codec, 'AAC').toBe('mp4a')
   expect(Math.abs((a1?.duration ?? 0) - 4)).toBeLessThan(0.1)
 
-  const px = await framesAt(page, e1.buf, [0.35, 0.95, 1.3, 1.8, 2.1, 3.3, 3.75])
+  const px = (await framesAt(page, e1.buf, [0.35, 0.95, 1.3, 1.8, 2.1, 3.3, 3.75])).px
   console.log('BILDER 1', JSON.stringify(px))
   expect(near(px[0]!, [224, 16, 16]), '0,35 s: rødt (kilde 0,7 s ved 2×)').toBe(true)
   expect(near(px[1]!, [16, 192, 32]), '0,95 s: grønt (kilde 1,9 s)').toBe(true)
@@ -185,7 +134,7 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   expect(m2.tracks.some((t) => t.type === 'soun'), 'uten lyd: ingen lydspor').toBe(false)
   expect(v2?.samples, '1 s × 24 fps').toBe(24)
   expect(Math.abs((v2?.duration ?? 0) - 1)).toBeLessThan(0.05)
-  const px2 = await framesAt(page, e2.buf, [0.05, 0.95])
+  const px2 = (await framesAt(page, e2.buf, [0.05, 0.95])).px
   console.log('BILDER 2', JSON.stringify(px2))
   expect(Math.max(...px2[0]!), 'start (2,05 s): overlegget nesten usynlig').toBeLessThan(40)
   expect(gray(px2[1]!), 'slutt (2,95 s): overlegget nesten helt synlig').toBe(true)
