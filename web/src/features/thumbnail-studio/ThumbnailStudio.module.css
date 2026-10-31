@@ -2501,3 +2501,57 @@ button:disabled {
     max-height: none;
   }
 }
+
+/* Arbeidsflaten rundt lerretet i lys modus, som i Photo Design og Motion Design (selve designet endres ikke). */
+:root[data-theme='light'] .stage,
+:root[data-theme='light'] .stageInner {
+  background: #d9d5cd;
+}
+
+/*
+ * Arbeidsflate (fyller vinduet under topplinjen; se AppShell): på brede vinduer ligger kolonnene på én rad og ruller hver
+ * for seg, og lerretet begrenses av høyden (ikke bare bredden), så hele editoren får plass uten at siden ruller.
+ */
+.editor[data-ml-workspace] {
+  max-width: none;
+  min-height: 0;
+}
+@media (min-width: 1000px) and (min-height: 560px) {
+  .editor[data-ml-workspace] .columns {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-height: 0;
+  }
+  .editor[data-ml-workspace] .col {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .editor[data-ml-workspace] .stage {
+    max-width: calc((100dvh - 250px) * 16 / 9);
+    margin: 0 auto;
+  }
+  .editor[data-ml-workspace] .props {
+    max-height: none;
+  }
+}
+
+/* «Finjuster utklippet»: den felles maskeredigeringen i et vindu over editoren */
+.maskBack {
+  position: fixed;
+  inset: 0;
+  z-index: 56;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px clamp(12px, 3vw, 40px);
+  background: rgba(8, 8, 8, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+.maskBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}

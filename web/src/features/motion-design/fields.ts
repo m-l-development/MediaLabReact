@@ -56,7 +56,7 @@ function speedFields(o: { speed: number; rev: boolean }, set: P<{ speed: number;
     seg('Fart', String(sp), [['0.25', '¼×'], ['0.5', '½×'], ['1', '1×'], ['2', '2×'], ['4', '4×']], (v) => set({ speed: Number(v) })),
     range('Egendefinert fart', sp, 0.1, 8, 0.05, `${sp.toFixed(2)}×`, (v) => set({ speed: v })),
     toggle('Spill baklengs', o.rev, (v) => set({ rev: v })),
-    note('Lyden følger farten. Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.'))
+    note('Lyden følger farten (tonehøyden endres med farten, også i eksporten). Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.'))
 }
 
 function colorExtras(c: Clip, set: P<Clip>, out: Field[]): void {
@@ -166,10 +166,8 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
     const mm = Math.floor(from / 60) % 60
     const ss = from % 60
     const setFrom = (d: number, h: number, m: number, s: number) => {
-      const nf = Math.max(0, d * 86400 + h * 3600 + m * 60 + s)
-      const o: Partial<TextItem> = { cdFrom: nf }
-      if (Math.abs(x.dur - from) < 0.05 && nf >= 1 && nf <= 3600) o.dur = nf
-      set(o)
+      // varigheten og det som slutter samtidig (bakgrunn, andre tekster) følger nedtellingen (TB-EB63E9)
+      c.setCountdown(x.id, Math.max(0, d * 86400 + h * 3600 + m * 60 + s))
     }
     out.push(head('Tell ned fra'),
       num('Dager', dd, 0, 99, 1, (v) => setFrom(Math.round(v), hh, mm, ss)),
@@ -185,6 +183,8 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
     range('Størrelse', x.size, 12, 400, 1, `${Math.round(x.size)} px`, (v) => set({ size: v })),
     color('Tekstfarge', x.color, (v) => set({ color: v })),
     seg('Justering', x.align, [['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']], (v) => set({ align: v as 'left' })),
+    // loddrett justering bare i Avansert (Standard er uendret)
+    ...(c.s.adv ? [seg('Loddrett justering', x.valign ?? 'middle', [['top', 'Topp'], ['middle', 'Midt'], ['bottom', 'Bunn']], (v) => set({ valign: v as 'top' | 'middle' | 'bottom' }))] : []),
     toggle('Store bokstaver', x.upper, (v) => set({ upper: v })),
     toggle('Kursiv', x.italic, (v) => set({ italic: v })),
     toggle('Skygge', x.shadow, (v) => set({ shadow: v })),

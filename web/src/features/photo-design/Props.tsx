@@ -4,8 +4,11 @@ import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
-import { ADJ, BLEED, BLENDS, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type PdLayer } from './engine/model'
+import { ADJ, BLEED, BLENDS, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type PdLayer } from './engine/model'
 import { curveFn } from './engine/render'
+import { DEV, type Dev, type Histogram } from './engine/develop'
+import { useEffect, useRef, useState } from 'react'
+import type React from 'react'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
 
@@ -63,6 +66,17 @@ function Cmyk({ hv, set }: { hv: string; set: (v: string) => void }) {
 export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; tx: Tx; pickFile: (replace?: string) => void }) {
   const d = S.doc
   if (!d) return null
+  if (d.batch) {
+    // bildeserie: bare fargene og justeringene for bildet som er åpent (bildet er ett låst lag)
+    const BL = d.layers.find((q): q is Extract<PdLayer, { type: 'image' }> => q.type === 'image')
+    const it = d.batch.items[d.batch.active]
+    return (
+      <div className={s.props} data-pd-batch-props="">
+        <span className={s.eyebrowSm} title={it?.name}>{it ? it.name : tx('Bildeserie')}</span>
+        {BL ? <ColorTab c={c} L={BL} tx={tx} /> : <span className={s.note}>{tx('Legg til bilder for å begynne. Hvert bilde får egne justeringer.')}</span>}
+      </div>
+    )
+  }
   const L = c.selL()
   const ids = c.selIds()
   const isMulti = !L && ids.length > 1
@@ -194,7 +208,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               <div className={s.seg}>
                 {([['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={L.align === k} onClick={() => P({ align: k })}>{tx(l)}</button>)}
               </div>
-              <ColorPick val={L.color} label={tx('Tekstfarge')} cmyk set={(v) => c.setCol(L, 'color', v, 'tcolor')} />
+              <ColorPick val={L.color} label={tx('Tekstfarge')} cmyk={S.adv} set={(v) => c.setCol(L, 'color', v, 'tcolor')} />
               <Toggle label={tx('Store bokstaver')} on={L.upper} onClick={() => P({ upper: !L.upper })} />
               <label className={s.colorRow}><span>{tx('Konturfarge')}</span><input type="color" value={hex(L.strokeC)} onChange={(e) => P({ strokeC: e.target.value }, 'tsc')} /></label>
               <Toggle label={tx('Understrek')} on={!!L.bar} onClick={() => P({ bar: !L.bar, barColor: L.barColor || L.color, barH: L.barH ?? Math.max(2, Math.round(L.size * 0.07)), barW: L.barW ?? 1, barGap: L.barGap ?? 1 })} />
@@ -213,7 +227,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               <div className={s.kindGrid}>
                 {SHAPES.map(([k, l]) => <button key={k} type="button" aria-pressed={(L.kind || 'rect') === k} onClick={() => P((q) => ({ kind: k, ...(k === 'line' && q.type === 'shape' ? { h: Math.max(2, Math.min(q.h, q.w * 0.05)) } : {}) }))}>{tx(l as Phrase)}</button>)}
               </div>
-              <ColorPick val={L.fill} label={tx('Fyllfarge')} cmyk set={(v) => c.setCol(L, 'fill', v, 'sfill')} />
+              <ColorPick val={L.fill} label={tx('Fyllfarge')} cmyk={S.adv} set={(v) => c.setCol(L, 'fill', v, 'sfill')} />
               <Toggle label={tx('Ingen fyll')} on={L.fill === 'rgba(0,0,0,0)'} onClick={() => P({ fill: L.fill === 'rgba(0,0,0,0)' ? '#f5b82c' : 'rgba(0,0,0,0)' })} />
               <Toggle label={tx('Toning')} on={!!L.fill2} onClick={() => P({ fill2: L.fill2 ? null : '#000000' })} />
               {L.fill2 && <label className={s.colorRow}><span>{tx('Toning til')}</span><input type="color" value={hex(L.fill2)} onChange={(e) => P({ fill2: e.target.value }, 'sf2')} /></label>}
@@ -228,12 +242,12 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           )}
           {L.type === 'fx' && <FxEdit c={c} S={S} tx={tx} />}
           {layerRanges}
-          <label className={s.colorRow}>
+          {S.adv && <label className={s.colorRow}>
             <span>{tx('Blandingsmodus')}</span>
             <select value={L.blend || 'source-over'} onChange={(e) => P({ blend: e.target.value as GlobalCompositeOperation })}>
               {BLENDS.map(([v, l]) => <option key={v} value={v}>{tx(l as Phrase)}</option>)}
             </select>
-          </label>
+          </label>}
           <div className={s.row3}>
             <button type="button" className={s.smallBtn} onClick={() => P({ x: d.w / 2, y: d.h / 2 })}>{tx('Midtstill')}</button>
             <button type="button" className={s.smallBtn} onClick={() => c.dup()}>{tx('Dupliser')}</button>
@@ -267,6 +281,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           <Range label={tx('Størrelse')} min={4} max={Math.round(Math.max(d.w, d.h) / 4)} step={1} val={S.brush.size} show={`${Math.round(S.brush.size)} px`} on={(v) => c.ui({ brush: { ...S.brush, size: v } })} />
           <Range label={tx('Hardhet')} min={0} max={0.95} step={0.01} val={S.brush.hard} show={`${Math.round(S.brush.hard * 100)} %`} on={(v) => c.ui({ brush: { ...S.brush, hard: v } })} />
           <span className={s.dimSm}>{tx('Hold Alt for å bytte mellom fjern og gjenopprett.')}</span>
+          {/* den felles maskeredigeringen (samme som Isolate Subject og Thumbnail Studio) */}
+          <button type="button" className={s.smallBtnBlue} data-pd-mask-open="" disabled={!has} title={tx('Pensel, former, «Velg objekt» og kantfølging med Behold og Fjern')} onClick={() => c.openMaskEdit()}>{tx('Finjuster masken …')}</button>
           <div className={s.row2}>
             <button type="button" className={s.smallBtn} onClick={() => c.invertMask()}>{tx('Inverter')}</button>
             <button type="button" className={s.smallBtnDanger} onClick={() => c.clearMask()}>{tx('Fjern maske')}</button>
@@ -277,43 +293,120 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
   )
 }
 
-function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
+const DEVL: [keyof Dev, Phrase, number, number][] = [['whites', 'Hvitpunkt', -100, 100], ['blacks', 'Svartpunkt', -100, 100], ['vib', 'Vibrance', -100, 100], ['clarity', 'Klarhet', -100, 100], ['sharp', 'Skarphet', 0, 100]]
+
+/** Histogram (lyshet + RGB) for valgt bildelag, tegnet på et lite lerret. */
+function HistView({ h }: { h: Histogram | null }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const cv = ref.current, g = cv?.getContext('2d')
+    if (!cv || !g) return
+    g.clearRect(0, 0, cv.width, cv.height)
+    if (!h || !h.n) return
+    let mx = 1
+    for (const a of [h.r, h.g, h.b]) for (let i = 2; i < 254; i++) mx = Math.max(mx, a[i] ?? 0)
+    g.globalCompositeOperation = 'lighter'
+    for (const [a, col] of [[h.r, 'rgba(255,70,70,0.55)'], [h.g, 'rgba(70,220,90,0.55)'], [h.b, 'rgba(80,130,255,0.6)']] as const) {
+      g.beginPath()
+      g.moveTo(0, cv.height)
+      for (let i = 0; i < 256; i++) g.lineTo((i / 255) * cv.width, cv.height - Math.min(1, (a[i] ?? 0) / mx) * cv.height)
+      g.lineTo(cv.width, cv.height)
+      g.fillStyle = col
+      g.fill()
+    }
+  }, [h])
+  return <canvas ref={ref} width={256} height={72} data-pd-hist="" className={s.curve} style={{ width: '100%', height: 72, background: '#111' }} />
+}
+
+/** Avansert framkalling (Avansert modus): hvit-/svartpunkt, vibrance, klarhet, skarphet, auto-tone, histogram, kopier/lim inn og før/etter. */
+function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
+  const dev = { ...DEV, ...L.dev }
+  const h = c.histOfLayer(L.id)
+  const hold = (on: boolean) => c.setBefore(on ? L.id : null)
+  return (
+    <div data-pd-adv-dev="">
+      <div className={s.sectionHead}>
+        <span className={s.eyebrowSm}>{tx('Avansert framkalling')}</span>
+        <button type="button" className={s.resetBtn} onClick={() => c.resetDev(L.id)}>{tx('Nullstill')}</button>
+      </div>
+      <HistView h={h} />
+      <div className={s.looks}>
+        <button type="button" data-pd-auto="" title={tx('Auto-tone: eksponering, hvit- og svartpunkt ut fra bildet')} onClick={() => c.autoTone(L.id)}>{tx('Auto')}</button>
+        <button type="button" data-pd-before="" onPointerDown={() => hold(true)} onPointerUp={() => hold(false)} onPointerLeave={() => hold(false)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') hold(true) }} onKeyUp={() => hold(false)}>{tx('Hold for før')}</button>
+        <button type="button" data-pd-copydev="" onClick={() => c.copyDev(L.id)}>{tx('Kopier framkalling')}</button>
+        <button type="button" data-pd-pastedev="" disabled={!c.s.devClip} onClick={() => c.pasteDev(L.id)}>{tx('Lim inn framkalling')}</button>
+      </div>
+      {DEVL.map(([k, l, mn, mx]) => {
+        const v = Number(dev[k] ?? 0)
+        return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${v > 0 && mn < 0 ? '+' : ''}${Math.round(v)}`} on={(x) => c.setDev(L.id, k, x, `dev${k}`)} reset={() => c.setDev(L.id, k, 0)} />
+      })}
+    </div>
+  )
+}
+
+/** Kurveeditor (Avansert): RGB eller én kanal, histogram bak, store håndtak, verdi under dra. */
+const CURVES: [CurveKey, Phrase, string][] = [['curve', 'RGB', 'currentColor'], ['curveR', 'Rød', '#ff5a5a'], ['curveG', 'Grønn', '#2fbf5f'], ['curveB', 'Blå', '#4d8dff']]
+
+function CurveEditor({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
+  const [ch, setCh] = useState<CurveKey>('curve')
+  const [sel, setSel] = useState<number | null>(null)
+  const [read, setRead] = useState<string>('')
   const adj = { ...ADJ, ...L.adj }
-  const curve = adj.curve ?? [[0, 0], [1, 1]]
-  const cf = curveFn(curve)
-  let cp = ''
-  for (let i = 0; i <= 40; i++) {
-    const x = i / 40
-    const y = Math.max(0, Math.min(1, cf ? cf(x) : x))
-    cp += `${i ? 'L' : 'M'}${(x * 100).toFixed(1)} ${((1 - y) * 100).toFixed(1)}`
+  const ptsOf = (k: CurveKey): [number, number][] => (adj[k] ?? [[0, 0], [1, 1]]) as [number, number][]
+  const curve = ptsOf(ch)
+  const pathOf = (k: CurveKey) => {
+    const f = curveFn(adj[k] ?? null)
+    let d = ''
+    for (let i = 0; i <= 64; i++) {
+      const x = i / 64, y = Math.max(0, Math.min(1, f ? f(x) : x))
+      d += `${i ? 'L' : 'M'}${(x * 100).toFixed(2)} ${((1 - y) * 100).toFixed(2)}`
+    }
+    return d
   }
-  const curveDown = (e: RPE<SVGSVGElement>) => {
+  const h = c.histOfLayer(L.id)
+  const ha = h ? (ch === 'curveR' ? h.r : ch === 'curveG' ? h.g : ch === 'curveB' ? h.b : h.l) : null
+  let hp = ''
+  if (ha) {
+    let mx = 1
+    for (let i = 3; i < 253; i++) mx = Math.max(mx, ha[i] ?? 0)
+    hp = 'M0 100'
+    for (let i = 0; i < 256; i++) hp += `L${((i / 255) * 100).toFixed(2)} ${(100 - Math.min(1, (ha[i] ?? 0) / mx) * 92).toFixed(2)}`
+    hp += 'L100 100Z'
+  }
+  const color = CURVES.find((x) => x[0] === ch)?.[2] ?? 'currentColor'
+  const set = (pts: [number, number][] | null, live = true) => c.setCurve(L.id, pts, live ? `curve-${ch}` : undefined, ch)
+  const show = (p: [number, number]) => setRead(`${tx('Inn')} ${Math.round(p[0] * 255)} → ${tx('Ut')} ${Math.round(p[1] * 255)}`)
+  const down = (e: RPE<SVGSVGElement>) => {
     e.preventDefault()
     const r = e.currentTarget.getBoundingClientRect()
     const Pp = (ev: { clientX: number; clientY: number }): [number, number] => [Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)), Math.max(0, Math.min(1, 1 - (ev.clientY - r.top) / r.height))]
-    const pts: [number, number][] = curve.map((p) => [p[0], p[1]])
+    const pts: [number, number][] = curve.map((q) => [q[0], q[1]])
     const p = Pp(e)
-    let i = pts.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 0.05)
+    const near = 14 / r.width // ~14 px treffsone
+    let i = pts.findIndex((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < near)
     if (e.detail >= 2 && i > 0 && i < pts.length - 1) {
       pts.splice(i, 1)
-      c.setCurve(L.id, pts)
+      setSel(null)
+      set(pts, false)
       return
     }
     if (i < 0) {
       pts.push(p)
-      pts.sort((a, b) => a[0] - b[0])
+      pts.sort((x, y) => x[0] - y[0])
       i = pts.indexOf(p)
     }
-    const apply = () => c.setCurve(L.id, pts.map((x) => [x[0], x[1]]), 'curve')
-    apply()
+    setSel(i)
+    show(pts[i]!)
+    set(pts.map((x) => [x[0], x[1]]))
     const id = e.pointerId
     const mv = (ev: PointerEvent) => {
       if (ev.pointerId !== id) return
       const q = Pp(ev)
-      const lo = i === 0 ? 0 : (pts[i - 1] as [number, number])[0] + 0.01
-      const hi = i === pts.length - 1 ? 1 : (pts[i + 1] as [number, number])[0] - 0.01
+      const lo = i === 0 ? 0 : pts[i - 1]![0] + 0.01
+      const hi = i === pts.length - 1 ? 1 : pts[i + 1]![0] - 0.01
       pts[i] = [i === 0 ? 0 : i === pts.length - 1 ? 1 : Math.max(lo, Math.min(hi, q[0])), q[1]]
-      apply()
+      show(pts[i]!)
+      set(pts.map((x) => [x[0], x[1]]))
     }
     const up = (ev: PointerEvent) => {
       if (ev.pointerId !== id) return
@@ -325,6 +418,61 @@ function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
   }
+  /** Tastatur: piltaster flytter valgt punkt, Delete fjerner det (ikke endepunktene). */
+  const key = (e: React.KeyboardEvent<SVGSVGElement>) => {
+    if (sel == null) return
+    const pts: [number, number][] = curve.map((q) => [q[0], q[1]])
+    const p = pts[sel]
+    if (!p) return
+    const st = e.shiftKey ? 10 / 255 : 1 / 255
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel > 0 && sel < pts.length - 1) { pts.splice(sel, 1); setSel(null); set(pts, false); e.preventDefault(); return }
+    const dx = e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0, dy = e.key === 'ArrowUp' ? st : e.key === 'ArrowDown' ? -st : 0
+    if (!dx && !dy) return
+    e.preventDefault()
+    const lo = sel === 0 ? 0 : pts[sel - 1]![0] + 0.01, hi = sel === pts.length - 1 ? 1 : pts[sel + 1]![0] - 0.01
+    pts[sel] = [sel === 0 ? 0 : sel === pts.length - 1 ? 1 : Math.max(lo, Math.min(hi, p[0] + dx)), Math.max(0, Math.min(1, p[1] + dy))]
+    show(pts[sel]!)
+    set(pts)
+  }
+  return (
+    <div data-pd-curves="">
+      <div className={s.sectionHead}>
+        <span className={s.eyebrowSm}>{tx('Kurve')}</span>
+        <button type="button" className={s.resetBtn} onClick={() => { setSel(null); set(null, false) }}>{tx('Nullstill')}</button>
+      </div>
+      <div className={s.seg} role="group" aria-label={tx('Kurve')}>
+        {CURVES.map(([k, l, col]) => (
+          <button key={k} type="button" aria-pressed={ch === k} data-pd-ch={k} style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', padding: '0 8px' }} onClick={() => { setCh(k); setSel(null); setRead('') }}>
+            <span aria-hidden="true" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, marginRight: 5, background: k === 'curve' ? 'linear-gradient(90deg,#ff5a5a,#2fbf5f,#4d8dff)' : col }} />{tx(l)}
+          </button>
+        ))}
+      </div>
+      <svg viewBox="-3 -3 106 106" className={`${s.curve} ${s.curveBig}`} onPointerDown={down} onKeyDown={key} tabIndex={0} role="img" aria-label={`${tx('Kurve')} ${tx(CURVES.find((x) => x[0] === ch)![1])}`} data-pd-curve-svg="">
+        <rect x="0" y="0" width="100" height="100" className={s.curveBg} />
+        {hp && <path d={hp} className={s.curveHist} style={ch === 'curve' ? undefined : { fill: color, opacity: 0.18 }} />}
+        <path d="M25 0V100M50 0V100M75 0V100M0 25H100M0 50H100M0 75H100" className={s.curveGrid} />
+        <path d="M0 100L100 0" className={s.curveDiag} />
+        {CURVES.filter(([k]) => k !== ch && adj[k]?.length).map(([k, , col]) => <path key={k} d={pathOf(k)} fill="none" stroke={col} strokeWidth="0.8" opacity="0.45" />)}
+        <path d={pathOf(ch)} fill="none" stroke={color} strokeWidth="1.6" className={s.curveLine} />
+        {curve.map((p, i) => (
+          <g key={i}>
+            <circle cx={(p[0] * 100).toFixed(2)} cy={((1 - p[1]) * 100).toFixed(2)} r="6" fill="transparent" />
+            <circle cx={(p[0] * 100).toFixed(2)} cy={((1 - p[1]) * 100).toFixed(2)} r={sel === i ? 3.4 : 2.8} className={sel === i ? s.curvePtOn : s.curvePt} style={{ stroke: ch === 'curve' ? undefined : color }} />
+          </g>
+        ))}
+      </svg>
+      <span className={s.dimSm} aria-live="polite" data-pd-curve-read="">{read || tx('Klikk for å legge til punkt. Dra for å flytte. Dobbeltklikk på et punkt fjerner det.')}</span>
+    </div>
+  )
+}
+
+/** Standard: de vanlige justeringene (enkle navn, gode standardverdier). Avansert: alle, pluss kurver og framkalling. */
+const BASIC = new Set<keyof Adj>(['exp', 'bri', 'con', 'sat', 'temp'])
+
+function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
+  const adj = { ...ADJ, ...L.adj }
+  const adv = c.s.adv
+  const hold = (on: boolean) => c.setBefore(on ? L.id : null)
   return (
     <>
       <span className={s.eyebrowSm}>{tx('Looks')}</span>
@@ -333,23 +481,20 @@ function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type
       </div>
       <div className={s.sectionHead}>
         <span className={s.eyebrowSm}>{tx('Justering')}</span>
-        <button type="button" className={s.resetBtn} onClick={() => c.patchL(L.id, { adj: { ...ADJ }, look: 'none' })}>{tx('Nullstill')}</button>
+        <span style={{ display: 'flex', gap: 6 }}>
+          <button type="button" className={s.resetBtn} data-pd-before-std="" title={tx('Hold inne for å se bildet uten justeringer')} onPointerDown={() => hold(true)} onPointerUp={() => hold(false)} onPointerLeave={() => hold(false)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') hold(true) }} onKeyUp={() => hold(false)}>{tx('Før/etter')}</button>
+          {!adv && <button type="button" className={s.resetBtn} data-pd-auto-std="" title={tx('Juster lyset automatisk ut fra bildet')} onClick={() => c.autoTone(L.id)}>{tx('Auto')}</button>}
+          {/* i Standard nullstilles også Auto (framkallingen vises ikke der) */}
+          <button type="button" className={s.resetBtn} onClick={() => c.patchL(L.id, adv ? { adj: { ...ADJ }, look: 'none' } : { adj: { ...ADJ }, look: 'none', dev: null })}>{tx('Nullstill')}</button>
+        </span>
       </div>
-      {ADJL.map(([k, l, mn, mx]) => {
+      {ADJL.filter(([k]) => adv || BASIC.has(k)).map(([k, l, mn, mx]) => {
         const v = Number(adj[k] ?? 0)
         return <Range key={k} label={tx(l)} min={mn ?? -100} max={mx ?? 100} step={1} val={v} show={`${v > 0 && (mn == null || mn < 0) ? '+' : ''}${Math.round(v)}`} on={(x) => c.setAdj(L.id, k, x, `adj${k}`)} reset={() => c.setAdj(L.id, k, 0)} />
       })}
-      <div className={s.sectionHead}>
-        <span className={s.eyebrowSm}>{tx('Kurve')}</span>
-        <button type="button" className={s.resetBtn} onClick={() => c.setCurve(L.id, null)}>{tx('Nullstill')}</button>
-      </div>
-      <svg viewBox="0 0 100 100" className={s.curve} onPointerDown={curveDown}>
-        <path d="M25 0V100M50 0V100M75 0V100M0 25H100M0 50H100M0 75H100" stroke="#1f1f1f" strokeWidth="0.5" />
-        <path d="M0 100L100 0" stroke="#2b2b2b" strokeWidth="0.5" strokeDasharray="2 2" />
-        <path d={cp} fill="none" stroke="#e9e7e2" strokeWidth="1.2" />
-        {curve.map((p, i) => <circle key={i} cx={(p[0] * 100).toFixed(1)} cy={((1 - p[1]) * 100).toFixed(1)} r="2.6" fill="#0e0e0e" stroke="#e9e7e2" strokeWidth="1.2" />)}
-      </svg>
-      <span className={s.dimSm}>{tx('Klikk for å legge til punkt. Dra for å flytte. Dobbeltklikk på et punkt fjerner det.')}</span>
+      {!adv && <span className={s.dimSm}>{tx('Flere verktøy (kurver, høylys og skygger, framkalling) finnes i Avansert modus.')}</span>}
+      {adv && <CurveEditor c={c} L={L} tx={tx} />}
+      {adv && <AdvDevelop c={c} L={L} tx={tx} />}
     </>
   )
 }

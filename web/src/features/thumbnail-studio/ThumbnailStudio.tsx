@@ -8,6 +8,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import type { ToolId } from '../../domain/tool'
 import { legacyDefaults, SharedSetup } from '../../services/shared-setup'
+import { pastedImage } from '../../shared/lib/paste'
 import { useLang, useT } from '../../shared/i18n/i18n'
 import { toolTitleKey } from '../../shared/i18n/messages'
 import { userStore } from '../../infrastructure/local-user'
@@ -16,7 +17,7 @@ import { fitUpload } from '../../shared/media/upload-fit'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { ThumbController, type AddTarget } from './controller'
-import { ContextMenu, CropDialog, ExportDialog, LayoutDialog, NewDialog, SaveDialog } from './Dialogs'
+import { ContextMenu, CropDialog, ExportDialog, LayoutDialog, MaskDialog, NewDialog, SaveDialog } from './Dialogs'
 import { Editor } from './Editor'
 import { backup, restore } from './engine/backup'
 import { Cutout } from './engine/cutout'
@@ -95,6 +96,21 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
         const png = await cutout.run(blob, kind, onProgress)
         const d = await assets.derive(id, png, { name: 'cutout', params: { kind } }, 'thumbnail-studio', `${(a?.name ?? 'bilde').replace(/\.[^.]+$/, '')}-utklipp.png`)
         return `m:${d.id}`
+      },
+      maskEdit: {
+        // felles maskeredigering: original + maske fra utklippet, ny versjon i Dine medier, «Velg objekt» med SlimSAM
+        async open(orig, cut) {
+          const [o, k] = await Promise.all([assets.open(M_ID(orig)), assets.open(M_ID(cut))])
+          return cutout.maskOf(o, k)
+        },
+        async save(orig, image, mask) {
+          const id = M_ID(orig)
+          const a = await assets.get(id)
+          const png = await cutout.apply(image, mask)
+          const d = await assets.derive(id, png, { name: 'cutout', params: { kind: 'edit' } }, 'thumbnail-studio', `${(a?.name ?? 'bilde').replace(/\.[^.]+$/, '')}-utklipp.png`)
+          return `m:${d.id}`
+        },
+        select: (image, x, y) => cutout.select(image, x, y),
       },
       get shared() {
         return shared
@@ -270,9 +286,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       }
     }
     const paste = (e: ClipboardEvent) => {
-      const tg = e.target as HTMLElement | null
-      if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return
-      const file = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
         c.receive(file)
@@ -373,6 +387,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       {S.exp && <ExportDialog c={c} S={S} tx={tx} onDownload={() => void doExport()} onCopy={() => void copyExport()} onSaveMedia={(to) => void saveExportToMedia(to)} sendTo={sendTo} />}
       {S.save && <SaveDialog c={c} S={S} tx={tx} />}
       {S.cropId && <CropDialog c={c} S={S} tx={tx} images={images} />}
+      {S.maskEdit && <MaskDialog c={c} S={S} tx={tx} />}
       {S.lcOpen && <LayoutDialog c={c} S={S} tx={tx} />}
       {S.ctx && <ContextMenu c={c} S={S} tx={tx} />}
       {picker?.kind === 'media' && (

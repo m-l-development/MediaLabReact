@@ -4,6 +4,9 @@
  * Mediefiler refereres med `m-<AssetId>` (felles mediebibliotek, «Dine medier»).
  */
 
+import { cleanEffects, type Effect } from './fx'
+import { cleanKeys, type Keys } from './kf'
+
 export type Pt = [number, number]
 export interface Curves { m?: Pt[]; r?: Pt[]; g?: Pt[]; b?: Pt[] }
 export type CurveCh = keyof Curves
@@ -26,6 +29,10 @@ export interface Crop { l: number; t: number; r: number; b: number }
 interface ClipCommon extends Grade {
   id: string
   link?: string
+  /** Effekter (Avansert), i rekkefølge. Se engine/fx.ts. */
+  effects?: Effect[]
+  /** Keyframes (Avansert). Se engine/kf.ts. */
+  kf?: Keys
   trans: Trans
   dim: number
   temp: number
@@ -76,6 +83,10 @@ export type Clip = ColorClip | MediaClip
 export interface Overlay extends Grade {
   id: string
   link?: string
+  /** Effekter (Avansert), i rekkefølge. Se engine/fx.ts. */
+  effects?: Effect[]
+  /** Keyframes (Avansert). Se engine/kf.ts. */
+  kf?: Keys
   lane: number
   kind: 'video' | 'image'
   media: string
@@ -115,6 +126,8 @@ export interface Overlay extends Grade {
 export interface TextItem {
   id: string
   link?: string
+  /** Keyframes (Avansert). Se engine/kf.ts. */
+  kf?: Keys
   lane: number
   start: number
   dur: number
@@ -127,6 +140,8 @@ export interface TextItem {
   italic: boolean
   color: string
   align: 'left' | 'center' | 'right'
+  /** Loddrett justering mot y (Avansert); mangler = midt (som før). */
+  valign?: 'top' | 'middle' | 'bottom'
   anim: string
   box: 'none' | 'block' | 'line'
   bg: string
@@ -219,6 +234,10 @@ export interface Project {
   subStyle: SubStyle
   music: Music[]
   logo: Logo
+  /** Dempede lydspor (lag i `music`, A1 = 0). Dempet spor høres ikke i avspilling eller eksport; klippene beholdes. */
+  muteA?: number[]
+  /** Prosjektvarighet i sekunder (sekvensens definerte slutt; avspilling og eksport stopper der). Mangler = følger innholdet. */
+  dur?: number | null
 }
 
 export interface Format { k: string; name: string; ratio: string; w: number; h: number }
@@ -281,7 +300,13 @@ export function layout(p: Pick<Project, 'clips'>): Placed[] {
   return out
 }
 
-export function totalDur(p: Pick<Project, 'clips' | 'texts' | 'subs' | 'ov'>): number {
+/** Sekvensens lengde: prosjektvarigheten når den er satt, ellers slutten på innholdet (avspilling og eksport). */
+export function totalDur(p: Pick<Project, 'clips' | 'texts' | 'subs' | 'ov'> & { dur?: number | null }): number {
+  return p.dur && p.dur > 0 ? p.dur : contentDur(p)
+}
+
+/** Hvor langt innholdet på sporene strekker seg (uavhengig av prosjektvarigheten). */
+export function contentDur(p: Pick<Project, 'clips' | 'texts' | 'subs' | 'ov'>): number {
   const L = layout(p)
   let e = L.length ? (L[L.length - 1]?.end ?? 0) : 0
   for (const x of p.texts) e = Math.max(e, x.start + x.dur)
@@ -440,7 +465,9 @@ export function normalize(input: unknown): Project {
   }))
   const clips: Clip[] = recs(p.clips, 2000).map((c): Clip => {
     const k = oneOf(c.kind, ['video', 'image', 'color'] as const, 'color')
-    const base = { id: sid(c.id, 'c'), trans: trans(c.trans), dim: num(c.dim, 0, 0, 1), temp: num(c.temp, 0, -1, 1), tint: num(c.tint, 0, -1, 1), vig: num(c.vig, 0, 0, 1), grain: num(c.grain, 0, 0, 1), ...grade(c) }
+    const efx = cleanEffects(c.effects)
+    const ckf = cleanKeys(c.kf)
+    const base = { id: sid(c.id, 'c'), ...(efx ? { effects: efx } : {}), ...(ckf ? { kf: ckf } : {}), trans: trans(c.trans), dim: num(c.dim, 0, 0, 1), temp: num(c.temp, 0, -1, 1), tint: num(c.tint, 0, -1, 1), vig: num(c.vig, 0, 0, 1), grain: num(c.grain, 0, 0, 1), ...grade(c) }
     if (k === 'color') {
       return withLink({ ...base, kind: 'color' as const, dur: num(c.dur, 5, 0.2, 3600), c1: col(c.c1, '#111111'), c2: col(c.c2, '#2a2a2a'), grad: oneOf(c.grad, ['none', 'linear', 'radial'] as const, 'linear'), ang: num(c.ang, 135, -3600, 3600), spin: num(c.spin, 0, -90, 90) }, lnk(c.link))
     }
@@ -449,7 +476,9 @@ export function normalize(input: unknown): Project {
     return withLink(r, lnk(c.link))
   })
   const ov: Overlay[] = recs(p.ov, 500).map((x) => {
-    const r: Overlay = { id: sid(x.id, 'o'), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
+    const oefx = cleanEffects(x.effects)
+    const okf = cleanKeys(x.kf)
+    const r: Overlay = { id: sid(x.id, 'o'), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
       x: num(x.x, 0.5, -1, 2), y: num(x.y, 0.5, -1, 2), scale: num(x.scale, 0.4, 0.02, 4), rot: num(x.rot, 0, -3600, 3600), opacity: num(x.opacity, 1, 0, 1), fadeIn: num(x.fadeIn, 0, 0, 30), fadeOut: num(x.fadeOut, 0, 0, 30), anim: oneOf(x.anim, OAK, 'none'), blend: oneOf(x.blend, BK, 'source-over'),
       radius: num(x.radius, 0, 0, 1), border: num(x.border, 0, 0, 5), borderColor: col(x.borderColor, '#ffffff'), shadow: !!x.shadow, flipH: !!x.flipH, flipV: !!x.flipV, crop: crop(x.crop), ar: num(x.ar, 0.5625, 0.05, 20), keyOn: !!x.keyOn, keyColor: col(x.keyColor, '#00ff00'), keySim: num(x.keySim, 0.35, 0.01, 1), keySmooth: num(x.keySmooth, 0.1, 0.005, 1), keySpill: num(x.keySpill, 0.5, 0, 1), ...grade(x) }
     if (r.kind === 'video' && r.out <= r.in + 0.05) r.out = r.in + 0.1
@@ -465,6 +494,8 @@ export function normalize(input: unknown): Project {
   const lz = isRec(p.lanes) ? p.lanes : {}
   const mx = isRec(p.mix) ? p.mix : {}
   const texts: TextItem[] = recs(p.texts, 1000).map((x) => withLink({
+    ...(x.valign === 'top' || x.valign === 'bottom' ? { valign: x.valign } : {}),
+    ...(cleanKeys(x.kf) ? { kf: cleanKeys(x.kf) as Keys } : {}),
     id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: oneOf(x.font, FONTS, 'Archivo'), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'),
   }, lnk(x.link)))
   const subs: Sub[] = recs(p.subs, 5000).map((x) => {
@@ -487,6 +518,8 @@ export function normalize(input: unknown): Project {
     texts, subs,
     subStyle: { mode: oneOf(ss.mode, ['line', 'words'] as const, 'line'), hl: col(ss.hl, '#f5b82c'), size: num(ss.size, 46, 12, 200), color: col(ss.color, '#ffffff'), bgOn: ss.bgOn !== false, bg: col(ss.bg, '#000000'), bgA: num(ss.bgA, 0.6, 0, 1), pos: oneOf(ss.pos, ['bottom', 'center', 'top'] as const, 'bottom'), font: oneOf(ss.font, FONTS, 'Archivo'), weight: num(ss.weight, 600, 100, 900), upper: !!ss.upper },
     music: musicList,
+    ...(typeof p.dur === 'number' && p.dur > 0 ? { dur: num(p.dur, 60, 0.5, 86400) } : {}),
+    ...(Array.isArray(p.muteA) && p.muteA.length ? { muteA: [...new Set(p.muteA.map((x) => Math.round(Number(x))).filter((x) => x >= 0 && x < 50))].sort((a, b) => a - b) } : {}),
     logo: { x: lg.x === null || lg.x === undefined ? null : num(lg.x, 0.5, 0, 1), y: lg.y === null || lg.y === undefined ? null : num(lg.y, 0.5, 0, 1), src: typeof lg.src === 'string' && /^(images\/[\w.-]+\.(png|jpe?g|webp|svg)|m-[\w-]+)$/.test(lg.src) ? lg.src : '', pos: oneOf(lg.pos, ['tl', 'tr', 'bl', 'br'] as const, 'tr'), size: num(lg.size, 0.12, 0.03, 0.6), opacity: num(lg.opacity, 0.9, 0, 1), on: !!lg.on },
   }
   return fixLanes(proj)
@@ -606,8 +639,8 @@ export function fmtCount(sec: number, f: TextItem['cdFmt'] | undefined): string 
 }
 
 /** Eksportstørrelse: 1080p (eller 4K) på den korte siden, med samme forhold som prosjektet (partall). */
-export function exportSize(p: Pick<Project, 'w' | 'h'>, q: '1080' | '4k'): { w: number; h: number } {
-  const b = q === '4k' ? 2 : 1
+export function exportSize(p: Pick<Project, 'w' | 'h'>, q: '720' | '1080' | '4k'): { w: number; h: number } {
+  const b = q === '4k' ? 2 : q === '720' ? 2 / 3 : 1
   const s = Math.min((1920 * b) / Math.max(p.w, p.h), (1080 * b) / Math.min(p.w, p.h))
   return { w: Math.round((p.w * s) / 2) * 2, h: Math.round((p.h * s) / 2) * 2 }
 }

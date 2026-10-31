@@ -6,6 +6,9 @@
 
 export type Mask = Uint8ClampedArray
 
+import { separable } from '../../../shared/mask/morph'
+export { separable }
+
 /**
  * Logo/Tekst: fjerner bakgrunnsfargen når kanten av bildet er (nesten) ensfarget.
  * Returnerer null hvis bakgrunnen ikke er ensfarget – da brukes AI-modellen i stedet.
@@ -83,59 +86,17 @@ export function subtractMask(alpha: Mask | null, remove: Mask): Mask {
 
 export const hasContent = (m: Mask | null): m is Mask => !!m && m.some((v) => v > 127)
 
-/** Separabelt minimumsfilter (krymper masken) – glidende vindu med deque, O(n). */
-function minLine(inp: Mask, out: Mask, base: number, step: number, len: number, r: number, q: Int32Array) {
-  let h = 0
-  let t = 0
-  for (let k = 0; k < len + r; k++) {
-    if (k < len) {
-      const v = inp[base + k * step] ?? 0
-      while (t > h && (inp[base + (q[t - 1] ?? 0) * step] ?? 0) >= v) t--
-      q[t++] = k
-    }
-    const c = k - r
-    if (c >= 0) {
-      while ((q[h] ?? 0) < c - r) h++
-      out[base + c * step] = inp[base + (q[h] ?? 0) * step] ?? 0
-    }
-  }
+/** Utvider (r > 0) eller trekker sammen (r < 0) masken med |r| piksler. */
+export function growMask(a: Mask, W: number, H: number, r: number): Mask {
+  const n = Math.round(Math.abs(r))
+  return n ? separable(a, W, H, n, r > 0 ? 'max' : 'min') : new Uint8ClampedArray(a)
 }
 
-/** Separabel boksuskarphet. */
-function blurLine(inp: Mask, out: Mask, base: number, step: number, len: number, r: number) {
-  let s = 0
-  let n = 0
-  for (let k = 0; k < Math.min(len, r + 1); k++) {
-    s += inp[base + k * step] ?? 0
-    n++
-  }
-  for (let c = 0; c < len; c++) {
-    out[base + c * step] = s / n
-    const a = c + r + 1
-    if (a < len) {
-      s += inp[base + a * step] ?? 0
-      n++
-    }
-    const b = c - r
-    if (b >= 0) {
-      s -= inp[base + b * step] ?? 0
-      n--
-    }
-  }
-}
-
-export function separable(src: Mask, W: number, H: number, r: number, kind: 'min' | 'blur'): Mask {
-  const tmp = new Uint8ClampedArray(W * H)
-  const out = new Uint8ClampedArray(W * H)
-  const q = new Int32Array(Math.max(W, H))
-  if (kind === 'min') {
-    for (let y = 0; y < H; y++) minLine(src, tmp, y * W, 1, W, r, q)
-    for (let x = 0; x < W; x++) minLine(tmp, out, x, W, H, r, q)
-  } else {
-    for (let y = 0; y < H; y++) blurLine(src, tmp, y * W, 1, W, r)
-    for (let x = 0; x < W; x++) blurLine(tmp, out, x, W, H, r)
-  }
-  return out
+/** Inverterer masken (beholdt ↔ fjernet). */
+export function invertMask(a: Mask): Mask {
+  const o = new Uint8ClampedArray(a.length)
+  for (let i = 0; i < a.length; i++) o[i] = 255 - (a[i] ?? 0)
+  return o
 }
 
 export interface RefinedMask {

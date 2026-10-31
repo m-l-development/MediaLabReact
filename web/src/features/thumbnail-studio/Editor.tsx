@@ -1,6 +1,8 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { setSnap, snapPref } from '../../shared/lib/snap'
+import { useStore } from '../../shared/lib/store'
 import { ColorRow, Controls } from './Controls'
 import { autoName, ctrlsBar, ctrlsFor, ctrlsGroup, ctrlsMal, linkNote, lname } from './ctrl-defs'
 import { gbox, PRESETS, rowOrder, type AddTarget, type PanelKey, type State, type ThumbController } from './controller'
@@ -35,13 +37,14 @@ const VIEW_OPTS: [string, Phrase, Phrase][] = [
 /** Redigering av en mal eller et grunnoppsett. */
 export function Editor(p: EditorProps) {
   const { c, S, tx } = p
+  const snapOn = useStore(snapPref)
   const cat = c.cat()
   const modes = VIEW_OPTS.map((o) => o[0])
   const LM = modes.includes(S.layoutMode) ? S.layoutMode : 'std'
   const Lx = S.narrow ? { cols: [['canvas', 'props']] as PanelKey[][], tabs: [false] } : c.layoutOf(LM)
   const n = S.doc?.layers.length ?? 0
   return (
-    <div className={s.editor}>
+    <div className={s.editor} data-ml-workspace="">
       <div className={s.editBar}>
         <div className={s.editBarLeft}>
           <button type="button" className={s.pill} onClick={() => void c.leaveEdit()}>
@@ -60,6 +63,9 @@ export function Editor(p: EditorProps) {
         <div className={s.editBarRight}>
           <button type="button" className={s.round} disabled={!S.hist.length} title={tx('Angre (⌘Z)')} aria-label={tx('Angre')} onClick={() => c.undo()}>↶</button>
           <button type="button" className={s.round} disabled={!S.fut.length} title={tx('Gjør om (⇧⌘Z)')} aria-label={tx('Gjør om')} onClick={() => c.redo()}>↷</button>
+          <button type="button" className={s.round} data-snap-toggle="" aria-pressed={snapOn} aria-label={tx('Snapping')} style={{ opacity: snapOn ? 1 : 0.45 }}
+            title={tx(snapOn ? 'Snapping er på: lag fester seg til kanter og midtlinjer. Trykk for fri plassering (Alt snur valget mens du drar).' : 'Snapping er av: fri plassering. Trykk for å slå på hjelpelinjer (Alt snur valget mens du drar).')}
+            onClick={() => setSnap(!snapOn)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3v8a6 6 0 0 0 12 0V3M6 7h4M14 7h4" /></svg></button>
           <div className={s.rel}>
             <button type="button" className={s.pillSm} aria-haspopup="menu" aria-expanded={S.viewMenu} onClick={() => c.ui({ viewMenu: !S.viewMenu })}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16M15 4v16" /></svg>

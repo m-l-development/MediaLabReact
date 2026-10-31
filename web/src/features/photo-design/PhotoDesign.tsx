@@ -9,6 +9,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import type { ToolId } from '../../domain/tool'
 import { userStore } from '../../infrastructure/local-user'
+import { pastedImage } from '../../shared/lib/paste'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
@@ -68,6 +69,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         return `m:${a.id}`
       },
       cutout: (src, kind, onProgress) => cutout.run(src, kind, onProgress),
+      selectObject: (image, x, y) => cutout.select(image, x, y),
       storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v), remove: (k) => userStore.remove(k) },
       confirm: (p, v) => window.confirm(say(p, v)),
       prompt: (p, def) => window.prompt(say(p), def),
@@ -180,6 +182,14 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         c.ui({ sel: null, multi: [], tool: 'move', expOpen: false })
         return
       }
+      // bildeserie: ← → bytter bilde; lagoperasjonene (slett, dupliser, flytt …) gjelder ikke bildet
+      if (c.s.doc?.batch) {
+        if (!typing && !mod && (k === 'arrowleft' || k === 'arrowright')) {
+          e.preventDefault()
+          c.batchStep(k === 'arrowleft' ? -1 : 1)
+        }
+        return
+      }
       if (mod && k === 'a') {
         e.preventDefault()
         c.selectAll()
@@ -211,9 +221,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       }
     }
     const paste = (e: ClipboardEvent) => {
-      const t = e.target as HTMLElement | null
-      if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return
-      const file = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
         c.receive(file, file.name)
@@ -302,6 +310,10 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         c.ui({ dragOver: false })
         const f = [...(e.dataTransfer.files || [])].filter((x) => /^image\//.test(x.type))
         if (!f.length) return
+        if (c.s.view === 'edit' && c.s.doc?.batch) {
+          void c.addBatchFiles(f.map((x) => ({ blob: x, name: x.name })))
+          return
+        }
         if (c.s.view !== 'edit') {
           c.create('blank')
           setTimeout(() => f.forEach((x) => void c.addBlob(x, x.name)), 60)
@@ -322,9 +334,11 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
               c.flash('Kunne ikke lage sikkerhetskopi.')
             }
           }}
-          onRestore={() => restoreInput.current?.click()} />
+          onRestore={() => restoreInput.current?.click()}
+          onBatch={() => c.createBatch()} />
       )}
-      {S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} pickFile={pickFile} onExport={(k, to) => void onExport(k, to)} sendTo={sendTo} />}
+      {S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} pickFile={pickFile} onExport={(k, to) => void onExport(k, to)} sendTo={sendTo}
+        onZip={(z) => download(z, c.fname().replace(/\.\w+$/, '') + '.zip')} />}
       {picker?.kind === 'media' && (
         <AssetPicker kinds={['image']} onClose={() => c.closePicker()} onPick={(a) => {
           c.closePicker()
@@ -344,6 +358,10 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         e.target.value = ''
         const rep = replaceRef.current
         replaceRef.current = undefined
+        if (c.s.doc?.batch) {
+          void c.addBatchFiles(files.map((x) => ({ blob: x, name: x.name })))
+          return
+        }
         files.forEach((x, i) => void c.addBlob(x, x.name, null, undefined, i === 0 ? rep : undefined))
       }} />
       <input ref={restoreInput} type="file" hidden accept=".json,application/json" onChange={async (e) => {

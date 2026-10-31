@@ -1,0 +1,50 @@
+# Release connecthub → main (docs/publisering.md, web/tools/release-gate.mjs).
+# Ved hver push til connecthub: venter på CI (checks + e2e, nyeste kjøring) og Vercels Dev-deploy av samme commit,
+# sjekker at main er med, at det ikke er nye migreringer og at commiten fortsatt er toppen.
+#   RELEASE_PR=false, AUTO_MERGE=false  tørrkjøring (bare kontrollene)
+#   RELEASE_PR=true                     + pull request connecthub → main og commit-status «release-gate»; et menneske
+#                                         godkjenner og merger (anbefalt). release-verify.yml kontrollerer produksjonen.
+#   AUTO_MERGE=true                     + merge gjennom beskyttelsen på main (påkrevde kontroller/godkjenninger gjelder)
+# Bruker bare GITHUB_TOKEN. Endrer aldri innstillinger eller beskyttelse.
+name: Release
+
+on:
+  push:
+    branches: [connecthub]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  # Aldri avbryt en kjøring som kan ha merget og verifiserer produksjonen. En nyere push venter i køen; en kjøring
+  # for en commit som ikke lenger er toppen av connecthub, avslutter selv.
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+  checks: read
+  deployments: read
+
+env:
+  # Begge false = tørrkjøring. AUTO_MERGE aktivert av eieren 2026-10-31: merge gjennom beskyttelsen på main; krever
+  # beskyttelsen godkjenning, venter pull requesten på den (docs/publisering.md).
+  RELEASE_PR: 'false'
+  AUTO_MERGE: 'true'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Kontroller (og ev. pull request / merge)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node web/tools/release-gate.mjs "${{ github.sha }}" ${{ env.AUTO_MERGE == 'true' && '--merge' || (env.RELEASE_PR == 'true' && '--pr' || '') }}

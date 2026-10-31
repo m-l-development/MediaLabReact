@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useServices } from '../../app/services'
 import { scrubText } from '../../shared/feedback/feedback-core'
-import { formatCase, formatCases, KIND, LEVEL, STATUS, type CaseEvent, type CaseMark, type FeedbackCase } from '../../shared/feedback/format-case'
+import { formatCase, formatCases, IMPORTANCE, KIND, SEVERITY, STATUS, type CaseEvent, type CaseMark, type FeedbackCase } from '../../shared/feedback/format-case'
 import { Head } from './common'
 import { useAdmin } from './context'
 import { copyText, fmt, go } from './lib'
@@ -235,7 +235,7 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
         <p style={{ whiteSpace: 'pre-wrap' }} data-fb-desc="">{c.description}</p>
         <dl className="ch-kv">
           {kv('Forventet', a.expected)}{kv('Slik gjenskapes det', a.steps)}{kv('Bør forbedres', a.improve)}{kv('Ønsket funksjon', a.feature)}
-          {kv('Hvor i appen', a.where)}{kv('Alvorlighet', a.severity && t(LEVEL[a.severity] ?? a.severity))}{kv('Viktighet', a.importance && t(LEVEL[a.importance] ?? a.importance))}
+          {kv('Hvor i appen', a.where)}{kv('Hindrer arbeidet', a.severity && t(SEVERITY[a.severity] ?? a.severity))}{kv('Viktighet', a.importance && t(IMPORTANCE[a.importance] ?? a.importance))}
           {kv('Avsender', (c.submitter_name || t('ukjent')) + ' · ' + t(c.role || ''))}{kv('Menighet', c.church_name)}
         </dl>
       </Card>

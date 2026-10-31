@@ -36,6 +36,11 @@ export class PhotoCutout {
     return m
   }
 
+  /** «Velg objekt» i den felles maskeredigeringen (SlimSAM, hele objektet). */
+  select(image: HTMLCanvasElement, x: number, y: number): Promise<Uint8ClampedArray | null> {
+    return this.seg.samMask(image, { points: [{ x: x / image.width, y: y / image.height, label: 1 }] }, [], () => undefined, () => undefined, true)
+  }
+
   dispose(): void {
     this.seg.dispose()
   }

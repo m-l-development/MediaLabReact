@@ -63,13 +63,30 @@ export interface ExportOpts {
   w: number
   h: number
   fps: number
+  /** Eksportområde i sekunder (standard: hele prosjektet, 0 til prosjektslutt). */
+  from?: number
+  to?: number
+  /** Kvalitet (bitrate): lav, middels (standard) eller høy. */
+  quality?: 'low' | 'mid' | 'high'
+  /** Med lyd (standard: ja). */
+  audio?: boolean
   M: MediaEls
   getBlob: GetBlob
   aborted: () => boolean
   /** Fremdrift: prosent og en norsk tekstmal med variabler ({pct}, {eta}), som oversettes i grensesnittet. */
   onProgress: (pct: number, phase: string, vars?: Record<string, string | number>) => void
 }
-export interface ExportResult { blob: Blob; audio: string | null; ext?: string }
+export interface ExportResult { blob: Blob; audio: string | null; ext?: string; video?: string; dur?: number }
+
+/** Eksportområdet: [fra, til] innenfor 0 og prosjektets slutt. */
+export function rangeOf(p: Project, o: Pick<ExportOpts, 'from' | 'to'>): [number, number] {
+  const T = totalDur(p)
+  const a = Math.max(0, Math.min(T, o.from ?? 0))
+  const b = Math.max(a, Math.min(T, o.to ?? T))
+  return [a, b > a + 0.05 ? b : Math.min(T, a + 0.05)]
+}
+
+const QF = { low: 0.55, mid: 1, high: 1.7 } as const
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0))
 
@@ -78,7 +95,8 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
   const W = o.w
   const H = o.h
   const fps = Math.min(30, o.fps)
-  const total = totalDur(p)
+  const [from, to] = rangeOf(p, o)
+  const total = to - from
   if (typeof MediaRecorder === 'undefined') throw new Error('Nettleseren kan ikke eksportere video. Bruk Chrome, Edge, Firefox eller Safari.')
   const cv = document.createElement('canvas')
   cv.width = W
@@ -91,7 +109,7 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
   let src: AudioBufferSourceNode | null = null
   o.onProgress(0, 'Lager lydspor …')
   try {
-    const ab = await renderAudio(p, o.getBlob, 48000, total)
+    const ab = o.audio === false ? null : await renderAudio(p, o.getBlob, 48000, to)
     if (ab) {
       ac = new AudioContext({ sampleRate: 48000 })
       const dst = ac.createMediaStreamDestination()
@@ -111,7 +129,7 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
       return false
     }
   }) ?? ''
-  const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: Math.round(W * H * fps * 0.15) } : undefined)
+  const rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: Math.round(W * H * fps * 0.15 * QF[o.quality ?? 'mid']) } : undefined)
   const chunks: Blob[] = []
   rec.ondataavailable = (ev) => {
     if (ev.data.size) chunks.push(ev.data)
@@ -121,9 +139,9 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
   })
   const L = layout(p)
   const vids = o.M.vids
-  drawFrame(ctx, W, H, p, o.M, 0, null)
+  drawFrame(ctx, W, H, p, o.M, from, null)
   rec.start(500)
-  src?.start()
+  src?.start(0, from)
   const t0 = performance.now()
   for (const v of Object.values(vids)) {
     try {
@@ -138,8 +156,8 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
       void ac?.close()
       throw new Error('abort')
     }
-    const t = (performance.now() - t0) / 1000
-    if (t >= total) break
+    const t = from + (performance.now() - t0) / 1000
+    if (t >= to) break
     for (const l of L) {
       if (l.c.kind !== 'video') continue
       const v = vids[l.c.id]
@@ -148,7 +166,7 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
       if (Math.abs(v.currentTime - tt) > 0.25) v.currentTime = tt
     }
     drawFrame(ctx, W, H, p, o.M, t, null)
-    const pct = Math.round((t / total) * 100)
+    const pct = Math.round(((t - from) / total) * 100)
     o.onProgress(pct, 'Tar opp video i sanntid … {pct} %', { pct })
     await new Promise((r) => setTimeout(r, 1000 / fps / 2))
   }
@@ -158,7 +176,7 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
   const type = (mime || 'video/webm').split(';')[0] ?? 'video/webm'
   const blob = new Blob(chunks, { type })
   if (blob.size < 1024) throw new Error('Filen ble tom. Prøv igjen.')
-  return { blob, audio: ac ? 'opus' : null, ext: type === 'video/mp4' ? 'mp4' : 'webm' }
+  return { blob, audio: ac ? 'opus' : null, ext: type === 'video/mp4' ? 'mp4' : 'webm', video: mime || 'video/webm', dur: total }
 }
 
 /** Eksporterer prosjektet til MP4, bilde for bilde. Kaster Error('abort') når brukeren avbryter. */
@@ -167,12 +185,13 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
   const W = o.w
   const H = o.h
   const fps = o.fps
-  const total = totalDur(p)
+  const [from, to] = rangeOf(p, o)
+  const total = to - from
   const nF = Math.max(1, Math.round(total * fps))
   const big = W * H > 2300000
   const Mx = await loadMuxer()
   const cands = big ? ['avc1.640033', 'avc1.640034', 'avc1.4d0033'] : fps > 30 ? ['avc1.64002a', 'avc1.4d002a', 'avc1.640033'] : ['avc1.640028', 'avc1.4d0028', 'avc1.42e028', 'avc1.640033']
-  const br = Math.round(W * H * fps * (big ? 0.13 : 0.2))
+  const br = Math.round(W * H * fps * (big ? 0.13 : 0.2) * QF[o.quality ?? 'mid'])
   let vcfg: VideoEncoderConfig | null = null
   let vcodec = 'avc'
   for (const codec of cands) {
@@ -200,7 +219,7 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
   if (!vcfg) return exportRealtime(p, o)
   let acfg: AudioEncoderConfig | null = null
   let acodec: string | null = null
-  if (typeof AudioEncoder !== 'undefined') {
+  if (typeof AudioEncoder !== 'undefined' && o.audio !== false) {
     for (const [codec, name] of [['mp4a.40.2', 'aac'], ['opus', 'opus']] as const) {
       if (acfg) break
       try {
@@ -215,7 +234,9 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
     }
   }
   o.onProgress(0, 'Lager lydspor …')
-  const ab = acfg ? await renderAudio(p, o.getBlob, 48000, total) : null
+  // lyden mikses fra 0 til slutten av området, og delen fra «fra» kodes (samme miks som i hele prosjektet)
+  const ab = acfg ? await renderAudio(p, o.getBlob, 48000, to) : null
+  const s0 = Math.round(from * 48000)
   if (!ab) acfg = null
   const target = new Mx.ArrayBufferTarget()
   let err: unknown = null
@@ -233,12 +254,12 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
       const L0 = ab.getChannelData(0)
       const R0 = ab.numberOfChannels > 1 ? ab.getChannelData(1) : L0
       const N = 4800
-      for (let s = 0; s < ab.length; s += N) {
+      for (let s = s0; s < ab.length; s += N) {
         const n = Math.min(N, ab.length - s)
         const d = new Float32Array(n * 2)
         d.set(L0.subarray(s, s + n), 0)
         d.set(R0.subarray(s, s + n), n)
-        const ad = new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round((s / 48000) * 1e6), data: d })
+        const ad = new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(((s - s0) / 48000) * 1e6), data: d })
         aenc.encode(ad)
         ad.close()
       }
@@ -253,7 +274,7 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
     for (let f = 0; f < nF; f++) {
       if (o.aborted()) throw new Error('abort')
       if (err) throw err instanceof Error ? err : new Error(String(err))
-      const t = f / fps
+      const t = from + f / fps
       for (const l of L) {
         if (l.c.kind !== 'video' || t < l.start || t >= l.end) continue
         const v = o.M.vids[l.c.id]
@@ -269,7 +290,7 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
         if (Math.abs(ovv.currentTime - ot) > 0.45 / fps) await seek(ovv, ot)
       }
       drawFrame(ctx, W, H, p, o.M, t, null)
-      const fr = new VideoFrame(cv, { timestamp: Math.round(t * 1e6), duration: Math.round(1e6 / fps) })
+      const fr = new VideoFrame(cv, { timestamp: Math.round((f / fps) * 1e6), duration: Math.round(1e6 / fps) })
       venc.encode(fr, { keyFrame: f % (fps * 2) === 0 })
       fr.close()
       while (venc.encodeQueueSize > 6) await new Promise((r) => setTimeout(r, 2))
@@ -294,5 +315,5 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
   }
   const blob = new Blob([target.buffer], { type: 'video/mp4' })
   if (blob.size < 1024) throw new Error('Filen ble tom. Prøv igjen.')
-  return { blob, audio: acfg ? acodec : null }
+  return { blob, audio: acfg ? acodec : null, video: vcodec === 'avc' ? 'H.264' : vcodec === 'vp9' ? 'VP9' : 'AV1', dur: nF / fps }
 }

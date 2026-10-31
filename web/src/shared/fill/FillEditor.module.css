@@ -345,3 +345,41 @@
 :root[data-theme='light'] .title {
   color: #141414;
 }
+
+/* lys modus (TB-905D74): fyllredigeringen hadde bare mørke farger og ble uleselig (1,4–2,3:1) på lyse paneler */
+:root[data-theme='light'] .box {
+  border-color: var(--color-border);
+  background: #ffffff;
+  color: #1f1d1a;
+}
+:root[data-theme='light'] .title {
+  color: #1f1d1a;
+}
+:root[data-theme='light'] .summary,
+:root[data-theme='light'] .arrow,
+:root[data-theme='light'] .label,
+:root[data-theme='light'] .hint,
+:root[data-theme='light'] .num,
+:root[data-theme='light'] .del,
+:root[data-theme='light'] .amount,
+:root[data-theme='light'] .hardRow button {
+  color: #57534c;
+}
+:root[data-theme='light'] .modes button {
+  color: #3b3833;
+}
+:root[data-theme='light'] .modes button[aria-pressed='true'],
+:root[data-theme='light'] .hardRow button[aria-pressed='true'] {
+  background: #1f1d1a;
+  color: #ffffff;
+}
+:root[data-theme='light'] .updown button,
+:root[data-theme='light'] .btn {
+  border-color: var(--color-border);
+  background: #ece9e3;
+  color: #1f1d1a;
+}
+:root[data-theme='light'] .add {
+  border-color: #8a867e;
+  color: #1f1d1a;
+}

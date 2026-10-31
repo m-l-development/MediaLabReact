@@ -278,6 +278,8 @@ export async function renderAudio(p: Project, getBlob: GetBlob, sr: number, tota
   }
   if (!opt.noMusic && !hidden(p, 'music')) {
     for (const m of p.music) {
+      // dempet lydspor (Avansert) kommer ikke med i miksen
+      if (p.muteA?.includes(m.lane || 0)) continue
       const mb = await decode(oc, getBlob, m.media, sr)
       if (!mb) continue
       any = true

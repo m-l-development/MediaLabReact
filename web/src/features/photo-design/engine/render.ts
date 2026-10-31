@@ -1,6 +1,7 @@
 import { drawFill } from '../../../shared/fill/fill'
 import { draw as drawFx } from '../../../shared/fx/fx'
 import { ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
+import { applyDev, cleanDev, histogram, type Dev, type Histogram } from './develop'
 
 type G = CanvasRenderingContext2D
 
@@ -36,6 +37,8 @@ export interface MaskCanvas { c: HTMLCanvasElement; v: number }
 export interface Media {
   media: Map<string, MediaEntry>
   masks: Map<string, MaskCanvas>
+  /** Før/etter (Avansert): dette bildelaget vises uten justeringer og framkalling. */
+  before?: string | null
 }
 
 export async function loadImg(blob: Blob): Promise<MediaEntry> {
@@ -104,6 +107,7 @@ function luts(a: Adj): [Uint8ClampedArray, Uint8ClampedArray, Uint8ClampedArray]
   const Gc = new Uint8ClampedArray(256)
   const B = new Uint8ClampedArray(256)
   const cf = curveFn(a.curve)
+  const cr = curveFn(a.curveR), cg = curveFn(a.curveG), cb = curveFn(a.curveB)
   const ex = Math.pow(2, (a.exp || 0) / 50)
   const c = a.con || 0
   const cm = c > 0 ? 1 + (c / 100) * 1.4 : 1 + (c / 100) * 0.9
@@ -122,9 +126,10 @@ function luts(a: Adj): [Uint8ClampedArray, Uint8ClampedArray, Uint8ClampedArray]
     x = clamp(x, 0, 1)
     x = x * (1 - f * 0.28) + f * 0.14
     if (cf) x = cf(x)
-    R[v] = x * gr * 255
-    Gc[v] = x * gg * 255
-    B[v] = x * gb * 255
+    const r = x * gr, g2 = x * gg, b2 = x * gb
+    R[v] = (cr ? cr(clamp(r, 0, 1)) : r) * 255
+    Gc[v] = (cg ? cg(clamp(g2, 0, 1)) : g2) * 255
+    B[v] = (cb ? cb(clamp(b2, 0, 1)) : b2) * 255
   }
   return [R, Gc, B]
 }
@@ -149,7 +154,7 @@ function satHue(a: Adj): number[] {
 export function neutral(a: Adj): boolean {
   for (const k of Object.keys(ADJ) as (keyof Adj)[]) {
     if (k === 'curve') {
-      if (a.curve?.length) return false
+      if (a.curve?.length || a.curveR?.length || a.curveG?.length || a.curveB?.length) return false
     } else if (a[k]) return false
   }
   return true
@@ -256,15 +261,22 @@ function adjusted(E: MediaEntry, a: Adj, maxD: number): HTMLCanvasElement {
   return out
 }
 
-function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undefined, maxD: number): HTMLCanvasElement {
+function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undefined, maxD: number, dev: Dev | null = null): HTMLCanvasElement {
   const a = adj ?? ADJ
-  const ak = `a${maxD}|${JSON.stringify(a)}`
+  // uten avansert framkalling er nøkkelen (og resultatet) nøyaktig som før
+  const ak = `a${maxD}|${JSON.stringify(a)}${dev ? `|d${JSON.stringify(dev)}` : ""}`
   const key = `${ak}|${mask ? mask.v : 0}`
   if (E.pk === key && E.p) return E.p
   let out: HTMLCanvasElement
   if (E.ak === ak && E.a) out = E.a
   else {
     out = adjusted(E, a, maxD)
+    if (dev) {
+      const g = ctx(out, { willReadFrequently: true })
+      const id = g.getImageData(0, 0, out.width, out.height)
+      applyDev(id, dev)
+      g.putImageData(id, 0, 0)
+    }
     E.ak = ak
     E.a = out
   }
@@ -280,6 +292,14 @@ function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undef
   E.pk = key
   E.p = out
   return out
+}
+
+/** Histogram for Avansert framkalling: originalen (raw) eller etter justeringer og framkalling, i liten størrelse. */
+export function histOf(E: MediaEntry, adj: Adj | null, dev: Dev | null): Histogram {
+  const c = adj ? adjusted(E, adj, 256) : baseOf(E, 256)
+  const id = ctx(c, { willReadFrequently: true }).getImageData(0, 0, c.width, c.height)
+  if (adj && dev) applyDev(id, dev)
+  return histogram(id)
 }
 
 /** Utsnitt: innholdet dekker rammen (w × h) med zoom cz og forskyvning cx/cy (−1…1). */
@@ -474,7 +494,8 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
     } else {
       const need = Math.max(w, h) * o.scale * (L.cz || 1) * 1.15
       const maxD = o.full ? 8192 : clamp(Math.ceil(need / 256) * 256, 256, o.preview || 1600)
-      const P = processed(E, L.adj, M.masks.get(L.id), maxD)
+      const before = M.before === L.id
+      const P = processed(E, before ? ADJ : L.adj, M.masks.get(L.id), maxD, before ? null : cleanDev(L.dev))
       const k = P.width / E.w
       const r = cover(E.w, E.h, w, h, L.cz, L.cx, L.cy)
       g.scale(L.flipX ? -1 : 1, L.flipY ? -1 : 1)

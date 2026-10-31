@@ -111,9 +111,13 @@ test('ny versjon: arbeidet lagres, «Senere» skjuler, «Oppdater nå» laster i
   await page.waitForTimeout(500)
   await expect(page.locator('[data-ml-update]')).toHaveCount(0)
   v = 'ny-versjon'
-  await fire()
   const card = page.getByRole('alertdialog', { name: 'Ny versjon av Media Lab er klar' })
-  await expect(card).toBeVisible()
+  // Sjekken hoppes over mens siden er opptatt eller en sjekk allerede går (treg maskin): synlig fane på nytt til kortet kommer
+  const fireUntilCard = () => expect(async () => {
+    await fire()
+    await expect(card).toBeVisible({ timeout: 1000 })
+  }).toPass({ timeout: 20_000 })
+  await fireUntilCard()
   await expect(card).toContainText('Arbeidet ditt er lagret.')
   await card.getByRole('button', { name: 'Senere' }).click()
   await expect(card).toHaveCount(0)
@@ -122,8 +126,7 @@ test('ny versjon: arbeidet lagres, «Senere» skjuler, «Oppdater nå» laster i
   await expect(card).toHaveCount(0)
   // «Oppdater nå» etter at utsettelsen er over (ny side = ny utsettelse)
   await page.reload()
-  await fire()
-  await expect(card).toBeVisible()
+  await fireUntilCard()
   await card.getByRole('button', { name: 'Oppdater nå' }).click()
   await page.waitForLoadState('load')
   await expect(page.locator('[data-loop-card]')).toHaveCount(1)

@@ -37,6 +37,8 @@ export interface UiState {
   aspect: Aspect
   /** Endres når bildet eller masken endres, så visningen tegnes på nytt. */
   frame: number
+  /** «Finjuster masken»: den felles maskeredigeringen vises i stedet for resultatet. */
+  editing: boolean
 }
 
 export const COLORS: readonly { hex: string; label: MessageKey }[] = [
@@ -53,9 +55,9 @@ export const COLORS: readonly { hex: string; label: MessageKey }[] = [
 const FULL: CropRect = { x: 0, y: 0, w: 1, h: 1 }
 
 const initial = (): UiState => ({
-  phase: 'empty', mode: null, busy: null, pct: 0, soft: 1, tight: 2, cropToSubject: false, fillMode: 'fill', bgType: 'none',
+  phase: 'empty', mode: null, busy: null, pct: 0, soft: 0, tight: 0, cropToSubject: false, fillMode: 'fill', bgType: 'none',
   bg: '#ffffff', cmp: 0, error: null, note: null, name: '', dims: '', ready: false, marks: [], markKeep: false,
-  historySize: 0, done: false, adv: false, crop: FULL, aspect: 'free', frame: 0,
+  historySize: 0, done: false, adv: false, crop: FULL, aspect: 'free', frame: 0, editing: false,
 })
 
 interface Snapshot {
@@ -208,7 +210,7 @@ export class IsolateController {
     this.refined = null
     this.history = []
     this.segmenter.forgetImage()
-    this.redraw({ phase: 'work', mode: null, marks: [], busy: null, error: null, note: null, dims: `${src.width} × ${src.height}`, cmp: 0, ready: false, done: false, historySize: 0 })
+    this.redraw({ phase: 'work', mode: null, marks: [], busy: null, error: null, note: null, dims: `${src.width} × ${src.height}`, cmp: 0, ready: false, done: false, historySize: 0, editing: false })
   }
 
   cropOk(): void {
@@ -237,7 +239,7 @@ export class IsolateController {
     this.pend = null
     this.alpha = null
     this.history = []
-    this.redraw({ phase: 'crop', mode: null, marks: [], ready: false, historySize: 0, error: null, note: null })
+    this.redraw({ phase: 'crop', mode: null, marks: [], ready: false, historySize: 0, error: null, note: null, editing: false })
   }
 
   // ---------- Historikk ----------
@@ -260,7 +262,7 @@ export class IsolateController {
     }
     this.alpha = h.alpha
     this.pend = h.pend
-    this.redraw({ historySize: this.history.length, marks: h.marks, mode: h.mode, ready: h.ready, note: h.note, markKeep: h.markKeep, error: null, cmp: 0 })
+    this.redraw({ historySize: this.history.length, marks: h.marks, mode: h.mode, ready: h.ready, note: h.note, markKeep: h.markKeep, error: null, cmp: 0, editing: false })
   }
 
   canRestore(): boolean {
@@ -278,7 +280,7 @@ export class IsolateController {
     }
     this.alpha = null
     this.pend = null
-    this.redraw({ mode: null, marks: [], ready: false, note: null, error: null, cmp: 0, busy: null })
+    this.redraw({ mode: null, marks: [], ready: false, note: null, error: null, cmp: 0, busy: null, editing: false })
   }
 
   // ---------- Hva skal beholdes ----------
@@ -295,7 +297,7 @@ export class IsolateController {
     this.pend = null
     const tok = ++this.token
     this.alpha = null
-    this.redraw({ mode: kind, marks: [], ready: false, error: null, note: null, cmp: 0 })
+    this.redraw({ mode: kind, marks: [], ready: false, error: null, note: null, cmp: 0, editing: false })
     if (kind === 'logo' || kind === 'text') {
       const a = colorKey(rgbaOf(this.src), this.src.width, this.src.height)
       if (a) {
@@ -331,7 +333,7 @@ export class IsolateController {
   startMarking(): void {
     const s = this.state.get()
     if (s.busy || s.mode === 'point') return
-    this.redraw({ mode: 'point', marks: [], markKeep: false, error: null, note: null })
+    this.redraw({ mode: 'point', marks: [], markKeep: false, error: null, note: null, editing: false })
   }
 
   setMarkKeep(keep: boolean): void {
@@ -442,6 +444,55 @@ export class IsolateController {
       this.redraw({ busy: null, ready: true, marks: [], error: null, note: null })
     } catch (e) {
       if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.notFound', e) })
+    }
+  }
+
+  // ---------- Finjuster masken (felles maskeredigering) ----------
+
+  /**
+   * Åpner maskeredigeringen. Masken kopieres (forrige tilstand ligger i historikken, så «Angre» i panelet tar hele
+   * redigeringen tilbake). Uten maske starter den tom: alt er fjernet, og brukeren maler det som skal beholdes.
+   */
+  startEdit(): void {
+    const src = this.src
+    const s = this.state.get()
+    if (!src || s.busy || s.editing) return
+    this.snap()
+    this.token++
+    this.alpha = this.alpha ? new Uint8ClampedArray(this.alpha) : new Uint8ClampedArray(src.width * src.height)
+    this.pend = null
+    this.refined = null
+    this.redraw({ editing: true, mode: s.mode === 'point' ? null : s.mode, marks: [], ready: true, error: null, cmp: 0 })
+  }
+
+  /** Masken som redigeres (endres direkte av redigeringen) og bildet. */
+  editTarget(): { image: HTMLCanvasElement; mask: Mask } | null {
+    return this.src && this.alpha && this.state.get().editing ? { image: this.src, mask: this.alpha } : null
+  }
+
+  /** Masken er endret i redigeringen: forhåndsvisningen og eksporten bruker den nye masken. */
+  maskChanged(): void {
+    this.refined = null
+    if (!this.state.get().ready) this.set({ ready: true })
+  }
+
+  endEdit(): void {
+    this.refined = null
+    this.redraw({ editing: false })
+  }
+
+  /** «Velg objekt» i redigeringen: SlimSAM-maske for objektet ved punktet (bildepiksler). */
+  async selectObject(x: number, y: number): Promise<Mask | null> {
+    const src = this.src
+    if (!src) return null
+    const tok = this.token
+    try {
+      const m = await this.segmenter.samMask(src, { points: [{ x: x / src.width, y: y / src.height, label: 1 }] }, [], (busy) => tok === this.token && this.set({ busy }), (pct) => tok === this.token && this.set({ pct }), true)
+      if (tok === this.token) this.set({ busy: null })
+      return m
+    } catch (e) {
+      if (tok === this.token) this.set({ busy: null, error: this.offlineOr('isolate.error.notFound', e) })
+      return null
     }
   }
 
@@ -618,7 +669,7 @@ export class IsolateController {
     this.pend = null
     this.alpha = null
     this.out = null
-    this.redraw({ historySize: 0, done: false, mode: null, marks: [], ready: false, cmp: 0, error: null, note: null })
+    this.redraw({ historySize: 0, done: false, mode: null, marks: [], ready: false, cmp: 0, error: null, note: null, editing: false })
   }
 
   reset(): void {

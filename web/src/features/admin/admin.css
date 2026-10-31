@@ -63,9 +63,11 @@
 [data-ml-theme="admin"] .ch-field .ch-input, [data-ml-theme="admin"] .ch-field .ch-select { color: var(--text); font-weight: 500; font-size: 14px; }
 [data-ml-theme="admin"] .ch-form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; }
 [data-ml-theme="admin"] .ch-badge { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid var(--line2); color: var(--muted); white-space: nowrap; }
-[data-ml-theme="admin"] .ch-badge.ok { border-color: var(--ok); color: var(--ok-text); }
-[data-ml-theme="admin"] .ch-badge.warn { border-color: var(--warn); color: var(--warn-text); }
-[data-ml-theme="admin"] .ch-badge.bad { border-color: var(--accent); color: var(--accent-text); }
+/* Statusmerker (TB-95F738): tonet bakgrunn i tillegg til kant og tekst, så de er tydelige også i lys modus; samme for alle varianter. */
+[data-ml-theme="admin"] .ch-badge.ok { border-color: var(--ok); color: var(--ok-text); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+[data-ml-theme="admin"] .ch-badge.warn { border-color: var(--warn); color: var(--warn-text); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+[data-ml-theme="admin"] .ch-badge.bad { border-color: var(--accent); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+[data-ml-theme="admin"] .ch-badge:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 [data-ml-theme="admin"] .ch-badge.role { background: var(--panel2); color: var(--text); }
 [data-ml-theme="admin"] .ch-note { margin: 0; padding: 10px 14px; border-radius: 12px; font-size: 13px; }
 [data-ml-theme="admin"] .ch-note.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok-text); }

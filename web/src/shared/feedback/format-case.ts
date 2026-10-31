@@ -7,7 +7,9 @@ import { scrubText } from './feedback-core'
  */
 export const KIND: Record<string, string> = { bug: 'Feil eller teknisk problem', improvement: 'Forslag til forbedring', feature: 'Ønske om ny funksjon', other: 'Annet' }
 export const STATUS: Record<string, string> = { new: 'Ny', in_progress: 'Under behandling', needs_info: 'Trenger mer informasjon', resolved: 'Løst', rejected: 'Avvist' }
-export const LEVEL: Record<string, string> = { low: 'Lav', medium: 'Middels', high: 'Høy', critical: 'Kritisk' }
+/** Svarene slik brukeren valgte dem i skjemaet: feil (hvor mye det hindrer) og forslag (hvor viktig). Samme verdier (low–critical) som før. */
+export const SEVERITY: Record<string, string> = { low: 'Liten ulempe', medium: 'Gjør arbeidet vanskeligere', high: 'Stopper en viktig oppgave', critical: 'Kan ikke bruke verktøyet' }
+export const IMPORTANCE: Record<string, string> = { low: 'Fint å ha', medium: 'Nyttig', high: 'Viktig for arbeidet', critical: 'Svært viktig' }
 const ENV: Record<string, string> = { production: 'Produksjon (main)', preview: 'ConnectHub Dev (grenen connecthub, Vercel Preview)', local: 'Lokal utvikling (connecthub-dev)' }
 const NA = 'Ikke tilgjengelig'
 
@@ -100,8 +102,8 @@ export function formatCase(c: FeedbackCase, events: CaseEvent[] = [], { standalo
   if (a.improve) L.push(`- Hva som bør forbedres: ${scrubText(a.improve)}`)
   if (a.feature) L.push(`- Ønsket funksjon: ${scrubText(a.feature)}`)
   if (a.where) L.push(`- Hvor i appen (brukerens ord): ${scrubText(a.where)}`)
-  if (a.severity) L.push(`- Alvorlighet (brukerens vurdering): ${LEVEL[a.severity] ?? a.severity}`)
-  if (a.importance) L.push(`- Viktighet for brukeren: ${LEVEL[a.importance] ?? a.importance}`)
+  if (a.severity) L.push(`- Hvor mye det hindrer arbeidet (brukerens vurdering): ${SEVERITY[a.severity] ?? a.severity}`)
+  if (a.importance) L.push(`- Viktighet for brukeren: ${IMPORTANCE[a.importance] ?? a.importance}`)
   L.push('')
   L.push(H('3. Applikasjon og plassering (hentet automatisk)'), `- Applikasjon: ${val(c.app_name)} (\`${val(c.app)}\`)`, `- Side: \`${val(c.page)}\``,
     `- Visning: ${c.view ? '`' + c.view + '`' : NA}`, `- Kode (prosjektstruktur): ${codeHint(c.app)}`, ...markedLines(c.marked), '- Skjermbilde: ikke støttet i denne versjonen', '')

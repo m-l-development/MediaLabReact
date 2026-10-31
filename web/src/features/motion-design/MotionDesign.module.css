@@ -2355,3 +2355,775 @@
   font-size: 13px;
   line-height: 1.55;
 }
+
+/* ---------- lys modus i editoren (samme feil som TB-905D74 i Photo Design) ----------
+   Editoren var bygget bare med mørke, innebygde farger og forble svart i lys modus. Lerretet (prosjektets bilde),
+   klippfargene i tidslinjen og avspillingshodet beholder fargene sine: temaet endrer aldri prosjektet. */
+:root[data-theme='light'] .editor,
+:root[data-theme='light'] .bar,
+:root[data-theme='light'] .aside,
+:root[data-theme='light'] .tabs,
+:root[data-theme='light'] .transport,
+:root[data-theme='light'] .tlWrap {
+  border-color: var(--color-border);
+  background: #f1eee8;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .stage {
+  background: #d9d5cd;
+}
+:root[data-theme='light'] .barBtn,
+:root[data-theme='light'] .barRound,
+:root[data-theme='light'] .act,
+:root[data-theme='light'] .chip,
+:root[data-theme='light'] .name,
+:root[data-theme='light'] .auto,
+:root[data-theme='light'] .replace,
+:root[data-theme='light'] .med,
+:root[data-theme='light'] .mini,
+:root[data-theme='light'] .preset,
+:root[data-theme='light'] .box,
+:root[data-theme='light'] .segs,
+:root[data-theme='light'] .subItem,
+:root[data-theme='light'] .subTime,
+:root[data-theme='light'] .track,
+:root[data-theme='light'] .lib,
+:root[data-theme='light'] .libBtn,
+:root[data-theme='light'] .trTile,
+:root[data-theme='light'] .select,
+:root[data-theme='light'] .num,
+:root[data-theme='light'] .area,
+:root[data-theme='light'] .zBtn {
+  border-color: rgba(40, 34, 26, 0.24);
+  background: #ffffff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .ctxMenu,
+:root[data-theme='light'] .ghost,
+:root[data-theme='light'] .toast,
+:root[data-theme='light'] .modal,
+:root[data-theme='light'] .modalWide {
+  border-color: var(--color-border);
+  background: #fbfaf7;
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .asideL,
+:root[data-theme='light'] .asideR,
+:root[data-theme='light'] .acts,
+:root[data-theme='light'] .secHead,
+:root[data-theme='light'] .subStyle,
+:root[data-theme='light'] .tlBody,
+:root[data-theme='light'] .heads,
+:root[data-theme='light'] .headRuler,
+:root[data-theme='light'] .headRow,
+:root[data-theme='light'] .ruler,
+:root[data-theme='light'] .tRow {
+  border-color: var(--color-border);
+}
+:root[data-theme='light'] .tick {
+  border-left-color: rgba(20, 20, 20, 0.2);
+}
+:root[data-theme='light'] .dashed,
+:root[data-theme='light'] .logoAdd,
+:root[data-theme='light'] .vo,
+:root[data-theme='light'] .curveBtn,
+:root[data-theme='light'] .chan {
+  border-color: rgba(20, 20, 20, 0.35);
+}
+:root[data-theme='light'] .chan {
+  box-shadow: inset 0 0 0 2px #f1eee8;
+}
+:root[data-theme='light'] .tab[aria-pressed='true'],
+:root[data-theme='light'] .seg[aria-pressed='true'],
+:root[data-theme='light'] .drawer[aria-pressed='true'],
+:root[data-theme='light'] .bigLight,
+:root[data-theme='light'] .play,
+:root[data-theme='light'] .exportBtn {
+  background: #141414;
+  color: #f3f1ec;
+}
+:root[data-theme='light'] .bigLight:hover,
+:root[data-theme='light'] .play:hover,
+:root[data-theme='light'] .exportBtn:hover {
+  background: #000000;
+}
+:root[data-theme='light'] .dim,
+:root[data-theme='light'] .saved,
+:root[data-theme='light'] .tab,
+:root[data-theme='light'] .hint,
+:root[data-theme='light'] .note,
+:root[data-theme='light'] .lead2,
+:root[data-theme='light'] .eyebrowSm,
+:root[data-theme='light'] .linkBtn,
+:root[data-theme='light'] .presetD,
+:root[data-theme='light'] .seg,
+:root[data-theme='light'] .subTime,
+:root[data-theme='light'] .x,
+:root[data-theme='light'] .voTime,
+:root[data-theme='light'] .trackMeta,
+:root[data-theme='light'] .time,
+:root[data-theme='light'] .keys,
+:root[data-theme='light'] .propTitle,
+:root[data-theme='light'] .secHead,
+:root[data-theme='light'] .lbl,
+:root[data-theme='light'] .lblTop,
+:root[data-theme='light'] .toggle,
+:root[data-theme='light'] .heads,
+:root[data-theme='light'] .ico,
+:root[data-theme='light'] .lane,
+:root[data-theme='light'] .tick,
+:root[data-theme='light'] .menuKey,
+:root[data-theme='light'] .modalLead,
+:root[data-theme='light'] .aiMsg,
+:root[data-theme='light'] .logoOpt {
+  color: #4a4640;
+}
+:root[data-theme='light'] .dashed,
+:root[data-theme='light'] .subText,
+:root[data-theme='light'] .vo,
+:root[data-theme='light'] .track,
+:root[data-theme='light'] .libBtn,
+:root[data-theme='light'] .trTile,
+:root[data-theme='light'] .menuItem,
+:root[data-theme='light'] .curveBtn,
+:root[data-theme='light'] .logoAdd,
+:root[data-theme='light'] .linkBtn:hover,
+:root[data-theme='light'] .secHead:hover,
+:root[data-theme='light'] .subTime:hover,
+:root[data-theme='light'] .ico:hover,
+:root[data-theme='light'] .logoNone:hover {
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .ico:hover,
+:root[data-theme='light'] .menuItem:hover {
+  background: rgba(20, 20, 20, 0.08);
+}
+:root[data-theme='light'] .menuSep {
+  background: var(--color-border);
+}
+:root[data-theme='light'] .subText:focus {
+  border-color: rgba(40, 34, 26, 0.24);
+  background: #ffffff;
+}
+:root[data-theme='light'] .autoTrack,
+:root[data-theme='light'] .tTrack {
+  background: rgba(20, 20, 20, 0.22);
+}
+:root[data-theme='light'] .autoKnob,
+:root[data-theme='light'] .tKnob {
+  background: #ffffff;
+}
+:root[data-theme='light'] .auto[aria-checked='true'] .autoTrack,
+:root[data-theme='light'] .toggle[aria-checked='true'] .tTrack {
+  background: #141414;
+}
+:root[data-theme='light'] .auto[aria-checked='true'] .autoKnob,
+:root[data-theme='light'] .toggle[aria-checked='true'] .tKnob {
+  background: #ffffff;
+}
+:root[data-theme='light'] .savedWarn,
+:root[data-theme='light'] .icoOn,
+:root[data-theme='light'] .ghostSub {
+  color: var(--color-warning);
+}
+:root[data-theme='light'] .danger,
+:root[data-theme='light'] .aiErr,
+:root[data-theme='light'] .icoHid,
+:root[data-theme='light'] .x:hover,
+:root[data-theme='light'] .icoDel:hover,
+:root[data-theme='light'] .medDel:hover {
+  color: var(--color-danger);
+}
+:root[data-theme='light'] .name:focus,
+:root[data-theme='light'] .subItemSel,
+:root[data-theme='light'] .trackSel,
+:root[data-theme='light'] .logoOpt[aria-pressed='true'],
+:root[data-theme='light'] .mini:hover,
+:root[data-theme='light'] .preset:hover,
+:root[data-theme='light'] .dashed:hover,
+:root[data-theme='light'] .logoAdd:hover,
+:root[data-theme='light'] .curveBtn:hover,
+:root[data-theme='light'] .chan[aria-pressed='true'],
+:root[data-theme='light'] .barBtn:hover,
+:root[data-theme='light'] .barRound:hover,
+:root[data-theme='light'] .act:hover,
+:root[data-theme='light'] .chip:hover,
+:root[data-theme='light'] .zBtn:hover {
+  border-color: #141414;
+}
+:root[data-theme='light'] .medThumb,
+:root[data-theme='light'] .logoOpt {
+  background-color: #e2ded6;
+}
+:root[data-theme='light'] .range {
+  accent-color: #141414;
+}
+:root[data-theme='light'] .modalBack {
+  background: rgba(20, 20, 20, 0.35);
+}
+
+/* ---------- Avansert: mediebibliotek, tidsinspektør, tidskode ---------- */
+.binHead {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a8a49c;
+}
+.binErr {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #7a2e22;
+  border-radius: 10px;
+  background: rgba(228, 65, 31, 0.1);
+  color: #ffb3a6;
+  font-size: 12px;
+}
+.binErr ul {
+  margin: 0;
+  padding-left: 16px;
+  word-break: break-word;
+}
+.binErr button {
+  align-self: flex-start;
+}
+.binList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.binItem {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 4px 8px;
+  padding: 6px;
+  border: 1px solid #222;
+  border-radius: 10px;
+  background: #111;
+}
+.binThumb {
+  grid-row: span 2;
+  width: 48px;
+  height: 36px;
+  border-radius: 6px;
+  background: #1c1c1c center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8fd3ff;
+  font-size: 16px;
+}
+.binText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.binName {
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binMeta {
+  font-size: 11px;
+  color: #a8a49c;
+  font-variant-numeric: tabular-nums;
+}
+.binBtns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.timing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  background: #101010;
+}
+.tmHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.tmTrack {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #3d8bff;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.tmGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.tmField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 11px;
+  color: #a8a49c;
+}
+.tmField input,
+.tmField output {
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: #0b0b0b;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  color: #f2efe8;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+.tc {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #0b0b0b;
+  border: 1px solid #2a2a2a;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+:root[data-theme='light'] .binItem,
+:root[data-theme='light'] .timing,
+:root[data-theme='light'] .tc,
+:root[data-theme='light'] .tmField input,
+:root[data-theme='light'] .tmField output {
+  border-color: var(--color-border);
+  background: #fff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .binThumb {
+  background-color: #e7e3dc;
+}
+:root[data-theme='light'] .binErr {
+  color: #8a2a17;
+}
+.tlTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.tlZoom {
+  width: clamp(90px, 12vw, 180px);
+  accent-color: #3d8bff;
+}
+.tlField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #a8a49c;
+}
+.tlField input {
+  width: 98px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: #0b0b0b;
+  color: #f2efe8;
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.tlField input[aria-invalid='true'] {
+  border-color: #e4411f;
+}
+.tlErr {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #3a1610;
+  color: #ffb3a6;
+  font-size: 11.5px;
+  font-style: normal;
+  white-space: nowrap;
+}
+.tlWarn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: rgba(245, 184, 44, 0.12);
+  color: #f5b82c;
+  font-size: 12px;
+}
+.endZone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 3;
+  border-left: 2px solid #f5b82c;
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.35) 0 6px, rgba(0, 0, 0, 0.5) 6px 12px);
+  pointer-events: none;
+}
+.endZone span {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #f5b82c;
+}
+:root[data-theme='light'] .tlField input {
+  border-color: var(--color-border);
+  background: #fff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .endZone {
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.06) 0 6px, rgba(0, 0, 0, 0.12) 6px 12px);
+}
+/* tidslinjens høyde dras fra skillet over den */
+.tlResize {
+  flex: 0 0 6px;
+  margin-top: -3px;
+  position: relative;
+  z-index: 4;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.tlResize:hover,
+.tlResize:focus-visible {
+  background: rgba(61, 139, 255, 0.55);
+  outline: none;
+}
+.tlField input[placeholder] {
+  width: 128px;
+}
+/* toppraden holder seg på én linje på vanlige skjermer (navnefeltet krymper i stedet) */
+@media (min-width: 1180px) {
+  .bar {
+    flex-wrap: nowrap;
+  }
+}
+@media (max-width: 1440px) {
+  .bar > .dim {
+    display: none;
+  }
+}
+/* ---------- Avansert: effekter ---------- */
+.fxList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fxItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid #262626;
+  border-radius: 10px;
+  background: #0b0b0b;
+}
+.fxItem[data-on='0'] {
+  opacity: 0.55;
+}
+.fxHead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+}
+.fxOn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.fxRow {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.9fr) minmax(0, 1.6fr) 56px;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #a8a49c;
+}
+.fxRow input[type='range'] {
+  width: 100%;
+  accent-color: #3d8bff;
+}
+.fxLbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fxVal {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+}
+.fxAdd {
+  display: flex;
+  gap: 6px;
+}
+.fxAdd select {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: #0b0b0b;
+  color: #f2efe8;
+  font: inherit;
+  font-size: 12.5px;
+}
+:root[data-theme='light'] .fxItem,
+:root[data-theme='light'] .fxAdd select {
+  border-color: var(--color-border);
+  background: #fff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .fxVal {
+  color: var(--color-text-strong);
+}
+.placeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 4px;
+}
+.placeGrid button {
+  height: 26px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0b0b0b;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.placeGrid button i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b675f;
+}
+.placeGrid button[aria-pressed='true'] {
+  border-color: #3d8bff;
+}
+.placeGrid button[aria-pressed='true'] i {
+  background: #3d8bff;
+}
+:root[data-theme='light'] .placeGrid button {
+  border-color: var(--color-border);
+  background: #fff;
+}
+/* ---------- Avansert: keyframes ---------- */
+.kfProp {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.kfRow {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 82px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.kfDia {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0b0b0b;
+  color: #6b675f;
+  font-size: 11px;
+  cursor: pointer;
+}
+.kfDia[aria-pressed='true'] {
+  color: #f5b82c;
+  border-color: #f5b82c;
+}
+.kfDia:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.kfProp[data-animated] .kfLbl {
+  color: #f5b82c;
+}
+.kfLbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kfNum {
+  width: 100%;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0b0b0b;
+  color: #f2efe8;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+.kfList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0 0 4px 32px;
+  padding: 0;
+  list-style: none;
+}
+.kfKey {
+  display: grid;
+  grid-template-columns: 64px 64px minmax(0, 1fr) 22px;
+  gap: 4px;
+  align-items: center;
+}
+.kfKey[data-here] .kfNum {
+  border-color: #f5b82c;
+}
+.kfKey select {
+  min-width: 0;
+  height: 26px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0b0b0b;
+  color: #f2efe8;
+  font: inherit;
+  font-size: 11.5px;
+}
+.kfDot {
+  position: absolute;
+  bottom: 3px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  transform: rotate(45deg);
+  background: #f5b82c;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  z-index: 2;
+}
+:root[data-theme='light'] .kfDia,
+:root[data-theme='light'] .kfNum,
+:root[data-theme='light'] .kfKey select {
+  border-color: var(--color-border);
+  background: #fff;
+  color: var(--color-text-strong);
+}
+.segRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.segRow button[aria-pressed='true'] {
+  outline: 2px solid #3d8bff;
+}
+/* ---------- Avansert: eksport ---------- */
+.expAdv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.expRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.expRow > span:first-child {
+  min-width: 96px;
+  color: #a8a49c;
+}
+.expChk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* Avansert: kategorier i inspektøren (Klipp, Effekter, Animasjon, Hastighet, Lyd) */
+.inspTabs {
+  position: sticky;
+  top: -14px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: -14px -14px 0;
+  padding: 8px 10px;
+  background: #0b0b0b;
+  border-bottom: 1px solid #1c1c1c;
+}
+
+.inspTab {
+  flex: 1 1 auto;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  background: transparent;
+  color: #b8b4aa;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.inspTab:hover {
+  color: #f2efe8;
+  border-color: #3a3a3a;
+}
+
+.inspTab[aria-selected='true'] {
+  background: #f2efe8;
+  border-color: #f2efe8;
+  color: #0b0b0b;
+  font-weight: 600;
+}
+
+.inspTab:focus-visible,
+.modal:focus-visible {
+  outline: 2px solid #f5b82c;
+  outline-offset: 2px;
+}
+
+.modal:focus {
+  outline: none;
+}
+
+.inspPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}

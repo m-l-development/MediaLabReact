@@ -1,13 +1,17 @@
 import { createStore, type Store } from '../../shared/lib/store'
+import { snapActive } from '../../shared/lib/snap'
 import { fillStops, type Fill } from '../../shared/fill/fill'
 import * as FX from '../../shared/fx/fx'
+import { ZipWriter } from '../../shared/lib/zip'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
 import {
-  ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, SHAPES, shapeLayer, targetSlot, textLayer, uid,
-  type Adj, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
+  ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, LOOKS, SHAPES, shapeLayer, targetSlot, textLayer, uid,
+  type Adj, type CurveKey, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
+import { autoTone, cleanDev, DEV, type Dev, type Histogram } from './engine/develop'
+import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
-import { baseOf, cover, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
+import { baseOf, cover, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
 
@@ -18,6 +22,9 @@ export type Tool = 'move' | 'crop' | 'brush'
 export type Saved = { kind: 'unsaved' } | { kind: 'saved'; at: number } | null
 export type PickerTarget = { replace?: string; logo?: boolean }
 export type Picker = { kind: 'media' | 'cloud'; target: PickerTarget; start?: 'faste' | 'ressurser' | 'felles' | 'samarbeid' } | null
+
+/** Import eller ZIP-eksport i en bildeserie: fremdrift og bildene som feilet. */
+export interface BatchJob { kind: 'import' | 'export'; done: number; total: number; failed: string[]; end: boolean }
 
 export interface PState {
   ready: boolean
@@ -47,6 +54,8 @@ export interface PState {
   fillOpen: boolean
   linkCol: boolean
   tplCat: string | null
+  /** Startsiden: kategorien «Mine prosjekter» filtreres på (null = alle, '' = uten kategori). */
+  projCat: string | null
   cats: string[]
   newCol: string | null
   dragOver: boolean
@@ -58,7 +67,15 @@ export interface PState {
   shapesOpen: boolean
   logoOpen: boolean
   adv: boolean
+  /** Avansert framkalling er kopiert og kan limes inn. */
+  devClip?: boolean
   fxCat: string
+  /** Effektvelgeren (popup) er åpen. */
+  fxOpen: boolean
+  /** «Finjuster masken»: bildet og masken som redigeres i den felles maskeredigeringen. */
+  maskEdit: { id: string; image: HTMLCanvasElement; mask: Uint8ClampedArray } | null
+  /** Effekten som forhåndsvises (tegnes øverst, er ikke i prosjektet før «Legg til effekt»). */
+  fxPick: FxLayer | null
   fxQ: string
   fxN: number
   fxPal: number
@@ -67,6 +84,12 @@ export interface PState {
   picker: Picker
   /** Malfargene på startsiden (null = malenes egne farger); gjelder malene som ikke har egne farger. */
   scheme: Scheme | null
+  /** Bildeserie: import/eksport som pågår eller nettopp er ferdig. */
+  bx: BatchJob | null
+  /** Bildeserie: filformat for «Eksporter alle som ZIP». */
+  bfmt: 'jpg' | 'png'
+  /** Øker når en miniatyr i filmstripen er klar. */
+  tver: number
   /** Farger og rekkefølge per mal (satt i editoren); beholdes når du bytter mellom maler. */
   tplSchemes: Record<string, Scheme | null>
 }
@@ -81,6 +104,8 @@ export interface PDeps {
   putImage(blob: Blob, name: string): Promise<string>
   /** AI-utklipp: maske (hvit + alfa) i størrelsen til `src`. null = ingen tydelig motiv. */
   cutout(src: HTMLCanvasElement, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<HTMLCanvasElement | null>
+  /** «Velg objekt» i den felles maskeredigeringen (SlimSAM). */
+  selectObject?(image: HTMLCanvasElement, x: number, y: number): Promise<Uint8ClampedArray | null>
   storage: { get(k: string): string | null; set(k: string, v: string): void; remove(k: string): void }
   confirm(p: Phrase, v?: Vars): boolean
   prompt(p: Phrase, def?: string): string | null
@@ -148,10 +173,11 @@ export class PhotoController {
       brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false, busy: '', pct: 0, toast: null,
       saved: null, autosave: st.get('photodesign.autosave') === '1', guides: null, ltab: 'lag', fillOpen: true, linkCol: false,
       tplCat: tc && tc.length ? tc : null,
+      projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
-      scheme: loadScheme(st), tplSchemes: loadTplSchemes(st),
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null,
+      scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), bx: null, bfmt: 'jpg', tver: 0,
     })
   }
 
@@ -233,6 +259,9 @@ export class PhotoController {
     const d = tplDoc(w, h, tpl, this.schemeFor(tpl), this.now())
     const f = FORMATS.find((x) => x.k === this.s.fmt)
     d.name = tpl === 'card2' ? this.d.t('Visittkort') : this.d.t((f ? f.l : 'Egendefinert') as Phrase)
+    // nytt prosjekt havner i kategorien som er valgt under «Mine prosjekter»
+    const pc = this.s.projCat
+    if (pc && this.s.cats.includes(pc)) d.cat = pc
     this.M.media.clear()
     this.M.masks.clear()
     this.openDoc(d, null, true)
@@ -295,7 +324,11 @@ export class PhotoController {
     this.hk = null
     this.dirty = isNew
     this.fmtBase = null
-    this.set({ view: 'edit', doc, projectId, sel: null, multi: [], tool: 'move', tab: 'layer', zoom: 1, expOpen: false, saved: isNew && !this.s.autosave ? { kind: 'unsaved' } : null, hist: 0 })
+    this.tRaw.clear()
+    this.tOut.clear()
+    // bildeserien starter i Farge-fanen med bildelaget valgt
+    const bl = doc.batch ? (doc.layers.find((q) => q.type === 'image')?.id ?? null) : null
+    this.set({ view: 'edit', doc, projectId, sel: bl, multi: [], tool: 'move', tab: bl ? 'color' : 'layer', zoom: 1, bx: null, expOpen: false, saved: isNew && !this.s.autosave ? { kind: 'unsaved' } : null, hist: 0 })
     if (isNew && this.s.autosave) void this.saveNow()
   }
 
@@ -351,7 +384,8 @@ export class PhotoController {
     clearTimeout(this.svT)
     this.svT = undefined
     try {
-      const doc: PdDoc = { ...d, updated: this.now() }
+      // bildeserie: innstillingene for bildet som er åpent, skrives til serien
+      const doc: PdDoc = { ...syncBatch(d), updated: this.now() }
       const stored: PdStored = { doc, masks: await this.masksOf(doc), thumb: this.thumbOf(doc), tpl: null }
       const id = await this.d.repo.save(this.s.projectId, stored)
       this.dirty = false
@@ -400,16 +434,67 @@ export class PhotoController {
     this.set({ cats: c, tplCat: c[c.length - 1] ?? null })
   }
 
-  newCat(): void {
-    const v = (this.d.prompt('Navn på kategorien') ?? '').trim().slice(0, 40)
-    if (!v) return
-    if (this.s.cats.includes(v)) {
-      this.set({ tplCat: v })
-      this.flash('Kategorien er allerede lagret.')
-      return
+  /** Ny kategori (felles for maler og prosjekter). Tomt navn avbryter; et navn som finnes (uansett store/små bokstaver) velges i stedet. → kategorien, eller null. */
+  newCat(mode: 'tpl' | 'proj' | 'doc' = 'tpl'): string | null {
+    const raw = this.d.prompt('Navn på kategorien')
+    if (raw == null) return null
+    const v = raw.trim().replace(/\s+/g, ' ').slice(0, 40)
+    if (!v) {
+      this.flash('Skriv et navn på kategorien.')
+      return null
     }
-    this.saveCats([...this.s.cats, v].slice(0, 20))
+    const same = this.s.cats.find((x) => x.toLocaleLowerCase() === v.toLocaleLowerCase())
+    if (same) {
+      if (mode === 'proj') this.setProjCat(same)
+      else if (mode === 'tpl') this.set({ tplCat: same })
+      this.flash('Kategorien «{name}» finnes allerede og er valgt.', { name: same })
+      return same
+    }
+    if (this.s.cats.length >= 20) {
+      this.flash('Maks 20 kategorier.')
+      return null
+    }
+    // 'proj': velges i filteret på startsiden; 'doc': bare lagt til (editoren gir den til prosjektet); 'tpl': malkategori
+    if (mode === 'tpl') this.saveCats([...this.s.cats, v])
+    else {
+      const c = [...this.s.cats, v]
+      this.d.storage.set('photodesign.cats', JSON.stringify(c))
+      this.set({ cats: c })
+      if (mode === 'proj') this.setProjCat(v)
+    }
     this.flash('Kategorien er opprettet.')
+    return v
+  }
+
+  /** Startsiden: vis prosjektene i denne kategorien (null = alle, '' = uten kategori). Nye prosjekter havner i den. */
+  setProjCat(c: string | null): void {
+    this.d.storage.set('photodesign.projcat', c ?? '*')
+    this.set({ projCat: c })
+  }
+
+  /** Flytter et lagret prosjekt til en annen kategori (null = uten kategori) uten å åpne det. */
+  async moveProject(e: PdEntry, cat: string | null): Promise<void> {
+    try {
+      const s = await this.d.repo.open(e.id)
+      if (cat) s.doc.cat = cat
+      else delete s.doc.cat
+      await this.d.repo.save(e.id, s)
+      if (this.s.projectId === e.id && this.s.doc) this.set({ doc: { ...this.s.doc, ...(cat ? { cat } : { cat: null }) } })
+      this.flash(cat ? 'Prosjektet ligger nå i «{name}».' : 'Prosjektet er uten kategori.', { name: cat ?? '' })
+    } catch {
+      this.flash('Kunne ikke lagre. Nettleseren kan være full.')
+    }
+    void this.refresh()
+  }
+
+  /** Kategorien til prosjektet som er åpent (endres i editoren under Stil). */
+  setDocCat(cat: string | null): void {
+    this.setDoc((q) => {
+      const n = { ...q }
+      if (cat) n.cat = cat
+      else delete n.cat
+      return n
+    })
   }
 
   async saveTpl(): Promise<void> {
@@ -466,7 +551,10 @@ export class PhotoController {
 
   private restore(sn: Snapshot) {
     this.M.masks = sn.masks
-    this.set((s) => ({ doc: sn.doc, sel: sn.doc.layers.some((L) => L.id === s.sel) ? s.sel : null, hist: s.hist + 1 }))
+    // bildeserie: selve serien (bilder, valg) angres ikke – bare justeringene på bildet som er åpent
+    const cb = this.s.doc?.batch
+    const doc = cb && sn.doc.batch ? { ...sn.doc, batch: cb } : sn.doc
+    this.set((s) => ({ doc, sel: doc.layers.some((L) => L.id === s.sel) ? s.sel : null, hist: s.hist + 1 }))
     this.queueSave()
   }
 
@@ -655,6 +743,8 @@ export class PhotoController {
   async addBlob(blob: Blob, name: string, at: Pt | null = null, src?: string, replace?: string, opt: { logo?: boolean } = {}): Promise<void> {
     const d = this.s.doc
     if (!d) return
+    // i en bildeserie blir bildet et nytt bilde i serien, ikke et lag
+    if (d.batch) return this.addBatchFiles([{ blob, name }])
     const sel0 = this.s.sel // valget da bildet ble valgt; lasting og lagring tar tid
     if (!/^image\/(png|jpeg|webp|gif)$/.test(blob.type || '')) {
       this.flash('Bruk PNG, JPG, WebP eller GIF.')
@@ -903,7 +993,7 @@ export class PhotoController {
           moved = true
           this.push()
         }
-        const sn = snapAt(d, P, { x0: b0.x0 + dx, x1: b0.x1 + dx, y0: b0.y0 + dy, y1: b0.y1 + dy }, 7 / this.sc(), 2 / this.sc(), ev.altKey)
+        const sn = snapAt(d, P, { x0: b0.x0 + dx, x1: b0.x1 + dx, y0: b0.y0 + dy, y1: b0.y1 + dy }, 7 / this.sc(), 2 / this.sc(), !snapActive(ev.altKey))
         dx += sn.dx
         dy += sn.dy
         this.set((s) => (s.doc ? {
@@ -1171,6 +1261,73 @@ export class PhotoController {
     }
   }
 
+  /**
+   * «Finjuster masken» (felles maskeredigering, samme som Isolate Subject): bildet i maskens oppløsning og masken som
+   * alfa (uten maske: alt synlig). «Bruk» skriver masken tilbake til laget med angre, som penselen.
+   */
+  openMaskEdit(): void {
+    const L = this.selL()
+    if (!L || L.type !== 'image' || !L.src || this.s.maskEdit) return
+    const E = this.M.media.get(L.src)
+    if (!E) {
+      this.flash('Legg inn et bilde først.')
+      return
+    }
+    const image = baseOf(E, 2048)
+    const W = image.width
+    const H = image.height
+    const mask = new Uint8ClampedArray(W * H).fill(255)
+    const old = this.M.masks.get(L.id)
+    if (old) {
+      const t = mk(W, H)
+      const g = t.getContext('2d', { willReadFrequently: true })
+      if (g) {
+        g.drawImage(old.c, 0, 0, W, H)
+        const d = g.getImageData(0, 0, W, H).data
+        for (let i = 0; i < W * H; i++) mask[i] = d[i * 4 + 3] ?? 0
+      }
+    }
+    this.set({ maskEdit: { id: L.id, image, mask } })
+  }
+
+  applyMaskEdit(): void {
+    const e = this.s.maskEdit
+    const L = e && this.s.doc?.layers.find((q) => q.id === e.id)
+    if (!e || !L || L.type !== 'image') return
+    const m = this.maskFor(L, true)
+    const g = m?.c.getContext('2d')
+    if (m && g) {
+      const W = m.c.width
+      const H = m.c.height
+      // masken er laget i samme oppløsning (baseOf 2048); ellers skaleres den
+      const src = mk(e.image.width, e.image.height)
+      const sg = src.getContext('2d')
+      if (sg) {
+        const id = sg.createImageData(src.width, src.height)
+        for (let i = 0; i < e.mask.length; i++) {
+          id.data[i * 4] = 255
+          id.data[i * 4 + 1] = 255
+          id.data[i * 4 + 2] = 255
+          id.data[i * 4 + 3] = e.mask[i] ?? 0
+        }
+        sg.putImageData(id, 0, 0)
+        g.clearRect(0, 0, W, H)
+        g.drawImage(src, 0, 0, W, H)
+      }
+      this.commitMask(L, m)
+    }
+    this.set({ maskEdit: null })
+  }
+
+  closeMaskEdit(): void {
+    this.set({ maskEdit: null })
+  }
+
+  selectInMask(x: number, y: number): Promise<Uint8ClampedArray | null> {
+    const e = this.s.maskEdit
+    return e && this.d.selectObject ? this.d.selectObject(e.image, x, y) : Promise.resolve(null)
+  }
+
   invertMask(): void {
     const L = this.selL()
     if (!L || L.type !== 'image' || !L.src) return
@@ -1217,8 +1374,58 @@ export class PhotoController {
 
   // ---------- kurve ----------
 
-  setCurve(id: string, pts: [number, number][] | null, key?: string): void {
-    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, curve: pts } } : {}), key)
+  setCurve(id: string, pts: [number, number][] | null, key?: string, ch: CurveKey = 'curve'): void {
+    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, [ch]: pts } } : {}), key)
+  }
+
+  /** Avansert framkalling (engine/develop.ts, bare i Avansert modus). Nøytral verdi fjerner feltet helt. */
+  setDev(id: string, k: keyof Dev, v: number, key?: string): void {
+    this.patchL(id, (q) => (q.type === 'image' ? { dev: cleanDev({ ...DEV, ...q.dev, [k]: v }) } : {}), key)
+  }
+
+  resetDev(id: string): void {
+    this.patchL(id, { dev: null })
+  }
+
+  /** Histogram for bildelaget (raw = originalen). Null uten bilde. */
+  histOfLayer(id: string, raw = false): Histogram | null {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!L || L.type !== 'image' || !E) return null
+    return histOf(E, raw ? null : { ...ADJ, ...L.adj }, raw ? null : cleanDev(L.dev))
+  }
+
+  /** Auto-tone ut fra originalens histogram: eksponering, hvit- og svartpunkt (fargene røres ikke). */
+  autoTone(id: string): void {
+    const h = this.histOfLayer(id, true)
+    if (!h) return
+    const t = autoTone(h)
+    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...q.adj, exp: t.exp }, dev: cleanDev({ ...DEV, ...q.dev, whites: t.whites, blacks: t.blacks }) } : {}))
+  }
+
+  private devClip: { adj: Adj; look: string; dev: Dev | null } | null = null
+  /** Kopier framkalling (justeringer, look og avansert) fra et bildelag … */
+  copyDev(id: string): void {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    if (L?.type !== 'image') return
+    this.devClip = { adj: { ...ADJ, ...L.adj }, look: L.look || 'none', dev: cleanDev(L.dev) }
+    this.set({ devClip: true })
+    this.flash('Framkallingen er kopiert.')
+  }
+
+  /** … og lim den inn på et annet (bildet, utsnittet og masken beholdes). */
+  pasteDev(id: string): void {
+    const c = this.devClip
+    if (!c) return
+    this.patchL(id, (q) => (q.type === 'image' ? { adj: { ...c.adj }, look: c.look, dev: c.dev ? { ...c.dev } : null } : {}))
+    this.flash('Framkallingen er limt inn.')
+  }
+
+  /** Før/etter: viser bildelaget uten justeringer og framkalling mens knappen holdes inne (endrer ikke prosjektet). */
+  setBefore(id: string | null): void {
+    if ((this.M.before ?? null) === id) return
+    this.M.before = id
+    this.set((s) => ({ hist: s.hist + 1 }))
   }
 
   setAdj(id: string, k: keyof Adj, v: number, key?: string): void {
@@ -1287,6 +1494,42 @@ export class PhotoController {
 
   // ---------- effekter ----------
 
+  /** Åpner effektvelgeren (bare i Avansert modus). */
+  openFx(): void {
+    if (!this.s.adv || !this.s.doc) return
+    this.set({ fxOpen: true, fxPick: null })
+  }
+
+  /** Forhåndsvis et forhåndsvalg: erstatter forrige forhåndsvisning (aldri ekstra lag). Synligheten beholdes. */
+  previewFx(pr: FX.Preset): void {
+    const d = this.s.doc
+    if (!d) return
+    const K = FX.KINDS[pr.fx]
+    const name = pr.custom ? pr.name : `${this.d.t((pr.look ?? K?.l ?? '') as Phrase)}${pr.pal ? ` · ${this.d.t(pr.pal as Phrase)}` : ''}`
+    const op = this.s.fxPick?.op ?? 1
+    this.set((s) => ({ fxPick: { ...(FX.fxLayer(pr, d.w, d.h, name) as FxLayer), op }, hist: s.hist + 1 }))
+  }
+
+  setFxPickOp(op: number): void {
+    const p = this.s.fxPick
+    if (p) this.set((s) => ({ fxPick: { ...p, op: clamp(op, 0, 1) }, hist: s.hist + 1 }))
+  }
+
+  /** «Legg til effekt»: forhåndsvisningen blir et vanlig, redigerbart lag (med angre). */
+  confirmFx(): void {
+    const p = this.s.fxPick
+    if (!p) return
+    if (p.preset) FX.pushRecent(p.preset)
+    this.set({ fxOpen: false, fxPick: null })
+    this.addLayer({ ...p })
+  }
+
+  /** «Avbryt»: forhåndsvisningen forsvinner; prosjektet er uendret. */
+  cancelFx(): void {
+    if (!this.s.fxOpen && !this.s.fxPick) return
+    this.set((s) => ({ fxOpen: false, fxPick: null, hist: s.hist + 1 }))
+  }
+
   addFx(pr: FX.Preset): void {
     const d = this.s.doc
     if (!d) return
@@ -1299,7 +1542,346 @@ export class PhotoController {
   toggleAdv(): void {
     const on = !this.s.adv
     FX.setAdvanced(on)
-    this.set({ adv: on })
+    // avanserte paneler lukkes når Avansert slås av (prosjektet og lagene er urørt)
+    this.set((s) => (on ? { adv: on } : { adv: on, fxOpen: false, fxPick: null, hist: s.hist + 1 }))
+  }
+
+  // ---------- bildeserie (batchredigering) ----------
+
+  private bq: Promise<void> = Promise.resolve()
+  private bqN = 0
+  private goTok = 0
+  private goTo: number | null = null
+  /** Filmstripen: originalminiatyrene (innlastet) og ferdig justerte miniatyrer per bilde. */
+  private tRaw = new Map<string, MediaEntry | 'load'>()
+  private tOut = new Map<string, { k: string; url: string }>()
+
+  /** Ny, tom bildeserie (eget prosjekt). */
+  createBatch(): void {
+    this.M.media.clear()
+    this.M.masks.clear()
+    this.openDoc(batchDoc(this.d.t('Bildeserie'), this.now()), null, true)
+  }
+
+  private setBatch(fn: (b: Batch) => Batch): void {
+    this.setDoc((q) => (q.batch ? { ...q, batch: fn(q.batch) } : q), false)
+  }
+
+  /** Bildene i serien med innstillingene til bildet som er åpent (lagret eller ikke). */
+  batchItems(): BatchItem[] {
+    const d = this.s.doc
+    return d?.batch ? (syncBatch(d).batch?.items ?? []) : []
+  }
+
+  /** Legger bilder til serien (ett og ett, i kø; grensesnittet låses ikke). */
+  addBatchFiles(files: { blob: Blob; name: string }[]): Promise<void> {
+    const d = this.s.doc
+    if (!d?.batch || !files.length) return this.bq
+    const room = BATCH_MAX - d.batch.items.length - this.bqN
+    const list = files.slice(0, Math.max(0, room))
+    if (list.length < files.length) this.flash('En bildeserie kan ha opptil {n} bilder.', { n: BATCH_MAX })
+    if (!list.length) return this.bq
+    this.bqN += list.length
+    const j = this.s.bx
+    const job: BatchJob = j?.kind === 'import' && !j.end ? j : { kind: 'import', done: 0, total: 0, failed: [], end: false }
+    this.set({ bx: { ...job, total: job.total + list.length } })
+    const id = d.id
+    this.bq = this.bq.then(() => this.importBatch(id, list))
+    return this.bq
+  }
+
+  private async importBatch(docId: string, list: { blob: Blob; name: string }[]): Promise<void> {
+    for (const f of list) {
+      let ok = false
+      const name = String(f.name || this.d.t('Bilde')).slice(0, 180)
+      if (this.alive && this.s.doc?.id === docId && /^image\/(png|jpeg|webp|gif)$/.test(f.blob.type || '') && f.blob.size <= 60e6) {
+        try {
+          const E = await loadImg(f.blob)
+          let keep = false
+          try {
+            const [w, h] = fitSide(E.w, E.h)
+            const k = THUMB / Math.max(w, h)
+            const tc = mk(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)))
+            tc.getContext('2d')?.drawImage(E.img, 0, 0, tc.width, tc.height)
+            const thumb = tc.toDataURL('image/jpeg', 0.78)
+            const src = await this.d.putImage(f.blob, name)
+            const cur = this.s.doc
+            if (this.alive && cur?.batch && cur.id === docId) {
+              const it: BatchItem = { id: uid('b'), src, name, w, h, adj: { ...ADJ }, look: 'none', dev: null, thumb }
+              const first = !cur.batch.items.length
+              this.setBatch((b) => ({ ...b, items: [...b.items, it] }))
+              if (first) {
+                keep = true
+                this.show(0, E)
+              }
+              ok = true
+            }
+          } finally {
+            if (!keep) URL.revokeObjectURL(E.url)
+          }
+        } catch {
+          // bildet kunne ikke leses eller lagres: står i oppsummeringen
+        }
+      }
+      this.bqN--
+      if (!this.alive) return
+      this.set((s) => (s.bx?.kind === 'import' ? { bx: { ...s.bx, done: s.bx.done + 1, failed: ok ? s.bx.failed : [...s.bx.failed, name] } } : null))
+      await new Promise((r) => setTimeout(r, 0)) // gi grensesnittet luft mellom bildene
+    }
+    if (this.bqN === 0 && this.alive) {
+      const j = this.s.bx
+      if (j?.kind !== 'import') return
+      this.set({ bx: { ...j, end: true } })
+      const ok = j.done - j.failed.length
+      if (j.failed.length) this.flash('{ok} bilder er lagt til. {f} kunne ikke leses (bruk PNG, JPG, WebP eller GIF, maks 60 MB).', { ok, f: j.failed.length })
+      else this.flash('{ok} bilder er lagt til i serien.', { ok })
+    }
+  }
+
+  /** Viser bilde nr. i: innstillingene for bildet som var åpent, skrives tilbake først (ingenting går tapt). */
+  private show(i: number, E?: MediaEntry): void {
+    const cur = this.s.doc
+    if (!cur?.batch) return
+    const d = syncBatch(cur)
+    const b = d.batch as Batch
+    const it = b.items[i]
+    if (!it) return
+    this.goTo = null
+    // bare bildet som er åpent, holdes i full størrelse
+    for (const [k, e] of this.M.media) {
+      if (k === it.src && (!E || e === E)) continue
+      URL.revokeObjectURL(e.url)
+      this.M.media.delete(k)
+    }
+    if (E) this.M.media.set(it.src, E)
+    this.M.masks.clear()
+    const L = batchLayer(it)
+    // angre gjelder bildet som er åpent; historikken for forrige bilde tas ikke med
+    this.past = []
+    this.future = []
+    this.hk = null
+    this.set((s) => ({ doc: { ...d, w: it.w, h: it.h, layers: [L], batch: { ...b, active: i }, updated: this.now() }, sel: L.id, multi: [], tool: 'move', tab: s.tab === 'cut' ? 'color' : s.tab, zoom: 1, hist: s.hist + 1 }))
+    this.queueSave()
+  }
+
+  /** Åpner bilde nr. i i serien (originalen lastes først når den trengs). */
+  async batchGo(i: number): Promise<void> {
+    const d = this.s.doc
+    const b = d?.batch
+    const it = b?.items[i]
+    if (!d || !b || !it || (i === b.active && d.layers.length && this.goTo == null)) return
+    const tok = ++this.goTok
+    this.goTo = i
+    let E = this.M.media.get(it.src)
+    if (!E) {
+      try {
+        const bl = await this.d.openMedia(it.src)
+        if (bl) E = await loadImg(bl)
+      } catch {
+        E = undefined
+      }
+      if (tok !== this.goTok || !this.alive || this.s.doc?.batch?.items[i]?.id !== it.id) {
+        if (E) URL.revokeObjectURL(E.url)
+        return
+      }
+      if (!E) this.flash('Bildet {name} kunne ikke lastes.', { name: it.name })
+    }
+    this.show(i, E)
+  }
+
+  /** Forrige (−1) eller neste (+1) bilde. */
+  batchStep(dx: number): void {
+    const b = this.s.doc?.batch
+    if (!b?.items.length) return
+    const from = this.goTo ?? b.active
+    const i = clamp(from + dx, 0, b.items.length - 1)
+    if (i !== from) void this.batchGo(i)
+  }
+
+  batchSel(id: string, on?: boolean): void {
+    this.setBatch((b) => {
+      const has = b.sel.includes(id)
+      const want = on ?? !has
+      return want === has ? b : { ...b, sel: want ? [...b.sel, id] : b.sel.filter((x) => x !== id) }
+    })
+  }
+
+  batchSelAll(on: boolean): void {
+    this.setBatch((b) => ({ ...b, sel: on ? b.items.map((x) => x.id) : [] }))
+  }
+
+  private batchTargets(): Set<string> | null {
+    const sel = new Set(this.s.doc?.batch?.sel ?? [])
+    if (sel.size) return sel
+    this.flash('Velg bildene først (avkrysningsboksene i filmstripen).')
+    return null
+  }
+
+  /** Bruker et forhåndsvalg (look) på de valgte bildene. Bildet som er åpent, kan angres som vanlig. */
+  batchApplyLook(k: string): void {
+    const lk = LOOKS.find((x) => x[0] === k)
+    const sel = this.batchTargets()
+    const d = this.s.doc
+    if (!lk || !sel || !d?.batch) return
+    const act = d.batch.items[d.batch.active]
+    this.setBatch((b) => ({ ...b, items: b.items.map((it) => (sel.has(it.id) ? { ...it, adj: { ...ADJ, ...lk[2] }, look: k } : it)) }))
+    const L = d.layers.find((q) => q.type === 'image')
+    if (act && L && sel.has(act.id)) this.applyLook(L.id, k, lk[2])
+    this.flash('«{look}» er brukt på {n} bilder.', { look: this.d.t(lk[1] as Phrase), n: sel.size })
+  }
+
+  /** Kopierer alle innstillingene (justeringer, look, kurver, framkalling) fra bildet som er åpent, til de valgte. */
+  batchCopyToSel(): void {
+    const sel = this.batchTargets()
+    const d = this.s.doc
+    if (!sel || !d?.batch) return
+    const b = syncBatch(d).batch as Batch
+    const from = b.items[b.active]
+    if (!from) return
+    sel.delete(from.id)
+    if (!sel.size) {
+      this.flash('Velg bildene som skal få innstillingene (ikke bare bildet som er åpent).')
+      return
+    }
+    this.setBatch((bb) => ({ ...bb, items: bb.items.map((it) => (sel.has(it.id) ? { ...it, adj: structuredClone(from.adj), look: from.look, dev: from.dev ? { ...from.dev } : null } : it)) }))
+    this.flash('Innstillingene er kopiert til {n} bilder.', { n: sel.size })
+  }
+
+  /**
+   * Sletter de valgte bildene fra serien (etter bekreftelse): de forsvinner fra serien, filmstripen og eksporten.
+   * Originalfilene på enheten røres ikke. Slettes bildet som er åpent, åpnes nærmeste gjenværende bilde.
+   */
+  batchDelSel(): void {
+    const d0 = this.s.doc
+    const sel = new Set(d0?.batch?.sel ?? [])
+    if (!d0?.batch || !sel.size) return
+    if (!this.d.confirm('Slette {n} bilder fra bildeserien?\nRedigeringene forsvinner. Originalfilene på enheten slettes ikke.', { n: sel.size })) return
+    const d = syncBatch(d0)
+    const b = d.batch as Batch
+    const act = b.items[b.active]
+    const items = b.items.filter((it) => !sel.has(it.id))
+    for (const id of sel) {
+      this.tRaw.delete(id)
+      this.tOut.delete(id)
+    }
+    this.past = []
+    this.future = []
+    this.hk = null
+    if (act && !sel.has(act.id)) {
+      // bildet som er åpent, er igjen: bare nummeret kan ha endret seg
+      this.setDoc(() => ({ ...d, batch: { items, active: items.findIndex((x) => x.id === act.id), sel: [] } }), false)
+    } else {
+      for (const e of this.M.media.values()) URL.revokeObjectURL(e.url)
+      this.M.media.clear()
+      this.M.masks.clear()
+      const next = Math.min(b.active - b.items.slice(0, b.active).filter((x) => sel.has(x.id)).length, items.length - 1)
+      this.setDoc(() => ({ ...d, w: 1080, h: 1080, layers: [], batch: { items, active: Math.max(0, next), sel: [] } }), false)
+      this.set({ sel: null })
+      if (items.length) void this.batchGo(Math.max(0, next))
+    }
+    this.flash(items.length ? '{n} bilder er slettet fra serien.' : 'Alle bildene er slettet. Legg til nye bilder for å fortsette.', { n: sel.size })
+  }
+
+  /** Nullstiller de valgte bildene til originalen. */
+  batchResetSel(): void {
+    const sel = this.batchTargets()
+    const d = this.s.doc
+    if (!sel || !d?.batch) return
+    const act = d.batch.items[d.batch.active]
+    this.setBatch((b) => ({ ...b, items: b.items.map((it) => (sel.has(it.id) ? { ...it, adj: { ...ADJ }, look: 'none', dev: null } : it)) }))
+    const L = d.layers.find((q) => q.type === 'image')
+    if (act && L && sel.has(act.id)) this.patchL(L.id, { adj: { ...ADJ }, look: 'none', dev: null })
+    this.flash('{n} bilder er nullstilt.', { n: sel.size })
+  }
+
+  /** Miniatyren i filmstripen: originalen, eller (for et redigert bilde) originalminiatyren med bildets innstillinger. */
+  batchThumb(it: BatchItem): string {
+    if (!it.thumb || !isEdited(it)) return it.thumb
+    const k = JSON.stringify([it.adj, it.dev])
+    const o = this.tOut.get(it.id)
+    if (o?.k === k) return o.url
+    const E = this.tRaw.get(it.id)
+    if (!E) {
+      this.tRaw.set(it.id, 'load')
+      const im = new Image()
+      im.src = it.thumb
+      im.decode().then(() => {
+        this.tRaw.set(it.id, { img: im, w: im.naturalWidth, h: im.naturalHeight, url: '', cache: new Map() })
+        if (this.alive) this.set((s) => ({ tver: s.tver + 1 }))
+      }, () => this.tRaw.delete(it.id))
+    }
+    if (!E || E === 'load') return o?.url ?? it.thumb
+    const c = mk(E.w, E.h)
+    const g = c.getContext('2d')
+    if (!g) return it.thumb
+    const doc: PdDoc = { id: 't', name: '', w: E.w, h: E.h, bg: null, layers: [batchLayer({ ...it, src: 't', w: E.w, h: E.h })], created: 0, updated: 0 }
+    render(g, doc, 1, { media: new Map([['t', E]]), masks: new Map() }, { full: true, noPh: true })
+    const url = c.toDataURL('image/jpeg', 0.8)
+    this.tOut.set(it.id, { k, url })
+    return url
+  }
+
+  /** Ett bilde i serien i full oppløsning med egne innstillinger. */
+  private async itemBlob(E: MediaEntry, it: BatchItem, fmt: 'jpg' | 'png'): Promise<Blob | null> {
+    if (it.w * it.h > 64e6) return null
+    const c = mk(it.w, it.h)
+    const g = c.getContext('2d')
+    if (!g) return null
+    const doc: PdDoc = { id: 'x', name: '', w: it.w, h: it.h, bg: fmt === 'jpg' ? '#ffffff' : null, layers: [batchLayer(it)], created: 0, updated: 0 }
+    render(g, doc, 1, { media: new Map([[it.src, E]]), masks: new Map() }, { full: true, noPh: true })
+    return new Promise<Blob | null>((r) => c.toBlob(r, fmt === 'jpg' ? 'image/jpeg' : 'image/png', 0.92))
+  }
+
+  /**
+   * «Eksporter alle som ZIP»: hvert bilde tegnes med egne innstillinger i full oppløsning, ett om gangen (bare ett
+   * bilde i minnet). Bilder som feiler, hoppes over og står i oppsummeringen. → ZIP-filen (null = ingenting å laste ned).
+   */
+  async batchZip(): Promise<Blob | null> {
+    const cur = this.s.doc
+    if (!cur?.batch || this.s.busy) return null
+    const items = (syncBatch(cur).batch as Batch).items
+    if (!items.length) {
+      this.flash('Bildeserien er tom. Legg til bilder først.')
+      return null
+    }
+    const fmt = this.s.bfmt
+    const z = new ZipWriter()
+    const failed: string[] = []
+    this.set({ busy: 'exp', bx: { kind: 'export', done: 0, total: items.length, failed: [], end: false } })
+    try {
+      for (const [i, it] of items.entries()) {
+        try {
+          let E = this.M.media.get(it.src)
+          const own = !E
+          if (!E) {
+            const bl = await this.d.openMedia(it.src)
+            if (!bl) throw new Error('missing')
+            E = await loadImg(bl)
+          }
+          try {
+            const blob = await this.itemBlob(E, it, fmt)
+            if (!blob) throw new Error('render')
+            await z.add(exportName(it.name, fmt), blob)
+          } finally {
+            if (own) URL.revokeObjectURL(E.url)
+          }
+        } catch {
+          failed.push(it.name)
+        }
+        if (!this.alive) return null
+        this.set({ bx: { kind: 'export', done: i + 1, total: items.length, failed: [...failed], end: false } })
+        await new Promise((r) => setTimeout(r, 0))
+      }
+    } finally {
+      if (this.alive) this.set((s) => ({ busy: '', bx: s.bx ? { ...s.bx, end: true } : null }))
+    }
+    if (!z.count) {
+      this.flash('Ingen av bildene kunne eksporteres.')
+      return null
+    }
+    if (failed.length) this.flash('{ok} av {n} bilder er eksportert. {f} feilet.', { ok: z.count, n: items.length, f: failed.length })
+    else this.flash('Alle {n} bildene er eksportert.', { n: items.length })
+    return z.blob()
   }
 
   // ---------- eksport ----------
@@ -1353,7 +1935,7 @@ export class PhotoController {
 
   // ---------- diverse ----------
 
-  ui(p: Partial<Pick<PState, 'fmt' | 'cw' | 'ch' | 'tool' | 'tab' | 'brush' | 'zoom' | 'exp' | 'expOpen' | 'ltab' | 'fillOpen' | 'linkCol' | 'dragOver' | 'brushXY' | 'narrow' | 'shapesOpen' | 'logoOpen' | 'fxCat' | 'fxQ' | 'fxN' | 'fxPal' | 'fxStr' | 'fxCk' | 'sel' | 'multi'>>): void {
+  ui(p: Partial<Pick<PState, 'fmt' | 'cw' | 'ch' | 'tool' | 'tab' | 'brush' | 'zoom' | 'exp' | 'expOpen' | 'ltab' | 'fillOpen' | 'linkCol' | 'dragOver' | 'brushXY' | 'narrow' | 'shapesOpen' | 'logoOpen' | 'fxCat' | 'fxQ' | 'fxN' | 'fxPal' | 'fxStr' | 'fxCk' | 'sel' | 'multi' | 'bfmt'>>): void {
     this.set(p)
   }
 

@@ -7,6 +7,8 @@ import {
   clamp, easeBack, easeInOut, easeOut, fmtCount, hidden, layout, ovDur,
   type Clip, type Crop, type Curves, type Grade, type Overlay, type Placed, type Project, type Pt, type Sub, type SubStyle, type TextItem,
 } from './model'
+import { fxAlpha, fxBlur, fxFilter, type Effect } from './fx'
+import { animAt } from './kf'
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 type Src = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement | ImageBitmap | OffscreenCanvas
@@ -72,14 +74,17 @@ const LOOKF: Record<string, LookF> = {
   vivid: { f: 'saturate(1.45) contrast(1.08)' }, sepia: { f: 'sepia(0.75) contrast(1.05)' }, dream: { f: 'brightness(1.08) saturate(1.15) contrast(0.9)', glow: 0.5 },
   teal: { f: 'contrast(1.12) saturate(1.2)', temp: 0.2, tint: -0.25 }, night: { f: 'brightness(0.72) saturate(0.7) hue-rotate(-12deg)', temp: -0.5, vig: 0.4 },
 }
-function filterOf(c: Pick<Grade, 'look' | 'bri' | 'con' | 'sat' | 'blur'>, blur: number): string {
+function filterOf(c: Pick<Grade, 'look' | 'bri' | 'con' | 'sat' | 'blur'> & { effects?: Effect[] | undefined }, blur: number): string {
   const f: string[] = []
   const lk = LOOKF[c.look]
   if (lk) f.push(lk.f)
   if (c.bri) f.push(`brightness(${(1 + c.bri).toFixed(3)})`)
   if (c.con) f.push(`contrast(${(1 + c.con).toFixed(3)})`)
   if (c.sat) f.push(`saturate(${(1 + c.sat).toFixed(3)})`)
-  const b = (blur || 0) + (c.blur || 0)
+  // effektene (Avansert), i listens rekkefølge, etter grunnkorreksjonen
+  const ef = fxFilter(c.effects)
+  if (ef) f.push(ef)
+  const b = (blur || 0) + (c.blur || 0) + fxBlur(c.effects)
   if (b > 0.3) f.push(`blur(${b.toFixed(1)}px)`)
   return f.join(' ')
 }
@@ -431,9 +436,13 @@ function cropRect(c: { crop?: Crop }, sz: [number, number]): [number, number, nu
 
 const PC = new WeakSet<object>()
 function paintClip(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: MediaEls, lt: number, dur: number, blur: number, t: number): void {
+  // opasitet og fade (effekter) kommer i tillegg til overgangen
+  const fa = fxAlpha(c.effects, lt, dur) * ((c as { op?: number }).op ?? 1)
+  if (fa < 0.999) ctx.globalAlpha *= fa
+  if (ctx.globalAlpha <= 0.001) return
   if (!hasFilter() && !PC.has(ctx)) {
     const ops = colorOps(filterOf(c, 0))
-    const bb = (blur || 0) + (c.blur || 0)
+    const bb = (blur || 0) + (c.blur || 0) + fxBlur(c.effects)
     if (ops.length || bb > 0.3 || hasCurve(c)) {
       const cv = ctx.canvas
       const tf = ctx.getTransform()
@@ -589,14 +598,14 @@ function drawClip(ctx: Ctx2D, W: number, H: number, p: Project, l: Placed, M: Me
   let k = l.tr ? clamp(lt / l.tr, 0, 1) : 1
   let ty = k < 1 ? c.trans.type : 'none'
   let blur = 0
-  if (p.tin.type !== 'none' && p.clips[0] === c) {
+  if (p.tin.type !== 'none' && p.clips[0]?.id === c.id) {
     const k0 = clamp(lt / Math.min(p.tin.dur, l.dur / 2), 0, 1)
     if (k0 < k) {
       k = k0
       ty = p.tin.type
     }
   }
-  if (p.tout.type !== 'none' && p.clips[p.clips.length - 1] === c) {
+  if (p.tout.type !== 'none' && p.clips[p.clips.length - 1]?.id === c.id) {
     const k1 = clamp((l.end - t) / Math.min(p.tout.dur, l.dur / 2), 0, 1)
     if (k1 < k) {
       k = k1
@@ -768,7 +777,7 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   const kOut = o.anim === 'none' ? 1 : clamp((d - lt) / inD, 0, 1)
   const k = Math.min(kIn, kOut)
   const e = easeOut(k)
-  let a = o.opacity
+  let a = o.opacity * fxAlpha(o.effects, lt, d)
   if (o.fadeIn > 0) a *= clamp(lt / o.fadeIn, 0, 1)
   if (o.fadeOut > 0) a *= clamp((d - lt) / o.fadeOut, 0, 1)
   ctx.save()
@@ -815,7 +824,8 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   }
   const f = filterOf(o, 0)
   const ops0 = F ? [] : colorOps(f)
-  if (o.keyOn || hasCurve(o) || ops0.length || (!F && o.blur > 0.3)) {
+  const oblur = (o.blur || 0) + fxBlur(o.effects)
+  if (o.keyOn || hasCurve(o) || ops0.length || (!F && oblur > 0.3)) {
     const sw = Math.max(1, Math.round(Math.min(Math.abs(dw), 1600)))
     const sh = Math.max(1, Math.round(sw * Math.abs(dh / dw)))
     const pc = scratch(`px:${o.id}`, sw, sh)
@@ -824,7 +834,7 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
     if (f && F) px.filter = f
     px.drawImage(s, cr[0], cr[1], cr[2], cr[3], 0, 0, sw, sh)
     if (F) px.filter = 'none'
-    if (!F && o.blur > 0.3) softBlur(px, sw, sh, o.blur)
+    if (!F && oblur > 0.3) softBlur(px, sw, sh, oblur)
     pixFx(px, sw, sh, ops0.length ? { ...o, ops: ops0 } : o)
     ctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh)
   } else {
@@ -876,7 +886,7 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   const ax = x.x * W
   const ay = x.y * H
   const left = x.align === 'left' ? ax : x.align === 'right' ? ax - bw : ax - bw / 2
-  const top = ay - bh / 2
+  const top = x.valign === 'top' ? ay : x.valign === 'bottom' ? ay - bh : ay - bh / 2
   const pad = x.box !== 'none' ? px * 0.38 : px * 0.08
   if (rects) rects[x.id] = { x: left - pad, y: top - pad, w: bw + pad * 2, h: bh + pad * 2 }
   let a = kOut * x.opacity
@@ -1090,14 +1100,15 @@ export function drawFrame(ctx: Ctx2D, W: number, H: number, p: Project, M: Media
       if (t < l.start || t >= l.end) return
       const nx = L[i + 1]
       const ok = nx && nx.tr && t >= nx.start ? clamp((t - nx.start) / nx.tr, 0, 1) : 0
-      drawClip(ctx, W, H, p, l, M, t, S, ok && nx ? nx.c.trans.type : null, ok)
+      // keyframes: klippet med de animerte verdiene ved denne tiden
+      drawClip(ctx, W, H, p, l.c.kf ? { ...l, c: animAt(l.c, t - l.start) } : l, M, t, S, ok && nx ? nx.c.trans.type : null, ok)
     })
   }
   if (!hidden(p, 'ov')) {
-    for (const o of p.ov.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= o.start && t < o.start + ovDur(o)) drawOv(ctx, W, H, o, M, t, rects)
+    for (const o of p.ov.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= o.start && t < o.start + ovDur(o)) drawOv(ctx, W, H, animAt(o, t - o.start), M, t, rects)
   }
   if (!hidden(p, 'text')) {
-    for (const x of p.texts.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= x.start && t < x.start + x.dur) drawText(ctx, W, H, x, t - x.start, U, rects, t)
+    for (const x of p.texts.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= x.start && t < x.start + x.dur) drawText(ctx, W, H, animAt(x, t - x.start), t - x.start, U, rects, t)
   }
   if (!hidden(p, 'subs')) {
     const sub = p.subs.find((s) => t >= s.start && t < s.end)

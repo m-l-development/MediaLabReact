@@ -1,3 +1,5 @@
+import type { Batch } from './batch'
+import type { Dev } from './develop'
 import type { Fill } from '../../../shared/fill/fill'
 
 /**
@@ -22,7 +24,12 @@ export const FONTS = ['Archivo', 'Bebas Neue', 'Montserrat', 'Anton', 'Oswald', 
 export interface Adj {
   exp: number; bri: number; con: number; hi: number; sh: number; sat: number; temp: number; tint: number; hue: number; fade: number; blur: number; vig: number; grain: number
   curve: [number, number][] | null
+  /** Kanalkurver (Avansert): rød, grønn, blå. Mangler = ingen. */
+  curveR?: [number, number][] | null
+  curveG?: [number, number][] | null
+  curveB?: [number, number][] | null
 }
+export type CurveKey = 'curve' | 'curveR' | 'curveG' | 'curveB'
 export const ADJ: Adj = { exp: 0, bri: 0, con: 0, hi: 0, sh: 0, sat: 0, temp: 0, tint: 0, hue: 0, fade: 0, blur: 0, vig: 0, grain: 0, curve: null }
 export const LOOKS: readonly [string, string, Partial<Adj>][] = [
   ['none', 'Original', {}], ['warm', 'Varm', { temp: 35, sat: 8, con: 6 }], ['cool', 'Kjølig', { temp: -35, tint: -5, con: 4 }],
@@ -74,6 +81,8 @@ export interface ImageLayer extends Base {
   look: string
   mask: string | null
   tint?: string | null
+  /** Avansert framkalling (bare i Avansert modus; mangler = ingen). Se engine/develop.ts. */
+  dev?: Dev | null
 }
 
 export interface TextLayer extends Base {
@@ -155,6 +164,10 @@ export interface PdDoc {
   tplK?: string
   bg0?: string | null
   scheme?: Scheme | null
+  /** Bildeserie (batchredigering): mange separate bilder; laget i `layers` er bildet som er åpent. Se engine/batch.ts. */
+  batch?: Batch | null
+  /** Kategorien prosjektet ligger i på startsiden (TB-8E2793). Mangler/null = uten kategori. Maler bruker `tpl.cat`. */
+  cat?: string | null
   created: number
   updated: number
 }

@@ -18,7 +18,7 @@ describe('Kopier sak til Claude Code (ADM-12, som feedback-core.test.js)', () =>
     const t = formatCase(CASE, EVENTS)
     for (const h of ['# Tilbakemelding TB-ABC123', '## 1. Oppgave', '## 2. Saken (oppgitt av brukeren)', '## 3. Applikasjon og plassering (hentet automatisk)', '## 4. Teknisk kontekst (hentet automatisk)', '## 5. Oppfølging (internt, Moderator/Developer)', '## 6. Instruksjon til Claude Code']) expect(t).toContain(h)
     expect(t).toMatch(/Forventet oppførsel: PNG lastes ned/)
-    expect(t).toMatch(/Alvorlighet \(brukerens vurdering\): Høy/)
+    expect(t).toMatch(/Hvor mye det hindrer arbeidet \(brukerens vurdering\): Stopper en viktig oppgave/)
     expect(t).toMatch(/media-lab\/src\/pages\/photo-design\//)
     expect(t).toMatch(/ny app: web\/src\/features\/photo-design\//)
     expect(t).toMatch(/data-dc-tpl="116"/)

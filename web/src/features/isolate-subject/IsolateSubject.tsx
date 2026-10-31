@@ -6,9 +6,11 @@ import type { Asset } from '../../domain/asset'
 import type { AssetId } from '../../domain/ids'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
+import { pastedImage } from '../../shared/lib/paste'
 import { useStore } from '../../shared/lib/store'
 import { Button } from '../../shared/ui/Button'
 import { AssetPicker } from '../media-library/AssetPicker'
+import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { COLORS, IsolateController, type Aspect, type CropRect, type ImagePoint, type Kind } from './controller'
 import styles from './IsolateSubject.module.css'
 
@@ -53,21 +55,23 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
     }
   }, [assetParam, assets, ctl])
 
-  // Lim inn bilde (Ctrl/Cmd + V)
+  // Lim inn bilde (Ctrl/Cmd + V) – ikke når innlimingen hører til et felt, en dialog eller tilbakemeldingen
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))
-      const file = item?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
-        loadFile(file)
+        loadFile(file, true)
       }
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
   })
 
-  function loadFile(file: File) {
+  /** `ask`: innliming og slipp spør før et åpent bilde erstattes (masken og endringene forsvinner). */
+  function loadFile(file: File, ask = false) {
+    const cur = ctl.state.get()
+    if (ask && cur.phase !== 'empty' && !window.confirm(t('isolate.replace', { from: cur.name, to: file.name || 'bilde' }))) return
     source.current = { blob: file, name: file.name, assetId: null }
     setSavedId(null)
     setMessage(null)
@@ -86,7 +90,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
     e.preventDefault()
     setDragOver(false)
     const f = e.dataTransfer.files[0]
-    if (f) loadFile(f)
+    if (f) loadFile(f, true)
   }
 
   /** Lagrer resultatet som ny versjon av originalen i Dine medier (originalen registreres først om nødvendig). */
@@ -168,13 +172,13 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
       {s.phase === 'work' && (
         <div className={styles.work}>
           <section className={styles.stageCol} aria-label={s.name}>
-            <WorkStage ctl={ctl} busyLabel={busyLabel} />
+            {s.editing ? <EditStage ctl={ctl} busyLabel={busyLabel} /> : <WorkStage ctl={ctl} busyLabel={busyLabel} />}
             <div className={styles.row}>
               <Button size="small" variant="ghost" disabled={!!s.busy} onClick={() => ctl.recrop()} title={t('isolate.recrop.title')}>{t('isolate.recrop')}</Button>
               <Button size="small" variant="ghost" disabled={!s.historySize || !!s.busy} onClick={() => ctl.undo()} title={t('isolate.undo.title')}>{t('isolate.undo')}</Button>
               <Button size="small" variant="ghost" disabled={!ctl.canRestore()} onClick={() => ctl.restore()} title={t('isolate.restore.title')}>{t('isolate.restore')}</Button>
             </div>
-            {s.ready && (
+            {s.ready && !s.editing && (
               <label className={styles.compare}>
                 <span>{t('isolate.after')}</span>
                 <input type="range" min={0} max={100} step={1} value={s.cmp} aria-label={t('isolate.compare')} onChange={(e) => ctl.setOption({ cmp: Number(e.target.value) })} />
@@ -197,6 +201,11 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
               <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.mode === 'point'} disabled={!!s.busy} onClick={() => ctl.startMarking()}>
                 <strong>{t('isolate.mark')}</strong>
                 <span>{t('isolate.mark.desc')}</span>
+              </button>
+              {/* felles maskeredigering: pensel, former og «Velg objekt» med Behold/Fjern, på den faktiske masken */}
+              <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.editing} data-mask-open="" disabled={!!s.busy} onClick={() => (s.editing ? ctl.endEdit() : ctl.startEdit())}>
+                <strong>{t(s.editing ? 'mask.done' : 'mask.open')}</strong>
+                <span>{t('mask.open.desc')}</span>
               </button>
             </div>
             {s.mode === 'point' && (
@@ -352,6 +361,23 @@ function CropStep({ ctl }: { ctl: IsolateController }) {
         <Button variant="primary" onClick={() => ctl.cropOk()}>{t('isolate.crop.ok')}</Button>
       </div>
     </section>
+  )
+}
+
+/** «Finjuster masken»: den felles maskeredigeringen på den faktiske masken (forhåndsvisning og eksport bruker den). */
+function EditStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: string }) {
+  const t = useT()
+  const s = useStore(ctl.state)
+  const target = ctl.editTarget()
+  if (!target) return null
+  return (
+    <div className={styles.editStage} data-isolate-edit="">
+      <MaskEditor key={`${target.image.width}x${target.image.height}-${s.historySize}`} image={target.image} mask={target.mask} onChange={() => ctl.maskChanged()} selectObject={(x, y) => ctl.selectObject(x, y)} />
+      {s.busy && <div className={styles.busy} role="status"><span>{busyLabel}</span>{s.busy === 'model' && <div className={styles.bar}><div style={{ width: `${s.pct}%` }} /></div>}</div>}
+      <div className={styles.row}>
+        <Button size="small" variant="primary" data-mask-done="" onClick={() => ctl.endEdit()}>{t('mask.done')}</Button>
+      </div>
+    </div>
   )
 }
 

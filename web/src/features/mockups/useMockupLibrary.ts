@@ -8,13 +8,20 @@ import type { Quad } from './engine/geometry'
 import { detect } from './engine/render'
 
 export const OWN_KEY = 'mockups.own'
+
+/** Forhåndsvisningen (960 px) av et innebygd foto, i undermappen thumbs/. Andre mockups har ingen. */
+const thumbOf = (m: MockupEntry): string | null => (m.source === 'builtin' && /^\/images\/mockups\/[^/]+$/.test(m.src) ? m.src.replace('/images/mockups/', '/images/mockups/thumbs/') : null)
 const LEGACY_KEY = 'mockups.legacyImported'
 
 export interface MockupLibrary {
   /** null mens katalogen lastes. */
   entries: MockupEntry[] | null
-  /** Innlastede fotografier per mockup-ID. */
+  /** Fotografiene til galleriet per mockup-ID (innebygde: forhåndsvisning på 960 px, ellers originalen). */
   images: ReadonlyMap<string, HTMLImageElement>
+  /** Fotografiene i full oppløsning (editoren og nedlastingen), lastet ved behov med `loadFull`. */
+  full: ReadonlyMap<string, HTMLImageElement>
+  /** Henter fotografiet i full oppløsning (én gang); `version` øker når det er klart. */
+  loadFull(id: string): void
   /** Automatisk funnede skjermhjørner (for mockups uten hjørner i config.json). */
   auto: ReadonlyMap<string, Quad | null>
   /** Øker når et bilde er lastet. */
@@ -42,6 +49,10 @@ export function useMockupLibrary(): MockupLibrary {
   const [images] = useState(() => new Map<string, HTMLImageElement>())
   const [auto] = useState(() => new Map<string, Quad | null>())
   const [pending] = useState(() => new Set<string>())
+  const [full] = useState(() => new Map<string, HTMLImageElement>())
+  const [fullPending] = useState(() => new Set<string>())
+  // galleriet bruker forhåndsvisningen der den finnes (TB-4416C4: 0,7 MB i stedet for 7,6 MB for de innebygde)
+  const [thumbed] = useState(() => new Set<string>())
 
   // Innebygde mockups, listen over egne og tilbud om import fra dagens app
   useEffect(() => {
@@ -130,10 +141,17 @@ export function useMockupLibrary(): MockupLibrary {
       pending.add(m.id)
       const im = new Image()
       im.decoding = 'async'
-      im.onerror = () => pending.delete(m.id)
+      const th = thumbOf(m)
+      im.onerror = () => {
+        // mangler forhåndsvisningen: originalen
+        if (th && im.src.endsWith(th)) im.src = m.src
+        else pending.delete(m.id)
+      }
       im.onload = () => {
         pending.delete(m.id)
         images.set(m.id, im)
+        if (th && im.src.endsWith(th)) thumbed.add(m.id)
+        else full.set(m.id, im)
         if (!m.corners) {
           try {
             auto.set(m.id, detect(im, m.inset))
@@ -143,9 +161,40 @@ export function useMockupLibrary(): MockupLibrary {
         }
         setVersion((v) => v + 1)
       }
-      im.src = m.src
+      im.src = th ?? m.src
     }
-  }, [entries, images, auto, pending])
+  }, [entries, images, auto, pending, full, thumbed])
+
+  /** Full oppløsning for editoren; skjermen finnes på nytt i originalen (mer presist enn i forhåndsvisningen). */
+  function loadFull(id: string) {
+    if (full.has(id) || fullPending.has(id)) return
+    const m = entries?.find((x) => x.id === id)
+    if (!m) return
+    // ikke lastet ennå, eller galleriet har originalen allerede
+    const g = images.get(id)
+    if (g && !thumbed.has(id)) {
+      full.set(id, g)
+      setVersion((v) => v + 1)
+      return
+    }
+    fullPending.add(id)
+    const im = new Image()
+    im.decoding = 'async'
+    im.onerror = () => fullPending.delete(id)
+    im.onload = () => {
+      fullPending.delete(id)
+      full.set(id, im)
+      if (!m.corners) {
+        try {
+          auto.set(id, detect(im, m.inset))
+        } catch {
+          // beholder det som ble funnet i forhåndsvisningen
+        }
+      }
+      setVersion((v) => v + 1)
+    }
+    im.src = m.src
+  }
 
   async function addOwn(list: File[]) {
     let added = 0
@@ -169,6 +218,7 @@ export function useMockupLibrary(): MockupLibrary {
     const ids = (ownIds ?? []).filter((x) => `own-${x}` !== id)
     await settings.set(OWN_KEY, ids)
     images.delete(id)
+    full.delete(id)
     setOwnIds(ids)
   }
 
@@ -195,5 +245,5 @@ export function useMockupLibrary(): MockupLibrary {
     return n
   }
 
-  return { entries, images, auto, version, addOwn, removeOwn, legacyCount, importLegacy }
+  return { entries, images, full, loadFull, auto, version, addOwn, removeOwn, legacyCount, importLegacy }
 }

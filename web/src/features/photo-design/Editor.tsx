@@ -1,12 +1,16 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState, type PointerEvent as RPE } from 'react'
+import { setSnap, snapPref } from '../../shared/lib/snap'
+import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
 import { FillEditor } from '../../shared/fill/FillEditor'
+import { MaskEditor } from '../../shared/mask/MaskEditor'
 import * as FX from '../../shared/fx/fx'
 import { ColorBar } from './Colors'
 import { PAL, type Interaction, type PhotoController, type PState, type Pt } from './controller'
-import { BLEED, dims, SHAPES, type PdDoc, type PdLayer } from './engine/model'
+import { isEdited } from './engine/batch'
+import { BLEED, dims, LOOKS, SHAPES, type PdDoc, type PdLayer } from './engine/model'
 import { applyScheme, liveScheme } from './engine/palette'
 import { hit, render, shapePath } from './engine/render'
 import { Props } from './Props'
@@ -22,6 +26,8 @@ interface EditorProps {
   onExport: (kind: 'download' | 'copy' | 'media', to?: ToolId) => void
   /** «Bruk i …» (SHR-02): verktøy som kan ta imot bildet. */
   sendTo?: { id: ToolId; label: string }[]
+  /** Bildeserie: ZIP-filen er klar til nedlasting. */
+  onZip?: (zip: Blob) => void
 }
 
 /** Følger én peker til den slippes (flytt, ramme, håndtak, pensel). */
@@ -78,17 +84,21 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
 
 export function Editor(p: EditorProps) {
   const { c, S, tx, onExport } = p
+  const snapOn = useStore(snapPref)
   const d = S.doc
   if (!d) return null
   const saved = S.saved?.kind === 'unsaved' ? tx('Ikke lagret') : S.saved?.kind === 'saved' ? `${tx('Lagret')} ${new Date(S.saved.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
   return (
-    <div className={s.editor}>
+    <div className={s.editor} data-ml-workspace="">
       <header className={s.bar}>
         <button type="button" className={s.barBtn} onClick={() => void c.leave()}><span aria-hidden="true">←</span> {tx('Prosjekter')}</button>
         <input className={s.docName} value={d.name} aria-label={tx('Prosjektnavn')} onChange={(e) => c.setDocName(e.target.value)} />
         <div className={s.barGroup}>
           <button type="button" className={s.barRound} disabled={!c.canUndo} title={tx('Angre (Ctrl+Z)')} aria-label={tx('Angre')} onClick={() => c.undo()}>↶</button>
           <button type="button" className={s.barRound} disabled={!c.canRedo} title={tx('Gjør om (Ctrl+Shift+Z)')} aria-label={tx('Gjør om')} onClick={() => c.redo()}>↷</button>
+          <button type="button" className={s.barRound} data-snap-toggle="" aria-pressed={snapOn} aria-label={tx('Snapping')} style={{ opacity: snapOn ? 1 : 0.45 }}
+            title={tx(snapOn ? 'Snapping er på: lag fester seg til kanter og midtlinjer. Trykk for fri plassering (Alt snur valget mens du drar).' : 'Snapping er av: fri plassering. Trykk for å slå på hjelpelinjer (Alt snur valget mens du drar).')}
+            onClick={() => setSnap(!snapOn)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3v8a6 6 0 0 0 12 0V3M6 7h4M14 7h4" /></svg></button>
         </div>
         <div className={s.zoom}>
           <button type="button" aria-label={tx('Zoom ut')} onClick={() => c.ui({ zoom: Math.max(0.1, S.zoom / 1.25) })}>−</button>
@@ -103,9 +113,14 @@ export function Editor(p: EditorProps) {
         <span className={s.flex} />
         <span className={S.saved?.kind === 'unsaved' ? s.savedWarn : s.saved}>{saved}</span>
         {!S.autosave && <button type="button" className={s.barBtn} title={tx('Lagre i nettleseren (Ctrl+S)')} onClick={() => void c.saveNow().then(() => !c.dirty && c.flash('Prosjektet er lagret.'))}>{tx('Lagre')}</button>}
-        <button type="button" role="switch" aria-checked={S.autosave} className={s.autoBtn} title={tx('Lagre endringer automatisk i nettleseren')} onClick={() => c.toggleAutosave()}>
-          <i aria-hidden="true" /><span>{tx('Autolagring')}</span>
-        </button>
+        <span data-autosave-row="" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+          <button type="button" role="switch" aria-checked={S.autosave} className={s.autoBtn} title={tx('Lagre endringer automatisk i nettleseren')} onClick={() => c.toggleAutosave()}>
+            <i aria-hidden="true" /><span>{tx('Autolagring')}</span>
+          </button>
+          <button type="button" role="switch" aria-checked={S.adv} className={s.autoBtn} data-adv-toggle="" title={tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')} onClick={() => c.toggleAdv()}>
+            <i aria-hidden="true" /><span>{tx('Avansert modus')}</span>
+          </button>
+        </span>
         <button type="button" className={s.exportBtn} aria-expanded={S.expOpen} onClick={() => c.ui({ expOpen: !S.expOpen })}>{tx('Eksporter')}</button>
         {S.expOpen && (
           <div className={s.expMenu}>
@@ -138,7 +153,12 @@ export function Editor(p: EditorProps) {
           </div>
         )}
       </header>
-      <div className={s.work} data-narrow={S.narrow ? '1' : undefined}>
+      <div className={s.work} data-narrow={S.narrow ? '1' : undefined} data-batch={d.batch ? '1' : undefined}>
+        {d.batch ? (
+          <aside className={s.left}>
+            <div className={s.leftScroll}><BatchPanel {...p} /></div>
+          </aside>
+        ) : (
         <aside className={s.left}>
           <div className={s.leftScroll}>
             <div className={s.seg}>
@@ -146,47 +166,183 @@ export function Editor(p: EditorProps) {
             </div>
             {S.ltab === 'lag' && <AddPanel {...p} />}
             {S.ltab === 'stil' && <StylePanel {...p} />}
-            {S.ltab === 'fx' && <FxLibrary {...p} />}
+            {S.ltab === 'fx' && <FxPanel {...p} />}
+            {S.fxOpen && S.adv && <FxPicker {...p} />}
+            {S.maskEdit && <MaskDialog {...p} />}
           </div>
           <LayerList {...p} />
         </aside>
+        )}
         <Stage {...p} />
+        {/* smal skjerm: filmstripen rett under lerretet, i det rullbare området */}
+        {d.batch && S.narrow && <BatchStrip {...p} />}
         <aside className={s.right}>
           <Props c={c} S={S} tx={tx} pickFile={p.pickFile} />
         </aside>
+      </div>
+      {d.batch && !S.narrow && <BatchStrip {...p} />}
+    </div>
+  )
+}
+
+/** Bildeserie: legg til bilder, velg bilder, bruk forhåndsvalg eller innstillinger på de valgte, og eksporter alle som ZIP. */
+function BatchPanel({ c, S, tx, pickFile, onZip }: EditorProps) {
+  const [look, setLook] = useState('warm')
+  const b = S.doc?.batch
+  if (!b) return null
+  const items = c.batchItems()
+  const n = items.length
+  const edited = items.filter((it) => isEdited(it)).length
+  const nSel = b.sel.length
+  const j = S.bx
+  const busy = S.busy === 'exp'
+  return (
+    <div className={s.stack} data-pd-batch-panel="">
+      <span className={s.eyebrowSm}>{tx('Bildeserie')}</span>
+      <button type="button" className={s.bigBtn} data-pd-batch-add="" onClick={() => pickFile()}>{tx('Legg til bilder …')}</button>
+      <span className={s.note} data-pd-batch-count="">{tx('{n} bilder · {e} redigert · {u} uendret', { n, e: edited, u: n - edited })}</span>
+      {j?.kind === 'import' && !j.end && (
+        <div className={s.stack} role="status">
+          <progress className={s.bProg} max={j.total} value={j.done} />
+          <span className={s.dimSm}>{tx('Legger til {i} av {n} …', { i: Math.min(j.total, j.done + 1), n: j.total })}</span>
+        </div>
+      )}
+      <span className={s.addHead}>{tx('Valgte bilder')}</span>
+      <span className={s.dimSm} data-pd-batch-selcount="">{tx('{k} av {n} valgt', { k: nSel, n })}</span>
+      <div className={s.row2}>
+        <button type="button" className={s.smallBtn} data-pd-batch-all="" disabled={!n} onClick={() => c.batchSelAll(true)}>{tx('Velg alle')}</button>
+        <button type="button" className={s.smallBtn} data-pd-batch-none="" disabled={!nSel} onClick={() => c.batchSelAll(false)}>{tx('Velg ingen')}</button>
+      </div>
+      <button type="button" className={s.smallBtnDanger} data-pd-batch-del="" disabled={!nSel || busy} onClick={() => c.batchDelSel()}>{nSel ? tx('Slett valgte ({n})', { n: nSel }) : tx('Slett valgte')}</button>
+      <label className={s.field}>
+        <span>{tx('Forhåndsvalg')}</span>
+        <select value={look} data-pd-batch-look="" onChange={(e) => setLook(e.target.value)}>
+          {LOOKS.map(([k, l]) => <option key={k} value={k}>{tx(l as Phrase)}</option>)}
+        </select>
+      </label>
+      <button type="button" className={s.smallBtn} data-pd-batch-apply="" disabled={!nSel} onClick={() => c.batchApplyLook(look)}>{tx('Bruk på valgte')}</button>
+      <button type="button" className={s.smallBtn} data-pd-batch-copy="" disabled={!nSel || !n} title={tx('Justeringer, forhåndsvalg, kurver og framkalling fra bildet som er åpent')} onClick={() => c.batchCopyToSel()}>{tx('Kopier innstillingene fra dette bildet til valgte')}</button>
+      <button type="button" className={s.smallBtn} data-pd-batch-reset="" disabled={!nSel} onClick={() => c.batchResetSel()}>{tx('Nullstill valgte')}</button>
+      <span className={s.dimSm}>{tx('Handlingene gjelder bare de valgte bildene.')}</span>
+      <span className={s.addHead}>{tx('Eksport')}</span>
+      <div className={s.seg}>
+        {([['jpg', 'JPEG'], ['png', 'PNG']] as const).map(([k, l]) => <button key={k} type="button" data-pd-batch-fmt={k} aria-pressed={S.bfmt === k} onClick={() => c.ui({ bfmt: k })}>{tx(l)}</button>)}
+      </div>
+      <button type="button" className={s.primary} data-pd-batch-zip="" disabled={busy} onClick={() => void c.batchZip().then((z) => z && onZip?.(z))}>{tx(busy ? 'Eksporterer …' : 'Eksporter alle som ZIP')}</button>
+      {j?.kind === 'export' && (
+        <div className={s.stack} role="status" data-pd-batch-job={j.end ? 'done' : 'run'}>
+          <progress className={s.bProg} max={j.total} value={j.done} />
+          <span className={s.dimSm}>{j.end ? tx('{ok} av {n} bilder eksportert.', { ok: j.done - j.failed.length, n: j.total }) : tx('Eksporterer {i} av {n} …', { i: Math.min(j.total, j.done + 1), n: j.total })}</span>
+          {j.failed.length > 0 && (
+            <div className={s.warnNote} data-pd-batch-failed="">
+              {tx('Feilet ({f}):', { f: j.failed.length })}
+              <ul className={s.bFail}>{j.failed.slice(0, 20).map((x, i) => <li key={i}>{x}</li>)}</ul>
+              {j.failed.length > 20 && tx('… og {n} til', { n: j.failed.length - 20 })}
+            </div>
+          )}
+        </div>
+      )}
+      {j?.kind === 'import' && j.end && j.failed.length > 0 && (
+        <div className={s.warnNote} data-pd-batch-failed="">
+          {tx('Kunne ikke legges til ({f}):', { f: j.failed.length })}
+          <ul className={s.bFail}>{j.failed.slice(0, 20).map((x, i) => <li key={i}>{x}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Filmstripen: miniatyrer med filnavn, markering av bildet som er åpent og av redigerte bilder; forrige/neste. */
+function BatchStrip({ c, S, tx }: EditorProps) {
+  const film = useRef<HTMLDivElement>(null)
+  const b = S.doc?.batch
+  const active = b?.active ?? 0
+  useEffect(() => {
+    film.current?.children[active]?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [active])
+  if (!b) return null
+  const items = c.batchItems()
+  const n = items.length
+  const sel = new Set(b.sel)
+  return (
+    <div className={s.bStrip} data-pd-batch-strip="">
+      <div className={s.bNav}>
+        <button type="button" className={s.smallBtn} data-pd-batch-prev="" disabled={active <= 0} onClick={() => c.batchStep(-1)}>← {tx('Forrige bilde')}</button>
+        <span data-pd-batch-pos="">{n ? tx('Bilde {i} av {n}', { i: active + 1, n }) : tx('Ingen bilder ennå')}</span>
+        <button type="button" className={s.smallBtn} data-pd-batch-next="" disabled={active >= n - 1} onClick={() => c.batchStep(1)}>{tx('Neste bilde')} →</button>
+        <span className={s.dimSm}>{tx('Piltastene ← → bytter bilde.')}</span>
+      </div>
+      {!n && <span className={s.note}>{tx('Trykk «Legg til bilder …» eller dra bilder hit. Du kan legge til flere senere.')}</span>}
+      <div ref={film} className={s.bFilm} role="list" aria-label={tx('Bildene i serien')}>
+        {items.map((it, i) => {
+          const on = i === active
+          const edit = isEdited(it)
+          return (
+            <div key={it.id} role="listitem" className={s.bItem} data-pd-batch-item={it.name} data-active={on ? '1' : undefined} data-edited={edit ? '1' : undefined}>
+              <button type="button" className={s.bThumb} aria-current={on ? 'true' : undefined} title={it.name} aria-label={tx('Åpne {name}', { name: it.name })} onClick={() => void c.batchGo(i)}>
+                {it.thumb ? <img src={c.batchThumb(it)} alt="" decoding="async" loading="lazy" /> : <span />}
+                {edit && <i className={s.bBadge} title={tx('Redigert')} aria-label={tx('Redigert')} />}
+              </button>
+              <label className={s.bName} title={it.name}>
+                <input type="checkbox" checked={sel.has(it.id)} aria-label={tx('Velg {name}', { name: it.name })} onChange={() => c.batchSel(it.id)} />
+                <span>{it.name}</span>
+              </label>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
+/** «Legg til»: elementer i fire grupper (Innhold, Former og grafikk, Lys og effekter, Medier) – ingen duplikater. */
 function AddPanel({ c, S, tx, pickFile }: EditorProps) {
-  const btns: [Phrase, () => void, boolean?][] = [
-    ['Bilde', () => pickFile()], ['Tekst', () => c.addText()], ['Form', () => c.addShape('rect')], ['Sirkel', () => c.addShape('ellipse')],
-    ['Former', () => c.ui({ shapesOpen: !S.shapesOpen }), S.shapesOpen], ['Toning', () => c.addGrad()], ['Lys', () => c.addGlow()],
-    ['Logo', () => c.ui({ logoOpen: !S.logoOpen }), S.logoOpen], ['Dine medier', () => c.openPicker('media')], ['Bibliotek', () => c.openPicker('cloud', {}, 'ressurser')],
-  ]
+  const group = (label: Phrase, btns: [Phrase, () => void, string, (boolean | undefined)?, Phrase?][]) => (
+    <div className={s.addGroup} role="group" aria-label={tx(label)}>
+      <span className={s.addHead}>{tx(label)}</span>
+      <div className={s.addGrid}>
+        {btns.map(([l, on, icon, active, tip]) => (
+          <button key={l} type="button" aria-pressed={active == null ? undefined : !!active} title={tip ? tx(tip) : undefined} onClick={on}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icon} /></svg>
+            {tx(l)}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
   return (
     <>
       <span className={s.eyebrowSm}>{tx('Legg til')}</span>
-      <div className={s.addGrid}>
-        {btns.map(([l, on, active]) => <button key={l} type="button" aria-pressed={!!active} onClick={on}>{tx(l)}</button>)}
-      </div>
-      {S.shapesOpen && (
-        <div className={s.shapeGrid}>
-          {['rect', 'rounded', ...SHAPES.map((x) => x[0]).filter((k) => k !== 'rect')].map((k) => {
-            const name = tx((k === 'rounded' ? 'Avrundet rektangel' : (SHAPES.find((x) => x[0] === k)?.[1] ?? k)) as Phrase)
-            return <button key={k} type="button" title={name} aria-label={name} style={{ backgroundImage: `url("${shapeIcon(k)}")` }} onClick={() => c.addShape(k)} />
-          })}
-        </div>
-      )}
+      {group('Innhold', [
+        ['Bilde', () => pickFile(), 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9.5h.01', undefined, 'Velg et bilde fra enheten'],
+        ['Tekst', () => c.addText(), 'M5 6h14M12 6v13M9 19h6', undefined, 'Legg til en tekst du kan skrive i'],
+        ['Logo', () => c.ui({ logoOpen: !S.logoOpen }), 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z', S.logoOpen, 'Velg menighetens logo'],
+      ])}
       {S.logoOpen && (
         <div className={s.logoBox}>
           <button type="button" className={s.pillDark} data-ch-felles-logo="1" onClick={() => c.openPicker('cloud', { logo: true }, 'ressurser')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" /></svg>
             {tx('Fellesmappe')}
           </button>
         </div>
       )}
+      <div className={s.addGroup} role="group" aria-label={tx('Former og grafikk')}>
+        <span className={s.addHead}>{tx('Former og grafikk')}</span>
+        <div className={s.shapeGrid} data-pd-shapes="">
+          {['rect', 'rounded', ...SHAPES.map((x) => x[0]).filter((k) => k !== 'rect')].map((k) => {
+            const name = tx((k === 'rounded' ? 'Avrundet rektangel' : (SHAPES.find((x) => x[0] === k)?.[1] ?? k)) as Phrase)
+            return <button key={k} type="button" title={name} aria-label={name} data-shape={k} style={{ backgroundImage: `url("${shapeIcon(k)}")` }} onClick={() => c.addShape(k)} />
+          })}
+        </div>
+      </div>
+      {group('Lys og effekter', [
+        ['Lys', () => c.addGlow(), 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', undefined, 'Et mykt lys over bildet'],
+        ['Toning', () => c.addGrad(), 'M4 4h16v16H4zM4 20 20 4', undefined, 'En fargeovergang over hele bildet'],
+        ...(S.adv ? [['Effekt …', () => c.openFx(), 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', S.fxOpen, 'Velg en effekt, se den på bildet og legg den til som et eget lag'] as [Phrase, () => void, string, (boolean | undefined)?, Phrase?]] : []),
+      ])}
+      {group('Medier', [
+        ['Dine medier', () => c.openPicker('media'), 'M4 7h6l2 2h8v10H4z', undefined, 'Bilder du har lagret i Media Lab'],
+        ['Fellesmappe', () => c.openPicker('cloud', {}, 'ressurser'), 'M3 7h7l2 2h9v10H3zM12 13h6', undefined, 'Felles ressurser for menigheten'],
+      ])}
     </>
   )
 }
@@ -221,6 +377,19 @@ function StylePanel({ c, S, tx }: EditorProps) {
         </>
       )}
       <div className={s.hr} />
+      <span className={s.eyebrowSm}>{tx('Prosjektets kategori')}</span>
+      <div className={s.catRow}>
+        <select value={S.doc?.cat && S.cats.includes(S.doc.cat) ? S.doc.cat : ''} aria-label={tx('Prosjektets kategori')} data-pd-doc-cat="" onChange={(e) => c.setDocCat(e.target.value || null)}>
+          <option value="">{tx('Uten kategori')}</option>
+          {S.cats.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
+        </select>
+        <button type="button" title={tx('Ny kategori')} aria-label={tx('Ny kategori for prosjektet')} onClick={() => {
+          const nc = c.newCat('doc')
+          if (nc) c.setDocCat(nc)
+        }}>+</button>
+      </div>
+      <span className={s.note}>{tx('Prosjektet vises under denne kategorien i «Mine prosjekter» på startsiden.')}</span>
+      <div className={s.hr} />
       <span className={s.eyebrowSm}>{tx('Maler')}</span>
       <div className={s.catRow}>
         <select value={c.catNow()} aria-label={tx('Kategori')} onChange={(e) => c.setTplCat(e.target.value)}>
@@ -235,8 +404,41 @@ function StylePanel({ c, S, tx }: EditorProps) {
 }
 
 
+/** Effekter-fanen (kompakt): åpner effektvelgeren. Utforskingen skjer i popupen, ikke i sidepanelet. */
+function FxPanel({ c, S, tx }: EditorProps) {
+  if (!S.adv) return <div className={s.stack}><span className={s.note}>{tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')} {tx('Slå på «Avansert modus» ved Autolagring øverst.')}</span></div>
+  return (
+    <div className={s.stack}>
+      <button type="button" className={s.bigBtn} data-pd-fx-open="" onClick={() => c.openFx()}>{tx('Legg til effekt …')}</button>
+      <span className={s.note}>{tx('Velg en effekt, se den på bildet, og legg den til som et eget lag. Effektlag redigeres i høyrepanelet.')}</span>
+    </div>
+  )
+}
+
+/** «Finjuster masken»: den felles maskeredigeringen på bildelagets maske; «Bruk» skriver den tilbake med angre. */
+function MaskDialog({ c, S, tx }: EditorProps) {
+  const e = S.maskEdit
+  if (!e) return null
+  return (
+    <div className={s.maskBack} role="dialog" aria-modal="true" aria-label={tx('Finjuster masken')} data-pd-mask="">
+      <div className={s.maskHead}>
+        <strong>{tx('Finjuster masken')}</strong>
+        <span>{tx('Behold eller fjern deler av bildet med pensel, former eller «Velg objekt». Endringen kan angres i editoren.')}</span>
+      </div>
+      <div className={s.maskBody}>
+        <MaskEditor image={e.image} mask={e.mask} onChange={() => undefined} selectObject={(x, y) => c.selectInMask(x, y)} />
+      </div>
+      <div className={s.row2}>
+        <button type="button" className={s.smallBtn} onClick={() => c.closeMaskEdit()}>{tx('Avbryt')}</button>
+        <button type="button" className={s.primary} data-pd-mask-apply="" onClick={() => c.applyMaskEdit()}>{tx('Bruk')}</button>
+      </div>
+    </div>
+  )
+}
+
+/** Effektvelgeren (popup): søk, kategorier, favoritter, nylig brukt, egne; forhåndsvisning på bildet før «Legg til effekt». */
 /** Effektbiblioteket (Avansert modus): 1920 forhåndsvalg, favoritter, nylig brukt og egne. */
-function FxLibrary({ c, S, tx }: EditorProps) {
+function FxPicker({ c, S, tx }: EditorProps) {
   const [, setTick] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   const on = S.adv
@@ -261,13 +463,17 @@ function FxLibrary({ c, S, tx }: EditorProps) {
 
   const cats: [string, string][] = [['all', 'Alle'], ['fav', 'Favoritter'], ['recent', 'Nylig brukt'], ['custom', 'Egne'], ...Object.keys(FX.KINDS).map((k) => [k, FX.KINDS[k]?.l ?? k] as [string, string])]
   const vis = cat !== 'fav' && cat !== 'recent' && cat !== 'custom'
+  const pick = S.fxPick
   return (
-    <div className={s.stack}>
-      <Toggle label={tx('Avansert modus')} on={on} onClick={() => c.toggleAdv()} />
-      {!on && <span className={s.note}>{tx('Lås opp avanserte kreative pensler, filmatisk lys, bildemanipulasjon og profesjonell komposisjon.')}</span>}
+    <div className={s.fxPop} role="dialog" aria-modal="false" aria-label={tx('Legg til effekt')} data-pd-fxpicker="" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); c.cancelFx() } }}>
+      <div className={s.fxPopHead}>
+        <strong>{tx('Legg til effekt')}</strong>
+        <button type="button" className={s.resetBtn} onClick={() => c.cancelFx()}>{tx('Lukk')}</button>
+      </div>
+      <div className={s.fxPopBody}>
       {on && (
         <>
-          <input className={s.search} value={S.fxQ} placeholder={tx('Søk i effekter …')} aria-label={tx('Søk i effekter')} onChange={(e) => c.ui({ fxQ: e.target.value.slice(0, 60), fxN: 24 })} />
+          <input autoFocus className={s.search} value={S.fxQ} placeholder={tx('Søk i effekter …')} aria-label={tx('Søk i effekter')} onChange={(e) => c.ui({ fxQ: e.target.value.slice(0, 60), fxN: 24 })} />
           <div className={s.fxCats}>
             {cats.map(([k, l]) => <button key={k} type="button" aria-pressed={cat === k} onClick={() => c.ui({ fxCat: k, fxN: 24 })}>{tx(l as Phrase)}</button>)}
           </div>
@@ -287,7 +493,7 @@ function FxLibrary({ c, S, tx }: EditorProps) {
             {shown.map((pr) => {
               return (
                 <div key={keyOf(pr)} className={s.fxItem}>
-                  <button type="button" title={nm(pr)} data-fx={pr.id} onClick={() => c.addFx(pr)}
+                  <button type="button" title={nm(pr)} data-fx={pr.id} aria-pressed={S.fxPick?.preset === pr.id} onClick={() => c.previewFx(pr)}
                     onContextMenu={(e) => {
                       if (!pr.custom) return
                       e.preventDefault()
@@ -351,6 +557,19 @@ function FxLibrary({ c, S, tx }: EditorProps) {
           <span className={s.note}>{tx('Hver effekt blir et eget lag som kan flyttes, skaleres og endres senere. Høyreklikk på egne forhåndsvalg for å slette, dobbeltklikk for å gi nytt navn. Bakgrunn, retusj og fargegradering finner du under Motiv og Farge på et bildelag.')}</span>
         </>
       )}
+      </div>
+      <div className={s.fxPopFoot}>
+        {pick ? (
+          <label className={s.fxPopOp}>
+            <span>{tx('Synlighet')} {Math.round(pick.op * 100)} %</span>
+            <input type="range" min={0} max={100} step={1} value={Math.round(pick.op * 100)} aria-label={tx('Synlighet')} onChange={(e) => c.setFxPickOp(Number(e.target.value) / 100)} />
+          </label>
+        ) : <span className={s.dimSm}>{tx('Velg en effekt for å se den på bildet.')}</span>}
+        <div className={s.row2}>
+          <button type="button" className={s.smallBtn} data-pd-fx-cancel="" onClick={() => c.cancelFx()}>{tx('Avbryt')}</button>
+          <button type="button" className={s.bigBtn} data-pd-fx-add="" disabled={!pick} onClick={() => c.confirmFx()}>{tx('Legg til effekt')}</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -523,7 +742,8 @@ function Stage({ c, S, tx }: EditorProps) {
       }
       const g = cv.getContext('2d')
       try {
-        if (g) render(g, doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
+        const pick = c.s.fxPick // effektvelgerens forhåndsvisning (ikke i prosjektet)
+        if (g) render(g, pick ? { ...doc, layers: [...doc.layers, pick] } : doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
       } catch (e) {
         console.warn(e)
       }

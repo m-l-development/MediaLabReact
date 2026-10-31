@@ -6,6 +6,7 @@ import { fmtD, fmtT, totalDur, usedMedia, type Media, type Project } from './eng
 import { WHISPER_MODELS } from './engine/transcribe'
 import { logoFields, subStyleFields } from './fields'
 import { Fields } from './Props'
+import { AdvBin } from './Advanced'
 import type { Phrase, Tx } from './texts'
 import s from './MotionDesign.module.css'
 
@@ -68,15 +69,27 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
   const T = totalDur(p)
   const vis = p.media.filter((m) => m.kind !== 'audio')
   const lg = p.logo
+  // Avansert: samme faner, men Media er mediebiblioteket (spor, varighet, feil per fil) og Musikk heter Lyd
+  const tabs = (
+    <div className={s.tabs} role="tablist" aria-label={tx('Legg til')} data-md-left-tabs="">
+      {TABS.map(([k, l]) => (
+        <button key={k} type="button" role="tab" className={s.tab} data-md-tab={k} aria-pressed={S.tab === k} aria-selected={S.tab === k} onClick={() => c.set({ tab: k })}>
+          {ICONS[k]}<span>{tx(S.adv && k === 'audio' ? 'Lyd' : l)}</span>
+        </button>
+      ))}
+    </div>
+  )
+  if (S.adv && S.tab === 'media') {
+    return (
+      <>
+        {tabs}
+        <AdvBin c={c} S={S} p={p} tx={tx} onShared={onShared} />
+      </>
+    )
+  }
   return (
     <>
-      <div className={s.tabs} role="tablist">
-        {TABS.map(([k, l]) => (
-          <button key={k} type="button" role="tab" className={s.tab} aria-pressed={S.tab === k} aria-selected={S.tab === k} onClick={() => c.set({ tab: k })}>
-            {ICONS[k]}<span>{tx(l)}</span>
-          </button>
-        ))}
-      </div>
+      {tabs}
       <div className={s.panel}>
         {S.tab === 'media' && (
           <>
@@ -100,6 +113,7 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
         {S.tab === 'text' && (
           <>
             <span className={s.lead2}>{tx('Legges til ved spillehodet. Dra teksten i forhåndsvisningen for å flytte den.')}</span>
+            {S.adv && <button type="button" className={s.dashed} data-md-add-text="" title={tx('Ny tekst på et tekstspor fra spillehodet')} onClick={() => c.addText({})}>{tx('+ Tom tekst')}</button>}
             {PRESETS.map((pr) => (
               <button key={pr.l} type="button" className={s.preset} onClick={() => c.addText(pr.o)}>
                 <span className={s.presetL}>{tx(pr.l)}</span>
@@ -123,7 +137,7 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
               {S.ai.msg && <span className={`${s.aiMsg} ${S.ai.err ? s.aiErr : ''}`} role="status">{tx(S.ai.msg.p, S.ai.msg.v)}</span>}
             </div>
             <div className={s.row}>
-              <button type="button" className={`${s.dashed} ${s.small}`} onClick={() => c.addSub()}>{tx('+ Ved spillehodet')}</button>
+              <button type="button" className={`${s.dashed} ${s.small}`} data-md-add-sub="" title={tx('Ny undertekst fra spillehodet (2,5 s)')} onClick={() => c.addSub()}>{tx('+ Ved spillehodet')}</button>
               <button type="button" className={`${s.barBtn} ${s.small}`} onClick={() => c.pickSrtFile()}>{tx('Importer .srt')}</button>
               {p.subs.length > 0 && <button type="button" className={`${s.barBtn} ${s.small}`} onClick={() => c.downloadSrt()}>{tx('Last ned .srt')}</button>}
             </div>

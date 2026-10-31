@@ -4,6 +4,7 @@ import type { Me } from '../domain/account'
 import { ServiceError } from '../services/errors'
 import { elementInfo, technical } from '../shared/feedback/context'
 import { appOf, cleanPath, cleanView, KINDS, scrubDeep, scrubText, type FeedbackKind } from '../shared/feedback/feedback-core'
+import { buildFeedback, FIELDS, LEVELS } from '../shared/feedback/form'
 import { useT, type Translate } from '../shared/i18n/i18n'
 import type { MessageKey } from '../shared/i18n/messages'
 import { useServices } from './services'
@@ -14,13 +15,6 @@ import styles from './Feedback.module.css'
  * med egne spørsmål, beskrivelse (påkrevd), «Marker et område på skjermen», teknisk kontekst med de siste feilene og
  * rensing av hemmeligheter før sending. Databasen (`submit_feedback`) kontrollerer innlogging og grensen per døgn.
  */
-const QUESTIONS: Record<FeedbackKind, { desc: MessageKey; extra: [string, MessageKey, 'textarea' | 'level'][] }> = {
-  bug: { desc: 'fb.q.bug', extra: [['expected', 'fb.q.expected', 'textarea'], ['steps', 'fb.q.steps', 'textarea'], ['severity', 'fb.q.severity', 'level']] },
-  improvement: { desc: 'fb.q.improvement', extra: [['importance', 'fb.q.importance', 'level']] },
-  feature: { desc: 'fb.q.feature', extra: [['importance', 'fb.q.importance', 'level']] },
-  other: { desc: 'fb.q.other', extra: [] },
-}
-const LEVELS: [string, MessageKey][] = [['', 'fb.level.choose'], ['low', 'fb.level.low'], ['medium', 'fb.level.medium'], ['high', 'fb.level.high'], ['critical', 'fb.level.critical']]
 const ERR: Record<string, MessageKey> = { rate_limited: 'fb.err.rate', invalid: 'fb.err.invalid', forbidden: 'fb.err.forbidden', unauthorized: 'fb.err.session', network: 'fb.err.network', timeout: 'fb.err.timeout' }
 
 interface Marked {
@@ -31,8 +25,8 @@ interface Marked {
   scroll: { x: number; y: number }
   element: ReturnType<typeof elementInfo>
 }
-interface Form { kind: FeedbackKind | null; title: string; description: string; answers: Record<string, string>; where: string; marked: Marked | null }
-const EMPTY: Form = { kind: null, title: '', description: '', answers: {}, where: '', marked: null }
+interface Form { kind: FeedbackKind | null; vals: Record<string, string>; marked: Marked | null }
+const EMPTY: Form = { kind: null, vals: {}, marked: null }
 
 /** Markering av element (trykk) eller område (dra), over hele siden. */
 function Picker({ t, done }: { t: Translate; done: (m: Marked | null) => void }) {
@@ -111,10 +105,14 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
   const [error, setError] = useState<MessageKey | null>(null)
   const [showTech, setShowTech] = useState(false)
   const [picking, setPicking] = useState(false)
+  const [bad, setBad] = useState<Record<string, boolean>>({})
   const btn = useRef<HTMLButtonElement>(null)
-  const desc = useRef<HTMLTextAreaElement>(null)
-  const typed = () => (f.description + f.title + Object.values(f.answers).join('') + f.where).trim().length + (f.marked ? 1 : 0)
-  const reset = () => { setF(EMPTY); setSent(null); setError(null) }
+  const typed = () => Object.values(f.vals).join('').trim().length + (f.marked ? 1 : 0)
+  const reset = () => { setF(EMPTY); setSent(null); setError(null); setBad({}) }
+  const setVal = (k: string, v: string) => {
+    setF((x) => ({ ...x, vals: { ...x.vals, [k]: v } }))
+    if (bad[k] && v.trim().length >= 3) setBad((b) => ({ ...b, [k]: false }))
+  }
   const close = (force = false) => {
     if (!force && !sent && typed() > 0 && !window.confirm(t('fb.discard'))) return
     onOpen(false)
@@ -129,16 +127,23 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
   })
   const here = () => { const a = appOf(location.pathname, location.search); return { app: a.id, appName: a.name, page: cleanPath(location.pathname), view: cleanView(location.search, location.hash) } }
   const submit = async () => {
-    if (sending) return
-    if (f.description.trim().length < 3) { setError('fb.err.short'); return }
+    if (sending || !f.kind) return
+    // påkrevde felt (minst 3 tegn): markeres hver for seg, og det første får fokus
+    const missing = FIELDS[f.kind].filter((x) => x.req && (f.vals[x.key] ?? '').trim().length < 3).map((x) => x.key)
+    if (missing.length) {
+      setBad(Object.fromEntries(missing.map((k) => [k, true])))
+      setError('fb.err.fields')
+      document.getElementById(`chfb-${missing[0]}`)?.focus()
+      return
+    }
+    setBad({})
     setSending(true)
     setError(null)
-    const h = here(), answers: Record<string, string> = {}
-    for (const [k, v] of Object.entries(f.answers)) if (v) answers[k] = /^(importance|severity)$/.test(k) ? v : scrubText(v).slice(0, 2000)
-    if (f.where.trim()) answers.where = scrubText(f.where.trim()).slice(0, 200)
+    const h = here()
+    const b = buildFeedback(f.kind, f.vals, t)
     try {
       const r = await feedback.submit({
-        kind: f.kind ?? 'other', title: scrubText(f.title.trim()).slice(0, 140), description: scrubText(f.description.trim()).slice(0, 4000), answers,
+        kind: f.kind, title: scrubText(b.title).slice(0, 140), description: scrubText(b.description).slice(0, 4000), answers: b.answers,
         app: h.app, appName: h.appName, page: h.page, view: h.view, marked: f.marked ? scrubDeep(f.marked) : null, context: technical(),
         churchId: me.churches.length === 1 ? (me.churches[0]?.id ?? null) : null,
       })
@@ -177,30 +182,43 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
               <>
                 <div className={styles.cats} role="radiogroup" aria-label={t('fb.category')}>
                   {KINDS.map((k) => (
-                    <button key={k} type="button" className={styles.cat} role="radio" aria-checked={f.kind === k} data-kind={k} onClick={() => { setF((x) => ({ ...x, kind: k })); setError(null); setTimeout(() => desc.current?.focus(), 0) }}>
+                    <button key={k} type="button" className={styles.cat} role="radio" aria-checked={f.kind === k} data-kind={k} onClick={() => { setF((x) => ({ ...x, kind: k })); setError(null); setBad({}); setTimeout(() => document.getElementById('chfb-main')?.focus(), 0) }}>
                       {t(`fb.kind.${k}`)}
                     </button>
                   ))}
                 </div>
-                <p className={styles.note}>{t('fb.concerns')}: {h ? `${h.appName} · ${h.page}${h.view ? ' ' + h.view : ''}` : ''}</p>
+                {/* applikasjonen med navn (siden og versjonen følger med i den tekniske informasjonen) */}
+                <p className={styles.note} data-chfb-app="">{t('fb.concerns')}: {h?.appName ?? ''}</p>
                 {!f.kind ? (
                   <p className={styles.note}>{t('fb.chooseKind')}</p>
                 ) : (
                   <>
-                    <label>{t('fb.title')}<input name="title" maxLength={140} autoComplete="off" value={f.title} onChange={(e) => setF((x) => ({ ...x, title: e.target.value }))} /></label>
-                    <label>{t(QUESTIONS[f.kind].desc)} *<textarea ref={desc} name="description" rows={4} maxLength={4000} value={f.description} onChange={(e) => setF((x) => ({ ...x, description: e.target.value }))} /></label>
-                    {QUESTIONS[f.kind].extra.map(([key, label, type]) =>
-                      type === 'level' ? (
-                        <label key={key}>{t(label)}
-                          <select name={key} value={f.answers[key] ?? ''} onChange={(e) => setF((x) => ({ ...x, answers: { ...x.answers, [key]: e.target.value } }))}>
-                            {LEVELS.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
-                          </select>
-                        </label>
-                      ) : (
-                        <label key={key}>{t(label)} ({t('fb.optional')})<textarea name={key} rows={2} maxLength={2000} value={f.answers[key] ?? ''} onChange={(e) => setF((x) => ({ ...x, answers: { ...x.answers, [key]: e.target.value } }))} /></label>
-                      ),
-                    )}
-                    <label>{t('fb.where')}<input name="where" maxLength={200} autoComplete="off" placeholder={t('fb.wherePh')} value={f.where} onChange={(e) => setF((x) => ({ ...x, where: e.target.value }))} /></label>
+                    <p className={styles.note} data-chfb-example="">{t(`fb.ex.${f.kind}`)}</p>
+                    {FIELDS[f.kind].map((fd) => {
+                      const id = `chfb-${fd.key}`
+                      const helpId = fd.help ? `${id}-help` : ''
+                      const errId = bad[fd.key] ? `${id}-err` : ''
+                      const described = [helpId, errId].filter(Boolean).join(' ') || undefined
+                      const label = `${t(fd.label)}${fd.req ? ' *' : ` (${t('fb.optional')})`}`
+                      const common = { id, name: fd.key, 'aria-describedby': described, 'aria-invalid': bad[fd.key] || undefined, 'aria-required': fd.req || undefined, value: f.vals[fd.key] ?? '' }
+                      return (
+                        <div key={fd.key} className={styles.field} data-chfb-field={fd.key}>
+                          <label htmlFor={id}>{label}</label>
+                          {fd.type === 'sev' || fd.type === 'imp' ? (
+                            <select {...common} onChange={(e) => setVal(fd.key, e.target.value)}>
+                              {LEVELS[fd.type].map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
+                            </select>
+                          ) : fd.type === 'line' ? (
+                            <input {...common} maxLength={140} autoComplete="off" onChange={(e) => setVal(fd.key, e.target.value)} />
+                          ) : (
+                            <textarea {...common} rows={fd.req ? 4 : 2} maxLength={fd.key === 'main' || fd.key === 'what' ? 4000 : 2000} onChange={(e) => setVal(fd.key, e.target.value)} />
+                          )}
+                          {fd.help && <span id={helpId} className={styles.help}>{t(fd.help)}</span>}
+                          {bad[fd.key] && <span id={errId} className={styles.fieldErr} role="alert">{t('fb.err.required')}</span>}
+                        </div>
+                      )
+                    })}
+                    {Object.entries(f.vals).some(([k, v]) => v.trim() && !FIELDS[f.kind as FeedbackKind].some((x) => x.key === k)) && <p className={styles.note} data-chfb-kept="">{t('fb.kept')}</p>}
                     <div className={styles.row}>
                       {f.marked ? (
                         <>

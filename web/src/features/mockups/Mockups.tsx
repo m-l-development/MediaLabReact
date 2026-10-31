@@ -5,6 +5,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { Asset } from '../../domain/asset'
 import type { AssetId } from '../../domain/ids'
 import { readMockupSettings, writeMockupSettings } from '../../infrastructure/legacy-import/mockups'
+import { pastedImage } from '../../shared/lib/paste'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import { Button } from '../../shared/ui/Button'
@@ -200,7 +201,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   // Lim inn bilde som design
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      const file = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
         applyDesign(file, file.name, null)
@@ -230,6 +231,11 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   const entries = lib.entries ?? []
   const visible = cat === 'all' ? entries : entries.filter((m) => m.cat === cat)
   const selected = entries.find((m) => m.id === selId) ?? null
+  // editoren og nedlastingen bruker fotografiet i full oppløsning (galleriet bare forhåndsvisningen)
+  const selKey = selected?.id ?? null
+  useEffect(() => {
+    if (selKey) lib.loadFull(selKey)
+  }, [selKey, lib, lib.entries])
 
   const open = (id: string | null) => {
     const q: Record<string, string> = {}
@@ -297,7 +303,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           key={selected.id}
           mockup={selected}
           list={visible.length ? visible : entries}
-          image={lib.images.get(selected.id) ?? null}
+          image={lib.full.get(selected.id) ?? null}
           design={design}
           settings={settingsOf(selected)}
           onPatch={(p) => patch(selected.id, p)}
@@ -904,7 +910,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   const targets = TOOLS.filter((tool) => tool.id !== 'mockups' && tool.load && tool.accepts.includes('image'))
 
   return (
-    <div className={styles.editor}>
+    <div className={styles.editor} data-ml-workspace="">
       <header className={styles.editorBar}>
         <Button size="small" variant="ghost" onClick={() => onOpen(null)}>← {t('mockups.allMockups')}</Button>
         <span className={styles.selName}>{mockup.name}<small>{t(`mockups.cat.${mockup.cat}`)}</small></span>
