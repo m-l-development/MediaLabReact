@@ -92,7 +92,7 @@ jobs:
 
       - name: Nettlesertester
         working-directory: web
-        run: npx playwright test --reporter=line --retries=1 --workers=2
+        run: npx playwright test --reporter=github,line --retries=1 --workers=2
 
       - name: Rapport ved feil
         if: failure()
