@@ -21,6 +21,7 @@ import {
 } from './model'
 
 /** Dra-og-slipp fra visningen (React- eller DOM-hendelse). */
+type TouchDownEv = { pointerType: string; clientX: number; clientY: number; currentTarget: EventTarget | null }
 type DragEv = { dataTransfer: DataTransfer | null; clientX: number; currentTarget: EventTarget | null; preventDefault(): void }
 import type { DiskEntry, LoopMediaStore, LoopRepo, WorkData } from './store'
 import { loadMuxer, loadQr, loadTesseract, type QrFactory } from './engine/vendor'
@@ -2241,6 +2242,65 @@ export class LoopController {
     })
   }
   private dragId: string | null = null
+  /**
+   * Dra-og-slipp med fingeren (HTML-dra virker ikke med berøring): hold på kortet (0,35 s), dra til ønsket plass og slipp.
+   * Samme innsettingsmarkør og samme flytting som med mus. Beveger fingeren seg før det, rulles lista som vanlig.
+   */
+  private touchDrag(e: TouchDownEv, id: string) {
+    const x0 = e.clientX, y0 = e.clientY
+    const strip = (e.currentTarget as HTMLElement | null)?.parentElement ?? null
+    let active = false
+    const slotAt = (x: number) => {
+      const cards = [...document.querySelectorAll<HTMLElement>('[data-loop-card]')]
+      const i = cards.findIndex((c) => { const r = c.getBoundingClientRect(); return x < r.left + r.width / 2 })
+      return i < 0 ? cards.length : i
+    }
+    const timer = window.setTimeout(() => {
+      active = true
+      this.dragId = id
+      navigator.vibrate?.(12)
+      this.setState({ dropAt: slotAt(x0) })
+    }, 350)
+    const move = (ev: TouchEvent) => {
+      const t = ev.touches[0]
+      if (!t) return
+      if (!active) {
+        if (Math.hypot(t.clientX - x0, t.clientY - y0) > 10) done(false)
+        return
+      }
+      ev.preventDefault()
+      // nær kanten av lista: rull den så man kan dra forbi det som vises
+      if (strip) {
+        const r = strip.getBoundingClientRect()
+        if (t.clientX < r.left + 40) strip.scrollLeft -= 12
+        else if (t.clientX > r.right - 40) strip.scrollLeft += 12
+      }
+      const slot = slotAt(t.clientX)
+      if (this.state.dropAt !== slot) this.setState({ dropAt: slot })
+    }
+    const done = (drop: boolean) => {
+      window.clearTimeout(timer)
+      document.removeEventListener('touchmove', move)
+      document.removeEventListener('touchend', end)
+      document.removeEventListener('touchcancel', cancel)
+      document.removeEventListener('contextmenu', noMenu, true)
+      if (!active) return
+      active = false
+      this.dragId = null
+      const slot = this.state.dropAt, from = this.state.slides.findIndex((x) => x.id === id)
+      if (drop && slot != null && from >= 0) this.reorder(id, slot - (from < slot ? 1 : 0))
+      else this.setState({ dropAt: null })
+    }
+    const end = () => done(true)
+    const cancel = () => done(false)
+    // langt trykk skal ikke åpne nettleserens meny mens man drar
+    const noMenu = (ev: Event) => { if (active || Date.now() - t0 < 1500) ev.preventDefault() }
+    const t0 = Date.now()
+    document.addEventListener('touchmove', move, { passive: false })
+    document.addEventListener('touchend', end)
+    document.addEventListener('touchcancel', cancel)
+    document.addEventListener('contextmenu', noMenu, true)
+  }
   move(id: string, dir: number) {
     this.setState((s) => {
       const a = [...s.slides], i = a.findIndex((x) => x.id === id), j = i + dir
@@ -3511,6 +3571,7 @@ export class LoopController {
         if (d && slot != null && from >= 0) this.reorder(d, slot - (from < slot ? 1 : 0)); else this.setState({ dropAt: null })
       },
       onDragEnd: () => { this.dragId = null; if (this.state.dropAt != null) this.setState({ dropAt: null }) },
+      onPointerDown: (e: TouchDownEv) => { if (e.pointerType === 'touch') this.touchDrag(e, s.id) },
       onKeyDown: (e: { altKey: boolean; key: string; preventDefault(): void }) => {
         if (!e.altKey) return
         const k = e.key, to = k === 'ArrowLeft' ? i - 1 : k === 'ArrowRight' ? i + 1 : k === 'Home' ? 0 : k === 'End' ? all.length - 1 : null

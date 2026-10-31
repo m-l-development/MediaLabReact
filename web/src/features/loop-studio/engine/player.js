@@ -807,8 +807,11 @@ export function __ukeloopRendererFactory() {
       var items = [], map = {};
       slides.forEach(function (s) {
         if (s.type !== 'day' || s.extra) return;
-        var last = items[items.length - 1];
-        if (last && last.day === s.day) map[s.id] = items.length - 1; else { items.push({ day: s.day }); map[s.id] = items.length - 1; }
+        /* én plass per dag i ukelinjen, også når dagens slider er flyttet fra hverandre (TB-2CD75B) */
+        var at = -1;
+        for (var di = 0; di < items.length; di++) if (items[di].day === s.day) { at = di; break; }
+        if (at < 0) { items.push({ day: s.day }); at = items.length - 1; }
+        map[s.id] = at;
       });
       var ra = clamp(dayW, 0, 1);
       if (items.length > 1 && ra > 0) {

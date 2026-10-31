@@ -4416,7 +4416,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               const v1 = { ...v, "c": $it1, $index: $i1 };
               return <React.Fragment key={$i1}>
                 {"\n          "}
-                <div data-loop-card={v1.c?.num} draggable={true} onDragStart={v1.c?.onDragStart} onDragOver={v1.c?.onDragOver} onDrop={v1.c?.onDrop} onDragEnd={v1.c?.onDragEnd} onKeyDown={v1.c?.onKeyDown} title={tx("Dra for å flytte (Alt + piltast med tastaturet)")} style={{"position":"relative","flex":"0 0 172px","display":"flex"}}>
+                <div data-loop-card={v1.c?.num} draggable={true} onPointerDown={v1.c?.onPointerDown} onDragStart={v1.c?.onDragStart} onDragOver={v1.c?.onDragOver} onDrop={v1.c?.onDrop} onDragEnd={v1.c?.onDragEnd} onKeyDown={v1.c?.onKeyDown} title={tx("Dra for å flytte (Alt + piltast med tastaturet)")} style={{"position":"relative","flex":"0 0 172px","display":"flex","WebkitUserSelect":"none","userSelect":"none","WebkitTouchCallout":"none"}}>
                   {v1.c?.dropBefore ? <div data-loop-drop="" style={{"position":"absolute","left":"-7px","top":"0","bottom":"0","width":"3px","borderRadius":"2px","background":"#f3f1ec","boxShadow":"0 0 8px rgba(255,255,255,0.6)","zIndex":"3","pointerEvents":"none"}} /> : null}
                   {v1.c?.dropAfter ? <div data-loop-drop="" style={{"position":"absolute","right":"-7px","top":"0","bottom":"0","width":"3px","borderRadius":"2px","background":"#f3f1ec","boxShadow":"0 0 8px rgba(255,255,255,0.6)","zIndex":"3","pointerEvents":"none"}} /> : null}
                   {"\n          "}
