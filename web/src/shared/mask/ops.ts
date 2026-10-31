@@ -37,22 +37,20 @@ function put(m: Mask, i: number, cov: number, keep: boolean) {
  */
 export interface Snap { rgba: Uint8ClampedArray; ref: [number, number, number]; tol: number }
 
-/** Gjennomsnittsfargen i et 5 × 5-område rundt (x, y). */
+/**
+ * Fargen under markøren: median (per kanal) i 3 × 3 rundt (x, y). Medianen (ikke gjennomsnittet) gir fargen til en
+ * smal struktur (f.eks. en ledning på 2 px) når markøren står på den, i stedet for en blanding med bakgrunnen.
+ */
 export function sampleColor(rgba: Uint8ClampedArray, W: number, H: number, x: number, y: number): [number, number, number] {
-  let r = 0
-  let g = 0
-  let b = 0
-  let n = 0
-  for (let yy = Math.max(0, Math.floor(y) - 2); yy <= Math.min(H - 1, Math.floor(y) + 2); yy++) {
-    for (let xx = Math.max(0, Math.floor(x) - 2); xx <= Math.min(W - 1, Math.floor(x) + 2); xx++) {
+  const ch: [number[], number[], number[]] = [[], [], []]
+  for (let yy = Math.max(0, Math.floor(y) - 1); yy <= Math.min(H - 1, Math.floor(y) + 1); yy++) {
+    for (let xx = Math.max(0, Math.floor(x) - 1); xx <= Math.min(W - 1, Math.floor(x) + 1); xx++) {
       const k = (yy * W + xx) * 4
-      r += rgba[k] ?? 0
-      g += rgba[k + 1] ?? 0
-      b += rgba[k + 2] ?? 0
-      n++
+      for (let c = 0; c < 3; c++) ch[c]?.push(rgba[k + c] ?? 0)
     }
   }
-  return n ? [r / n, g / n, b / n] : [0, 0, 0]
+  const med = (v: number[]) => [...v].sort((p, q) => p - q)[v.length >> 1] ?? 0
+  return [med(ch[0]), med(ch[1]), med(ch[2])]
 }
 
 /**
