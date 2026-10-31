@@ -1,0 +1,42 @@
+# Automatisk release connecthub → main (docs/publisering.md).
+# Ved hver push til connecthub: venter på CI (checks + e2e) og Vercels Dev-deploy av samme commit, sjekker at main er
+# med, at det ikke er nye migreringer og at commiten fortsatt er toppen. Med AUTO_MERGE=true lages en pull request
+# connecthub → main som merges GJENNOM beskyttelsen på main (påkrevd kontroll «checks»); Vercel publiserer main til
+# produksjon, og jobben venter på produksjonsdeployen og sjekker version.json og hovedadressene. Stopper ved første feil.
+# Bruker bare GITHUB_TOKEN. Endrer aldri innstillinger eller beskyttelse.
+name: Release
+
+on:
+  push:
+    branches: [connecthub]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  deployments: read
+
+env:
+  # false = tørrkjøring (alle kontroller, ingen merge). Settes til true først etter eierens godkjenning.
+  AUTO_MERGE: 'false'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Kontroller og ev. merge til main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node web/tools/release-gate.mjs "${{ github.sha }}" ${{ env.AUTO_MERGE == 'true' && '--merge' || '' }}

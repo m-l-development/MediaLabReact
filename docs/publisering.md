@@ -40,7 +40,40 @@ Klar bare når: commiten er toppen av `connecthub` (det som ble testet i Dev), `
 Dev-deployen av commiten er READY, og det ikke er nye databasemigreringer siden produksjon (finnes det, stopper den og
 viser filene). Skriver også miljøvariabler som bare finnes i Dev (navn, aldri verdier) og tilbakerullingsmålet.
 
-## 3. Produksjon – krever uttrykkelig godkjenning
+## 3. Automatisk release connecthub → main (`.github/workflows/release.yml`)
+
+Kjører ved hver push til `connecthub` (bare `GITHUB_TOKEN`; endrer aldri innstillinger eller beskyttelse):
+
+1. Venter på CI for commiten: `checks` (typekontroll, lint, enhetstester, bygg) **og** `e2e` (Playwright, én ny kjøring
+   av en test som feiler) må være grønne.
+2. Venter på Vercels Dev-deploy av samme commit (GitHub-deployment «Preview» = success).
+3. Krever at commiten fortsatt er toppen av `connecthub`, at `main` er med, og at det ikke er nye databasemigreringer
+   (da stopper den – migreringer har egen godkjenning og kjøreplan).
+4. Med `AUTO_MERGE: 'true'`: pull request `connecthub → main` og merge (vanlig merge-commit) **gjennom** beskyttelsen på
+   `main` (påkrevd kontroll «checks»). Vercel publiserer `main` til produksjon; jobben venter på
+   GitHub-deployment «Production» = success, sjekker `/app/version.json` og hovedadressene.
+5. Ved feil stopper den (jobben feiler) – ingenting omgås.
+
+`AUTO_MERGE` står til `'false'` (tørrkjøring: alle kontroller, ingen merge) til eieren har godkjent første automatiske
+release.
+
+### Regler per gren
+
+| Gren | Beskyttelse (GitHub) | Hvordan endringer kommer inn |
+|---|---|---|
+| `connecthub` | ingen | `node web/tools/ship-dev.mjs` lokalt (kvalitetssperre før push); Vercel deployer Dev |
+| `main` | påkrevd kontroll «checks» for alle | bare via pull request fra `connecthub` (release.yml eller manuelt) |
+
+### Tilbakerulling
+
+- **Raskest:** Vercel → Deployments → forrige produksjonsdeploy → «Instant Rollback» (Hobby: bare den umiddelbart forrige;
+  release.yml og `release-check.mjs` skriver hvilken). Fra denne maskinen også `npx vercel rollback <deploy-id>`.
+- **Varig:** `git revert -m 1 <merge-commit>` på `connecthub` og vanlig release (ship-dev → release.yml), eller en
+  manuell pull request til `main`. En automatisk revert direkte på `main` er ikke mulig: `main` er beskyttet, og
+  endringer laget med `GITHUB_TOKEN` starter ikke CI, så påkrevd kontroll ville aldri bli grønn.
+
+## 4. Produksjon manuelt (som før)
+
 
 1. Eieren tester i Dev og godkjenner en bestemt commit.
 2. Pull request `connecthub → main` (lenken skrives av `release-check`), CI kjører på pull requesten.
