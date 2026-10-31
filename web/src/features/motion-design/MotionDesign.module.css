@@ -2562,3 +2562,272 @@
 :root[data-theme='light'] .modalBack {
   background: rgba(20, 20, 20, 0.35);
 }
+
+/* ---------- Avansert: mediebibliotek, tidsinspektør, tidskode ---------- */
+.binHead {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a8a49c;
+}
+.binErr {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #7a2e22;
+  border-radius: 10px;
+  background: rgba(228, 65, 31, 0.1);
+  color: #ffb3a6;
+  font-size: 12px;
+}
+.binErr ul {
+  margin: 0;
+  padding-left: 16px;
+  word-break: break-word;
+}
+.binErr button {
+  align-self: flex-start;
+}
+.binList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.binItem {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 4px 8px;
+  padding: 6px;
+  border: 1px solid #222;
+  border-radius: 10px;
+  background: #111;
+}
+.binThumb {
+  grid-row: span 2;
+  width: 48px;
+  height: 36px;
+  border-radius: 6px;
+  background: #1c1c1c center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8fd3ff;
+  font-size: 16px;
+}
+.binText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.binName {
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binMeta {
+  font-size: 11px;
+  color: #a8a49c;
+  font-variant-numeric: tabular-nums;
+}
+.binBtns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.timing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  background: #101010;
+}
+.tmHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.tmTrack {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #3d8bff;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.tmGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.tmField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 11px;
+  color: #a8a49c;
+}
+.tmField input,
+.tmField output {
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: #0b0b0b;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  color: #f2efe8;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+.tc {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #0b0b0b;
+  border: 1px solid #2a2a2a;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+:root[data-theme='light'] .binItem,
+:root[data-theme='light'] .timing,
+:root[data-theme='light'] .tc,
+:root[data-theme='light'] .tmField input,
+:root[data-theme='light'] .tmField output {
+  border-color: var(--color-border);
+  background: #fff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .binThumb {
+  background-color: #e7e3dc;
+}
+:root[data-theme='light'] .binErr {
+  color: #8a2a17;
+}
+.tlTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.tlZoom {
+  width: clamp(90px, 12vw, 180px);
+  accent-color: #3d8bff;
+}
+.tlField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #a8a49c;
+}
+.tlField input {
+  width: 98px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  background: #0b0b0b;
+  color: #f2efe8;
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.tlField input[aria-invalid='true'] {
+  border-color: #e4411f;
+}
+.tlErr {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #3a1610;
+  color: #ffb3a6;
+  font-size: 11.5px;
+  font-style: normal;
+  white-space: nowrap;
+}
+.tlWarn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: rgba(245, 184, 44, 0.12);
+  color: #f5b82c;
+  font-size: 12px;
+}
+.endZone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 3;
+  border-left: 2px solid #f5b82c;
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.35) 0 6px, rgba(0, 0, 0, 0.5) 6px 12px);
+  pointer-events: none;
+}
+.endZone span {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #f5b82c;
+}
+:root[data-theme='light'] .tlField input {
+  border-color: var(--color-border);
+  background: #fff;
+  color: var(--color-text-strong);
+}
+:root[data-theme='light'] .endZone {
+  background: repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.06) 0 6px, rgba(0, 0, 0, 0.12) 6px 12px);
+}
+/* tidslinjens høyde dras fra skillet over den */
+.tlResize {
+  flex: 0 0 6px;
+  margin-top: -3px;
+  position: relative;
+  z-index: 4;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.tlResize:hover,
+.tlResize:focus-visible {
+  background: rgba(61, 139, 255, 0.55);
+  outline: none;
+}
+.tlField input[placeholder] {
+  width: 128px;
+}
+/* toppraden holder seg på én linje på vanlige skjermer (navnefeltet krymper i stedet) */
+@media (min-width: 1180px) {
+  .bar {
+    flex-wrap: nowrap;
+  }
+}
+@media (max-width: 1440px) {
+  .bar > .dim {
+    display: none;
+  }
+}

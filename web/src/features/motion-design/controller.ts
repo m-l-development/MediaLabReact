@@ -4,9 +4,10 @@ import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
 import { exportMp4 } from './engine/export'
 import {
   clamp, colorClip, create, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
-  ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
+  contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
+import { moveLane, spanOf, splitOv, splitSub, trimAt, type EditResult } from './engine/edit'
 import { pack, unpack } from './engine/packfile'
 import { drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
 import { transcribe } from './engine/transcribe'
@@ -77,6 +78,12 @@ export interface MState {
   hasClip: boolean
   hasLook: { aud: boolean } | null
   lastExp: boolean
+  /** Avansert mediebibliotek: filene fra siste import som ikke kunne brukes, med årsak. */
+  binErr: { name: string; why: Phrase }[]
+  /** Synlig del av tidslinjen (sekunder): venstre kant og bredde. Endres av rulling og zoom, aldri av prosjektet. */
+  tlView: { l: number; w: number }
+  /** Tidslinjens høyde i piksler (dratt av brukeren; huskes i nettleseren). null = standard. */
+  tlH: number | null
   /** Øker når noe utenfor tilstanden er endret (bølgeformer, filer, historikk). */
   rev: number
 }
@@ -107,6 +114,12 @@ const TK: Record<Kind, TrackKey> = { clip: 'video', text: 'text', sub: 'subs', m
 export const LANEH = { text: 26, ov: 40, music: 30 } as const
 type LaneKind = keyof typeof LANEH
 const isLane = (k: string): k is LaneKind => k in LANEH
+/** Tidslinjezoom (piksler per sekund): fra flere timer på skjermen til enkeltbilder. */
+export const ZMIN = 0.02
+export const ZMAX = 1200
+/** Tidslinjens lengde: det lengste av innholdet og prosjektvarigheten. */
+export const tlEnd = (p: Project): number => Math.max(contentDur(p), totalDur(p))
+
 const LIM: Record<'video' | 'image' | 'audio', number> = { video: 4e9, image: 60e6, audio: 600e6 }
 export const TRDUR: Record<string, number> = { whip: 0.4, match: 0.2, ramp: 0.5, xzoom: 0.6, chroma: 0.5, leak: 0.9, mask: 0.7 }
 export const HX = [-1, 0, 1, 1, 1, 0, -1, -1]
@@ -161,6 +174,10 @@ interface DragState {
   l: { start: number; dur: number } | null
   moved: boolean
   snaps: number[]
+  /** Tidslinjens rulleposisjon da draingen startet (automatisk panorering regnes med i flyttingen). */
+  sl0: number
+  /** Siste pekerposisjon (panoreringen flytter klippet videre selv om pekeren står stille). */
+  ev: { clientX: number; clientY: number } | null
 }
 
 interface XfBox { cx: number; cy: number; w: number; h: number; rot: number; it: AnyRec; clip?: boolean; sw?: number; sh?: number; cr?: { l: number; t: number; r: number; b: number } }
@@ -227,7 +244,7 @@ export class MotionController {
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
       toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, narrow: false, vw: 1440, dragOver: false,
       clipDrag: null, packing: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
-      folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, rev: 0,
+      folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
     })
   }
 
@@ -1016,7 +1033,7 @@ export class MotionController {
   seek(t: number, quiet = false): void {
     const p = this.s.proj
     if (!p) return
-    this.t = clamp(t, 0, totalDur(p))
+    this.t = clamp(t, 0, tlEnd(p))
     if (this.playing) {
       this.pt0 = this.t
       this.pn0 = performance.now()
@@ -1523,10 +1540,11 @@ export class MotionController {
     for (const x of p.subs) if (x.id !== id) snaps.push(x.start, x.end)
     for (const x of p.ov) if (x.id !== id) snaps.push(x.start, x.start + ovDur(x))
     for (const m of p.markers) snaps.push(m.t)
-    this.drag = { kind, id, edge, x0: e.clientX, y0: e.clientY, p0: p, lanes0: { ...p.lanes }, o: { ...(it as unknown as AnyRec) }, l: l ? { start: l.start, dur: l.dur } : null, moved: false, snaps }
+    this.drag = { kind, id, edge, x0: e.clientX, y0: e.clientY, p0: p, lanes0: { ...p.lanes }, o: { ...(it as unknown as AnyRec) }, l: l ? { start: l.start, dur: l.dur } : null, moved: false, snaps, sl0: this.els.tl?.scrollLeft ?? 0, ev: null }
     if (this.s.sel?.id !== id) this.set((s) => ({ sel: { type: kind, id }, replaceFor: null, multi: s.multi.some((m) => m.id === id) ? s.multi : [] }))
     window.addEventListener('pointermove', this.onDrag)
     window.addEventListener('pointerup', this.endDrag, { once: true })
+    window.addEventListener('pointercancel', this.cancelDrag, { once: true })
   }
 
   private snapT(v: number): number {
@@ -1549,7 +1567,9 @@ export class MotionController {
     const d = this.drag
     const P = this.s.proj
     if (!d || !P) return
-    const dx = e.clientX - d.x0
+    d.ev = { clientX: e.clientX, clientY: e.clientY }
+    this.autoPan(e.clientX)
+    const dx = e.clientX - d.x0 + ((this.els.tl?.scrollLeft ?? 0) - d.sl0)
     const dy = e.clientY - d.y0
     if (!d.moved) {
       if (Math.abs(dx) < 3 && Math.abs(dy) < 6) return
@@ -1628,6 +1648,8 @@ export class MotionController {
 
   private endDrag = (): void => {
     window.removeEventListener('pointermove', this.onDrag)
+    window.removeEventListener('pointercancel', this.cancelDrag)
+    this.stopPan()
     const d = this.drag
     this.drag = null
     const P = this.s.proj
@@ -1660,16 +1682,148 @@ export class MotionController {
     this.afterProj()
   }
 
+  /** Avbrutt draing (pekeren mistet, Escape): klippet går tilbake dit det var, uten angresteg. */
+  private cancelDrag = (): void => {
+    window.removeEventListener('pointermove', this.onDrag)
+    window.removeEventListener('pointerup', this.endDrag)
+    window.removeEventListener('pointercancel', this.cancelDrag)
+    this.stopPan()
+    const d = this.drag
+    this.drag = null
+    if (!d) return
+    if (d.moved) this.past.pop()
+    this.set({ proj: d.p0, clipDrag: null })
+  }
+
+  /** Escape under draing. */
+  cancelDragKey(): boolean {
+    if (!this.drag) return false
+    this.cancelDrag()
+    return true
+  }
+
+  // ---------- automatisk panorering under draing ----------
+  private panV = 0
+  private panRaf = 0
+
+  /** Nær venstre eller høyre kant av tidslinjen ruller den av seg selv; jo nærmere kanten, jo raskere (maks ~24 px per bilde). */
+  private autoPan(x: number): void {
+    const tl = this.els.tl
+    if (!tl) return
+    const r = tl.getBoundingClientRect()
+    const edge = Math.min(64, r.width / 5)
+    let v = 0
+    if (x > r.right - edge) v = Math.min(1.5, (x - (r.right - edge)) / edge)
+    else if (x < r.left + edge) v = -Math.min(1.5, (r.left + edge - x) / edge)
+    this.panV = v
+    if (v && !this.panRaf) this.panRaf = requestAnimationFrame(this.panStep)
+  }
+
+  private panStep = (): void => {
+    this.panRaf = 0
+    const tl = this.els.tl
+    const d = this.drag
+    if (!tl || !d || !this.panV) return
+    const before = tl.scrollLeft
+    tl.scrollLeft = before + Math.sign(this.panV) * Math.max(2, 16 * this.panV * this.panV)
+    // kan tidslinjen ikke rulle lenger (venstre kant), stopper panoreringen
+    // onDrag kaller autoPan, som kan ha bestilt neste steg allerede (aldri to samtidig)
+    if (tl.scrollLeft !== before && d.ev) this.onDrag(d.ev as PointerEvent)
+    if (!this.panRaf && this.panV && (tl.scrollLeft !== before || this.panV > 0)) this.panRaf = requestAnimationFrame(this.panStep)
+  }
+
+  private stopPan(): void {
+    this.panV = 0
+    cancelAnimationFrame(this.panRaf)
+    this.panRaf = 0
+  }
+
+  // ---------- zoom, visning og prosjektvarighet ----------
+
+  private viewRaf = 0
+  private onTlScroll = (): void => {
+    if (this.viewRaf) return
+    this.viewRaf = requestAnimationFrame(() => {
+      this.viewRaf = 0
+      const tl = this.els.tl
+      if (!tl) return
+      const Z = this.s.zoom
+      const l = tl.scrollLeft / Z
+      const w = tl.clientWidth / Z
+      const v = this.s.tlView
+      if (Math.abs(v.l - l) > 1e-6 || Math.abs(v.w - w) > 1e-6) this.set({ tlView: { l, w } })
+    })
+  }
+
+  /**
+   * Ny zoom (piksler per sekund). Tidspunktet som står stille på skjermen: spillehodet når det er synlig, ellers midten av
+   * visningen. Zoom endrer bare tidsskalaen, aldri klippene (og gir ingen angresteg).
+   */
+  setZoom(z: number): void {
+    const nz = clamp(z, ZMIN, ZMAX)
+    const Z = this.s.zoom
+    if (Math.abs(nz - Z) < 1e-9) return
+    const tl = this.els.tl
+    if (!tl) {
+      this.set({ zoom: nz })
+      return
+    }
+    const ph = this.t * Z - tl.scrollLeft
+    const vis = ph >= 0 && ph <= tl.clientWidth
+    const ax = vis ? ph : tl.clientWidth / 2
+    const at = (tl.scrollLeft + ax) / Z
+    this.set({ zoom: nz })
+    requestAnimationFrame(() => {
+      tl.scrollLeft = Math.max(0, at * nz - ax)
+      this.onTlScroll()
+    })
+  }
+
+  zoomBy(f: number): void {
+    this.setZoom(this.s.zoom * f)
+  }
+
+  /** «Tilpass hele tidslinjen»: fra 0 til det lengste av innholdet og prosjektvarigheten (tomt prosjekt: 30 s). */
   fitZoom(): void {
     const el = this.els.tl
     const p = this.s.proj
     if (!p) return
-    const w = el ? el.clientWidth - 30 : 900
-    this.set({ zoom: clamp(w / (totalDur(p) + 1), 4, 400) })
+    const has = p.clips.length || p.ov.length || p.texts.length || p.subs.length || p.music.length
+    const end = has || p.dur ? Math.max(tlEnd(p), ...p.music.map((m) => (m.loop ? 0 : m.start + m.out - m.in))) : 30
+    const w = el ? Math.max(100, el.clientWidth - 24) : 900
+    this.set({ zoom: clamp(w / (end * 1.02), ZMIN, ZMAX) })
+    requestAnimationFrame(() => {
+      if (el) el.scrollLeft = 0
+      this.onTlScroll()
+    })
   }
 
-  zoomBy(f: number): void {
-    this.set((s) => ({ zoom: clamp(s.zoom * f, 4, 400) }))
+  /** Visningsstart: tidspunktet ved venstre kant av tidslinjen. Flytter bare visningen (ikke spillehodet eller klipp). */
+  setViewStart(t: number): void {
+    const el = this.els.tl
+    if (!el) return
+    el.scrollLeft = Math.max(0, t) * this.s.zoom
+    this.onTlScroll()
+  }
+
+  /** Tidslinjens høyde (dratt eller med piltastene på skillet); begrenses så forhåndsvisningen alltid får plass. */
+  setTlH(px: number | null): void {
+    const root = this.els.root
+    const max = root ? Math.max(160, root.clientHeight - 260) : 600
+    const v = px == null ? null : Math.round(clamp(px, 120, max))
+    this.d.storage.set('motiondesign.tlh', v == null ? '' : String(v))
+    this.set({ tlH: v })
+  }
+
+  /** Prosjektvarighet (null = følger innholdet). Klipp flyttes, trimmes eller slettes aldri av dette. */
+  setProjDur(v: number | null): void {
+    const d = v && v > 0 ? clamp(v, 0.5, 86400) : null
+    this.setProj((q) => {
+      const n = { ...q }
+      if (d) n.dur = d
+      else delete n.dur
+      return n
+    }, true, 'dur')
   }
 
   private wheelEl: HTMLElement | null = null
@@ -1677,8 +1831,11 @@ export class MotionController {
     const tl = this.els.tl
     if (tl === this.wheelEl) return
     this.wheelEl?.removeEventListener('wheel', this.onTlWheel)
+    this.wheelEl?.removeEventListener('scroll', this.onTlScroll)
     this.wheelEl = tl
     tl?.addEventListener('wheel', this.onTlWheel, { passive: false })
+    tl?.addEventListener('scroll', this.onTlScroll, { passive: true })
+    this.onTlScroll()
   }
 
   private onTlWheel = (e: WheelEvent): void => {
@@ -1688,7 +1845,7 @@ export class MotionController {
     const inner = this.els.tlInner
     if (!tl) return
     const Z = this.s.zoom
-    const nz = clamp(Z * Math.exp(-e.deltaY * 0.0022), 4, 400)
+    const nz = clamp(Z * Math.exp(-e.deltaY * 0.0022), ZMIN, ZMAX)
     if (Math.abs(nz - Z) < 0.01) return
     const r = (inner ?? tl).getBoundingClientRect()
     const t = (e.clientX - r.left) / Z
@@ -1726,14 +1883,17 @@ export class MotionController {
     const added: Media[] = []
     let bad = 0
     let big = 0
+    const errs: { name: string; why: Phrase }[] = []
     for (const f of files.slice(0, 50)) {
       const k = this.okType(f)
       if (!k) {
         bad++
+        errs.push({ name: f.name, why: 'Formatet støttes ikke' })
         continue
       }
       if (f.size > LIM[k]) {
         big++
+        errs.push({ name: f.name, why: 'Filen er for stor' })
         continue
       }
       this.flash('Leser {name} …', { name: f.name })
@@ -1742,15 +1902,18 @@ export class MotionController {
         id = await this.d.files.add(p0, f, f.name)
       } catch (e) {
         this.flash(e instanceof Error && /prosjektmappen/.test(e.message) ? 'Filen kunne ikke lagres i prosjektmappen.' : 'Nettleseren har ikke plass til filen.')
+        errs.push({ name: f.name, why: 'Filen kunne ikke lagres' })
         continue
       }
       const m = await this.mediaFor(id, f, k, f.name)
       if (!m) {
         bad++
+        errs.push({ name: f.name, why: 'Filen kunne ikke leses' })
         continue
       }
       added.push(m)
     }
+    this.set({ binErr: errs })
     const notes: string[] = []
     const say = this.d
     void say
@@ -2019,6 +2182,16 @@ export class MotionController {
       this.set({ sel: { type: 'music', id: b.id } })
       return
     }
+    if (x?.type === 'ov' || x?.type === 'sub') {
+      const r = x.type === 'ov' ? splitOv(p, x.it.id, t) : splitSub(p, x.it.id, t)
+      if ('err' in r) {
+        this.flash('Flytt spillehodet inn i klippet for å dele det.')
+        return
+      }
+      this.setProj(() => r.p)
+      if (r.id) this.set({ sel: { type: x.type, id: r.id } })
+      return
+    }
     const L = layout(p)
     const inside = (l: { start: number; end: number }) => t > l.start + 0.1 && t < l.end - 0.1
     const l = (x?.type === 'clip' ? L.find((y) => y.c.id === x.it.id && inside(y)) : undefined) ?? [...L].reverse().find(inside)
@@ -2044,6 +2217,103 @@ export class MotionController {
       return { ...q, clips: arr }
     })
     this.set({ sel: { type: 'clip', id: b.id } })
+  }
+
+  /* ---------- Avansert tidslinje ---------- */
+
+  private editErr(r: EditResult): boolean {
+    if (!('err' in r)) return false
+    this.flash(r.err === 'outside' ? 'Flytt spillehodet inn i klippet først.' : r.err === 'busy' ? 'Sporet er opptatt der. Flytt klippet i tid først.' : r.err === 'locked' ? 'Sporet er låst.' : 'Velg et klipp på tidslinjen først.')
+    return true
+  }
+
+  private locked(kind: Kind): boolean {
+    const k = ({ clip: 'video', text: 'text', sub: 'subs', music: 'music', ov: 'ov' } as const)[kind]
+    return !!this.s.proj?.tracks[k].lock
+  }
+
+  /** Trimmer starten (Q) eller slutten (W) av det valgte klippet til spillehodet. */
+  trimSel(edge: 'l' | 'r'): void {
+    const p = this.s.proj
+    const sel = this.s.sel
+    if (!p || !sel) {
+      this.flash('Velg et klipp på tidslinjen først.')
+      return
+    }
+    const r: EditResult = this.locked(sel.type) ? { err: 'locked' } : trimAt(p, sel.type, sel.id, this.t, edge)
+    if (this.editErr(r) || 'err' in r) return
+    this.setProj(() => r.p)
+    // hovedsporet flytter seg når starten trimmes: spillehodet står på klippets nye start
+    if (edge === 'l') {
+      const sp = spanOf(this.s.proj as Project, sel.type, sel.id)
+      if (sp && sel.type === 'clip') this.seek(sp.start)
+    }
+  }
+
+  /** Flytter det valgte klippet ett spor opp (−1) eller ned (+1): videospor, lydspor eller tekstspor. */
+  moveLaneSel(dl: -1 | 1): void {
+    const p = this.s.proj
+    const sel = this.s.sel
+    if (!p || !sel) return
+    if (sel.type === 'clip' || sel.type === 'sub') {
+      this.flash(sel.type === 'clip' ? 'V1 er hovedsporet. Bruk Alt+← / → for å endre rekkefølgen.' : 'Undertekst har ett spor.')
+      return
+    }
+    const r: EditResult = this.locked(sel.type) ? { err: 'locked' } : moveLane(p, sel.type === 'text' ? 'text' : sel.type, sel.id, dl)
+    if (this.editErr(r) || 'err' in r) return
+    this.setProj(() => r.p)
+  }
+
+  /** Nøyaktig start eller varighet (sekunder) fra feltene i Avansert. */
+  setSpan(kind: Kind, id: string, f: 'start' | 'dur', v: number): void {
+    const p = this.s.proj
+    if (!p || !Number.isFinite(v) || this.locked(kind)) return
+    const md = (mid: string) => p.media.find((m) => m.id === mid)?.dur || 1e9
+    const key = `span-${id}-${f}`
+    if (f === 'start') {
+      const s = Math.max(0, v)
+      if (kind === 'sub') this.setProj((q) => ({ ...q, subs: q.subs.map((x) => (x.id === id ? { ...x, start: s, end: s + (x.end - x.start) } : x)) }), true, key)
+      else if (kind !== 'clip') this.setProj((q) => ({ ...q, [KEYS[kind]]: (q[KEYS[kind]] as { id: string }[]).map((x) => (x.id === id ? { ...x, start: s } : x)) }), true, key)
+      return
+    }
+    const d = Math.max(0.1, v)
+    this.setProj((q) => {
+      if (kind === 'clip') return { ...q, clips: q.clips.map((c) => (c.id !== id ? c : c.kind === 'video' ? (c.rev ? { ...c, in: Math.max(0, c.out - d * (c.speed || 1)) } : { ...c, out: Math.min(md(c.media), c.in + d * (c.speed || 1)) }) : { ...c, dur: d })) }
+      if (kind === 'ov') return { ...q, ov: q.ov.map((o) => (o.id !== id ? o : o.kind === 'video' ? { ...o, out: Math.min(md(o.media), o.in + d * (o.speed || 1)) } : { ...o, dur: d })) }
+      if (kind === 'music') return { ...q, music: q.music.map((m) => (m.id === id ? { ...m, out: Math.min(m.srcDur || 1e9, m.in + d), loop: false } : m)) }
+      if (kind === 'text') return { ...q, texts: q.texts.map((x) => (x.id === id ? { ...x, dur: d } : x)) }
+      return { ...q, subs: q.subs.map((x) => (x.id === id ? { ...x, end: x.start + d } : x)) }
+    }, true, key)
+  }
+
+  /**
+   * Legger et medium på et spor: `v1` = hovedsporet (etter valgt klipp, ellers sist), `v` = nytt videospor øverst ved
+   * spillehodet (fyller bildet, dekker sporene under), `a` = lydspor ved spillehodet.
+   */
+  addToTrack(m: Media, to: 'v1' | 'v' | 'a'): void {
+    const p = this.s.proj
+    if (!p) return
+    if (to === 'a') {
+      if (m.kind !== 'audio' && m.kind !== 'video') return
+      const a = music(m, { start: this.t, fadeIn: 0, fadeOut: 0, vol: 1 })
+      this.setProj((q) => ({ ...q, music: [...q.music, a] }), true, 'add')
+      this.set({ sel: { type: 'music', id: a.id }, multi: [] })
+      return
+    }
+    if (m.kind === 'audio') return
+    if (to === 'v1') {
+      this.insertClip(m)
+      return
+    }
+    const r = m.w && m.h ? m.h / m.w : p.h / p.w
+    const o = overlay(m, { start: this.t, x: 0.5, y: 0.5, scale: Math.min(1, (p.h / p.w) / r), radius: 0, shadow: false, anim: 'none', lane: 0 })
+    // nytt spor øverst: de andre videosporene flyttes ett ned, så det nye klippet ligger over alt annet
+    this.setProj((q) => {
+      const n = Math.max(q.lanes.ov || 1, ...q.ov.map((x) => (x.lane || 0) + 1))
+      const free = !q.ov.some((x) => (x.lane || 0) === 0 && o.start < x.start + ovDur(x) && o.start + ovDur(o) > x.start)
+      return free ? { ...q, ov: [...q.ov, o] } : { ...q, ov: [...q.ov.map((x) => ({ ...x, lane: (x.lane || 0) + 1 })), o], lanes: { ...q.lanes, ov: n + 1 } }
+    }, true, 'add')
+    this.set({ sel: { type: 'ov', id: o.id }, multi: [] })
   }
 
   /* ---------- redigering ---------- */
@@ -2842,6 +3112,15 @@ export class MotionController {
     } else if (k === 'm') {
       e.preventDefault()
       this.toggleMarker()
+    } else if (this.s.adv && (k === 'q' || k === 'w')) {
+      e.preventDefault()
+      this.trimSel(k === 'q' ? 'l' : 'r')
+    } else if (this.s.adv && e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault()
+      this.moveLaneSel(e.key === 'ArrowUp' ? -1 : 1)
+    } else if (this.s.adv && e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && this.s.sel?.type === 'clip') {
+      e.preventDefault()
+      this.moveClip(e.key === 'ArrowLeft' ? -1 : 1)
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault()
       this.seek(this.t + (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 1 : 1 / 30))
@@ -2855,6 +3134,14 @@ export class MotionController {
       e.preventDefault()
       const x = this.s.xform
       this.set({ xform: x.mode === 'crop' ? { ...x, mode: 'move' } : null })
+    } else if (e.key === 'Escape' && this.cancelDragKey()) {
+      e.preventDefault()
+    } else if (this.s.adv && (e.key === '+' || e.key === '=' || e.key === '-')) {
+      e.preventDefault()
+      this.zoomBy(e.key === '-' ? 1 / 1.5 : 1.5)
+    } else if (this.s.adv && e.shiftKey && k === 'z') {
+      e.preventDefault()
+      this.fitZoom()
     } else if (e.key === 'Escape') {
       if (this.s.menu) this.set({ menu: null })
       else if (this.s.xform) {

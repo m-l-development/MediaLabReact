@@ -1,9 +1,11 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { TRSTD, type ExpState, type MotionController, type MState } from './controller'
-import { exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
+import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { clipFields, collapse, musicFields, ovFields, projectFields, subFields, textFields, type Field } from './fields'
+import { AdvBin, AdvTiming } from './Advanced'
 import { LeftPanel } from './Panels'
+import { useState } from 'react'
 import { Fields } from './Props'
 import type { Phrase, Tx } from './texts'
 import type { ToolId } from '../../domain/tool'
@@ -81,8 +83,10 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
   const F = S.folder
   const ghost = S.trDrag ?? S.medDrag
   const ghostSub: Record<string, Phrase> = { clip: 'Sett inn i videosporet', ov: 'Overlegg', stage: 'Overlegg ved spillehodet', music: 'Lydspor' }
+  // Avansert: venstre panel viser mediebiblioteket, eller de vanlige verktøyene (tekst, musikk, overganger …)
+  const [bin, setBin] = useState(true)
   return (
-    <div ref={c.bind('root')} className={`${s.editor} ${narrow ? s.editorNarrow : ''}`} data-md-editor="1"
+    <div ref={c.bind('root')} className={`${s.editor} ${narrow ? s.editorNarrow : ''}`} data-md-editor="1" data-ml-workspace=""
       onDragOver={(e) => {
         if (![...(e.dataTransfer.types || [])].includes('Files')) return
         e.preventDefault()
@@ -131,7 +135,13 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
 
       <div className={s.grid} style={{ gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'clamp(190px, 21vw, 290px) minmax(0, 1fr) clamp(210px, 23vw, 310px)', gridTemplateRows: narrow ? 'minmax(260px, 46dvh) minmax(0, 40dvh)' : 'minmax(0, 1fr)' }}>
         <aside className={`${s.aside} ${s.asideL}`} style={{ order: narrow ? 2 : 1, display: !narrow || S.drawer !== 'r' ? 'flex' : 'none' }}>
-          <LeftPanel c={c} S={S} p={p} tx={tx} onShared={onShared} onLogoCloud={onLogoCloud} />
+          {S.adv && (
+            <div className={s.tabs} role="tablist" data-md-adv-left="">
+              <button type="button" role="tab" className={s.tab} aria-selected={bin} aria-pressed={bin} onClick={() => setBin(true)}><span>{tx('Mediebibliotek')}</span></button>
+              <button type="button" role="tab" className={s.tab} aria-selected={!bin} aria-pressed={!bin} onClick={() => setBin(false)}><span>{tx('Verktøy')}</span></button>
+            </div>
+          )}
+          {S.adv && bin ? <AdvBin c={c} S={S} p={p} tx={tx} onShared={onShared} /> : <LeftPanel c={c} S={S} p={p} tx={tx} onShared={onShared} onLogoCloud={onLogoCloud} />}
         </aside>
         <section className={s.center} style={{ order: narrow ? 1 : 2 }}>
           <div ref={c.bind('stage')} className={s.stage} style={{ padding: port ? 8 : 16 }}>
@@ -172,6 +182,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
             <span className={s.propTitle}>{tx(pr.title, pr.tv)}</span>
             {S.sel && <button type="button" className={s.linkBtn} onClick={() => c.set({ sel: null, replaceFor: null })}>{tx('Fjern valg')}</button>}
           </div>
+          {S.adv && <AdvTiming c={c} S={S} p={p} tx={tx} />}
           {pr.actions.length > 0 && (
             <div className={s.acts}>
               {pr.actions.map((a) => <button key={a.l} type="button" className={`${s.act} ${a.danger ? s.danger : ''}`} onClick={a.click}>{tx(a.l)}</button>)}
@@ -182,7 +193,27 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
         </aside>
       </div>
 
-      <Timeline c={c} S={S} p={p} tx={tx} maxH={narrow ? '28dvh' : 'min(34dvh, 280px)'} />
+      {/* skillet over tidslinjen: dra (eller piltastene) for å endre høyden; dobbeltklikk = standard */}
+      {!narrow && <div className={s.tlResize} role="separator" aria-orientation="horizontal" aria-label={tx('Tidslinjens høyde')} title={tx('Dra for å endre tidslinjens høyde. Dobbeltklikk for standard.')} tabIndex={0} data-md-tl-resize=""
+        onDoubleClick={() => c.setTlH(null)}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+          e.preventDefault()
+          e.stopPropagation()
+          const cur = (e.currentTarget.nextElementSibling as HTMLElement | null)?.getBoundingClientRect().height ?? 240
+          c.setTlH(cur + (e.key === 'ArrowUp' ? 24 : -24))
+        }}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return
+          e.preventDefault()
+          const y0 = e.clientY
+          const h0 = (e.currentTarget.nextElementSibling as HTMLElement | null)?.getBoundingClientRect().height ?? 240
+          const mv = (ev: PointerEvent) => c.setTlH(h0 + (y0 - ev.clientY))
+          const up = () => window.removeEventListener('pointermove', mv)
+          window.addEventListener('pointermove', mv)
+          window.addEventListener('pointerup', up, { once: true })
+        }} />}
+      <Timeline c={c} S={S} p={p} tx={tx} maxH={S.tlH ? `${S.tlH}px` : narrow ? '28dvh' : 'min(34dvh, 280px)'} fixH={S.tlH ?? undefined} />
 
       {S.menu && (
         <>
@@ -225,7 +256,9 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
                 )
               })}
             </div>
-            <span className={s.dim}>{tx('Lengde {len}', { len: fmtT(T) })}</span>
+            <span className={s.dim} data-md-exp-len="">{tx('Lengde {len}', { len: fmtT(T) })}{p.dur ? ` · ${tx('følger prosjektvarigheten')}` : ''}</span>
+            {!!p.dur && contentDur(p) > p.dur + 0.01 && <span className={s.warn} role="alert" data-md-exp-warn="">{tx('Innhold etter prosjektslutt ({c}) kommer ikke med. Endre prosjektvarigheten under tidslinjen for å ta det med.', { c: fmtT(contentDur(p)) })}</span>}
+            {!!p.dur && contentDur(p) < p.dur - 0.01 && <span className={s.dim} data-md-exp-tail="">{tx('Etter innholdet ({c}) blir resten av videoen svart til prosjektslutt.', { c: fmtT(contentDur(p)) })}</span>}
             {E.busy && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div className={s.bar6}><div style={{ width: `${E.pct}%` }} /></div>
