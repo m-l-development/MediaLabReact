@@ -2528,3 +2528,11 @@ button:disabled {
   background: #ffffff;
   color: var(--color-text-strong);
 }
+:root[data-theme='light'] .autoChip {
+  border-color: var(--color-border);
+  color: #3b3833;
+}
+:root[data-theme='light'] .autoChip[aria-pressed='true'] {
+  border-color: #1f1d1a;
+  color: #1f1d1a;
+}
