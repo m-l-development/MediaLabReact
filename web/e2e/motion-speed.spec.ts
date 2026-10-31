@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { centerIs, importFiles, isColor, main, newAdvProject, recordVideo, saveAndReload, seekTo } from './motion-helpers'
+import { centerIs, importFiles, main, newAdvProject, recordVideo, saveAndReload, seekTo } from './motion-helpers'
 
 /** Motion Design → Avansert: hastighet på et ekte videoklipp (rødt 0–1 s, grønt 1–2 s, blått 2–3 s i kilden). */
 
@@ -16,7 +16,8 @@ test('hastighet: normal, rask og sakte film på en ekte video, keyframes følger
   await newAdvProject(page)
   const vid = await recordVideo(page, 'farger.webm', ['#e01010', '#10c020', '#1030e0'])
   await importFiles(page, [vid], 1)
-  await expect(page.locator('[data-md-bin-item="farger.webm"] [data-md-bin-meta]')).toContainText('Video · 00:00:03')
+  // opptaket i sanntid blir omtrent 3 s (litt mer eller mindre under last)
+  await expect(page.locator('[data-md-bin-item="farger.webm"] [data-md-bin-meta]')).toHaveText(/^Video · 00:00:0[23]:\d\d · 320×180$/)
   await page.locator('[data-md-bin-item="farger.webm"] [data-md-to="v1"]').click()
   await main(page).first().click()
   await expect(speed(page)).toBeVisible()
@@ -33,7 +34,11 @@ test('hastighet: normal, rask og sakte film på en ekte video, keyframes følger
   await main(page).first().click()
   await speed(page).locator('[data-md-speedset="2"]').click()
   await durIs(page, src / 2)
-  await expect(speed(page).locator('[data-md-speed-info]')).toContainText(`${(src / 2).toFixed(2)} s på tidslinjen`)
+  // «Kilde X s → Y s på tidslinjen»: Y = X / 2 (tallene er avrundet hver for seg)
+  await expect.poll(async () => {
+    const m = /Kilde ([\d.]+) s → ([\d.]+) s på tidslinjen/.exec((await speed(page).locator('[data-md-speed-info]').textContent()) ?? '')
+    return m ? Math.abs(Number(m[2]) - Number(m[1]) / 2) : 9
+  }).toBeLessThan(0.011)
   await seekTo(page, 0)
   for (let i = 0; i < 23; i++) await page.keyboard.press('ArrowRight')
   await centerIs(page, (c) => c[1]! > 150 && c[0]! < 90 && c[2]! < 90, '2×: grønt ved 0,77 s')
