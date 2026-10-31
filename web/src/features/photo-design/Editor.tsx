@@ -375,6 +375,19 @@ function StylePanel({ c, S, tx }: EditorProps) {
         </>
       )}
       <div className={s.hr} />
+      <span className={s.eyebrowSm}>{tx('Prosjektets kategori')}</span>
+      <div className={s.catRow}>
+        <select value={S.doc?.cat && S.cats.includes(S.doc.cat) ? S.doc.cat : ''} aria-label={tx('Prosjektets kategori')} data-pd-doc-cat="" onChange={(e) => c.setDocCat(e.target.value || null)}>
+          <option value="">{tx('Uten kategori')}</option>
+          {S.cats.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
+        </select>
+        <button type="button" title={tx('Ny kategori')} aria-label={tx('Ny kategori for prosjektet')} onClick={() => {
+          const nc = c.newCat('doc')
+          if (nc) c.setDocCat(nc)
+        }}>+</button>
+      </div>
+      <span className={s.note}>{tx('Prosjektet vises under denne kategorien i «Mine prosjekter» på startsiden.')}</span>
+      <div className={s.hr} />
       <span className={s.eyebrowSm}>{tx('Maler')}</span>
       <div className={s.catRow}>
         <select value={c.catNow()} aria-label={tx('Kategori')} onChange={(e) => c.setTplCat(e.target.value)}>

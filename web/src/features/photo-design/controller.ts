@@ -54,6 +54,8 @@ export interface PState {
   fillOpen: boolean
   linkCol: boolean
   tplCat: string | null
+  /** Startsiden: kategorien «Mine prosjekter» filtreres på (null = alle, '' = uten kategori). */
+  projCat: string | null
   cats: string[]
   newCol: string | null
   dragOver: boolean
@@ -167,6 +169,7 @@ export class PhotoController {
       brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false, busy: '', pct: 0, toast: null,
       saved: null, autosave: st.get('photodesign.autosave') === '1', guides: null, ltab: 'lag', fillOpen: true, linkCol: false,
       tplCat: tc && tc.length ? tc : null,
+      projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
       adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
@@ -252,6 +255,9 @@ export class PhotoController {
     const d = tplDoc(w, h, tpl, this.schemeFor(tpl), this.now())
     const f = FORMATS.find((x) => x.k === this.s.fmt)
     d.name = tpl === 'card2' ? this.d.t('Visittkort') : this.d.t((f ? f.l : 'Egendefinert') as Phrase)
+    // nytt prosjekt havner i kategorien som er valgt under «Mine prosjekter»
+    const pc = this.s.projCat
+    if (pc && this.s.cats.includes(pc)) d.cat = pc
     this.M.media.clear()
     this.M.masks.clear()
     this.openDoc(d, null, true)
@@ -424,16 +430,67 @@ export class PhotoController {
     this.set({ cats: c, tplCat: c[c.length - 1] ?? null })
   }
 
-  newCat(): void {
-    const v = (this.d.prompt('Navn på kategorien') ?? '').trim().slice(0, 40)
-    if (!v) return
-    if (this.s.cats.includes(v)) {
-      this.set({ tplCat: v })
-      this.flash('Kategorien er allerede lagret.')
-      return
+  /** Ny kategori (felles for maler og prosjekter). Tomt navn avbryter; et navn som finnes (uansett store/små bokstaver) velges i stedet. → kategorien, eller null. */
+  newCat(mode: 'tpl' | 'proj' | 'doc' = 'tpl'): string | null {
+    const raw = this.d.prompt('Navn på kategorien')
+    if (raw == null) return null
+    const v = raw.trim().replace(/s+/g, ' ').slice(0, 40)
+    if (!v) {
+      this.flash('Skriv et navn på kategorien.')
+      return null
     }
-    this.saveCats([...this.s.cats, v].slice(0, 20))
+    const same = this.s.cats.find((x) => x.toLocaleLowerCase() === v.toLocaleLowerCase())
+    if (same) {
+      if (mode === 'proj') this.setProjCat(same)
+      else if (mode === 'tpl') this.set({ tplCat: same })
+      this.flash('Kategorien «{name}» finnes allerede og er valgt.', { name: same })
+      return same
+    }
+    if (this.s.cats.length >= 20) {
+      this.flash('Maks 20 kategorier.')
+      return null
+    }
+    // 'proj': velges i filteret på startsiden; 'doc': bare lagt til (editoren gir den til prosjektet); 'tpl': malkategori
+    if (mode === 'tpl') this.saveCats([...this.s.cats, v])
+    else {
+      const c = [...this.s.cats, v]
+      this.d.storage.set('photodesign.cats', JSON.stringify(c))
+      this.set({ cats: c })
+      if (mode === 'proj') this.setProjCat(v)
+    }
     this.flash('Kategorien er opprettet.')
+    return v
+  }
+
+  /** Startsiden: vis prosjektene i denne kategorien (null = alle, '' = uten kategori). Nye prosjekter havner i den. */
+  setProjCat(c: string | null): void {
+    this.d.storage.set('photodesign.projcat', c ?? '*')
+    this.set({ projCat: c })
+  }
+
+  /** Flytter et lagret prosjekt til en annen kategori (null = uten kategori) uten å åpne det. */
+  async moveProject(e: PdEntry, cat: string | null): Promise<void> {
+    try {
+      const s = await this.d.repo.open(e.id)
+      if (cat) s.doc.cat = cat
+      else delete s.doc.cat
+      await this.d.repo.save(e.id, s)
+      if (this.s.projectId === e.id && this.s.doc) this.set({ doc: { ...this.s.doc, ...(cat ? { cat } : { cat: null }) } })
+      this.flash(cat ? 'Prosjektet ligger nå i «{name}».' : 'Prosjektet er uten kategori.', { name: cat ?? '' })
+    } catch {
+      this.flash('Kunne ikke lagre. Nettleseren kan være full.')
+    }
+    void this.refresh()
+  }
+
+  /** Kategorien til prosjektet som er åpent (endres i editoren under Stil). */
+  setDocCat(cat: string | null): void {
+    this.setDoc((q) => {
+      const n = { ...q }
+      if (cat) n.cat = cat
+      else delete n.cat
+      return n
+    })
   }
 
   async saveTpl(): Promise<void> {

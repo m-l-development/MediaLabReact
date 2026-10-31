@@ -43,6 +43,8 @@ export const PROJECT_SCHEMA: ProjectSchema<PdStored> = {
     if (isRec(input.masks)) for (const [k, v] of Object.entries(input.masks)) if (typeof v === 'string' && DATA_PNG.test(v)) masks[k] = v
     const tpl = isRec(input.tpl) && typeof input.tpl.cat === 'string' ? { cat: input.tpl.cat.slice(0, 40) } : null
     const doc: PdDoc = { ...input.doc }
+    if (typeof doc.cat === 'string' && doc.cat.trim()) doc.cat = doc.cat.trim().slice(0, 40)
+    else delete doc.cat
     if (doc.batch != null) {
       const b = cleanBatch(doc.batch)
       if (b) doc.batch = b
@@ -69,7 +71,7 @@ export class PdRepo {
       try {
         const env = await this.projects.open(PROJECT_SCHEMA, p.id)
         this.envs.set(env.id, env)
-        out.push({ id: env.id, name: env.name, w: env.doc.doc.w, h: env.doc.doc.h, updated: env.updatedAt, thumb: env.doc.thumb, tpl: !!env.doc.tpl, cat: env.doc.tpl?.cat ?? null, batch: env.doc.doc.batch ? env.doc.doc.batch.items.length : null })
+        out.push({ id: env.id, name: env.name, w: env.doc.doc.w, h: env.doc.doc.h, updated: env.updatedAt, thumb: env.doc.thumb, tpl: !!env.doc.tpl, cat: env.doc.tpl?.cat ?? env.doc.doc.cat ?? null, batch: env.doc.doc.batch ? env.doc.doc.batch.items.length : null })
       } catch {
         // et prosjekt som ikke kan leses, hoppes over (originalen blir liggende)
       }

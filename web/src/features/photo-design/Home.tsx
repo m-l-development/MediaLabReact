@@ -91,6 +91,7 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
   const cat = c.catNow()
   const mine = S.entries.filter((p) => p.tpl && p.cat === cat)
   const projects = S.entries.filter((p) => !p.tpl)
+  const shownProjects = S.projCat == null ? projects : S.projCat === '' ? projects.filter((p) => !p.cat || !S.cats.includes(p.cat)) : projects.filter((p) => p.cat === S.projCat)
   const lang = tx('nb-NO')
   return (
     <div className={s.home}>
@@ -174,13 +175,31 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
         </div>
       </section>
       {projects.length > 0 && (
-        <section className={s.section}>
-          <span className={s.eyebrow}>{tx('Mine prosjekter')}</span>
+        <section className={s.section} data-pd-projects="">
+          {/* kategorier for prosjektene (TB-8E2793): filter, nye prosjekter havner i valgt kategori, flytt fra kortet */}
+          <div className={s.rowBetween}>
+            <span className={s.eyebrow}>{tx('Mine prosjekter')}</span>
+            <div className={s.chips} role="group" aria-label={tx('Kategori')}>
+              <button type="button" className={s.chip} data-pd-projcat="*" aria-pressed={S.projCat == null} onClick={() => c.setProjCat(null)}>{tx('Alle')} · {projects.length}</button>
+              {S.cats.map((cc) => {
+                const n = projects.filter((p) => p.cat === cc).length
+                return <button key={cc} type="button" className={s.chip} data-pd-projcat={cc} aria-pressed={S.projCat === cc} onClick={() => c.setProjCat(cc)}>{cc}{n ? ` · ${n}` : ''}</button>
+              })}
+              {projects.some((p) => !p.cat || !S.cats.includes(p.cat)) && <button type="button" className={s.chip} data-pd-projcat="" aria-pressed={S.projCat === ''} onClick={() => c.setProjCat('')}>{tx('Uten kategori')}</button>}
+              <button type="button" className={s.chipAdd} data-pd-projcat-new="" onClick={() => c.newCat('proj')}>{tx('+ Ny kategori')}</button>
+            </div>
+          </div>
+          {S.projCat && S.cats.includes(S.projCat) && <span className={s.note}>{tx('Nye prosjekter lagres i «{name}».', { name: S.projCat })}</span>}
+          {!shownProjects.length && <span className={s.note} data-pd-projcat-empty="">{tx('Ingen prosjekter i denne kategorien ennå. Velg en kategori på et prosjektkort, eller lag et nytt prosjekt mens kategorien er valgt.')}</span>}
           <div className={s.tplGrid}>
-            {projects.map((p) => (
+            {shownProjects.map((p) => (
               <div key={p.id} className={s.projCard} data-project={p.name}>
                 <button type="button" className={s.projThumb} style={{ backgroundImage: p.thumb ? `url("${p.thumb}")` : 'none' }} aria-label={p.name} onClick={() => void c.open(p.id)} />
                 <div className={s.projText}><span>{p.name}</span><span>{p.batch != null ? tx('Bildeserie · {n} bilder', { n: p.batch }) : `${p.w} × ${p.h}`} · {new Date(p.updated).toLocaleDateString(lang)}</span></div>
+                <select className={s.projCatSel} aria-label={tx('Kategori for {name}', { name: p.name })} data-pd-proj-cat="" value={p.cat && S.cats.includes(p.cat) ? p.cat : ''} onChange={(e) => void c.moveProject(p, e.target.value || null)}>
+                  <option value="">{tx('Uten kategori')}</option>
+                  {S.cats.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
+                </select>
                 <button type="button" className={s.projDel} title={tx('Slett prosjekt')} aria-label={tx('Slett prosjekt')} onClick={() => void c.delProject(p)}>×</button>
               </div>
             ))}

@@ -166,6 +166,8 @@ export interface PdDoc {
   scheme?: Scheme | null
   /** Bildeserie (batchredigering): mange separate bilder; laget i `layers` er bildet som er åpent. Se engine/batch.ts. */
   batch?: Batch | null
+  /** Kategorien prosjektet ligger i på startsiden (TB-8E2793). Mangler/null = uten kategori. Maler bruker `tpl.cat`. */
+  cat?: string | null
   created: number
   updated: number
 }

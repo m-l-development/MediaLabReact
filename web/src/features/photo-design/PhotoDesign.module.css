@@ -2509,3 +2509,22 @@ button:disabled {
 :root[data-theme='light'] .tplBox {
   background: #e4e0d8;
 }
+
+/* kategori på prosjektkortet (TB-8E2793) */
+.projCatSel {
+  height: 30px;
+  min-width: 0;
+  margin: 0 4px 2px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #121212;
+  color: #f3f1ec;
+  font: inherit;
+  font-size: 12px;
+}
+:root[data-theme='light'] .projCatSel {
+  border-color: var(--color-border);
+  background: #ffffff;
+  color: var(--color-text-strong);
+}
