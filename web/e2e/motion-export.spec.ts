@@ -99,7 +99,9 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   expect([v1?.width, v1?.height]).toEqual([1280, 720])
   expect(v1?.samples, '4 s × 30 fps').toBe(120)
   expect(Math.abs((v1?.duration ?? 0) - 4), 'videoens varighet = prosjektvarigheten (4 s)').toBeLessThan(0.05)
-  expect(a1?.codec, 'AAC').toBe('mp4a')
+  // AAC der nettleseren kan kode AAC (Chrome på Windows/macOS); ellers Opus i MP4 (Chrome på Linux, se motion-export-fallback)
+  const aac = await page.evaluate(async () => (await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 })).supported === true)
+  expect(a1?.codec, aac ? 'AAC' : 'Opus (ingen AAC-koder)').toBe(aac ? 'mp4a' : 'Opus')
   expect(Math.abs((a1?.duration ?? 0) - 4)).toBeLessThan(0.1)
 
   const px = (await framesAt(page, e1.buf, [0.35, 0.95, 1.3, 1.8, 2.1, 3.3, 3.75])).px
