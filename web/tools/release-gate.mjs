@@ -8,13 +8,14 @@
 //   node web/tools/release-gate.mjs <sha> --merge         + merge gjennom beskyttelsen på main (ikke i bruk)
 //   node web/tools/release-gate.mjs <sha> --after-deploy  etter Vercels produksjonsdeploy av <sha> (på main): kontroller
 //                                                          produksjonen, og spol så connecthub fram (bare fast-forward)
+//   node web/tools/release-gate.mjs <sha> --abort         jobben feilet/ble stoppet: «release-gate» pending → error
 //
 // Kontrollene før release: <sha> er toppen av connecthub, main er med, ingen nye migreringer, nyeste CI-kjøring (ci.yml,
 // push til connecthub) for nøyaktig <sha> har «checks» og «e2e» = success, og Vercels nyeste Dev-deploy av <sha> er
 // success. Statusen «release-gate» = success settes først når alt dette er bestått og <sha> fortsatt er toppen.
 // En kjøring for en commit som ikke lenger er toppen, avslutter uten feil (status «error: erstattet»). Ingenting omgås.
 import { execFileSync } from 'node:child_process'
-import { ciRunFor, ciVerdict, deployVerdict, deploymentFor, fastForward, versionMatches } from './release-decide.mjs'
+import { activeProduction, ciRunFor, ciVerdict, currentStatus, deployVerdict, deploymentFor, fastForward, prVerdict, versionVerdict } from './release-decide.mjs'
 
 const REPO = process.env.GITHUB_REPOSITORY ?? 'm-l-development/MediaLabReact'
 const TOKEN = process.env.GITHUB_TOKEN ?? ''
@@ -24,13 +25,28 @@ const CI_WORKFLOW = 'ci.yml'
 const REQUIRED_JOBS = ['checks', 'e2e']
 const STATUS_CONTEXT = 'release-gate'
 const sha = process.argv[2] ?? ''
-const mode = process.argv.includes('--after-deploy') ? 'after-deploy' : process.argv.includes('--merge') ? 'merge' : process.argv.includes('--pr') ? 'pr' : 'dry-run'
+const mode = process.argv.includes('--abort') ? 'abort' : process.argv.includes('--after-deploy') ? 'after-deploy' : process.argv.includes('--merge') ? 'merge' : process.argv.includes('--pr') ? 'pr' : 'dry-run'
 
 const log = (s) => console.log(`[release] ${s}`)
 /** Synlig som annotasjon på kjøringen (offentlig lesbar uten innlogging). */
 const note = (s) => console.log(`::notice::${s}`)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+/** Avslutter etter en kort pause, så åpne nettverkstilkoblinger rekker å lukkes (process.exit midt i en lukking krasjer Node 24 på Windows). */
+async function exit(code) {
+  await sleep(250)
+  process.exit(code)
+}
 const git = (...a) => execFileSync('git', a, { encoding: 'utf8' }).trim()
+/** Alle commits i repoet som begynner med prefikset (for å kontrollere at et forkortet versjonsnummer er entydig). */
+const commitsWithPrefix = (prefix) => {
+  let objs = []
+  try {
+    objs = git('rev-parse', `--disambiguate=${prefix}`).split(/\s+/).filter(Boolean)
+  } catch {
+    objs = []
+  }
+  return objs.filter((o) => { try { return git('cat-file', '-t', o) === 'commit' } catch { return false } })
+}
 
 async function gh(path, init = {}) {
   const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
@@ -49,16 +65,22 @@ async function gh(path, init = {}) {
 
 /** Commit-status «release-gate» på <sha> (påkrevd kontroll på main). Bare i --pr/--merge. */
 async function status(state, description) {
-  if (mode !== 'pr' && mode !== 'merge') return
+  if (mode !== 'pr' && mode !== 'merge' && mode !== 'abort') return null
   const r = await gh(`/statuses/${sha}`, { method: 'POST', body: JSON.stringify({ state, context: STATUS_CONTEXT, description: description.slice(0, 140), target_url: process.env.RUN_URL || undefined }) })
   if (!r.ok) console.log(`::warning::kunne ikke sette status ${STATUS_CONTEXT} (${r.status})`)
+  return r.ok ? r.json : null
+}
+
+/** Gjeldende «release-gate» på <sha> (den nyeste; GitHub viser den nyeste per kontekst). */
+async function gateStatus() {
+  return currentStatus((await gh(`/commits/${sha}/statuses?per_page=100`)).json, STATUS_CONTEXT)
 }
 
 async function fail(s) {
   console.log(`::error::${s}`)
   log(`STOPP: ${s}`)
   await status('failure', s)
-  process.exit(1)
+  await exit(1)
 }
 
 /** Toppen av en gren nå (GitHub, ikke lokal kopi). */
@@ -74,7 +96,7 @@ async function exitIfSuperseded(when) {
   if (head === sha) return
   log(`${sha.slice(0, 7)} er ikke lenger toppen av connecthub (${head.slice(0, 7)}) ${when} – en nyere kjøring tar over`)
   await status('error', `erstattet av ${head.slice(0, 7)}`)
-  process.exit(0)
+  await exit(0)
 }
 
 async function waitFor(what, fn, ms, every = 20_000) {
@@ -91,7 +113,7 @@ async function waitFor(what, fn, ms, every = 20_000) {
 async function ciGreen(s) {
   return waitFor('CI', async () => {
     const runs = (await gh(`/actions/workflows/${CI_WORKFLOW}/runs?head_sha=${s}&event=push&per_page=50`)).json?.workflow_runs
-    const run = ciRunFor(runs, s, 'connecthub')
+    const run = ciRunFor(runs, s, 'connecthub', REPO)
     if (!run || run.status !== 'completed') return undefined
     const jobs = (await gh(`/actions/runs/${run.id}/jobs?filter=latest&per_page=100`)).json?.jobs
     const v = ciVerdict(run, jobs, REQUIRED_JOBS)
@@ -120,14 +142,20 @@ async function deployGreen(s, environment) {
 async function verifyProduction(s, rollback) {
   log(`produksjon (Vercel Production): ${await deployGreen(s, 'Production')}`)
   const v = await waitFor('produksjonens version.json', async () => {
-    const j = await (await fetch(`${PROD_URL}version.json`, { cache: 'no-store' })).json().catch(() => null)
-    return versionMatches(j?.v, s) ? j.v : undefined
+    const j = await (await fetch(`${PROD_URL}version.json?t=${Date.now()}`, { cache: 'no-store' })).json().catch(() => null)
+    const vv = versionVerdict(j?.v, s, commitsWithPrefix)
+    if (vv.state === 'ambiguous') await fail(`version.json (${j.v}) er ikke entydig: ${vv.count} commits begynner med de samme 10 tegnene`)
+    return vv.state === 'ok' ? j.v : undefined
   }, 10 * 60_000, 15_000)
   for (const p of PAGES) {
     const r = await fetch(`${PROD_URL}${p}`, { redirect: 'manual' })
     if (r.status >= 400) await fail(`produksjon: ${PROD_URL}${p} svarer ${r.status} – vurder Vercel «Instant Rollback»${rollback ? ` til ${rollback}` : ''}`)
   }
-  note(`PRODUKSJON VERIFISERT: ${String(v).slice(0, 10)} (deploy success, version.json, ${PAGES.length} adresser)`)
+  // Den aktive produksjonen: nyeste produksjonsdeploy (alle commits) er denne commiten, og den er fortsatt success
+  const latest = (await gh('/deployments?environment=Production&per_page=1')).json?.[0]
+  const act = activeProduction(latest, latest ? (await gh(`/deployments/${latest.id}/statuses?per_page=10`)).json : [], s)
+  if (act.state !== 'ok') await fail(`produksjonen er uklar: ${act.state === 'fail' ? act.text : 'ingen avsluttet status'}`)
+  note(`PRODUKSJON VERIFISERT: ${String(v).slice(0, 10)} (aktiv deploy ${latest.id} success, version.json entydig, ${PAGES.length} adresser)`)
 }
 
 /**
@@ -149,16 +177,27 @@ async function fastForwardConnecthub(s) {
 if (!/^[0-9a-f]{40}$/.test(sha)) await fail('mangler commit (sha)')
 git('fetch', '-q', 'origin', 'main', 'connecthub')
 
+// ---- jobben feilet eller ble stoppet (release.yml, if: failure() || cancelled()) ----
+// En «pending» som blir hengende, gjøres til «error»; en ferdig status (success/failure/error) røres ikke.
+if (mode === 'abort') {
+  const cur = await gateStatus()
+  if (cur?.state === 'pending') {
+    await status('error', 'release-kjøringen ble avbrutt eller feilet før kontrollene var ferdige')
+    log(`${STATUS_CONTEXT} for ${sha.slice(0, 7)}: pending → error`)
+  } else log(`${STATUS_CONTEXT} for ${sha.slice(0, 7)} er ${cur?.state ?? 'ikke satt'} – uendret`)
+  await exit(0)
+}
+
 // ---- etter produksjonsdeploy (release-verify.yml, utløst av Vercels deployment_status) ----
 if (mode === 'after-deploy') {
   const main = await headOf('main')
   if (main !== sha) {
     log(`${sha.slice(0, 7)} er ikke toppen av main (${main.slice(0, 7)}) – ingenting å gjøre (eldre deploy, eller main har gått videre)`)
-    process.exit(0)
+    await exit(0)
   }
   await verifyProduction(sha, null)
   await fastForwardConnecthub(sha)
-  process.exit(0)
+  await exit(0)
 }
 
 // ---- kontrollene før release ----
@@ -168,12 +207,12 @@ try {
 } catch {
   await fail('origin/main er ikke med i connecthub: hent main inn i connecthub først')
 }
-const migrations = git('diff', '--name-only', '--diff-filter=AM', 'origin/main', sha, '--', 'supabase/migrations').split('\n').filter(Boolean)
+const migrations = git('diff', '--name-only', '--no-renames', '--diff-filter=AM', 'origin/main', sha, '--', 'supabase/migrations').split('\n').filter(Boolean)
 if (migrations.length) await fail(`nye databasemigreringer krever egen godkjenning og kjøreplan (docs/migration-runbook.md): ${migrations.join(', ')}`)
 const ahead = git('rev-list', '--count', `origin/main..${sha}`)
 if (ahead === '0') {
   log('ingenting nytt å slippe (main har allerede alt)')
-  process.exit(0)
+  await exit(0)
 }
 await status('pending', 'venter på CI og Dev-deploy')
 log(`kontroller for ${sha.slice(0, 7)} (${ahead} commits foran main) …`)
@@ -188,7 +227,7 @@ log(`produksjon nå (tilbakerullingsmål): ${rollback} (Vercel → Deployments �
 
 if (mode === 'dry-run') {
   note(`TØRRKJØRING ${sha.slice(0, 7)}: CI, Dev-deploy, migreringer og main-forfar bestått – ingen pull request eller merge. Tilbakerullingsmål: ${rollback}`)
-  process.exit(0)
+  await exit(0)
 }
 
 // ---- pull request connecthub → main (gjenbrukes hvis den finnes) ----
@@ -215,17 +254,31 @@ if (!pr) {
 } else {
   await gh(`/pulls/${pr.number}`, { method: 'PATCH', body: JSON.stringify({ title: `Release connecthub ${sha.slice(0, 7)}`, body }) })
 }
-// Siste kontroll før grønn status: commiten er fortsatt toppen (pull requesten viser den).
+// Pull requesten må være den forventede (base main, head connecthub i dette repoet) og vise nøyaktig <sha>. GitHub
+// oppdaterer head litt etter en push; har connecthub flyttet seg, er kjøringen foreldet.
+await waitFor('pull requestens head', async () => {
+  const v = prVerdict((await gh(`/pulls/${pr.number}`)).json, { sha, repo: REPO, base: 'main', branch: 'connecthub' })
+  if (v.state === 'fail') await fail(v.text)
+  if (v.state === 'moved') {
+    await exitIfSuperseded('(pull requesten viser en nyere commit)')
+    return undefined
+  }
+  return true
+}, 2 * 60_000, 5_000)
+// Siste kontroll før grønn status: commiten er fortsatt toppen. En pull request er ikke en godkjenning: statusen betyr
+// bare at kontrollene før merge er bestått for akkurat denne commiten.
 await exitIfSuperseded('før status')
-await status('success', `CI (checks, e2e), Dev-deploy og release-kravene bestått for ${sha.slice(0, 7)}`)
-note(`PULL REQUEST #${pr.number} klar for ${sha.slice(0, 7)} (${ahead} commits). Tilbakerullingsmål: ${rollback}`)
-if (mode === 'pr') process.exit(0)
+const set = await status('success', `CI (checks, e2e), Dev-deploy og release-kravene bestått for ${sha.slice(0, 7)}`)
+const now = await gateStatus()
+if (!set || now?.id !== set.id || now.state !== 'success') await fail(`statusen ${STATUS_CONTEXT} ble ikke stående som success (nå: ${now?.state ?? 'ingen'}) – ny eller samtidig oppdatering`)
+note(`PULL REQUEST #${pr.number} klar for menneskelig godkjenning: ${sha.slice(0, 7)} (${ahead} commits). Tilbakerullingsmål: ${rollback}`)
+if (mode === 'pr') await exit(0)
 
 // ---- full automatikk (ikke i bruk): merge gjennom beskyttelsen; sha låser commiten ----
 const m = await gh(`/pulls/${pr.number}/merge`, { method: 'PUT', body: JSON.stringify({ merge_method: 'merge', sha }) })
 if (!m.ok && m.status === 405 && /review|approv/i.test(m.json?.message ?? '')) {
   note(`VENTER PÅ GODKJENNING: pull request #${pr.number} (${sha.slice(0, 7)}) – ${m.json?.message ?? ''}`)
-  process.exit(0)
+  await exit(0)
 }
 if (!m.ok) await fail(`merge avvist (${m.status}): ${m.json?.message ?? ''}`)
 const mergeSha = m.json?.sha

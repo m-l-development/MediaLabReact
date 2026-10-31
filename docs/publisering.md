@@ -57,20 +57,35 @@ github-actions[bot] uten godkjenning, fordi `main` ikke krever godkjenning. Det 
    1. avslutter rolig hvis commiten ikke lenger er toppen av `connecthub` (status `release-gate` = error «erstattet»);
    2. stopper hvis `main` ikke er med i commiten eller det finnes nye databasemigreringer;
    3. setter `release-gate` = **pending**;
-   4. venter på **nyeste** CI-kjøring av `ci.yml` ved push til `connecthub` for **nøyaktig** commiten, og krever at
-      jobbene `checks` og `e2e` i det **nyeste forsøket** er success (`web/tools/release-decide.mjs`, testet);
+   4. venter på **nyeste** CI-kjøring av `ci.yml` ved push til `connecthub` i dette repoet for **nøyaktig** commiten, og
+      krever at jobbene `checks` og `e2e` i det **nyeste forsøket** er success (`web/tools/release-decide.mjs`, testet);
    5. venter på Vercels **nyeste** Dev-deploy (GitHub-deployment «Preview») av commiten = success;
-   6. sjekker igjen at commiten er toppen, lager eller oppdaterer pull request `connecthub → main`, sjekker en siste
-      gang at commiten er toppen, og setter **først da** `release-gate` = **success**.
+   6. sjekker igjen at commiten er toppen, lager eller oppdaterer pull request `connecthub → main`, og krever at pull
+      requesten er åpen med base `main` og head `connecthub` i dette repoet og viser **nøyaktig** commiten (viser den en
+      nyere commit, er kjøringen foreldet og avslutter);
+   7. sjekker en siste gang at commiten er toppen, setter **først da** `release-gate` = **success**, og leser statusen
+      tilbake: er den ikke lenger gjeldende success (samtidig oppdatering), feiler jobben.
+   8. Feiler eller stoppes jobben (også tidsgrensen), gjør et eget steg en hengende `pending` om til `error`; en ferdig
+      status røres ikke.
+
+   En pull request er ikke en godkjenning: `release-gate` = success betyr bare at kontrollene før merge er bestått.
 3. **Et menneske** godkjenner pull requesten og merger med «Create a merge commit».
 4. **Vercel** bygger produksjon fra `main`.
 5. **release-verify.yml** (utløses av Vercels `deployment_status` for «Production» = success; gruppen `release-verify`):
    1. gjør ingenting hvis commiten ikke er toppen av `main`;
-   2. krever at Vercels nyeste produksjonsdeploy av commiten er success, at `/app/version.json` begynner med commitens
-      første 10 tegn, og at 7 hovedadresser svarer;
+   2. krever at Vercels nyeste produksjonsdeploy av commiten er success, at `/app/version.json` (hentet uten
+      mellomlager) begynner med commitens første 10 tegn og at prefikset er **entydig** i repoet, at 7 hovedadresser
+      svarer, og at den **aktive** produksjonen er denne deployen: nyeste produksjonsdeploy (alle commits) er commiten og
+      fortsatt success (ikke `inactive`, ikke en nyere deploy av en annen commit). Uklart eller motstridende ⇒ feil;
    3. leser toppen av `main` og `connecthub` på nytt og spoler `connecthub` fram til merge-commiten **bare** hvis den
       fortsatt er toppen av `main` og GitHubs sammenligning viser at `connecthub` ligger bak (fast-forward,
       `force: false`). Ellers en advarsel og ingen endring.
+
+   Oppdateringen er ikke en atomisk «sammenlign og bytt» mot forventet gammel verdi (GitHubs REST-API har ingen slik
+   betingelse). Det som er atomisk, er GitHubs egen sjekk ved oppdateringen: `force: false` avviser alt som ikke er
+   fast-forward fra grenens verdi *i det øyeblikket*, så en commit noen har pushet til `connecthub` i mellomtiden kan
+   aldri forsvinne. Går `main` videre mellom kontrollen og oppdateringen, spoles `connecthub` til en commit som fortsatt
+   er forfar til `main` – trygt, og neste produksjonsdeploy spoler videre.
 
 ### Obligatoriske kontroller
 

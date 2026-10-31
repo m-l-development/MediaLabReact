@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ciRunFor, ciVerdict, deployVerdict, deploymentFor, fastForward, versionMatches } from './release-decide.mjs'
+import { activeProduction, ciRunFor, ciVerdict, currentStatus, deployVerdict, deploymentFor, fastForward, prVerdict, versionMatches, versionVerdict } from './release-decide.mjs'
 
 const SHA = 'a'.repeat(40)
 const OTHER = 'b'.repeat(40)
@@ -87,5 +87,84 @@ describe('fastForward', () => {
     expect(fastForward({ mainHead: OTHER, sha: SHA, compare: 'ahead' })).toBe('skip')
     expect(fastForward({ mainHead: SHA, sha: SHA, compare: 'behind' })).toBe('skip')
     expect(fastForward({ mainHead: SHA, sha: SHA, compare: 'diverged' })).toBe('skip')
+  })
+})
+
+const REPO = 'm-l-development/MediaLabReact'
+const pr = (more: Record<string, unknown> = {}) => ({ number: 19, state: 'open', merged: false, base: { ref: 'main', repo: { full_name: REPO } }, head: { ref: 'connecthub', sha: SHA, repo: { full_name: REPO } }, ...more })
+const want = { sha: SHA, repo: REPO, base: 'main', branch: 'connecthub' }
+
+describe('ciRunFor: kjøringer fra et annet repo (fork) teller ikke', () => {
+  it('head_repository må være repoet når det oppgis', () => {
+    const runs = [run(9, '2026-11-01T12:00:00Z', { head_repository: { full_name: 'angriper/MediaLabReact' } }), run(4, '2026-11-01T10:00:00Z', { head_repository: { full_name: REPO }, conclusion: 'failure' })]
+    expect(ciRunFor(runs, SHA, 'connecthub', REPO)?.id).toBe(4)
+  })
+})
+
+describe('prVerdict: grønn status bare for forventet pull request og commit', () => {
+  it('riktig pull request → ok', () => expect(prVerdict(pr(), want)).toEqual({ state: 'ok' }))
+  it('head endret mellom kontrollene → moved (ingen grønn status)', () => {
+    expect(prVerdict(pr({ head: { ref: 'connecthub', sha: OTHER, repo: { full_name: REPO } } }), want)).toEqual({ state: 'moved', head: OTHER })
+  })
+  it('feil base-gren → fail', () => expect(prVerdict(pr({ base: { ref: 'develop', repo: { full_name: REPO } } }), want).state).toBe('fail'))
+  it('base i et annet repo → fail', () => expect(prVerdict(pr({ base: { ref: 'main', repo: { full_name: 'x/y' } } }), want).state).toBe('fail'))
+  it('head fra en fork eller annen gren → fail', () => {
+    expect(prVerdict(pr({ head: { ref: 'connecthub', sha: SHA, repo: { full_name: 'x/MediaLabReact' } } }), want).state).toBe('fail')
+    expect(prVerdict(pr({ head: { ref: 'annen', sha: SHA, repo: { full_name: REPO } } }), want).state).toBe('fail')
+  })
+  it('lukket eller allerede merget → fail (en opprettet PR er ikke en klar release)', () => {
+    expect(prVerdict(pr({ state: 'closed' }), want).state).toBe('fail')
+    expect(prVerdict(pr({ merged: true }), want).state).toBe('fail')
+    expect(prVerdict(null, want).state).toBe('fail')
+  })
+})
+
+describe('currentStatus: flere statuser med samme navn på samme commit', () => {
+  const st = (id: number, state: string, at: string, context = 'release-gate') => ({ id, state, context, created_at: at })
+  it('den nyeste gjelder (som i GitHub): pending → success → failure gir failure', () => {
+    const list = [st(1, 'pending', '2026-11-01T10:00:00Z'), st(2, 'success', '2026-11-01T10:05:00Z'), st(3, 'failure', '2026-11-01T10:06:00Z'), st(4, 'success', '2026-11-01T11:00:00Z', 'Vercel')]
+    expect(currentStatus(list, 'release-gate')?.id).toBe(3)
+  })
+  it('success fra en eldre kjøring overstyres ikke av rekkefølgen i lista', () => {
+    expect(currentStatus([st(7, 'error', '2026-11-01T12:00:00Z'), st(6, 'success', '2026-11-01T11:00:00Z')], 'release-gate')?.state).toBe('error')
+  })
+  it('ingen status → null (ikke grønn)', () => expect(currentStatus([], 'release-gate')).toBeNull())
+})
+
+describe('versionVerdict: produksjonens version.json', () => {
+  const only = (sha: string) => () => [sha]
+  it('riktig og entydig → ok', () => expect(versionVerdict('aaaaaaaaaamvwz', SHA, only(SHA))).toEqual({ state: 'ok' }))
+  it('eldre versjon fortsatt ute → other (vent)', () => expect(versionVerdict('bbbbbbbbbbmvwz', SHA, only(SHA)).state).toBe('other'))
+  it('mangler, tom eller uten commit (bygg uten VERCEL_GIT_COMMIT_SHA) → unclear', () => {
+    for (const v of [undefined, null, '', 'mvwzio29g8qd1', 42]) expect(versionVerdict(v, SHA, only(SHA)).state).toBe('unclear')
+  })
+  it('prefikset passer på flere commits → ambiguous (ikke godkjent)', () => {
+    expect(versionVerdict('aaaaaaaaaamvwz', SHA, () => [SHA, 'a'.repeat(10) + 'c'.repeat(30)])).toEqual({ state: 'ambiguous', count: 2 })
+  })
+  it('prefikset finnes ikke i repoet → ambiguous med 0', () => expect(versionVerdict('aaaaaaaaaamvwz', SHA, () => []).state).toBe('ambiguous'))
+})
+
+describe('activeProduction: den aktive produksjonsdeployen, ikke bare en tidligere vellykket', () => {
+  const st = (state: string, at = '2026-11-01T10:00:00Z') => ({ id: 1, state, created_at: at })
+  it('nyeste produksjonsdeploy er commiten og success → ok', () => expect(activeProduction({ id: 1, sha: SHA }, [st('success')], SHA)).toEqual({ state: 'ok' }))
+  it('en nyere deploy av en annen commit finnes → fail', () => expect(activeProduction({ id: 2, sha: OTHER }, [st('success')], SHA).state).toBe('fail'))
+  it('under bygging → wait; feilet eller inactive → fail', () => {
+    expect(activeProduction({ id: 1, sha: SHA }, [st('in_progress')], SHA).state).toBe('wait')
+    expect(activeProduction({ id: 1, sha: SHA }, [st('failure')], SHA).state).toBe('fail')
+    expect(activeProduction({ id: 1, sha: SHA }, [st('success'), { ...st('inactive', '2026-11-01T11:00:00Z'), id: 2 }], SHA).state).toBe('fail')
+  })
+  it('ingen produksjonsdeploy → wait (ikke godkjent)', () => expect(activeProduction(null, [], SHA).state).toBe('wait'))
+})
+
+describe('gyldige scenarier fungerer fortsatt', () => {
+  it('ny commit etter eldre grønn: ny kjøring grønn, PR viser den, produksjon aktiv og entydig, connecthub bak → ff', () => {
+    const r = ciRunFor([run(1, '2026-11-01T09:00:00Z', { head_repository: { full_name: REPO } }), run(2, '2026-11-01T10:00:00Z', { head_repository: { full_name: REPO } })], SHA, 'connecthub', REPO)
+    expect(r?.id).toBe(2)
+    expect(ciVerdict(r, [job(1, 'checks', 'success'), job(2, 'e2e', 'success')], REQ).state).toBe('ok')
+    expect(prVerdict(pr(), want).state).toBe('ok')
+    expect(versionVerdict('aaaaaaaaaaxyz', SHA, () => [SHA]).state).toBe('ok')
+    expect(activeProduction({ id: 1, sha: SHA }, [{ id: 1, state: 'success', created_at: '2026-11-01T10:00:00Z' }], SHA).state).toBe('ok')
+    expect(fastForward({ mainHead: SHA, sha: SHA, compare: 'ahead' })).toBe('ff')
+    expect(versionMatches('aaaaaaaaaaxyz', SHA)).toBe(true)
   })
 })

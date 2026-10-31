@@ -18,8 +18,8 @@ function newest(list, at) {
  * CI-kjøringen som gjelder for commiten: nyeste kjøring av CI-workflowen ved push til grenen for nøyaktig denne commiten.
  * En eldre vellykket kjøring kan dermed aldri skjule en nyere som feilet eller ble avbrutt.
  */
-export function ciRunFor(runs, sha, branch) {
-  return newest((runs ?? []).filter((r) => r.head_sha === sha && r.event === 'push' && r.head_branch === branch), 'created_at')
+export function ciRunFor(runs, sha, branch, repo) {
+  return newest((runs ?? []).filter((r) => r.head_sha === sha && r.event === 'push' && r.head_branch === branch && (!repo || r.head_repository?.full_name === repo)), 'created_at')
 }
 
 /**
@@ -75,4 +75,52 @@ export function fastForward({ mainHead, sha, compare }) {
   if (mainHead !== sha) return 'skip'
   if (compare === 'identical') return 'noop'
   return compare === 'ahead' ? 'ff' : 'skip'
+}
+
+/**
+ * Pull requesten er den forventede: åpen, base = main i dette repoet, head = connecthub i dette repoet, og head-commit =
+ * <sha>. 'moved' = head er en annen commit (nyere push, eller GitHub har ikke oppdatert pull requesten ennå).
+ * @returns {{ state: 'ok' } | { state: 'moved', head: string } | { state: 'fail', text: string }}
+ */
+export function prVerdict(pr, { sha, repo, base, branch }) {
+  if (!pr) return { state: 'fail', text: 'pull requesten finnes ikke' }
+  if (pr.state !== 'open' || pr.merged) return { state: 'fail', text: `pull request #${pr.number} er ikke åpen` }
+  if (pr.base?.ref !== base || pr.base?.repo?.full_name !== repo) return { state: 'fail', text: `pull request #${pr.number} har base ${pr.base?.repo?.full_name}:${pr.base?.ref}, ikke ${repo}:${base}` }
+  if (pr.head?.ref !== branch || pr.head?.repo?.full_name !== repo) return { state: 'fail', text: `pull request #${pr.number} har head ${pr.head?.repo?.full_name}:${pr.head?.ref}, ikke ${repo}:${branch}` }
+  if (pr.head?.sha !== sha) return { state: 'moved', head: pr.head?.sha ?? '' }
+  return { state: 'ok' }
+}
+
+/** Gjeldende status for en kontekst på en commit: den nyeste (GitHub viser den nyeste per kontekst). */
+export function currentStatus(statuses, context) {
+  return newest((statuses ?? []).filter((s) => s.context === context), 'created_at')
+}
+
+/**
+ * version.json mot forventet commit. Filen har bare de første 10 tegnene; de må stemme med <sha> og være entydige i
+ * repoet (`commitsWithPrefix` gir alle commits som begynner med prefikset).
+ * @returns {{ state: 'ok' } | { state: 'other' } | { state: 'unclear' } | { state: 'ambiguous', count: number }}
+ */
+export function versionVerdict(v, sha, commitsWithPrefix) {
+  if (typeof v !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) return { state: 'unclear' }
+  const prefix = v.slice(0, VERSION_PREFIX)
+  if (!/^[0-9a-f]{10}$/.test(prefix)) return { state: 'unclear' }
+  if (!sha.startsWith(prefix)) return { state: 'other' }
+  const all = commitsWithPrefix(prefix)
+  if (all.length !== 1 || all[0] !== sha) return { state: 'ambiguous', count: all.length }
+  return { state: 'ok' }
+}
+
+/**
+ * Er produksjonsdeployen av <sha> den aktive? Nyeste produksjonsdeploy (alle commits) må være for <sha>, og dens nyeste
+ * status success. En eldre vellykket deploy, en nyere deploy av en annen commit, eller «inactive» er ikke godkjent.
+ * @returns {{ state: 'ok' } | { state: 'wait' } | { state: 'fail', text: string }}
+ */
+export function activeProduction(latestProduction, statusesOfLatest, sha) {
+  if (!latestProduction) return { state: 'wait' }
+  if (latestProduction.sha !== sha) return { state: 'fail', text: `nyeste produksjonsdeploy er ${String(latestProduction.sha).slice(0, 7)}, ikke ${sha.slice(0, 7)}` }
+  const v = deployVerdict(statusesOfLatest)
+  if (v.state === 'wait') return { state: 'wait' }
+  if (v.state === 'fail') return { state: 'fail', text: `produksjonsdeployen av ${sha.slice(0, 7)} er ${v.text}` }
+  return { state: 'ok' }
 }
