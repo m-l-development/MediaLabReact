@@ -9,6 +9,7 @@ import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import { useStore } from '../../shared/lib/store'
 import { Button } from '../../shared/ui/Button'
 import { AssetPicker } from '../media-library/AssetPicker'
+import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { COLORS, IsolateController, type Aspect, type CropRect, type ImagePoint, type Kind } from './controller'
 import styles from './IsolateSubject.module.css'
 
@@ -168,13 +169,13 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
       {s.phase === 'work' && (
         <div className={styles.work}>
           <section className={styles.stageCol} aria-label={s.name}>
-            <WorkStage ctl={ctl} busyLabel={busyLabel} />
+            {s.editing ? <EditStage ctl={ctl} busyLabel={busyLabel} /> : <WorkStage ctl={ctl} busyLabel={busyLabel} />}
             <div className={styles.row}>
               <Button size="small" variant="ghost" disabled={!!s.busy} onClick={() => ctl.recrop()} title={t('isolate.recrop.title')}>{t('isolate.recrop')}</Button>
               <Button size="small" variant="ghost" disabled={!s.historySize || !!s.busy} onClick={() => ctl.undo()} title={t('isolate.undo.title')}>{t('isolate.undo')}</Button>
               <Button size="small" variant="ghost" disabled={!ctl.canRestore()} onClick={() => ctl.restore()} title={t('isolate.restore.title')}>{t('isolate.restore')}</Button>
             </div>
-            {s.ready && (
+            {s.ready && !s.editing && (
               <label className={styles.compare}>
                 <span>{t('isolate.after')}</span>
                 <input type="range" min={0} max={100} step={1} value={s.cmp} aria-label={t('isolate.compare')} onChange={(e) => ctl.setOption({ cmp: Number(e.target.value) })} />
@@ -197,6 +198,11 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
               <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.mode === 'point'} disabled={!!s.busy} onClick={() => ctl.startMarking()}>
                 <strong>{t('isolate.mark')}</strong>
                 <span>{t('isolate.mark.desc')}</span>
+              </button>
+              {/* felles maskeredigering: pensel, former og «Velg objekt» med Behold/Fjern, på den faktiske masken */}
+              <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.editing} data-mask-open="" disabled={!!s.busy} onClick={() => (s.editing ? ctl.endEdit() : ctl.startEdit())}>
+                <strong>{t(s.editing ? 'mask.done' : 'mask.open')}</strong>
+                <span>{t('mask.open.desc')}</span>
               </button>
             </div>
             {s.mode === 'point' && (
@@ -352,6 +358,23 @@ function CropStep({ ctl }: { ctl: IsolateController }) {
         <Button variant="primary" onClick={() => ctl.cropOk()}>{t('isolate.crop.ok')}</Button>
       </div>
     </section>
+  )
+}
+
+/** «Finjuster masken»: den felles maskeredigeringen på den faktiske masken (forhåndsvisning og eksport bruker den). */
+function EditStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: string }) {
+  const t = useT()
+  const s = useStore(ctl.state)
+  const target = ctl.editTarget()
+  if (!target) return null
+  return (
+    <div className={styles.editStage} data-isolate-edit="">
+      <MaskEditor key={`${target.image.width}x${target.image.height}-${s.historySize}`} image={target.image} mask={target.mask} onChange={() => ctl.maskChanged()} selectObject={(x, y) => ctl.selectObject(x, y)} />
+      {s.busy && <div className={styles.busy} role="status"><span>{busyLabel}</span>{s.busy === 'model' && <div className={styles.bar}><div style={{ width: `${s.pct}%` }} /></div>}</div>}
+      <div className={styles.row}>
+        <Button size="small" variant="primary" data-mask-done="" onClick={() => ctl.endEdit()}>{t('mask.done')}</Button>
+      </div>
+    </div>
   )
 }
 

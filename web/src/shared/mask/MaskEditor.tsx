@@ -1,0 +1,513 @@
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useT } from '../i18n/i18n'
+import { separable } from './morph'
+import { brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, MaskHistory, sampleColor, unionBox, type Box, type Mask } from './ops'
+import styles from './MaskEditor.module.css'
+
+/**
+ * Felles maskeredigering (Isolate Subject; kan brukes av andre verktøy med samme maskemodell): pensel, rektangel,
+ * ellipse, lasso og «Velg objekt» (klikk, AI) med «Behold» og «Fjern»; penselstørrelse i bildepiksler med omriss ved
+ * markøren; kantfølging; zoom og panorering; visning mot rutemønster, svart, hvitt eller originalen; inverter,
+ * utvid/trekk inn, myk kant langs bildet; angre/gjør om. Alle verktøyene endrer `mask` direkte (den faktiske masken),
+ * og `onChange` kalles etter hver endring, så forhåndsvisning og eksport bruker det samme.
+ */
+export type Tool = 'brush' | 'rect' | 'ellipse' | 'lasso' | 'select'
+export type View = 'checker' | 'black' | 'white' | 'original'
+
+export interface MaskEditorProps {
+  image: HTMLCanvasElement
+  mask: Mask
+  onChange: () => void
+  /** «Velg objekt»: maske for objektet ved punktet (bildepiksler), eller null. Mangler den, vises ikke verktøyet. */
+  selectObject?: (x: number, y: number) => Promise<Mask | null>
+}
+
+interface Drag {
+  kind: 'paint' | 'shape' | 'lasso' | 'pan'
+  keep: boolean
+  start: { x: number; y: number }
+  last: { x: number; y: number }
+  pts: { x: number; y: number }[]
+  box: Box | null
+  before: Mask | null
+  snapRef: [number, number, number] | null
+  panFrom: { x: number; y: number; ox: number; oy: number }
+}
+
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
+
+export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorProps) {
+  const t = useT()
+  const W = image.width
+  const H = image.height
+  const wrap = useRef<HTMLDivElement>(null)
+  const view = useRef<HTMLCanvasElement>(null)
+  const [tool, setTool] = useState<Tool>('brush')
+  const [keep, setKeep] = useState(true)
+  const [size, setSize] = useState(() => Math.max(4, Math.round(Math.max(W, H) / 40)))
+  const [hard, setHard] = useState(0.8)
+  const [snap, setSnap] = useState(false)
+  const [mode, setMode] = useState<View>('checker')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [, bump] = useState(0)
+  const st = useRef({ s: 1, ox: 0, oy: 0, fit: true, cursor: null as { x: number; y: number } | null, space: false, drag: null as Drag | null })
+  const hist = useRef<MaskHistory | null>(null)
+  const layers = useRef<{ rgba: Uint8ClampedArray; cut: HTMLCanvasElement; tint: HTMLCanvasElement } | null>(null)
+  const raf = useRef(0)
+
+  // lagene i bildets oppløsning: utklippet (bildet med maskens alfa) og den røde markeringen av det som fjernes
+  if (!layers.current || layers.current.cut.width !== W || layers.current.cut.height !== H) {
+    const g = image.getContext('2d', { willReadFrequently: true })
+    const rgba = g ? g.getImageData(0, 0, W, H).data : new Uint8ClampedArray(W * H * 4)
+    const mk = () => Object.assign(document.createElement('canvas'), { width: W, height: H })
+    layers.current = { rgba, cut: mk(), tint: mk() }
+    hist.current = new MaskHistory(W)
+    refresh({ x0: 0, y0: 0, x1: W, y1: H })
+  }
+
+  /** Oppdaterer lagene i et område etter at masken er endret. */
+  function refresh(b: Box | null) {
+    const L = layers.current
+    if (!L || !b) return
+    const x0 = clamp(Math.floor(b.x0), 0, W)
+    const y0 = clamp(Math.floor(b.y0), 0, H)
+    const x1 = clamp(Math.ceil(b.x1), 0, W)
+    const y1 = clamp(Math.ceil(b.y1), 0, H)
+    const w = x1 - x0
+    const h = y1 - y0
+    if (w <= 0 || h <= 0) return
+    const cut = new ImageData(w, h)
+    const tint = new ImageData(w, h)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const gi = (y + y0) * W + x + x0
+        const a = mask[gi] ?? 0
+        const k = gi * 4
+        const o = (y * w + x) * 4
+        cut.data[o] = L.rgba[k] ?? 0
+        cut.data[o + 1] = L.rgba[k + 1] ?? 0
+        cut.data[o + 2] = L.rgba[k + 2] ?? 0
+        cut.data[o + 3] = Math.min(a, L.rgba[k + 3] ?? 255)
+        tint.data[o] = 255
+        tint.data[o + 1] = 64
+        tint.data[o + 2] = 64
+        tint.data[o + 3] = Math.round((255 - a) * 0.55)
+      }
+    }
+    L.cut.getContext('2d')?.putImageData(cut, x0, y0)
+    L.tint.getContext('2d')?.putImageData(tint, x0, y0)
+  }
+
+  /** Tegner visningen (neste bilde). */
+  function draw() {
+    cancelAnimationFrame(raf.current)
+    raf.current = requestAnimationFrame(() => {
+      const c = view.current
+      const box = wrap.current
+      const L = layers.current
+      if (!c || !box || !L) return
+      const dpr = window.devicePixelRatio || 1
+      const cw = Math.max(1, box.clientWidth)
+      const ch = Math.max(1, box.clientHeight)
+      if (c.width !== Math.round(cw * dpr) || c.height !== Math.round(ch * dpr)) {
+        c.width = Math.round(cw * dpr)
+        c.height = Math.round(ch * dpr)
+        c.style.width = `${cw}px`
+        c.style.height = `${ch}px`
+      }
+      const S = st.current
+      if (S.fit) {
+        S.s = Math.min(cw / W, ch / H) * 0.96
+        S.ox = (cw - W * S.s) / 2
+        S.oy = (ch - H * S.s) / 2
+      }
+      // visningen (skala og forskyvning) for tester og hjelpeverktøy
+      ;(c as HTMLCanvasElement & { __maskView?: { s: number; ox: number; oy: number } }).__maskView = { s: S.s, ox: S.ox, oy: S.oy }
+      const g = c.getContext('2d')
+      if (!g) return
+      g.setTransform(dpr, 0, 0, dpr, 0, 0)
+      g.clearRect(0, 0, cw, ch)
+      // bakgrunnen bak bildet
+      const ix = S.ox
+      const iy = S.oy
+      const iw = W * S.s
+      const ih = H * S.s
+      if (mode === 'checker') {
+        const q = 10
+        g.save()
+        g.beginPath()
+        g.rect(ix, iy, iw, ih)
+        g.clip()
+        g.fillStyle = '#ffffff'
+        g.fillRect(ix, iy, iw, ih)
+        g.fillStyle = '#d4d4d4'
+        for (let y = Math.floor(iy / q) * q; y < iy + ih; y += q) for (let x = Math.floor(ix / q) * q + ((y / q) % 2 ? q : 0); x < ix + iw; x += q * 2) g.fillRect(x, y, q, q)
+        g.restore()
+      } else if (mode !== 'original') {
+        g.fillStyle = mode === 'black' ? '#000000' : '#ffffff'
+        g.fillRect(ix, iy, iw, ih)
+      }
+      g.imageSmoothingEnabled = S.s < 2
+      if (mode === 'original') {
+        g.drawImage(image, ix, iy, iw, ih)
+        g.drawImage(L.tint, ix, iy, iw, ih)
+      } else g.drawImage(L.cut, ix, iy, iw, ih)
+      g.strokeStyle = 'rgba(255,255,255,0.35)'
+      g.lineWidth = 1
+      g.strokeRect(ix - 0.5, iy - 0.5, iw + 1, ih + 1)
+      // forhåndsvisning av form/lasso
+      const d = S.drag
+      const col = (k: boolean) => (k ? '#3ddc84' : '#ff5a5a')
+      if (d && (d.kind === 'shape' || d.kind === 'lasso')) {
+        g.save()
+        g.strokeStyle = col(d.keep)
+        g.fillStyle = d.keep ? 'rgba(61,220,132,0.18)' : 'rgba(255,90,90,0.18)'
+        g.lineWidth = 2
+        g.setLineDash([6, 4])
+        g.beginPath()
+        if (d.kind === 'lasso') {
+          d.pts.forEach((p, i) => (i ? g.lineTo(ix + p.x * S.s, iy + p.y * S.s) : g.moveTo(ix + p.x * S.s, iy + p.y * S.s)))
+          g.closePath()
+        } else {
+          const x0 = ix + Math.min(d.start.x, d.last.x) * S.s
+          const y0 = iy + Math.min(d.start.y, d.last.y) * S.s
+          const w = Math.abs(d.last.x - d.start.x) * S.s
+          const h = Math.abs(d.last.y - d.start.y) * S.s
+          if (tool === 'ellipse') g.ellipse(x0 + w / 2, y0 + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
+          else g.rect(x0, y0, w, h)
+        }
+        g.fill()
+        g.stroke()
+        g.restore()
+      }
+      // penselens omriss ved markøren (diameter i bildepiksler × zoom)
+      const cur = S.cursor
+      if (cur && tool === 'brush' && !S.space && d?.kind !== 'pan') {
+        const r = (size / 2) * S.s
+        g.beginPath()
+        g.arc(ix + cur.x * S.s, iy + cur.y * S.s, Math.max(1, r), 0, Math.PI * 2)
+        g.lineWidth = 2.5
+        g.strokeStyle = 'rgba(0,0,0,0.75)'
+        g.stroke()
+        g.lineWidth = 1.2
+        g.strokeStyle = col(d ? d.keep : keep)
+        g.stroke()
+        if (hard < 0.95) {
+          g.beginPath()
+          g.arc(ix + cur.x * S.s, iy + cur.y * S.s, Math.max(1, r * hard), 0, Math.PI * 2)
+          g.setLineDash([3, 3])
+          g.strokeStyle = 'rgba(255,255,255,0.7)'
+          g.stroke()
+          g.setLineDash([])
+        }
+      }
+    })
+  }
+
+  useEffect(() => {
+    draw()
+    const ro = new ResizeObserver(() => draw())
+    if (wrap.current) ro.observe(wrap.current)
+    return () => {
+      ro.disconnect()
+      cancelAnimationFrame(raf.current)
+    }
+  })
+
+  const toImg = (e: { clientX: number; clientY: number }) => {
+    const r = view.current?.getBoundingClientRect()
+    const S = st.current
+    if (!r) return { x: 0, y: 0 }
+    return { x: (e.clientX - r.left - S.ox) / S.s, y: (e.clientY - r.top - S.oy) / S.s }
+  }
+  const changed = (b: Box | null) => {
+    refresh(b)
+    onChange()
+    bump((n) => n + 1)
+    draw()
+  }
+  /** En operasjon på hele masken (med angre). */
+  const whole = (fn: () => void) => {
+    const before = new Uint8ClampedArray(mask)
+    fn()
+    const all = { x0: 0, y0: 0, x1: W, y1: H }
+    hist.current?.record(before, all)
+    changed(all)
+  }
+  const zoomAt = (f: number, sx: number, sy: number) => {
+    const S = st.current
+    const ns = clamp(S.s * f, 0.02, 32)
+    S.ox = sx - ((sx - S.ox) * ns) / S.s
+    S.oy = sy - ((sy - S.oy) * ns) / S.s
+    S.s = ns
+    S.fit = false
+    bump((n) => n + 1)
+    draw()
+  }
+  const zoomCenter = (f: number) => {
+    const b = wrap.current
+    if (b) zoomAt(f, b.clientWidth / 2, b.clientHeight / 2)
+  }
+
+  // tastatur: [ ] størrelse, X bytter, B/R/E/L/V verktøy, Ctrl+Z / Ctrl+Shift+Z, mellomrom = panorer, 0 = tilpass
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      const tg = e.target as HTMLElement | null
+      if (tg && /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)) return
+      const k = e.key.toLowerCase()
+      const mod = e.ctrlKey || e.metaKey
+      if (mod && k === 'z') {
+        e.preventDefault()
+        const b = e.shiftKey ? hist.current?.redo(mask) : hist.current?.undo(mask)
+        if (b) changed(b)
+      } else if (mod && k === 'y') {
+        e.preventDefault()
+        const b = hist.current?.redo(mask)
+        if (b) changed(b)
+      } else if (mod) return
+      else if (e.key === '[' || e.key === ']') {
+        e.preventDefault()
+        setSize((v) => clamp(Math.round(v * (e.key === ']' ? 1.2 : 1 / 1.2)), 1, 2000))
+      } else if (k === 'x') setKeep((v) => !v)
+      else if (k === 'b') setTool('brush')
+      else if (k === 'r') setTool('rect')
+      else if (k === 'e') setTool('ellipse')
+      else if (k === 'l') setTool('lasso')
+      else if (k === 'v' && selectObject) setTool('select')
+      else if (k === '0') {
+        st.current.fit = true
+        draw()
+      } else if (e.key === ' ') {
+        e.preventDefault()
+        st.current.space = true
+        draw()
+      }
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        st.current.space = false
+        draw()
+      }
+    }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+    }
+  })
+
+  // hjul: Ctrl/⌘ = zoom ved markøren, Alt = penselstørrelse, ellers panorering
+  useEffect(() => {
+    const c = view.current
+    if (!c) return
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const r = c.getBoundingClientRect()
+      if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top)
+      else if (e.altKey) setSize((v) => clamp(Math.round(v * Math.exp(-e.deltaY * 0.002)), 1, 2000))
+      else {
+        const S = st.current
+        S.ox -= e.shiftKey ? e.deltaY : e.deltaX
+        S.oy -= e.shiftKey ? 0 : e.deltaY
+        S.fit = false
+        draw()
+      }
+    }
+    c.addEventListener('wheel', wheel, { passive: false })
+    return () => c.removeEventListener('wheel', wheel)
+  })
+
+  const onDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (busy) return
+    const S = st.current
+    const p = toImg(e)
+    const k = e.altKey ? !keep : keep
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const base: Drag = { kind: 'paint', keep: k, start: p, last: p, pts: [p], box: null, before: null, snapRef: null, panFrom: { x: e.clientX, y: e.clientY, ox: S.ox, oy: S.oy } }
+    if (e.button === 1 || S.space) {
+      S.drag = { ...base, kind: 'pan' }
+      return
+    }
+    if (e.button !== 0) return
+    if (tool === 'select') {
+      if (!selectObject || p.x < 0 || p.y < 0 || p.x >= W || p.y >= H) return
+      setBusy(true)
+      setMsg(t('mask.selecting'))
+      void selectObject(p.x, p.y).then((obj) => {
+        setBusy(false)
+        if (!obj) {
+          setMsg(t('mask.selectFailed'))
+          return
+        }
+        setMsg(null)
+        const before = new Uint8ClampedArray(mask)
+        const b = combine(mask, obj, W, k)
+        if (b) {
+          hist.current?.record(before, b)
+          changed(b)
+        }
+      }, () => {
+        setBusy(false)
+        setMsg(t('mask.selectFailed'))
+      })
+      return
+    }
+    if (tool === 'brush') {
+      const L = layers.current
+      const d: Drag = { ...base, kind: 'paint', before: new Uint8ClampedArray(mask), snapRef: snap && L ? sampleColor(L.rgba, W, H, p.x, p.y) : null }
+      S.drag = d
+      paint(d, p)
+      return
+    }
+    S.drag = { ...base, kind: tool === 'lasso' ? 'lasso' : 'shape' }
+    draw()
+  }
+
+  function paint(d: Drag, p: { x: number; y: number }) {
+    const L = layers.current
+    const b = brushSegment(mask, W, H, d.last.x, d.last.y, p.x, p.y, size / 2, hard, d.keep, d.snapRef && L ? { rgba: L.rgba, ref: d.snapRef, tol: 42 } : null)
+    d.last = p
+    d.box = unionBox(d.box, b)
+    refresh(b)
+    draw()
+  }
+
+  const onMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const S = st.current
+    const p = toImg(e)
+    S.cursor = p
+    const d = S.drag
+    if (!d) {
+      draw()
+      return
+    }
+    if (d.kind === 'pan') {
+      S.ox = d.panFrom.ox + e.clientX - d.panFrom.x
+      S.oy = d.panFrom.oy + e.clientY - d.panFrom.y
+      S.fit = false
+      draw()
+      return
+    }
+    // samlede bevegelser (rask mus) gir et sammenhengende strøk
+    const evs = e.nativeEvent.getCoalescedEvents?.() ?? []
+    if (d.kind === 'paint') {
+      for (const ce of evs.length ? evs : [e.nativeEvent]) paint(d, toImg(ce))
+      return
+    }
+    d.last = p
+    if (d.kind === 'lasso') d.pts.push(p)
+    draw()
+  }
+
+  const onUp = () => {
+    const S = st.current
+    const d = S.drag
+    S.drag = null
+    if (!d || d.kind === 'pan') {
+      draw()
+      return
+    }
+    let b: Box | null = null
+    let before = d.before
+    if (d.kind === 'paint') b = d.box
+    else {
+      before = new Uint8ClampedArray(mask)
+      if (d.kind === 'lasso') b = fillPolygon(mask, W, H, d.pts, d.keep)
+      else {
+        const r = { x0: d.start.x, y0: d.start.y, x1: d.last.x, y1: d.last.y }
+        if (Math.abs(r.x1 - r.x0) > 1 && Math.abs(r.y1 - r.y0) > 1) b = tool === 'ellipse' ? fillEllipse(mask, W, H, r, d.keep) : fillRect(mask, W, H, r, d.keep)
+      }
+    }
+    if (b && before) {
+      hist.current?.record(before, b)
+      changed(b)
+    } else draw()
+  }
+
+  const hs = hist.current
+  const TOOLS: [Tool, string][] = [['brush', 'mask.tool.brush'], ['rect', 'mask.tool.rect'], ['ellipse', 'mask.tool.ellipse'], ['lasso', 'mask.tool.lasso'], ...(selectObject ? [['select', 'mask.tool.select'] as [Tool, string]] : [])]
+  const VIEWS: [View, string][] = [['checker', 'mask.view.checker'], ['black', 'mask.view.black'], ['white', 'mask.view.white'], ['original', 'mask.view.original']]
+  const grow = (r: number) => whole(() => mask.set(separable(mask, W, H, Math.abs(r), r > 0 ? 'max' : 'min')))
+  const smooth = () => {
+    const L = layers.current
+    if (!L) return
+    whole(() => {
+      edgeRefine(mask, L.rgba, W, H, { x0: 0, y0: 0, x1: W, y1: H }, Math.max(2, Math.round(Math.max(W, H) / 400)), 0.002)
+    })
+  }
+
+  return (
+    <div className={styles.editor} data-mask-editor="">
+      <div className={styles.bar} role="toolbar" aria-label={t('mask.title')}>
+        <div className={styles.group} role="group" aria-label={t('mask.tools')}>
+          {TOOLS.map(([k, l]) => <button key={k} type="button" aria-pressed={tool === k} data-mask-tool={k} onClick={() => setTool(k)}>{t(l as never)}</button>)}
+        </div>
+        <div className={styles.group} role="group" aria-label={t('mask.mode')}>
+          <button type="button" aria-pressed={keep} data-mask-keep="1" onClick={() => setKeep(true)}><i className={styles.dot} style={{ background: '#3ddc84' }} />{t('mask.keep')}</button>
+          <button type="button" aria-pressed={!keep} data-mask-keep="0" onClick={() => setKeep(false)}><i className={styles.dot} style={{ background: '#ff5a5a' }} />{t('mask.remove')}</button>
+        </div>
+        {tool === 'brush' && (
+          <>
+            <label className={styles.slider}>
+              <span>{t('mask.size')}</span>
+              <input type="range" min={1} max={Math.max(50, Math.round(Math.max(W, H) / 4))} value={size} data-mask-size="" onChange={(e) => setSize(Number(e.target.value))} />
+              <output data-mask-size-val="">{size} px</output>
+            </label>
+            <label className={styles.slider}>
+              <span>{t('mask.hard')}</span>
+              <input type="range" min={0} max={1} step={0.05} value={hard} data-mask-hard="" onChange={(e) => setHard(Number(e.target.value))} />
+              <output>{Math.round(hard * 100)} %</output>
+            </label>
+            <label className={styles.check} title={t('mask.snap.help')}>
+              <input type="checkbox" checked={snap} data-mask-snap="" onChange={(e) => setSnap(e.target.checked)} />
+              <span>{t('mask.snap')}</span>
+            </label>
+          </>
+        )}
+      </div>
+      <div className={styles.bar}>
+        <label className={styles.slider}>
+          <span>{t('mask.view')}</span>
+          <select value={mode} data-mask-view="" onChange={(e) => {
+            setMode(e.target.value as View)
+            draw()
+          }}>
+            {VIEWS.map(([k, l]) => <option key={k} value={k}>{t(l as never)}</option>)}
+          </select>
+        </label>
+        <div className={styles.group}>
+          <button type="button" aria-label={t('mask.zoomOut')} title={t('mask.zoomOut')} onClick={() => zoomCenter(1 / 1.25)}>−</button>
+          <button type="button" data-mask-zoom="" onClick={() => {
+            st.current.fit = true
+            bump((n) => n + 1)
+            draw()
+          }}>{st.current.fit ? t('mask.fit') : `${Math.round(st.current.s * 100)} %`}</button>
+          <button type="button" aria-label={t('mask.zoomIn')} title={t('mask.zoomIn')} onClick={() => zoomCenter(1.25)}>+</button>
+        </div>
+        <div className={styles.group}>
+          <button type="button" data-mask-undo="" disabled={!hs?.canUndo} onClick={() => { const b = hs?.undo(mask); if (b) changed(b) }}>{t('mask.undo')}</button>
+          <button type="button" data-mask-redo="" disabled={!hs?.canRedo} onClick={() => { const b = hs?.redo(mask); if (b) changed(b) }}>{t('mask.redo')}</button>
+        </div>
+        <div className={styles.group}>
+          <button type="button" data-mask-invert="" onClick={() => whole(() => invertInPlace(mask))}>{t('mask.invert')}</button>
+          <button type="button" data-mask-shrink="" title={t('mask.shrink.help')} onClick={() => grow(-Math.max(1, Math.round(Math.max(W, H) / 1000)))}>{t('mask.shrink')}</button>
+          <button type="button" data-mask-grow="" title={t('mask.grow.help')} onClick={() => grow(Math.max(1, Math.round(Math.max(W, H) / 1000)))}>{t('mask.grow')}</button>
+          <button type="button" data-mask-smooth="" title={t('mask.smooth.help')} onClick={smooth}>{t('mask.smooth')}</button>
+        </div>
+      </div>
+      <div ref={wrap} className={styles.stage}>
+        <canvas ref={view} className={styles.canvas} data-mask-canvas="" style={{ cursor: st.current.space ? 'grab' : tool === 'brush' ? 'none' : 'crosshair' }}
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+          onPointerLeave={() => {
+            st.current.cursor = null
+            draw()
+          }}
+          onContextMenu={(e) => e.preventDefault()} />
+        {msg && <div className={styles.msg} role="status">{msg}</div>}
+      </div>
+      <p className={styles.help}>{t('mask.help')}</p>
+    </div>
+  )
+}

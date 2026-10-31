@@ -183,7 +183,7 @@ export class Segmenter {
   }
 
   /** «Merk i bildet» (SlimSAM): maske for punkter/firkant. Bildet analyseres én gang per kildebilde. */
-  async samMask(src: HTMLCanvasElement, prompt: SamPrompt, negatives: { x: number; y: number }[], onPhase: (p: Phase) => void, onPct: (n: number) => void): Promise<Mask | null> {
+  async samMask(src: HTMLCanvasElement, prompt: SamPrompt, negatives: { x: number; y: number }[], onPhase: (p: Phase) => void, onPct: (n: number) => void, whole = false): Promise<Mask | null> {
     const T = await loadTransformers()
     if (!this.sam) {
       onPhase('model')
@@ -245,6 +245,26 @@ export class Segmenter {
     const n = mk.channels || 3
     let best = 0
     for (let i = 1; i < Math.min(n, scores.length); i++) if ((scores[i] ?? 0) > (scores[best] ?? 0)) best = i
+    // «Velg objekt»: SAM gir tre forslag (del, større del, hele objektet). Det største av dem modellen er nesten like
+    // sikker på, er som regel hele objektet (hele personen i stedet for bare skjorta).
+    if (whole) {
+      const area = (k: number) => {
+        let a = 0
+        for (let i = 0; i < mk.width * mk.height; i++) if (mk.data[i * n + k]) a++
+        return a
+      }
+      let pick = best
+      let pa = area(best)
+      for (let k = 0; k < Math.min(n, scores.length); k++) {
+        if (k === best || (scores[k] ?? 0) < (scores[best] ?? 0) * 0.85) continue
+        const ak = area(k)
+        if (ak > pa) {
+          pick = k
+          pa = ak
+        }
+      }
+      best = pick
+    }
     const m = makeCanvas(mk.width, mk.height)
     const g = m.getContext('2d')
     if (!g) return null
