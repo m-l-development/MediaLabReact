@@ -144,6 +144,13 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
           })}
         </div>
       </section>
+      <section className={s.section} data-pd-batch-home="">
+        <span className={s.eyebrow}>{tx('Mange bilder')}</span>
+        <div className={s.rowBetween}>
+          <span className={s.note}>{tx('Rediger mange separate bilder i én serie: hvert bilde får egne justeringer, og alle kan eksporteres samlet som ZIP.')}</span>
+          <button type="button" className={s.pillDark} data-pd-batch-new="" onClick={() => c.createBatch()}>{tx('Ny bildeserie')}</button>
+        </div>
+      </section>
       <section className={s.section}>
         <div className={s.rowBetween}>
           <span className={s.eyebrow}>{tx('Egne maler')}</span>

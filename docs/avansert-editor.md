@@ -74,6 +74,12 @@ Implementert hittil (se commits på connecthub):
 - Photo Design → Avansert: avansert framkalling (`web/src/features/photo-design/engine/develop.ts`): hvit-/svartpunkt, vibrance, klarhet, skarphet,
   auto-tone, histogram, før/etter, kopier/lim inn framkalling.
 - «Avansert modus» ved Autolagring i Photo Design og Motion Design.
+- Photo Design → «Ny bildeserie» (batchredigering, `web/src/features/photo-design/engine/batch.ts`): mange separate bilder i én serie
+  (ikke lag), filmstrip med «Bilde N av M», forrige/neste og piltaster, egne innstillinger per bilde (justeringer, Auto,
+  forhåndsvalg, kurver og framkalling i Avansert), velg alle/ingen, forhåndsvalg / kopier innstillinger / nullstill på valgte,
+  «Eksporter alle som ZIP» (JPEG eller PNG, full oppløsning, ett bilde i minnet om gangen, fremdrift og feil per bilde).
+  Lagres med prosjektet. Begrensninger: maks 500 bilder per serie; angre gjelder bildet som er åpent (historikken
+  nullstilles ved bildebytte). Test: `web/e2e/photo-design-batch.spec.ts`.
 
 ### Alternativene som ble vurdert
 

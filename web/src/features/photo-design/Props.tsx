@@ -66,6 +66,17 @@ function Cmyk({ hv, set }: { hv: string; set: (v: string) => void }) {
 export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; tx: Tx; pickFile: (replace?: string) => void }) {
   const d = S.doc
   if (!d) return null
+  if (d.batch) {
+    // bildeserie: bare fargene og justeringene for bildet som er åpent (bildet er ett låst lag)
+    const BL = d.layers.find((q): q is Extract<PdLayer, { type: 'image' }> => q.type === 'image')
+    const it = d.batch.items[d.batch.active]
+    return (
+      <div className={s.props} data-pd-batch-props="">
+        <span className={s.eyebrowSm} title={it?.name}>{it ? it.name : tx('Bildeserie')}</span>
+        {BL ? <ColorTab c={c} L={BL} tx={tx} /> : <span className={s.note}>{tx('Legg til bilder for å begynne. Hvert bilde får egne justeringer.')}</span>}
+      </div>
+    )
+  }
   const L = c.selL()
   const ids = c.selIds()
   const isMulti = !L && ids.length > 1
@@ -470,7 +481,9 @@ function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type
         <span className={s.eyebrowSm}>{tx('Justering')}</span>
         <span style={{ display: 'flex', gap: 6 }}>
           <button type="button" className={s.resetBtn} data-pd-before-std="" title={tx('Hold inne for å se bildet uten justeringer')} onPointerDown={() => hold(true)} onPointerUp={() => hold(false)} onPointerLeave={() => hold(false)} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') hold(true) }} onKeyUp={() => hold(false)}>{tx('Før/etter')}</button>
-          <button type="button" className={s.resetBtn} onClick={() => c.patchL(L.id, { adj: { ...ADJ }, look: 'none' })}>{tx('Nullstill')}</button>
+          {!adv && <button type="button" className={s.resetBtn} data-pd-auto-std="" title={tx('Juster lyset automatisk ut fra bildet')} onClick={() => c.autoTone(L.id)}>{tx('Auto')}</button>}
+          {/* i Standard nullstilles også Auto (framkallingen vises ikke der) */}
+          <button type="button" className={s.resetBtn} onClick={() => c.patchL(L.id, adv ? { adj: { ...ADJ }, look: 'none' } : { adj: { ...ADJ }, look: 'none', dev: null })}>{tx('Nullstill')}</button>
         </span>
       </div>
       {ADJL.filter(([k]) => adv || BASIC.has(k)).map(([k, l, mn, mx]) => {

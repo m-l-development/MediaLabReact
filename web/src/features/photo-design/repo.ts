@@ -2,6 +2,7 @@ import type { AssetId, ProjectId } from '../../domain/ids'
 import type { ProjectEnvelope } from '../../domain/project'
 import type { Validation } from '../../domain/validation'
 import type { ProjectSchema, ProjectService } from '../../services/projects/project-service'
+import { cleanBatch } from './engine/batch'
 import type { PdDoc } from './engine/model'
 
 /** Lagret prosjekt: dokumentet, maskene (PNG som data-URL per nøkkel), miniatyr og ev. malkategori. */
@@ -15,11 +16,13 @@ const DATA_PNG = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/
 
 const isRec = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
-export function assetIdsOf(d: Pick<PdDoc, 'layers' | 'back'>): string[] {
+export function assetIdsOf(d: Pick<PdDoc, 'layers' | 'back' | 'batch'>): string[] {
   const out = new Set<string>()
-  for (const L of [...d.layers, ...(d.back?.layers ?? [])]) {
-    if (L.type !== 'image') continue
-    const m = M_REF.exec(L.src ?? '')
+  const srcs = [...d.layers, ...(d.back?.layers ?? [])].map((L) => (L.type === 'image' ? L.src : null))
+  // bildeserien: alle bildene, også de som ikke er åpne
+  for (const it of d.batch?.items ?? []) srcs.push(it.src)
+  for (const src of srcs) {
+    const m = M_REF.exec(src ?? '')
     if (m?.[1]) out.add(m[1])
   }
   return [...out]
@@ -39,7 +42,13 @@ export const PROJECT_SCHEMA: ProjectSchema<PdStored> = {
     const masks: Record<string, string> = {}
     if (isRec(input.masks)) for (const [k, v] of Object.entries(input.masks)) if (typeof v === 'string' && DATA_PNG.test(v)) masks[k] = v
     const tpl = isRec(input.tpl) && typeof input.tpl.cat === 'string' ? { cat: input.tpl.cat.slice(0, 40) } : null
-    return { ok: true, value: { doc: input.doc, masks, thumb: typeof input.thumb === 'string' && /^data:image\/(jpeg|png);base64,/.test(input.thumb) ? input.thumb : '', tpl } }
+    const doc: PdDoc = { ...input.doc }
+    if (doc.batch != null) {
+      const b = cleanBatch(doc.batch)
+      if (b) doc.batch = b
+      else delete doc.batch
+    }
+    return { ok: true, value: { doc, masks, thumb: typeof input.thumb === 'string' && /^data:image\/(jpeg|png);base64,/.test(input.thumb) ? input.thumb : '', tpl } }
   },
   assetsOf: (s) => assetIdsOf(s.doc) as AssetId[],
 }

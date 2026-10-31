@@ -8,7 +8,8 @@ import { FillEditor } from '../../shared/fill/FillEditor'
 import * as FX from '../../shared/fx/fx'
 import { ColorBar } from './Colors'
 import { PAL, type Interaction, type PhotoController, type PState, type Pt } from './controller'
-import { BLEED, dims, SHAPES, type PdDoc, type PdLayer } from './engine/model'
+import { isEdited } from './engine/batch'
+import { BLEED, dims, LOOKS, SHAPES, type PdDoc, type PdLayer } from './engine/model'
 import { applyScheme, liveScheme } from './engine/palette'
 import { hit, render, shapePath } from './engine/render'
 import { Props } from './Props'
@@ -24,6 +25,8 @@ interface EditorProps {
   onExport: (kind: 'download' | 'copy' | 'media', to?: ToolId) => void
   /** «Bruk i …» (SHR-02): verktøy som kan ta imot bildet. */
   sendTo?: { id: ToolId; label: string }[]
+  /** Bildeserie: ZIP-filen er klar til nedlasting. */
+  onZip?: (zip: Blob) => void
 }
 
 /** Følger én peker til den slippes (flytt, ramme, håndtak, pensel). */
@@ -149,7 +152,12 @@ export function Editor(p: EditorProps) {
           </div>
         )}
       </header>
-      <div className={s.work} data-narrow={S.narrow ? '1' : undefined}>
+      <div className={s.work} data-narrow={S.narrow ? '1' : undefined} data-batch={d.batch ? '1' : undefined}>
+        {d.batch ? (
+          <aside className={s.left}>
+            <div className={s.leftScroll}><BatchPanel {...p} /></div>
+          </aside>
+        ) : (
         <aside className={s.left}>
           <div className={s.leftScroll}>
             <div className={s.seg}>
@@ -162,10 +170,123 @@ export function Editor(p: EditorProps) {
           </div>
           <LayerList {...p} />
         </aside>
+        )}
         <Stage {...p} />
+        {/* smal skjerm: filmstripen rett under lerretet, i det rullbare området */}
+        {d.batch && S.narrow && <BatchStrip {...p} />}
         <aside className={s.right}>
           <Props c={c} S={S} tx={tx} pickFile={p.pickFile} />
         </aside>
+      </div>
+      {d.batch && !S.narrow && <BatchStrip {...p} />}
+    </div>
+  )
+}
+
+/** Bildeserie: legg til bilder, velg bilder, bruk forhåndsvalg eller innstillinger på de valgte, og eksporter alle som ZIP. */
+function BatchPanel({ c, S, tx, pickFile, onZip }: EditorProps) {
+  const [look, setLook] = useState('warm')
+  const b = S.doc?.batch
+  if (!b) return null
+  const items = c.batchItems()
+  const n = items.length
+  const edited = items.filter((it) => isEdited(it)).length
+  const nSel = b.sel.length
+  const j = S.bx
+  const busy = S.busy === 'exp'
+  return (
+    <div className={s.stack} data-pd-batch-panel="">
+      <span className={s.eyebrowSm}>{tx('Bildeserie')}</span>
+      <button type="button" className={s.bigBtn} data-pd-batch-add="" onClick={() => pickFile()}>{tx('Legg til bilder …')}</button>
+      <span className={s.note} data-pd-batch-count="">{tx('{n} bilder · {e} redigert · {u} uendret', { n, e: edited, u: n - edited })}</span>
+      {j?.kind === 'import' && !j.end && (
+        <div className={s.stack} role="status">
+          <progress className={s.bProg} max={j.total} value={j.done} />
+          <span className={s.dimSm}>{tx('Legger til {i} av {n} …', { i: Math.min(j.total, j.done + 1), n: j.total })}</span>
+        </div>
+      )}
+      <span className={s.addHead}>{tx('Valgte bilder')}</span>
+      <span className={s.dimSm} data-pd-batch-selcount="">{tx('{k} av {n} valgt', { k: nSel, n })}</span>
+      <div className={s.row2}>
+        <button type="button" className={s.smallBtn} data-pd-batch-all="" disabled={!n} onClick={() => c.batchSelAll(true)}>{tx('Velg alle')}</button>
+        <button type="button" className={s.smallBtn} data-pd-batch-none="" disabled={!nSel} onClick={() => c.batchSelAll(false)}>{tx('Velg ingen')}</button>
+      </div>
+      <label className={s.field}>
+        <span>{tx('Forhåndsvalg')}</span>
+        <select value={look} data-pd-batch-look="" onChange={(e) => setLook(e.target.value)}>
+          {LOOKS.map(([k, l]) => <option key={k} value={k}>{tx(l as Phrase)}</option>)}
+        </select>
+      </label>
+      <button type="button" className={s.smallBtn} data-pd-batch-apply="" disabled={!nSel} onClick={() => c.batchApplyLook(look)}>{tx('Bruk på valgte')}</button>
+      <button type="button" className={s.smallBtn} data-pd-batch-copy="" disabled={!nSel || !n} title={tx('Justeringer, forhåndsvalg, kurver og framkalling fra bildet som er åpent')} onClick={() => c.batchCopyToSel()}>{tx('Kopier innstillingene fra dette bildet til valgte')}</button>
+      <button type="button" className={s.smallBtn} data-pd-batch-reset="" disabled={!nSel} onClick={() => c.batchResetSel()}>{tx('Nullstill valgte')}</button>
+      <span className={s.dimSm}>{tx('Handlingene gjelder bare de valgte bildene.')}</span>
+      <span className={s.addHead}>{tx('Eksport')}</span>
+      <div className={s.seg}>
+        {([['jpg', 'JPEG'], ['png', 'PNG']] as const).map(([k, l]) => <button key={k} type="button" data-pd-batch-fmt={k} aria-pressed={S.bfmt === k} onClick={() => c.ui({ bfmt: k })}>{tx(l)}</button>)}
+      </div>
+      <button type="button" className={s.primary} data-pd-batch-zip="" disabled={busy} onClick={() => void c.batchZip().then((z) => z && onZip?.(z))}>{tx(busy ? 'Eksporterer …' : 'Eksporter alle som ZIP')}</button>
+      {j?.kind === 'export' && (
+        <div className={s.stack} role="status" data-pd-batch-job={j.end ? 'done' : 'run'}>
+          <progress className={s.bProg} max={j.total} value={j.done} />
+          <span className={s.dimSm}>{j.end ? tx('{ok} av {n} bilder eksportert.', { ok: j.done - j.failed.length, n: j.total }) : tx('Eksporterer {i} av {n} …', { i: Math.min(j.total, j.done + 1), n: j.total })}</span>
+          {j.failed.length > 0 && (
+            <div className={s.warnNote} data-pd-batch-failed="">
+              {tx('Feilet ({f}):', { f: j.failed.length })}
+              <ul className={s.bFail}>{j.failed.slice(0, 20).map((x, i) => <li key={i}>{x}</li>)}</ul>
+              {j.failed.length > 20 && tx('… og {n} til', { n: j.failed.length - 20 })}
+            </div>
+          )}
+        </div>
+      )}
+      {j?.kind === 'import' && j.end && j.failed.length > 0 && (
+        <div className={s.warnNote} data-pd-batch-failed="">
+          {tx('Kunne ikke legges til ({f}):', { f: j.failed.length })}
+          <ul className={s.bFail}>{j.failed.slice(0, 20).map((x, i) => <li key={i}>{x}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Filmstripen: miniatyrer med filnavn, markering av bildet som er åpent og av redigerte bilder; forrige/neste. */
+function BatchStrip({ c, S, tx }: EditorProps) {
+  const film = useRef<HTMLDivElement>(null)
+  const b = S.doc?.batch
+  const active = b?.active ?? 0
+  useEffect(() => {
+    film.current?.children[active]?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [active])
+  if (!b) return null
+  const items = c.batchItems()
+  const n = items.length
+  const sel = new Set(b.sel)
+  return (
+    <div className={s.bStrip} data-pd-batch-strip="">
+      <div className={s.bNav}>
+        <button type="button" className={s.smallBtn} data-pd-batch-prev="" disabled={active <= 0} onClick={() => c.batchStep(-1)}>← {tx('Forrige bilde')}</button>
+        <span data-pd-batch-pos="">{n ? tx('Bilde {i} av {n}', { i: active + 1, n }) : tx('Ingen bilder ennå')}</span>
+        <button type="button" className={s.smallBtn} data-pd-batch-next="" disabled={active >= n - 1} onClick={() => c.batchStep(1)}>{tx('Neste bilde')} →</button>
+        <span className={s.dimSm}>{tx('Piltastene ← → bytter bilde.')}</span>
+      </div>
+      {!n && <span className={s.note}>{tx('Trykk «Legg til bilder …» eller dra bilder hit. Du kan legge til flere senere.')}</span>}
+      <div ref={film} className={s.bFilm} role="list" aria-label={tx('Bildene i serien')}>
+        {items.map((it, i) => {
+          const on = i === active
+          const edit = isEdited(it)
+          return (
+            <div key={it.id} role="listitem" className={s.bItem} data-pd-batch-item={it.name} data-active={on ? '1' : undefined} data-edited={edit ? '1' : undefined}>
+              <button type="button" className={s.bThumb} aria-current={on ? 'true' : undefined} title={it.name} aria-label={tx('Åpne {name}', { name: it.name })} onClick={() => void c.batchGo(i)}>
+                {it.thumb ? <img src={c.batchThumb(it)} alt="" decoding="async" loading="lazy" /> : <span />}
+                {edit && <i className={s.bBadge} title={tx('Redigert')} aria-label={tx('Redigert')} />}
+              </button>
+              <label className={s.bName} title={it.name}>
+                <input type="checkbox" checked={sel.has(it.id)} aria-label={tx('Velg {name}', { name: it.name })} onChange={() => c.batchSel(it.id)} />
+                <span>{it.name}</span>
+              </label>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

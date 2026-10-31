@@ -1,3 +1,4 @@
+import type { Batch } from './batch'
 import type { Dev } from './develop'
 import type { Fill } from '../../../shared/fill/fill'
 
@@ -163,6 +164,8 @@ export interface PdDoc {
   tplK?: string
   bg0?: string | null
   scheme?: Scheme | null
+  /** Bildeserie (batchredigering): mange separate bilder; laget i `layers` er bildet som er åpent. Se engine/batch.ts. */
+  batch?: Batch | null
   created: number
   updated: number
 }
