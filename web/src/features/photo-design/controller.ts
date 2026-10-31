@@ -434,7 +434,7 @@ export class PhotoController {
   newCat(mode: 'tpl' | 'proj' | 'doc' = 'tpl'): string | null {
     const raw = this.d.prompt('Navn på kategorien')
     if (raw == null) return null
-    const v = raw.trim().replace(/s+/g, ' ').slice(0, 40)
+    const v = raw.trim().replace(/\s+/g, ' ').slice(0, 40)
     if (!v) {
       this.flash('Skriv et navn på kategorien.')
       return null

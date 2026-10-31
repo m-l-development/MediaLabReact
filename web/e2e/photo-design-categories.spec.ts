@@ -47,6 +47,11 @@ test('kategorier: lage, velge, duplikat og tomt navn, mal og prosjekt i kategori
   answer(page, '   ')
   await page.getByRole('button', { name: 'Ny kategori for prosjektet' }).click()
   await expect(page.getByText('Skriv et navn på kategorien.')).toBeVisible()
+  // navn med «s» og flere mellomrom: mellomrommene slås sammen, bokstavene beholdes
+  answer(page, 'Søndags   skole ')
+  await page.getByRole('button', { name: 'Ny kategori for prosjektet' }).click()
+  await expect(page.locator('[data-pd-doc-cat]')).toHaveValue('Søndags skole')
+  await page.locator('[data-pd-doc-cat]').selectOption('Ungdom')
   const opts = await page.locator('[data-pd-doc-cat] option').allTextContents()
   expect(opts.filter((o) => o.toLowerCase() === 'ungdom')).toHaveLength(1)
   // malen lagres i valgt malkategori (Ungdom)
