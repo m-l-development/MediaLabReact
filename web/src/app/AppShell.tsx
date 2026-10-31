@@ -12,6 +12,7 @@ import { stickyTitle } from './sticky-title'
 import { TestBanner } from './TestRole'
 import { AccountMenu } from './AccountMenu'
 import { hrefFor, type Route } from './router'
+import { TOOL_GROUP } from '../domain/tool'
 
 interface AppShellProps {
   route: Route
@@ -50,7 +51,13 @@ export function AppShell({ route, me, onSignOut, children, realMe = me, testRole
 
       {!ownBar && (
         <header className={isTool ? `${styles.bar} ${styles.barFixed}` : styles.bar} data-ml-bar={isTool ? '' : undefined}>
-          {!isHub && <BackPill />}
+          {!isHub && (
+            <span className={styles.backGroup}>
+              <BackPill />
+              {/* verktøyene i SoMe-mappen (Photo Design, Motion Design): tilbake til mappen på forsiden */}
+              {route.name === 'tool' && TOOL_GROUP[route.tool] === 'some' && <SomePill />}
+            </span>
+          )}
           {isHub && <LangToggle />}
         </header>
       )}
@@ -111,6 +118,15 @@ function ThemeButton() {
 }
 
 /** «← Media Lab»: går alltid til forsiden (ikke til en mappe eller appen man sist var i). */
+function SomePill() {
+  const t = useT()
+  return (
+    <Link to={{ name: 'hub' }} hash="some" className={styles.backPill} data-ml-back="some">
+      <span aria-hidden="true">←</span> {t('nav.someFolder')}
+    </Link>
+  )
+}
+
 function BackPill() {
   const t = useT()
   return (

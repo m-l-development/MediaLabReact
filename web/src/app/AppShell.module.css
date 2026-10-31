@@ -66,6 +66,25 @@
   border-color: var(--color-border-strong);
 }
 
+/* «← Media Lab» og «← SoMe-mappen» side om side; brytes til to linjer på smale skjermer */
+.backGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+}
+
+@media (max-width: 640px) {
+  .backGroup .backPill {
+    padding: 0 14px;
+  }
+}
+
+/* «SoMe» skrives slik (ikke «SOME») */
+.backPill[data-ml-back="some"] {
+  text-transform: none;
+}
+
 /* NO / EN øverst til høyre på forsiden */
 .lang {
   display: inline-flex;
@@ -258,7 +277,8 @@
   .shell:has([data-ml-workspace]) .adminFab {
     top: 11px;
     bottom: auto;
-    left: 172px;
+    left: auto;
+    right: 142px;
   }
   /* beholderne mellom hovedområdet og editoren (verktøyets egen rot) gir høyden videre */
   .main:has([data-ml-workspace]) :has([data-ml-workspace]) {
