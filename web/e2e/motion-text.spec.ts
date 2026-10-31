@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { newAdvProject, saveAndReload, seekTo } from './motion-helpers'
+import { leftTab, newAdvProject, saveAndReload, seekTo } from './motion-helpers'
 
 /** Motion Design → Avansert: tekst og undertekster som tidslinjeelementer (tid, plassering, lag, lagring). */
 
@@ -39,6 +39,8 @@ test('tekst og undertekster: tid, plassering, lagrekkefølge og lagring', async 
 
   // tekst fra 2 s (4 s lang) på T1, rød og stor, uten animasjon
   await seekTo(page, 2)
+  // fanen Tekst i venstre panel
+  await leftTab(page, 'text')
   await page.locator('[data-md-add-text]').click()
   await expect(page.locator('[data-md-timing] [data-md-track]')).toHaveText('T1')
   await expect(page.locator('[data-md-timing] [data-md-tm="start"]')).toHaveValue('2.00')
@@ -78,6 +80,7 @@ test('tekst og undertekster: tid, plassering, lagrekkefølge og lagring', async 
 
   // undertekst fra 8 s (2,5 s), nederst i bildet, bare i sitt tidsrom
   await seekTo(page, 8)
+  await leftTab(page, 'subs')
   await page.locator('[data-md-add-sub]').click()
   await expect(page.locator('[data-md-timing] [data-md-track]')).toHaveText('UT')
   await expect(page.locator('[data-md-timing] [data-md-tm="start"]')).toHaveValue('8.00')

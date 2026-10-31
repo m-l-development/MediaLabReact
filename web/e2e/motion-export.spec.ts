@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { framesAt, near, rmsAt } from './media-probe'
 import { readMp4 } from './mp4'
-import { importFiles, main, newAdvProject, recordVideo, seekTo, solid, wav } from './motion-helpers'
+import { importFiles, insp, leftTab, main, newAdvProject, recordVideo, seekTo, solid, wav } from './motion-helpers'
 
 /**
  * Motion Design → Avansert: ekte eksport i Chrome (H.264/AAC med WebCodecs), og kontroll av selve filen: MP4-strukturen
@@ -32,6 +32,7 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   // V1: videoen på 2× (rødt/grønt/blått på ca. 1,5 s)
   await page.locator('[data-md-bin-item="farger.webm"] [data-md-to="v1"]').click()
   await main(page).first().click()
+  await insp(page, 'speed')
   await page.locator('[data-md-speed] [data-md-speedset="2"]').click()
 
   // V2: magenta fra 2,0 s (1,5 s), svart-hvitt, opasitet 0 → 1 over første sekund
@@ -39,8 +40,10 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   await page.locator('[data-md-bin-item="magenta.png"] [data-md-to="v"]').click()
   await page.locator('[data-md-timing] [data-md-tm="dur"]').fill('1.5')
   await page.locator('[data-md-timing] [data-md-tm="dur"]').blur()
+  await insp(page, 'fx')
   await page.locator('[data-md-fx-pick]').selectOption('bw')
   await page.locator('[data-md-fx-add]').click()
+  await insp(page, 'anim')
   const op = page.locator('[data-md-keys] [data-md-kf="opacity"]')
   await op.locator('[data-md-kf-toggle]').click()
   await op.locator('[data-md-kfnum="opacity"]').fill('0')
@@ -54,19 +57,21 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   // tekst 3,5–4,5 s: rød boks midt i bildet (går forbi prosjektslutt ved 4 s)
   await seekTo(page, 3)
   for (let i = 0; i < 15; i++) await page.keyboard.press('ArrowRight')
+  await leftTab(page, 'text')
   await page.locator('[data-md-add-text]').click()
   await page.locator('[data-md-timing] [data-md-tm="dur"]').fill('1')
   await page.locator('[data-md-timing] [data-md-tm="dur"]').blur()
-  const insp = page.locator('[data-md-props]')
-  await insp.getByLabel('Tekstfarge').fill('#ff0000')
-  await insp.getByRole('button', { name: 'Boks', exact: true }).click()
-  await insp.getByLabel('Bakgrunnsfarge').fill('#ff0000')
-  await insp.getByLabel('Animasjon').selectOption('none')
+  const props = page.locator('[data-md-props]')
+  await props.getByLabel('Tekstfarge').fill('#ff0000')
+  await props.getByRole('button', { name: 'Boks', exact: true }).click()
+  await props.getByLabel('Bakgrunnsfarge').fill('#ff0000')
+  await props.getByLabel('Animasjon').selectOption('none')
 
   // lyd: tone på A1 fra 2,0 s med ton inn 0,5 s; en annen tone på A2 (2,5 s) som dempes
   await seekTo(page, 2)
+  await leftTab(page, 'media')
   await page.locator('[data-md-bin-item="tone.wav"] [data-md-to="a"]').click()
-  await insp.locator('label', { hasText: 'Ton inn' }).locator('input[type="range"]').fill('0.5')
+  await props.locator('label', { hasText: 'Ton inn' }).locator('input[type="range"]').fill('0.5')
   await seekTo(page, 2)
   for (let i = 0; i < 15; i++) await page.keyboard.press('ArrowRight')
   await page.locator('[data-md-bin-item="dempet.wav"] [data-md-to="a"]').click()

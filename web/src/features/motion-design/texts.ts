@@ -8,6 +8,15 @@ export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
   // Avansert tidslinje
+  'Klipp': 'Clip',
+  'Kategori': 'Category',
+  'Fargekorrigering': 'Colour correction',
+  'Lyden i dette klippet. Lydsporene (A1, A2 …) demper du med høyttalerknappen foran sporet i tidslinjen.': 'The audio in this clip. Mute audio tracks (A1, A2 …) with the speaker button in front of the track in the timeline.',
+  '+ Tom tekst': '+ Empty text',
+  'Keyframe – klikk for å redigere': 'Keyframe – click to edit',
+  'Ensfarget flate eller fargeovergang på V1': 'Solid colour or gradient on V1',
+  'Effektene virker i rekkefølgen over. Fargekorrigering og beskjæring finner du under.': 'The effects apply in the order above. Colour correction and cropping are below.',
+  'Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.': 'Reverse may stutter in the preview, but is smooth in the export.',
   'Oppløsning': 'Resolution',
   'Bildefrekvens': 'Frame rate',
   'Kvalitet': 'Quality',

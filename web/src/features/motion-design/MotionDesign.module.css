@@ -3071,3 +3071,59 @@
   font-size: 12.5px;
   cursor: pointer;
 }
+
+/* Avansert: kategorier i inspektøren (Klipp, Effekter, Animasjon, Hastighet, Lyd) */
+.inspTabs {
+  position: sticky;
+  top: -14px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: -14px -14px 0;
+  padding: 8px 10px;
+  background: #0b0b0b;
+  border-bottom: 1px solid #1c1c1c;
+}
+
+.inspTab {
+  flex: 1 1 auto;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  background: transparent;
+  color: #b8b4aa;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.inspTab:hover {
+  color: #f2efe8;
+  border-color: #3a3a3a;
+}
+
+.inspTab[aria-selected='true'] {
+  background: #f2efe8;
+  border-color: #f2efe8;
+  color: #0b0b0b;
+  font-weight: 600;
+}
+
+.inspTab:focus-visible,
+.modal:focus-visible {
+  outline: 2px solid #f5b82c;
+  outline-offset: 2px;
+}
+
+.modal:focus {
+  outline: none;
+}
+
+.inspPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}

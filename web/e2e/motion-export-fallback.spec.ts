@@ -98,11 +98,13 @@ test('eksport uten WebCodecs: sanntidsopptak med MediaRecorder – filen kontrol
   // filtypen stemmer med innholdet
   if (isMp4) expect(e.buf.toString('latin1', 4, 8)).toBe('ftyp')
   else expect(e.buf.readUInt32BE(0)).toBe(0x1a45dfa3)
-  const { px, last } = await framesAt(page, e.buf, [0.5, 1.5, 2.5], isMp4 ? 'video/mp4' : 'video/webm')
+  // sanntidsopptak: under last kan bildene forskyves litt i tid, så hver farge må finnes et sted i sitt sekund
+  const TS = [0.3, 0.5, 0.7, 1.3, 1.5, 1.7, 2.3, 2.5, 2.7]
+  const { px, last } = await framesAt(page, e.buf, TS, isMp4 ? 'video/mp4' : 'video/webm')
   console.log('BILDER SANNTID', JSON.stringify(px), 'siste bilde', last)
   expect(last, 'opptaket varer omtrent hele prosjektet (3 s)').toBeGreaterThan(2.5)
   expect(last).toBeLessThan(3.6)
-  px.forEach((c, i) => expect(near(c, RGB[i]!), `bilde ved ${i + 0.5} s`).toBe(true))
+  RGB.forEach((rgb, s) => expect(px.slice(s * 3, s * 3 + 3).some((c) => near(c, rgb)), `farge i sekund ${s + 1}`).toBe(true))
   const au = await rmsAt(page, e.buf, [[0.3, 2.5]])
   console.log('LYD SANNTID', JSON.stringify(au))
   expect(au.rms[0], 'videoens lyd er med').toBeGreaterThan(0.02)

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { centerIs, importFiles, isColor, isGray, main, newAdvProject, saveAndReload, seekTo, solid } from './motion-helpers'
+import { centerIs, importFiles, insp, isColor, isGray, main, newAdvProject, saveAndReload, seekTo, solid } from './motion-helpers'
 
 /** Motion Design → Avansert: keyframes (effektverdi, opasitet, interpolering, flytt/slett, flytting og trim av klipp, lagring). */
 
@@ -23,8 +23,11 @@ test('keyframes: animasjon av effekt og opasitet, interpolering, flytt/slett, f�
 
   // effektparameter: svart-hvitt 0 ved 0 s → 1 ved 2 s på det røde klippet
   await main(page).first().click()
+  await insp(page, 'fx')
   await page.locator('[data-md-fx-pick]').selectOption('bw')
   await page.locator('[data-md-fx-add]').click()
+  // effektens verdi kan animeres under Animasjon
+  await insp(page, 'anim')
   const bwProp = keys(page).locator('[data-md-kf^="fx:"]')
   const bwKey = (await bwProp.getAttribute('data-md-kf')) as string
   await seekTo(page, 0)
@@ -37,6 +40,14 @@ test('keyframes: animasjon av effekt og opasitet, interpolering, flytt/slett, f�
   await setVal(page, bwKey, '1')
   await expect(prop(page, bwKey)).toHaveAttribute('data-animated', '1')
   await expect(page.locator('[data-row="video"] [data-md-kfdot]')).toHaveCount(2)
+  // keyframe-prikken i tidslinjen: velger klippet, flytter spillehodet og åpner Animasjon
+  await insp(page, 'clip')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-md-insp]')).toHaveCount(0)
+  await seekTo(page, 1)
+  await page.locator('[data-row="video"] [data-md-kfdot]').nth(1).click()
+  await expect(page.locator('[data-md-insp-tab="anim"]')).toHaveAttribute('aria-selected', 'true')
+  await expect(prop(page, bwKey).locator('[data-md-key="1"]')).toHaveAttribute('data-here', '1')
   await seekTo(page, 0)
   await centerIs(page, (c) => isColor(c, 0), '0 s: rødt (svart-hvitt 0)')
   await seekTo(page, 3)
@@ -74,7 +85,8 @@ test('keyframes: animasjon av effekt og opasitet, interpolering, flytt/slett, f�
   await t1.blur()
   await centerIs(page, (c) => isColor(c, 1), 'keyframen flyttet til 1 s')
 
-  // klippet flyttes 1 s senere: animasjonen følger med (ved 1 s er det nå usynlig, ved 2 s helt synlig)
+  // klippet flyttes 1 s senere (tidsinspektøren under Klipp): animasjonen følger med (ved 1 s usynlig, ved 2 s synlig)
+  await insp(page, 'clip')
   await page.locator('[data-md-timing] [data-md-tm="start"]').fill('1')
   await page.locator('[data-md-timing] [data-md-tm="start"]').blur()
   await seekTo(page, 1)
@@ -87,6 +99,7 @@ test('keyframes: animasjon av effekt og opasitet, interpolering, flytt/slett, f�
   await page.keyboard.press('Shift+ArrowRight')
   await page.locator('[data-row="ov"] [data-block="ov"]').click()
   await page.keyboard.press('q')
+  await insp(page, 'anim')
   await expect(page.locator('[data-md-kf-out]')).toContainText('1 keyframes')
   await expect(prop(page, 'opacity').locator('[data-md-key]')).toHaveCount(2)
 
@@ -99,6 +112,7 @@ test('keyframes: animasjon av effekt og opasitet, interpolering, flytt/slett, f�
   // lagring: keyframes og interpolering står
   await saveAndReload(page)
   await main(page).first().click()
+  await insp(page, 'anim')
   await expect(keys(page).locator('[data-md-kf^="fx:"] [data-md-key]')).toHaveCount(2)
   await page.locator('[data-row="ov"] [data-block="ov"]').click()
   await expect(prop(page, 'opacity').locator('[data-md-key]')).toHaveCount(2)

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { center, centerIs, importFiles, isColor, isGray, main, newAdvProject, saveAndReload, seekTo, solid } from './motion-helpers'
+import { center, centerIs, importFiles, insp, isColor, isGray, main, newAdvProject, saveAndReload, seekTo, solid } from './motion-helpers'
 
 /** Motion Design → Avansert: effekter på klipp (forhåndsvisning, av/på, rekkefølge, fade, angre, lagring). */
 
@@ -14,6 +14,8 @@ test('effekter: legg til, juster, av/på, rekkefølge, fade, fjern, angre og lag
   await page.locator('[data-md-bin-item="blaa.png"] [data-md-to="v1"]').click()
   await seekTo(page, 1)
   await main(page).nth(0).click()
+  // kategorien Effekter i inspektøren
+  await insp(page, 'fx')
   const fx = page.locator('[data-md-effects]')
   await expect(fx).toBeVisible()
   await centerIs(page, (c) => isColor(c, 0), 'rødt uten effekter')
@@ -68,6 +70,7 @@ test('effekter: legg til, juster, av/på, rekkefølge, fade, fjern, angre og lag
   // lagre og last inn: effektene, rekkefølgen og verdiene står
   await saveAndReload(page)
   await main(page).nth(0).click()
+  await insp(page, 'fx')
   await expect(page.locator('[data-md-effects] [data-md-fx]')).toHaveCount(2)
   await expect(page.locator('[data-md-effects] [data-md-fx]').first()).toHaveAttribute('data-md-fx', 'hue')
   await expect(page.locator('[data-md-effects] [data-md-fx="hue"] [data-md-fxv="hue"]')).toHaveValue('180')

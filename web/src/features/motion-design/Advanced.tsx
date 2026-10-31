@@ -18,11 +18,21 @@ const css = (u: string) => (u ? `url("${u.replace(/["\\\n]/g, '')}")` : 'none')
 const sec = (v: number) => (Math.round(v * 100) / 100).toFixed(2)
 
 export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void }) {
+  // «Bytt media» på et klipp i V1: biblioteket viser «Bruk her» på hver fil som kan erstatte det
+  const rep = S.replaceFor && p.clips.some((x) => x.id === S.replaceFor) ? S.replaceFor : null
   return (
     <div className={s.panel} data-md-bin="">
-      <span className={s.binHead}>{tx('Mediebibliotek')}</span>
+      {rep && (
+        <div className={s.replace} data-md-replace="">
+          <span>{tx('Velg filen som skal erstatte det valgte klippet.')}</span>
+          <button type="button" className={s.linkBtn} onClick={() => c.set({ replaceFor: null })}>{tx('Avbryt')}</button>
+        </div>
+      )}
       <button type="button" className={s.bigLight} data-md-bin-import="" onClick={() => c.pickMedia()}>{tx('Importer video, lyd og bilder …')}</button>
-      <button type="button" className={`${s.barBtn} ${s.small}`} onClick={onShared}>{tx('Fra Dine medier')}</button>
+      <div className={s.binBtns}>
+        <button type="button" className={`${s.barBtn} ${s.small}`} onClick={onShared}>{tx('Fra Dine medier')}</button>
+        {!rep && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-color="" title={tx('Ensfarget flate eller fargeovergang på V1')} onClick={() => c.addColor()}>{tx('+ Fargeflate')}</button>}
+      </div>
       <span className={s.hint}>{tx('MP4, MOV, WebM, PNG, JPG, WebP, GIF, MP3, WAV, M4A, AAC, OGG og FLAC. Du kan også dra filer inn i vinduet.')}</span>
       {S.binErr.length > 0 && (
         <div className={s.binErr} role="alert" data-md-bin-err="">
@@ -31,10 +41,6 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
           <button type="button" className={s.linkBtn} onClick={() => c.set({ binErr: [] })}>{tx('Lukk')}</button>
         </div>
       )}
-      <div className={s.binBtns} data-md-bin-text="">
-        <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-text="" title={tx('Ny tekst på et tekstspor fra spillehodet')} onClick={() => c.addText({})}>{tx('+ Tekst')}</button>
-        <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-sub="" title={tx('Ny undertekst fra spillehodet (2,5 s)')} onClick={() => c.addSub()}>{tx('+ Undertekst')}</button>
-      </div>
       {!p.media.length && <span className={s.note}>{tx('Biblioteket er tomt. Importer filer for å legge dem på tidslinjen.')}</span>}
       <ul className={s.binList} aria-label={tx('Mediebibliotek')}>
         {p.media.map((m) => (
@@ -45,9 +51,10 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
               <span className={s.binMeta} data-md-bin-meta="">{tx(KIND[m.kind])} · {m.kind === 'image' ? tx('ingen varighet') : fmtTC(m.dur)}{m.w ? ` · ${m.w}×${m.h}` : ''}</span>
             </span>
             <span className={s.binBtns}>
-              {m.kind !== 'audio' && <button type="button" className={s.mini} data-md-to="v1" title={tx('Legg på hovedsporet V1 (etter valgt klipp, ellers sist)')} onClick={() => c.addToTrack(m, 'v1')}>V1</button>}
-              {m.kind !== 'audio' && <button type="button" className={s.mini} data-md-to="v" title={tx('Legg på et nytt videospor øverst ved spillehodet (dekker sporene under)')} onClick={() => c.addToTrack(m, 'v')}>{tx('V+')}</button>}
-              {m.kind === 'audio' && <button type="button" className={s.mini} data-md-to="a" title={tx('Legg på et lydspor ved spillehodet')} onClick={() => c.addToTrack(m, 'a')}>{tx('Lydspor')}</button>}
+              {rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-use="" onClick={() => c.replaceClip(rep, m)}>{tx('Bruk her')}</button>}
+              {!rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-to="v1" title={tx('Legg på hovedsporet V1 (etter valgt klipp, ellers sist)')} onClick={() => c.addToTrack(m, 'v1')}>V1</button>}
+              {!rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-to="v"title={tx('Legg på et nytt videospor øverst ved spillehodet (dekker sporene under)')} onClick={() => c.addToTrack(m, 'v')}>{tx('V+')}</button>}
+              {!rep && m.kind === 'audio' && <button type="button" className={s.mini} data-md-to="a" title={tx('Legg på et lydspor ved spillehodet')} onClick={() => c.addToTrack(m, 'a')}>{tx('Lydspor')}</button>}
             </span>
           </li>
         ))}
@@ -206,11 +213,6 @@ export function AdvEffects({ c, S, p, tx }: { c: MotionController; S: MState; p:
   if (!tg || S.multi.length > 1) return null
   const it = (tg.kind === 'clip' ? p.clips : p.ov).find((x) => x.id === tg.id)
   if (!it) return null
-  const media = it.kind !== 'color'
-  const scale = (it as { scale?: number }).scale ?? 1
-  const crop = (it as { crop?: { l: number; t: number; r: number; b: number } }).crop ?? { l: 0, t: 0, r: 0, b: 0 }
-  const SC: FxDef = tg.kind === 'ov' ? { l: '', min: 0.02, max: 4, step: 0.01, def: 1, unit: '%' } : { l: '', min: 0.1, max: 5, step: 0.01, def: 1, unit: '%' }
-  const CR: FxDef = { l: '', min: 0, max: 0.45, step: 0.005, def: 0, unit: '%' }
   return (
     <div className={s.timing} data-md-effects="">
       <div className={s.tmHead}>
@@ -242,15 +244,7 @@ export function AdvEffects({ c, S, p, tx }: { c: MotionController; S: MState; p:
         </select>
         <button type="button" className={`${s.barBtn} ${s.small}`} data-md-fx-add="" onClick={() => c.addEffect(add)}>{tx('Legg til')}</button>
       </div>
-      {media && (
-        <>
-          <span className={s.binHead}>{tx('Bilde')}</span>
-          <FxSlider k="scale" label={tx('Skalering')} d={SC} v={scale} on={(v) => c.patch(tg.kind, tg.id, { scale: v }, `sc-${tg.id}`)} />
-          {(['l', 't', 'r', 'b'] as const).map((k) => (
-            <FxSlider key={k} k={`crop-${k}`} label={tx(({ l: 'Beskjær venstre', t: 'Beskjær topp', r: 'Beskjær høyre', b: 'Beskjær bunn' } as const)[k])} d={CR} v={crop[k]} on={(v) => c.patch(tg.kind, tg.id, { crop: { ...crop, [k]: v } }, `cr-${tg.id}-${k}`)} />
-          ))}
-        </>
-      )}
+      <span className={s.hint}>{tx('Effektene virker i rekkefølgen over. Fargekorrigering og beskjæring finner du under.')}</span>
     </div>
   )
 }
@@ -331,8 +325,10 @@ export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
         <span className={s.binHead}>{tx('Keyframes')}</span>
         <span className={s.dim} data-md-kf-lt="">{fmtHMS(Math.max(0, tg.lt))}</span>
         <span className={s.flex} />
-        <button type="button" className={s.ico} aria-label={tx('Forrige keyframe')} title={tx('Forrige keyframe')} data-md-kf-prev="" onClick={() => c.jumpKey(-1)}>◀</button>
-        <button type="button" className={s.ico} aria-label={tx('Neste keyframe')} title={tx('Neste keyframe')} data-md-kf-next="" onClick={() => c.jumpKey(1)}>▶</button>
+        <span style={{ display: 'inline-flex', gap: 4, marginLeft: 'auto' }}>
+          <button type="button" className={s.ico} aria-label={tx('Forrige keyframe')} title={tx('Forrige keyframe')} data-md-kf-prev="" onClick={() => c.jumpKey(-1)}>◀</button>
+          <button type="button" className={s.ico} aria-label={tx('Neste keyframe')} title={tx('Neste keyframe')} data-md-kf-next="" onClick={() => c.jumpKey(1)}>▶</button>
+        </span>
       </div>
       {(tg.lt < 0 || tg.lt > tg.dur) && <span className={s.hint}>{tx('Spillehodet er utenfor klippet. Flytt det inn i klippet for å lage keyframes.')}</span>}
       {out > 0 && <span className={s.tlWarn} data-md-kf-out="">{tx('{n} keyframes ligger utenfor klippet (etter trimming). De virker ikke, men er beholdt.', { n: out })}</span>}
@@ -393,7 +389,8 @@ export function AdvSpeed({ c, S, p, tx }: { c: MotionController; S: MState; p: P
         <KNum k="speed" label={tx('Fart')} v={sp} min={0.1} max={8} step={0.05} on={set} />
       </label>
       <span className={s.dim} data-md-speed-info="">{tx('Kilde {src} s → {eff} s på tidslinjen', { src: src.toFixed(2), eff: (src / sp).toFixed(2) })}</span>
-      <span className={s.hint}>{tx(sel.type === 'clip' ? 'I V1 flytter klippene etter seg når lengden endres.' : 'Klippet beholder starten; slutten flyttes.')} {tx('Lyden følger farten (tonehøyden endres). Keyframes følger innholdet.')}</span>
+      <label className={s.fxOn}><input type="checkbox" checked={!!it.rev} data-md-rev="" onChange={() => c.patch(sel.type, it.id, { rev: !it.rev })} /> {tx('Spill baklengs')}</label>
+      <span className={s.hint}>{tx(sel.type === 'clip' ? 'I V1 flytter klippene etter seg når lengden endres.' : 'Klippet beholder starten; slutten flyttes.')} {tx('Lyden følger farten (tonehøyden endres). Keyframes følger innholdet.')}{it.rev ? ` ${tx('Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.')}` : ''}</span>
     </div>
   )
 }

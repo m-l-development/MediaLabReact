@@ -120,3 +120,14 @@ export async function recordVideo(page: Page, name: string, colors: string[], se
   }, { cols: colors, seg: segSec })
   return { name, mimeType: 'video/webm', buffer: Buffer.from(b64, 'base64') }
 }
+
+/** Avansert: velger en kategori i inspektøren (Klipp, Effekter, Animasjon, Hastighet, Lyd). */
+export async function insp(page: Page, k: 'clip' | 'fx' | 'anim' | 'speed' | 'audio') {
+  await page.locator(`[data-md-insp-tab="${k}"]`).click()
+  await expect(page.locator(`[data-md-insp-tab="${k}"]`)).toHaveAttribute('aria-selected', 'true')
+}
+
+/** Velger en fane i venstre panel (Media, Tekst, Undertekst, Musikk/Lyd, Logo, Overganger). */
+export async function leftTab(page: Page, k: 'media' | 'text' | 'subs' | 'audio' | 'logo' | 'trans') {
+  await page.locator(`[data-md-tab="${k}"]`).click()
+}

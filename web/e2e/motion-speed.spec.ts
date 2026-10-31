@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { centerIs, importFiles, main, newAdvProject, recordVideo, saveAndReload, seekTo } from './motion-helpers'
+import { centerIs, importFiles, insp, main, newAdvProject, recordVideo, saveAndReload, seekTo } from './motion-helpers'
 
 /** Motion Design → Avansert: hastighet på et ekte videoklipp (rødt 0–1 s, grønt 1–2 s, blått 2–3 s i kilden). */
 
 const speed = (page: Page) => page.locator('[data-md-speed]')
-const dur = (page: Page) => page.locator('[data-md-timing] [data-md-tm="dur"]')
-/** Varigheten i inspektøren er avrundet til to desimaler. */
-const durIs = (page: Page, v: number) => expect.poll(async () => Math.abs(Number(await dur(page).inputValue()) - v)).toBeLessThan(0.02)
+/** Effektiv varighet slik hastighetspanelet viser den («Kilde X s → Y s på tidslinjen», to desimaler). */
+const effDur = async (page: Page) => Number(/→ ([\d.]+) s/.exec((await speed(page).locator('[data-md-speed-info]').textContent()) ?? '')?.[1] ?? NaN)
+const durIs = (page: Page, v: number) => expect.poll(async () => Math.abs((await effDur(page)) - v)).toBeLessThan(0.02)
 
 test('hastighet: normal, rask og sakte film på en ekte video, keyframes følger, angre og lagring', async ({ page }, info) => {
   test.skip(info.project.name === 'mobil', 'PC')
@@ -20,8 +20,11 @@ test('hastighet: normal, rask og sakte film på en ekte video, keyframes følger
   await expect(page.locator('[data-md-bin-item="farger.webm"] [data-md-bin-meta]')).toHaveText(/^Video · 00:00:0[23]:\d\d · 320×180$/)
   await page.locator('[data-md-bin-item="farger.webm"] [data-md-to="v1"]').click()
   await main(page).first().click()
+  // varigheten i Klipp (tidsinspektøren), så kategorien Hastighet
+  const src = Number(await page.locator('[data-md-timing] [data-md-tm="dur"]').inputValue())
+  await insp(page, 'speed')
   await expect(speed(page)).toBeVisible()
-  const src = Number(await dur(page).inputValue())
+  await durIs(page, src)
   expect(src).toBeGreaterThan(2.8)
 
   // normal fart: grønt ved 1,5 s
@@ -59,9 +62,13 @@ test('hastighet: normal, rask og sakte film på en ekte video, keyframes følger
   await main(page).first().click()
   await seekTo(page, 4)
   await main(page).first().click()
+  await insp(page, 'anim')
   await page.locator('[data-md-keys] [data-md-kf="scale"] [data-md-kf-toggle]').click()
+  await insp(page, 'speed')
   await speed(page).locator('[data-md-speedset="1"]').click()
+  await insp(page, 'anim')
   await expect(page.locator('[data-md-keys] [data-md-kf="scale"] [data-md-kfnum="scale-t-0"]')).toHaveValue('2.00')
+  await insp(page, 'speed')
 
   // numerisk fart, angre (endringer av samme felt innen 0,9 s blir ett angresteg, så vi venter litt)
   await page.waitForTimeout(1000)
@@ -76,6 +83,7 @@ test('hastighet: normal, rask og sakte film på en ekte video, keyframes følger
   // lagring
   await saveAndReload(page)
   await main(page).first().click()
+  await insp(page, 'speed')
   await expect(speed(page).locator('[data-md-kfnum="speed"]')).toHaveValue('1.50')
   await durIs(page, src / 1.5)
   expect(errors).toEqual([])

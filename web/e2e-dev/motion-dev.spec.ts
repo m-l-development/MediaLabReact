@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
-import { importFiles, main, recordVideo, seekTo, solid, wav } from '../e2e/motion-helpers'
+import { importFiles, insp, leftTab, main, recordVideo, seekTo, solid, wav } from '../e2e/motion-helpers'
 import { readMp4 } from '../e2e/mp4'
 
 /**
@@ -93,13 +93,16 @@ test('Motion Design: hele arbeidsflyten innlogget i Dev, med ekte eksport', asyn
     await importFiles(page, [vid, solid('magenta.png', [230, 20, 230]), { name: 'tone.wav', mimeType: 'audio/wav', buffer: wav(1, 0, 1, 1000, 12000) }], 3)
     await page.locator('[data-md-bin-item="farger.webm"] [data-md-to="v1"]').click()
     await main(page).first().click()
+    await insp(page, 'speed')
     await page.locator('[data-md-speed] [data-md-speedset="2"]').click()
     await seekTo(page, 2)
     await page.locator('[data-md-bin-item="magenta.png"] [data-md-to="v"]').click()
     await page.locator('[data-md-timing] [data-md-tm="dur"]').fill('1.5')
     await page.locator('[data-md-timing] [data-md-tm="dur"]').blur()
+    await insp(page, 'fx')
     await page.locator('[data-md-fx-pick]').selectOption('bw')
     await page.locator('[data-md-fx-add]').click()
+    await insp(page, 'anim')
     const op = page.locator('[data-md-keys] [data-md-kf="opacity"]')
     await op.locator('[data-md-kf-toggle]').click()
     await op.locator('[data-md-kfnum="opacity"]').fill('0')
@@ -113,9 +116,11 @@ test('Motion Design: hele arbeidsflyten innlogget i Dev, med ekte eksport', asyn
     await page.locator('[data-md-bin-item="tone.wav"] [data-md-to="a"]').click()
     await seekTo(page, 3)
     for (let i = 0; i < 15; i++) await page.keyboard.press('ArrowRight')
+    await leftTab(page, 'text')
     await page.locator('[data-md-add-text]').click()
     await page.locator('[data-md-timing] [data-md-tm="dur"]').fill('0.5')
     await page.locator('[data-md-timing] [data-md-tm="dur"]').blur()
+    await leftTab(page, 'subs')
     await page.locator('[data-md-add-sub]').click()
     await page.locator('[data-md-field="dur"]').fill('00:00:04')
     await page.locator('[data-md-field="dur"]').press('Enter')

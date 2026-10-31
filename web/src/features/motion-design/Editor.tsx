@@ -1,11 +1,11 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { TRSTD, type ExpState, type MotionController, type MState } from './controller'
+import { TRSTD, type ExpState, type Insp, type MotionController, type MState } from './controller'
 import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { clipFields, collapse, musicFields, ovFields, projectFields, subFields, textFields, type Field } from './fields'
-import { AdvBin, AdvEffects, AdvExport, AdvKeys, AdvNote, AdvSpeed, AdvText, AdvTiming } from './Advanced'
+import { AdvEffects, AdvExport, AdvKeys, AdvNote, AdvSpeed, AdvText, AdvTiming } from './Advanced'
 import { LeftPanel } from './Panels'
-import { useState } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Fields } from './Props'
 import type { Phrase, Tx } from './texts'
 import type { ToolId } from '../../domain/tool'
@@ -70,7 +70,134 @@ function propsOf(c: MotionController, S: MState, p: Project): { title: Phrase; t
   return r
 }
 
-const EXP: [ExpState['q'], Phrase, '1080' | '4k'][] = [['1080-30', '1080p · 30 fps', '1080'], ['1080-60', '1080p · 60 fps', '1080'], ['4k-30', '4K · 30 fps', '4k']]
+/* ---------- Avansert: kategorier i inspektøren ---------- */
+
+const INSP: Record<Insp, Phrase> = { clip: 'Klipp', fx: 'Effekter', anim: 'Animasjon', speed: 'Hastighet', audio: 'Lyd' }
+/** Seksjoner i feltlisten som hører til Effekter og Lyd; resten er Klipp. «Hastighet» har eget panel i Avansert. */
+const FX_HEADS = new Set<string>(['Farge og lys', 'Farge', 'RGB-kurver', 'Grønnskjerm', 'Beskjær'])
+const AUDIO_HEADS = new Set<string>(['Lyd', 'Lydtoning'])
+/** Felt som tidsinspektøren i Avansert alt viser (start og varighet på tidslinjen). */
+const TIME_DUPS = new Set<string>(['Varighet (s)', 'Start på tidslinjen (s)', 'Start (s)', 'Slutt (s)'])
+/** Handlinger som tidsinspektøren i Avansert alt har. */
+const ACT_DUPS = new Set<string>(['Del ved spillehodet', 'Slett', '← Flytt', 'Flytt →'])
+
+/** Kategoriene for valgt element i Avansert (tom liste = ingen faner: musikk, undertekst, flere valgt, prosjekt). */
+function inspTabs(S: MState, p: Project): Insp[] {
+  const sel = S.sel
+  if (!S.adv || !sel || S.multi.length > 1) return []
+  if (sel.type === 'text') return p.texts.some((x) => x.id === sel.id) ? ['clip', 'anim'] : []
+  if (sel.type !== 'clip' && sel.type !== 'ov') return []
+  const it = (sel.type === 'clip' ? p.clips : p.ov).find((x) => x.id === sel.id)
+  if (!it) return []
+  return it.kind === 'video' ? ['clip', 'fx', 'anim', 'speed', 'audio'] : ['clip', 'fx', 'anim']
+}
+
+/** Feltene fordelt på kategori (Avansert): uten duplikater av tidsinspektøren og hastighetspanelet. */
+function fieldsByCat(fields: Field[], adv: boolean): { f: Field; cat: Insp | null }[] {
+  const out: { f: Field; cat: Insp | null }[] = []
+  let cat: Insp | null = 'clip'
+  for (const f of fields) {
+    if (f.k === 'head') cat = adv && f.label === 'Hastighet' ? null : FX_HEADS.has(f.label) ? 'fx' : AUDIO_HEADS.has(f.label) ? 'audio' : 'clip'
+    if (!adv) {
+      out.push({ f, cat: 'clip' })
+      continue
+    }
+    if (cat === null || (f.k === 'num' && TIME_DUPS.has(f.label))) continue
+    out.push({ f, cat })
+  }
+  return out
+}
+
+/** Fokus inn i dialogen, Tab holdes inne, Escape lukker (når det er lov), og fokus tilbake dit det var ved lukking. */
+function Modal({ label, onEsc, onBack, wide, z, children, data }: { label: string; onEsc: () => void; onBack?: () => void; wide?: boolean; z?: number; children: ReactNode; data?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const esc = useRef(onEsc)
+  useEffect(() => {
+    esc.current = onEsc
+  })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    el.focus()
+    const list = () => [...el.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]')]
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        esc.current()
+      } else if (e.key === 'Tab') {
+        const f = list()
+        if (!f.length) return
+        const a = f[0] as HTMLElement
+        const b = f[f.length - 1] as HTMLElement
+        const at = document.activeElement
+        if (e.shiftKey && (at === a || at === el)) {
+          e.preventDefault()
+          b.focus()
+        } else if (!e.shiftKey && (at === b || !el.contains(at))) {
+          e.preventDefault()
+          a.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', key, true)
+    return () => {
+      document.removeEventListener('keydown', key, true)
+      if (prev?.isConnected) prev.focus()
+    }
+  }, [])
+  return (
+    <div className={s.modalBack} style={z ? { zIndex: z } : undefined} onClick={onBack ? (e) => e.target === e.currentTarget && onBack() : undefined}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} className={`${s.modal} ${wide ? s.modalWide : ''}`} data-md-dialog={data}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** Høyreklikkmenyen: første valg får fokus, piltastene flytter, Escape og Tab lukker. */
+function CtxMenu({ c, S, tx }: { c: MotionController; S: MState; tx: Tx }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
+  }, [])
+  const m = S.menu
+  if (!m) return null
+  const close = () => c.set({ menu: null })
+  return (
+    <>
+      <div className={s.menuBack} onPointerDown={(e) => {
+        e.preventDefault()
+        close()
+      }} onContextMenu={(e) => {
+        e.preventDefault()
+        close()
+      }} />
+      <div ref={ref} role="menu" className={s.ctxMenu} style={{ left: m.x, top: m.y }}
+        onKeyDown={(e) => {
+          const items = [...(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
+          const i = items.indexOf(document.activeElement as HTMLElement)
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            e.stopPropagation()
+            const n = items.length
+            items[(i + (e.key === 'ArrowDown' ? 1 : n - 1) + n) % n]?.focus()
+          } else if (e.key === 'Escape' || e.key === 'Tab') {
+            e.preventDefault()
+            e.stopPropagation()
+            close()
+          }
+        }}>
+        {m.items.map((it, i) => (it === 'sep'
+          ? <div key={i} className={s.menuSep} role="separator" />
+          : <button key={i} type="button" role="menuitem" className={s.menuItem} style={{ color: it.danger ? '#ff8f7d' : undefined }} onClick={it.click}><span>{tx(it.l)}</span><span className={s.menuKey}>{it.k}</span></button>))}
+      </div>
+    </>
+  )
+}
+
+const EXP: [ExpState['q'], Phrase, '1080' | '4k'][] =[['1080-30', '1080p · 30 fps', '1080'], ['1080-60', '1080p · 60 fps', '1080'], ['4k-30', '4K · 30 fps', '4k']]
 
 export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void; onLogoCloud: () => void; folders: boolean ; sendTo?: SendTo }) {
   const T = totalDur(p)
@@ -78,13 +205,27 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
   const wide = !narrow && S.vw >= 1280
   const port = p.h > p.w * 1.05
   const pr = propsOf(c, S, p)
-  const fields = collapse(pr.fields, S.secOpen)
+  // Avansert: kategorier for valgt element; feltene og handlingene uten det tidsinspektøren og panelene alt viser
+  const tabs = inspTabs(S, p)
+  const cur: Insp | null = tabs.length ? (tabs.includes(S.insp) ? S.insp : 'clip') : null
+  const timing = S.adv && !!S.sel && S.multi.length <= 1
+  const byCat = fieldsByCat(pr.fields, S.adv)
+  const fields = collapse(byCat.filter((x) => (cur ? x.cat === cur : true)).map((x) => x.f), cur === 'audio' ? { Lyd: true, Lydtoning: true, ...S.secOpen } : S.secOpen)
+  const actions = timing ? pr.actions.filter((a) => !ACT_DUPS.has(a.l)) : pr.actions
   const E = S.exp
   const F = S.folder
   const ghost = S.trDrag ?? S.medDrag
   const ghostSub: Record<string, Phrase> = { clip: 'Sett inn i videosporet', ov: 'Overlegg', stage: 'Overlegg ved spillehodet', music: 'Lydspor' }
-  // Avansert: venstre panel viser mediebiblioteket, eller de vanlige verktøyene (tekst, musikk, overganger …)
-  const [bin, setBin] = useState(true)
+  const tabKey = (e: React.KeyboardEvent) => {
+    if (!cur || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
+    e.preventDefault()
+    e.stopPropagation()
+    const i = tabs.indexOf(cur)
+    const n = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length
+    const k = tabs[n] as Insp
+    c.set({ insp: k })
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-md-insp-tab="${k}"]`)?.focus())
+  }
   return (
     <div ref={c.bind('root')} className={`${s.editor} ${narrow ? s.editorNarrow : ''}`} data-md-editor="1" data-ml-workspace=""
       onDragOver={(e) => {
@@ -135,13 +276,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
 
       <div className={s.grid} style={{ gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'clamp(190px, 21vw, 290px) minmax(0, 1fr) clamp(210px, 23vw, 310px)', gridTemplateRows: narrow ? 'minmax(260px, 46dvh) minmax(0, 40dvh)' : 'minmax(0, 1fr)' }}>
         <aside className={`${s.aside} ${s.asideL}`} style={{ order: narrow ? 2 : 1, display: !narrow || S.drawer !== 'r' ? 'flex' : 'none' }}>
-          {S.adv && (
-            <div className={s.tabs} role="tablist" data-md-adv-left="">
-              <button type="button" role="tab" className={s.tab} aria-selected={bin} aria-pressed={bin} onClick={() => setBin(true)}><span>{tx('Mediebibliotek')}</span></button>
-              <button type="button" role="tab" className={s.tab} aria-selected={!bin} aria-pressed={!bin} onClick={() => setBin(false)}><span>{tx('Verktøy')}</span></button>
-            </div>
-          )}
-          {S.adv && bin ? <AdvBin c={c} S={S} p={p} tx={tx} onShared={onShared} /> : <LeftPanel c={c} S={S} p={p} tx={tx} onShared={onShared} onLogoCloud={onLogoCloud} />}
+          <LeftPanel c={c} S={S} p={p} tx={tx} onShared={onShared} onLogoCloud={onLogoCloud} />
         </aside>
         <section className={s.center} style={{ order: narrow ? 1 : 2 }}>
           <div ref={c.bind('stage')} className={s.stage} style={{ padding: port ? 8 : 16 }}>
@@ -182,19 +317,35 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
             <span className={s.propTitle}>{tx(pr.title, pr.tv)}</span>
             {S.sel && <button type="button" className={s.linkBtn} onClick={() => c.set({ sel: null, replaceFor: null })}>{tx('Fjern valg')}</button>}
           </div>
-          {S.adv && <AdvTiming c={c} S={S} p={p} tx={tx} />}
-          {S.adv && <AdvSpeed c={c} S={S} p={p} tx={tx} />}
-          {S.adv && <AdvEffects c={c} S={S} p={p} tx={tx} />}
-          <AdvText c={c} S={S} p={p} tx={tx} />
-          {S.adv && <AdvKeys c={c} S={S} p={p} tx={tx} />}
-          <AdvNote S={S} p={p} tx={tx} />
-          {pr.actions.length > 0 && (
-            <div className={s.acts}>
-              {pr.actions.map((a) => <button key={a.l} type="button" className={`${s.act} ${a.danger ? s.danger : ''}`} onClick={a.click}>{tx(a.l)}</button>)}
+          {cur && (
+            <div className={s.inspTabs} role="tablist" aria-label={tx('Kategori')} data-md-insp="" onKeyDown={tabKey}>
+              {tabs.map((k) => (
+                <button key={k} type="button" role="tab" id={`md-insp-${k}`} aria-controls="md-insp-panel" aria-selected={cur === k} tabIndex={cur === k ? 0 : -1}
+                  className={s.inspTab} data-md-insp-tab={k} onClick={() => c.set({ insp: k })}>{tx(k === 'clip' && S.sel?.type === 'text' ? 'Tekst' : INSP[k])}</button>
+              ))}
             </div>
           )}
-          {pr.note && <span className={s.note} style={{ fontSize: 12, lineHeight: 1.55 }}>{pr.raw ? pr.note : tx(pr.note)}</span>}
-          <Fields fields={fields} c={c} tx={tx} />
+          <div className={s.inspPanel} id={cur ? 'md-insp-panel' : undefined} role={cur ? 'tabpanel' : undefined} aria-labelledby={cur ? `md-insp-${cur}` : undefined} data-md-insp-panel={cur ?? ''}>
+            {(!cur || cur === 'clip') && (
+              <>
+                {timing && <AdvTiming c={c} S={S} p={p} tx={tx} />}
+                <AdvText c={c} S={S} p={p} tx={tx} />
+                <AdvNote S={S} p={p} tx={tx} />
+                {actions.length > 0 && (
+                  <div className={s.acts}>
+                    {actions.map((a) => <button key={a.l} type="button" className={`${s.act} ${a.danger ? s.danger : ''}`} onClick={a.click}>{tx(a.l)}</button>)}
+                  </div>
+                )}
+                {pr.note && <span className={s.note} style={{ fontSize: 12, lineHeight: 1.55 }}>{pr.raw ? pr.note : tx(pr.note)}</span>}
+              </>
+            )}
+            {cur === 'fx' && <AdvEffects c={c} S={S} p={p} tx={tx} />}
+            {cur === 'anim' && <AdvKeys c={c} S={S} p={p} tx={tx} />}
+            {cur === 'speed' && <AdvSpeed c={c} S={S} p={p} tx={tx} />}
+            {cur === 'fx' && fields.length > 0 && <span className={s.binHead}>{tx('Fargekorrigering')}</span>}
+            {cur === 'audio' && <span className={s.hint}>{tx('Lyden i dette klippet. Lydsporene (A1, A2 …) demper du med høyttalerknappen foran sporet i tidslinjen.')}</span>}
+            {(cur !== 'anim' && cur !== 'speed') && <Fields fields={fields} c={c} tx={tx} />}
+          </div>
         </aside>
       </div>
 
@@ -205,8 +356,8 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
           if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
           e.preventDefault()
           e.stopPropagation()
-          const cur = (e.currentTarget.nextElementSibling as HTMLElement | null)?.getBoundingClientRect().height ?? 240
-          c.setTlH(cur + (e.key === 'ArrowUp' ? 24 : -24))
+          const h = (e.currentTarget.nextElementSibling as HTMLElement | null)?.getBoundingClientRect().height ?? 240
+          c.setTlH(h + (e.key === 'ArrowUp' ? 24 : -24))
         }}
         onPointerDown={(e) => {
           if (e.button !== 0) return
@@ -220,31 +371,16 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
         }} />}
       <Timeline c={c} S={S} p={p} tx={tx} maxH={S.tlH ? `${S.tlH}px` : narrow ? '28dvh' : 'min(34dvh, 280px)'} fixH={S.tlH ?? undefined} />
 
-      {S.menu && (
-        <>
-          <div className={s.menuBack} onPointerDown={(e) => {
-            e.preventDefault()
-            c.set({ menu: null })
-          }} onContextMenu={(e) => {
-            e.preventDefault()
-            c.set({ menu: null })
-          }} />
-          <div role="menu" className={s.ctxMenu} style={{ left: S.menu.x, top: S.menu.y }}>
-            {S.menu.items.map((it, i) => (it === 'sep'
-              ? <div key={i} className={s.menuSep} />
-              : <button key={i} type="button" role="menuitem" className={s.menuItem} style={{ color: it.danger ? '#ff8f7d' : undefined }} onClick={it.click}><span>{tx(it.l)}</span><span className={s.menuKey}>{it.k}</span></button>))}
-          </div>
-        </>
-      )}
+      {S.menu && <CtxMenu c={c} S={S} tx={tx} />}
       {ghost && (
         <div className={s.ghost} style={{ left: ghost.x, top: ghost.y }}>
           <span>{S.trDrag ? tx(TRSTD.find((x) => x[0] === S.trDrag?.type)?.[1] ?? '') : S.medDrag?.name}</span>
           {S.medDrag?.hit && <span className={s.ghostSub}>{tx(ghostSub[S.medDrag.hit.kind] ?? '')}</span>}
         </div>
       )}
+      {/* eksport: lukkes med «Lukk» eller Escape (ikke mens videoen lages); klikk utenfor lukker ikke (innstillingene skal ikke forsvinne) */}
       {E && (
-        <div className={s.modalBack}>
-          <div role="dialog" aria-modal="true" aria-label={tx('Eksporter video')} className={s.modal}>
+        <Modal label={tx('Eksporter video')} data="export" onEsc={() => !c.s.exp?.busy && c.closeExport()}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <h2 className={s.modalTitle}>{tx('Eksporter video')}</h2>
               <p className={s.modalLead}>{tx('MP4 med H.264 og lyd. Hold fanen åpen mens videoen lages. Lange videoer og 4K tar lengre tid.')}</p>
@@ -293,12 +429,11 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
               )}
               {E.busy && <button type="button" className={`${s.mBtn} ${s.mBtnAbort}`} onClick={() => c.abortExport()}>{tx('Avbryt eksport')}</button>}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
+      {/* prosjektmappe: bare informasjon og valg – klikk utenfor, «Lukk» og Escape lukker */}
       {S.folderDlg && (
-        <div className={s.modalBack} style={{ zIndex: 200 }} onClick={(e) => e.target === e.currentTarget && c.set({ folderDlg: false })}>
-          <div role="dialog" aria-modal="true" aria-label={tx('Prosjektmappe')} className={`${s.modal} ${s.modalWide}`}>
+        <Modal label={tx('Prosjektmappe')} data="folder" wide z={200} onEsc={() => c.set({ folderDlg: false })} onBack={() => c.set({ folderDlg: false })}>
             <strong style={{ fontSize: 16 }}>{tx('Prosjektmappe')}</strong>
             <p className={s.lead3}>{tx('Med en prosjektmappe ligger videoer, bilder og lyd i en vanlig mappe på PC-en din, ikke i nettleseren. Filene sendes aldri over nett. Mappen kan tas med til en annen PC og åpnes med «Åpne prosjektmappe».')}</p>
             {!folders && <p className={s.warn}>{tx('Denne nettleseren støtter ikke prosjektmapper. Bruk Chrome eller Edge på PC. Prosjektet lagres i nettleseren som før.')}</p>}
@@ -316,8 +451,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
               {folders && F?.folder && <button type="button" className={s.fBtn} disabled={!!S.folderBusy} onClick={() => void c.pickFolder()}>{tx('Bytt mappe …')}</button>}
               <button type="button" className={s.fBtn} onClick={() => c.set({ folderDlg: false })}>{tx('Lukk')}</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

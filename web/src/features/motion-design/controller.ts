@@ -21,6 +21,9 @@ import type { DirHandle } from '../../infrastructure/fs/project-folders'
 export type Kind = 'clip' | 'text' | 'sub' | 'music' | 'ov'
 export interface Sel { type: Kind; id: string }
 export interface Msg { p: Phrase; v?: Vars }
+/** Kategoriene i inspektøren i Avansert. */
+export type Insp = 'clip' | 'fx' | 'anim' | 'speed' | 'audio'
+const inspGroup = (k: Kind) => (k === 'clip' || k === 'ov' ? 'v' : k)
 export type Tab = 'media' | 'text' | 'subs' | 'audio' | 'logo' | 'trans'
 export type View = 'home' | 'format' | 'tpl' | 'edit'
 export type FileMode = 'lib' | 'replace' | 'music' | 'vo' | 'logo' | 'drop'
@@ -84,6 +87,8 @@ export interface MState {
   lastExp: boolean
   /** Avansert mediebibliotek: filene fra siste import som ikke kunne brukes, med årsak. */
   binErr: { name: string; why: Phrase }[]
+  /** Avansert: valgt kategori i inspektøren (Klipp, Effekter, Animasjon, Hastighet, Lyd). */
+  insp: Insp
   /** Synlig del av tidslinjen (sekunder): venstre kant og bredde. Endres av rulling og zoom, aldri av prosjektet. */
   tlView: { l: number; w: number }
   /** Tidslinjens høyde i piksler (dratt av brukeren; huskes i nettleseren). null = standard. */
@@ -248,7 +253,7 @@ export class MotionController {
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
       toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, narrow: false, vw: 1440, dragOver: false,
       clipDrag: null, packing: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
-      folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
+      folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], insp: 'clip', tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
     })
   }
 
@@ -256,10 +261,20 @@ export class MotionController {
     return this.state.get()
   }
 
+  private lastSel: Kind | null = null
+
   set(p: Partial<MState> | ((s: MState) => Partial<MState> | null)): void {
     this.state.set((s) => {
       const patch = typeof p === 'function' ? p(s) : p
-      return patch ? { ...s, ...patch } : s
+      if (!patch) return s
+      // inspektørens kategori beholdes mellom klipp og videospor, men starter på Klipp/Tekst for en annen type element
+      // (sammenlignes med forrige valgte element, også når valget var fjernet imellom)
+      if (patch.sel) {
+        const prev = s.sel?.type ?? this.lastSel
+        this.lastSel = patch.sel.type
+        if (patch.insp === undefined && prev && inspGroup(patch.sel.type) !== inspGroup(prev)) return { ...s, ...patch, insp: 'clip' }
+      }
+      return { ...s, ...patch }
     })
   }
 
@@ -2329,6 +2344,12 @@ export class MotionController {
   }
 
   /** Spillehodet til forrige (−1) eller neste (+1) keyframe på det valgte elementet. */
+  /** Keyframe-prikk i tidslinjen: velger elementet, flytter spillehodet dit og åpner Animasjon i inspektøren. */
+  pickKey(type: 'clip' | 'ov' | 'text', id: string, t: number): void {
+    this.set({ sel: { type, id }, multi: [], insp: 'anim' })
+    this.seek(t)
+  }
+
   jumpKey(dir: -1 | 1): void {
     const tg = this.kfTarget()
     if (!tg?.it.kf) return
