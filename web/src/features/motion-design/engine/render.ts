@@ -7,6 +7,7 @@ import {
   clamp, easeBack, easeInOut, easeOut, fmtCount, hidden, layout, ovDur,
   type Clip, type Crop, type Curves, type Grade, type Overlay, type Placed, type Project, type Pt, type Sub, type SubStyle, type TextItem,
 } from './model'
+import { fxAlpha, fxBlur, fxFilter, type Effect } from './fx'
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 type Src = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement | ImageBitmap | OffscreenCanvas
@@ -72,14 +73,17 @@ const LOOKF: Record<string, LookF> = {
   vivid: { f: 'saturate(1.45) contrast(1.08)' }, sepia: { f: 'sepia(0.75) contrast(1.05)' }, dream: { f: 'brightness(1.08) saturate(1.15) contrast(0.9)', glow: 0.5 },
   teal: { f: 'contrast(1.12) saturate(1.2)', temp: 0.2, tint: -0.25 }, night: { f: 'brightness(0.72) saturate(0.7) hue-rotate(-12deg)', temp: -0.5, vig: 0.4 },
 }
-function filterOf(c: Pick<Grade, 'look' | 'bri' | 'con' | 'sat' | 'blur'>, blur: number): string {
+function filterOf(c: Pick<Grade, 'look' | 'bri' | 'con' | 'sat' | 'blur'> & { effects?: Effect[] | undefined }, blur: number): string {
   const f: string[] = []
   const lk = LOOKF[c.look]
   if (lk) f.push(lk.f)
   if (c.bri) f.push(`brightness(${(1 + c.bri).toFixed(3)})`)
   if (c.con) f.push(`contrast(${(1 + c.con).toFixed(3)})`)
   if (c.sat) f.push(`saturate(${(1 + c.sat).toFixed(3)})`)
-  const b = (blur || 0) + (c.blur || 0)
+  // effektene (Avansert), i listens rekkefølge, etter grunnkorreksjonen
+  const ef = fxFilter(c.effects)
+  if (ef) f.push(ef)
+  const b = (blur || 0) + (c.blur || 0) + fxBlur(c.effects)
   if (b > 0.3) f.push(`blur(${b.toFixed(1)}px)`)
   return f.join(' ')
 }
@@ -431,9 +435,13 @@ function cropRect(c: { crop?: Crop }, sz: [number, number]): [number, number, nu
 
 const PC = new WeakSet<object>()
 function paintClip(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: MediaEls, lt: number, dur: number, blur: number, t: number): void {
+  // opasitet og fade (effekter) kommer i tillegg til overgangen
+  const fa = fxAlpha(c.effects, lt, dur)
+  if (fa < 0.999) ctx.globalAlpha *= fa
+  if (ctx.globalAlpha <= 0.001) return
   if (!hasFilter() && !PC.has(ctx)) {
     const ops = colorOps(filterOf(c, 0))
-    const bb = (blur || 0) + (c.blur || 0)
+    const bb = (blur || 0) + (c.blur || 0) + fxBlur(c.effects)
     if (ops.length || bb > 0.3 || hasCurve(c)) {
       const cv = ctx.canvas
       const tf = ctx.getTransform()
@@ -768,7 +776,7 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   const kOut = o.anim === 'none' ? 1 : clamp((d - lt) / inD, 0, 1)
   const k = Math.min(kIn, kOut)
   const e = easeOut(k)
-  let a = o.opacity
+  let a = o.opacity * fxAlpha(o.effects, lt, d)
   if (o.fadeIn > 0) a *= clamp(lt / o.fadeIn, 0, 1)
   if (o.fadeOut > 0) a *= clamp((d - lt) / o.fadeOut, 0, 1)
   ctx.save()
@@ -815,7 +823,8 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   }
   const f = filterOf(o, 0)
   const ops0 = F ? [] : colorOps(f)
-  if (o.keyOn || hasCurve(o) || ops0.length || (!F && o.blur > 0.3)) {
+  const oblur = (o.blur || 0) + fxBlur(o.effects)
+  if (o.keyOn || hasCurve(o) || ops0.length || (!F && oblur > 0.3)) {
     const sw = Math.max(1, Math.round(Math.min(Math.abs(dw), 1600)))
     const sh = Math.max(1, Math.round(sw * Math.abs(dh / dw)))
     const pc = scratch(`px:${o.id}`, sw, sh)
@@ -824,7 +833,7 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
     if (f && F) px.filter = f
     px.drawImage(s, cr[0], cr[1], cr[2], cr[3], 0, 0, sw, sh)
     if (F) px.filter = 'none'
-    if (!F && o.blur > 0.3) softBlur(px, sw, sh, o.blur)
+    if (!F && oblur > 0.3) softBlur(px, sw, sh, oblur)
     pixFx(px, sw, sh, ops0.length ? { ...o, ops: ops0 } : o)
     ctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh)
   } else {

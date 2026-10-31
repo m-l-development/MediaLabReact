@@ -8,6 +8,7 @@ import {
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
 import { moveLane, spanOf, splitOv, splitSub, trimAt, type EditResult } from './engine/edit'
+import { newEffect, type Effect, type FxKind } from './engine/fx'
 import { pack, unpack } from './engine/packfile'
 import { drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
 import { transcribe } from './engine/transcribe'
@@ -2217,6 +2218,58 @@ export class MotionController {
       return { ...q, clips: arr }
     })
     this.set({ sel: { type: 'clip', id: b.id } })
+  }
+
+  /* ---------- effekter (Avansert) ---------- */
+
+  /** Klippet effektene gjelder: valgt klipp i hovedsporet eller på et videospor. */
+  fxTarget(): { kind: 'clip' | 'ov'; id: string; effects: Effect[] } | null {
+    const p = this.s.proj
+    const sel = this.s.sel
+    if (!p || !sel || (sel.type !== 'clip' && sel.type !== 'ov')) return null
+    const it = (sel.type === 'clip' ? p.clips : p.ov).find((x) => x.id === sel.id)
+    return it ? { kind: sel.type, id: it.id, effects: it.effects ?? [] } : null
+  }
+
+  private mapFx(fn: (list: Effect[]) => Effect[], key?: string): void {
+    const tg = this.fxTarget()
+    if (!tg || this.locked(tg.kind)) return
+    const put = <T extends { id: string; effects?: Effect[] }>(x: T): T => {
+      if (x.id !== tg.id) return x
+      const list = fn(x.effects ?? [])
+      const n = { ...x }
+      if (list.length) n.effects = list
+      else delete n.effects
+      return n
+    }
+    this.setProj((q) => (tg.kind === 'clip' ? { ...q, clips: q.clips.map(put) } : { ...q, ov: q.ov.map(put) }), true, key)
+  }
+
+  addEffect(kind: FxKind): void {
+    const e = newEffect(kind, uid('e'))
+    this.mapFx((l) => [...l, e])
+  }
+
+  patchEffect(id: string, o: Partial<Pick<Effect, 'on' | 'v' | 'v2'>>, key?: string): void {
+    this.mapFx((l) => l.map((e) => (e.id === id ? { ...e, ...o } : e)), key)
+  }
+
+  /** Flytter en effekt opp (−1) eller ned (+1) i rekkefølgen (rekkefølgen påvirker resultatet). */
+  moveEffect(id: string, dir: -1 | 1): void {
+    this.mapFx((l) => {
+      const i = l.findIndex((e) => e.id === id)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= l.length) return l
+      const a = l.slice()
+      const x = a[i] as Effect
+      a[i] = a[j] as Effect
+      a[j] = x
+      return a
+    })
+  }
+
+  delEffect(id: string): void {
+    this.mapFx((l) => l.filter((e) => e.id !== id))
   }
 
   /* ---------- Avansert tidslinje ---------- */

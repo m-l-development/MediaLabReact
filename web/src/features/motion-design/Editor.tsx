@@ -3,7 +3,7 @@
 import { TRSTD, type ExpState, type MotionController, type MState } from './controller'
 import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { clipFields, collapse, musicFields, ovFields, projectFields, subFields, textFields, type Field } from './fields'
-import { AdvBin, AdvTiming } from './Advanced'
+import { AdvBin, AdvEffects, AdvNote, AdvTiming } from './Advanced'
 import { LeftPanel } from './Panels'
 import { useState } from 'react'
 import { Fields } from './Props'
@@ -183,6 +183,8 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
             {S.sel && <button type="button" className={s.linkBtn} onClick={() => c.set({ sel: null, replaceFor: null })}>{tx('Fjern valg')}</button>}
           </div>
           {S.adv && <AdvTiming c={c} S={S} p={p} tx={tx} />}
+          {S.adv && <AdvEffects c={c} S={S} p={p} tx={tx} />}
+          <AdvNote S={S} p={p} tx={tx} />
           {pr.actions.length > 0 && (
             <div className={s.acts}>
               {pr.actions.map((a) => <button key={a.l} type="button" className={`${s.act} ${a.danger ? s.danger : ''}`} onClick={a.click}>{tx(a.l)}</button>)}

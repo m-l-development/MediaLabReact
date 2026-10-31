@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { tlEnd, ZMAX, ZMIN, type MotionController, type MState } from './controller'
 import { fmtHMS, fmtTC, parseTime, spanOf, trackName } from './engine/edit'
 import { contentDur, type Media, type Project } from './engine/model'
+import { FX_DEFS, FX_KINDS, type FxDef, type FxKind } from './engine/fx'
 import type { Phrase, Tx } from './texts'
 import s from './MotionDesign.module.css'
 
@@ -176,4 +177,87 @@ export function TlTools({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
       )}
     </div>
   )
+}
+
+const pctOrUnit = (d: FxDef, v: number) => (d.unit === '%' ? `${Math.round(v * 100)} %` : d.unit === '°' ? `${Math.round(v)}°` : `${v.toFixed(d.step < 1 ? 1 : 0)} ${d.unit}`)
+
+function FxSlider({ label, d, v, on, k }: { label: string; d: FxDef; v: number; on: (v: number) => void; k: string }) {
+  return (
+    <label className={s.fxRow}>
+      <span className={s.fxLbl}>{label}</span>
+      <input type="range" min={d.min} max={d.max} step={d.step} value={v} data-md-fxv={k} onChange={(e) => on(+e.target.value)} />
+      <output className={s.fxVal}>{pctOrUnit(d, v)}</output>
+    </label>
+  )
+}
+
+/**
+ * Effektene på valgt klipp (hovedspor eller videospor): legg til, juster, slå av/på (innstillingene beholdes), endre
+ * rekkefølge og fjern – alt i prosjektet og med angre. «Bilde» (skalering og beskjæring) er klippets egne felt.
+ */
+export function AdvEffects({ c, S, p, tx }: { c: MotionController; S: MState; p: Project; tx: Tx }) {
+  const [add, setAdd] = useState<FxKind>('bri')
+  const tg = c.fxTarget()
+  if (!tg || S.multi.length > 1) return null
+  const it = (tg.kind === 'clip' ? p.clips : p.ov).find((x) => x.id === tg.id)
+  if (!it) return null
+  const media = it.kind !== 'color'
+  const scale = (it as { scale?: number }).scale ?? 1
+  const crop = (it as { crop?: { l: number; t: number; r: number; b: number } }).crop ?? { l: 0, t: 0, r: 0, b: 0 }
+  const SC: FxDef = tg.kind === 'ov' ? { l: '', min: 0.02, max: 4, step: 0.01, def: 1, unit: '%' } : { l: '', min: 0.1, max: 5, step: 0.01, def: 1, unit: '%' }
+  const CR: FxDef = { l: '', min: 0, max: 0.45, step: 0.005, def: 0, unit: '%' }
+  return (
+    <div className={s.timing} data-md-effects="">
+      <div className={s.tmHead}>
+        <span className={s.binHead}>{tx('Effekter')}</span>
+        <span className={s.dim} data-md-fx-count="">{tx('{n} aktive', { n: tg.effects.filter((e) => e.on).length })}</span>
+      </div>
+      {!tg.effects.length && <span className={s.hint}>{tx('Ingen effekter ennå. Velg en effekt og trykk «Legg til».')}</span>}
+      <ol className={s.fxList}>
+        {tg.effects.map((e, i) => {
+          const d = FX_DEFS[e.kind]
+          return (
+            <li key={e.id} className={s.fxItem} data-md-fx={e.kind} data-on={e.on ? '1' : '0'}>
+              <div className={s.fxHead}>
+                <label className={s.fxOn}><input type="checkbox" checked={e.on} data-md-fx-on="" onChange={() => c.patchEffect(e.id, { on: !e.on })} /> <b>{tx(d.l)}</b></label>
+                <span className={s.flex} />
+                <button type="button" className={s.ico} aria-label={tx('Flytt opp')} title={tx('Flytt opp (tidligere i rekkefølgen)')} disabled={i === 0} data-md-fx-up="" onClick={() => c.moveEffect(e.id, -1)}>↑</button>
+                <button type="button" className={s.ico} aria-label={tx('Flytt ned')} title={tx('Flytt ned (senere i rekkefølgen)')} disabled={i === tg.effects.length - 1} data-md-fx-down="" onClick={() => c.moveEffect(e.id, 1)}>↓</button>
+                <button type="button" className={`${s.ico} ${s.icoDel}`} aria-label={tx('Fjern effekten')} title={tx('Fjern effekten')} data-md-fx-del="" onClick={() => c.delEffect(e.id)}>×</button>
+              </div>
+              <FxSlider k={`${e.kind}`} label={d.l2 ? tx(d.l) : tx('Styrke')} d={d} v={e.v} on={(v) => c.patchEffect(e.id, { v }, `fx-${e.id}`)} />
+              {d.l2 && <FxSlider k={`${e.kind}2`} label={tx(d.l2)} d={d} v={e.v2 ?? 0} on={(v) => c.patchEffect(e.id, { v2: v }, `fx2-${e.id}`)} />}
+            </li>
+          )
+        })}
+      </ol>
+      <div className={s.fxAdd}>
+        <select value={add} aria-label={tx('Effekt')} data-md-fx-pick="" onChange={(e) => setAdd(e.target.value as FxKind)}>
+          {FX_KINDS.map((k) => <option key={k} value={k}>{tx(FX_DEFS[k].l)}</option>)}
+        </select>
+        <button type="button" className={`${s.barBtn} ${s.small}`} data-md-fx-add="" onClick={() => c.addEffect(add)}>{tx('Legg til')}</button>
+      </div>
+      {media && (
+        <>
+          <span className={s.binHead}>{tx('Bilde')}</span>
+          <FxSlider k="scale" label={tx('Skalering')} d={SC} v={scale} on={(v) => c.patch(tg.kind, tg.id, { scale: v }, `sc-${tg.id}`)} />
+          {(['l', 't', 'r', 'b'] as const).map((k) => (
+            <FxSlider key={k} k={`crop-${k}`} label={tx(({ l: 'Beskjær venstre', t: 'Beskjær topp', r: 'Beskjær høyre', b: 'Beskjær bunn' } as const)[k])} d={CR} v={crop[k]} on={(v) => c.patch(tg.kind, tg.id, { crop: { ...crop, [k]: v } }, `cr-${tg.id}-${k}`)} />
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Standard: klippet har innstillinger fra Avansert (effekter, keyframes). De vises og eksporteres, men redigeres i Avansert. */
+export function AdvNote({ S, p, tx }: { S: MState; p: Project; tx: Tx }) {
+  const sel = S.sel
+  if (S.adv || !sel) return null
+  const arr = sel.type === 'clip' ? p.clips : sel.type === 'ov' ? p.ov : sel.type === 'text' ? p.texts : null
+  const it = arr?.find((x) => x.id === sel.id) as { effects?: unknown[]; kf?: Record<string, unknown[]> } | undefined
+  const n = it?.effects?.length ?? 0
+  const k = it?.kf ? Object.values(it.kf).reduce((a, l) => a + l.length, 0) : 0
+  if (!n && !k) return null
+  return <span className={s.note} data-md-adv-note="" style={{ fontSize: 12 }}>{tx('Klippet har {n} effekter og {k} keyframes fra Avansert modus. De vises og eksporteres som før; slå på Avansert modus for å endre dem.', { n, k })}</span>
 }
