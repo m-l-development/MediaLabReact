@@ -3039,3 +3039,11 @@
   background: #fff;
   color: var(--color-text-strong);
 }
+.segRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.segRow button[aria-pressed='true'] {
+  outline: 2px solid #3d8bff;
+}

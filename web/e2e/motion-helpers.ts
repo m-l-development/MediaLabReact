@@ -71,3 +71,52 @@ export async function saveAndReload(page: Page) {
   await page.reload()
   await expect(page.locator('[data-md-canvas]')).toBeVisible()
 }
+
+/**
+ * Ekte videofil (WebM fra MediaRecorder, med lyd): fargesegmenter etter hverandre, ett sekund hvert som standard
+ * (f.eks. rødt 0–1 s, grønt 1–2 s, blått 2–3 s) og en tone (440 Hz) hele veien. Tas opp i nettleseren i sanntid.
+ */
+export async function recordVideo(page: Page, name: string, colors: string[], segSec = 1): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
+  const b64 = await page.evaluate(async ({ cols, seg }) => {
+    const c = document.createElement('canvas')
+    c.width = 320
+    c.height = 180
+    const g = c.getContext('2d') as CanvasRenderingContext2D
+    const ac = new AudioContext()
+    const osc = ac.createOscillator()
+    osc.frequency.value = 440
+    const dst = ac.createMediaStreamDestination()
+    osc.connect(dst)
+    osc.start()
+    const stream = c.captureStream(30)
+    for (const t of dst.stream.getAudioTracks()) stream.addTrack(t)
+    const rec = new MediaRecorder(stream, { mimeType: 'video/webm' })
+    const chunks: Blob[] = []
+    rec.ondataavailable = (e) => chunks.push(e.data)
+    const done = new Promise((r) => (rec.onstop = r))
+    g.fillStyle = cols[0] ?? '#000'
+    g.fillRect(0, 0, 320, 180)
+    rec.start(100)
+    const t0 = performance.now()
+    const total = cols.length * seg
+    await new Promise<void>((r) => {
+      const draw = () => {
+        const t = (performance.now() - t0) / 1000
+        g.fillStyle = cols[Math.min(cols.length - 1, Math.floor(t / seg))] ?? '#000'
+        g.fillRect(0, 0, 320, 180)
+        if (t < total + 0.15) requestAnimationFrame(draw)
+        else r()
+      }
+      draw()
+    })
+    rec.stop()
+    await done
+    osc.stop()
+    await ac.close()
+    const buf = new Uint8Array(await new Blob(chunks, { type: 'video/webm' }).arrayBuffer())
+    let s = ''
+    for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+    return btoa(s)
+  }, { cols: colors, seg: segSec })
+  return { name, mimeType: 'video/webm', buffer: Buffer.from(b64, 'base64') }
+}

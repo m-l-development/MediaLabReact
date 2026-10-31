@@ -56,7 +56,7 @@ function speedFields(o: { speed: number; rev: boolean }, set: P<{ speed: number;
     seg('Fart', String(sp), [['0.25', '¼×'], ['0.5', '½×'], ['1', '1×'], ['2', '2×'], ['4', '4×']], (v) => set({ speed: Number(v) })),
     range('Egendefinert fart', sp, 0.1, 8, 0.05, `${sp.toFixed(2)}×`, (v) => set({ speed: v })),
     toggle('Spill baklengs', o.rev, (v) => set({ rev: v })),
-    note('Lyden følger farten. Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.'))
+    note('Lyden følger farten (tonehøyden endres med farten, også i eksporten). Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.'))
 }
 
 function colorExtras(c: Clip, set: P<Clip>, out: Field[]): void {

@@ -367,3 +367,33 @@ export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
     </div>
   )
 }
+
+const SPEEDS = [0.25, 0.5, 1, 1.5, 2, 4]
+
+/**
+ * Hastighet for valgt videoklipp (hovedspor eller videospor): kildevarighet (trimmet del av filen) og effektiv varighet på
+ * tidslinjen = kilde / fart. Keyframes skaleres med farten. Lyden følger farten (tonehøyden endres – ingen tonehøydebevaring).
+ */
+export function AdvSpeed({ c, S, p, tx }: { c: MotionController; S: MState; p: Project; tx: Tx }) {
+  const sel = S.sel
+  if (!sel || S.multi.length > 1 || (sel.type !== 'clip' && sel.type !== 'ov')) return null
+  const it = (sel.type === 'clip' ? p.clips : p.ov).find((x) => x.id === sel.id)
+  if (!it || it.kind !== 'video') return null
+  const sp = it.speed || 1
+  const src = it.out - it.in
+  const set = (v: number) => c.patch(sel.type, it.id, { speed: Math.min(8, Math.max(0.1, v)) }, `speed-${it.id}`)
+  return (
+    <div className={s.timing} data-md-speed="">
+      <span className={s.binHead}>{tx('Hastighet')}</span>
+      <div className={s.segRow}>
+        {SPEEDS.map((v) => <button key={v} type="button" className={s.mini} aria-pressed={Math.abs(sp - v) < 1e-3} data-md-speedset={v} onClick={() => set(v)}>{v}×</button>)}
+      </div>
+      <label className={s.tmField}>
+        <span>{tx('Fart (0,1–8×)')}</span>
+        <KNum k="speed" label={tx('Fart')} v={sp} min={0.1} max={8} step={0.05} on={set} />
+      </label>
+      <span className={s.dim} data-md-speed-info="">{tx('Kilde {src} s → {eff} s på tidslinjen', { src: src.toFixed(2), eff: (src / sp).toFixed(2) })}</span>
+      <span className={s.hint}>{tx(sel.type === 'clip' ? 'I V1 flytter klippene etter seg når lengden endres.' : 'Klippet beholder starten; slutten flyttes.')} {tx('Lyden følger farten (tonehøyden endres). Keyframes følger innholdet.')}</span>
+    </div>
+  )
+}

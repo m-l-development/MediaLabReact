@@ -9,7 +9,7 @@ import {
 } from './engine/model'
 import { moveLane, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
 import { newEffect, type Effect, type FxKind } from './engine/fx'
-import { keyAt, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
+import { keyAt, scaleKeys, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
 import { pack, unpack } from './engine/packfile'
 import { drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
 import { transcribe } from './engine/transcribe'
@@ -909,6 +909,8 @@ export class MotionController {
         v.muted = !!c.muted || vol <= 0
         v.volume = clamp(vol, 0, 1)
         if (pl && !c.rev) {
+          // tonehøyden følger farten, som i eksporten (AudioBufferSourceNode.playbackRate); før bevarte nettleseren den
+          if (v.preservesPitch !== false) v.preservesPitch = false
           if (Math.abs(v.playbackRate - sp) > 0.001) v.playbackRate = sp
           if (v.paused) {
             v.currentTime = target
@@ -2486,7 +2488,15 @@ export class MotionController {
 
   patch(kind: Kind, id: string, obj: AnyRec, key?: string): void {
     const K = KEYS[kind]
-    this.setProj((p) => ({ ...p, [K]: (p[K] as Item[]).map((x) => (x.id === id ? { ...x, ...obj } : x)) }), true, key ?? kind + id)
+    this.setProj((p) => ({ ...p, [K]: (p[K] as Item[]).map((x) => {
+      if (x.id !== id) return x
+      const n: AnyRec = { ...x, ...obj }
+      // ny fart: keyframes skaleres, så de treffer det samme innholdet (klippet blir kortere eller lengre)
+      const os = (x as unknown as AnyRec).speed
+      const kf = (x as { kf?: Keys }).kf
+      if (kf && typeof obj.speed === 'number' && typeof os === 'number' && obj.speed > 0 && os > 0 && obj.speed !== os) n.kf = scaleKeys(kf, os / obj.speed)
+      return n as unknown as Item
+    }) }), true, key ?? kind + id)
   }
 
   patchLogo(obj: Partial<Project['logo']>): void {

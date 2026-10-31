@@ -8,6 +8,12 @@ export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
   // Avansert tidslinje
+  'Fart (0,1–8×)': 'Speed (0.1–8×)',
+  'Kilde {src} s → {eff} s på tidslinjen': 'Source {src} s → {eff} s on the timeline',
+  'I V1 flytter klippene etter seg når lengden endres.': 'On V1 the following clips move when the length changes.',
+  'Klippet beholder starten; slutten flyttes.': 'The clip keeps its start; the end moves.',
+  'Lyden følger farten (tonehøyden endres). Keyframes følger innholdet.': 'The audio follows the speed (the pitch changes). Keyframes follow the content.',
+  'Lyden følger farten (tonehøyden endres med farten, også i eksporten). Baklengs kan hakke i forhåndsvisningen, men blir jevn i eksporten.': 'The audio follows the speed (the pitch changes with the speed, also in the export). Reverse may stutter in the preview but is smooth in the export.',
   'Slå på lyden i sporet': 'Unmute the track',
   'Demp sporet': 'Mute the track',
   'Keyframes': 'Keyframes',
