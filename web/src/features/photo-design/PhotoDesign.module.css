@@ -2494,3 +2494,18 @@ button:disabled {
   min-height: max-content;
 }
 
+
+/* lys modus, resten (TB-905D74): hjelpetekster, små overskrifter, palettnavn og malboksene på startsiden hadde faste
+   mørk-modus-farger og ble for svake (2,8–4,4:1) eller mørke i lys modus. Målt med e2e/photo-design-theme-scan.spec.ts. */
+:root[data-theme='light'] .note {
+  color: #5c5850;
+}
+:root[data-theme='light'] .eyebrowSm {
+  color: #57534c;
+}
+:root[data-theme='light'] .palName {
+  opacity: 0.85;
+}
+:root[data-theme='light'] .tplBox {
+  background: #e4e0d8;
+}
