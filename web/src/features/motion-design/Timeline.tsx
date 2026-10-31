@@ -3,6 +3,7 @@
 import { LANEH, linkColor, tlEnd, type Kind, type MotionController, type MState } from './controller'
 import { TlTools } from './Advanced'
 import { fmtTC, trackName } from './engine/edit'
+import type { Keys } from './engine/kf'
 import { fmtD, fmtT, layout, ovDur, totalDur, type Project, type TrackKey } from './engine/model'
 import type { Phrase, Tx } from './texts'
 import s from './MotionDesign.module.css'
@@ -43,6 +44,10 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
   const Z = S.zoom
   const adv = S.adv
   // Avansert: sporene heter V1 (hoved), V2 … (videospor over, øverste lag har høyest nummer), A1 … (lyd), T1 … (tekst)
+  // keyframes som små ruter på klippet (klikk = spillehodet dit)
+  const kfDots = (kf: Keys | undefined, start: number) => (adv && kf ? [...new Set(Object.values(kf).flat().map((k) => k.t))].map((t) => (
+    <i key={t} className={s.kfDot} style={{ left: t * Z }} data-md-kfdot="" onPointerDown={(e) => { e.stopPropagation(); c.seek(start + t) }} />
+  )) : null)
   const laneName = (k: TrackKey, lane: number) => (k === 'video' ? 'V1 · Hoved' : k === 'ov' ? trackName(p, 'ov', lane) : k === 'music' ? trackName(p, 'music', lane) : k === 'text' ? trackName(p, 'text', lane) : 'UT')
   const selId = S.sel?.id
   const mIds = new Set(S.multi.map((m) => m.id))
@@ -133,6 +138,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
               {p.texts.map((x) => (
                 <Block key={x.id} c={c} kind="text" id={x.id} cls={s.blkText} sel={isSel(x.id)} link={x.link ?? ''} style={{ ...bw(x.start, x.dur), top: (x.lane || 0) * 26 + 5 }}>
                   <span className={s.blkLabel}>{x.countdown ? tx('Nedtelling') : (x.text || ' ').split('\n')[0]}</span>
+                  {kfDots(x.kf, x.start)}
                 </Block>
               ))}
             </div>
@@ -141,6 +147,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
               {p.ov.map((o) => (
                 <Block key={o.id} c={c} kind="ov" id={o.id} cls={s.blkOv} sel={isSel(o.id)} link={o.link ?? ''} style={{ ...bw(o.start, ovDur(o)), top: (o.lane || 0) * 40 + 5, backgroundImage: css(media(o.media)?.thumb ?? '') }}>
                   <span className={s.blkLabel} style={{ top: 4 }}>{o.name || media(o.media)?.name || tx('Overlegg')}</span>
+                  {kfDots(o.kf, o.start)}
                 </Block>
               ))}
             </div>
@@ -163,6 +170,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
                     {wv && <div className={s.wave} style={wv} />}
                     <span className={s.blkLabel} style={{ left: 9, right: 9, top: 4 }}>{cl.kind === 'color' ? tx('Fargeflate') : cl.name || m?.name || ''}</span>
                     <span className={s.blkDur}>{fmtT(l.dur)}</span>
+                    {kfDots(cl.kf, l.start)}
                   </Block>
                 )
               })}

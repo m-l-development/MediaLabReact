@@ -7,8 +7,9 @@ import {
   contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
-import { moveLane, spanOf, splitOv, splitSub, trimAt, type EditResult } from './engine/edit'
+import { moveLane, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
 import { newEffect, type Effect, type FxKind } from './engine/fx'
+import { keyAt, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
 import { pack, unpack } from './engine/packfile'
 import { drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
 import { transcribe } from './engine/transcribe'
@@ -2164,7 +2165,7 @@ export class MotionController {
         this.flash('Flytt spillehodet inn i teksten for å dele den.')
         return
       }
-      const b: TextItem = { ...o, id: uid('t'), start: t, dur: o.start + o.dur - t }
+      const b: TextItem = withKf({ ...o, id: uid('t'), start: t, dur: o.start + o.dur - t }, -(t - o.start))
       this.setProj((q) => {
         const arr = q.texts.map((y) => (y.id === o.id ? { ...y, dur: t - o.start } : y))
         arr.splice(arr.findIndex((y) => y.id === o.id) + 1, 0, b)
@@ -2209,10 +2210,10 @@ export class MotionController {
     if (c.kind === 'video') {
       const so = off * (c.speed || 1)
       a = c.rev ? { ...c, in: c.out - so } : { ...c, out: c.in + so }
-      b = c.rev ? { ...c, id: uid('c'), out: c.out - so, trans: { type: 'none', dur: 0.5 } } : { ...c, id: uid('c'), in: c.in + so, trans: { type: 'none', dur: 0.5 } }
+      b = withKf(c.rev ? { ...c, id: uid('c'), out: c.out - so, trans: { type: 'none', dur: 0.5 } } : { ...c, id: uid('c'), in: c.in + so, trans: { type: 'none', dur: 0.5 } }, -off)
     } else {
       a = { ...c, dur: off }
-      b = { ...c, id: uid('c'), dur: l.dur - off, trans: { type: 'none', dur: 0.5 } }
+      b = withKf({ ...c, id: uid('c'), dur: l.dur - off, trans: { type: 'none', dur: 0.5 } }, -off)
     }
     this.setProj((q) => {
       const arr = [...q.clips]
@@ -2220,6 +2221,102 @@ export class MotionController {
       return { ...q, clips: arr }
     })
     this.set({ sel: { type: 'clip', id: b.id } })
+  }
+
+  /* ---------- keyframes (Avansert) ---------- */
+
+  /** Elementet keyframes gjelder (klipp, videospor eller tekst), tiden i elementet ved spillehodet og varigheten. */
+  kfTarget(): { kind: KfKind; id: string; lt: number; dur: number; it: { kf?: Keys; effects?: Effect[] } & Record<string, unknown> } | null {
+    const p = this.s.proj
+    const sel = this.s.sel
+    if (!p || !sel || (sel.type !== 'clip' && sel.type !== 'ov' && sel.type !== 'text')) return null
+    const sp = spanOf(p, sel.type, sel.id)
+    const it = (sel.type === 'clip' ? p.clips : sel.type === 'ov' ? p.ov : p.texts).find((x) => x.id === sel.id)
+    if (!sp || !it) return null
+    return { kind: sel.type, id: sel.id, lt: this.t - sp.start, dur: sp.dur, it: it as unknown as { kf?: Keys; effects?: Effect[] } & Record<string, unknown> }
+  }
+
+  private mapKf(fn: (it: { kf?: Keys } & Record<string, unknown>) => Record<string, unknown>, key?: string): void {
+    const tg = this.kfTarget()
+    if (!tg || this.locked(tg.kind)) return
+    const K = KEYS[tg.kind]
+    this.setProj((q) => ({ ...q, [K]: (q[K] as { id: string }[]).map((x) => (x.id === tg.id ? fn(x as { kf?: Keys } & Record<string, unknown>) : x)) }), true, key)
+  }
+
+  private static setKf(x: { kf?: Keys } & Record<string, unknown>, prop: string, list: Key[]): Record<string, unknown> {
+    const kf = { ...(x.kf ?? {}) }
+    if (list.length) kf[prop] = list
+    else delete kf[prop]
+    const n: Record<string, unknown> = { ...x }
+    if (Object.keys(kf).length) n.kf = kf
+    else delete n.kf
+    return n
+  }
+
+  /** Verdien av en egenskap ved spillehodet (animert når den har keyframes). */
+  propVal(prop: string): number {
+    const tg = this.kfTarget()
+    if (!tg) return 0
+    const keys = tg.it.kf?.[prop]
+    if (keys?.length) return valAt(keys, tg.lt)
+    if (prop.startsWith('fx:')) return tg.it.effects?.find((e) => e.id === prop.slice(3))?.v ?? 0
+    if (prop === 'op') return 1
+    const v = tg.it[prop]
+    return typeof v === 'number' ? v : prop === 'scale' ? 1 : 0
+  }
+
+  /** Ny verdi ved spillehodet: med keyframes lagres den som keyframe her; ellers endres grunnverdien. */
+  setProp(prop: string, v: number): void {
+    const tg = this.kfTarget()
+    if (!tg) return
+    const keys = tg.it.kf?.[prop]
+    if (keys?.length || prop === 'op') {
+      this.mapKf((x) => MotionController.setKf(x, prop, upsertKey(x.kf?.[prop], tg.lt, v)), `kfv-${tg.id}-${prop}`)
+    } else if (prop.startsWith('fx:')) this.patchEffect(prop.slice(3), { v }, `fx-${prop.slice(3)}`)
+    else this.patch(tg.kind, tg.id, { [prop]: v }, `pv-${tg.id}-${prop}`)
+  }
+
+  /** ◆: keyframe ved spillehodet av/på (ny keyframe får verdien egenskapen har her). */
+  toggleKey(prop: string): void {
+    const tg = this.kfTarget()
+    if (!tg) return
+    const list = tg.it.kf?.[prop]
+    const i = keyAt(list, tg.lt)
+    const v = this.propVal(prop)
+    this.mapKf((x) => MotionController.setKf(x, prop, i >= 0 ? (list ?? []).filter((_, j) => j !== i) : upsertKey(x.kf?.[prop], tg.lt, v)))
+  }
+
+  /** Flytter keyframe nr. i til tiden t (sekunder fra elementets start). */
+  moveKey(prop: string, i: number, t: number): void {
+    if (!Number.isFinite(t)) return
+    this.mapKf((x) => {
+      const l = (x.kf?.[prop] ?? []).slice()
+      const k = l[i]
+      if (!k) return x
+      l[i] = { ...k, t }
+      return MotionController.setKf(x, prop, l.sort((a, b) => a.t - b.t))
+    }, `kft-${prop}-${i}`)
+  }
+
+  setKeyVal(prop: string, i: number, v: number): void {
+    this.mapKf((x) => MotionController.setKf(x, prop, (x.kf?.[prop] ?? []).map((k, j) => (j === i ? { ...k, v } : k))), `kfk-${prop}-${i}`)
+  }
+
+  setKeyEase(prop: string, i: number, e: Ease): void {
+    this.mapKf((x) => MotionController.setKf(x, prop, (x.kf?.[prop] ?? []).map((k, j) => (j === i ? (e === 'lin' ? { t: k.t, v: k.v } : { ...k, e }) : k))))
+  }
+
+  delKey(prop: string, i: number): void {
+    this.mapKf((x) => MotionController.setKf(x, prop, (x.kf?.[prop] ?? []).filter((_, j) => j !== i)))
+  }
+
+  /** Spillehodet til forrige (−1) eller neste (+1) keyframe på det valgte elementet. */
+  jumpKey(dir: -1 | 1): void {
+    const tg = this.kfTarget()
+    if (!tg?.it.kf) return
+    const ts = [...new Set(Object.values(tg.it.kf).flat().map((k) => k.t))].sort((a, b) => a - b)
+    const t = dir > 0 ? ts.find((x) => x > tg.lt + 1e-3) : [...ts].reverse().find((x) => x < tg.lt - 1e-3)
+    if (t != null) this.seek(this.t + (t - tg.lt))
   }
 
   /* ---------- effekter (Avansert) ---------- */

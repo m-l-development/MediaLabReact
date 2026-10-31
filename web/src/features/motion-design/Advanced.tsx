@@ -9,6 +9,7 @@ import { tlEnd, ZMAX, ZMIN, type MotionController, type MState } from './control
 import { fmtHMS, fmtTC, parseTime, spanOf, trackName } from './engine/edit'
 import { contentDur, type Media, type Project } from './engine/model'
 import { FX_DEFS, FX_KINDS, type FxDef, type FxKind } from './engine/fx'
+import { EASES, KF_PROPS, keyAt, keysOutside, type Ease, type PropDef } from './engine/kf'
 import type { Phrase, Tx } from './texts'
 import s from './MotionDesign.module.css'
 
@@ -289,6 +290,80 @@ export function AdvText({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
         ))}
       </div>
       <span className={s.hint}>{tx('Teksten justeres mot punktet (venstre/midt/høyre og topp/midt/bunn). Finjuster med Vannrett og Loddrett under.')}</span>
+    </div>
+  )
+}
+
+/** Tallfelt med utkast (skriving avbrytes ikke av at verdien tegnes på nytt). */
+function KNum({ v, on, min, max, step, k, label }: { v: number; on: (v: number) => void; min?: number; max?: number; step: number; k: string; label: string }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const dec = step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3
+  return (
+    <input type="number" className={s.kfNum} aria-label={label} data-md-kfnum={k} min={min} max={max} step={step} value={draft ?? v.toFixed(dec)}
+      onChange={(e) => {
+        setDraft(e.target.value)
+        const n = parseFloat(e.target.value)
+        if (Number.isFinite(n)) on(min != null && max != null ? Math.min(max, Math.max(min, n)) : n)
+      }}
+      onBlur={() => setDraft(null)} />
+  )
+}
+
+/**
+ * Keyframes for valgt klipp, videospor eller tekst: posisjon, skalering, rotasjon, opasitet (tekst: størrelse) og
+ * effektenes verdi. ◆ legger til/fjerner en keyframe ved spillehodet; verdien endres ved spillehodet (med keyframes
+ * blir det en keyframe her). Hver keyframe kan flyttes i tid, få ny verdi, ny interpolering eller slettes.
+ */
+export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Project; tx: Tx }) {
+  void p
+  void S.t // tegnes på nytt når spillehodet flyttes
+  const tg = c.kfTarget()
+  if (!tg || S.multi.length > 1) return null
+  const fxProps: PropDef[] = (tg.it.effects ?? []).filter((e) => e.kind !== 'fade').map((e) => {
+    const d = FX_DEFS[e.kind]
+    return [`fx:${e.id}`, d.l, d.min, d.max, d.step] as const
+  })
+  const props = [...KF_PROPS[tg.kind], ...fxProps]
+  const out = keysOutside(tg.it.kf, tg.dur)
+  return (
+    <div className={s.timing} data-md-keys="">
+      <div className={s.tmHead}>
+        <span className={s.binHead}>{tx('Keyframes')}</span>
+        <span className={s.dim} data-md-kf-lt="">{fmtHMS(Math.max(0, tg.lt))}</span>
+        <span className={s.flex} />
+        <button type="button" className={s.ico} aria-label={tx('Forrige keyframe')} title={tx('Forrige keyframe')} data-md-kf-prev="" onClick={() => c.jumpKey(-1)}>◀</button>
+        <button type="button" className={s.ico} aria-label={tx('Neste keyframe')} title={tx('Neste keyframe')} data-md-kf-next="" onClick={() => c.jumpKey(1)}>▶</button>
+      </div>
+      {(tg.lt < 0 || tg.lt > tg.dur) && <span className={s.hint}>{tx('Spillehodet er utenfor klippet. Flytt det inn i klippet for å lage keyframes.')}</span>}
+      {out > 0 && <span className={s.tlWarn} data-md-kf-out="">{tx('{n} keyframes ligger utenfor klippet (etter trimming). De virker ikke, men er beholdt.', { n: out })}</span>}
+      {props.map(([k, l, mn, mx, st]) => {
+        const keys = tg.it.kf?.[k] ?? []
+        const at = keyAt(keys, tg.lt)
+        return (
+          <div key={k} className={s.kfProp} data-md-kf={k} data-animated={keys.length ? '1' : undefined}>
+            <div className={s.kfRow}>
+              <button type="button" className={s.kfDia} aria-pressed={at >= 0} data-md-kf-toggle="" title={tx(at >= 0 ? 'Fjern keyframen her' : 'Keyframe her')} aria-label={tx(at >= 0 ? 'Fjern keyframen her' : 'Keyframe her')}
+                disabled={tg.lt < 0 || tg.lt > tg.dur} onClick={() => c.toggleKey(k)}>◆</button>
+              <span className={s.kfLbl}>{tx(l)}{keys.length ? ` · ${keys.length}` : ''}</span>
+              <KNum k={`${k}`} label={tx(l)} v={c.propVal(k)} min={mn} max={mx} step={st} on={(v) => c.setProp(k, v)} />
+            </div>
+            {keys.length > 0 && (
+              <ol className={s.kfList}>
+                {keys.map((key, i) => (
+                  <li key={i} className={s.kfKey} data-md-key={i} data-here={i === at ? '1' : undefined}>
+                    <KNum k={`${k}-t-${i}`} label={tx('Tid (s)')} v={key.t} step={0.01} on={(t) => c.moveKey(k, i, t)} />
+                    <KNum k={`${k}-v-${i}`} label={tx('Verdi')} v={key.v} min={mn} max={mx} step={st} on={(v) => c.setKeyVal(k, i, v)} />
+                    <select aria-label={tx('Interpolering')} value={key.e ?? 'lin'} data-md-kf-ease="" onChange={(e) => c.setKeyEase(k, i, e.target.value as Ease)}>
+                      {EASES.map(([v, el]) => <option key={v} value={v}>{tx(el)}</option>)}
+                    </select>
+                    <button type="button" className={`${s.ico} ${s.icoDel}`} aria-label={tx('Slett keyframen')} title={tx('Slett keyframen')} data-md-kf-del="" onClick={() => c.delKey(k, i)}>×</button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

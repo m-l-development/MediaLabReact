@@ -8,6 +8,7 @@ import {
   type Clip, type Crop, type Curves, type Grade, type Overlay, type Placed, type Project, type Pt, type Sub, type SubStyle, type TextItem,
 } from './model'
 import { fxAlpha, fxBlur, fxFilter, type Effect } from './fx'
+import { animAt } from './kf'
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 type Src = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement | ImageBitmap | OffscreenCanvas
@@ -436,7 +437,7 @@ function cropRect(c: { crop?: Crop }, sz: [number, number]): [number, number, nu
 const PC = new WeakSet<object>()
 function paintClip(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: MediaEls, lt: number, dur: number, blur: number, t: number): void {
   // opasitet og fade (effekter) kommer i tillegg til overgangen
-  const fa = fxAlpha(c.effects, lt, dur)
+  const fa = fxAlpha(c.effects, lt, dur) * ((c as { op?: number }).op ?? 1)
   if (fa < 0.999) ctx.globalAlpha *= fa
   if (ctx.globalAlpha <= 0.001) return
   if (!hasFilter() && !PC.has(ctx)) {
@@ -597,14 +598,14 @@ function drawClip(ctx: Ctx2D, W: number, H: number, p: Project, l: Placed, M: Me
   let k = l.tr ? clamp(lt / l.tr, 0, 1) : 1
   let ty = k < 1 ? c.trans.type : 'none'
   let blur = 0
-  if (p.tin.type !== 'none' && p.clips[0] === c) {
+  if (p.tin.type !== 'none' && p.clips[0]?.id === c.id) {
     const k0 = clamp(lt / Math.min(p.tin.dur, l.dur / 2), 0, 1)
     if (k0 < k) {
       k = k0
       ty = p.tin.type
     }
   }
-  if (p.tout.type !== 'none' && p.clips[p.clips.length - 1] === c) {
+  if (p.tout.type !== 'none' && p.clips[p.clips.length - 1]?.id === c.id) {
     const k1 = clamp((l.end - t) / Math.min(p.tout.dur, l.dur / 2), 0, 1)
     if (k1 < k) {
       k = k1
@@ -1099,14 +1100,15 @@ export function drawFrame(ctx: Ctx2D, W: number, H: number, p: Project, M: Media
       if (t < l.start || t >= l.end) return
       const nx = L[i + 1]
       const ok = nx && nx.tr && t >= nx.start ? clamp((t - nx.start) / nx.tr, 0, 1) : 0
-      drawClip(ctx, W, H, p, l, M, t, S, ok && nx ? nx.c.trans.type : null, ok)
+      // keyframes: klippet med de animerte verdiene ved denne tiden
+      drawClip(ctx, W, H, p, l.c.kf ? { ...l, c: animAt(l.c, t - l.start) } : l, M, t, S, ok && nx ? nx.c.trans.type : null, ok)
     })
   }
   if (!hidden(p, 'ov')) {
-    for (const o of p.ov.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= o.start && t < o.start + ovDur(o)) drawOv(ctx, W, H, o, M, t, rects)
+    for (const o of p.ov.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= o.start && t < o.start + ovDur(o)) drawOv(ctx, W, H, animAt(o, t - o.start), M, t, rects)
   }
   if (!hidden(p, 'text')) {
-    for (const x of p.texts.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= x.start && t < x.start + x.dur) drawText(ctx, W, H, x, t - x.start, U, rects, t)
+    for (const x of p.texts.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= x.start && t < x.start + x.dur) drawText(ctx, W, H, animAt(x, t - x.start), t - x.start, U, rects, t)
   }
   if (!hidden(p, 'subs')) {
     const sub = p.subs.find((s) => t >= s.start && t < s.end)

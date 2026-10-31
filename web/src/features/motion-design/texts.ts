@@ -8,6 +8,22 @@ export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
   // Avansert tidslinje
+  'Keyframes': 'Keyframes',
+  'Forrige keyframe': 'Previous keyframe',
+  'Neste keyframe': 'Next keyframe',
+  'Spillehodet er utenfor klippet. Flytt det inn i klippet for å lage keyframes.': 'The playhead is outside the clip. Move it into the clip to create keyframes.',
+  '{n} keyframes ligger utenfor klippet (etter trimming). De virker ikke, men er beholdt.': '{n} keyframes are outside the clip (after trimming). They have no effect, but are kept.',
+  'Fjern keyframen her': 'Remove the keyframe here',
+  'Keyframe her': 'Keyframe here',
+  'Tid (s)': 'Time (s)',
+  'Verdi': 'Value',
+  'Interpolering': 'Interpolation',
+  'Slett keyframen': 'Delete the keyframe',
+  'Posisjon X': 'Position X',
+  'Posisjon Y': 'Position Y',
+  'Rotasjon': 'Rotation',
+  'Myk': 'Ease',
+  'Hold': 'Hold',
   'Ny tekst på et tekstspor fra spillehodet': 'New text on a text track from the playhead',
   '+ Tekst': '+ Text',
   'Ny undertekst fra spillehodet (2,5 s)': 'New subtitle from the playhead (2.5 s)',

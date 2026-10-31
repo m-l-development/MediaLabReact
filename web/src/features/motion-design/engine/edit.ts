@@ -3,6 +3,7 @@
  * Bygger på den eksisterende modellen: hovedsporet (`clips`, sammenhengende), videospor over det (`ov`, lag), lydspor
  * (`music`, lag), tekst og undertekst. Alle funksjoner returnerer et nytt prosjekt eller en feilmelding.
  */
+import { shiftKeys } from './kf'
 import { clipDur, layout, ovDur, uid, type Clip, type Music, type Overlay, type Project, type Sub, type TextItem } from './model'
 
 export type EditKind = 'clip' | 'text' | 'sub' | 'music' | 'ov'
@@ -44,6 +45,13 @@ export function spanOf(p: Project, kind: EditKind, id: string): { start: number;
   return s ? { start: s.start, end: s.end, dur: s.end - s.start } : null
 }
 
+/** Keyframes forskjøvet med dt (samme innhold på samme tidspunkt etter trim av starten eller deling). */
+export function withKf<T extends { kf?: import('./kf').Keys }>(x: T, dt: number): T {
+  if (!x.kf) return x
+  const kf = shiftKeys(x.kf, dt)
+  return kf ? { ...x, kf } : x
+}
+
 const inside = (sp: { start: number; end: number }, t: number) => t > sp.start + MIN / 2 && t < sp.end - MIN / 2
 
 /**
@@ -60,10 +68,10 @@ export function trimAt(p: Project, kind: EditKind, id: string, t: number, edge: 
       if (c.id !== id) return c
       if (c.kind === 'video') {
         const so = off * (c.speed || 1)
-        if (edge === 'l') return c.rev ? { ...c, out: c.out - so } : { ...c, in: c.in + so }
+        if (edge === 'l') return withKf(c.rev ? { ...c, out: c.out - so } : { ...c, in: c.in + so }, -off)
         return c.rev ? { ...c, in: c.out - so } : { ...c, out: c.in + so }
       }
-      return { ...c, dur: edge === 'l' ? clipDur(c) - off : off }
+      return edge === 'l' ? withKf({ ...c, dur: clipDur(c) - off }, -off) : { ...c, dur: off }
     }
     return { p: { ...p, clips: p.clips.map(map) } }
   }
@@ -72,10 +80,10 @@ export function trimAt(p: Project, kind: EditKind, id: string, t: number, edge: 
       if (o.id !== id) return o
       if (o.kind === 'video') {
         const so = off * (o.speed || 1)
-        if (edge === 'l') return o.rev ? { ...o, out: o.out - so, start: t } : { ...o, in: o.in + so, start: t }
+        if (edge === 'l') return withKf(o.rev ? { ...o, out: o.out - so, start: t } : { ...o, in: o.in + so, start: t }, -off)
         return o.rev ? { ...o, in: o.out - so } : { ...o, out: o.in + so }
       }
-      return edge === 'l' ? { ...o, start: t, dur: ovDur(o) - off } : { ...o, dur: off }
+      return edge === 'l' ? withKf({ ...o, start: t, dur: ovDur(o) - off }, -off) : { ...o, dur: off }
     }
     return { p: { ...p, ov: p.ov.map(map) } }
   }
@@ -84,7 +92,7 @@ export function trimAt(p: Project, kind: EditKind, id: string, t: number, edge: 
     return { p: { ...p, music: p.music.map(map) } }
   }
   if (kind === 'text') {
-    const map = (x: TextItem): TextItem => (x.id !== id ? x : edge === 'l' ? { ...x, start: t, dur: x.dur - off } : { ...x, dur: off })
+    const map = (x: TextItem): TextItem => (x.id !== id ? x : edge === 'l' ? withKf({ ...x, start: t, dur: x.dur - off }, -off) : { ...x, dur: off })
     return { p: { ...p, texts: p.texts.map(map) } }
   }
   const map = (x: Sub): Sub => (x.id !== id ? x : edge === 'l' ? { ...x, start: t } : { ...x, end: t })
@@ -103,10 +111,10 @@ export function splitOv(p: Project, id: string, t: number): EditResult {
   if (o.kind === 'video') {
     const so = off * (o.speed || 1)
     a = o.rev ? { ...o, in: o.out - so, fadeOut: 0 } : { ...o, out: o.in + so, fadeOut: 0 }
-    b = o.rev ? { ...o, id: uid('o'), out: o.out - so, start: t, fadeIn: 0, anim: 'none' } : { ...o, id: uid('o'), in: o.in + so, start: t, fadeIn: 0, anim: 'none' }
+    b = withKf(o.rev ? { ...o, id: uid('o'), out: o.out - so, start: t, fadeIn: 0, anim: 'none' } : { ...o, id: uid('o'), in: o.in + so, start: t, fadeIn: 0, anim: 'none' }, -off)
   } else {
     a = { ...o, dur: off, fadeOut: 0 }
-    b = { ...o, id: uid('o'), start: t, dur: ovDur(o) - off, fadeIn: 0, anim: 'none' }
+    b = withKf({ ...o, id: uid('o'), start: t, dur: ovDur(o) - off, fadeIn: 0, anim: 'none' }, -off)
   }
   const arr = p.ov.flatMap((x) => (x.id === id ? [a, b] : [x]))
   return { p: { ...p, ov: arr }, id: b.id }
