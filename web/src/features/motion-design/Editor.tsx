@@ -3,7 +3,7 @@
 import { TRSTD, type ExpState, type MotionController, type MState } from './controller'
 import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { clipFields, collapse, musicFields, ovFields, projectFields, subFields, textFields, type Field } from './fields'
-import { AdvBin, AdvEffects, AdvKeys, AdvNote, AdvSpeed, AdvText, AdvTiming } from './Advanced'
+import { AdvBin, AdvEffects, AdvExport, AdvKeys, AdvNote, AdvSpeed, AdvText, AdvTiming } from './Advanced'
 import { LeftPanel } from './Panels'
 import { useState } from 'react'
 import { Fields } from './Props'
@@ -249,6 +249,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
               <h2 className={s.modalTitle}>{tx('Eksporter video')}</h2>
               <p className={s.modalLead}>{tx('MP4 med H.264 og lyd. Hold fanen åpen mens videoen lages. Lange videoer og 4K tar lengre tid.')}</p>
             </div>
+            {S.adv && E.adv ? <AdvExport c={c} S={S} p={p} tx={tx} /> : (
             <div className={s.opts}>
               {EXP.map(([k, l, q]) => {
                 const z = exportSize(p, q)
@@ -261,6 +262,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
                 )
               })}
             </div>
+            )}
             <span className={s.dim} data-md-exp-len="">{tx('Lengde {len}', { len: fmtT(T) })}{p.dur ? ` · ${tx('følger prosjektvarigheten')}` : ''}</span>
             {!!p.dur && contentDur(p) > p.dur + 0.01 && <span className={s.warn} role="alert" data-md-exp-warn="">{tx('Innhold etter prosjektslutt ({c}) kommer ikke med. Endre prosjektvarigheten under tidslinjen for å ta det med.', { c: fmtT(contentDur(p)) })}</span>}
             {!!p.dur && contentDur(p) < p.dur - 0.01 && <span className={s.dim} data-md-exp-tail="">{tx('Etter innholdet ({c}) blir resten av videoen svart til prosjektslutt.', { c: fmtT(contentDur(p)) })}</span>}

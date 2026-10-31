@@ -4,10 +4,10 @@
  * Motion Design → Avansert: mediebibliotek (type, varighet, legg på spor, feil per fil) og tidsinspektør for det valgte
  * klippet (spor, start, slutt, varighet, trim, del, flytt, slett). Bruker samme prosjekt og motor som Standard.
  */
-import { useState } from 'react'
-import { tlEnd, ZMAX, ZMIN, type MotionController, type MState } from './controller'
+import { useEffect, useState } from 'react'
+import { tlEnd, ZMAX, ZMIN, type ExpAdv, type MotionController, type MState } from './controller'
 import { fmtHMS, fmtTC, parseTime, spanOf, trackName } from './engine/edit'
-import { contentDur, type Media, type Project } from './engine/model'
+import { contentDur, exportSize, totalDur, type Media, type Project } from './engine/model'
 import { FX_DEFS, FX_KINDS, type FxDef, type FxKind } from './engine/fx'
 import { EASES, KF_PROPS, keyAt, keysOutside, type Ease, type PropDef } from './engine/kf'
 import type { Phrase, Tx } from './texts'
@@ -394,6 +394,105 @@ export function AdvSpeed({ c, S, p, tx }: { c: MotionController; S: MState; p: P
       </label>
       <span className={s.dim} data-md-speed-info="">{tx('Kilde {src} s → {eff} s på tidslinjen', { src: src.toFixed(2), eff: (src / sp).toFixed(2) })}</span>
       <span className={s.hint}>{tx(sel.type === 'clip' ? 'I V1 flytter klippene etter seg når lengden endres.' : 'Klippet beholder starten; slutten flyttes.')} {tx('Lyden følger farten (tonehøyden endres). Keyframes følger innholdet.')}</span>
+    </div>
+  )
+}
+
+const RES: [ExpAdv['res'], string][] = [['720', '720p'], ['1080', '1080p'], ['4k', '4K']]
+const FPS: ExpAdv['fps'][] = [24, 25, 30, 60]
+const QUAL: [ExpAdv['quality'], string, number][] = [['low', 'Lav', 0.55], ['mid', 'Middels', 1], ['high', 'Høy', 1.7]]
+
+/** Hva denne nettleseren kan kode (sjekkes med WebCodecs): H.264, ellers VP9/AV1, ellers sanntidsopptak. */
+function useCodec(w: number, h: number, fps: number): string | null {
+  const [r, setR] = useState<string | null>(null)
+  useEffect(() => {
+    let live = true
+    void (async () => {
+      if (typeof VideoEncoder === 'undefined') return 'none'
+      for (const [codec, name] of [['avc1.640033', 'h264'], ['avc1.640028', 'h264'], ['vp09.00.40.08', 'vp9'], ['av01.0.08M.08', 'av1']] as const) {
+        try {
+          if ((await VideoEncoder.isConfigSupported({ codec, width: w, height: h, framerate: fps, bitrate: 8e6 })).supported) return name
+        } catch {
+          // neste
+        }
+      }
+      return 'none'
+    })().then((v) => {
+      if (live) setR(v)
+    })
+    return () => {
+      live = false
+    }
+  }, [w, h, fps])
+  return r
+}
+
+/**
+ * Eksport i Avansert: oppløsning, bildefrekvens, kvalitet, lyd, undertekster i bildet og område. Formatet er MP4 med
+ * H.264 og AAC der nettleseren kan kode det; ellers sier panelet hva som blir laget.
+ */
+export function AdvExport({ c, S, p, tx }: { c: MotionController; S: MState; p: Project; tx: Tx }) {
+  const A = S.exp?.adv
+  const T = totalDur(p)
+  const sz = exportSize(p, A?.res ?? '1080')
+  const codec = useCodec(sz.w, sz.h, A?.fps ?? 30)
+  if (!A) return null
+  const busy = !!S.exp?.busy
+  const mbit = (q: number) => ((sz.w * sz.h * A.fps * (sz.w * sz.h > 2300000 ? 0.13 : 0.2) * q) / 1e6).toFixed(0)
+  const len = A.range === 'custom' ? Math.max(0, A.to - A.from) : T
+  const codecText: Phrase = codec === null ? 'Sjekker hva nettleseren kan lage …'
+    : codec === 'h264' ? 'Format: MP4 med H.264-video og AAC-lyd.'
+      : codec === 'none' ? 'Denne nettleseren kan ikke kode video direkte: videoen tas opp i sanntid (WebM eller MP4, avhengig av nettleseren).'
+        : 'H.264 mangler i denne nettleseren: MP4 med {c}-video og Opus-lyd (bruk VLC hvis noe mangler).'
+  return (
+    <div className={s.expAdv} data-md-exp-adv="">
+      <span className={s.dim} data-md-exp-codec={codec ?? ''}>{tx(codecText, { c: codec === 'vp9' ? 'VP9' : 'AV1' })}</span>
+      <div className={s.expRow}>
+        <span>{tx('Oppløsning')}</span>
+        <div className={s.segRow}>
+          {RES.map(([k, l]) => {
+            const z = exportSize(p, k)
+            return <button key={k} type="button" className={s.mini} aria-pressed={A.res === k} disabled={busy} data-md-exp-res={k} onClick={() => c.setExpAdv({ res: k })}>{l} · {z.w}×{z.h}</button>
+          })}
+        </div>
+      </div>
+      <div className={s.expRow}>
+        <span>{tx('Bildefrekvens')}</span>
+        <div className={s.segRow}>{FPS.map((k) => <button key={k} type="button" className={s.mini} aria-pressed={A.fps === k} disabled={busy} data-md-exp-fps={k} onClick={() => c.setExpAdv({ fps: k })}>{k} fps</button>)}</div>
+      </div>
+      <div className={s.expRow}>
+        <span>{tx('Kvalitet')}</span>
+        <div className={s.segRow}>{QUAL.map(([k, l, q]) => <button key={k} type="button" className={s.mini} aria-pressed={A.quality === k} disabled={busy} data-md-exp-q={k} onClick={() => c.setExpAdv({ quality: k })}>{tx(l)} · ~{mbit(q)} Mbit/s</button>)}</div>
+      </div>
+      <label className={s.expChk}><input type="checkbox" checked={A.audio} disabled={busy} data-md-exp-audio="" onChange={() => c.setExpAdv({ audio: !A.audio })} /> {tx('Med lyd (alle lydspor som ikke er dempet)')}</label>
+      <label className={s.expChk}><input type="checkbox" checked={A.subs} disabled={busy} data-md-exp-subs="" onChange={() => c.setExpAdv({ subs: !A.subs })} /> {tx('Undertekster brent inn i bildet')}</label>
+      {!A.subs && p.subs.length > 0 && <span className={s.hint}>{tx('Undertekstene kommer ikke med i videoen. Som egen fil: «Last ned .srt» under Undertekst.')}</span>}
+      <div className={s.expRow}>
+        <span>{tx('Område')}</span>
+        <div className={s.segRow}>
+          <button type="button" className={s.mini} aria-pressed={A.range === 'all'} disabled={busy} data-md-exp-range="all" onClick={() => c.setExpAdv({ range: 'all', from: 0, to: T })}>{tx('Hele prosjektet')} · 0–{fmtHMS(T)}</button>
+          <button type="button" className={s.mini} aria-pressed={A.range === 'custom'} disabled={busy} data-md-exp-range="custom" onClick={() => c.setExpAdv({ range: 'custom', to: A.to > A.from ? A.to : T })}>{tx('Egendefinert')}</button>
+        </div>
+      </div>
+      {A.range === 'custom' && (
+        <div className={s.expRow}>
+          <TimeField k="exp-from" label="Fra" title="Start på eksporten (TT:MM:SS)" tx={tx} value={fmtHMS(A.from)} commit={(raw) => {
+            const t = parseTime(raw)
+            if (t == null) return 'Ugyldig tid. Bruk TT:MM:SS, for eksempel 00:00:05.'
+            if (t >= Math.min(T, A.to)) return 'Starten må være før slutten.'
+            c.setExpAdv({ from: t })
+            return null
+          }} />
+          <TimeField k="exp-to" label="Til" title="Slutt på eksporten (TT:MM:SS), høyst prosjektslutt" tx={tx} value={fmtHMS(A.to)} commit={(raw) => {
+            const t = parseTime(raw)
+            if (t == null) return 'Ugyldig tid. Bruk TT:MM:SS, for eksempel 00:00:05.'
+            if (t <= A.from) return 'Slutten må være etter starten.'
+            c.setExpAdv({ to: Math.min(T, t) })
+            return t > T ? 'Etter prosjektslutt: eksporten stopper ved prosjektslutt.' : null
+          }} />
+        </div>
+      )}
+      <span className={s.dim} data-md-exp-sum="">{tx('Eksporterer {len} · {w}×{h} · {fps} fps', { len: fmtHMS(len), w: sz.w, h: sz.h, fps: A.fps })}</span>
     </div>
   )
 }

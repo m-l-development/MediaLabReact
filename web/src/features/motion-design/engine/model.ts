@@ -639,8 +639,8 @@ export function fmtCount(sec: number, f: TextItem['cdFmt'] | undefined): string 
 }
 
 /** Eksportstørrelse: 1080p (eller 4K) på den korte siden, med samme forhold som prosjektet (partall). */
-export function exportSize(p: Pick<Project, 'w' | 'h'>, q: '1080' | '4k'): { w: number; h: number } {
-  const b = q === '4k' ? 2 : 1
+export function exportSize(p: Pick<Project, 'w' | 'h'>, q: '720' | '1080' | '4k'): { w: number; h: number } {
+  const b = q === '4k' ? 2 : q === '720' ? 2 / 3 : 1
   const s = Math.min((1920 * b) / Math.max(p.w, p.h), (1080 * b) / Math.min(p.w, p.h))
   return { w: Math.round((p.w * s) / 2) * 2, h: Math.round((p.h * s) / 2) * 2 }
 }

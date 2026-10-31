@@ -28,7 +28,9 @@ export interface Loc { v?: string; f?: string; p?: string }
 export interface MenuItem { l: Phrase; k: string; danger: boolean; click: () => void }
 export interface Menu { x: number; y: number; items: (MenuItem | 'sep')[] }
 export interface Xform { type: Kind; id: string; mode: 'move' | 'crop' }
-export interface ExpState { q: '1080-30' | '1080-60' | '4k-30'; busy: boolean; pct: number; phase: Msg | null; msg: Msg | null; err: boolean }
+/** Eksportinnstillinger i Avansert: oppløsning, bildefrekvens, kvalitet, lyd, undertekster i bildet og område (sekunder). */
+export interface ExpAdv { res: '720' | '1080' | '4k'; fps: 24 | 25 | 30 | 60; quality: 'low' | 'mid' | 'high'; audio: boolean; subs: boolean; range: 'all' | 'custom'; from: number; to: number }
+export interface ExpState { q: '1080-30' | '1080-60' | '4k-30'; busy: boolean; pct: number; phase: Msg | null; msg: Msg | null; err: boolean; adv?: ExpAdv }
 export interface AiState { lang: 'norwegian' | 'english'; model: string; busy: boolean; msg: Msg | null; err: boolean }
 export interface Hit { kind: 'music' | 'clip' | 'ov' | 'stage'; t: number; lane?: number; idx?: number }
 export interface TransHit { kind: 'tin' | 'tout' | 'clip'; id: string; t: number }
@@ -3347,9 +3349,23 @@ export class MotionController {
     }
   }
 
+  private expAdv: ExpAdv = { res: '1080', fps: 30, quality: 'mid', audio: true, subs: true, range: 'all', from: 0, to: 0 }
+
   openExport(): void {
     this.stop()
-    this.set((s) => ({ exp: { q: s.exp?.q ?? '1080-30', busy: false, pct: 0, phase: null, msg: null, err: false } }))
+    const T = this.s.proj ? totalDur(this.s.proj) : 0
+    const a = this.expAdv
+    this.set((s) => ({ exp: { q: s.exp?.q ?? '1080-30', busy: false, pct: 0, phase: null, msg: null, err: false, adv: { ...a, to: a.range === 'custom' && a.to > a.from ? Math.min(a.to, T) : T, from: a.range === 'custom' ? Math.min(a.from, T) : 0 } } }))
+  }
+
+  /** Avanserte eksportinnstillinger (huskes til neste eksport i økten). */
+  setExpAdv(o: Partial<ExpAdv>): void {
+    this.set((s) => {
+      if (!s.exp?.adv || s.exp.busy) return null
+      const adv = { ...s.exp.adv, ...o }
+      this.expAdv = adv
+      return { exp: { ...s.exp, adv, msg: null } }
+    })
   }
 
   closeExport(): void {
@@ -3368,8 +3384,13 @@ export class MotionController {
     const e = this.s.exp
     const p = this.s.proj
     if (!e || e.busy || !p) return
-    const [q, f] = e.q.split('-') as ['1080' | '4k', string]
+    const [q0, f0] = e.q.split('-') as ['1080' | '4k', string]
+    // Avansert: egne innstillinger (oppløsning, fps, kvalitet, lyd, undertekster, område); Standard: forhåndsvalget
+    const A = this.s.adv ? e.adv : undefined
+    const q = A ? A.res : q0
+    const f = A ? String(A.fps) : f0
     const sz = exportSize(p, q)
+    const pe = A && !A.subs ? { ...p, tracks: { ...p.tracks, subs: { ...p.tracks.subs, hide: true } } } : p
     this.abort = false
     this.stop()
     this.exporting = true
@@ -3386,15 +3407,17 @@ export class MotionController {
         setTimeout(r, 5000)
       }))))
       const t0 = performance.now()
-      const res = await exportMp4(p, {
+      const res = await exportMp4(pe, {
         w: sz.w, h: sz.h, fps: Number(f), M: this.M, getBlob: this.getBlob, aborted: () => this.abort,
+        ...(A ? { quality: A.quality, audio: A.audio, ...(A.range === 'custom' ? { from: A.from, to: A.to } : {}) } : {}),
         onProgress: (pct, phase, vars) => this.alive && this.set((s) => (s.exp ? { exp: { ...s.exp, pct, phase: vars ? { p: phase, v: vars } : { p: phase } } } : null)),
       })
-      const name = `${fileBase(p)}-${q === '4k' ? '4k' : '1080p'}${f}.${res.ext ?? 'mp4'}`
+      const name = `${fileBase(p)}-${q === '4k' ? '4k' : `${q}p`}${f}.${res.ext ?? 'mp4'}`
       this.lastExpBlob = { blob: res.blob, name }
       this.d.download(res.blob, name)
       const v = { eta: fmtEta((performance.now() - t0) / 1000), mb: (res.blob.size / 1048576).toFixed(1) }
-      const msg: Msg = res.audio === 'opus' ? { p: 'Ferdig på {eta} · {mb} MB · Opus-lyd (bruk VLC hvis lyden mangler)', v } : res.audio ? { p: 'Ferdig på {eta} · {mb} MB', v } : { p: 'Ferdig på {eta} · {mb} MB · uten lyd', v }
+      if (A) Object.assign(v, { codec: `${res.video ?? ''}${res.audio ? ` + ${res.audio === 'aac' ? 'AAC' : 'Opus'}` : ''}`, len: fmtT(res.dur ?? 0), w: sz.w, h: sz.h, fps: f })
+      const msg: Msg = A ? { p: res.audio ? 'Ferdig på {eta} · {mb} MB · {codec} · {w}×{h} · {fps} fps · {len}' : 'Ferdig på {eta} · {mb} MB · {codec} · {w}×{h} · {fps} fps · {len} · uten lyd', v } : res.audio === 'opus' ? { p: 'Ferdig på {eta} · {mb} MB · Opus-lyd (bruk VLC hvis lyden mangler)', v } : res.audio ? { p: 'Ferdig på {eta} · {mb} MB', v } : { p: 'Ferdig på {eta} · {mb} MB · uten lyd', v }
       this.set((s) => (s.exp ? { exp: { ...s.exp, busy: false, pct: 100, phase: null, msg, err: false }, lastExp: true } : { lastExp: true }))
     } catch (err) {
       const ab = err instanceof Error && err.message === 'abort'

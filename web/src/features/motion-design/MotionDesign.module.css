@@ -3047,3 +3047,27 @@
 .segRow button[aria-pressed='true'] {
   outline: 2px solid #3d8bff;
 }
+/* ---------- Avansert: eksport ---------- */
+.expAdv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.expRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.expRow > span:first-child {
+  min-width: 96px;
+  color: #a8a49c;
+}
+.expChk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
