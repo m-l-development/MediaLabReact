@@ -32,7 +32,7 @@ export function vercel(apiPath) {
     const out = execFileSync(WIN ? 'npx.cmd' : 'npx', ['--yes', 'vercel@latest', 'api', arg], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], shell: WIN, timeout: 120_000, maxBuffer: 64 * 1024 * 1024 })
     return JSON.parse(out)
   } catch (e) {
-    throw new Error(`Vercel-API ${apiPath.split('?')[0]}: ${e instanceof Error ? e.message.split('\n')[0].slice(0, 160) : 'feil'}`)
+    throw new Error(`Vercel-API ${apiPath.split('?')[0]}: ${e instanceof Error ? e.message.split('\n')[0].slice(0, 160) : 'feil'}`, { cause: e })
   }
 }
 

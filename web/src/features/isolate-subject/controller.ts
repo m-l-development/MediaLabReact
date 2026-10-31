@@ -53,7 +53,7 @@ export const COLORS: readonly { hex: string; label: MessageKey }[] = [
 const FULL: CropRect = { x: 0, y: 0, w: 1, h: 1 }
 
 const initial = (): UiState => ({
-  phase: 'empty', mode: null, busy: null, pct: 0, soft: 1, tight: 2, cropToSubject: false, fillMode: 'fill', bgType: 'none',
+  phase: 'empty', mode: null, busy: null, pct: 0, soft: 0, tight: 0, cropToSubject: false, fillMode: 'fill', bgType: 'none',
   bg: '#ffffff', cmp: 0, error: null, note: null, name: '', dims: '', ready: false, marks: [], markKeep: false,
   historySize: 0, done: false, adv: false, crop: FULL, aspect: 'free', frame: 0,
 })
