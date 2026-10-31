@@ -27,9 +27,10 @@ permissions:
   deployments: read
 
 env:
-  # Begge false = tørrkjøring. Endres bare etter eierens godkjenning (docs/publisering.md, aktiveringsplanen).
+  # Begge false = tørrkjøring. AUTO_MERGE aktivert av eieren 2026-10-31: merge gjennom beskyttelsen på main; krever
+  # beskyttelsen godkjenning, venter pull requesten på den (docs/publisering.md).
   RELEASE_PR: 'false'
-  AUTO_MERGE: 'false'
+  AUTO_MERGE: 'true'
 
 jobs:
   release:

@@ -215,6 +215,12 @@ if (mode === 'pr') process.exit(0)
 
 // ---- full automatikk: merge gjennom beskyttelsen (påkrevde kontroller og ev. godkjenninger gjelder fortsatt) ----
 const m = await gh(`/pulls/${pr.number}/merge`, { method: 'PUT', body: JSON.stringify({ merge_method: 'merge', sha }) })
+if (!m.ok && m.status === 405 && /review|approv/i.test(m.json?.message ?? '')) {
+  // Beskyttelsen på main krever menneskelig godkjenning: pull requesten venter på den. Etter merge kontrollerer
+  // release-verify.yml produksjonen og spoler connecthub fram.
+  note(`VENTER PÅ GODKJENNING: pull request #${pr.number} (${sha.slice(0, 7)}) – ${m.json?.message ?? ''}`)
+  process.exit(0)
+}
 if (!m.ok) await fail(`merge avvist (${m.status}): ${m.json?.message ?? ''}`)
 const mergeSha = m.json?.sha
 log(`merget: ${mergeSha?.slice(0, 7)}`)

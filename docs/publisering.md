@@ -74,9 +74,9 @@ godkjenne den. Workflowen godkjenner aldri selv.
 
 | `RELEASE_PR` | `AUTO_MERGE` | Gjør |
 |---|---|---|
-| `'false'` | `'false'` | **nå:** tørrkjøring – bare kontrollene, annotasjon «TØRRKJØRING …» |
+| `'false'` | `'false'` | tørrkjøring – bare kontrollene, annotasjon «TØRRKJØRING …» |
 | `'true'` | `'false'` | anbefalt: + pull request og status `release-gate`; et menneske merger |
-| – | `'true'` | full automatikk (merge gjennom beskyttelsen); ikke i bruk |
+| – | `'true'` | **aktiv fra 2026-10-31 (eierens beslutning):** merge gjennom beskyttelsen på `main`. Krever beskyttelsen godkjenning, avviser GitHub boten og pull requesten venter på et menneske (annotasjon «VENTER PÅ GODKJENNING»); etter merge kontrollerer release-verify.yml produksjonen |
 
 ### Samspill og sikkerhet (gjennomgått i kode)
 
@@ -176,7 +176,7 @@ på «Read repository contents»: hver workflow ber selv om rettighetene over.
 | 6 | eieren | les pull requesten (commitlisten, risikotabellen under), godkjenn, «Create a merge commit» | Vercel «Production» success |
 | 7 | automatisk | release-verify.yml: produksjonen kontrollert, `connecthub` spolt fram | annotasjon «PRODUKSJON VERIFISERT»; ved feil: tilbakerulling over |
 
-`AUTO_MERGE` blir stående `'false'`.
+Eieren valgte 2026-10-31 `AUTO_MERGE: 'true'`; påkrevd godkjenning på `main` (steg 3) håndheves fortsatt hvis den er slått på.
 
 ### Risikogjennomgang av releasen (2026-10-31, 49 commits 76b93d9..f252e4e, uten nye testkjøringer)
 
