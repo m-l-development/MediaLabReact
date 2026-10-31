@@ -9,6 +9,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import type { ToolId } from '../../domain/tool'
 import { userStore } from '../../infrastructure/local-user'
+import { pastedImage } from '../../shared/lib/paste'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
@@ -220,9 +221,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       }
     }
     const paste = (e: ClipboardEvent) => {
-      const t = e.target as HTMLElement | null
-      if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return
-      const file = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
         c.receive(file, file.name)

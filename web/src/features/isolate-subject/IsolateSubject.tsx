@@ -6,6 +6,7 @@ import type { Asset } from '../../domain/asset'
 import type { AssetId } from '../../domain/ids'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
+import { pastedImage } from '../../shared/lib/paste'
 import { useStore } from '../../shared/lib/store'
 import { Button } from '../../shared/ui/Button'
 import { AssetPicker } from '../media-library/AssetPicker'
@@ -54,21 +55,23 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
     }
   }, [assetParam, assets, ctl])
 
-  // Lim inn bilde (Ctrl/Cmd + V)
+  // Lim inn bilde (Ctrl/Cmd + V) – ikke når innlimingen hører til et felt, en dialog eller tilbakemeldingen
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))
-      const file = item?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
-        loadFile(file)
+        loadFile(file, true)
       }
     }
     window.addEventListener('paste', onPaste)
     return () => window.removeEventListener('paste', onPaste)
   })
 
-  function loadFile(file: File) {
+  /** `ask`: innliming og slipp spør før et åpent bilde erstattes (masken og endringene forsvinner). */
+  function loadFile(file: File, ask = false) {
+    const cur = ctl.state.get()
+    if (ask && cur.phase !== 'empty' && !window.confirm(t('isolate.replace', { from: cur.name, to: file.name || 'bilde' }))) return
     source.current = { blob: file, name: file.name, assetId: null }
     setSavedId(null)
     setMessage(null)
@@ -87,7 +90,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
     e.preventDefault()
     setDragOver(false)
     const f = e.dataTransfer.files[0]
-    if (f) loadFile(f)
+    if (f) loadFile(f, true)
   }
 
   /** Lagrer resultatet som ny versjon av originalen i Dine medier (originalen registreres først om nødvendig). */

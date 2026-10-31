@@ -5,6 +5,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { Asset } from '../../domain/asset'
 import type { AssetId } from '../../domain/ids'
 import { readMockupSettings, writeMockupSettings } from '../../infrastructure/legacy-import/mockups'
+import { pastedImage } from '../../shared/lib/paste'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import { Button } from '../../shared/ui/Button'
@@ -200,7 +201,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   // Lim inn bilde som design
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      const file = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
         applyDesign(file, file.name, null)

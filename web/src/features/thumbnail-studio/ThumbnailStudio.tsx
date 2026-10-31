@@ -8,6 +8,7 @@ import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
 import type { ToolId } from '../../domain/tool'
 import { legacyDefaults, SharedSetup } from '../../services/shared-setup'
+import { pastedImage } from '../../shared/lib/paste'
 import { useLang, useT } from '../../shared/i18n/i18n'
 import { toolTitleKey } from '../../shared/i18n/messages'
 import { userStore } from '../../infrastructure/local-user'
@@ -285,9 +286,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       }
     }
     const paste = (e: ClipboardEvent) => {
-      const tg = e.target as HTMLElement | null
-      if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return
-      const file = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))?.getAsFile()
+      const file = pastedImage(e)
       if (file) {
         e.preventDefault()
         c.receive(file)
