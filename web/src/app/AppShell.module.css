@@ -255,30 +255,34 @@
   .main:has([data-ml-workspace]) {
     height: 100dvh;
     min-height: 0;
-    padding: 60px 12px 12px;
+    padding: 60px 12px 0;
     overflow-x: hidden;
     overflow-y: auto;
   }
+  /* bunnlinjen beholdes, smal: skjoldet til venstre, kreditten i midten, knappene til høyre (over ingenting) */
   .main:has([data-ml-workspace]) > .credit {
-    display: none;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    margin: 0;
+    padding: 0 160px;
   }
   .main:has([data-ml-workspace]) [data-ml-workspace] {
     flex: 1 1 auto;
     height: auto;
-    min-height: min(480px, calc(100dvh - 72px));
+    min-height: min(480px, calc(100dvh - 110px));
     min-width: 0;
   }
-  /* de flytende knappene legger seg i topplinjen i stedet for over editorens hjørner */
+  /* de flytende knappene står midt i bunnlinjen, under editoren (ikke over hjørnene) */
   .shell:has([data-ml-workspace]) .dock {
-    top: 10px;
-    bottom: auto;
+    bottom: 8px;
     right: 12px;
   }
   .shell:has([data-ml-workspace]) .adminFab {
-    top: 11px;
-    bottom: auto;
-    left: auto;
-    right: 142px;
+    bottom: 6px;
+    left: 12px;
   }
   /* beholderne mellom hovedområdet og editoren (verktøyets egen rot) gir høyden videre */
   .main:has([data-ml-workspace]) :has([data-ml-workspace]) {

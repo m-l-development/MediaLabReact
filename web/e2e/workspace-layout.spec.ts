@@ -21,14 +21,20 @@ for (const [w, h] of [[1920, 1080], [1366, 768], [1280, 720]] as const) {
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight), { message: `${k}: ingen loddrett siderulling` }).toBeLessThanOrEqual(h)
       const r = await page.evaluate(() => {
         const ws = document.querySelector('[data-ml-workspace]')?.getBoundingClientRect()
-        return { sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, ws: ws ? { bottom: ws.bottom, h: ws.height } : null }
+        const box = (q: string) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right } }
+        return { sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, ws: ws ? { bottom: ws.bottom, h: ws.height } : null, credit: box('main > footer'), dock: box('[class*="_dock_"]'), back: box('a[class*="backPill"]') }
       })
       expect(r.sh, `${k}: ingen loddrett siderulling`).toBeLessThanOrEqual(h)
       expect(r.sw, `${k}: ingen vannrett siderulling`).toBeLessThanOrEqual(w)
       if (k === 'Loop Studio') continue
       expect(r.ws, `${k}: arbeidsflaten er merket`).not.toBeNull()
-      expect(r.ws!.bottom, `${k}: fyller ned mot bunnen`).toBeGreaterThan(h - 20)
-      expect(r.ws!.h, `${k}: bruker høyden`).toBeGreaterThan(h - 90)
+      expect(r.ws!.h, `${k}: bruker høyden (mellom topplinjen og bunnlinjen)`).toBeGreaterThan(h - 120)
+      // bunnlinjen er der: kreditten under editoren, knappene i bunnlinjen og «← Media Lab» over editoren – ingen overlapp
+      expect(r.credit, `${k}: «Design by …» vises`).not.toBeNull()
+      expect(r.credit!.top, `${k}: kreditten ligger under editoren`).toBeGreaterThanOrEqual(r.ws!.bottom - 1)
+      expect(r.credit!.bottom, `${k}: kreditten er innenfor vinduet`).toBeLessThanOrEqual(h + 1)
+      expect(r.dock && r.dock.top >= r.ws!.bottom - 1, `${k}: knappene til høyre ligger i bunnlinjen`).toBe(true)
+      expect(r.back && r.back.bottom <= r.ws!.bottom && r.back.bottom <= 60, `${k}: «← Media Lab» står i topplinjen`).toBe(true)
       if (k === 'Motion Design') {
         const tl = await page.locator('[class*="tlWrap"]').boundingBox()
         const cv = await page.locator('[data-md-canvas]').boundingBox()
