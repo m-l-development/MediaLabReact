@@ -281,6 +281,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           <Range label={tx('Størrelse')} min={4} max={Math.round(Math.max(d.w, d.h) / 4)} step={1} val={S.brush.size} show={`${Math.round(S.brush.size)} px`} on={(v) => c.ui({ brush: { ...S.brush, size: v } })} />
           <Range label={tx('Hardhet')} min={0} max={0.95} step={0.01} val={S.brush.hard} show={`${Math.round(S.brush.hard * 100)} %`} on={(v) => c.ui({ brush: { ...S.brush, hard: v } })} />
           <span className={s.dimSm}>{tx('Hold Alt for å bytte mellom fjern og gjenopprett.')}</span>
+          {/* den felles maskeredigeringen (samme som Isolate Subject og Thumbnail Studio) */}
+          <button type="button" className={s.smallBtnBlue} data-pd-mask-open="" disabled={!has} title={tx('Pensel, former, «Velg objekt» og kantfølging med Behold og Fjern')} onClick={() => c.openMaskEdit()}>{tx('Finjuster masken …')}</button>
           <div className={s.row2}>
             <button type="button" className={s.smallBtn} onClick={() => c.invertMask()}>{tx('Inverter')}</button>
             <button type="button" className={s.smallBtnDanger} onClick={() => c.clearMask()}>{tx('Fjern maske')}</button>

@@ -149,6 +149,14 @@ test('maskeredigering: verktøyene endrer den faktiske masken, og eksporten føl
   expect(a[12], 'hullet er fylt igjen').toBe(255)
   expect(a[13], 'kantfølging: det hvite ble ikke med').toBe(0)
   expect(a[14], 'kanten av det røde står').toBe(255)
+  // forhåndsvisningen viser det samme som eksporten (samme punkter i resultatlerretet, uten beskjæring)
+  const pts: [number, number][] = [[200, 150], [200, 165], [50, 60], [50, 72], [350, 50], [200, 210], [20, 285], [110, 100], [90, 120]]
+  const prev = await page.locator('main canvas').first().evaluate((c: HTMLCanvasElement, list) => {
+    const g = c.getContext('2d') as CanvasRenderingContext2D
+    return list.map(([x, y]) => g.getImageData(x, y, 1, 1).data[3] ?? -1)
+  }, pts)
+  const exp = await exported(page, info.outputPath('1b.png'), pts)
+  expect(prev, 'forhåndsvisning = eksport').toEqual(exp)
 
   // inverter og tilbake, utvid / trekk inn
   await page.locator('[data-mask-open]').click()

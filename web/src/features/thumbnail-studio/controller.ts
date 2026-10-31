@@ -44,6 +44,8 @@ export interface State {
   gy: number[]
   msg: Msg | null
   ai: { id: string; phase: 'model' | 'run'; pct: number } | null
+  /** «Finjuster utklippet»: originalen og masken som redigeres (felles maskeredigering). */
+  maskEdit: { id: string; image: HTMLCanvasElement; mask: Uint8ClampedArray; busy: boolean } | null
   exp: boolean
   expRes: '1080' | '4k'
   expFmt: 'png' | 'jpg'
@@ -100,6 +102,12 @@ export interface Deps {
   /** Legger et bilde i Dine medier. → kilde `m:<id>`. */
   putImage(file: Blob, name: string): Promise<string>
   /** Fjerner bakgrunnen (AI) og lagrer resultatet som ny versjon. → ny kilde. */
+  // «Finjuster utklippet» (felles maskeredigering): åpne original + maske, lagre ny versjon, velg objekt med AI
+  maskEdit?: {
+    open(orig: string, cut: string): Promise<{ image: HTMLCanvasElement; mask: Uint8ClampedArray }>
+    save(orig: string, image: HTMLCanvasElement, mask: Uint8ClampedArray): Promise<string>
+    select(image: HTMLCanvasElement, x: number, y: number): Promise<Uint8ClampedArray | null>
+  }
   cutout(src: string, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<string>
   /** Menighetens felles kategorier (null uten ConnectHub). */
   shared: SharedSetup<{ cats: unknown[] }> | null
@@ -232,7 +240,7 @@ export class ThumbController {
     })()
     this.state = createStore<State>({
       ready: false, view: 'home', cats: [], tpls: [], catId: null, editCats: false, doc: null, tplId: null, tplName: '', dirty: false,
-      baseEdit: false, layoutId: 'main', sel: null, multi: [], barSel: null, hist: [], fut: [], gx: [], gy: [], msg: null, ai: null,
+      baseEdit: false, layoutId: 'main', sel: null, multi: [], barSel: null, hist: [], fut: [], gx: [], gy: [], msg: null, ai: null, maskEdit: null,
       exp: false, expRes: '1080', expFmt: 'png', expT: false, expBusy: false, expSize: null, save: false, logoOpen: false, shapeOpen: false,
       libOpen: false, busyImg: false, zoom: 1, cropId: null, cropBox: { cL: 0, cT: 0, cR: 0, cB: 0 }, narrow: false,
       autoSave: st.get(AUTO_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', palOpen: false, previews: {},
@@ -1618,6 +1626,51 @@ export class ThumbController {
       this.set({ ai: null })
       this.flash(typeof navigator !== 'undefined' && navigator.onLine === false ? 'Du er frakoblet. Første gang må AI-modellen lastes ned.' : 'Klarte ikke å fjerne bakgrunnen. Prøv et annet bilde eller en nyere nettleser.')
     }
+  }
+
+  // ---------- finjuster utklippet ----------
+
+  /** Åpner maskeredigeringen for et utklipp (laget med AI eller tidligere finjustert). Originalen tas vare på. */
+  async openMaskEdit(id: string): Promise<void> {
+    const l = this.layer(id)
+    const me = this.d.maskEdit
+    if (!me || !l || l.type !== 'image' || !l.src || !l.orig || this.s.maskEdit) return
+    try {
+      const { image, mask } = await me.open(l.orig, l.src)
+      if (this.alive) this.set({ maskEdit: { id, image, mask, busy: false } })
+    } catch {
+      if (this.alive) this.flash('Klarte ikke å åpne utklippet.')
+    }
+  }
+
+  /** «Bruk»: originalen med den redigerte masken lagres som ny versjon og brukes i laget. */
+  async applyMaskEdit(): Promise<void> {
+    const e = this.s.maskEdit
+    const me = this.d.maskEdit
+    const l = e && this.layer(e.id)
+    if (!e || !me || !l || l.type !== 'image' || !l.orig || e.busy) return
+    this.set({ maskEdit: { ...e, busy: true } })
+    try {
+      const src = await me.save(l.orig, e.image, e.mask)
+      await this.d.images.load(src)
+      if (!this.alive) return
+      this.setL(e.id, { src, orig: l.orig })
+      this.set({ maskEdit: null })
+      this.flash('Utklippet er oppdatert.')
+    } catch {
+      if (!this.alive) return
+      this.set({ maskEdit: { ...e, busy: false } })
+      this.flash('Klarte ikke å lagre utklippet. Nettleseren kan være full.')
+    }
+  }
+
+  closeMaskEdit(): void {
+    if (!this.s.maskEdit?.busy) this.set({ maskEdit: null })
+  }
+
+  selectInMask(x: number, y: number): Promise<Uint8ClampedArray | null> {
+    const e = this.s.maskEdit
+    return e && this.d.maskEdit ? this.d.maskEdit.select(e.image, x, y) : Promise.resolve(null)
   }
 
   // ---------- beskjæring ----------

@@ -5,6 +5,7 @@ import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
 import { FillEditor } from '../../shared/fill/FillEditor'
+import { MaskEditor } from '../../shared/mask/MaskEditor'
 import * as FX from '../../shared/fx/fx'
 import { ColorBar } from './Colors'
 import { PAL, type Interaction, type PhotoController, type PState, type Pt } from './controller'
@@ -167,6 +168,7 @@ export function Editor(p: EditorProps) {
             {S.ltab === 'stil' && <StylePanel {...p} />}
             {S.ltab === 'fx' && <FxPanel {...p} />}
             {S.fxOpen && S.adv && <FxPicker {...p} />}
+            {S.maskEdit && <MaskDialog {...p} />}
           </div>
           <LayerList {...p} />
         </aside>
@@ -409,6 +411,27 @@ function FxPanel({ c, S, tx }: EditorProps) {
     <div className={s.stack}>
       <button type="button" className={s.bigBtn} data-pd-fx-open="" onClick={() => c.openFx()}>{tx('Legg til effekt …')}</button>
       <span className={s.note}>{tx('Velg en effekt, se den på bildet, og legg den til som et eget lag. Effektlag redigeres i høyrepanelet.')}</span>
+    </div>
+  )
+}
+
+/** «Finjuster masken»: den felles maskeredigeringen på bildelagets maske; «Bruk» skriver den tilbake med angre. */
+function MaskDialog({ c, S, tx }: EditorProps) {
+  const e = S.maskEdit
+  if (!e) return null
+  return (
+    <div className={s.maskBack} role="dialog" aria-modal="true" aria-label={tx('Finjuster masken')} data-pd-mask="">
+      <div className={s.maskHead}>
+        <strong>{tx('Finjuster masken')}</strong>
+        <span>{tx('Behold eller fjern deler av bildet med pensel, former eller «Velg objekt». Endringen kan angres i editoren.')}</span>
+      </div>
+      <div className={s.maskBody}>
+        <MaskEditor image={e.image} mask={e.mask} onChange={() => undefined} selectObject={(x, y) => c.selectInMask(x, y)} />
+      </div>
+      <div className={s.row2}>
+        <button type="button" className={s.smallBtn} onClick={() => c.closeMaskEdit()}>{tx('Avbryt')}</button>
+        <button type="button" className={s.primary} data-pd-mask-apply="" onClick={() => c.applyMaskEdit()}>{tx('Bruk')}</button>
+      </div>
     </div>
   )
 }

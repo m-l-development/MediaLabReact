@@ -262,6 +262,7 @@ function ImageCtrl({ ctrl, c, tx, url }: { ctrl: Extract<Ctrl, { k: 'img' }>; c:
           <div><i style={{ width: `${ai.phase === 'model' ? ai.pct : 100}%` }} /></div>
         </div>
       )}
+      {l?.orig && !busy && <button type="button" className={s.btnSmall} data-ts-mask-open="" onClick={() => void c.openMaskEdit(l.id)}>{tx('Finjuster utklippet')}</button>}
       {l?.orig && !busy && <button type="button" className={s.linkBtn} onClick={() => c.setL(l.id, { src: l.orig, orig: null })}>{tx('Bruk originalbildet')}</button>}
     </div>
   )

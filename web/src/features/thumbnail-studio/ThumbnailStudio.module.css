@@ -2535,3 +2535,23 @@ button:disabled {
     max-height: none;
   }
 }
+
+/* «Finjuster utklippet»: den felles maskeredigeringen i et vindu over editoren */
+.maskBack {
+  position: fixed;
+  inset: 0;
+  z-index: 56;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px clamp(12px, 3vw, 40px);
+  background: rgba(8, 8, 8, 0.92);
+  backdrop-filter: blur(6px);
+}
+
+.maskBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}

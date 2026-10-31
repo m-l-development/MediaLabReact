@@ -3,6 +3,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ToolId } from '../../domain/tool'
 import { useLang } from '../../shared/i18n/i18n'
+import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { type CropBox, type PanelKey, type State, type ThumbController } from './controller'
 import { COMBOS } from './engine/colors'
 import type { ImageCache } from './engine/images'
@@ -363,5 +364,29 @@ export function ContextMenu({ c, S, tx }: { c: ThumbController; S: State; tx: Tx
         ))}
       </div>
     </>
+  )
+}
+
+/**
+ * «Finjuster utklippet»: den felles maskeredigeringen (samme som Isolate Subject) på originalbildet, med masken fra
+ * utklippet. «Bruk» lagrer en ny versjon i Dine medier og bruker den i laget; originalen tas vare på.
+ */
+export function MaskDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }) {
+  const e = S.maskEdit
+  if (!e) return null
+  return (
+    <div className={s.maskBack} role="dialog" aria-modal="true" aria-label={tx('Finjuster utklippet')} data-ts-mask="">
+      <div className={s.cropHead}>
+        <span className={s.modalTitle}>{tx('Finjuster utklippet')}</span>
+        <span className={s.modalLead}>{tx('Behold eller fjern deler av bildet med pensel, former eller «Velg objekt». Originalen tas vare på.')}</span>
+      </div>
+      <div className={s.maskBody}>
+        <MaskEditor image={e.image} mask={e.mask} onChange={() => undefined} selectObject={(x, y) => c.selectInMask(x, y)} />
+      </div>
+      <div className={s.cropBtns}>
+        <button type="button" className={s.pillSm} disabled={e.busy} onClick={() => c.closeMaskEdit()}>{tx('Avbryt')}</button>
+        <button type="button" className={s.pillSm} data-ts-mask-apply="" disabled={e.busy} onClick={() => void c.applyMaskEdit()}>{tx(e.busy ? 'Lagrer …' : 'Bruk')}</button>
+      </div>
+    </div>
   )
 }

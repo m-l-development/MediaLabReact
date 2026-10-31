@@ -68,6 +68,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         return `m:${a.id}`
       },
       cutout: (src, kind, onProgress) => cutout.run(src, kind, onProgress),
+      selectObject: (image, x, y) => cutout.select(image, x, y),
       storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v), remove: (k) => userStore.remove(k) },
       confirm: (p, v) => window.confirm(say(p, v)),
       prompt: (p, def) => window.prompt(say(p), def),

@@ -72,6 +72,8 @@ export interface PState {
   fxCat: string
   /** Effektvelgeren (popup) er åpen. */
   fxOpen: boolean
+  /** «Finjuster masken»: bildet og masken som redigeres i den felles maskeredigeringen. */
+  maskEdit: { id: string; image: HTMLCanvasElement; mask: Uint8ClampedArray } | null
   /** Effekten som forhåndsvises (tegnes øverst, er ikke i prosjektet før «Legg til effekt»). */
   fxPick: FxLayer | null
   fxQ: string
@@ -102,6 +104,8 @@ export interface PDeps {
   putImage(blob: Blob, name: string): Promise<string>
   /** AI-utklipp: maske (hvit + alfa) i størrelsen til `src`. null = ingen tydelig motiv. */
   cutout(src: HTMLCanvasElement, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<HTMLCanvasElement | null>
+  /** «Velg objekt» i den felles maskeredigeringen (SlimSAM). */
+  selectObject?(image: HTMLCanvasElement, x: number, y: number): Promise<Uint8ClampedArray | null>
   storage: { get(k: string): string | null; set(k: string, v: string): void; remove(k: string): void }
   confirm(p: Phrase, v?: Vars): boolean
   prompt(p: Phrase, def?: string): string | null
@@ -172,7 +176,7 @@ export class PhotoController {
       projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), bx: null, bfmt: 'jpg', tver: 0,
     })
   }
@@ -1255,6 +1259,73 @@ export class PhotoController {
         this.setDoc((d) => ({ ...d, layers: d.layers.map((q) => (q.id === L.id ? { ...q, mask: uid('k') } : q)) }), false)
       },
     }
+  }
+
+  /**
+   * «Finjuster masken» (felles maskeredigering, samme som Isolate Subject): bildet i maskens oppløsning og masken som
+   * alfa (uten maske: alt synlig). «Bruk» skriver masken tilbake til laget med angre, som penselen.
+   */
+  openMaskEdit(): void {
+    const L = this.selL()
+    if (!L || L.type !== 'image' || !L.src || this.s.maskEdit) return
+    const E = this.M.media.get(L.src)
+    if (!E) {
+      this.flash('Legg inn et bilde først.')
+      return
+    }
+    const image = baseOf(E, 2048)
+    const W = image.width
+    const H = image.height
+    const mask = new Uint8ClampedArray(W * H).fill(255)
+    const old = this.M.masks.get(L.id)
+    if (old) {
+      const t = mk(W, H)
+      const g = t.getContext('2d', { willReadFrequently: true })
+      if (g) {
+        g.drawImage(old.c, 0, 0, W, H)
+        const d = g.getImageData(0, 0, W, H).data
+        for (let i = 0; i < W * H; i++) mask[i] = d[i * 4 + 3] ?? 0
+      }
+    }
+    this.set({ maskEdit: { id: L.id, image, mask } })
+  }
+
+  applyMaskEdit(): void {
+    const e = this.s.maskEdit
+    const L = e && this.s.doc?.layers.find((q) => q.id === e.id)
+    if (!e || !L || L.type !== 'image') return
+    const m = this.maskFor(L, true)
+    const g = m?.c.getContext('2d')
+    if (m && g) {
+      const W = m.c.width
+      const H = m.c.height
+      // masken er laget i samme oppløsning (baseOf 2048); ellers skaleres den
+      const src = mk(e.image.width, e.image.height)
+      const sg = src.getContext('2d')
+      if (sg) {
+        const id = sg.createImageData(src.width, src.height)
+        for (let i = 0; i < e.mask.length; i++) {
+          id.data[i * 4] = 255
+          id.data[i * 4 + 1] = 255
+          id.data[i * 4 + 2] = 255
+          id.data[i * 4 + 3] = e.mask[i] ?? 0
+        }
+        sg.putImageData(id, 0, 0)
+        g.clearRect(0, 0, W, H)
+        g.drawImage(src, 0, 0, W, H)
+      }
+      this.commitMask(L, m)
+    }
+    this.set({ maskEdit: null })
+  }
+
+  closeMaskEdit(): void {
+    this.set({ maskEdit: null })
+  }
+
+  selectInMask(x: number, y: number): Promise<Uint8ClampedArray | null> {
+    const e = this.s.maskEdit
+    return e && this.d.selectObject ? this.d.selectObject(e.image, x, y) : Promise.resolve(null)
   }
 
   invertMask(): void {
