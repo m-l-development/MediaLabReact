@@ -88,7 +88,7 @@ export function Editor(p: EditorProps) {
   if (!d) return null
   const saved = S.saved?.kind === 'unsaved' ? tx('Ikke lagret') : S.saved?.kind === 'saved' ? `${tx('Lagret')} ${new Date(S.saved.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
   return (
-    <div className={s.editor}>
+    <div className={s.editor} data-ml-workspace="">
       <header className={s.bar}>
         <button type="button" className={s.barBtn} onClick={() => void c.leave()}><span aria-hidden="true">←</span> {tx('Prosjekter')}</button>
         <input className={s.docName} value={d.name} aria-label={tx('Prosjektnavn')} onChange={(e) => c.setDocName(e.target.value)} />

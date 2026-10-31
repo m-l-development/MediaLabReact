@@ -2507,3 +2507,31 @@ button:disabled {
 :root[data-theme='light'] .stageInner {
   background: #d9d5cd;
 }
+
+/*
+ * Arbeidsflate (fyller vinduet under topplinjen; se AppShell): på brede vinduer ligger kolonnene på én rad og ruller hver
+ * for seg, og lerretet begrenses av høyden (ikke bare bredden), så hele editoren får plass uten at siden ruller.
+ */
+.editor[data-ml-workspace] {
+  max-width: none;
+  min-height: 0;
+}
+@media (min-width: 1000px) and (min-height: 560px) {
+  .editor[data-ml-workspace] .columns {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-height: 0;
+  }
+  .editor[data-ml-workspace] .col {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .editor[data-ml-workspace] .stage {
+    max-width: calc((100dvh - 250px) * 16 / 9);
+    margin: 0 auto;
+  }
+  .editor[data-ml-workspace] .props {
+    max-height: none;
+  }
+}

@@ -649,3 +649,26 @@
   font: inherit;
   text-align: right;
 }
+
+/* Arbeidsflate (fyller vinduet under topplinjen; se AppShell): scenen tar resten av høyden, panelet ruller selv. */
+@media (min-width: 900px) {
+  .editor[data-ml-workspace] {
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+  }
+  .editor[data-ml-workspace] .editorBody {
+    min-height: 0;
+    align-items: stretch;
+  }
+  .editor[data-ml-workspace] .stage {
+    height: auto;
+    min-height: 0;
+  }
+  .editor[data-ml-workspace] .panel {
+    max-height: none;
+    min-height: 0;
+    /* radene beholder sin naturlige høyde; panelet ruller i stedet for å klemme dem */
+    grid-auto-rows: max-content;
+    align-content: start;
+  }
+}

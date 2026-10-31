@@ -904,7 +904,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   const targets = TOOLS.filter((tool) => tool.id !== 'mockups' && tool.load && tool.accepts.includes('image'))
 
   return (
-    <div className={styles.editor}>
+    <div className={styles.editor} data-ml-workspace="">
       <header className={styles.editorBar}>
         <Button size="small" variant="ghost" onClick={() => onOpen(null)}>← {t('mockups.allMockups')}</Button>
         <span className={styles.selName}>{mockup.name}<small>{t(`mockups.cat.${mockup.cat}`)}</small></span>

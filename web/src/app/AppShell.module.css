@@ -223,3 +223,49 @@
   font-size: 11.5px;
   color: #6b675f;
 }
+
+/*
+ * Arbeidsflate (som Loop Studio): når et verktøy har en åpen editor (merket med data-ml-workspace), fyller den vinduet
+ * under topplinjen. Ingen kredittlinje, små marger, og siden ruller ikke – panelene i editoren ruller selv. Startsidene
+ * til verktøyene er vanlige sider som før. Er vinduet svært lavt, ruller hovedområdet i stedet for å klippe innholdet.
+ */
+@media (min-width: 761px) {
+  .shell:has([data-ml-workspace]) .bar {
+    padding: 10px 12px;
+  }
+  .main:has([data-ml-workspace]) {
+    height: 100dvh;
+    min-height: 0;
+    padding: 60px 12px 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .main:has([data-ml-workspace]) > .credit {
+    display: none;
+  }
+  .main:has([data-ml-workspace]) [data-ml-workspace] {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: min(480px, calc(100dvh - 72px));
+    min-width: 0;
+  }
+  /* de flytende knappene legger seg i topplinjen i stedet for over editorens hjørner */
+  .shell:has([data-ml-workspace]) .dock {
+    top: 10px;
+    bottom: auto;
+    right: 12px;
+  }
+  .shell:has([data-ml-workspace]) .adminFab {
+    top: 11px;
+    bottom: auto;
+    left: 172px;
+  }
+  /* beholderne mellom hovedområdet og editoren (verktøyets egen rot) gir høyden videre */
+  .main:has([data-ml-workspace]) :has([data-ml-workspace]) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+  }
+}

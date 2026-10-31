@@ -44,7 +44,7 @@ export function Editor(p: EditorProps) {
   const Lx = S.narrow ? { cols: [['canvas', 'props']] as PanelKey[][], tabs: [false] } : c.layoutOf(LM)
   const n = S.doc?.layers.length ?? 0
   return (
-    <div className={s.editor}>
+    <div className={s.editor} data-ml-workspace="">
       <div className={s.editBar}>
         <div className={s.editBarLeft}>
           <button type="button" className={s.pill} onClick={() => void c.leaveEdit()}>
