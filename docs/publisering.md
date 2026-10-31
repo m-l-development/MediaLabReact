@@ -72,6 +72,29 @@ release.
   manuell pull request til `main`. En automatisk revert direkte på `main` er ikke mulig: `main` er beskyttet, og
   endringer laget med `GITHUB_TOKEN` starter ikke CI, så påkrevd kontroll ville aldri bli grønn.
 
+### Kontrollert 2026-10-31 (bare lesing, ingen endringer i Vercel eller GitHub)
+
+| Punkt | Resultat |
+|---|---|
+| Vercel-prosjekt | Bare `media-lab-react-vyef` er koblet til `m-l-development/MediaLabReact` (de to andre prosjektene i teamet hører til andre repoer). Rot `media-lab`, `vercel.json` styrer bygg (`npm run build`, `dist`, region arn1), ingen «Ignored Build Step». |
+| Grener | Produksjon = `main` (76b93d9, `dpl_8mit13NFTQKxBrw5y15txG7QpJUr`, READY); Dev = `connecthub` (siste forhåndsvisning READY). Forhåndsvisninger bak Vercel-innlogging («Standard Protection»), produksjonsadressen offentlig. |
+| GitHub-kobling | Vercel lager GitHub-deployments («Preview»/«Production», vercel[bot]) med status – det release-gate venter på. |
+| Miljøvariabler | SMTP (`CONNECTHUB_SMTP_HOST/PORT/USER/PASSWORD`, `CONNECTHUB_MAIL_FROM_NAME`) finnes for Production (satt 2026-10-18, før produksjonsdeployen 2026-10-20) og Preview; koden leser nøyaktig disse navnene. Selve utsendingen er ikke prøvd (ingen ekte e-post). Variablene med prefikset `VITE_` i Production er ubrukte: begge byggene har `envPrefix: 'CONNECTHUB_NEVER_EXPOSED_'`, og produksjonens JavaScript inneholder ingen hemmelig nøkkel (bare supabase-js' prefikssjekk). Bør ryddes av eieren en gang (ikke nødvendig for release). |
+| Beskyttelse `main` | påkrevd kontroll «checks» (GitHub Actions), gjelder alle. Om godkjenning av kodegjennomgang kreves, kan bare en administrator se. |
+
+### Aktivering av automatisk merge til main (krever eieren av repoet)
+
+1. GitHub → Settings → Actions → General → Workflow permissions: kryss av **«Allow GitHub Actions to create and approve
+   pull requests»** → Save. (Uten dette stopper release.yml med «kunne ikke lage pull request (403)».)
+2. GitHub → Settings → Branches → regelen for `main`: kontroller at **«Require approvals»** er av (eller 0) og at
+   «Restrict who can push» ikke stenger ute GitHub Actions. En pull request laget av `GITHUB_TOKEN` kan ikke godkjennes
+   av samme bruker. «Require status checks» med «checks» skal stå; legg gjerne til **`e2e`** (strengere, valgfritt).
+3. Sett `AUTO_MERGE: 'true'` i `.github/workflows/release.yml` (commit på `connecthub` via ship-dev). Neste push som
+   består alt, slipper hele connecthub til produksjon.
+
+Merge-commiten lages av github-actions[bot]. Repoet er offentlig, så Vercel (Hobby) deployer den; første automatiske
+release skal likevel følges (release.yml venter på «Production» og version.json og feiler ellers).
+
 ## 4. Produksjon manuelt (som før)
 
 
