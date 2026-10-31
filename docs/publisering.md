@@ -53,6 +53,8 @@ Kjører ved hver push til `connecthub` (bare `GITHUB_TOKEN`; endrer aldri innsti
    `main` (påkrevd kontroll «checks»). Vercel publiserer `main` til produksjon; jobben venter på
    GitHub-deployment «Production» = success, sjekker `/app/version.json` og hovedadressene.
 5. Ved feil stopper den (jobben feiler) – ingenting omgås.
+6. Etter verifisert produksjon spoles `connecthub` fram til merge-commiten (bare fast-forward), så neste ship-dev har
+   `main` med. En kjøring avbrytes aldri underveis; en nyere push venter i køen.
 
 `AUTO_MERGE` står til `'false'` (tørrkjøring: alle kontroller, ingen merge) til eieren har godkjent første automatiske
 release.
@@ -66,11 +68,42 @@ release.
 
 ### Tilbakerulling
 
-- **Raskest:** Vercel → Deployments → forrige produksjonsdeploy → «Instant Rollback» (Hobby: bare den umiddelbart forrige;
-  release.yml og `release-check.mjs` skriver hvilken). Fra denne maskinen også `npx vercel rollback <deploy-id>`.
-- **Varig:** `git revert -m 1 <merge-commit>` på `connecthub` og vanlig release (ship-dev → release.yml), eller en
-  manuell pull request til `main`. En automatisk revert direkte på `main` er ikke mulig: `main` er beskyttet, og
-  endringer laget med `GITHUB_TOKEN` starter ikke CI, så påkrevd kontroll ville aldri bli grønn.
+Ingen automatisk tilbakerulling: feiler kontrollen av produksjonen, feiler jobben med målet i meldingen, og eieren
+bestemmer.
+
+1. **Raskest:** Vercel → Deployments → forrige produksjonsdeploy → «Instant Rollback» (Hobby: bare den umiddelbart
+   forrige; release.yml skriver den som «Tilbakerullingsmål» i annotasjonen, `release-check.mjs` med deploy-id). Fra denne
+   maskinen også `npx vercel rollback <deploy-id>`.
+2. **Kontroller:** `curl -s https://media-lab-react-vyef.vercel.app/app/version.json` skal begynne med målets commit;
+   `node web/tools/release-verify.mjs <commit>` sjekker deploystatus, version.json og hovedadressene.
+3. **Merk:** etter «Instant Rollback» slutter Vercel å flytte produksjonsadressen til nye deployer fra `main` til noen
+   trykker «Undo Rollback» / «Promote». En ny release ville da stoppe ved version.json-kontrollen (feiler trygt).
+4. **Varig:** `git revert -m 1 <merge-commit>` på `connecthub` og vanlig release (ship-dev → release.yml), eller en
+   manuell pull request til `main`. En automatisk revert direkte på `main` er ikke mulig: `main` er beskyttet, og
+   endringer laget med `GITHUB_TOKEN` starter ikke CI, så påkrevd kontroll ville aldri bli grønn.
+5. **Data:** ingen migreringer i releasen ⇒ databasen trenger ingen tilbakerulling. Motion-prosjekter (lagres i
+   nettleseren) som har fått effekter, keyframes, prosjektvarighet eller dempede spor, mister disse feltene hvis de
+   lagres på nytt i den gamle versjonen; selve klippene beholdes.
+
+### Etter en release (status som kan kontrolleres uten innlogging)
+
+- GitHub → Actions → «Release»: annotasjonen «FERDIG: produksjonen kjører <commit> …» (eller «STOPP: …»).
+- `https://api.github.com/repos/m-l-development/MediaLabReact/deployments?environment=Production&per_page=1` → nyeste
+  produksjonsdeploy (vercel[bot]) og `statuses_url` med `success`.
+- `/app/version.json` på produksjonsadressen begynner med merge-commiten.
+- Til slutt spoles `connecthub` fram til merge-commiten (bare fast-forward). Lokalt: `git pull` på `connecthub`.
+
+### Rettigheter workflowene bruker (bare `GITHUB_TOKEN`, ingen andre nøkler)
+
+| Workflow | Rettighet | Hvorfor |
+|---|---|---|
+| ci.yml | `contents: read` | sjekke ut koden |
+| release.yml | `contents: write` | merge av pull requesten; fast-forward av `connecthub` |
+| release.yml | `pull-requests: write` | lage pull request `connecthub → main` |
+| release.yml | `checks: read`, `deployments: read` | lese CI-resultatene og Vercels deploystatus |
+
+Workflowen godkjenner aldri pull requests og endrer ingen innstillinger. Standardrettighetene for `GITHUB_TOKEN` i
+repoet kan stå på «Read repository contents»: release.yml ber selv om rettighetene over.
 
 ### Kontrollert 2026-10-31 (bare lesing, ingen endringer i Vercel eller GitHub)
 
@@ -91,6 +124,25 @@ release.
    av samme bruker. «Require status checks» med «checks» skal stå; legg gjerne til **`e2e`** (strengere, valgfritt).
 3. Sett `AUTO_MERGE: 'true'` i `.github/workflows/release.yml` (commit på `connecthub` via ship-dev). Neste push som
    består alt, slipper hele connecthub til produksjon.
+
+### Hva skjer ved første aktivering
+
+Commiten som setter `AUTO_MERGE: 'true'` pushes med ship-dev. CI (checks + e2e) og Dev-deploy kjører for den; består
+alt, lages pull request `connecthub → main` med **alle** commits siden 76b93d9 (49 per 2026-10-31 + aktiveringscommiten),
+den merges, Vercel bygger produksjon, og jobben kontrollerer produksjonen og spoler `connecthub` fram. Fra da av går hver
+push som består, rett til produksjon.
+
+### Risikogjennomgang av releasen (2026-10-31, 49 commits 76b93d9..f252e4e, uten nye testkjøringer)
+
+| Område | Funn | Risiko |
+|---|---|---|
+| Server, API, Supabase, migreringer, `vercel.json`, miljøvariabler | ingen endringer | ingen |
+| `media-lab/public` | 12 nye forhåndsvisningsbilder for Mockups (bare tillegg) | lav |
+| Lagrede data | ingen nye lagringsnøkler eller serverkall. Motion og Loop får bare valgfrie felt (gamle prosjekter åpnes som før) | lav; se «Data» under tilbakerulling |
+| Tilbakemeldingsskjema | nye spørsmål; bare nøkler databasen tillater sendes som svar (`expected`, `steps`, `severity`, `improve`, `feature`, `importance`), resten går i tittel/beskrivelse; nivåene = databasens | lav |
+| Felles kode | `shared/lib/zip.ts` omskrevet (samme bytes; Admin-mappenedlasting bruker `zipParts`), `AppShell.module.css` (editorene fyller vinduet), Hub-navigasjon («← Tilbake»), ny `shared/mask` | middels: berører flere verktøy; dekket av CI (checks + e2e grønn for f252e4e) |
+| Verktøy | Motion Avansert, Photo Avansert/bildeserie/kategorier, Loop dra-og-slipp, maskeredigering i Isolate/Thumbnail/Photo | middels: stor mengde ny funksjonalitet; testet i CI, lokalt og i Dev |
+| Ikke verifisert | e-postutsending i produksjon (ingen ekte e-post); logo-bufferen (336b389, allerede i produksjon) ikke kjørt på nytt; at Vercel deployer en merge-commit laget av github-actions[bot] | – |
 
 Merge-commiten lages av github-actions[bot]. Repoet er offentlig, så Vercel (Hobby) deployer den; første automatiske
 release skal likevel følges (release.yml venter på «Production» og version.json og feiler ellers).

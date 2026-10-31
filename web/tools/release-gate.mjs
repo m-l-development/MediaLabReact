@@ -137,3 +137,9 @@ for (const p of ['', 'photo-design', 'motion-design', 'mockups', 'loop-studio', 
   if (r.status >= 400) fail(`produksjon: ${PROD_URL}${p} svarer ${r.status} – rull tilbake (Vercel «Instant Rollback» til ${prod?.sha?.slice(0, 7)})`)
 }
 note(`FERDIG: produksjonen kjører ${String(v).slice(0, 7)} (version.json og 7 adresser OK). Tilbakerullingsmål: ${prod?.sha?.slice(0, 7) ?? '?'}`)
+
+// connecthub spoles fram til merge-commiten (bare fast-forward, aldri tvunget), så main er med i connecthub igjen og
+// ship-dev kan fortsette. Har noen pushet til connecthub i mellomtiden, avvises det: da må main hentes inn manuelt.
+const ff = await gh('/git/refs/heads/connecthub', { method: 'PATCH', body: JSON.stringify({ sha: mergeSha, force: false }) })
+if (ff.ok) log(`connecthub spolt fram til ${mergeSha.slice(0, 7)}`)
+else console.log(`::warning::connecthub kunne ikke spoles fram (${ff.status}: ${ff.json?.message ?? ''}) – kjør «git merge origin/main» på connecthub før neste ship-dev`)
