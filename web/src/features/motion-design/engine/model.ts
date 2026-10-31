@@ -133,6 +133,8 @@ export interface TextItem {
   italic: boolean
   color: string
   align: 'left' | 'center' | 'right'
+  /** Loddrett justering mot y (Avansert); mangler = midt (som før). */
+  valign?: 'top' | 'middle' | 'bottom'
   anim: string
   box: 'none' | 'block' | 'line'
   bg: string
@@ -481,6 +483,7 @@ export function normalize(input: unknown): Project {
   const lz = isRec(p.lanes) ? p.lanes : {}
   const mx = isRec(p.mix) ? p.mix : {}
   const texts: TextItem[] = recs(p.texts, 1000).map((x) => withLink({
+    ...(x.valign === 'top' || x.valign === 'bottom' ? { valign: x.valign } : {}),
     id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: oneOf(x.font, FONTS, 'Archivo'), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'),
   }, lnk(x.link)))
   const subs: Sub[] = recs(p.subs, 5000).map((x) => {

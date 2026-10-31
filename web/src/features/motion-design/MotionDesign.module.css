@@ -2910,3 +2910,33 @@
 :root[data-theme='light'] .fxVal {
   color: var(--color-text-strong);
 }
+.placeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 4px;
+}
+.placeGrid button {
+  height: 26px;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  background: #0b0b0b;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.placeGrid button i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b675f;
+}
+.placeGrid button[aria-pressed='true'] {
+  border-color: #3d8bff;
+}
+.placeGrid button[aria-pressed='true'] i {
+  background: #3d8bff;
+}
+:root[data-theme='light'] .placeGrid button {
+  border-color: var(--color-border);
+  background: #fff;
+}

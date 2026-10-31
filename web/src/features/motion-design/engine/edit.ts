@@ -127,7 +127,8 @@ const endOf = (k: LaneK, x: Overlay | Music | TextItem) => (k === 'ov' ? x.start
 
 /**
  * Flytter et element ett spor opp (−1) eller ned (+1). Lag 0 er øverst (tegnes over de andre). Øverst eller nederst
- * lages et nytt spor; et spor som allerede er opptatt på samme tid, gir `busy` (ingenting endres).
+ * lages et nytt spor. Er sporet opptatt på samme tid, settes et nytt spor inn der, så elementet havner over (opp) eller
+ * under (ned) det som ligger der; de andre elementenes rekkefølge er uendret.
  */
 export function moveLane(p: Project, k: LaneK, id: string, dl: -1 | 1): EditResult {
   const arr = p[ARR[k]] as (Overlay | Music | TextItem)[]
@@ -143,7 +144,13 @@ export function moveLane(p: Project, k: LaneK, id: string, dl: -1 | 1): EditResu
   if (to > 49) return { err: 'busy' }
   const s = it.start
   const e = endOf(k, it)
-  if (arr.some((x) => x.id !== id && (x.lane || 0) === to && s < endOf(k, x) - 0.001 && e > x.start + 0.001)) return { err: 'busy' }
+  if (arr.some((x) => x.id !== id && (x.lane || 0) === to && s < endOf(k, x) - 0.001 && e > x.start + 0.001)) {
+    // opptatt: nytt spor på `at` (opp: der det opptatte ligger; ned: rett under det); sporene fra `at` flyttes ett ned
+    const at = dl < 0 ? to : to + 1
+    if (at > 49) return { err: 'busy' }
+    const next = arr.map((x) => (x.id === id ? { ...x, lane: at } : (x.lane || 0) >= at ? { ...x, lane: (x.lane || 0) + 1 } : x))
+    return { p: { ...p, [ARR[k]]: next, lanes: { ...p.lanes, [k]: Math.max(n + 1, at + 1) } } }
+  }
   const next = arr.map((x) => (x.id === id ? { ...x, lane: to } : x))
   return { p: { ...p, [ARR[k]]: next, lanes: { ...p.lanes, [k]: Math.max(n, to + 1) } } }
 }

@@ -8,6 +8,14 @@ export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
   // Avansert tidslinje
+  'Ny tekst på et tekstspor fra spillehodet': 'New text on a text track from the playhead',
+  '+ Tekst': '+ Text',
+  'Ny undertekst fra spillehodet (2,5 s)': 'New subtitle from the playhead (2.5 s)',
+  '+ Undertekst': '+ Subtitle',
+  'Klippet har {n} effekter og {k} keyframes fra Avansert modus. De vises og eksporteres som før; slå på Avansert modus for å endre dem.': 'The clip has {n} effects and {k} keyframes from Advanced mode. They are shown and exported as before; turn on Advanced mode to change them.',
+  'Plasser teksten her': 'Place the text here',
+  'Teksten justeres mot punktet (venstre/midt/høyre og topp/midt/bunn). Finjuster med Vannrett og Loddrett under.': 'The text is aligned to the point (left/centre/right and top/middle/bottom). Fine-tune with Horizontal and Vertical below.',
+  'Loddrett justering': 'Vertical alignment',
   'Opasitet': 'Opacity',
   'Fade inn': 'Fade in',
   'Fade ut': 'Fade out',

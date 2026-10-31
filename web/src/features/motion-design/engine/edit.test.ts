@@ -56,9 +56,14 @@ describe('avansert tidslinje', () => {
     expect(u.p.subs.map((x) => [x.start, x.end])).toEqual([[1, 2], [2, 3]])
   })
 
-  it('flytt mellom spor: nytt spor øverst, opptatt spor gir feil', () => {
+  it('flytt mellom spor: nytt spor øverst; opptatt spor gir et nytt spor over/under det', () => {
     const p = { ...proj(), ov: [overlay(img, { id: 'o1', start: 2, dur: 4, lane: 0 }), overlay(img, { id: 'o2', start: 3, dur: 4, lane: 1 })], lanes: { ...proj().lanes, ov: 2 } }
-    expect(moveLane(p, 'ov', 'o2', -1)).toEqual({ err: 'busy' })
+    const ins = moveLane(p, 'ov', 'o2', -1)
+    if ('err' in ins) throw new Error(ins.err)
+    expect(ins.p.ov.map((x) => [x.id, x.lane])).toEqual([['o1', 1], ['o2', 0]])
+    const insD = moveLane(p, 'ov', 'o1', 1)
+    if ('err' in insD) throw new Error(insD.err)
+    expect(insD.p.ov.map((x) => [x.id, x.lane])).toEqual([['o1', 2], ['o2', 1]])
     const up = moveLane(p, 'ov', 'o1', -1)
     if ('err' in up) throw new Error(up.err)
     expect(up.p.ov.map((x) => x.lane)).toEqual([0, 2])

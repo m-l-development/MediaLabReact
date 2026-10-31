@@ -30,6 +30,10 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
           <button type="button" className={s.linkBtn} onClick={() => c.set({ binErr: [] })}>{tx('Lukk')}</button>
         </div>
       )}
+      <div className={s.binBtns} data-md-bin-text="">
+        <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-text="" title={tx('Ny tekst på et tekstspor fra spillehodet')} onClick={() => c.addText({})}>{tx('+ Tekst')}</button>
+        <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-sub="" title={tx('Ny undertekst fra spillehodet (2,5 s)')} onClick={() => c.addSub()}>{tx('+ Undertekst')}</button>
+      </div>
       {!p.media.length && <span className={s.note}>{tx('Biblioteket er tomt. Importer filer for å legge dem på tidslinjen.')}</span>}
       <ul className={s.binList} aria-label={tx('Mediebibliotek')}>
         {p.media.map((m) => (
@@ -260,4 +264,31 @@ export function AdvNote({ S, p, tx }: { S: MState; p: Project; tx: Tx }) {
   const k = it?.kf ? Object.values(it.kf).reduce((a, l) => a + l.length, 0) : 0
   if (!n && !k) return null
   return <span className={s.note} data-md-adv-note="" style={{ fontSize: 12 }}>{tx('Klippet har {n} effekter og {k} keyframes fra Avansert modus. De vises og eksporteres som før; slå på Avansert modus for å endre dem.', { n, k })}</span>
+}
+
+const PLACES: [string, number, number, 'left' | 'center' | 'right', 'top' | 'middle' | 'bottom'][] = [
+  ['tl', 0.08, 0.08, 'left', 'top'], ['tc', 0.5, 0.08, 'center', 'top'], ['tr', 0.92, 0.08, 'right', 'top'],
+  ['ml', 0.08, 0.5, 'left', 'middle'], ['mc', 0.5, 0.5, 'center', 'middle'], ['mr', 0.92, 0.5, 'right', 'middle'],
+  ['bl', 0.08, 0.92, 'left', 'bottom'], ['bc', 0.5, 0.92, 'center', 'bottom'], ['br', 0.92, 0.92, 'right', 'bottom'],
+]
+
+/** Plassering av valgt tekst (Avansert): ni faste posisjoner med vannrett og loddrett justering. */
+export function AdvText({ c, S, p, tx }: { c: MotionController; S: MState; p: Project; tx: Tx }) {
+  const sel = S.sel
+  if (!S.adv || sel?.type !== 'text' || S.multi.length > 1) return null
+  const x = p.texts.find((q) => q.id === sel.id)
+  if (!x) return null
+  const cur = PLACES.find(([, px, py, a, v]) => Math.abs(x.x - px) < 0.01 && Math.abs(x.y - py) < 0.01 && x.align === a && (x.valign ?? 'middle') === v)?.[0]
+  return (
+    <div className={s.timing} data-md-textplace="">
+      <span className={s.binHead}>{tx('Plassering')}</span>
+      <div className={s.placeGrid} role="group" aria-label={tx('Plassering')}>
+        {PLACES.map(([k, px, py, a, v]) => (
+          <button key={k} type="button" aria-pressed={cur === k} data-md-place={k} title={tx('Plasser teksten her')} aria-label={k}
+            onClick={() => c.patch('text', x.id, { x: px, y: py, align: a, valign: v }, `place-${x.id}`)}><i /></button>
+        ))}
+      </div>
+      <span className={s.hint}>{tx('Teksten justeres mot punktet (venstre/midt/høyre og topp/midt/bunn). Finjuster med Vannrett og Loddrett under.')}</span>
+    </div>
+  )
 }

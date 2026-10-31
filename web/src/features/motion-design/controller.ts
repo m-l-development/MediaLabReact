@@ -1034,7 +1034,9 @@ export class MotionController {
   seek(t: number, quiet = false): void {
     const p = this.s.proj
     if (!p) return
-    this.t = clamp(t, 0, tlEnd(p))
+    // Avansert: hele den synlige tidslinjen kan brukes (f.eks. for å legge tekst etter innholdet); Standard: innholdet
+    const v = this.s.tlView
+    this.t = clamp(t, 0, this.s.adv ? Math.max(tlEnd(p), v.l + v.w) : tlEnd(p))
     if (this.playing) {
       this.pt0 = this.t
       this.pn0 = performance.now()

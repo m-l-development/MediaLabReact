@@ -7,7 +7,7 @@ import { WHISPER_MODELS } from './engine/transcribe'
 import { EN, tr } from './texts'
 
 const DIR = path.resolve(__dirname)
-const FILES = ['controller.ts', 'fields.ts', 'Home.tsx', 'Editor.tsx', 'Panels.tsx', 'Props.tsx', 'Timeline.tsx', 'MotionDesign.tsx', 'files.ts', 'transfer.ts', 'engine/export.ts', 'engine/transcribe.ts', 'engine/packfile.ts']
+const FILES = ['controller.ts', 'fields.ts', 'Home.tsx', 'Editor.tsx', 'Panels.tsx', 'Props.tsx', 'Timeline.tsx', 'MotionDesign.tsx', 'files.ts', 'transfer.ts', 'engine/export.ts', 'engine/transcribe.ts', 'engine/packfile.ts', 'Advanced.tsx', 'engine/fx.ts']
 
 /** Tekster som sendes til oversettelse: tx('…'), flash('…'), { p: '…' }, feltbyggerne og menyene. */
 const CALLS = /\b(?:tx|flash|confirm|head|note|range|color|select|toggle|seg|num|area|act|mi|t)\(\s*'((?:[^'\\]|\\.)+)'|\b(?:p|l|d|title|label): '((?:[^'\\]|\\.)+)'|Error\('((?:[^'\\]|\\.)+)'\)|onProgress\((?:\d+, |pct, )?'((?:[^'\\]|\\.)+)'/g

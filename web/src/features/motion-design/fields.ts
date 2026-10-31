@@ -185,6 +185,8 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
     range('Størrelse', x.size, 12, 400, 1, `${Math.round(x.size)} px`, (v) => set({ size: v })),
     color('Tekstfarge', x.color, (v) => set({ color: v })),
     seg('Justering', x.align, [['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']], (v) => set({ align: v as 'left' })),
+    // loddrett justering bare i Avansert (Standard er uendret)
+    ...(c.s.adv ? [seg('Loddrett justering', x.valign ?? 'middle', [['top', 'Topp'], ['middle', 'Midt'], ['bottom', 'Bunn']], (v) => set({ valign: v as 'top' | 'middle' | 'bottom' }))] : []),
     toggle('Store bokstaver', x.upper, (v) => set({ upper: v })),
     toggle('Kursiv', x.italic, (v) => set({ italic: v })),
     toggle('Skygge', x.shadow, (v) => set({ shadow: v })),

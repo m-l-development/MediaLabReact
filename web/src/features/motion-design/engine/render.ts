@@ -885,7 +885,7 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   const ax = x.x * W
   const ay = x.y * H
   const left = x.align === 'left' ? ax : x.align === 'right' ? ax - bw : ax - bw / 2
-  const top = ay - bh / 2
+  const top = x.valign === 'top' ? ay : x.valign === 'bottom' ? ay - bh : ay - bh / 2
   const pad = x.box !== 'none' ? px * 0.38 : px * 0.08
   if (rects) rects[x.id] = { x: left - pad, y: top - pad, w: bw + pad * 2, h: bh + pad * 2 }
   let a = kOut * x.opacity
