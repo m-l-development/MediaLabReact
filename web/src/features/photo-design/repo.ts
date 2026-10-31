@@ -9,7 +9,7 @@ import type { PdDoc } from './engine/model'
 export interface PdStored { doc: PdDoc; masks: Record<string, string>; thumb: string; tpl?: { cat: string } | null }
 
 /** Et prosjekt eller en mal i oversikten. */
-export interface PdEntry { id: string; name: string; w: number; h: number; updated: number; thumb: string; tpl: boolean; cat: string | null }
+export interface PdEntry { id: string; name: string; w: number; h: number; updated: number; thumb: string; tpl: boolean; cat: string | null; /** Bildeserie: antall bilder (null = vanlig prosjekt). */ batch: number | null }
 
 const M_REF = /^m:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 const DATA_PNG = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/
@@ -69,7 +69,7 @@ export class PdRepo {
       try {
         const env = await this.projects.open(PROJECT_SCHEMA, p.id)
         this.envs.set(env.id, env)
-        out.push({ id: env.id, name: env.name, w: env.doc.doc.w, h: env.doc.doc.h, updated: env.updatedAt, thumb: env.doc.thumb, tpl: !!env.doc.tpl, cat: env.doc.tpl?.cat ?? null })
+        out.push({ id: env.id, name: env.name, w: env.doc.doc.w, h: env.doc.doc.h, updated: env.updatedAt, thumb: env.doc.thumb, tpl: !!env.doc.tpl, cat: env.doc.tpl?.cat ?? null, batch: env.doc.doc.batch ? env.doc.doc.batch.items.length : null })
       } catch {
         // et prosjekt som ikke kan leses, hoppes over (originalen blir liggende)
       }

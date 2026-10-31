@@ -85,7 +85,7 @@ function TplPreview({ k, w, h, scheme, own, tx }: { k: string; w: number; h: num
   return <canvas ref={ref} width={10} height={10} className={s.tplCanvas} />
 }
 
-export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S: PState; tx: Tx; onBackup: () => void; onRestore: () => void }) {
+export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoController; S: PState; tx: Tx; onBackup: () => void; onRestore: () => void; onBatch: () => void }) {
   const [w, h] = c.fmtWH()
   const fm: Format[] = [...FORMATS, { k: 'custom', l: 'Egendefinert', w: +S.cw || 1200, h: +S.ch || 800 }]
   const cat = c.catNow()
@@ -122,6 +122,13 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
           </div>
         )}
       </section>
+      <section className={s.section} data-pd-batch-home="">
+        <span className={s.eyebrow}>{tx('Mange bilder')}</span>
+        <div className={s.rowBetween}>
+          <span className={s.note}>{tx('Rediger mange separate bilder i én serie: hvert bilde får egne justeringer, og alle kan eksporteres samlet som ZIP.')}</span>
+          <button type="button" className={s.pillDark} data-pd-batch-new="" onClick={onBatch}>{tx('Ny bildeserie')}</button>
+        </div>
+      </section>
       <section className={s.section}>
         <div className={s.rowBetween}>
           <span className={s.eyebrow}>{tx('2 · Mal')}</span>
@@ -142,13 +149,6 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
               </div>
             )
           })}
-        </div>
-      </section>
-      <section className={s.section} data-pd-batch-home="">
-        <span className={s.eyebrow}>{tx('Mange bilder')}</span>
-        <div className={s.rowBetween}>
-          <span className={s.note}>{tx('Rediger mange separate bilder i én serie: hvert bilde får egne justeringer, og alle kan eksporteres samlet som ZIP.')}</span>
-          <button type="button" className={s.pillDark} data-pd-batch-new="" onClick={() => c.createBatch()}>{tx('Ny bildeserie')}</button>
         </div>
       </section>
       <section className={s.section}>
@@ -180,7 +180,7 @@ export function Home({ c, S, tx, onBackup, onRestore }: { c: PhotoController; S:
             {projects.map((p) => (
               <div key={p.id} className={s.projCard} data-project={p.name}>
                 <button type="button" className={s.projThumb} style={{ backgroundImage: p.thumb ? `url("${p.thumb}")` : 'none' }} aria-label={p.name} onClick={() => void c.open(p.id)} />
-                <div className={s.projText}><span>{p.name}</span><span>{p.w} × {p.h} · {new Date(p.updated).toLocaleDateString(lang)}</span></div>
+                <div className={s.projText}><span>{p.name}</span><span>{p.batch != null ? tx('Bildeserie · {n} bilder', { n: p.batch }) : `${p.w} × ${p.h}`} · {new Date(p.updated).toLocaleDateString(lang)}</span></div>
                 <button type="button" className={s.projDel} title={tx('Slett prosjekt')} aria-label={tx('Slett prosjekt')} onClick={() => void c.delProject(p)}>×</button>
               </div>
             ))}

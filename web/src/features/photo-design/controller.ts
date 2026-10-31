@@ -1619,6 +1619,41 @@ export class PhotoController {
     this.flash('Innstillingene er kopiert til {n} bilder.', { n: sel.size })
   }
 
+  /**
+   * Sletter de valgte bildene fra serien (etter bekreftelse): de forsvinner fra serien, filmstripen og eksporten.
+   * Originalfilene på enheten røres ikke. Slettes bildet som er åpent, åpnes nærmeste gjenværende bilde.
+   */
+  batchDelSel(): void {
+    const d0 = this.s.doc
+    const sel = new Set(d0?.batch?.sel ?? [])
+    if (!d0?.batch || !sel.size) return
+    if (!this.d.confirm('Slette {n} bilder fra bildeserien?\nRedigeringene forsvinner. Originalfilene på enheten slettes ikke.', { n: sel.size })) return
+    const d = syncBatch(d0)
+    const b = d.batch as Batch
+    const act = b.items[b.active]
+    const items = b.items.filter((it) => !sel.has(it.id))
+    for (const id of sel) {
+      this.tRaw.delete(id)
+      this.tOut.delete(id)
+    }
+    this.past = []
+    this.future = []
+    this.hk = null
+    if (act && !sel.has(act.id)) {
+      // bildet som er åpent, er igjen: bare nummeret kan ha endret seg
+      this.setDoc(() => ({ ...d, batch: { items, active: items.findIndex((x) => x.id === act.id), sel: [] } }), false)
+    } else {
+      for (const e of this.M.media.values()) URL.revokeObjectURL(e.url)
+      this.M.media.clear()
+      this.M.masks.clear()
+      const next = Math.min(b.active - b.items.slice(0, b.active).filter((x) => sel.has(x.id)).length, items.length - 1)
+      this.setDoc(() => ({ ...d, w: 1080, h: 1080, layers: [], batch: { items, active: Math.max(0, next), sel: [] } }), false)
+      this.set({ sel: null })
+      if (items.length) void this.batchGo(Math.max(0, next))
+    }
+    this.flash(items.length ? '{n} bilder er slettet fra serien.' : 'Alle bildene er slettet. Legg til nye bilder for å fortsette.', { n: sel.size })
+  }
+
   /** Nullstiller de valgte bildene til originalen. */
   batchResetSel(): void {
     const sel = this.batchTargets()

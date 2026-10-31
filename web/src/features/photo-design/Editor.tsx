@@ -211,6 +211,7 @@ function BatchPanel({ c, S, tx, pickFile, onZip }: EditorProps) {
         <button type="button" className={s.smallBtn} data-pd-batch-all="" disabled={!n} onClick={() => c.batchSelAll(true)}>{tx('Velg alle')}</button>
         <button type="button" className={s.smallBtn} data-pd-batch-none="" disabled={!nSel} onClick={() => c.batchSelAll(false)}>{tx('Velg ingen')}</button>
       </div>
+      <button type="button" className={s.smallBtnDanger} data-pd-batch-del="" disabled={!nSel || busy} onClick={() => c.batchDelSel()}>{nSel ? tx('Slett valgte ({n})', { n: nSel }) : tx('Slett valgte')}</button>
       <label className={s.field}>
         <span>{tx('Forhåndsvalg')}</span>
         <select value={look} data-pd-batch-look="" onChange={(e) => setLook(e.target.value)}>

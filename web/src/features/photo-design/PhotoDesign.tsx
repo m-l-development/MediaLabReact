@@ -334,7 +334,8 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
               c.flash('Kunne ikke lage sikkerhetskopi.')
             }
           }}
-          onRestore={() => restoreInput.current?.click()} />
+          onRestore={() => restoreInput.current?.click()}
+          onBatch={() => c.createBatch()} />
       )}
       {S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} pickFile={pickFile} onExport={(k, to) => void onExport(k, to)} sendTo={sendTo}
         onZip={(z) => download(z, c.fname().replace(/\.\w+$/, '') + '.zip')} />}
