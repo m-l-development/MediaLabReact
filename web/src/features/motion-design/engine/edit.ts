@@ -45,6 +45,24 @@ export function spanOf(p: Project, kind: EditKind, id: string): { start: number;
   return s ? { start: s.start, end: s.end, dur: s.end - s.start } : null
 }
 
+/** Tallet en nedtelling starter fra (null = ikke en nedtelling). Uten fast start teller den ned fra tekstens varighet. */
+export function cdStart(x: TextItem): number | null {
+  return x.countdown ? (x.cdFrom ?? x.dur) : null
+}
+
+/**
+ * Nedtelling som deles eller trimmes (TB-EB63E9): delen før kuttet beholder startverdien (også når den fulgte
+ * varigheten), og delen etter kuttet (`off` s inn i teksten) fortsetter der nedtellingen var – den starter ikke på nytt.
+ */
+export function cdBefore(x: TextItem): Partial<TextItem> {
+  const c = cdStart(x)
+  return c == null ? {} : { cdFrom: c }
+}
+export function cdAfter(x: TextItem, off: number): Partial<TextItem> {
+  const c = cdStart(x)
+  return c == null ? {} : { cdFrom: Math.max(0, c - off) }
+}
+
 /** Keyframes forskjøvet med dt (samme innhold på samme tidspunkt etter trim av starten eller deling). */
 export function withKf<T extends { kf?: import('./kf').Keys }>(x: T, dt: number): T {
   if (!x.kf) return x
@@ -92,7 +110,7 @@ export function trimAt(p: Project, kind: EditKind, id: string, t: number, edge: 
     return { p: { ...p, music: p.music.map(map) } }
   }
   if (kind === 'text') {
-    const map = (x: TextItem): TextItem => (x.id !== id ? x : edge === 'l' ? withKf({ ...x, start: t, dur: x.dur - off }, -off) : { ...x, dur: off })
+    const map = (x: TextItem): TextItem => (x.id !== id ? x : edge === 'l' ? withKf({ ...x, ...cdAfter(x, off), start: t, dur: x.dur - off }, -off) : { ...x, ...cdBefore(x), dur: off })
     return { p: { ...p, texts: p.texts.map(map) } }
   }
   const map = (x: Sub): Sub => (x.id !== id ? x : edge === 'l' ? { ...x, start: t } : { ...x, end: t })

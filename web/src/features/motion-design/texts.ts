@@ -8,6 +8,10 @@ export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
   // Avansert tidslinje
+  'Til prosjektslutt': 'To project end',
+  'Varer til prosjektslutt ({t})': 'Lasts until the project end ({t})',
+  'V1 er sammenhengende: bare det siste klippet kan forlenges til prosjektslutt.': 'V1 is continuous: only the last clip can be extended to the project end.',
+  'Klippet er ikke langt nok til å vare til prosjektslutt ({t}).': 'The clip is not long enough to last until the project end ({t}).',
   'Klipp': 'Clip',
   'Kategori': 'Category',
   'Fargekorrigering': 'Colour correction',

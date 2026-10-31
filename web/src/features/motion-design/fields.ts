@@ -166,10 +166,8 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
     const mm = Math.floor(from / 60) % 60
     const ss = from % 60
     const setFrom = (d: number, h: number, m: number, s: number) => {
-      const nf = Math.max(0, d * 86400 + h * 3600 + m * 60 + s)
-      const o: Partial<TextItem> = { cdFrom: nf }
-      if (Math.abs(x.dur - from) < 0.05 && nf >= 1 && nf <= 3600) o.dur = nf
-      set(o)
+      // varigheten og det som slutter samtidig (bakgrunn, andre tekster) følger nedtellingen (TB-EB63E9)
+      c.setCountdown(x.id, Math.max(0, d * 86400 + h * 3600 + m * 60 + s))
     }
     out.push(head('Tell ned fra'),
       num('Dager', dd, 0, 99, 1, (v) => setFrom(Math.round(v), hh, mm, ss)),

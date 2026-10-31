@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { fmtTC, moveLane, spanOf, splitOv, splitSub, trackName, trimAt } from './edit'
-import { create, FORMATS, layout, mediaClip, music, overlay, type Media, type Project } from './model'
+import { cdAfter, cdBefore, cdStart, fmtTC, moveLane, spanOf, splitOv, splitSub, trackName, trimAt } from './edit'
+import { create, FORMATS, layout, mediaClip, music, overlay, text, type Media, type Project } from './model'
 
 const wide = FORMATS[3] ?? { k: 'wide', name: '', ratio: '', w: 1920, h: 1080 }
 const vid: Media = { id: 'm-v', name: 'v.mp4', kind: 'video', dur: 10, w: 1920, h: 1080, thumb: '' }
@@ -71,5 +71,25 @@ describe('avansert tidslinje', () => {
     const down = moveLane(p, 'ov', 'o2', 1)
     if ('err' in down) throw new Error(down.err)
     expect(down.p.ov.find((x) => x.id === 'o2')?.lane).toBe(2)
+  })
+})
+
+describe('nedtelling ved deling og trim (TB-EB63E9)', () => {
+  const cd = (o: Partial<import('./model').TextItem>) => text({ start: 0, dur: 1200, countdown: true, cdFrom: null, ...o })
+  it('delen etter kuttet fortsetter der nedtellingen var; delen før beholder startverdien', () => {
+    const x = cd({})
+    expect(cdStart(x)).toBe(1200)
+    expect(cdBefore(x)).toEqual({ cdFrom: 1200 })
+    expect(cdAfter(x, 300)).toEqual({ cdFrom: 900 })
+    expect(cdAfter(cd({ cdFrom: 60, dur: 60 }), 75)).toEqual({ cdFrom: 0 })
+    expect(cdStart(text({ countdown: false }))).toBeNull()
+    expect(cdAfter(text({ countdown: false }), 3)).toEqual({})
+  })
+  it('trim av starten: nedtellingen viser det samme tallet på samme tidspunkt', () => {
+    const p: Project = { ...create(FORMATS[0]!, 'blank'), texts: [cd({ id: 'c' })] }
+    const l = ok(trimAt(p, 'text', 'c', 120, 'l')).texts[0]!
+    expect([l.start, l.dur, l.cdFrom]).toEqual([120, 1080, 1080])
+    const r = ok(trimAt(p, 'text', 'c', 600, 'r')).texts[0]!
+    expect([r.start, r.dur, r.cdFrom]).toEqual([0, 600, 1200])
   })
 })

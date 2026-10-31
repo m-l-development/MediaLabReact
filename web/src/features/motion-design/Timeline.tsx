@@ -127,7 +127,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
         </div>
         <div ref={c.bind('tl')} className={s.tl}>
           <div ref={c.bind('tlInner')} className={s.tlInner} style={{ width: Math.max(200, (E + Math.max(12, V.w * 0.9)) * Z) }}>
-            <div className={s.ruler} onPointerDown={(e) => c.rulerDown(e)}>
+            <div className={s.ruler} data-md-ruler="" onPointerDown={(e) => c.rulerDown(e)}>
               {ticks.map((k) => <div key={k.left} className={s.tick} style={{ left: k.left }}>{k.label}</div>)}
               {p.markers.map((k) => (
                 <button key={k.id} type="button" className={s.marker} style={{ left: k.t * Z, background: k.color }} title={`${k.label || tx('Markør')} · ${fmtT(k.t)}`} aria-label={`${k.label || tx('Markør')} · ${fmtT(k.t)}`}

@@ -7,7 +7,7 @@ import {
   contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
-import { moveLane, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
+import { cdAfter, cdBefore, cdStart, moveLane, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
 import { newEffect, type Effect, type FxKind } from './engine/fx'
 import { keyAt, scaleKeys, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
 import { pack, unpack } from './engine/packfile'
@@ -241,10 +241,11 @@ export class MotionController {
     this.d = deps
     this.now = deps.now ?? Date.now
     const st = deps.storage
-    let secOpen: Record<string, boolean> = { Tid: true }
+    // «Tell ned fra» er åpen som standard: nedtellingens lengde skal synes med en gang (TB-EB63E9)
+    let secOpen: Record<string, boolean> = { Tid: true, 'Tell ned fra': true }
     try {
       const v = JSON.parse(st.get('motiondesign.sections') ?? 'null') as unknown
-      if (v && typeof v === 'object') secOpen = v as Record<string, boolean>
+      if (v && typeof v === 'object') secOpen = { 'Tell ned fra': true, ...(v as Record<string, boolean>) }
     } catch {
       // standard
     }
@@ -2198,9 +2199,10 @@ export class MotionController {
         this.flash('Flytt spillehodet inn i teksten for å dele den.')
         return
       }
-      const b: TextItem = withKf({ ...o, id: uid('t'), start: t, dur: o.start + o.dur - t }, -(t - o.start))
+      // nedtelling: andre del fortsetter der første del slapp (den starter ikke på nytt)
+      const b: TextItem = withKf({ ...o, ...cdAfter(o, t - o.start), id: uid('t'), start: t, dur: o.start + o.dur - t }, -(t - o.start))
       this.setProj((q) => {
-        const arr = q.texts.map((y) => (y.id === o.id ? { ...y, dur: t - o.start } : y))
+        const arr = q.texts.map((y) => (y.id === o.id ? { ...y, ...cdBefore(y), dur: t - o.start } : y))
         arr.splice(arr.findIndex((y) => y.id === o.id) + 1, 0, b)
         return { ...q, texts: arr }
       })
@@ -2456,6 +2458,52 @@ export class MotionController {
   }
 
   /** Nøyaktig start eller varighet (sekunder) fra feltene i Avansert. */
+  /**
+   * Nedtellingens lengde (TB-EB63E9). Viste teksten hele nedtellingen, følger varigheten med, og det som sluttet samtidig
+   * med nedtellingen – bakgrunnen sist i V1 (farge/bilde), andre tekster, bildeoverlegg og prosjektvarigheten – flyttes
+   * til den nye slutten. Slik får en 20 minutters nedtelling og bakgrunnen riktig lengde i ett steg.
+   */
+  setCountdown(id: string, from: number): void {
+    const p = this.s.proj
+    const x = p?.texts.find((t) => t.id === id)
+    if (!p || !x || this.locked('text')) return
+    const nf = Math.max(0, Math.min(8639999, Math.round(from)))
+    const old = cdStart(x) ?? x.dur
+    if (!(Math.abs(x.dur - old) < 0.05 && nf >= 1 && nf <= 86400)) {
+      this.patch('text', id, { cdFrom: nf }, `cd-${id}`)
+      return
+    }
+    const end0 = x.start + x.dur
+    const end1 = x.start + nf
+    const near = (a: number, b: number) => Math.abs(a - b) < 0.05
+    this.setProj((q) => {
+      const L = layout(q)
+      const last = L.length - 1
+      const clips = q.clips.map((c, i) => (i === last && c.kind !== 'video' && L[i] && near(L[i].end, end0) ? { ...c, dur: Math.max(0.3, c.dur + end1 - end0) } : c))
+      const texts = q.texts.map((t) => (t.id === id ? { ...t, cdFrom: nf, dur: nf } : near(t.start + t.dur, end0) && end1 - t.start >= 0.2 ? { ...t, dur: end1 - t.start } : t))
+      const ov = q.ov.map((o) => (o.kind !== 'video' && near(o.start + o.dur, end0) && end1 - o.start >= 0.2 ? { ...o, dur: end1 - o.start } : o))
+      return { ...q, clips, texts, ov, ...(q.dur && near(q.dur, end0) ? { dur: end1 } : {}) }
+    }, true, `cd-${id}`)
+  }
+
+  /** Avansert: det valgte elementet varer til prosjektslutt (siste klipp i V1, tekst, overlegg, lyd eller undertekst). */
+  toEnd(): void {
+    const p = this.s.proj
+    const sel = this.s.sel
+    if (!p || !sel) return
+    const sp = spanOf(p, sel.type, sel.id)
+    const T = totalDur(p)
+    if (!sp) return
+    if (sel.type === 'clip' && p.clips[p.clips.length - 1]?.id !== sel.id) {
+      this.flash('V1 er sammenhengende: bare det siste klippet kan forlenges til prosjektslutt.')
+      return
+    }
+    if (T - sp.start < 0.1) return
+    this.setSpan(sel.type, sel.id, 'dur', T - sp.start)
+    const after = spanOf(this.s.proj as Project, sel.type, sel.id)
+    if (after && after.end < T - 0.05) this.flash('Klippet er ikke langt nok til å vare til prosjektslutt ({t}).', { t: fmtT(T) })
+  }
+
   setSpan(kind: Kind, id: string, f: 'start' | 'dur', v: number): void {
     const p = this.s.proj
     if (!p || !Number.isFinite(v) || this.locked(kind)) return

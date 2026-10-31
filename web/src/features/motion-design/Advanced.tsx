@@ -104,6 +104,9 @@ export function AdvTiming({ c, S, p, tx }: { c: MotionController; S: MState; p: 
         <button type="button" className={s.act} data-md-act="trim-l" title={tx('Q')} onClick={() => c.trimSel('l')}>{tx('Trim start hit')}</button>
         <button type="button" className={s.act} data-md-act="trim-r" title={tx('W')} onClick={() => c.trimSel('r')}>{tx('Trim slutt hit')}</button>
         <button type="button" className={s.act} data-md-act="split" title={tx('S')} onClick={() => c.split()}>{tx('Del ved spillehodet')}</button>
+        {sp.end < totalDur(p) - 0.05 && (sel.type !== 'clip' || p.clips[p.clips.length - 1]?.id === sel.id) && (
+          <button type="button" className={s.act} data-md-act="to-end" title={tx('Varer til prosjektslutt ({t})', { t: fmtHMS(totalDur(p)) })} onClick={() => c.toEnd()}>{tx('Til prosjektslutt')}</button>
+        )}
         {lanes && <button type="button" className={s.act} data-md-act="up" title={tx('Alt+↑')} onClick={() => c.moveLaneSel(-1)}>{tx('Spor opp')}</button>}
         {lanes && <button type="button" className={s.act} data-md-act="down" title={tx('Alt+↓')} onClick={() => c.moveLaneSel(1)}>{tx('Spor ned')}</button>}
         {sel.type === 'clip' && <button type="button" className={s.act} data-md-act="left" title={tx('Alt+←')} onClick={() => c.moveClip(-1)}>{tx('Tidligere')}</button>}
