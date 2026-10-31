@@ -62,7 +62,7 @@ test('mobil: hold og dra med fingeren flytter sliden; kort trykk velger bare', a
   test.skip(info.project.name !== 'mobil', 'berøring testes på mobil (Chrome)')
   await setup(page)
   const cdp = await page.context().newCDPSession(page)
-  const touch = (type: string, x: number, y: number) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })
   const c = page.locator('[data-loop-card]')
   await c.nth(3).scrollIntoViewIfNeeded()
   // kort trykk: ingen flytting
