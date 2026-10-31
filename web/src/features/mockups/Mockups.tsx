@@ -230,6 +230,11 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   const entries = lib.entries ?? []
   const visible = cat === 'all' ? entries : entries.filter((m) => m.cat === cat)
   const selected = entries.find((m) => m.id === selId) ?? null
+  // editoren og nedlastingen bruker fotografiet i full oppløsning (galleriet bare forhåndsvisningen)
+  const selKey = selected?.id ?? null
+  useEffect(() => {
+    if (selKey) lib.loadFull(selKey)
+  }, [selKey, lib, lib.entries])
 
   const open = (id: string | null) => {
     const q: Record<string, string> = {}
@@ -297,7 +302,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           key={selected.id}
           mockup={selected}
           list={visible.length ? visible : entries}
-          image={lib.images.get(selected.id) ?? null}
+          image={lib.full.get(selected.id) ?? null}
           design={design}
           settings={settingsOf(selected)}
           onPatch={(p) => patch(selected.id, p)}
