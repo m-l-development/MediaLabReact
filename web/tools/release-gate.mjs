@@ -16,6 +16,8 @@ const sha = process.argv[2] ?? ''
 const merge = process.argv.includes('--merge')
 
 const log = (s) => console.log(`[release] ${s}`)
+/** Synlig som annotasjon på kjøringen (offentlig lesbar uten innlogging). */
+const note = (s) => console.log(`::notice::${s}`)
 const fail = (s) => {
   console.log(`::error::${s}`)
   log(`STOPP: ${s}`)
@@ -106,7 +108,7 @@ const prod = (await gh('/deployments?environment=Production&per_page=1')).json?.
 log(`produksjon nå (tilbakerullingsmål): ${prod?.sha?.slice(0, 7) ?? '?'} (Vercel → Deployments → «Instant Rollback»)`)
 
 if (!merge) {
-  log('TØRRKJØRING: alle kontroller bestått – ingen pull request eller merge (AUTO_MERGE er av)')
+  note(`TØRRKJØRING ${sha.slice(0, 7)}: CI, Dev-deploy, migreringer og main-forfar bestått – ingen pull request eller merge (AUTO_MERGE er av). Tilbakerullingsmål: ${prod?.sha?.slice(0, 7) ?? '?'}`)
   process.exit(0)
 }
 
@@ -134,4 +136,4 @@ for (const p of ['', 'photo-design', 'motion-design', 'mockups', 'loop-studio', 
   const r = await fetch(`${PROD_URL}${p}`, { redirect: 'manual' })
   if (r.status >= 400) fail(`produksjon: ${PROD_URL}${p} svarer ${r.status} – rull tilbake (Vercel «Instant Rollback» til ${prod?.sha?.slice(0, 7)})`)
 }
-log(`FERDIG: produksjonen kjører ${String(v).slice(0, 7)} (version.json og 7 adresser OK)`)
+note(`FERDIG: produksjonen kjører ${String(v).slice(0, 7)} (version.json og 7 adresser OK). Tilbakerullingsmål: ${prod?.sha?.slice(0, 7) ?? '?'}`)

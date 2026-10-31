@@ -69,7 +69,7 @@ const ci = await waitFor('CI', async () => {
   const r = await ciRuns(sha)
   const c = r?.find((x) => x.name === 'CI' && x.event === 'push')
   return c && c.status === 'completed' ? c : undefined
-}, 30 * 60_000)
+}, 45 * 60_000, 60_000) // e2e i CI tar ~15 min; GitHub tillater 60 kall/time uten innlogging
 if (ci.conclusion !== 'success') fail(`CI: ${ci.conclusion} (${ci.url})`)
 log(`CI: success (${ci.url})`)
 log(`FERDIG: ${short} er publisert til Dev – ${DEV_URL}`)
