@@ -953,7 +953,8 @@ export class MotionController {
       const seg = m.out - m.in
       const len = m.loop ? Math.max(0, T - m.start) : seg
       const rel = t - m.start
-      if (pl && rel >= 0 && rel < len) {
+      // dempet lydspor (Avansert): spilles ikke
+      if (pl && rel >= 0 && rel < len && !p.muteA?.includes(m.lane || 0)) {
         const target = m.in + (m.loop ? rel % seg : rel)
         const fi = m.fadeIn > 0 ? clamp(rel / m.fadeIn, 0, 1) : 1
         const fo = m.fadeOut > 0 ? clamp((len - rel) / m.fadeOut, 0, 1) : 1
@@ -1808,6 +1809,19 @@ export class MotionController {
     if (!el) return
     el.scrollLeft = Math.max(0, t) * this.s.zoom
     this.onTlScroll()
+  }
+
+  /** Demp eller slå på lydsporet (A1 = lag 0). Klippene beholdes. */
+  toggleMuteA(lane: number): void {
+    this.setProj((q) => {
+      const s = new Set(q.muteA ?? [])
+      if (s.has(lane)) s.delete(lane)
+      else s.add(lane)
+      const n = { ...q }
+      if (s.size) n.muteA = [...s].sort((a, b) => a - b)
+      else delete n.muteA
+      return n
+    })
   }
 
   /** Tidslinjens høyde (dratt eller med piltastene på skillet); begrenses så forhåndsvisningen alltid får plass. */

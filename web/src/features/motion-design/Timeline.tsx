@@ -38,6 +38,16 @@ function Block({ c, kind, id, cls, sel, link, style, children }: BlockProps) {
   )
 }
 
+/** Demp lydsporet (Avansert): klippene beholdes, men høres ikke i avspilling eller eksport. */
+function MuteBtn({ c, p, tx, lane }: { c: MotionController; p: Project; tx: Tx; lane: number }) {
+  const on = !!p.muteA?.includes(lane)
+  return (
+    <button type="button" className={`${s.ico} ${on ? s.icoOn : ''}`} aria-pressed={on} data-md-mute={lane} title={tx(on ? 'Slå på lyden i sporet' : 'Demp sporet')} aria-label={tx(on ? 'Slå på lyden i sporet' : 'Demp sporet')} onClick={() => c.toggleMuteA(lane)}>
+      {on ? '🔇' : '🔊'}
+    </button>
+  )
+}
+
 export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: MState; p: Project; tx: Tx; maxH: string; fixH?: number | undefined }) {
   const T = totalDur(p)
   const L = layout(p)
@@ -94,6 +104,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
                 <div className={s.headLine} style={{ height: lh }}>
                   <span className={s.headName} data-md-lane={adv ? laneName(k, 0) : undefined}>{adv ? laneName(k, 0) : tx(name)}</span>
                   {nl > 0 && <button type="button" className={s.ico} title={tx('Legg til lag')} aria-label={tx('Legg til lag')} onClick={() => c.addLane(k as keyof typeof LANEH)}>+</button>}
+                  {adv && k === 'music' && <MuteBtn c={c} p={p} tx={tx} lane={0} />}
                   <button type="button" className={`${s.ico} ${q.hide ? s.icoHid : ''}`} title={tx(q.hide ? 'Vis spor' : 'Skjul spor')} aria-label={tx(q.hide ? 'Vis spor' : 'Skjul spor')} aria-pressed={q.hide} onClick={() => c.toggleTrack(k, 'hide')}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
                   </button>
@@ -105,6 +116,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
                 {Array.from({ length: Math.max(0, nl - 1) }, (_, i) => (
                   <div key={i} className={s.lane} style={{ height: LANEH[k as keyof typeof LANEH] }}>
                     <span className={s.flex} data-md-lane={adv ? laneName(k, i + 1) : undefined}>{adv ? laneName(k, i + 1) : `${tx('Lag')} ${i + 2}`}</span>
+                    {adv && k === 'music' && <MuteBtn c={c} p={p} tx={tx} lane={i + 1} />}
                     <button type="button" className={`${s.ico} ${s.icoDel}`} title={tx('Fjern lag')} aria-label={tx('Fjern lag')} onClick={() => c.delLane(k as keyof typeof LANEH, i + 1)}>×</button>
                   </div>
                 ))}

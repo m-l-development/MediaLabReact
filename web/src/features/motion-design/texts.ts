@@ -8,6 +8,8 @@ export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
   // Avansert tidslinje
+  'Slå på lyden i sporet': 'Unmute the track',
+  'Demp sporet': 'Mute the track',
   'Keyframes': 'Keyframes',
   'Forrige keyframe': 'Previous keyframe',
   'Neste keyframe': 'Next keyframe',
