@@ -42,74 +42,65 @@ viser filene). Skriver også miljøvariabler som bare finnes i Dev (navn, aldri 
 
 ## 3. Release connecthub → main (`release.yml`, `release-verify.yml`, `web/tools/release-gate.mjs`)
 
-### Anbefalt modell: automatisk release-forberedelse, menneskelig godkjenning før merge
+### Modell: automatisk forberedelse, menneskelig godkjenning før merge
 
-Alt unntatt selve godkjenningen er automatisk; «Require approvals» på `main` beholdes.
+`release.yml` står i modus `RELEASE_PR: 'true'`, `AUTO_MERGE: 'false'` (eierens krav 2026-11-01): alt er automatisk unntatt
+godkjenning og merge, som et menneske gjør i pull requesten. Boten merger aldri og godkjenner aldri.
 
-1. **Push til `connecthub`** (ship-dev) → Vercel bygger Dev, CI kjører `checks` + `e2e`.
-2. **release.yml** (`RELEASE_PR: 'true'`) venter på CI (nyeste kjøring per kontroll) og Dev-deployen av samme commit,
-   krever at commiten er toppen av `connecthub`, at `main` er med og at det ikke er nye migreringer. Så lager eller
-   oppdaterer den pull request `connecthub → main` med resultatene og setter commit-status **`release-gate`** = success på
-   commiten. Ved feil: status failure, og jobben stopper.
-3. **Eieren** leser pull requesten, godkjenner og merger med «Create a merge commit» (eller «Enable auto-merge», så
-   merger GitHub når påkrevde kontroller er grønne). Branch protection håndhever godkjenning og kontroller.
+Første release (PR #18, 402f756 → merge-commit bac9268, 2026-10-31) gikk med `AUTO_MERGE: 'true'` og ble merget av
+github-actions[bot] uten godkjenning, fordi `main` ikke krever godkjenning. Det er slått av igjen.
+
+### Rekkefølge
+
+1. **Push til `connecthub`** (ship-dev) → Vercel bygger Dev; CI (`ci.yml`) kjører jobbene `checks` og `e2e`.
+2. **release.yml** (én kjøring om gangen, gruppen `release`, avbrytes aldri):
+   1. avslutter rolig hvis commiten ikke lenger er toppen av `connecthub` (status `release-gate` = error «erstattet»);
+   2. stopper hvis `main` ikke er med i commiten eller det finnes nye databasemigreringer;
+   3. setter `release-gate` = **pending**;
+   4. venter på **nyeste** CI-kjøring av `ci.yml` ved push til `connecthub` for **nøyaktig** commiten, og krever at
+      jobbene `checks` og `e2e` i det **nyeste forsøket** er success (`web/tools/release-decide.mjs`, testet);
+   5. venter på Vercels **nyeste** Dev-deploy (GitHub-deployment «Preview») av commiten = success;
+   6. sjekker igjen at commiten er toppen, lager eller oppdaterer pull request `connecthub → main`, sjekker en siste
+      gang at commiten er toppen, og setter **først da** `release-gate` = **success**.
+3. **Et menneske** godkjenner pull requesten og merger med «Create a merge commit».
 4. **Vercel** bygger produksjon fra `main`.
-5. **release-verify.yml** (utløses av Vercels `deployment_status` = success for «Production», uansett hvem som merget):
-   kontrollerer at commiten er toppen av `main`, at deployen er success, at `/app/version.json` viser commiten og at 7
-   hovedadresser svarer; **først da** spoles `connecthub` fram til merge-commiten (bare fast-forward).
+5. **release-verify.yml** (utløses av Vercels `deployment_status` for «Production» = success; gruppen `release-verify`):
+   1. gjør ingenting hvis commiten ikke er toppen av `main`;
+   2. krever at Vercels nyeste produksjonsdeploy av commiten er success, at `/app/version.json` begynner med commitens
+      første 10 tegn, og at 7 hovedadresser svarer;
+   3. leser toppen av `main` og `connecthub` på nytt og spoler `connecthub` fram til merge-commiten **bare** hvis den
+      fortsatt er toppen av `main` og GitHubs sammenligning viser at `connecthub` ligger bak (fast-forward,
+      `force: false`). Ellers en advarsel og ingen endring.
 
-Hvorfor det går med påkrevd godkjenning: pull requesten lages av github-actions[bot], så eieren er ikke forfatter og kan
-godkjenne den. Workflowen godkjenner aldri selv.
+### Obligatoriske kontroller
 
-### Alternativer (ikke anbefalt)
+| Kontroll | Kilde | Kontrollert av release-flyten | Påkrevd av beskyttelsen på `main` |
+|---|---|---|---|
+| `checks` | ci.yml, jobb `checks` (GitHub Actions) | ja (nyeste kjøring/forsøk) | **ja** (i dag) |
+| `e2e` | ci.yml, jobb `e2e` (GitHub Actions) | ja (nyeste kjøring/forsøk) | nei – må legges til av administrator |
+| `release-gate` | commit-status fra release.yml (github-actions[bot]) | – (settes av flyten) | nei – må legges til av administrator |
+| Godkjenning | menneske i pull requesten | – | nei – må slås på av administrator |
 
-| Modell | Hva må endres | Konsekvens |
-|---|---|---|
-| Full automatikk (`AUTO_MERGE: 'true'`) | «Require approvals» av (boten kan ikke godkjenne egen pull request) | ingen menneskelig kontroll før produksjon; en feil som CI ikke fanger, går rett ut |
-| Automatisk godkjenning med en annen identitet (GitHub App eller token for en annen konto) | ny hemmelighet i repoet | godkjenningen blir en formalitet og en ny nøkkel må beskyttes; omgår hensikten med regelen |
-| GitHub-miljø «production» med påkrevd godkjenner i Actions | «Require approvals» av | godkjenningen flyttes fra koden (pull request) til et knappetrykk i Actions; ingen kodegjennomgang håndhevet av `main` |
-| Merge queue | – | finnes ikke for repoer eid av en personlig konto |
+`release-gate` = success betyr «alle kontroller før merge er bestått for akkurat denne commiten». Den settes til slutt i
+kjøringen, etter at pull requesten er laget, og bare hvis commiten fortsatt er toppen. Kommer en ny push, får den nye
+commiten sin egen `release-gate` (pending → success/failure), og pull requesten viser den – en grønn status på en eldre
+commit kan ikke brukes til å merge en nyere. Pull requester laget av boten starter ikke CI på nytt; `checks` og `e2e`
+fra push-kjøringen på samme commit er det GitHub håndhever.
 
-### Moduser i release.yml
+### Feil, kansellering og samtidige pushes
 
-| `RELEASE_PR` | `AUTO_MERGE` | Gjør |
-|---|---|---|
-| `'false'` | `'false'` | tørrkjøring – bare kontrollene, annotasjon «TØRRKJØRING …» |
-| `'true'` | `'false'` | anbefalt: + pull request og status `release-gate`; et menneske merger |
-| – | `'true'` | **aktiv fra 2026-10-31 (eierens beslutning):** merge gjennom beskyttelsen på `main`. Krever beskyttelsen godkjenning, avviser GitHub boten og pull requesten venter på et menneske (annotasjon «VENTER PÅ GODKJENNING»); etter merge kontrollerer release-verify.yml produksjonen |
-
-### Samspill og sikkerhet (gjennomgått i kode)
-
-- **Kø:** `release` og `release-verify` har hver sin kø uten avbrudd (`cancel-in-progress: false`). GitHub kjører én om
-  gangen og beholder bare den nyeste ventende. En kjøring hvis commit ikke lenger er toppen av `connecthub`, avslutter
-  uten feil (også når CI-en dens ble avbrutt av en nyere push).
-- **Riktig commit:** CI-resultatet er den nyeste kjøringen per kontroll, så en ny kjøring eller CI på pull requesten for
-  samme commit kan ikke skjule en feil. Full automatikk merger med `sha` (GitHub avviser hvis pull requesten har fått nye
-  commits). I anbefalt modell sørger «Dismiss stale pull request approvals» for at en godkjenning gjelder commitene som
-  ble vist.
-- **Fast-forward av `connecthub`:** skjer bare etter at produksjonen er verifisert (en feil stopper jobben før), bare når
-  den deployede commiten er toppen av `main`, og med `force: false`: GitHub avviser alt som ikke er fast-forward, så
-  nyere arbeid på `connecthub` aldri overskrives (da kommer en advarsel, og main hentes inn manuelt).
-- **Feil i Vercel-deployen:** Vercel beholder forrige produksjonsdeploy live. Uten `deployment_status` success kjører
-  ikke release-verify, og `connecthub` spoles ikke fram. `main` har da merge-commiten uten at den er i produksjon: rett
-  feilen på `connecthub` etter `git merge origin/main`, ship-dev, ny pull request.
-- **Feil etter deploy** (version.json eller adresser): jobben feiler og skriver målet; ingen automatisk tilbakerulling.
-
-### Status: hva er verifisert
-
-| Verifisert av eksisterende kjøringer | Bare gjennomgått i kode | Ikke verifisert |
-|---|---|---|
-| Tørrkjøringen (f252e4e): venter på checks + e2e og Dev-deploy, toppkontroll, tilbakerullingsmål – annotasjon «TØRRKJØRING» | `--pr` (pull request, status `release-gate`), `--merge`, `--after-deploy`, fast-forward | at GitHub tillater Actions å lage pull requests (innstilling) |
-| Stopp ved feil: 0ac5f1e, «CI: e2e=failure» | valg av nyeste CI-kjøring; avslutning ved utdatert commit (skrevet etter siste kjøring) | at Vercels `deployment_status` starter release-verify.yml |
-| Vercel melder «Preview»/«Production» til GitHub (vercel[bot], success) | release-verify.yml og den nye release.yml (YAML ikke tolket lokalt; ingen parser installert) | at Vercel deployer en merge laget av en bot (bare full automatikk) |
-| CI checks + e2e grønne for f252e4e; produksjon 76b93d9 READY | – | e-post i produksjon; logo-bufferen kjørt på nytt |
-
-### Regler per gren
-
-| Gren | Beskyttelse (GitHub) | Hvordan endringer kommer inn |
-|---|---|---|
-| `connecthub` | ingen | `node web/tools/ship-dev.mjs` lokalt (kvalitetssperre før push); Vercel deployer Dev; release-verify spoler fram etter release |
-| `main` | påkrevd kontroll «checks» for alle (i dag) | bare via godkjent pull request fra `connecthub` |
+- **CI feiler:** `release-gate` = failure, jobben feiler med lenke til CI-kjøringen. Rett feilen og push på nytt.
+- **CI avbrutt** (en nyere push kansellerte kjøringen, `ci.yml` har `cancel-in-progress`): er commiten erstattet,
+  avslutter release-kjøringen rolig (status error «erstattet»); ellers failure.
+- **Ny kjøring av en CI-jobb:** bare det nyeste forsøket teller; en eldre vellykket kjøring kan ikke skjule en nyere feil.
+- **Samtidige pushes:** release-kjøringene står i kø; en ventende kjøring erstattes av den nyeste. Den som kjører,
+  sjekker toppen før start, etter kontrollene og rett før grønn status.
+- **Tidsavbrudd** (CI 75 min, Vercel 30 min): failure. **Avbrutt jobb** (Actions-tidsgrense 120 min): statusen blir
+  stående pending og blokkerer merge – kjør «Release» på nytt (Actions → Release → «Run workflow» på `connecthub`).
+- **Vercel-deployen av produksjon feiler:** Vercel beholder forrige produksjon. Ingen `deployment_status` success ⇒
+  release-verify kjører ikke, `connecthub` spoles ikke fram. Rett feilen på `connecthub` etter `git merge origin/main`.
+- **Produksjonskontrollen feiler** (version.json eller adresser): release-verify feiler og skriver
+  tilbakerullingsmålet; `connecthub` spoles ikke fram; ingen automatisk tilbakerulling.
 
 ### Tilbakerulling
 
@@ -135,8 +126,8 @@ bestemmer.
 - GitHub → Actions → «Release verify»: annotasjonen «PRODUKSJON VERIFISERT: <commit> …» (eller «STOPP: …»).
 - `https://api.github.com/repos/m-l-development/MediaLabReact/deployments?environment=Production&per_page=1` → nyeste
   produksjonsdeploy (vercel[bot]) og `statuses_url` med `success`.
-- `/app/version.json` på produksjonsadressen begynner med merge-commiten. Lokalt også
-  `node web/tools/release-verify.mjs <commit>`.
+- `/app/version.json` på produksjonsadressen begynner med merge-commitens første 10 tegn. Lokalt også
+  `node web/tools/release-gate.mjs <merge-commit> --after-deploy` (leser bare, og spoler bare fram når det er trygt).
 - `connecthub` er spolt fram til merge-commiten. Lokalt: `git pull` på `connecthub`.
 
 ### Rettigheter workflowene bruker (bare `GITHUB_TOKEN`, ingen andre nøkler)
@@ -146,12 +137,33 @@ bestemmer.
 | ci.yml | `contents: read` | sjekke ut koden |
 | release.yml | `pull-requests: write` | lage og oppdatere pull request `connecthub → main` |
 | release.yml | `statuses: write` | commit-status `release-gate` |
-| release.yml | `contents: write` | bare full automatikk: merge og fast-forward |
-| release.yml | `checks: read`, `deployments: read` | lese CI-resultatene og Vercels deploystatus |
+| release.yml | `actions: read` | lese CI-kjøringene og jobbene (nyeste forsøk) |
+| release.yml | `checks: read`, `deployments: read` | lese Vercels deploystatus |
+| release.yml | `contents: write` | bare `AUTO_MERGE` (ikke i bruk): merge og fast-forward |
 | release-verify.yml | `contents: write`, `deployments: read` | fast-forward av `connecthub`; lese deploystatus |
 
-Workflowene godkjenner aldri pull requests og endrer ingen innstillinger. Standardrettighetene for `GITHUB_TOKEN` kan stå
-på «Read repository contents»: hver workflow ber selv om rettighetene over.
+Workflowene godkjenner aldri pull requests og endrer ingen innstillinger.
+
+### Moduser i release.yml
+
+| `RELEASE_PR` | `AUTO_MERGE` | Gjør |
+|---|---|---|
+| `'false'` | `'false'` | tørrkjøring – bare kontrollene, annotasjon «TØRRKJØRING …» |
+| `'true'` | `'false'` | **i bruk:** + pull request og status `release-gate`; et menneske godkjenner og merger |
+| – | `'true'` | merge av boten gjennom beskyttelsen (krever beskyttelsen godkjenning, venter pull requesten); ikke i bruk |
+
+### Manuelle handlinger som kreves (administrator av repoet)
+
+| Innstilling | Hvor | Status |
+|---|---|---|
+| «Allow GitHub Actions to create and approve pull requests» | Settings → Actions → General → Workflow permissions | **på** (bekreftet: PR #18 ble laget av boten) |
+| «Require a pull request before merging» + «Require approvals» (1) | Settings → Branches → regel for `main` | **av** (bekreftet: PR #18 ble merget uten godkjenning) – må slås på for påkrevd menneskelig godkjenning |
+| «Dismiss stale pull request approvals when new commits are pushed» | samme sted | må slås på (en godkjenning gjelder commitene som ble vist) |
+| «Require status checks to pass»: `checks` (finnes), `e2e`, `release-gate` | samme sted | `e2e` og `release-gate` må legges til (begge har rapportert, så de kan velges) |
+| «Do not allow bypassing the above settings» | samme sted | behold på (kontrollen gjelder i dag for alle, også administratorer) |
+
+Ingen av disse kan leses eller endres med `GITHUB_TOKEN` eller fra denne maskinen; de er kontrollert gjennom faktiske
+kjøringer der det står «bekreftet».
 
 ### Kontrollert 2026-10-31 (bare lesing, ingen endringer i Vercel eller GitHub)
 
@@ -162,21 +174,6 @@ på «Read repository contents»: hver workflow ber selv om rettighetene over.
 | GitHub-kobling | Vercel lager GitHub-deployments («Preview»/«Production», vercel[bot]) med status – det release-gate venter på. |
 | Miljøvariabler | SMTP (`CONNECTHUB_SMTP_HOST/PORT/USER/PASSWORD`, `CONNECTHUB_MAIL_FROM_NAME`) finnes for Production (satt 2026-10-18, før produksjonsdeployen 2026-10-20) og Preview; koden leser nøyaktig disse navnene. Selve utsendingen er ikke prøvd (ingen ekte e-post). Variablene med prefikset `VITE_` i Production er ubrukte: begge byggene har `envPrefix: 'CONNECTHUB_NEVER_EXPOSED_'`, og produksjonens JavaScript inneholder ingen hemmelig nøkkel (bare supabase-js' prefikssjekk). Bør ryddes av eieren en gang (ikke nødvendig for release). |
 | Beskyttelse `main` | påkrevd kontroll «checks» (GitHub Actions), gjelder alle. Om godkjenning av kodegjennomgang kreves, kan bare en administrator se. |
-
-### Aktiveringsplan (anbefalt modell)
-
-| Steg | Hvem | Hva | Kontroll |
-|---|---|---|---|
-| 0 | – | tørrkjøring | gjort (f252e4e) |
-| 1 | eieren godkjenner, så ship-dev | push de lokale commitene (ny release-gate, release-verify.yml, dokumentasjon); starter CI og tørrkjøring | CI grønn; «TØRRKJØRING» for den nye commiten |
-| 2 | eieren | Settings → Actions → General → Workflow permissions: **«Allow GitHub Actions to create and approve pull requests»** (nødvendig for å *lage* pull requesten; workflowen godkjenner aldri) | – |
-| 3 | eieren | Settings → Branches → regelen for `main`: **«Require a pull request before merging»** med **«Require approvals» (1)**, **«Dismiss stale pull request approvals when new commits are pushed»**, **«Require approval of the most recent reviewable push»**, **«Do not allow bypassing the above settings»**; behold «checks», legg til **`e2e`**. Valgfritt: Settings → General → «Allow auto-merge» og bare «Allow merge commits» | en pull request uten godkjenning kan ikke merges |
-| 4 | eieren godkjenner, så ship-dev | `RELEASE_PR: 'true'` | pull request med status `release-gate` = success |
-| 5 | eieren | legg til **`release-gate`** som påkrevd kontroll på `main` (vises i lista først etter at den er rapportert én gang) | – |
-| 6 | eieren | les pull requesten (commitlisten, risikotabellen under), godkjenn, «Create a merge commit» | Vercel «Production» success |
-| 7 | automatisk | release-verify.yml: produksjonen kontrollert, `connecthub` spolt fram | annotasjon «PRODUKSJON VERIFISERT»; ved feil: tilbakerulling over |
-
-Eieren valgte 2026-10-31 `AUTO_MERGE: 'true'`; påkrevd godkjenning på `main` (steg 3) håndheves fortsatt hvis den er slått på.
 
 ### Risikogjennomgang av releasen (2026-10-31, 49 commits 76b93d9..f252e4e, uten nye testkjøringer)
 
