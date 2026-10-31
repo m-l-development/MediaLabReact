@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boxOf, brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, MaskHistory, sampleColor } from './ops'
+import { boxOf, brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, keepConnected, MaskHistory, removeSpecks, sampleColor } from './ops'
 
 const W = 100
 const H = 80
@@ -142,5 +142,38 @@ describe('maskeoperasjoner', () => {
     edgeRefine(m, rgba, W, H, { x0: 30, y0: 0, x1: 70, y1: 80 }, 6, 0.001, only)
     expect(at(m, 47, 10), 'innenfor: endret').toBeLessThan(200)
     expect(at(m, 47, 60), 'utenfor: uendret').toBe(255)
+  })
+})
+
+describe('opprydding', () => {
+  it('«Velg objekt»: bare området ved klikket beholdes (løse flekker fjernes, store deler blir)', () => {
+    const o = new Uint8ClampedArray(W * H)
+    fillRect(o, W, H, { x0: 10, y0: 10, x1: 50, y1: 50 }, true) // objektet (1600 px)
+    fillRect(o, W, H, { x0: 70, y0: 70, x1: 73, y1: 73 }, true) // flekk (9 px)
+    fillRect(o, W, H, { x0: 60, y0: 10, x1: 90, y1: 40 }, true) // stor del (900 px > 25 %)
+    keepConnected(o, W, H, 30, 30)
+    expect(at(o, 30, 30)).toBe(255)
+    expect(at(o, 71, 71), 'flekken').toBe(0)
+    expect(at(o, 75, 25), 'stor del').toBe(255)
+    // klikk rett utenfor kanten: nærmeste område brukes
+    const p = new Uint8ClampedArray(W * H)
+    fillRect(p, W, H, { x0: 10, y0: 10, x1: 50, y1: 50 }, true)
+    fillRect(p, W, H, { x0: 70, y0: 70, x1: 73, y1: 73 }, true)
+    keepConnected(p, W, H, 53, 30)
+    expect(at(p, 30, 30)).toBe(255)
+    expect(at(p, 71, 71)).toBe(0)
+  })
+
+  it('«Fjern løse flekker»: små øyer fjernes, små hull fylles, bakgrunnen ved kanten røres ikke', () => {
+    const m = new Uint8ClampedArray(W * H)
+    fillRect(m, W, H, { x0: 20, y0: 20, x1: 60, y1: 60 }, true)
+    fillRect(m, W, H, { x0: 40, y0: 40, x1: 42, y1: 42 }, false) // hull 4 px
+    fillRect(m, W, H, { x0: 80, y0: 10, x1: 82, y1: 12 }, true) // øy 4 px
+    const b = removeSpecks(m, W, H, 20)
+    expect(b).not.toBeNull()
+    expect(at(m, 41, 41), 'hullet fylt').toBe(255)
+    expect(at(m, 81, 11), 'øya fjernet').toBe(0)
+    expect(at(m, 5, 5), 'bakgrunnen').toBe(0)
+    expect(at(m, 30, 30), 'objektet').toBe(255)
   })
 })

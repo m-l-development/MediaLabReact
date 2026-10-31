@@ -18,7 +18,7 @@ const IMG = png(W, H, (x, y) => (x >= 100 && x < 300 && y >= 50 && y < 250 ? [22
 async function scr(page: Page, x: number, y: number) {
   return page.locator('[data-mask-canvas]').evaluate((c: HTMLCanvasElement, [px, py]) => {
     const r = c.getBoundingClientRect()
-    const z = (c as unknown as { __maskView?: { s: number; ox: number; oy: number } }).__maskView
+    const z = (c as unknown as { mlMaskView?: { s: number; ox: number; oy: number } }).mlMaskView
     const s = z?.s ?? Math.min(r.width / 400, r.height / 300) * 0.96
     const ox = z?.ox ?? (r.width - 400 * s) / 2
     const oy = z?.oy ?? (r.height - 300 * s) / 2
@@ -43,13 +43,13 @@ async function exported(page: Page, file: string, pts: [number, number][]) {
   const close = page.getByRole('button', { name: 'Nei takk' })
   if (await close.count()) await close.click()
   const b64 = fs.readFileSync(file).toString('base64')
-  return page.evaluate(async ({ data, pts }) => {
+  return page.evaluate(async ({ data, list }) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
     const c = new OffscreenCanvas(bmp.width, bmp.height)
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
-    return pts.map(([x, y]) => g.getImageData(x, y, 1, 1).data[3] ?? -1)
-  }, { data: b64, pts })
+    return list.map(([x, y]) => g.getImageData(x, y, 1, 1).data[3] ?? -1)
+  }, { data: b64, list: pts })
 }
 
 test('maskeredigering: verktøyene endrer den faktiske masken, og eksporten følger', async ({ page }, info) => {

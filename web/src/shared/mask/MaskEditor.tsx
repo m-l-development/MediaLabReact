@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useT } from '../i18n/i18n'
 import { separable } from './morph'
-import { brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, MaskHistory, sampleColor, unionBox, type Box, type Mask } from './ops'
+import { boxOf, brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, keepConnected, MaskHistory, removeSpecks, sampleColor, unionBox, type Box, type Mask } from './ops'
 import styles from './MaskEditor.module.css'
 
 /**
@@ -123,7 +123,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         S.oy = (ch - H * S.s) / 2
       }
       // visningen (skala og forskyvning) for tester og hjelpeverktøy
-      ;(c as HTMLCanvasElement & { __maskView?: { s: number; ox: number; oy: number } }).__maskView = { s: S.s, ox: S.ox, oy: S.oy }
+      ;(c as HTMLCanvasElement & { mlMaskView?: { s: number; ox: number; oy: number } }).mlMaskView = { s: S.s, ox: S.ox, oy: S.oy }
       const g = c.getContext('2d')
       if (!g) return
       g.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -342,6 +342,11 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
           return
         }
         setMsg(null)
+        // bare det som henger sammen med klikket (ingen løse flekker), og en glatt kant langs bildet i stedet for trappetrinn
+        keepConnected(obj, W, H, p.x, p.y)
+        const ob = boxOf(obj, W)
+        const L = layers.current
+        if (ob && L) edgeRefine(obj, L.rgba, W, H, { x0: ob.x0 - 4, y0: ob.y0 - 4, x1: ob.x1 + 4, y1: ob.y1 + 4 }, Math.max(2, Math.round(Math.max(W, H) / 700)), 0.003)
         const before = new Uint8ClampedArray(mask)
         const b = combine(mask, obj, W, k)
         if (b) {
@@ -495,6 +500,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
           <button type="button" data-mask-shrink="" title={t('mask.shrink.help')} onClick={() => grow(-Math.max(1, Math.round(Math.max(W, H) / 1000)))}>{t('mask.shrink')}</button>
           <button type="button" data-mask-grow="" title={t('mask.grow.help')} onClick={() => grow(Math.max(1, Math.round(Math.max(W, H) / 1000)))}>{t('mask.grow')}</button>
           <button type="button" data-mask-smooth="" title={t('mask.smooth.help')} onClick={smooth}>{t('mask.smooth')}</button>
+          <button type="button" data-mask-clean="" title={t('mask.clean.help')} onClick={() => whole(() => { removeSpecks(mask, W, H, Math.max(16, Math.round(W * H * 0.0004))) })}>{t('mask.clean')}</button>
         </div>
       </div>
       <div ref={wrap} className={styles.stage}>

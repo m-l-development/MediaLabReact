@@ -184,6 +184,119 @@ export function boxOf(other: Mask, W: number): Box | null {
   return x1 < 0 ? null : { x0, y0, x1: x1 + 1, y1: y1 + 1 }
 }
 
+/**
+ * Sammenhengende områder (4-naboskap) der `on(i)` er sann. → etikett per piksel (0 = utenfor) og arealet per etikett.
+ */
+function components(W: number, H: number, on: (i: number) => boolean): { lab: Int32Array; area: number[] } {
+  const lab = new Int32Array(W * H)
+  const area = [0]
+  const stack = new Int32Array(W * H)
+  for (let s = 0; s < W * H; s++) {
+    if (lab[s] || !on(s)) continue
+    const id = area.length
+    let n = 0
+    let top = 0
+    stack[top++] = s
+    lab[s] = id
+    while (top) {
+      const i = stack[--top] as number
+      n++
+      const x = i % W
+      if (x > 0 && !lab[i - 1] && on(i - 1)) { lab[i - 1] = id; stack[top++] = i - 1 }
+      if (x < W - 1 && !lab[i + 1] && on(i + 1)) { lab[i + 1] = id; stack[top++] = i + 1 }
+      if (i >= W && !lab[i - W] && on(i - W)) { lab[i - W] = id; stack[top++] = i - W }
+      if (i < W * (H - 1) && !lab[i + W] && on(i + W)) { lab[i + W] = id; stack[top++] = i + W }
+    }
+    area.push(n)
+  }
+  return { lab, area }
+}
+
+/**
+ * Et objekt valgt med et klikk: bare området som henger sammen med klikket beholdes (pluss deler som er minst
+ * `keepFrac` så store som det), så løse flekker andre steder i bildet ikke kommer med. Endrer `obj` på stedet.
+ */
+export function keepConnected(obj: Mask, W: number, H: number, x: number, y: number, keepFrac = 0.25): void {
+  const { lab, area } = components(W, H, (i) => (obj[i] ?? 0) >= 128)
+  const xi = Math.max(0, Math.min(W - 1, Math.floor(x)))
+  const yi = Math.max(0, Math.min(H - 1, Math.floor(y)))
+  let main = lab[yi * W + xi] ?? 0
+  if (!main) {
+    // klikket på en kant: nærmeste område innenfor 12 px
+    let best = 1e9
+    for (let dy = -12; dy <= 12; dy++) {
+      for (let dx = -12; dx <= 12; dx++) {
+        const xx = xi + dx
+        const yy = yi + dy
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue
+        const l = lab[yy * W + xx] ?? 0
+        if (l && dx * dx + dy * dy < best) {
+          best = dx * dx + dy * dy
+          main = l
+        }
+      }
+    }
+  }
+  if (!main) return
+  const min = (area[main] ?? 0) * keepFrac
+  for (let i = 0; i < obj.length; i++) {
+    const l = lab[i] ?? 0
+    if (l && l !== main && (area[l] ?? 0) < min) obj[i] = 0
+    else if (!l && (obj[i] ?? 0) > 0 && (obj[i] ?? 0) < 128) {
+      // halvgjennomsiktige kanter rundt fjernede flekker: bare de som ligger inntil et beholdt område, står
+      const xx = i % W
+      const near = (xx > 0 && lab[i - 1] === main) || (xx < W - 1 && lab[i + 1] === main) || (i >= W && lab[i - W] === main) || (i < W * (H - 1) && lab[i + W] === main)
+      if (!near) obj[i] = 0
+    }
+  }
+}
+
+/**
+ * «Fjern løse flekker»: beholdte øyer mindre enn `minArea` piksler fjernes, og fjernede hull mindre enn `minArea`
+ * inne i det som beholdes, fylles. → området som ble endret, eller null.
+ */
+export function removeSpecks(m: Mask, W: number, H: number, minArea: number): Box | null {
+  let x0 = Infinity
+  let y0 = Infinity
+  let x1 = -1
+  let y1 = -1
+  const mark = (i: number) => {
+    const x = i % W
+    const y = (i - x) / W
+    if (x < x0) x0 = x
+    if (x > x1) x1 = x
+    if (y < y0) y0 = y
+    if (y > y1) y1 = y
+  }
+  const kept = components(W, H, (i) => (m[i] ?? 0) >= 128)
+  for (let i = 0; i < m.length; i++) {
+    const l = kept.lab[i] ?? 0
+    if (l && (kept.area[l] ?? 0) < minArea) {
+      m[i] = 0
+      mark(i)
+    }
+  }
+  const holes = components(W, H, (i) => (m[i] ?? 0) < 128)
+  // hull som når bildekanten, er bakgrunn – ikke hull
+  const edge = new Set<number>()
+  for (let x = 0; x < W; x++) {
+    edge.add(holes.lab[x] ?? 0)
+    edge.add(holes.lab[(H - 1) * W + x] ?? 0)
+  }
+  for (let y = 0; y < H; y++) {
+    edge.add(holes.lab[y * W] ?? 0)
+    edge.add(holes.lab[y * W + W - 1] ?? 0)
+  }
+  for (let i = 0; i < m.length; i++) {
+    const l = holes.lab[i] ?? 0
+    if (l && !edge.has(l) && (holes.area[l] ?? 0) < minArea) {
+      m[i] = 255
+      mark(i)
+    }
+  }
+  return x1 < 0 ? null : { x0, y0, x1: x1 + 1, y1: y1 + 1 }
+}
+
 /** Inverterer hele masken på stedet. */
 export function invertInPlace(m: Mask): void {
   for (let i = 0; i < m.length; i++) m[i] = 255 - (m[i] ?? 0)

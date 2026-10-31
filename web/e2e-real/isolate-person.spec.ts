@@ -16,7 +16,8 @@ const H = 1800
 /** Punkter modellen ikke klarer på dette bildet (målt 2026-10-31): mannen i midten og personen i mørke klær finnes ikke av
  * MODNet; ormbg finner ikke den mørke personen og gir svak nedre del av mikrofonen. */
 const KNOWN: Record<'Person' | 'Objekt', string[]> = {
-  Person: ['mikrofon', 'brille', 'capsen', 'fingrene på mikrofonen', 'mørk', 'ansiktet (mørkt)', 'fingrene på haken', 'rød skjorte: mikrofonhodet'],
+  // MODNet tar også med lilla scenelys foran ansiktet (rettes med Fjern + «Følg kantene», se isolate-tools)
+  Person: ['mikrofon', 'brille', 'capsen', 'fingrene på mikrofonen', 'mørk', 'ansiktet (mørkt)', 'fingrene på haken', 'rød skjorte: mikrofonhodet', 'rød skjorte: lilla'],
   Objekt: ['mikrofonens nedre ende', 'mørk', 'ansiktet (mørkt)', 'fingrene på haken', 'rød skjorte', 'puten', 'armlenet'],
 }
 

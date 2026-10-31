@@ -15,7 +15,7 @@ const H = 1800
 async function scr(page: Page, x: number, y: number) {
   return page.locator('[data-mask-canvas]').evaluate((c: HTMLCanvasElement, [px, py]) => {
     const r = c.getBoundingClientRect()
-    const z = (c as unknown as { __maskView?: { s: number; ox: number; oy: number } }).__maskView
+    const z = (c as unknown as { mlMaskView?: { s: number; ox: number; oy: number } }).mlMaskView
     if (!z) throw new Error('ingen visning')
     return { x: r.left + z.ox + px * z.s, y: r.top + z.oy + py * z.s, s: z.s }
   }, [x, y] as [number, number])
@@ -57,8 +57,9 @@ test('Person + «Velg objekt» og pensel: hele personene og detaljene beholdes, 
   await page.mouse.up()
   // mørkt mot mørkt (skulder og hår): ingen modell skiller dem, så brukeren maler med Behold (vanlig pensel)
   await page.keyboard.press('0')
-  await page.locator('[data-mask-size]').fill('30')
-  for (const [[x0, y0], [x1, y1]] of [[[488, 748], [512, 734]], [[585, 664], [606, 656]]] as const) {
+  // små strøk innenfor personen (ikke ut i bakgrunnen, som ga mørke klumper med store strøk)
+  await page.locator('[data-mask-size]').fill('16')
+  const stroke = async ([x0, y0]: readonly [number, number], [x1, y1]: readonly [number, number]) => {
     const p0 = await scr(page, x0, y0)
     const p1 = await scr(page, x1, y1)
     await page.mouse.move(p0.x, p0.y)
@@ -66,6 +67,20 @@ test('Person + «Velg objekt» og pensel: hele personene og detaljene beholdes, 
     await page.mouse.move(p1.x, p1.y, { steps: 6 })
     await page.mouse.up()
   }
+  await stroke([496, 744], [516, 737])
+  await stroke([592, 668], [602, 662])
+  // lilla scenelys foran ansiktet (MODNet tok det med): Fjern med «Følg kantene» fra det lilla – huden røres ikke
+  await page.locator('[data-mask-keep="0"]').click()
+  await page.locator('[data-mask-snap]').check()
+  await page.locator('[data-mask-size]').fill('22')
+  await stroke([150, 671], [168, 666])
+  await stroke([146, 674], [140, 676])
+  // gløden rundt har en annen (mørkere) farge: nye strøk som starter i den (kantfølgingen bruker fargen der strøket starter)
+  await stroke([176, 664], [188, 662])
+  await stroke([152, 686], [156, 712])
+  await page.locator('[data-mask-snap]').uncheck()
+  // løse flekker under personene
+  await page.locator('[data-mask-clean]').click()
   await page.screenshot({ path: info.outputPath('redigering.png') })
   await page.locator('[data-mask-done]').click()
 

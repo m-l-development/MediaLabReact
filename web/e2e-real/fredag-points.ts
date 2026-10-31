@@ -33,4 +33,11 @@ export const POINTS: [string, number, number, boolean][] = [
   ['kvinnen: bakgrunn bak', 1260, 740, false],
   ['armlenet (ikke person)', 1200, 890, false],
   ['puten (ikke person)', 1020, 813, false],
+  ['rød skjorte: lilla scenelys foran ansiktet', 148, 672, false],
+  ['rød skjorte: lilla stripe', 176, 664, false],
+  ['rød skjorte: lilla hale', 153, 700, false],
+  ['rød skjorte: nesetipp', 132, 686, true],
+  ['rød skjorte: kinn', 112, 670, true],
+  ['bakgrunn over det mørke hodet', 600, 632, false],
+  ['bakgrunn ved den mørke skulderen', 470, 742, false],
 ]
