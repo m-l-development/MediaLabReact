@@ -76,3 +76,125 @@ KONTROLL produksjon READY, media-lab-react-vyef.vercel.app → dpl_8Pvj (riktig)
 KONTROLL produksjon READY, media-lab-react-vyef.vercel.app → dpl_8Pvj (riktig); beholdt: dpl_4yzeiT=READY dpl_6LvHL2=READY dpl_5Nqq61=READY dpl_5RFm9c=READY dpl_B5BEC3=READY; GitHub-kobling: github/m-l-development/MediaLabReact
 KONTROLL produksjon READY, media-lab-react-vyef.vercel.app → dpl_8Pvj (riktig); beholdt: dpl_4yzeiT=READY dpl_6LvHL2=READY dpl_5Nqq61=READY dpl_5RFm9c=READY dpl_B5BEC3=READY; GitHub-kobling: github/m-l-development/MediaLabReact
 KONTROLL produksjon READY, media-lab-react-vyef.vercel.app → dpl_8Pvj (riktig); beholdt: dpl_4yzeiT=READY dpl_6LvHL2=READY dpl_5Nqq61=READY dpl_5RFm9c=READY dpl_B5BEC3=READY; GitHub-kobling: github/m-l-development/MediaLabReact
+
+# 2026-11-01, godkjent av eier: gruppe A+B+C (forhåndsvisninger i media-lab-react-vyef). Kontrollert per ID før sletting:
+# prosjekt, ikke produksjon, READY, ikke beskyttet, ikke aktivt alias, ikke rollback-kandidat. Format: status id gruppe gren commit opprettet
+HOPPET OVER dpl_BkYcUqLjoQBpHrAuURp3Jdyv9sbk feature/onepage-rebuild 42976b7 2026-10-17T20:22 (har aktivt alias)
+SLETTET dpl_7n8DHMbZadFZRpuaaNBf1Cbw4DUg A feature/onepage-rebuild 93ad851 2026-10-17T19:39
+SLETTET dpl_2TJsUKm7yiLQ1hMuaMUZzz5ZvA5y A feature/onepage-rebuild 5f38966 2026-10-17T19:34
+SLETTET dpl_GJUv7NfkSGhpqbtvb46tDaU9LmmP A feature/onepage-rebuild 65a6e1d 2026-10-17T18:25
+SLETTET dpl_HtaPLuSmACgRP2yHDacL9wfS8pwg A feature/onepage-rebuild 08e0b9f 2026-10-17T18:21
+SLETTET dpl_7mfAw3rWRjZ2gCD51muYXPZWjrPM A feature/onepage-rebuild 3695c6a 2026-10-17T17:58
+SLETTET dpl_5Nqq61DKCeTUKCmrQyHRQTVsftcj A feature/onepage-rebuild 49e2ea8 2026-10-17T17:04
+SLETTET dpl_5RFm9cCAK4KvWAGmnRVUsqpVvMfS A feature/onepage-rebuild 7798aa5 2026-10-17T16:41
+SLETTET dpl_3dqV5XxCy53GFv2J2zkobLJZtTQE A feature/onepage-rebuild e3e913f 2026-10-17T16:24
+SLETTET dpl_8ULFWQETCQp6YEdP5y5MbYH7AJzn A feature/onepage-rebuild ade515b 2026-10-17T14:00
+SLETTET dpl_8ExcsqCdoffrMbkStaUtX47k6Nhw A feature/onepage-rebuild 0220cd6 2026-10-17T13:09
+SLETTET dpl_AcixYLGV6EfhQ1Gxoty29T7qnchN A feature/onepage-rebuild 8e617f2 2026-10-17T11:30
+SLETTET dpl_Bfnjp4ABzgR3ctRwwtqDFpfv6e2x A feature/onepage-rebuild e98e258 2026-10-17T11:26
+SLETTET dpl_c7ccsuu6fY73HeJvChrspAPRafaT A feature/onepage-rebuild 098c712 2026-10-17T11:06
+SLETTET dpl_CKRiaUAUMcN9JxbVCXeJ3N8D7xZk A feature/onepage-rebuild 6513ec7 2026-10-17T11:01
+SLETTET dpl_4xH6nixUwjYcnAVDkqx1oq4FfhPg A feature/onepage-rebuild e922bc8 2026-10-12T20:40
+SLETTET dpl_3ZSaEp3yz6uv7qFo3ABUsyvVXE8T A feature/onepage-rebuild 4e601c6 2026-10-12T20:36
+SLETTET dpl_8jxK96ws6Eb9BqJvYiewGq8F324L A feature/onepage-rebuild a11e57f 2026-10-12T20:01
+SLETTET dpl_BpLXrmS5jbGDHKBs3NPRHTerQ2EA A feature/onepage-rebuild fe6b3bb 2026-10-12T19:48
+SLETTET dpl_73DJuZ8GSwDQxcdSFnq1HG779PEz A feature/onepage-rebuild 629f463 2026-10-12T19:06
+SLETTET dpl_8hHAnXnAGQd9LXTwVTbVVNkqxewD A feature/onepage-rebuild 3c3dfa0 2026-10-12T19:03
+SLETTET dpl_4TWimNhRuN76RNxjGircB8m4E4aM A feature/onepage-rebuild 3187813 2026-10-12T18:51
+SLETTET dpl_HzyKKoCQDRJEg7FpAqQX9xWtGa77 A feature/onepage-rebuild 3c8c63c 2026-10-12T15:15
+SLETTET dpl_ErKDeSM8AFM7wJWGXHMURpkcdG6e A feature/onepage-rebuild 774ad5c 2026-10-12T14:56
+SLETTET dpl_jGG1iRLSCDVQgAsxL3vSGoRPp9JU A feature/onepage-rebuild 680a93a 2026-10-12T14:46
+SLETTET dpl_9YgUkcysKbnbJFSMV39fJtpi6SJm A feature/onepage-rebuild e384422 2026-10-12T14:41
+SLETTET dpl_FsuJyZym6DvLaGxLi8fVFDm9GyyB A feature/onepage-rebuild 5ad7318 2026-10-12T14:13
+SLETTET dpl_EjZjknHJHUCiP3xQhgVH6RopE9xJ A feature/onepage-rebuild 4ef2f33 2026-10-12T12:42
+SLETTET dpl_CXCN1G52Mwyp33JG9ufy5XzVqHA9 A feature/onepage-rebuild 65bc1b3 2026-10-12T12:25
+SLETTET dpl_Cz6r3abdBtz9VucK1qvEuCs9Xncn A feature/onepage-rebuild 7206059 2026-10-12T11:52
+SLETTET dpl_DvZA1XjWf8JfqxRSWQQVvdfLko5T A feature/onepage-rebuild cfd969e 2026-10-12T11:50
+SLETTET dpl_9HDB9yjFLXbCBk2pgsFE2Gbz52SR A feature/onepage-rebuild b8419b1 2026-10-12T02:29
+SLETTET dpl_3z5QScwHJX13XyHKxW7G57hFdjbT A feature/onepage-rebuild 4c8729b 2026-10-12T02:23
+SLETTET dpl_GELvdmJxJ2woP4HhvaoNJbpmo1ud A feature/onepage-rebuild cb30f84 2026-10-12T02:21
+HOPPET OVER dpl_5MJsdbGHzuiSNw7X485HpjF5Paer release/e2e-prod 9833aab 2026-10-20T14:20 (har aktivt alias)
+HOPPET OVER dpl_6gN3k49JGjfBTAnbPGFMDTe7pHoD release/test-preview-noise 4552918 2026-10-20T12:59 (har aktivt alias)
+HOPPET OVER dpl_3qHE8GMur4g6yzymqyX2RiXeHmz4 release/photo-valg 2e10fe8 2026-10-20T11:35 (har aktivt alias)
+HOPPET OVER dpl_8rYmgS2urH4LbXnt565VDsvab5X9 release/loop-bilde 7c82554 2026-10-20T10:31 (har aktivt alias)
+HOPPET OVER dpl_C2tumVkVzUtrGaQT6u4rkH1hmstS release/mockups-404-eksport 11451c7 2026-10-20T01:08 (har aktivt alias)
+HOPPET OVER dpl_EGSQUA5d8xQv8xrCUMDPR3FNGA6c feature/menighet-tilgang da2e8be 2026-10-19T22:23 (har aktivt alias)
+HOPPET OVER dpl_F1fVxPgL2Ho4ZiX2V6RuEixsjVxT release/admin-tilgang-seksjon 3953d18 2026-10-19T22:23 (har aktivt alias)
+HOPPET OVER dpl_BmQcG78WTB8UNAFNE1MJZ9nHLSCY release/avatar-sentrert 5560d11 2026-10-19T20:47 (har aktivt alias)
+SLETTET dpl_NTCRTpRkHXaLTFL3kcZJeyUDEmD6 B feature/menighet-tilgang 75e4dba 2026-10-19T20:47
+HOPPET OVER dpl_76nT7RAvNvtcyeRvCNeGqSvev5kz release/opplasting-logoer 1b35d4b 2026-10-19T20:12 (har aktivt alias)
+SLETTET dpl_BtDqGHzEChSn848RiUCfvTswvVsM B feature/menighet-tilgang 5206a55 2026-10-19T20:12
+HOPPET OVER dpl_55ngkQeu2SSpdP2Ny9419ks4tMwC release/menighet-layout a986e8c 2026-10-19T18:19 (har aktivt alias)
+SLETTET dpl_3p9phG6jskSGmnc6cU3kco3V17cE B feature/menighet-tilgang 047c60c 2026-10-19T18:19
+HOPPET OVER dpl_BJCxRNvJRwDCav7sCC7Y8PKV2LhT release/menighet-tilgang 52b8353 2026-10-19T17:24 (har aktivt alias)
+SLETTET dpl_2YRdPqnvLrQLGzJQrhB8hrzMcrPx B feature/menighet-tilgang d86f3f6 2026-10-19T17:24
+SLETTET dpl_2W5mv7LRQt3xUGpiiVtjzqiPmk1S B release/menighet-tilgang 7243bb6 2026-10-19T17:12
+SLETTET dpl_9oZwWUmcp1Z8axDAJXyhE2j34PLh B feature/menighet-tilgang 87e90bb 2026-10-19T17:12
+SLETTET dpl_zuBfQjKZhJfWeUMeFqcQRFHpPPT3 B feature/menighet-tilgang c6acebc 2026-10-19T15:58
+HOPPET OVER dpl_EFNE6JSEQXEjuNCST9JzcxXvKhiJ release/photo-logo-fix c0f6833 2026-10-19T15:47 (har aktivt alias)
+HOPPET OVER dpl_CTzsaXYicgLAff3dyoV1Ycd3APjh release/photo-picker 1e90625 2026-10-19T15:03 (har aktivt alias)
+SLETTET dpl_9ufJ6ByucdffQKunWWhg4dB2ABp6 B release/photo-picker 9fe151e 2026-10-19T12:49
+HOPPET OVER dpl_3CbnMuoEjCTNHT7euXeY4pAEtbUh release/photo-colors 2b6db32 2026-10-19T12:33 (har aktivt alias)
+HOPPET OVER dpl_DgWNikJ5Kgqy6KseSrjJWSpfQ1dn release/photo-mockups d7768d4 2026-10-19T11:57 (har aktivt alias)
+HOPPET OVER dpl_59aGooZshGMsvCuhJZLeNiE7JMWn hotfix/api-ml 9c536f9 2026-10-01T20:46 (har aktivt alias)
+SLETTET dpl_GzTX2ZmwBjFd5gnxTjxLDWr2cVSU C connecthub c244203 2026-11-01T00:09
+SLETTET dpl_86i497XnMQE7gdKUyvagbSEWcuHM C connecthub b80802b 2026-10-31T23:48
+SLETTET dpl_HYhvo8B3KNtUvCTqci5f6ghHawPD C connecthub bac9268 2026-10-31T22:41
+SLETTET dpl_DKUyiKKZXQbVp2LuB8n9GkQwZ3gY C connecthub 402f756 2026-10-31T22:00
+SLETTET dpl_Cj3bHgz95FFznCfoV7qf73zh7YyM C connecthub 1fc372c 2026-10-31T21:50
+SLETTET dpl_66yf7Qr8oLzZfJDwF1BnNBnsYVpd C connecthub dc687f9 2026-10-31T21:35
+SLETTET dpl_3YQBLEPV9tSK4atLEa1y84MGWWdu C connecthub f252e4e 2026-10-31T18:46
+SLETTET dpl_GCKxMjUzr7JJjfytKSWw1EfZY4bM C connecthub 245d6c2 2026-10-31T18:01
+SLETTET dpl_FVbWHb7G7MiDAP3aD2WS6v5qewFT C connecthub 828214e 2026-10-31T17:44
+SLETTET dpl_EPQNsjTNTQ62HgFZbJQr79uo8YLz C connecthub 0ac5f1e 2026-10-31T17:20
+SLETTET dpl_FJhWBcNmpc4bp5UMib6BizxVDpC8 C connecthub a04356a 2026-10-31T16:47
+SLETTET dpl_AGr56tbS6DdeGjRuPCAYoUBcf9n3 C connecthub 5d7789d 2026-10-31T16:38
+SLETTET dpl_8zqfuJmRirEP3ju1MA6KupcATnG8 C connecthub 1fb28a1 2026-10-31T15:42
+SLETTET dpl_4nMgTo5kxmzQKZFV9SJ8kfK6yGF3 C connecthub f91ede3 2026-10-31T14:21
+SLETTET dpl_Gm932h3pbQ6jtr3S29vRpowBusjt C connecthub 35a2986 2026-10-31T13:43
+SLETTET dpl_FQc82rbAGzMK4Fb9KWfXfExKuxnv C connecthub 18cbee6 2026-10-31T13:35
+SLETTET dpl_FEdBzXS48mYkJwDzBLYtuaLDyfXm C connecthub ad640bd 2026-10-31T13:28
+SLETTET dpl_j46N5NoG4RVeqyJGvGa5RKQkKR6K C connecthub e276b77 2026-10-31T13:24
+SLETTET dpl_6JrFPDZxkaRawrF6b2ZrstxaCbvw C connecthub 1c5c917 2026-10-31T13:18
+SLETTET dpl_AM2SR1gLuktcC9N9FfameWpiuWs2 C connecthub 172668c 2026-10-31T12:54
+SLETTET dpl_HGv93LBz5RjUVBWjSPHWfbjVd7LX C connecthub 906f7d3 2026-10-31T12:34
+SLETTET dpl_GmyhzZWnjuh7cAG58edSwupgDVzA C connecthub be89828 2026-10-31T12:19
+SLETTET dpl_JDUh6F8pDpbVfPj26g1z2Vvg9UTn C connecthub ce3242f 2026-10-31T12:03
+SLETTET dpl_5ioDbD3t6YAEz8KNpYYjUmDpP3Gs C connecthub af76715 2026-10-31T11:56
+SLETTET dpl_39Xkd5cA65DocTXmXMat9eNdoBKH C connecthub 58d54f3 2026-10-31T11:54
+SLETTET dpl_6QL8UNcQU9fbPFM8RvA8ukEDvmZc C connecthub 08f732f 2026-10-31T11:39
+SLETTET dpl_FSQXno3TjuVpjUpSP3fzPVJrKMzN C connecthub 777c157 2026-10-31T10:45
+SLETTET dpl_DQDhjwADJSXCEtPkDLJEWSgkbwrg C connecthub 3e12cab 2026-10-31T05:59
+SLETTET dpl_5PHibunN2gLuuFbfRDupgvw89UnR C connecthub bbe3dbc 2026-10-31T05:40
+SLETTET dpl_BC3REyrSEARSF4te4kWDktMJDAD2 C connecthub 40f496a 2026-10-31T05:19
+SLETTET dpl_2DUe7TP1V9w8wdpjCxWgnRsq6bVd C connecthub 387c1cf 2026-10-31T03:59
+SLETTET dpl_BTzFLVVJhhTbUcvDr2Tdq5XtDh2f C connecthub 1361965 2026-10-31T03:47
+SLETTET dpl_5K9KHv9RqiVbAgxgQ2M6PojTnyfV C connecthub 4db8171 2026-10-31T03:39
+SLETTET dpl_HqUxDDfryQgtNoBq9FyS9wcAfStJ C connecthub d7c2185 2026-10-31T03:09
+SLETTET dpl_4gyK7iv9oqfb7x5yUZkjDYxqipDF C connecthub 5bd7199 2026-10-31T02:57
+SLETTET dpl_3a2kQ84LbKaEtyUDaRCrVPr9UJXZ C connecthub 92c0c4a 2026-10-31T01:32
+SLETTET dpl_8h5mfgPvjSUAFhpYKEXnBoQaAK8y C connecthub 9887783 2026-10-31T00:55
+SLETTET dpl_44yzBkJ5uwd1Fjp1eW1C1suLJ2bJ C connecthub 4b61b42 2026-10-30T20:21
+SLETTET dpl_24SgkRmoWgT2L4XCYTVAVEcPEeMa C connecthub 681191a 2026-10-30T19:51
+SLETTET dpl_DEnHLBNq7Rx5UJdG7nK2FjggBg2i C connecthub 76b93d9 2026-10-20T14:27
+SLETTET dpl_H5oB7PQ3cshbbu9T2u5fr76wY6EW C connecthub 4a8120a 2026-10-20T13:07
+SLETTET dpl_37QKT4DQStGJq4Cv3uJ8JQZx42oz C connecthub 3193433 2026-10-20T11:47
+SLETTET dpl_3FfFkKddNNcaaKoSmshuLY8bWcwY C connecthub 2e10fe8 2026-10-20T11:39
+SLETTET dpl_3TSCiQXwpmQbXjg9MbuEvmdye9Dq C connecthub 4f403b4 2026-10-20T10:43
+SLETTET dpl_BJ2SiKYCtR7xGABwvDW4JrCJZPkd C connecthub 7c82554 2026-10-20T10:37
+SLETTET dpl_tcCMjgtqsqrJSYNTa8etSzkW1whQ C connecthub fe8003d 2026-10-20T01:29
+SLETTET dpl_FcxWRCcd3prWxN5QsrK57res7vsF C connecthub 11451c7 2026-10-20T01:13
+SLETTET dpl_4N242utGbxfcrfMZ4xoQdYwiY3hv C connecthub 48cce5d 2026-10-19T22:26
+SLETTET dpl_8xKekQwRFVpvjGxf6R71PW5CxFks C connecthub 947b82b 2026-10-19T20:55
+SLETTET dpl_8sZgBAN9b7efrcWGmWZo4XBLiLSs C connecthub ff20a8c 2026-10-19T18:03
+SLETTET dpl_E3zygyriDYJif8WC4ARdTKw1XewZ C connecthub da29c24 2026-10-19T15:16
+SLETTET dpl_5Pb5F3k7GLQrDB922MM3NniBp47h C connecthub 550621f 2026-10-19T10:37
+SLETTET dpl_DgVHfR9rtAWuDiP1YGN8kVqrqFmb C connecthub 5851c37 2026-10-19T10:11
+SLETTET dpl_5m5cuCqaqVB2nZvhPkNq18QHfjDj C connecthub a414031 2026-10-19T10:11
+SLETTET dpl_EQAxwQVR1Uc4jpMmtKQXiRdVCvjp C connecthub da6215a 2026-10-18T23:08
+SLETTET dpl_BywWLHhhaaGWpWb3WQir7AAPuU3a C connecthub b8bfd5a 2026-10-18T22:42
+SLETTET dpl_D8dd8vLFgVpTkzhgNqc3DYYto1pn C connecthub 9d682de 2026-10-18T20:43
+SLETTET dpl_FkaGWZkjw2BxYnWUSWLHiSQfsZ9g C connecthub 97e7af4 2026-10-18T19:37
+SLETTET dpl_HUf8vKXwPfxifr9t6o5csmeuDMvv C connecthub 336b389 2026-10-18T15:39
+SLETTET dpl_3MN79s4TCcda9u5hEBPYat7TcSVB C connecthub 7575815 2026-10-18T14:20
+SLETTET dpl_B5BEC3ddcAZCGfYQdQMu2ebiu5HL C connecthub 674f318 2026-10-03T13:18
