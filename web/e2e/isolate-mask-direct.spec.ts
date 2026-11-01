@@ -163,3 +163,86 @@ test('flytting og zoom: mus, styreflate, knip, midtknapp, mellomrom og to fingre
   const r = await exported(page, info.outputPath('ingen-strok.png'), [[120, 90], [200, 150], [215, 160], [150, 120], [110, 130], [60, 160], [330, 150], [10, 10]])
   expect(r.a, 'ingen utilsiktede strøk').toEqual([255, 255, 255, 255, 255, 255, 255, 255])
 })
+
+test('arbeidsbakgrunn: alle farger vises bak det fjernede, masken beholdes, og fargen kommer aldri med i resultatet', async ({ page }, info) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await openDirect(page)
+  // fjern en vannrett stripe i bakgrunnen ved y = 40
+  await page.locator('[data-mask-keep="0"]').click()
+  await page.locator('[data-mask-size]').fill('40')
+  await page.locator('[data-mask-hard]').fill('1')
+  const a = await scr(page, 30, 40)
+  const b = await scr(page, 370, 40)
+  await page.mouse.move(a.x, a.y)
+  await page.mouse.down()
+  await page.mouse.move(b.x, b.y, { steps: 12 })
+  await page.mouse.up()
+
+  const COLORS: Record<string, number[]> = { grey: [58, 58, 58], black: [0, 0, 0], white: [255, 255, 255], magenta: [255, 0, 255], cyan: [0, 229, 255], green: [0, 200, 83] }
+  for (const [k, rgb] of Object.entries(COLORS)) {
+    await page.locator(`[data-mask-view="${k}"]`).click()
+    await expect(page.locator(`[data-mask-view="${k}"]`)).toHaveAttribute('aria-checked', 'true')
+    expect(near(await shown(page, 200, 40), rgb, 8), `${k}: fargen vises der det er fjernet`).toBe(true)
+    expect(near(await shown(page, 30, 270), BLUE), `${k}: beholdt bakgrunn vises uendret`).toBe(true)
+    expect(near(await shown(page, 200, 150), ORANGE), `${k}: objektet vises uendret`).toBe(true)
+  }
+  await page.locator('[data-mask-view="checker"]').click()
+  const ck = await shown(page, 200, 40)
+  expect(near(ck, [255, 255, 255], 8) || near(ck, [212, 212, 212], 8), 'rutemønster der det er fjernet').toBe(true)
+  await page.locator('[data-mask-view="original"]').click()
+  const or = await shown(page, 200, 40)
+  expect((or[0] ?? 0) > 120 && (or[0] ?? 0) > (or[2] ?? 0), 'originalen med rødt der det er fjernet').toBe(true)
+  expect(near(await shown(page, 30, 270), BLUE), 'originalen: beholdt del uten rødt').toBe(true)
+  await page.locator('[data-mask-view="magenta"]').click()
+
+  // «Ferdig»: masken er den samme (stripen fjernet, resten beholdt) og eksporten har ekte gjennomsiktighet, ingen magenta
+  await page.locator('[data-mask-done]').click()
+  const file = info.outputPath('arbeidsbakgrunn.png')
+  const r = await exported(page, file, [[200, 40], [60, 40], [30, 270], [200, 150], [200, 85]])
+  expect(r.a, 'stripen fjernet (0), resten beholdt (255)').toEqual([0, 0, 255, 255, 255])
+  const rgb = await page.evaluate(async (data) => {
+    const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
+    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+    g.drawImage(bmp, 0, 0)
+    const d = g.getImageData(0, 0, bmp.width, bmp.height).data
+    let magenta = 0
+    for (let i = 0; i < d.length; i += 4) if ((d[i] ?? 0) > 200 && (d[i + 1] ?? 0) < 60 && (d[i + 2] ?? 0) > 200 && (d[i + 3] ?? 0) > 0) magenta++
+    const px = (x: number, y: number) => [...g.getImageData(x, y, 1, 1).data]
+    return { magenta, kept: px(30, 270), removed: px(200, 40) }
+  }, fs.readFileSync(file).toString('base64'))
+  expect(rgb.magenta, 'ingen magenta i eksporten').toBe(0)
+  expect(near(rgb.kept, BLUE, 4), 'beholdte piksler har originalfargen').toBe(true)
+  expect(rgb.removed[3], 'fjernet = gjennomsiktig').toBe(0)
+
+  // valget huskes når redigereren åpnes igjen, og masken er fortsatt den samme
+  await page.locator('[data-mask-open]').click()
+  await expect(page.locator('[data-mask-view="magenta"]')).toHaveAttribute('aria-checked', 'true')
+  expect(near(await shown(page, 200, 40), [255, 0, 255], 8), 'stripen er fortsatt fjernet').toBe(true)
+  await page.locator('[data-mask-done]').click()
+
+  // «Bruk i Thumbnail Studio»: samme utklipp (gjennomsiktig stripe, ingen magenta)
+  await page.getByRole('button', { name: 'Bruk i Thumbnail Studio' }).click()
+  await expect(page).toHaveURL(/\/app\/thumbnail-studio\?asset=/)
+  const id = new URL(page.url()).searchParams.get('asset') ?? ''
+  const sent = await page.evaluate(async (assetId) => {
+    for (const name of (await indexedDB.databases()).map((d) => d.name).filter((n): n is string => !!n && n.startsWith('medialab@'))) {
+      const db = await new Promise<IDBDatabase>((ok, no) => { const q = indexedDB.open(name); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error) })
+      const get = <T,>(store: string, key: IDBValidKey) => new Promise<T | undefined>((ok, no) => { const q = db.transaction(store).objectStore(store).get(key); q.onsuccess = () => ok(q.result as T); q.onerror = () => no(q.error) })
+      const asset = await get<{ content: { hash: string } }>('assets', assetId)
+      if (!asset) continue
+      const st = await get<unknown>('blobs', asset.content.hash)
+      const blob = st instanceof Blob ? st : st && typeof st === 'object' && 'bytes' in st ? new Blob([(st as { bytes: ArrayBuffer }).bytes]) : null
+      if (!blob) return null
+      const bmp = await createImageBitmap(blob)
+      const c = new OffscreenCanvas(bmp.width, bmp.height)
+      const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+      g.drawImage(bmp, 0, 0)
+      return { removed: g.getImageData(200, 40, 1, 1).data[3], kept: g.getImageData(30, 270, 1, 1).data[3] }
+    }
+    return null
+  }, id)
+  expect(sent).toEqual({ removed: 0, kept: 255 })
+  expect(errors).toEqual([])
+})

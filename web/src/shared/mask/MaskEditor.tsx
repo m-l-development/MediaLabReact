@@ -13,7 +13,15 @@ import styles from './MaskEditor.module.css'
  * og `onChange` kalles etter hver endring, så forhåndsvisning og eksport bruker det samme.
  */
 export type Tool = 'brush' | 'rect' | 'ellipse' | 'lasso' | 'select'
-export type View = 'checker' | 'black' | 'white' | 'original'
+export type View = 'checker' | 'grey' | 'black' | 'white' | 'magenta' | 'cyan' | 'green' | 'original'
+
+/**
+ * Midlertidige arbeidsbakgrunner bak utklippet i redigeringen. Bare visning: de tegnes i lerretet bak bildet og blir
+ * aldri en del av masken, originalbildet, «Ferdig», eksporten eller overføringen til andre verktøy.
+ */
+const BG: Partial<Record<View, string>> = { grey: '#3a3a3a', black: '#000000', white: '#ffffff', magenta: '#ff00ff', cyan: '#00e5ff', green: '#00c853' }
+/** Sist valgte visning (huskes mens appen er åpen, også når redigereren åpnes på nytt). */
+let lastView: View = 'checker'
 
 export interface MaskEditorProps {
   image: HTMLCanvasElement
@@ -50,7 +58,11 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   const [size, setSize] = useState(() => Math.max(4, Math.round(Math.max(W, H) / 40)))
   const [hard, setHard] = useState(0.8)
   const [snap, setSnap] = useState(false)
-  const [mode, setMode] = useState<View>('checker')
+  const [mode, setModeState] = useState<View>(() => lastView)
+  const setMode = (v: View) => {
+    lastView = v
+    setModeState(v)
+  }
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [, bump] = useState(0)
@@ -61,6 +73,10 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   /** Aktive pekere (berøring, penn, mus) på lerretet: to fingre = knip/flytt i stedet for tegning. */
   const ptrs = useRef(new Map<number, { x: number; y: number; touch: boolean }>())
 
+  /** Områder av lagene som må bygges på nytt (samles mellom bildene; se refresh/flush). */
+  const dirty = useRef<{ cut: Box | null; tint: Box | null }>({ cut: null, tint: null })
+  const checker = useRef<CanvasPattern | null>(null)
+
   // lagene i bildets oppløsning: utklippet (bildet med maskens alfa) og den røde markeringen av det som fjernes
   if (!layers.current || layers.current.cut.width !== W || layers.current.cut.height !== H) {
     const g = image.getContext('2d', { willReadFrequently: true })
@@ -68,13 +84,26 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     const mk = () => Object.assign(document.createElement('canvas'), { width: W, height: H })
     layers.current = { rgba, cut: mk(), tint: mk() }
     hist.current = new MaskHistory(W)
+    dirty.current = { cut: null, tint: null }
     refresh({ x0: 0, y0: 0, x1: W, y1: H })
   }
 
-  /** Oppdaterer lagene i et område etter at masken er endret. */
+  /**
+   * Masken er endret i et område. Lagene bygges ikke her, men én gang per bilde (flush i draw), og bare laget som vises:
+   * før ble begge lagene bygget og lastet opp for hver eneste pekerhendelse i et strøk.
+   */
   function refresh(b: Box | null) {
+    if (!b) return
+    dirty.current.cut = unionBox(dirty.current.cut, b)
+    dirty.current.tint = unionBox(dirty.current.tint, b)
+  }
+
+  /** Bygger det skitne området av ett lag (utklipp eller rød markering) fra masken og originalbildet. */
+  function flush(which: 'cut' | 'tint') {
     const L = layers.current
+    const b = dirty.current[which]
     if (!L || !b) return
+    dirty.current[which] = null
     const x0 = clamp(Math.floor(b.x0), 0, W)
     const y0 = clamp(Math.floor(b.y0), 0, H)
     const x1 = clamp(Math.ceil(b.x1), 0, W)
@@ -82,26 +111,29 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     const w = x1 - x0
     const h = y1 - y0
     if (w <= 0 || h <= 0) return
-    const cut = new ImageData(w, h)
-    const tint = new ImageData(w, h)
+    const out = new ImageData(w, h)
+    const d = out.data
+    const src = L.rgba
     for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const gi = (y + y0) * W + x + x0
+      let gi = (y + y0) * W + x0
+      let o = y * w * 4
+      for (let x = 0; x < w; x++, gi++, o += 4) {
         const a = mask[gi] ?? 0
-        const k = gi * 4
-        const o = (y * w + x) * 4
-        cut.data[o] = L.rgba[k] ?? 0
-        cut.data[o + 1] = L.rgba[k + 1] ?? 0
-        cut.data[o + 2] = L.rgba[k + 2] ?? 0
-        cut.data[o + 3] = Math.min(a, L.rgba[k + 3] ?? 255)
-        tint.data[o] = 255
-        tint.data[o + 1] = 64
-        tint.data[o + 2] = 64
-        tint.data[o + 3] = Math.round((255 - a) * 0.55)
+        if (which === 'cut') {
+          const k = gi * 4
+          d[o] = src[k] ?? 0
+          d[o + 1] = src[k + 1] ?? 0
+          d[o + 2] = src[k + 2] ?? 0
+          d[o + 3] = Math.min(a, src[k + 3] ?? 255)
+        } else {
+          d[o] = 255
+          d[o + 1] = 64
+          d[o + 2] = 64
+          d[o + 3] = Math.round((255 - a) * 0.55)
+        }
       }
     }
-    L.cut.getContext('2d')?.putImageData(cut, x0, y0)
-    L.tint.getContext('2d')?.putImageData(tint, x0, y0)
+    ;(which === 'cut' ? L.cut : L.tint).getContext('2d')?.putImageData(out, x0, y0)
   }
 
   /** Tegner visningen (neste bilde). */
@@ -138,26 +170,50 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
       const iy = S.oy
       const iw = W * S.s
       const ih = H * S.s
-      if (mode === 'checker') {
-        const q = 10
-        g.save()
-        g.beginPath()
-        g.rect(ix, iy, iw, ih)
-        g.clip()
-        g.fillStyle = '#ffffff'
-        g.fillRect(ix, iy, iw, ih)
-        g.fillStyle = '#d4d4d4'
-        for (let y = Math.floor(iy / q) * q; y < iy + ih; y += q) for (let x = Math.floor(ix / q) * q + ((y / q) % 2 ? q : 0); x < ix + iw; x += q * 2) g.fillRect(x, y, q, q)
-        g.restore()
-      } else if (mode !== 'original') {
-        g.fillStyle = mode === 'black' ? '#000000' : '#ffffff'
-        g.fillRect(ix, iy, iw, ih)
+      // bare den synlige delen av bildet tegnes (innzoomet er resten utenfor lerretet)
+      const vx0 = Math.max(ix, 0)
+      const vy0 = Math.max(iy, 0)
+      const vx1 = Math.min(ix + iw, cw)
+      const vy1 = Math.min(iy + ih, ch)
+      if (vx1 > vx0 && vy1 > vy0) {
+        const vw = vx1 - vx0
+        const vh = vy1 - vy0
+        // arbeidsbakgrunnen: bare her i visningen – aldri i masken, bildet eller eksporten
+        if (mode === 'checker') {
+          if (!checker.current) {
+            const tile = Object.assign(document.createElement('canvas'), { width: 20, height: 20 })
+            const tg = tile.getContext('2d')
+            if (tg) {
+              tg.fillStyle = '#ffffff'
+              tg.fillRect(0, 0, 20, 20)
+              tg.fillStyle = '#d4d4d4'
+              tg.fillRect(10, 0, 10, 10)
+              tg.fillRect(0, 10, 10, 10)
+            }
+            checker.current = g.createPattern(tile, 'repeat')
+          }
+          if (checker.current) {
+            g.fillStyle = checker.current
+            g.fillRect(vx0, vy0, vw, vh)
+          }
+        } else if (BG[mode]) {
+          g.fillStyle = BG[mode] as string
+          g.fillRect(vx0, vy0, vw, vh)
+        }
+        g.imageSmoothingEnabled = S.s < 2
+        const sx = (vx0 - ix) / S.s
+        const sy = (vy0 - iy) / S.s
+        const sw = Math.min(W - sx, vw / S.s)
+        const sh = Math.min(H - sy, vh / S.s)
+        if (mode === 'original') {
+          flush('tint')
+          g.drawImage(image, sx, sy, sw, sh, vx0, vy0, vw, vh)
+          g.drawImage(L.tint, sx, sy, sw, sh, vx0, vy0, vw, vh)
+        } else {
+          flush('cut')
+          g.drawImage(L.cut, sx, sy, sw, sh, vx0, vy0, vw, vh)
+        }
       }
-      g.imageSmoothingEnabled = S.s < 2
-      if (mode === 'original') {
-        g.drawImage(image, ix, iy, iw, ih)
-        g.drawImage(L.tint, ix, iy, iw, ih)
-      } else g.drawImage(L.cut, ix, iy, iw, ih)
       g.strokeStyle = 'rgba(255,255,255,0.35)'
       g.lineWidth = 1
       g.strokeRect(ix - 0.5, iy - 0.5, iw + 1, ih + 1)
@@ -512,7 +568,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
 
   const hs = hist.current
   const TOOLS: [Tool, string][] = [['brush', 'mask.tool.brush'], ['rect', 'mask.tool.rect'], ['ellipse', 'mask.tool.ellipse'], ['lasso', 'mask.tool.lasso'], ...(selectObject ? [['select', 'mask.tool.select'] as [Tool, string]] : [])]
-  const VIEWS: [View, string][] = [['checker', 'mask.view.checker'], ['black', 'mask.view.black'], ['white', 'mask.view.white'], ['original', 'mask.view.original']]
+  const VIEWS: [View, string][] = [['checker', 'mask.view.checker'], ['grey', 'mask.view.grey'], ['black', 'mask.view.black'], ['white', 'mask.view.white'], ['magenta', 'mask.view.magenta'], ['cyan', 'mask.view.cyan'], ['green', 'mask.view.green'], ['original', 'mask.view.original']]
   const grow = (r: number) => whole(() => mask.set(separable(mask, W, H, Math.abs(r), r > 0 ? 'max' : 'min')))
   const smooth = () => {
     const L = layers.current
@@ -552,15 +608,17 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         )}
       </div>
       <div className={styles.bar}>
-        <label className={styles.slider}>
+        <div className={styles.views} role="radiogroup" aria-label={t('mask.view')}>
           <span>{t('mask.view')}</span>
-          <select value={mode} data-mask-view="" onChange={(e) => {
-            setMode(e.target.value as View)
-            draw()
-          }}>
-            {VIEWS.map(([k, l]) => <option key={k} value={k}>{t(l as never)}</option>)}
-          </select>
-        </label>
+          {VIEWS.map(([k, l]) => (
+            <button key={k} type="button" role="radio" aria-checked={mode === k} aria-label={t(l as never)} title={t(l as never)} data-mask-view={k} className={styles.swatch}
+              style={{ background: k === 'checker' ? 'repeating-conic-gradient(#d4d4d4 0 25%, #ffffff 0 50%) 0 0 / 10px 10px' : k === 'original' ? 'linear-gradient(135deg, #8a6f5a 0 50%, rgba(255,64,64,0.8) 50% 100%)' : BG[k] }}
+              onClick={() => {
+                setMode(k)
+                draw()
+              }} />
+          ))}
+        </div>
         <div className={styles.group}>
           <button type="button" aria-label={t('mask.zoomOut')} title={t('mask.zoomOut')} onClick={() => zoomCenter(1 / 1.25)}>−</button>
           <button type="button" data-mask-zoom="" onClick={() => {
