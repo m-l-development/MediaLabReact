@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useT } from '../i18n/i18n'
+import { pinchView, wheelAction } from './gesture'
 import { separable } from './morph'
 import { boxOf, brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, keepConnected, MaskHistory, removeSpecks, sampleColor, unionBox, type Box, type Mask } from './ops'
 import styles from './MaskEditor.module.css'
@@ -23,7 +24,7 @@ export interface MaskEditorProps {
 }
 
 interface Drag {
-  kind: 'paint' | 'shape' | 'lasso' | 'pan'
+  kind: 'paint' | 'shape' | 'lasso' | 'pan' | 'pinch'
   keep: boolean
   start: { x: number; y: number }
   last: { x: number; y: number }
@@ -32,6 +33,8 @@ interface Drag {
   before: Mask | null
   snapRef: [number, number, number] | null
   panFrom: { x: number; y: number; ox: number; oy: number }
+  /** To fingre: visningen og fingrenes midtpunkt/avstand ved start (skjermpiksler i lerretet). */
+  pinch?: { s: number; ox: number; oy: number; mx: number; my: number; dist: number }
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
@@ -55,6 +58,8 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   const hist = useRef<MaskHistory | null>(null)
   const layers = useRef<{ rgba: Uint8ClampedArray; cut: HTMLCanvasElement; tint: HTMLCanvasElement } | null>(null)
   const raf = useRef(0)
+  /** Aktive pekere (berøring, penn, mus) på lerretet: to fingre = knip/flytt i stedet for tegning. */
+  const ptrs = useRef(new Map<number, { x: number; y: number; touch: boolean }>())
 
   // lagene i bildets oppløsning: utklippet (bildet med maskens alfa) og den røde markeringen av det som fjernes
   if (!layers.current || layers.current.cut.width !== W || layers.current.cut.height !== H) {
@@ -235,6 +240,8 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     hist.current?.record(before, all)
     changed(all)
   }
+  /** Zoom om et skjermpunkt (punktet under markøren/fingrene står stille). Tallet i verktøylinjen oppdateres én gang per bilde. */
+  const bumpRaf = useRef(0)
   const zoomAt = (f: number, sx: number, sy: number) => {
     const S = st.current
     const ns = clamp(S.s * f, 0.02, 32)
@@ -242,7 +249,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     S.oy = sy - ((sy - S.oy) * ns) / S.s
     S.s = ns
     S.fit = false
-    bump((n) => n + 1)
+    if (!bumpRaf.current) bumpRaf.current = requestAnimationFrame(() => { bumpRaf.current = 0; bump((n) => n + 1) })
     draw()
   }
   const zoomCenter = (f: number) => {
@@ -298,19 +305,21 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     }
   })
 
-  // hjul: Ctrl/⌘ = zoom ved markøren, Alt = penselstørrelse, ellers panorering
+  // hjul (wheelAction): musehjul = zoom i faste trinn ved markøren; styreflate = to fingre flytter, knip zoomer jevnt;
+  // Ctrl/⌘ + hjul = zoom; Shift + hjul = flytt sideveis; Alt + hjul = penselstørrelse
   useEffect(() => {
     const c = view.current
     if (!c) return
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
       const r = c.getBoundingClientRect()
-      if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top)
-      else if (e.altKey) setSize((v) => clamp(Math.round(v * Math.exp(-e.deltaY * 0.002)), 1, 2000))
+      const a = wheelAction(e, c.clientHeight)
+      if (a.kind === 'size') setSize((v) => clamp(Math.round(v * a.f), 1, 2000))
+      else if (a.kind === 'zoom') zoomAt(a.f, e.clientX - r.left, e.clientY - r.top)
       else {
         const S = st.current
-        S.ox -= e.shiftKey ? e.deltaY : e.deltaX
-        S.oy -= e.shiftKey ? 0 : e.deltaY
+        S.ox -= a.dx
+        S.oy -= a.dy
         S.fit = false
         draw()
       }
@@ -319,15 +328,52 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     return () => c.removeEventListener('wheel', wheel)
   })
 
+  /** Midtpunkt og avstand mellom de to første fingrene, i lerretets skjermpiksler. */
+  const twoFingers = () => {
+    const r = view.current?.getBoundingClientRect()
+    const f = [...ptrs.current.values()].filter((q) => q.touch).slice(0, 2)
+    if (!r || f.length < 2) return null
+    const a = f[0]!
+    const b = f[1]!
+    return { mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top, dist: Math.hypot(a.x - b.x, a.y - b.y) }
+  }
+  /** Avbryter et påbegynt strøk eller en form uten å endre masken (f.eks. når en finger nr. 2 kommer). */
+  const cancelDrag = () => {
+    const d = st.current.drag
+    if (d?.kind === 'paint' && d.before && d.box) {
+      mask.set(d.before)
+      refresh(d.box)
+    }
+    st.current.drag = null
+  }
+
   const onDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
     if (busy) return
     const S = st.current
+    const touch = e.pointerType === 'touch'
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY, touch })
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      /* ukjent peker (f.eks. syntetisk): uten fangst */
+    }
+    // to fingre: knip og flytt – et strøk som akkurat startet med den første fingeren, angres
+    const two = touch ? twoFingers() : null
+    if (two) {
+      cancelDrag()
+      S.drag = { kind: 'pinch', keep, start: { x: 0, y: 0 }, last: { x: 0, y: 0 }, pts: [], box: null, before: null, snapRef: null, panFrom: { x: 0, y: 0, ox: S.ox, oy: S.oy }, pinch: { s: S.s, ox: S.ox, oy: S.oy, ...two } }
+      draw()
+      return
+    }
+    // ett strøk om gangen: en ekstra knapp eller peker under et drag starter ingenting nytt
+    if (S.drag) return
     const p = toImg(e)
     const k = e.altKey ? !keep : keep
-    e.currentTarget.setPointerCapture(e.pointerId)
     const base: Drag = { kind: 'paint', keep: k, start: p, last: p, pts: [p], box: null, before: null, snapRef: null, panFrom: { x: e.clientX, y: e.clientY, ox: S.ox, oy: S.oy } }
     if (e.button === 1 || S.space) {
+      e.preventDefault() // midtknappen: ingen automatisk rulling i nettleseren
       S.drag = { ...base, kind: 'pan' }
+      bump((n) => n + 1)
       return
     }
     if (e.button !== 0) return
@@ -348,7 +394,12 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         const L = layers.current
         if (ob && L) edgeRefine(obj, L.rgba, W, H, { x0: ob.x0 - 4, y0: ob.y0 - 4, x1: ob.x1 + 4, y1: ob.y1 + 4 }, Math.max(2, Math.round(Math.max(W, H) / 700)), 0.003)
         const before = new Uint8ClampedArray(mask)
-        const b = combine(mask, obj, W, k)
+        // Hele bildet beholdt (ingen maske ennå) + «Behold» = behold bare objektet; ellers legges objektet til/trekkes fra.
+        let b: Box | null
+        if (k && mask.every((v) => v === 255)) {
+          mask.set(obj)
+          b = { x0: 0, y0: 0, x1: W, y1: H }
+        } else b = combine(mask, obj, W, k)
         if (b) {
           hist.current?.record(before, b)
           changed(b)
@@ -381,11 +432,29 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
 
   const onMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
     const S = st.current
+    const q = ptrs.current.get(e.pointerId)
+    if (q) {
+      q.x = e.clientX
+      q.y = e.clientY
+    }
     const p = toImg(e)
     S.cursor = p
     const d = S.drag
     if (!d) {
       draw()
+      return
+    }
+    if (d.kind === 'pinch') {
+      const now = twoFingers()
+      if (now && d.pinch) {
+        const v = pinchView(d.pinch, now)
+        S.s = v.s
+        S.ox = v.ox
+        S.oy = v.oy
+        S.fit = false
+        if (!bumpRaf.current) bumpRaf.current = requestAnimationFrame(() => { bumpRaf.current = 0; bump((n) => n + 1) })
+        draw()
+      }
       return
     }
     if (d.kind === 'pan') {
@@ -406,11 +475,21 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     draw()
   }
 
-  const onUp = () => {
+  const onUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    ptrs.current.delete(e.pointerId)
     const S = st.current
     const d = S.drag
+    // knip: slutter når en finger løftes; den andre fingeren starter ikke et strøk
+    if (d?.kind === 'pinch') {
+      if (!twoFingers()) S.drag = null
+      draw()
+      return
+    }
+    // en annen peker enn den som startet draget (f.eks. en finger som ble lagt på og løftet), avslutter ikke draget
+    if (d && ptrs.current.size > 0 && e.pointerType === 'touch') return
     S.drag = null
     if (!d || d.kind === 'pan') {
+      if (d) bump((n) => n + 1)
       draw()
       return
     }
@@ -504,7 +583,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         </div>
       </div>
       <div ref={wrap} className={styles.stage}>
-        <canvas ref={view} className={styles.canvas} data-mask-canvas="" style={{ cursor: st.current.space ? 'grab' : tool === 'brush' ? 'none' : 'crosshair' }}
+        <canvas ref={view} className={styles.canvas} data-mask-canvas="" style={{ cursor: st.current.drag?.kind === 'pan' ? 'grabbing' : st.current.space ? 'grab' : tool === 'brush' ? 'none' : 'crosshair' }}
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
           onPointerLeave={() => {
             st.current.cursor = null

@@ -1,6 +1,6 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { useEffect, useRef, useState, type PointerEvent as RPE } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE } from 'react'
 import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
@@ -576,7 +576,7 @@ function FxPicker({ c, S, tx }: EditorProps) {
 
 /** Miniatyrene lages én om gangen i en felles kø, så panelet ikke henger. */
 const fxThumbs = new Map<string, string>()
-const fxQueue: { k: string; pr: FX.Preset; done: (src: string) => void }[] = []
+const fxQueue: { k: string; pr: FX.Preset; w: number; done: (src: string) => void }[] = []
 let fxRaf = 0
 function runFxQueue() {
   fxRaf = 0
@@ -586,7 +586,7 @@ function runFxQueue() {
     let src = fxThumbs.get(job.k)
     if (src === undefined) {
       try {
-        src = FX.thumb(job.pr)
+        src = FX.thumb(job.pr, job.w, Math.round((job.w * 2) / 3))
       } catch {
         src = ''
       }
@@ -597,19 +597,38 @@ function runFxQueue() {
   if (fxQueue.length) fxRaf = requestAnimationFrame(runFxQueue)
 }
 
+/**
+ * Miniatyren tegnes i kortets faktiske størrelse × devicePixelRatio (rundet opp til 32 px, maks 768), så den vises uten
+ * oppskalering. Før: fast 132 × 88 JPEG, strukket ca. 3× i kortene på Retina – uskarp og pikselert.
+ */
 function FxThumb({ pr, k }: { pr: FX.Preset; k: string }) {
-  const [src, setSrc] = useState<string | undefined>(() => fxThumbs.get(k))
+  const box = useRef<HTMLSpanElement>(null)
+  const [w, setW] = useState(0)
+  useLayoutEffect(() => {
+    const card = box.current?.parentElement
+    if (!card) return
+    const measure = () => {
+      const px = card.clientWidth * (window.devicePixelRatio || 1)
+      if (px > 0) setW(Math.min(768, Math.max(132, Math.ceil(px / 32) * 32)))
+    }
+    measure()
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
+    ro?.observe(card)
+    return () => ro?.disconnect()
+  }, [])
+  const key = `${k}@${w}`
+  const [src, setSrc] = useState<{ key: string; url: string } | null>(null)
   useEffect(() => {
-    if (fxThumbs.has(k)) return
+    if (!w || fxThumbs.has(key)) return
     let live = true
-    fxQueue.push({ k, pr, done: (v) => live && setSrc(v) })
+    fxQueue.push({ k: key, pr, w, done: (url) => live && setSrc({ key, url }) })
     if (!fxRaf) fxRaf = requestAnimationFrame(runFxQueue)
     return () => {
       live = false
     }
-  }, [k, pr])
-  const shown = src ?? fxThumbs.get(k)
-  return shown ? <img src={shown} alt="" /> : null
+  }, [key, pr, w])
+  const shown = fxThumbs.get(key) ?? (src?.key === key ? src.url : undefined)
+  return <span ref={box} style={{ display: 'contents' }}>{shown ? <img src={shown} alt="" /> : null}</span>
 }
 
 /** Bare under et drag i laglisten. */
