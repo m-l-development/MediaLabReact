@@ -1013,8 +1013,14 @@ export function presets(): Preset[] {
 }
 
 /** Miniatyr: effekten over en mørk scene med noen lyspunkter (så bloom og skjermblanding synes). */
+/**
+ * Miniatyr av et forhåndsvalg i W × H piksler. Tegningen er oppløsningsuavhengig (som effektlagene), så kallet bør be om
+ * kortets faktiske størrelse × devicePixelRatio; da vises den uten oppskalering. WebP (PNG der WebP ikke kan lages)
+ * holder de myke lysovergangene fri for JPEG-blokker.
+ */
 export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, H = 88): string {
   const c = mk(W, H)
+  const k = W / 132
   const g = ctx(c)
   const lt = pr.fx === 'bloom' || pr.fx === 'vign'
   const bg = g.createLinearGradient(0, 0, 0, H)
@@ -1046,10 +1052,10 @@ export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, 
   g.fill()
   for (const d of [[0.2, 0.74], [0.46, 0.7], [0.72, 0.76], [0.86, 0.72]] as const) {
     g.fillStyle = '#ffe9b0'
-    g.fillRect(W * d[0], H * d[1], lt ? 4 : 2, lt ? 4 : 2)
+    g.fillRect(W * d[0], H * d[1], (lt ? 4 : 2) * k, (lt ? 4 : 2) * k)
   }
   const K = KINDS[pr.fx]
-  if (!K) return c.toDataURL('image/jpeg', 0.72)
+  if (!K) return thumbUrl(c)
   const p = params({ fx: pr.fx, p: pr.p, seed: pr.seed })
   g.save()
   g.globalCompositeOperation = pr.blend || K.blend || 'source-over'
@@ -1062,7 +1068,12 @@ export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, 
     g.drawImage(o, 0, 0)
   }
   g.restore()
-  return c.toDataURL('image/jpeg', 0.72)
+  return thumbUrl(c)
+}
+
+function thumbUrl(c: HTMLCanvasElement): string {
+  const u = c.toDataURL('image/webp', 0.92)
+  return u.startsWith('data:image/webp') ? u : c.toDataURL('image/png')
 }
 
 // ---------- lagring: modus, favoritter, nylig brukt, egne (samme nøkler som i dag) ----------
