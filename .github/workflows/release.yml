@@ -1,5 +1,5 @@
 # Release connecthub → main (docs/publisering.md, web/tools/release-gate.mjs).
-# Ved hver push til connecthub: venter på CI (checks + e2e, nyeste kjøring) og Vercels Dev-deploy av samme commit,
+# Ved hver push til connecthub: venter på nyeste CI-kjøring (ci.yml, jobbene checks + e2e) og Vercels Dev-deploy av samme commit,
 # sjekker at main er med, at det ikke er nye migreringer og at commiten fortsatt er toppen.
 #   RELEASE_PR=false, AUTO_MERGE=false  tørrkjøring (bare kontrollene)
 #   RELEASE_PR=true                     + pull request connecthub → main og commit-status «release-gate»; et menneske
@@ -23,14 +23,15 @@ permissions:
   contents: write
   pull-requests: write
   statuses: write
+  actions: read
   checks: read
   deployments: read
 
 env:
-  # Begge false = tørrkjøring. AUTO_MERGE aktivert av eieren 2026-10-31: merge gjennom beskyttelsen på main; krever
-  # beskyttelsen godkjenning, venter pull requesten på den (docs/publisering.md).
-  RELEASE_PR: 'false'
-  AUTO_MERGE: 'true'
+  # RELEASE_PR = pull request + status «release-gate»; et menneske godkjenner og merger (eierens krav 2026-11-01).
+  # AUTO_MERGE (merge av boten) er av. Begge false = tørrkjøring. Se docs/publisering.md.
+  RELEASE_PR: 'true'
+  AUTO_MERGE: 'false'
 
 jobs:
   release:
@@ -48,3 +49,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node web/tools/release-gate.mjs "${{ github.sha }}" ${{ env.AUTO_MERGE == 'true' && '--merge' || (env.RELEASE_PR == 'true' && '--pr' || '') }}
+      # Feilet eller stoppet jobben (f.eks. tidsgrensen), blir «release-gate» ikke stående som pending: pending → error.
+      - name: Rydd status ved avbrudd
+        if: (failure() || cancelled()) && (env.RELEASE_PR == 'true' || env.AUTO_MERGE == 'true')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node web/tools/release-gate.mjs "${{ github.sha }}" --abort

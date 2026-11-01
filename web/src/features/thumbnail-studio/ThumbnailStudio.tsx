@@ -175,15 +175,22 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
     void c.followLocation({ ...(qCat ? { cat: qCat } : {}), ...(qTpl ? { tpl: qTpl } : {}), ...(qBase ? { base: qBase } : {}) })
   }, [c, qCat, qTpl, qBase])
 
-  // «Åpne i Thumbnail Studio» fra Dine medier (?asset=…)
+  // «Åpne i Thumbnail Studio» fra Dine medier / «Bruk i …» (?asset=…). Bildet tas imot én gang og forkastes bare hvis
+  // verktøyet lukkes: Thumbnail skriver selv om adressen (kategori, mal), og brukeren kan velge en kategori før bildet er
+  // hentet – da forsvant ?asset, og bildet ble stille borte.
   const assetParam = query.asset
+  const mounted = useRef(true)
+  const taken = useRef<string | null>(null)
   useEffect(() => {
-    if (!assetParam) return
-    let live = true
-    assets.open(assetParam as AssetId).then((b) => live && c.receive(b), () => undefined)
+    mounted.current = true
     return () => {
-      live = false
+      mounted.current = false
     }
+  }, [])
+  useEffect(() => {
+    if (!assetParam || taken.current === assetParam) return
+    taken.current = assetParam
+    assets.open(assetParam as AssetId).then((b) => mounted.current && c.receive(b), () => undefined)
   }, [assetParam, assets, c])
 
   // Smal skjerm: enkel visning (bytte person, navn, tema og bakgrunn)
