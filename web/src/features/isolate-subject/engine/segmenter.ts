@@ -255,10 +255,12 @@ export class Segmenter {
       }
       let pick = best
       let pa = area(best)
+      // et forslag som dekker nesten hele bildet, er ikke «objektet» (det er bakgrunnen og objektet sammen)
+      const all = mk.width * mk.height
       for (let k = 0; k < Math.min(n, scores.length); k++) {
         if (k === best || (scores[k] ?? 0) < (scores[best] ?? 0) * 0.85) continue
         const ak = area(k)
-        if (ak > pa) {
+        if (ak > pa && ak < all * 0.9) {
           pick = k
           pa = ak
         }

@@ -451,7 +451,9 @@ export class IsolateController {
 
   /**
    * Åpner maskeredigeringen. Masken kopieres (forrige tilstand ligger i historikken, så «Angre» i panelet tar hele
-   * redigeringen tilbake). Uten maske starter den tom: alt er fjernet, og brukeren maler det som skal beholdes.
+   * redigeringen tilbake). Uten maske (ingen type valgt ennå) starter den med hele bildet beholdt, så bildet vises
+   * uendret og brukeren fjerner det som ikke skal være med («Velg objekt» med Behold gir da bare objektet). Før startet
+   * den tom (alt fjernet), og redigereren viste bare rutemønsteret.
    */
   startEdit(): void {
     const src = this.src
@@ -459,7 +461,7 @@ export class IsolateController {
     if (!src || s.busy || s.editing) return
     this.snap()
     this.token++
-    this.alpha = this.alpha ? new Uint8ClampedArray(this.alpha) : new Uint8ClampedArray(src.width * src.height)
+    this.alpha = this.alpha ? new Uint8ClampedArray(this.alpha) : new Uint8ClampedArray(src.width * src.height).fill(255)
     this.pend = null
     this.refined = null
     this.redraw({ editing: true, mode: s.mode === 'point' ? null : s.mode, marks: [], ready: true, error: null, cmp: 0 })
