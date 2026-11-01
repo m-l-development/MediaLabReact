@@ -127,8 +127,8 @@ test('maskeredigering: verktøyene endrer den faktiske masken, og eksporten føl
   await page.locator('[data-mask-snap]').uncheck()
 
   // visning: originalen med rødt der det er fjernet
-  await page.locator('[data-mask-view]').selectOption('original')
-  await page.locator('[data-mask-view]').selectOption('checker')
+  await page.locator('[data-mask-view="original"]').click()
+  await page.locator('[data-mask-view="checker"]').click()
 
   await page.locator('[data-mask-done]').click()
   await expect(page.locator('[data-mask-canvas]')).toHaveCount(0)
