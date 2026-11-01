@@ -70,3 +70,9 @@ Status: **Mangler** · **Implementert** (bygget, ikke testet) · **Testet** (aut
 ## Gjenstår (ikke bygget ennå)
 
 Plattform: PLT-03/04/05/07/09/16/17/19/21 er bygget (se registeret for hva som er testet og hva som er blokkert av innlogging). PLT-12/13/14 (publisering, CSP, ruting) hører til et eget, godkjent publiseringstrinn. PLT-08 (forhåndslasting) er bygget, ikke kontrollert. Innlogging/konto (AUTH-*) og alle admin-seksjonene (ADM-01–13) er bygget under /app/admin og testet med falske tjenester; ingenting er prøvd mot connecthub-dev ennå (blokkert, se AUTH-*). Loop Studio er bygget (se LS-/LE-radene). Neste: ekte prøving mot connecthub-dev når .env.local og testkontoer finnes.
+
+## Oppdatering 2026-11-01
+
+Arbeid etter 2026-10-17 (Motion/Photo Avansert, felles maskeredigering, innlimingssperren, Thumbnail-overføringen,
+tilbakemeldingsskjemaet, publiseringsflyten) er ført i `feature-parity.md` §15 med evidens. Ingen punkter i dette
+registeret har gått tilbake.

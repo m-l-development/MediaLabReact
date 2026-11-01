@@ -307,3 +307,22 @@ Hele admin-siden bevares funksjonelt. Detaljert underliste lages når Admin bygg
 1. **ADM-14:** Den gamle adminen kunne skjule innebygde bilder per menighet. Skal det finnes i ConnectHub?
 2. **LE-03:** Bildelesing med `window.claude.complete` virker bare inne i Claude-artefaktmiljøet; i produksjon brukes alltid tesseract. Skal den nye appen bare bruke tesseract, eller få en egen (server-)tjeneste senere?
 3. **LE-31:** `BroadcastChannel('ukeloop-audio')` synkroniserer lyd mellom faner. Trengs det i én samlet app?
+
+## 15. Endringer etter 2026-10-17 (status 2026-11-01)
+
+Statuskoder som over: **T** = testet i ekte Chrome/Playwright, **I** = implementert med enhetstester. «Prod» = i
+produksjon (main); ellers bare på connecthub/Dev.
+
+| Område | Status | Hvor | Evidens |
+|---|---|---|---|
+| Motion Design Avansert: tidslinje, effekter, tekst/undertekster, keyframes, lyd/demping, hastighet, eksportinnstillinger, nedtelling, kategorier og dialoger | T, prod | `features/motion-design` (`Advanced.tsx`, `engine/edit.ts`, `fx.ts`, `kf.ts`) | `e2e/motion-*.spec.ts`, ekte MP4 (`e2e/motion-export.spec.ts`), `e2e-dev/motion-dev.spec.ts` |
+| Photo Design Avansert: framkalling, kurver, effektvelger, bildeserie med ZIP, prosjektkategorier, lys modus | T, prod | `features/photo-design` | `e2e/photo-design-*.spec.ts`, `photo-design-categories.spec.ts`, `photo-design-theme-scan.spec.ts` |
+| Felles maskeredigering (pensel, former, «Velg objekt», «Følg kantene», angre) i Isolate, Thumbnail («Finjuster utklippet») og Photo («Finjuster masken») | T, prod | `shared/mask`, `docs/maskering.md` | `e2e/isolate-mask-editor.spec.ts`, `isolate-thin.spec.ts`, `photo-mask-editor.spec.ts`, `e2e-real/isolate-*.spec.ts` |
+| Innliming/slipp erstatter ikke arbeidsbildet fra felt, dialoger eller tilbakemeldingen; Isolate spør før erstatning | T, prod | `shared/lib/paste.ts` | `src/shared/lib/paste.test.ts`, `e2e/image-paste-guard.spec.ts` |
+| «Bruk i Thumbnail Studio» / `?asset=` mister ikke bildet når adressen endres | T, prod (PR #19, merge-commit f81b51c) | `features/thumbnail-studio/ThumbnailStudio.tsx` (c244203) | `e2e/image-paste-guard.spec.ts` (25/25 under last) |
+| Tilbakemeldingsskjema med spørsmål per kategori | T, prod | `shared/feedback/form.ts`, `app/Feedback.tsx` | `Feedback.test.tsx`, `e2e-dev/feedback-dev.spec.ts` |
+| Tilbakemeldingssakene TB-2D9264, TB-95F738, TB-EB63E9, TB-2CD75B, TB-4416C4, TB-8E2793, TB-905D74 | T, prod | se `docs/testlogg.md` | `e2e-dev/feedback-cases-dev.spec.ts` |
+| Publisering: ship-dev, CI (`checks` + `e2e`), release-sperre med pull request og menneskelig merge, produksjonskontroll | T (GitHub-kjøringer) | `.github/workflows`, `web/tools/release-*.mjs`, `docs/publisering.md` | `tools/release-decide.test.ts`, kjøringer for b80802b (stopp), 386fd24 (PR #19) og f81b51c («PRODUKSJON VERIFISERT», 2026-11-01) |
+
+Fortsatt åpne punkter: PD-18 og MD-20 (planlagte utvidelser), ADM-14 og PLT-20 (venter på beslutning), Isolate «mørkt mot
+mørkt» (begrensning i modellene), Photo Design «hvitt bilde» (ikke gjenskapt; trenger brukerens bilde).
