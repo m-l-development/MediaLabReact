@@ -182,8 +182,6 @@ test('Isolate → «Bruk i Thumbnail Studio»: Thumbnail får de eksporterte pik
   await expect(page).toHaveURL(/\/app\/thumbnail-studio\?asset=/)
   const id = new URL(page.url()).searchParams.get('asset')
   expect(id).toBeTruthy()
-  // Thumbnail tar imot bildet og venter på en mal
-  await expect(page.getByText('Velg en mal, så legges bildet inn.')).toBeVisible()
   // Det Thumbnail åpner (assets.open(id)), er nøyaktig den eksporterte PNG-en: les den fra appens lokale mediebase
   const got = await page.evaluate(async (assetId) => {
     const dbs = (await indexedDB.databases()).map((d) => d.name).filter((n): n is string => !!n && n.startsWith('medialab@'))
@@ -211,6 +209,12 @@ test('Isolate → «Bruk i Thumbnail Studio»: Thumbnail får de eksporterte pik
   const b = await pngInfo(page, info.outputPath('sendt.png'), [[0.02, 0.02], [0.5, 0.5], [0.5, 0.95]])
   expect(b).toEqual(a)
   expect(b).toEqual({ w: 240, h: 160, a: [0, 255, 0] })
+  // …og Thumbnail bruker det: bildet venter til en mal er åpen, og legges da inn som et bildelag
+  await page.getByRole('button', { name: /Søndagsmøte/ }).click()
+  await page.getByRole('button', { name: /Ny mal/ }).click()
+  await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="base:main"]').click()
+  await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Bytt bilde' }).first()).toBeVisible()
 })
 
 test('Thumbnail, Mockups og Photo: innliming i felt og dialoger ignoreres; på siden tas bildet imot som før', async ({ page }) => {
