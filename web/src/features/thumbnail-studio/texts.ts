@@ -250,6 +250,8 @@ export const EN = {
   'Laget er kopiert. Lim inn med Ctrl/Cmd + V på hvilken som helst side.': 'The layer has been copied. Paste with Ctrl/Cmd + V on any page.',
   'Laget er limt inn.': 'The layer has been pasted.',
   'Lagmeny': 'Layer menu',
+  'Arbeidsflate': 'Canvas',
+  'Forrige visning': 'Previous view',
   'Lagnavn': 'Layer name',
   'Lagre endringene i denne malen, eller lagre som en ny mal. {n} av 5 maler brukt.': 'Save the changes to this template, or save as a new template. {n} of 5 templates used.',
   'Lagre endringer': 'Save changes',

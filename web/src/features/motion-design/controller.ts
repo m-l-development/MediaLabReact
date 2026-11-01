@@ -1506,13 +1506,64 @@ export class MotionController {
     if (c.style.cursor !== cur) c.style.cursor = cur
   }
 
-  canvasCtx(e: React.MouseEvent): void {
-    const s = this.s.sel
-    if (s && s.type !== 'music' && s.type !== 'sub') this.ctxFor(s.type, s.id, e)
-    else {
-      e.preventDefault()
-      this.rowMenu(e)
+  /**
+   * Objektet i forhåndsvisningen under pekeren, i samme rekkefølge som et klikk velger (canvasDown): tekst, overlegg,
+   * så klippet som vises. Låste og skjulte spor hoppes over.
+   */
+  private previewHit(e: { clientX: number; clientY: number }): { type: 'text' | 'ov' | 'clip'; id: string } | null {
+    const p = this.s.proj
+    const q = this.canvasPoint(e)
+    if (!p || !q) return null
+    const { px, py } = q
+    const t = this.t
+    const inR = (k: string) => {
+      const b = this.rects[k]
+      return !!b && px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h
     }
+    const lk = (k: TrackKey) => p.tracks[k].lock || p.tracks[k].hide
+    const byLane = <T extends { lane: number }>(a: readonly T[]) => [...a].sort((x, y) => (y.lane || 0) - (x.lane || 0)).reverse()
+    const tx = lk('text') ? undefined : byLane(p.texts).find((x) => t >= x.start && t < x.start + x.dur && inR(x.id))
+    if (tx) return { type: 'text', id: tx.id }
+    const ov = lk('ov') ? undefined : byLane(p.ov).find((o) => t >= o.start && t < o.start + ovDur(o) && inR(`ov:${o.id}`))
+    if (ov) return { type: 'ov', id: ov.id }
+    const l = lk('video') ? undefined : layout(p).filter((y) => t >= y.start && t < y.end).pop()
+    return l ? { type: 'clip', id: l.c.id } : null
+  }
+
+  /**
+   * Høyreklikk i forhåndsvisningen: handlinger for objektet under pekeren (velges først), eller for selve visningen.
+   * Tidslinjens handlinger (del, trim, markører, overganger) hører hjemme i tidslinjens meny (ctxFor / rowMenu).
+   */
+  canvasCtx(e: React.MouseEvent): void {
+    const p = this.s.proj
+    if (!p) return
+    const M = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl+'
+    const h = this.previewHit(e)
+    if (!h) {
+      this.openMenu(e, [
+        this.mi(this.s.playing ? 'Pause' : 'Spill av', 'Mellomrom', () => this.togglePlay()),
+        'sep',
+        this.clip ? this.mi('Lim inn ved spillehodet', `${M}V`, () => this.paste()) : null,
+        this.mi('Legg til tekst', '', () => this.addText(PRESETS[0]?.o ?? {})),
+      ])
+      return
+    }
+    const p0 = itemsOf(p, h.type).find((x) => x.id === h.id) as (Item & { kind?: string; x?: number; y?: number }) | undefined
+    if (!p0) return
+    if (!this.selList().some((x) => x.id === h.id)) this.set({ sel: { type: h.type, id: h.id }, multi: [], replaceFor: null })
+    const movable = h.type === 'text' || h.type === 'ov'
+    this.openMenu(e, [
+      h.type !== 'clip' || p0.kind !== 'color' ? this.mi('Transformer', '', () => this.startXf(h.type, h.id, 'move')) : null,
+      h.type === 'ov' ? this.mi('Beskjær', '', () => this.startXf('ov', h.id, 'crop')) : null,
+      movable && (p0.x !== 0.5 || p0.y !== 0.5) ? this.mi('Midtstill', '', () => this.patch(h.type, h.id, { x: 0.5, y: 0.5 })) : null,
+      h.type === 'clip' && p0.kind !== 'color' ? this.mi('Bytt media', '', () => this.set({ tab: 'media', replaceFor: h.id })) : null,
+      'sep',
+      this.mi('Kopier', `${M}C`, () => this.copySel()),
+      this.mi('Klipp ut', `${M}X`, () => this.cut()),
+      this.mi('Dupliser', `${M}D`, () => this.dupSel()),
+      'sep',
+      this.mi('Slett', 'Delete', () => this.delSel(), true),
+    ])
   }
 
   /* ---------- tidslinjen ---------- */
@@ -1876,14 +1927,21 @@ export class MotionController {
     this.onTlScroll()
   }
 
+  /**
+   * Tidslinjen: rulling flytter mellom spor (loddrett) og i tid (Shift / sidelengs), som i Premiere og Resolve.
+   * Zoom i tid: Ctrl/⌘ + hjul, Alt + hjul (Resolve, Premiere) eller knip – forankret ved pekeren. Musehjul i trinn
+   * (1,25× per hakk), styreflate og knip jevnt. + / − zoomer rundt spillehodet, Shift+Z tilpasser (Final Cut, CapCut).
+   */
   private onTlWheel = (e: WheelEvent): void => {
-    if (!(e.ctrlKey || e.metaKey)) return
+    if (!(e.ctrlKey || e.metaKey || e.altKey)) return
     e.preventDefault()
     const tl = this.els.tl
     const inner = this.els.tlInner
     if (!tl) return
     const Z = this.s.zoom
-    const nz = clamp(Z * Math.exp(-e.deltaY * 0.0022), ZMIN, ZMAX)
+    const dy = e.deltaY || e.deltaX
+    const notched = e.deltaMode === 1 || (Number.isInteger(dy) && Math.abs(dy) >= 50 && !e.ctrlKey)
+    const nz = clamp(Z * (notched ? Math.pow(1.25, -Math.sign(dy) * Math.min(3, Math.max(1, Math.round(Math.abs(e.deltaMode === 1 ? dy * 33 : dy) / 100)))) : Math.exp(-Math.max(-60, Math.min(60, dy)) * 0.01)), ZMIN, ZMAX)
     if (Math.abs(nz - Z) < 0.01) return
     const r = (inner ?? tl).getBoundingClientRect()
     const t = (e.clientX - r.left) / Z
@@ -2113,10 +2171,11 @@ export class MotionController {
     this.delSel()
   }
 
-  paste(): void {
+  /** Limer inn ved spillehodet, eller ved `at` (høyreklikk i tidslinjen: «Lim inn her»). */
+  paste(at?: number): void {
     const c = this.clip
     if (!c || !this.s.proj) return
-    const t = this.t
+    const t = at ?? this.t
     const sel: Sel[] = []
     const s0 = this.s.sel
     this.setProj((p) => {
@@ -2646,10 +2705,11 @@ export class MotionController {
     this.setProj((q) => ({ ...q, mix: { ...mixOf(q), [k]: v } }), true, `mix-${k}`)
   }
 
-  addMarker(): void {
-    const m = { id: uid('k'), t: this.t, label: '', color: '#ff5a36' }
+  addMarker(at?: number): void {
+    const t = at ?? this.t
+    const m = { id: uid('k'), t, label: '', color: '#ff5a36' }
     this.setProj((p) => ({ ...p, markers: [...p.markers, m].sort((a, b) => a.t - b.t) }))
-    this.flash('Markør lagt til ved {t}.', { t: fmtT(this.t) })
+    this.flash('Markør lagt til ved {t}.', { t: fmtT(t) })
   }
 
   markerAt(t: number): Project['markers'][number] | undefined {
@@ -3235,6 +3295,15 @@ export class MotionController {
     const vis = kind === 'clip' || kind === 'ov'
     const lc = this.lookClip
     const idx = kind === 'clip' ? p.clips.findIndex((c) => c.id === id) : -1
+    // låst spor: bare kopiering og opplåsing (endringer er sperret også ved draing og taster)
+    if (this.locked(kind)) {
+      this.openMenu(e, [
+        this.mi('Kopier', `${M}C`, () => this.copySel()),
+        'sep',
+        this.mi('Lås opp sporet', '', () => this.toggleTrack(TK[kind], 'lock')),
+      ])
+      return
+    }
     this.openMenu(e, [
       !multi && (kind === 'clip' || kind === 'text' || kind === 'music') ? this.mi('Del ved spillehodet', 'S', () => this.split()) : null,
       !multi && kind === 'clip' && it.kind === 'video' ? this.mi('Frys bilde', '', () => void this.freeze()) : null,
@@ -3263,23 +3332,43 @@ export class MotionController {
     ])
   }
 
-  rowMenu(e: { clientX: number; clientY: number; preventDefault(): void; stopPropagation(): void }): void {
+  /** Tomt område i et spor: handlinger ved tiden under pekeren (ikke spillehodet) og for sporet. */
+  rowMenu(e: { clientX: number; clientY: number; preventDefault(): void; stopPropagation(): void }, track?: TrackKey): void {
     const p = this.s.proj
     if (!p) return
     const M = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl+'
+    const at = this.els.tlInner ? this.timeAt(e) : this.t
+    const mk = this.markerAt(at)
+    const locked = !!track && p.tracks[track].lock
     this.openMenu(e, [
-      this.clip ? this.mi('Lim inn her', `${M}V`, () => this.paste()) : null,
-      this.markerAt(this.t) ? this.mi('Fjern markør', 'M', () => this.toggleMarker()) : this.mi('Legg til markør', 'M', () => this.addMarker()),
+      this.mi('Flytt spillehodet hit', '', () => this.seek(at)),
+      this.clip && !locked ? this.mi('Lim inn her', `${M}V`, () => this.paste(at)) : null,
+      mk ? this.mi('Fjern markør', 'M', () => this.delMarker(mk.id)) : this.mi('Legg til markør her', 'M', () => this.addMarker(at)),
       p.markers.length ? this.mi('Fjern alle markører', '', () => this.clearMarkers()) : null,
-      this.mi('Legg til tekst', '', () => this.addText(PRESETS[0]?.o ?? {})),
       'sep',
-      this.mi('Vis hele tidslinjen', '', () => this.fitZoom()),
+      track ? this.mi(locked ? 'Lås opp sporet' : 'Lås sporet', '', () => this.toggleTrack(track, 'lock')) : null,
+      track ? this.mi(p.tracks[track].hide ? 'Vis sporet' : 'Skjul sporet', '', () => this.toggleTrack(track, 'hide')) : null,
+      'sep',
+      this.mi('Vis hele tidslinjen', 'Shift+Z', () => this.fitZoom()),
     ])
   }
 
-  rowCtx(e: React.MouseEvent): void {
+  /** Høyreklikk på en markør i linjalen: gå dit eller fjern (høyreklikk alene sletter ikke lenger). */
+  markerMenu(e: React.MouseEvent, id: string): void {
+    const k = this.s.proj?.markers.find((m) => m.id === id)
+    if (!k) return
+    this.openMenu(e, [
+      this.mi('Gå til markøren', '', () => this.seek(k.t)),
+      'sep',
+      this.mi('Fjern markør', '', () => this.delMarker(id), true),
+    ])
+  }
+
+  rowCtx(e: React.MouseEvent<HTMLElement>): void {
     if (e.target !== e.currentTarget) return
-    this.rowMenu(e)
+    const r = e.currentTarget.dataset.row
+    const track = ({ text: 'text', ov: 'ov', video: 'video', subs: 'subs', music: 'music' } as Record<string, TrackKey>)[r ?? '']
+    this.rowMenu(e, track)
   }
 
   /* ---------- tastatur ---------- */

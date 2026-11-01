@@ -102,13 +102,18 @@ test('flytting og zoom: mus, styreflate, knip, midtknapp, mellomrom og to fingre
   const a1 = await scr(page, 120, 90)
   expect(Math.abs(a1.x - a.x) + Math.abs(a1.y - a.y)).toBeLessThan(1.5)
 
-  // styreflate: to fingre (brøkdeler, sidebevegelse) flytter uten å zoome
-  await page.locator('[data-mask-canvas]').evaluate((c) => c.dispatchEvent(new WheelEvent('wheel', { deltaX: 30.5, deltaY: 20.25, clientX: 700, clientY: 400, bubbles: true, cancelable: true })))
+  // styreflate: to fingre sidelengs (dominerende deltaX) flytter sideveis uten å zoome
+  await page.locator('[data-mask-canvas]').evaluate((c) => c.dispatchEvent(new WheelEvent('wheel', { deltaX: 30.5, deltaY: 4.25, clientX: 700, clientY: 400, bubbles: true, cancelable: true })))
+  await page.waitForTimeout(80)
+  const v1b = await viewOf(page)
+  expect(v1b.s).toBeCloseTo(v1.s, 6)
+  expect(v1b.ox).toBeCloseTo(v1.ox - 30.5, 3)
+  expect(v1b.oy).toBeCloseTo(v1.oy, 3)
+  // styreflate loddrett (brøkdeler): zoomer jevnt, panorerer ikke opp/ned
+  await page.locator('[data-mask-canvas]').evaluate((c) => c.dispatchEvent(new WheelEvent('wheel', { deltaY: -6.5, clientX: 700, clientY: 400, bubbles: true, cancelable: true })))
   await page.waitForTimeout(80)
   const v2 = await viewOf(page)
-  expect(v2.s).toBeCloseTo(v1.s, 6)
-  expect(v2.ox).toBeCloseTo(v1.ox - 30.5, 3)
-  expect(v2.oy).toBeCloseTo(v1.oy - 20.25, 3)
+  expect(v2.s / v1b.s).toBeCloseTo(Math.exp(0.065), 3)
 
   // knip (ctrlKey + små verdier): jevn zoom ved punktet
   const b = await scr(page, 200, 150)

@@ -40,7 +40,7 @@ async function avg(page: Page, data: Buffer, mime: string): Promise<{ w: number;
 }
 
 const props = (page: Page) => page.locator('[data-pd-batch-props]')
-const slider = (page: Page, label: string) => props(page).locator('label', { hasText: label }).locator('input[type="range"]').first()
+const slider = (page: Page, label: string) => props(page).getByRole('slider', { name: label }).first()
 const pos = (page: Page) => page.locator('[data-pd-batch-pos]')
 const item = (page: Page, i: number) => page.locator('[data-pd-batch-item]').nth(i)
 

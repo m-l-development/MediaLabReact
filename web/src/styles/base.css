@@ -89,3 +89,9 @@ svg {
     scroll-behavior: auto !important;
   }
 }
+
+/* Arbeidsflater og paneler som har tastaturfokus vises tydelig (snarveiene gjelder der fokus er). */
+[data-focus-region]:focus-visible {
+  outline: 2px solid var(--color-text-strong, #f3f1ec);
+  outline-offset: -2px;
+}

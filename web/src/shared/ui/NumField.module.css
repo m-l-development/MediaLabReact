@@ -1,0 +1,77 @@
+/* Redigerbar tallverdi (NumField): ser ut som teksten rundt, men stiplet understrek og pekeren viser at den kan endres. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-width: 2.5em;
+  justify-content: flex-end;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs, 4px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  text-underline-offset: 3px;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--color-border, rgba(255, 255, 255, 0.16));
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-text-strong, #f3f1ec);
+  outline-offset: 1px;
+}
+
+.btn:disabled {
+  text-decoration: none;
+  cursor: default;
+  opacity: 0.6;
+}
+
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.input {
+  width: 5.5em;
+  padding: 0 4px;
+  border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.55));
+  border-radius: var(--radius-xs, 4px);
+  background: var(--color-bg, #000);
+  color: var(--color-text-strong, #f3f1ec);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-text-strong, #f3f1ec);
+  outline-offset: 1px;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger, #ff8a8a);
+}
+
+.err {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 240px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #2a1414;
+  color: var(--color-danger, #ff8a8a);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: normal;
+}

@@ -9,6 +9,9 @@ import { pastedImage } from '../../shared/lib/paste'
 import { useT } from '../../shared/i18n/i18n'
 import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import { Button } from '../../shared/ui/Button'
+import { NumField } from '../../shared/ui/NumField'
+import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
+import { formatKeys } from '../../shared/ui/shortcuts'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import type { MockupCategory, MockupEntry } from './engine/catalog'
@@ -35,30 +38,9 @@ const norm = (v: number) => ((Math.round(v) % 360) + 360) % 360
 /** Objektets midtlinjer (vises svakt mens designet dras). */
 const MID_GUIDES: readonly Guide[] = [{ axis: 'u', at: 0.5 }, { axis: 'v', at: 0.5 }]
 
-/**
- * Tallet ved en slider: klikk for å skrive inn verdien (Enter eller klikk utenfor lagrer, Esc avbryter).
- * Vises i prosent (scale 100) eller grader (scale 1, unit «°»); verdien holdes innenfor sliderens grenser.
- */
+/** Tallet ved en slider: klikk for å skrive inn verdien (felles NumField). Prosent (scale 100) eller grader (scale 1, «°»). */
 function NumEdit({ value, min, max, onCommit, label, unit = ' %', scale = 100, disabled = false }: { value: number; min: number; max: number; onCommit: (v: number) => void; label: string; unit?: string; scale?: number; disabled?: boolean }) {
-  const [text, setText] = useState<string | null>(null)
-  const shown = Math.round(value * scale)
-  const commit = () => {
-    if (text === null) return
-    const n = Number(text.replace(',', '.').replace(/[^\d.-]/g, ''))
-    setText(null)
-    if (text.trim() !== '' && Number.isFinite(n)) onCommit(Math.min(max, Math.max(min, n / scale)))
-  }
-  if (text !== null) {
-    return (
-      <input className={styles.numEdit} type="text" inputMode="decimal" autoFocus aria-label={label} value={text}
-        onChange={(e) => setText(e.target.value)} onBlur={commit} onFocus={(e) => e.currentTarget.select()}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setText(null) } }} />
-    )
-  }
-  return (
-    <button type="button" className={styles.numBtn} disabled={disabled} title={label} aria-label={label + ': ' + shown + unit.trim()}
-      onClick={(e) => { e.preventDefault(); setText(String(shown)) }}>{shown}{unit}</button>
-  )
+  return <NumField value={value} min={min} max={max} step={1 / scale} scale={scale} decimals={0} unit={unit} label={label} disabled={disabled} onCommit={onCommit} />
 }
 
 const CORNER_KEYS: readonly MessageKey[] = ['mockups.corner.tl', 'mockups.corner.tr', 'mockups.corner.br', 'mockups.corner.bl']
@@ -112,29 +94,54 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   // sin object-URL til de faller ut av historikken.
   const hist = useRef<Snap[]>([])
   const [histN, setHistN] = useState(0)
+  // gjør om (Ctrl/⌘+Shift+Z, Ctrl+Y): stegene som er angret, til noe nytt endres
+  const fut = useRef<Snap[]>([])
+  const [futN, setFutN] = useState(0)
   const gesture = useRef<'off' | 'pending' | 'saved'>('off')
   const cur = useRef<Snap>({ all, design, logo })
   useEffect(() => { cur.current = { all, design, logo } })
-  const inHist = (url: string) => hist.current.some((h) => h.design?.url === url || h.logo?.url === url)
+  const inHist = (url: string) => [...hist.current, ...fut.current].some((h) => h.design?.url === url || h.logo?.url === url)
   function release(s: Snap) {
     for (const u of [s.design?.url, s.logo?.url]) {
       if (u && !inHist(u) && u !== cur.current.design?.url && u !== cur.current.logo?.url) URL.revokeObjectURL(u)
     }
   }
   function checkpoint() {
+    const gone = fut.current
+    fut.current = []
+    setFutN(0)
+    for (const g of gone) release(g)
     hist.current.push({ ...cur.current })
     if (hist.current.length > 40) release(hist.current.shift() as Snap)
     setHistN(hist.current.length)
   }
+  function apply(s: Snap) {
+    setAll(s.all)
+    writeMockupSettings(userId, s.all)
+    setDesign(s.design)
+    setLogo(s.logo)
+    setHistN(hist.current.length)
+    setFutN(fut.current.length)
+  }
+  function redo() {
+    const s = fut.current.shift()
+    if (!s) return
+    gesture.current = 'off'
+    hist.current.push({ ...cur.current })
+    apply(s)
+    setToast(t('mockups.redone'))
+  }
   function undo() {
     const s = hist.current.pop()
     if (!s) return
+    fut.current.unshift({ ...cur.current })
     gesture.current = 'off'
     setAll(s.all)
     writeMockupSettings(userId, s.all)
     setDesign(s.design)
     setLogo(s.logo)
     setHistN(hist.current.length)
+    setFutN(fut.current.length)
     setToast(t('mockups.undone'))
   }
   const beginGesture = () => { gesture.current = 'pending' }
@@ -320,6 +327,8 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           onClearDesign={removeDesign}
           canUndo={histN > 0}
           onUndo={undo}
+          canRedo={futN > 0}
+          onRedo={redo}
           onGesture={(on) => (on ? beginGesture() : endGesture())}
         />
       )}
@@ -459,11 +468,13 @@ interface EditorProps {
   onClearDesign: () => void
   canUndo: boolean
   onUndo: () => void
+  canRedo: boolean
+  onRedo: () => void
   /** Start (true) og slutt (false) på en draging: alt i mellom blir ett angresteg. */
   onGesture: (on: boolean) => void
 }
 
-function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove, onClearDesign, canUndo, onUndo, onGesture }: EditorProps) {
+function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove, onClearDesign, canUndo, onUndo, canRedo, onRedo, onGesture }: EditorProps) {
   const t = useT()
   const { router } = useServices()
   const { assets } = useWorkspace()
@@ -500,9 +511,10 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
       const el = e.target as HTMLElement | null
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (el as HTMLInputElement).type !== 'range') return
       // angre: Ctrl/Cmd + Z (ikke mens man skriver i et felt)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) {
         e.preventDefault()
-        onUndo()
+        if (e.shiftKey || e.key.toLowerCase() === 'y') onRedo()
+        else onUndo()
         return
       }
       if (el?.closest('[data-mk-logo]')) return // piltastene flytter logoen når den har fokus (Backspace håndteres der)
@@ -762,6 +774,29 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   }
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current) }, [])
 
+  // høyreklikk (eller Shift+F10 / menytasten) på mockupen: designets handlinger; høyreklikk endrer aldri noe i seg selv
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  const menuItems = (): MenuItem[] => {
+    const K = (k: string) => formatKeys(k)
+    const has = !!design
+    const odd = Math.round(norm(st.rot) / 90) % 2 === 1
+    return [
+      { label: has ? t('mockups.menu.replace') : t('mockups.upload'), onSelect: onUpload },
+      { label: edit ? t('mockups.place.done') : t('mockups.place.edit'), disabled: !has, onSelect: () => { if (edit) endEdit(); else { setAdj(false); setEdit('button'); setDesignSel(true) } } },
+      { label: t('mockups.menu.full'), disabled: !has || adj, onSelect: openFull },
+      { label: t('mockups.orient.left'), disabled: !has, separator: true, onSelect: () => patchDesign({ rot: norm(st.rot - 90) }) },
+      { label: t('mockups.orient.right'), disabled: !has, onSelect: () => patchDesign({ rot: norm(st.rot + 90) }) },
+      { label: t('mockups.orient.flipH'), disabled: !has, onSelect: () => (odd ? patchDesign({ flipY: !st.flipY }) : patchDesign({ flipX: !st.flipX })) },
+      { label: t('mockups.orient.flipV'), disabled: !has, onSelect: () => (odd ? patchDesign({ flipX: !st.flipX }) : patchDesign({ flipY: !st.flipY })) },
+      { label: t('mockups.place.reset'), disabled: !has || (st.zoom === 1 && !st.ox && !st.oy && !st.dq), onSelect: () => onPatch({ zoom: 1, ox: 0, oy: 0, dq: null }) },
+      { label: t('mockups.removeDesign'), keys: 'Delete', disabled: !has, onSelect: () => { endEdit(); onClearDesign() } },
+      { label: t('mockups.menu.undo'), keys: K('Mod+Z'), disabled: !canUndo, separator: true, onSelect: onUndo },
+      { label: t('mockups.menu.redo'), keys: K('Mod+Shift+Z'), disabled: !canRedo, onSelect: onRedo },
+      { label: t('mockups.menu.prev'), keys: '←', separator: true, disabled: list.length < 2, onSelect: () => step(-1) },
+      { label: t('mockups.menu.next'), keys: '→', disabled: list.length < 2, onSelect: () => step(1) },
+    ]
+  }
+
   const uvAt = (ev: { clientX: number; clientY: number }): Point | null => {
     const el = wrap.current
     if (!el || !H) return null
@@ -917,11 +952,23 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         <Button size="small" variant="ghost" iconOnly onClick={() => step(-1)} title={t('mockups.prev')} aria-label={t('mockups.prev')}>‹</Button>
         <Button size="small" variant="ghost" iconOnly onClick={() => step(1)} title={t('mockups.next')} aria-label={t('mockups.next')}>›</Button>
         <Button size="small" variant="ghost" iconOnly disabled={!canUndo} onClick={onUndo} title={t('mockups.undo')} aria-label={t('mockups.undo')} data-mk-undo="">↶</Button>
+        <Button size="small" variant="ghost" iconOnly disabled={!canRedo} onClick={onRedo} title={t('mockups.redo')} aria-label={t('mockups.redo')} data-mk-redo="">↷</Button>
         <Button disabled={!image} size="small" variant="primary" onClick={() => void download()}>{busy ? t('mockups.downloading') : t('mockups.download')}</Button>
       </header>
 
       <div className={styles.editorBody}>
-        <section ref={stage} className={styles.stage} data-mk-full={full || undefined}
+        <section ref={stage} className={styles.stage} data-mk-full={full || undefined} tabIndex={0} aria-label={t('mockups.menu.label')} data-focus-region=""
+          onContextMenu={(e) => {
+            if ((e.target as HTMLElement).closest('input,textarea')) return
+            e.preventDefault()
+            setMenu({ x: e.clientX, y: e.clientY, items: menuItems() })
+          }}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget || !((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) return
+            e.preventDefault()
+            const r = (wrap.current ?? e.currentTarget).getBoundingClientRect()
+            setMenu({ x: r.left + r.width / 2, y: r.top + r.height / 2, items: menuItems() })
+          }}
           onPointerDown={(e) => {
             const el = e.target as HTMLElement
             if (!el.closest('[data-mk-logo]')) setLogoSel(false)
@@ -976,6 +1023,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
             )}
           </div>
           {dragOver && <div className={styles.dropOverlay}>{t('mockups.dropDesign')}</div>}
+          {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} label={t('mockups.menu.label')} onClose={() => setMenu(null)} />}
         </section>
 
         <aside className={styles.panel}>

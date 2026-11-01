@@ -2,6 +2,10 @@
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE } from 'react'
 import { setSnap, snapPref } from '../../shared/lib/snap'
+import { useStageNav } from '../../shared/lib/useStageNav'
+import { NumField } from '../../shared/ui/NumField'
+import { formatKeys } from '../../shared/ui/shortcuts'
+import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
 import { FillEditor } from '../../shared/fill/FillEditor'
@@ -31,21 +35,37 @@ interface EditorProps {
 }
 
 /** Følger én peker til den slippes (flytt, ramme, håndtak, pensel). */
-function track(id: number, toPt: (e: PointerEvent) => Pt, it: Interaction | null) {
+/**
+ * Følger en draing til pekeren slippes. Escape underveis avbryter: draingen avsluttes og dokumentet går tilbake til
+ * slik det var før (som i Photoshop, Figma og Premiere), uten at noe havner i angrehistorikken.
+ */
+function track(id: number, toPt: (e: PointerEvent) => Pt, it: Interaction | null, c?: PhotoController) {
   if (!it) return
+  const g = c?.beginGesture()
   const m = (ev: PointerEvent) => {
     if (ev.pointerId === id) it.move(toPt(ev), ev)
   }
-  const u = (ev: PointerEvent) => {
-    if (ev.pointerId !== id) return
+  const end = () => {
     window.removeEventListener('pointermove', m)
     window.removeEventListener('pointerup', u)
     window.removeEventListener('pointercancel', u)
+    window.removeEventListener('keydown', k, true)
     it.up()
+  }
+  const u = (ev: PointerEvent) => {
+    if (ev.pointerId === id) end()
+  }
+  const k = (ev: KeyboardEvent) => {
+    if (ev.key !== 'Escape' || !c || !g) return
+    ev.preventDefault()
+    ev.stopPropagation()
+    end()
+    c.cancelGesture(g)
   }
   window.addEventListener('pointermove', m)
   window.addEventListener('pointerup', u)
   window.addEventListener('pointercancel', u)
+  window.addEventListener('keydown', k, true)
 }
 
 const shapeIcons = new Map<string, string>()
@@ -98,11 +118,14 @@ export function Editor(p: EditorProps) {
           <button type="button" className={s.barRound} disabled={!c.canRedo} title={tx('Gjør om (Ctrl+Shift+Z)')} aria-label={tx('Gjør om')} onClick={() => c.redo()}>↷</button>
           <button type="button" className={s.barRound} data-snap-toggle="" aria-pressed={snapOn} aria-label={tx('Snapping')} style={{ opacity: snapOn ? 1 : 0.45 }}
             title={tx(snapOn ? 'Snapping er på: lag fester seg til kanter og midtlinjer. Trykk for fri plassering (Alt snur valget mens du drar).' : 'Snapping er av: fri plassering. Trykk for å slå på hjelpelinjer (Alt snur valget mens du drar).')}
-            onClick={() => setSnap(!snapOn)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3v8a6 6 0 0 0 12 0V3M6 7h4M14 7h4" /></svg></button>
+            onClick={() => setSnap(!snapOn)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 5v8a6 6 0 0 0 12 0V5M6 9h4M14 9h4" /></svg></button>
         </div>
         <div className={s.zoom}>
           <button type="button" aria-label={tx('Zoom ut')} onClick={() => c.ui({ zoom: Math.max(0.1, S.zoom / 1.25) })}>−</button>
-          <button type="button" className={s.zoomLabel} title={tx('Tilpass til vinduet')} onClick={() => c.ui({ zoom: 1 })}>{Math.round(c.sc() * 100)} %</button>
+          {/* zoom i prosent kan skrives inn; «Tilpass» ved siden av (også 0 / Shift+1) */}
+          <NumField className={s.zoomLabel} value={S.zoom} min={0.1} max={8} step={0.01} scale={S.fit * 100} decimals={0} unit=" %" label={tx('Zoom')} onCommit={(z) => c.ui({ zoom: z })} />
+          <button type="button" className={s.zoomFit} title={tx('Tilpass til vinduet')} aria-label={tx('Tilpass til vinduet')} data-pd-zoom-fit="" onClick={() => c.ui({ zoom: 1 })}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg></button>
+          <button type="button" className={s.zoom100} title={tx('100 % (Shift+0)')} aria-label={tx('Vis i 100 %')} aria-pressed={Math.round(c.sc() * 100) === 100} data-pd-zoom-100="" onClick={() => c.ui({ zoom: Math.min(8, Math.max(0.1, 1 / (S.fit || 1))) })}>100%</button>
           <button type="button" aria-label={tx('Zoom inn')} onClick={() => c.ui({ zoom: Math.min(8, S.zoom * 1.25) })}>+</button>
         </div>
         {d.back && (
@@ -732,8 +755,10 @@ function Stage({ c, S, tx }: EditorProps) {
   useEffect(() => {
     const el = stage.current
     if (!el) return
+    // ytre mål (offsetWidth/-Height): uendret når rullefeltene kommer og går ved zoom, så «tilpass» endrer seg ikke
+    // under brukeren (punktet under pekeren ville ellers drevet)
     const measure = () => {
-      c.setFit(Math.max(0.02, Math.min((el.clientWidth - 60) / d.w, (el.clientHeight - 60) / d.h)))
+      c.setFit(Math.max(0.02, Math.min((el.offsetWidth - 60) / d.w, (el.offsetHeight - 60) / d.h)))
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -790,6 +815,53 @@ function Stage({ c, S, tx }: EditorProps) {
     const r = (wrap.current as HTMLDivElement).getBoundingClientRect()
     return [(e.clientX - r.left) / sc, (e.clientY - r.top) / sc]
   }
+  // arbeidsflaten: rulling/knip zoomer rundt pekeren, mellomrom/midtknapp panorerer (shared/lib/useStageNav)
+  const nav = useStageNav({
+    stage, content: wrap, zoom: S.zoom, setZoom: (z) => c.ui({ zoom: z }), min: 0.1, max: 8, enabled: !S.maskEdit,
+    // Shift+F10 / menytasten: menyen for det valgte laget, midt på laget
+    menuPoint: () => {
+      const q = c.selL()
+      const r = wrap.current?.getBoundingClientRect()
+      return q && r ? { x: r.left + q.x * c.sc(), y: r.top + q.y * c.sc() } : null
+    },
+  })
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string | null } | null>(null)
+  // høyreklikkmeny: bare handlinger som passer det som er under pekeren (lag eller tom flate), med tastene ved siden av
+  const menuItems = (id: string | null): MenuItem[] => {
+    const batch = !!d.batch
+    const K = (k: string) => formatKeys(k)
+    const view: MenuItem[] = [
+      { label: tx('Tilpass visning'), keys: '0 · ' + K('Shift+1'), separator: true, onSelect: () => c.ui({ zoom: 1 }) },
+      { label: '100 %', keys: K('Shift+0'), onSelect: () => c.ui({ zoom: Math.min(8, Math.max(0.1, 1 / (c.s.fit || 1))) }) },
+      { label: tx('Zoom inn'), keys: '+', onSelect: () => c.ui({ zoom: Math.min(8, c.s.zoom * 1.25) }) },
+      { label: tx('Zoom ut'), keys: '−', onSelect: () => c.ui({ zoom: Math.max(0.1, c.s.zoom / 1.25) }) },
+      { label: tx('Forrige visning'), keys: K('Alt+0'), onSelect: () => nav.back() },
+    ]
+    const edit: MenuItem[] = [
+      { label: tx('Angre'), keys: K('Mod+Z'), disabled: !c.canUndo, separator: true, onSelect: () => c.undo() },
+      { label: tx('Gjør om'), keys: K('Mod+Shift+Z'), disabled: !c.canRedo, onSelect: () => c.redo() },
+    ]
+    const paste: MenuItem = { label: tx('Lim inn'), keys: K('Mod+V'), disabled: !c.hasClip(), onSelect: () => c.pasteLayers() }
+    if (!id || batch) return [paste, { label: tx('Velg alle'), keys: K('Mod+A'), disabled: batch, onSelect: () => c.selectAll() }, ...edit, ...view]
+    const Lm = d.layers.find((q) => q.id === id)
+    const many = c.selIds().length > 1
+    return [
+      { label: tx('Kopier'), keys: K('Mod+C'), onSelect: () => c.copyLayers(false) },
+      { label: tx('Klipp ut'), keys: K('Mod+X'), onSelect: () => c.copyLayers(true) },
+      paste,
+      { label: tx('Dupliser'), keys: K('Mod+D'), onSelect: () => c.dup() },
+      ...(many ? [{ label: tx('Grupper'), keys: K('Mod+G'), separator: true, onSelect: () => c.group() }] : Lm?.grp ? [{ label: tx('Del opp gruppen'), keys: K('Mod+G'), separator: true, onSelect: () => c.ungroup() }] : []),
+      { label: tx('Flytt fram'), separator: !many && !Lm?.grp, onSelect: () => c.move(id, 1) },
+      { label: tx('Flytt bak'), onSelect: () => c.move(id, -1) },
+      ...(Lm && !many ? [
+        { label: Lm.hidden ? tx('Vis') : tx('Skjul'), onSelect: () => c.patchL(id, { hidden: !Lm.hidden }) },
+        { label: Lm.locked ? tx('Lås opp') : tx('Lås'), onSelect: () => c.patchL(id, { locked: !Lm.locked }) },
+      ] : []),
+      { label: tx('Slett'), keys: 'Delete', onSelect: () => c.del() },
+      ...edit,
+      ...view,
+    ]
+  }
   const L = c.selL()
   const dm = L ? dims(L) : null
   const ids = c.selIds()
@@ -811,17 +883,31 @@ function Stage({ c, S, tx }: EditorProps) {
   const down = (e: RPE, it: Interaction | null) => {
     if (!it) return
     e.preventDefault()
-    track(e.pointerId, pt, it)
+    track(e.pointerId, pt, it, c)
   }
   return (
-    <section ref={stage} className={s.stage}
+    <section ref={stage} className={s.stage} tabIndex={0} aria-label={tx('Arbeidsflate')} data-focus-region=""
+      onContextMenu={(e) => {
+        // tom flate rundt bildet: samme meny som for et tomt område
+        if (e.target !== stage.current) return
+        e.preventDefault()
+        setMenu({ x: e.clientX, y: e.clientY, id: null })
+      }}
       onPointerDown={(e) => {
         if (e.target !== stage.current || e.button !== 0) return
         if (e.pointerType !== 'touch') e.preventDefault()
         const it = c.stageDown(pt(e), e.shiftKey || e.ctrlKey || e.metaKey, e.pointerType === 'touch')
-        if (it) track(e.pointerId, pt, it)
+        if (it) track(e.pointerId, pt, it, c)
       }}>
-      <div ref={wrap} className={s.wrap} data-pd-wrap="1" style={{ width: d.w * sc, height: d.h * sc, cursor: S.tool === 'brush' ? 'none' : S.tool === 'crop' ? 'move' : 'default' }}
+      <div ref={wrap} className={s.wrap} data-pd-wrap="1" style={{ width: d.w * sc, height: d.h * sc, cursor: nav.panning ? 'grabbing' : nav.space ? 'grab' : S.tool === 'brush' ? 'none' : S.tool === 'crop' ? 'move' : 'default' }}
+        onContextMenu={(e) => {
+          // høyreklikk: handlingene for laget under pekeren (velges), eller for arbeidsflaten
+          e.preventDefault()
+          const p = pt(e)
+          const hitL = c.s.doc && !c.s.doc.batch ? hit(c.s.doc, p[0], p[1]) : null
+          if (hitL) c.ui({ sel: hitL.id, multi: [] })
+          setMenu({ x: e.clientX, y: e.clientY, id: hitL?.id ?? null })
+        }}
         onPointerDown={(e) => {
           if (e.button !== 0) return
           e.preventDefault()
@@ -905,6 +991,7 @@ function Stage({ c, S, tx }: EditorProps) {
           {S.busy === 'model' && S.pct > 0 && <span className={s.dimSm}>{S.pct} %</span>}
         </div>
       )}
+      {menu && <ContextMenu x={menu.x} y={menu.y} label={tx('Lagmeny')} onClose={() => setMenu(null)} items={menuItems(menu.id)} />}
     </section>
   )
 }

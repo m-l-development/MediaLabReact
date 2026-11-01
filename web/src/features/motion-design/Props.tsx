@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { MotionController } from './controller'
 import { clamp, type CurveCh, type Grade, type Pt } from './engine/model'
 import { curveEval } from './engine/render'
+import { NumField } from '../../shared/ui/NumField'
 import type { Field, Show } from './fields'
 import type { Tx } from './texts'
 import s from './MotionDesign.module.css'
@@ -248,10 +249,10 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
       return <CurveEditor g={f.c} ch={c.s.curveCh} setCh={(k) => c.set({ curveCh: k })} on={f.on} tx={tx} />
     case 'range':
       return (
-        <label className={s.lblCol}>
-          <span className={s.lblTop}><span className={s.b}>{tx(f.label)}</span><span>{showText(f.show, tx)}</span></span>
-          <input type="range" className={s.range} min={f.min} max={f.max} step={f.step} value={f.val} onChange={(e) => f.on(Number(e.target.value))} />
-        </label>
+        <div className={s.lblCol}>
+          <span className={s.lblTop}><span className={s.b}>{tx(f.label)}</span><NumField value={f.val} min={f.min} max={f.max} step={f.step} show={showText(f.show, tx)} label={tx(f.label)} onCommit={f.on} /></span>
+          <input type="range" className={s.range} min={f.min} max={f.max} step={f.step} value={f.val} aria-label={tx(f.label)} onChange={(e) => f.on(Number(e.target.value))} />
+        </div>
       )
     case 'num':
       return <Num f={f} tx={tx} />

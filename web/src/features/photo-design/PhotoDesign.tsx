@@ -151,7 +151,8 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   // Tastatur og innliming
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (c.s.view !== 'edit' || c.s.picker) return
+      // maskedialogen («Finjuster masken») og menyer har egne taster: dokumentet bak skal ikke angre/slette samtidig
+      if (c.s.view !== 'edit' || c.s.picker || c.s.maskEdit || document.querySelector('[data-ctx-menu]')) return
       const t = e.target as HTMLElement | null
       const typing = !!t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)
       const mod = e.ctrlKey || e.metaKey
@@ -173,6 +174,17 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         c.redo()
         return
       }
+      // lag: kopier / klipp ut / lim inn (tekstmarkering og bilder i utklippstavlen går til nettleseren / innlimingen)
+      if (!typing && mod && !e.altKey && (k === 'c' || k === 'x')) {
+        if (String(window.getSelection?.() ?? '')) return
+        if (c.copyLayers(k === 'x')) e.preventDefault()
+        return
+      }
+      if (!typing && mod && !e.altKey && k === 'v' && c.hasClip()) {
+        e.preventDefault()
+        c.pasteLayers()
+        return
+      }
       if (mod && k === 'd') {
         e.preventDefault()
         c.dup()
@@ -181,6 +193,25 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       if (k === 'escape') {
         c.ui({ sel: null, multi: [], tool: 'move', expOpen: false })
         return
+      }
+      // visning (som i Figma: Shift+1 tilpass, Shift+0 100 %; + / − zoom; 0 tilpass). Ikke Ctrl+± / Ctrl+0: nettleserens zoom
+      if (!mod && !e.altKey) {
+        if (k === '0' || (e.shiftKey && e.code === 'Digit1')) {
+          e.preventDefault()
+          c.ui({ zoom: 1 })
+          return
+        }
+        if (e.shiftKey && e.code === 'Digit0') {
+          e.preventDefault()
+          c.ui({ zoom: Math.min(8, Math.max(0.1, 1 / (c.s.fit || 1))) })
+          return
+        }
+        if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+          e.preventDefault()
+          const f = e.key === '+' || e.key === '=' ? 1.25 : 1 / 1.25
+          c.ui({ zoom: Math.min(8, Math.max(0.1, c.s.zoom * f)) })
+          return
+        }
       }
       // bildeserie: ← → bytter bilde; lagoperasjonene (slett, dupliser, flytt …) gjelder ikke bildet
       if (c.s.doc?.batch) {

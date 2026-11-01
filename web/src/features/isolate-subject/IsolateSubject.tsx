@@ -9,6 +9,7 @@ import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import { pastedImage } from '../../shared/lib/paste'
 import { useStore } from '../../shared/lib/store'
 import { Button } from '../../shared/ui/Button'
+import { NumField } from '../../shared/ui/NumField'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { COLORS, IsolateController, type Aspect, type CropRect, type ImagePoint, type Kind } from './controller'
@@ -256,8 +257,12 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
             <button type="button" className={styles.more} aria-expanded={s.adv} onClick={() => ctl.setOption({ adv: !s.adv })}>{s.adv ? '−' : '+'} {t('isolate.advanced')}</button>
             {s.adv && (
               <div className={styles.sliders}>
-                <label>{t('isolate.soft')}<input type="range" min={0} max={6} step={0.5} value={s.soft} onChange={(e) => ctl.setOption({ soft: Number(e.target.value) })} /></label>
-                <label>{t('isolate.tight')}<input type="range" min={0} max={8} step={0.5} value={s.tight} onChange={(e) => ctl.setOption({ tight: Number(e.target.value) })} /></label>
+                {([['soft', 'isolate.soft', 6], ['tight', 'isolate.tight', 8]] as const).map(([k, key, max]) => (
+                  <div key={k} className={styles.sliderRow}>
+                    <span className={styles.sliderHead}><span>{t(key)}</span><NumField value={s[k]} min={0} max={max} step={0.5} label={t(key)} onCommit={(v) => ctl.setOption({ [k]: v })} /></span>
+                    <input type="range" min={0} max={max} step={0.5} value={s[k]} aria-label={t(key)} onChange={(e) => ctl.setOption({ [k]: Number(e.target.value) })} />
+                  </div>
+                ))}
               </div>
             )}
 

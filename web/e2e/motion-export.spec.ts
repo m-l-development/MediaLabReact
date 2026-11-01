@@ -71,7 +71,7 @@ test('eksport: ekte MP4 med video, effekter, keyframes, tekst, hastighet og lyd 
   await seekTo(page, 2)
   await leftTab(page, 'media')
   await page.locator('[data-md-bin-item="tone.wav"] [data-md-to="a"]').click()
-  await props.locator('label', { hasText: 'Ton inn' }).locator('input[type="range"]').fill('0.5')
+  await props.getByRole('slider', { name: 'Ton inn' }).fill('0.5')
   await seekTo(page, 2)
   for (let i = 0; i < 15; i++) await page.keyboard.press('ArrowRight')
   await page.locator('[data-md-bin-item="dempet.wav"] [data-md-to="a"]').click()

@@ -13,6 +13,7 @@ import { subscribeSettled } from '../../shared/lib/store'
 import { useAssetUrl } from '../../shared/media/useAssetUrl'
 import { Button } from '../../shared/ui/Button'
 import { Icon } from '../../shared/ui/Icon'
+import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import styles from './MediaLibrary.module.css'
 
 type Filter = 'all' | AssetKind
@@ -211,8 +212,37 @@ function AssetCard({ asset, targets, onOpenIn, onRemove }: {
   const t = useT()
   const { assets } = useWorkspace()
   const url = useAssetUrl(assets, asset)
+  // høyreklikk, Shift+F10 eller menytasten på kortet: åpne i en app, last ned, slett (slett spør først)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const items = (): MenuItem[] => [
+    ...targets.map((id) => ({ label: t('media.openIn', { tool: t(toolTitleKey(id)) }), onSelect: () => onOpenIn(id) })),
+    { label: t('media.download'), separator: targets.length > 0, disabled: !url, onSelect: () => {
+      if (!url) return
+      const a = document.createElement('a')
+      a.href = url
+      a.download = asset.name
+      a.click()
+    } },
+    { label: t('media.delete') + ' …', keys: 'Delete', separator: true, onSelect: onRemove },
+  ]
   return (
-    <li className={styles.card}>
+    <li className={styles.card} tabIndex={0} aria-label={asset.name} data-media-card=""
+      onContextMenu={(e) => {
+        e.preventDefault()
+        setMenu({ x: e.clientX, y: e.clientY })
+      }}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') {
+          e.preventDefault()
+          const r = e.currentTarget.getBoundingClientRect()
+          setMenu({ x: r.left + 24, y: r.top + 24 })
+        } else if (e.key === 'Delete') {
+          e.preventDefault()
+          onRemove()
+        }
+      }}>
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={items} label={asset.name} onClose={() => setMenu(null)} />}
       <div className={styles.preview}>
         {url && asset.thumb ? <img src={url} alt="" loading="lazy" /> : <span className={styles.kind}>{t(KIND_KEY[asset.kind])}</span>}
         {asset.origin.type === 'derived' && <span className={styles.badge}>{t('media.derived')}</span>}

@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { useT } from '../i18n/i18n'
-import { pinchView, wheelAction } from './gesture'
+import { isTypingTarget, pinchView, wheelAction } from '../lib/workspace-nav'
 import { separable } from './morph'
 import { boxOf, brushSegment, combine, edgeRefine, fillEllipse, fillPolygon, fillRect, invertInPlace, keepConnected, MaskHistory, removeSpecks, sampleColor, unionBox, type Box, type Mask } from './ops'
+import { ContextMenu, type MenuItem } from '../ui/ContextMenu'
+import { NumField } from '../ui/NumField'
 import styles from './MaskEditor.module.css'
 
 /**
@@ -22,6 +24,19 @@ export type View = 'checker' | 'grey' | 'black' | 'white' | 'magenta' | 'cyan' |
 const BG: Partial<Record<View, string>> = { grey: '#3a3a3a', black: '#000000', white: '#ffffff', magenta: '#ff00ff', cyan: '#00e5ff', green: '#00c853' }
 /** Sist valgte visning (huskes mens appen er åpen, også når redigereren åpnes på nytt). */
 let lastView: View = 'checker'
+const rememberView = (v: View) => {
+  lastView = v
+}
+
+/** Lagene i bildets oppløsning: originalens piksler, utklippet (bildet med maskens alfa) og den røde markeringen. */
+function buildLayers(image: HTMLCanvasElement) {
+  const W = image.width
+  const H = image.height
+  const g = image.getContext('2d', { willReadFrequently: true })
+  const rgba = g ? g.getImageData(0, 0, W, H).data : new Uint8ClampedArray(W * H * 4)
+  const mk = () => Object.assign(document.createElement('canvas'), { width: W, height: H })
+  return { rgba, cut: mk(), tint: mk() }
+}
 
 export interface MaskEditorProps {
   image: HTMLCanvasElement
@@ -60,12 +75,15 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   const [snap, setSnap] = useState(false)
   const [mode, setModeState] = useState<View>(() => lastView)
   const setMode = (v: View) => {
-    lastView = v
+    rememberView(v)
     setModeState(v)
   }
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
-  const [, bump] = useState(0)
+  /** Høyreklikkmeny på arbeidsflaten (skjermkoordinater). */
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
+  /** Det renderingen trenger fra visningen og historikken (settes i hendelser via syncUi, ikke lest fra refs under rendering). */
+  const [ui, setUi] = useState({ fit: true, pct: 100, canUndo: false, canRedo: false, grab: '' as '' | 'grab' | 'grabbing' })
   const st = useRef({ s: 1, ox: 0, oy: 0, fit: true, cursor: null as { x: number; y: number } | null, space: false, drag: null as Drag | null })
   const hist = useRef<MaskHistory | null>(null)
   const layers = useRef<{ rgba: Uint8ClampedArray; cut: HTMLCanvasElement; tint: HTMLCanvasElement } | null>(null)
@@ -77,15 +95,20 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   const dirty = useRef<{ cut: Box | null; tint: Box | null }>({ cut: null, tint: null })
   const checker = useRef<CanvasPattern | null>(null)
 
-  // lagene i bildets oppløsning: utklippet (bildet med maskens alfa) og den røde markeringen av det som fjernes
-  if (!layers.current || layers.current.cut.width !== W || layers.current.cut.height !== H) {
-    const g = image.getContext('2d', { willReadFrequently: true })
-    const rgba = g ? g.getImageData(0, 0, W, H).data : new Uint8ClampedArray(W * H * 4)
-    const mk = () => Object.assign(document.createElement('canvas'), { width: W, height: H })
-    layers.current = { rgba, cut: mk(), tint: mk() }
-    hist.current = new MaskHistory(W)
-    dirty.current = { cut: null, tint: null }
-    refresh({ x0: 0, y0: 0, x1: W, y1: H })
+  // lagene og historikken per bilde; ref-ene settes etter rendering (før første tegning), hele flaten bygges ved behov
+  const built = useMemo(() => buildLayers(image), [image])
+  const history = useMemo(() => new MaskHistory(image.width), [image])
+  useLayoutEffect(() => {
+    layers.current = built
+    hist.current = history
+    dirty.current = { cut: { x0: 0, y0: 0, x1: W, y1: H }, tint: { x0: 0, y0: 0, x1: W, y1: H } }
+  }, [built, history, W, H])
+
+  /** Oppdaterer det renderingen viser (zoom-etikett, angre/gjør om, peker) fra refs – kalles i hendelser. */
+  function syncUi() {
+    const S = st.current
+    const h = hist.current
+    setUi({ fit: S.fit, pct: Math.round(S.s * 100), canUndo: !!h?.canUndo, canRedo: !!h?.canRedo, grab: S.drag?.kind === 'pan' ? 'grabbing' : S.space ? 'grab' : '' })
   }
 
   /**
@@ -285,7 +308,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   const changed = (b: Box | null) => {
     refresh(b)
     onChange()
-    bump((n) => n + 1)
+    syncUi()
     draw()
   }
   /** En operasjon på hele masken (med angre). */
@@ -305,7 +328,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     S.oy = sy - ((sy - S.oy) * ns) / S.s
     S.s = ns
     S.fit = false
-    if (!bumpRaf.current) bumpRaf.current = requestAnimationFrame(() => { bumpRaf.current = 0; bump((n) => n + 1) })
+    if (!bumpRaf.current) bumpRaf.current = requestAnimationFrame(() => { bumpRaf.current = 0; syncUi() })
     draw()
   }
   const zoomCenter = (f: number) => {
@@ -316,8 +339,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
   // tastatur: [ ] størrelse, X bytter, B/R/E/L/V verktøy, Ctrl+Z / Ctrl+Shift+Z, mellomrom = panorer, 0 = tilpass
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      const tg = e.target as HTMLElement | null
-      if (tg && /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)) return
+      if (isTypingTarget(e.target) || menu) return
       const k = e.key.toLowerCase()
       const mod = e.ctrlKey || e.metaKey
       if (mod && k === 'z') {
@@ -338,18 +360,37 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
       else if (k === 'e') setTool('ellipse')
       else if (k === 'l') setTool('lasso')
       else if (k === 'v' && selectObject) setTool('select')
-      else if (k === '0') {
+      else if (k === '0' || (e.shiftKey && e.code === 'Digit1')) {
+        // tilpass visning (0 som i maskeredigeringen før, Shift+1 som i Figma; ikke Ctrl+0, som er nettleserens zoom)
         st.current.fit = true
+        syncUi()
+        draw()
+      } else if (e.shiftKey && e.code === 'Digit0') {
+        // 100 % (Shift+0 som i Figma)
+        const b = wrap.current
+        if (b) zoomAt(1 / st.current.s, b.clientWidth / 2, b.clientHeight / 2)
+      } else if (e.key === '+' || e.key === '=') zoomCenter(1.25)
+      else if (e.key === '-' || e.key === '_') zoomCenter(1 / 1.25)
+      else if (e.key === 'Escape' && st.current.drag) {
+        // avbryt et påbegynt strøk/form uten å endre masken
+        const d = st.current.drag
+        if (d.kind === 'paint' && d.before && d.box) {
+          mask.set(d.before)
+          refresh(d.box)
+        }
+        st.current.drag = null
         draw()
       } else if (e.key === ' ') {
         e.preventDefault()
         st.current.space = true
+        syncUi()
         draw()
       }
     }
     const up = (e: KeyboardEvent) => {
       if (e.key === ' ') {
         st.current.space = false
+        syncUi()
         draw()
       }
     }
@@ -361,8 +402,8 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     }
   })
 
-  // hjul (wheelAction): musehjul = zoom i faste trinn ved markøren; styreflate = to fingre flytter, knip zoomer jevnt;
-  // Ctrl/⌘ + hjul = zoom; Shift + hjul = flytt sideveis; Alt + hjul = penselstørrelse
+  // hjul (shared/lib/workspace-nav): loddrett rulling zoomer rundt pekeren (mus i trinn, styreflate og knip jevnt),
+  // sidelengs rulling og Shift + hjul flytter sideveis, Alt + hjul = penselstørrelse
   useEffect(() => {
     const c = view.current
     if (!c) return
@@ -370,9 +411,9 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
       e.preventDefault()
       const r = c.getBoundingClientRect()
       const a = wheelAction(e, c.clientHeight)
-      if (a.kind === 'size') setSize((v) => clamp(Math.round(v * a.f), 1, 2000))
+      if (a.kind === 'alt') setSize((v) => clamp(Math.round(v * a.f), 1, 2000))
       else if (a.kind === 'zoom') zoomAt(a.f, e.clientX - r.left, e.clientY - r.top)
-      else {
+      else if (a.kind === 'pan') {
         const S = st.current
         S.ox -= a.dx
         S.oy -= a.dy
@@ -429,7 +470,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     if (e.button === 1 || S.space) {
       e.preventDefault() // midtknappen: ingen automatisk rulling i nettleseren
       S.drag = { ...base, kind: 'pan' }
-      bump((n) => n + 1)
+      syncUi()
       return
     }
     if (e.button !== 0) return
@@ -508,7 +549,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         S.ox = v.ox
         S.oy = v.oy
         S.fit = false
-        if (!bumpRaf.current) bumpRaf.current = requestAnimationFrame(() => { bumpRaf.current = 0; bump((n) => n + 1) })
+        if (!bumpRaf.current) bumpRaf.current = requestAnimationFrame(() => { bumpRaf.current = 0; syncUi() })
         draw()
       }
       return
@@ -545,7 +586,7 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     if (d && ptrs.current.size > 0 && e.pointerType === 'touch') return
     S.drag = null
     if (!d || d.kind === 'pan') {
-      if (d) bump((n) => n + 1)
+      if (d) syncUi()
       draw()
       return
     }
@@ -566,7 +607,26 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
     } else draw()
   }
 
-  const hs = hist.current
+  const menuItems = (): MenuItem[] => {
+    const h = hist.current
+    const fit = () => {
+      st.current.fit = true
+      syncUi()
+      draw()
+    }
+    return [
+      { label: t('mask.keep'), keys: 'X', checked: keep, onSelect: () => setKeep(true) },
+      { label: t('mask.remove'), keys: 'X', checked: !keep, onSelect: () => setKeep(false) },
+      ...TOOLS.map(([k, l], i): MenuItem => ({ label: t(l as never), keys: ({ brush: 'B', rect: 'R', ellipse: 'E', lasso: 'L', select: 'V' } as Record<Tool, string>)[k], checked: tool === k, separator: i === 0, onSelect: () => setTool(k) })),
+      { label: t('mask.undo'), keys: 'Ctrl+Z', disabled: !h?.canUndo, separator: true, onSelect: () => { const b = h?.undo(mask); if (b) changed(b) } },
+      { label: t('mask.redo'), keys: 'Ctrl+Shift+Z', disabled: !h?.canRedo, onSelect: () => { const b = h?.redo(mask); if (b) changed(b) } },
+      { label: t('mask.fit'), keys: '0 · Shift+1', separator: true, onSelect: fit },
+      { label: '100 %', keys: 'Shift+0', onSelect: () => { const b = wrap.current; if (b) zoomAt(1 / st.current.s, b.clientWidth / 2, b.clientHeight / 2) } },
+      { label: t('mask.zoomIn'), keys: '+', onSelect: () => zoomCenter(1.25) },
+      { label: t('mask.zoomOut'), keys: '−', onSelect: () => zoomCenter(1 / 1.25) },
+      { label: t('mask.invert'), separator: true, onSelect: () => whole(() => invertInPlace(mask)) },
+    ]
+  }
   const TOOLS: [Tool, string][] = [['brush', 'mask.tool.brush'], ['rect', 'mask.tool.rect'], ['ellipse', 'mask.tool.ellipse'], ['lasso', 'mask.tool.lasso'], ...(selectObject ? [['select', 'mask.tool.select'] as [Tool, string]] : [])]
   const VIEWS: [View, string][] = [['checker', 'mask.view.checker'], ['grey', 'mask.view.grey'], ['black', 'mask.view.black'], ['white', 'mask.view.white'], ['magenta', 'mask.view.magenta'], ['cyan', 'mask.view.cyan'], ['green', 'mask.view.green'], ['original', 'mask.view.original']]
   const grow = (r: number) => whole(() => mask.set(separable(mask, W, H, Math.abs(r), r > 0 ? 'max' : 'min')))
@@ -590,16 +650,16 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         </div>
         {tool === 'brush' && (
           <>
-            <label className={styles.slider}>
+            <div className={styles.slider}>
               <span>{t('mask.size')}</span>
-              <input type="range" min={1} max={Math.max(50, Math.round(Math.max(W, H) / 4))} value={size} data-mask-size="" onChange={(e) => setSize(Number(e.target.value))} />
-              <output data-mask-size-val="">{size} px</output>
-            </label>
-            <label className={styles.slider}>
+              <input type="range" min={1} max={Math.max(50, Math.round(Math.max(W, H) / 4))} value={size} aria-label={t('mask.size')} data-mask-size="" onChange={(e) => setSize(Number(e.target.value))} />
+              <span data-mask-size-val=""><NumField value={size} min={1} max={Math.max(50, Math.round(Math.max(W, H) / 4))} step={1} unit=" px" label={t('mask.size')} onCommit={(v) => setSize(Math.round(v))} /></span>
+            </div>
+            <div className={styles.slider}>
               <span>{t('mask.hard')}</span>
-              <input type="range" min={0} max={1} step={0.05} value={hard} data-mask-hard="" onChange={(e) => setHard(Number(e.target.value))} />
-              <output>{Math.round(hard * 100)} %</output>
-            </label>
+              <input type="range" min={0} max={1} step={0.05} value={hard} aria-label={t('mask.hard')} data-mask-hard="" onChange={(e) => setHard(Number(e.target.value))} />
+              <NumField value={hard} min={0} max={1} step={0.05} scale={100} decimals={0} unit=" %" label={t('mask.hard')} onCommit={setHard} />
+            </div>
             <label className={styles.check} title={t('mask.snap.help')}>
               <input type="checkbox" checked={snap} data-mask-snap="" onChange={(e) => setSnap(e.target.checked)} />
               <span>{t('mask.snap')}</span>
@@ -621,16 +681,17 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         </div>
         <div className={styles.group}>
           <button type="button" aria-label={t('mask.zoomOut')} title={t('mask.zoomOut')} onClick={() => zoomCenter(1 / 1.25)}>−</button>
-          <button type="button" data-mask-zoom="" onClick={() => {
+          <NumField value={ui.pct} min={2} max={3200} step={1} decimals={0} unit=" %" label={t('mask.zoom')} onCommit={(v) => zoomCenter(v / 100 / st.current.s)} />
+          <button type="button" data-mask-zoom="" aria-pressed={ui.fit} title={t('mask.fit')} onClick={() => {
             st.current.fit = true
-            bump((n) => n + 1)
+            syncUi()
             draw()
-          }}>{st.current.fit ? t('mask.fit') : `${Math.round(st.current.s * 100)} %`}</button>
+          }}>{t('mask.fit')}</button>
           <button type="button" aria-label={t('mask.zoomIn')} title={t('mask.zoomIn')} onClick={() => zoomCenter(1.25)}>+</button>
         </div>
         <div className={styles.group}>
-          <button type="button" data-mask-undo="" disabled={!hs?.canUndo} onClick={() => { const b = hs?.undo(mask); if (b) changed(b) }}>{t('mask.undo')}</button>
-          <button type="button" data-mask-redo="" disabled={!hs?.canRedo} onClick={() => { const b = hs?.redo(mask); if (b) changed(b) }}>{t('mask.redo')}</button>
+          <button type="button" data-mask-undo="" disabled={!ui.canUndo} onClick={() => { const b = hist.current?.undo(mask); if (b) changed(b) }}>{t('mask.undo')}</button>
+          <button type="button" data-mask-redo="" disabled={!ui.canRedo} onClick={() => { const b = hist.current?.redo(mask); if (b) changed(b) }}>{t('mask.redo')}</button>
         </div>
         <div className={styles.group}>
           <button type="button" data-mask-invert="" onClick={() => whole(() => invertInPlace(mask))}>{t('mask.invert')}</button>
@@ -641,16 +702,22 @@ export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorPr
         </div>
       </div>
       <div ref={wrap} className={styles.stage}>
-        <canvas ref={view} className={styles.canvas} data-mask-canvas="" style={{ cursor: st.current.drag?.kind === 'pan' ? 'grabbing' : st.current.space ? 'grab' : tool === 'brush' ? 'none' : 'crosshair' }}
+        <canvas ref={view} className={styles.canvas} data-mask-canvas="" style={{ cursor: ui.grab || (tool === 'brush' ? 'none' : 'crosshair') }}
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
           onPointerLeave={() => {
             st.current.cursor = null
             draw()
           }}
-          onContextMenu={(e) => e.preventDefault()} />
+          onContextMenu={(e) => {
+            // høyreklikk tegner aldri: avbryt et eventuelt påbegynt drag og vis handlingene for arbeidsflaten
+            e.preventDefault()
+            if (st.current.drag?.kind !== 'pan') cancelDrag()
+            setMenu({ x: e.clientX, y: e.clientY, items: menuItems() })
+          }} />
         {msg && <div className={styles.msg} role="status">{msg}</div>}
       </div>
       <p className={styles.help}>{t('mask.help')}</p>
+      {menu && <ContextMenu x={menu.x} y={menu.y} label={t('mask.menu')} onClose={() => setMenu(null)} items={menu.items} />}
     </div>
   )
 }

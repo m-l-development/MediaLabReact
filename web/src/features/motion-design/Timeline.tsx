@@ -135,11 +135,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
                     e.stopPropagation()
                     if (e.button === 0) c.seek(k.t)
                   }}
-                  onContextMenu={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    c.delMarker(k.id)
-                  }}
+                  onContextMenu={(e) => c.markerMenu(e, k.id)}
                   onDoubleClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()

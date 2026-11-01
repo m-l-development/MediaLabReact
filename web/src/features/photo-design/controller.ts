@@ -558,6 +558,18 @@ export class PhotoController {
     this.queueSave()
   }
 
+  /** Før en draing: tilstanden som Escape går tilbake til (se Editor.track). */
+  beginGesture(): { sn: Snapshot; n: number; f: number } {
+    return { sn: this.snap(), n: this.past.length, f: this.future.length }
+  }
+
+  /** Escape under draing: alt går tilbake til før draingen, uten angresteg. */
+  cancelGesture(g: { sn: Snapshot; n: number; f: number }): void {
+    this.past.length = Math.min(this.past.length, g.n)
+    this.restore(g.sn)
+    this.hk = null
+  }
+
   undo(): void {
     const p = this.past.pop()
     if (!p) return
@@ -806,6 +818,52 @@ export class PhotoController {
       n.mask = uid('k')
     }
     return n
+  }
+
+/** Utklipp for lag (Ctrl/⌘+C, X, V – som i Thumbnail Studio, Figma og Canva). Bare i denne fanen. */
+  private clip: { L: PdLayer; mask: HTMLCanvasElement | null }[] = []
+  private pastes = 0
+
+  /** Kopierer (eller klipper ut) de valgte lagene. Gir false når ingenting er valgt. */
+  copyLayers(cut: boolean): boolean {
+    const set = new Set(this.selIds())
+    const ls = (this.s.doc?.layers ?? []).filter((L) => set.has(L.id))
+    if (!ls.length) return false
+    this.clip = ls.map((L) => {
+      const m = this.M.masks.get(L.id)
+      let mask: HTMLCanvasElement | null = null
+      if (m && L.type === 'image') {
+        mask = mk(m.c.width, m.c.height)
+        mask.getContext('2d')?.drawImage(m.c, 0, 0)
+      }
+      return { L: structuredClone(L), mask }
+    })
+    this.pastes = 0
+    if (cut) this.del()
+    return true
+  }
+
+  hasClip(): boolean {
+    return this.clip.length > 0
+  }
+
+  /** Limer inn kopierte lag, litt forskjøvet for hver innliming, og velger dem. */
+  pasteLayers(): void {
+    if (!this.clip.length || !this.s.doc) return
+    const off = 30 * ++this.pastes
+    const gm: Record<string, string> = {}
+    const out = this.clip.map(({ L, mask }) => {
+      const n = { ...structuredClone(L), id: uid(L.type[0]), x: L.x + off, y: L.y + off, grp: L.grp ? (gm[L.grp] ?? (gm[L.grp] = uid('g'))) : null } as PdLayer
+      if (mask && n.type === 'image') {
+        const c = mk(mask.width, mask.height)
+        c.getContext('2d')?.drawImage(mask, 0, 0)
+        this.M.masks.set(n.id, { c, v: 1 })
+        n.mask = uid('k')
+      }
+      return n
+    })
+    this.setDoc((d) => ({ ...d, layers: [...d.layers, ...out] }))
+    this.setSel(out.map((n) => n.id))
   }
 
   dup(): void {

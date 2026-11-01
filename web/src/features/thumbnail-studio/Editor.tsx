@@ -2,6 +2,7 @@
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { setSnap, snapPref } from '../../shared/lib/snap'
+import { useStageNav } from '../../shared/lib/useStageNav'
 import { useStore } from '../../shared/lib/store'
 import { ColorRow, Controls } from './Controls'
 import { autoName, ctrlsBar, ctrlsFor, ctrlsGroup, ctrlsMal, linkNote, lname } from './ctrl-defs'
@@ -375,6 +376,7 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const overlay = useRef<HTMLDivElement>(null)
   const zoomBox = useRef<HTMLDivElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
   const pendingScroll = useRef<{ fx: number; fy: number } | null>(null)
   const d = S.doc
 
@@ -418,24 +420,52 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
     f()
   }
 
+  // arbeidsflaten: rulling/knip zoomer rundt pekeren, mellomrom/midtknapp panorerer (shared/lib/useStageNav)
+  const nav = useStageNav({
+    stage: zoomBox, content: inner, zoom: S.zoom, setZoom: (z) => c.setZoom(z), min: 1, max: 4, enabled: !S.maskEdit && !S.cropId,
+    // Shift+F10 / menytasten: menyen for det valgte laget, midt på laget
+    menuPoint: () => {
+      const l = S.sel ? c.layer(S.sel) : null
+      const r = overlay.current?.getBoundingClientRect()
+      return l && r ? { x: r.left + ((l.x + l.w / 2) / W) * r.width, y: r.top + ((l.y + l.h / 2) / H) * r.height } : null
+    },
+  })
+  useEffect(() => {
+    c.setViewBack(nav.back)
+  })
+
   const pt = (e: { clientX: number; clientY: number }) => {
     const r = (overlay.current as HTMLDivElement).getBoundingClientRect()
     return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H, k: W / Math.max(1, r.width) }
   }
+  // draing: Escape underveis avbryter og legger alt tilbake (ingen angresteg)
   const track = () => {
+    const g = c.beginGesture()
     const move = (e: PointerEvent) => {
       const p = pt(e)
       c.pointerMove(p, p.k, e.altKey, e.shiftKey)
     }
-    const up = () => {
+    const off = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
+      window.removeEventListener('keydown', esc, true)
+    }
+    const up = () => {
+      off()
       c.pointerUp()
+    }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      e.stopPropagation()
+      off()
+      c.cancelGesture(g)
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
     window.addEventListener('pointercancel', up)
+    window.addEventListener('keydown', esc, true)
   }
   const onDown = (e: ReactPointerEvent) => {
     if (e.button || S.narrow) return
@@ -475,8 +505,8 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
         </div>
       )}
       <div className={s.stageWrap}>
-        <div ref={zoomBox} className={s.stage} style={{ overflow: S.zoom > 1 ? 'auto' : 'visible' }}>
-          <div className={s.stageInner} style={{ width: `${Math.round(S.zoom * 100)}%` }}
+        <div ref={zoomBox} className={s.stage} tabIndex={0} aria-label={tx('Arbeidsflate')} data-focus-region="" style={{ overflow: S.zoom > 1 ? 'auto' : 'visible' }}>
+          <div ref={inner} className={s.stageInner} style={{ width: `${Math.round(S.zoom * 100)}%`, ...(nav.panning ? { cursor: 'grabbing' } : nav.space ? { cursor: 'grab' } : {}) }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault()
@@ -486,7 +516,7 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
               void c.addFile(f, l?.type === 'image' ? { mode: 'replace', id: l.id } : { mode: 'add' })
             }}>
             <canvas ref={canvas} width={W} height={H} className={s.canvas} aria-label={tx('Lerret')} />
-            <div ref={overlay} className={s.overlay} data-ts-overlay="1" onPointerDown={onDown}
+            <div ref={overlay} className={s.overlay} data-ts-overlay="1" onPointerDown={onDown} style={nav.panning || nav.space ? { cursor: 'inherit' } : undefined}
               onDoubleClick={() => {
                 const l = c.layer(S.sel)
                 if (l?.type === 'image' && l.src) c.openCrop(l.id)
