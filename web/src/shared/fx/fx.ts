@@ -1029,9 +1029,11 @@ export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, 
     bg.addColorStop(0.6, '#e8d7bd')
     bg.addColorStop(1, '#6b5a48')
   } else {
-    bg.addColorStop(0, '#1d2634')
-    bg.addColorStop(0.62, '#0b0e14')
-    bg.addColorStop(1, '#171310')
+    // skumringshimmel: lysere mot horisonten, så stråler og kjegler har noe å tegne seg mot
+    bg.addColorStop(0, '#141c2c')
+    bg.addColorStop(0.5, '#253048')
+    bg.addColorStop(0.7, '#3a4258')
+    bg.addColorStop(1, '#1a1814')
   }
   g.fillStyle = bg
   g.fillRect(0, 0, W, H)
@@ -1042,14 +1044,42 @@ export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, 
     sg.addColorStop(1, 'rgba(255,244,214,0)')
     g.fillStyle = sg
     g.fillRect(0, 0, W, H)
+    g.fillStyle = '#05070a'
+    g.beginPath()
+    g.moveTo(0, H * 0.78)
+    for (let i = 0; i <= 8; i++) g.lineTo((W * i) / 8, H * (0.72 + (i % 3) * 0.035))
+    g.lineTo(W, H)
+    g.lineTo(0, H)
+    g.fill()
+  } else {
+    // to lag med skarpe silhuetter (fjern ås, nær ås med trær): kanter som lyset leses mot
+    const ridge = (y0: number, amp: number, f: number, ph: number, col: string, trees: boolean) => {
+      g.fillStyle = col
+      g.beginPath()
+      g.moveTo(0, H)
+      const N = 48
+      for (let i = 0; i <= N; i++) {
+        const x = (W * i) / N
+        const y = H * (y0 + amp * (Math.sin(i * f + ph) * 0.6 + Math.sin(i * f * 2.3 + ph * 1.7) * 0.4))
+        g.lineTo(x, y)
+        if (trees && i % 5 === 2) {
+          const th = H * 0.06
+          const tw = W * 0.012
+          g.lineTo(x + tw * 0.5, y - th * 0.55)
+          g.lineTo(x + tw * 0.15, y - th * 0.55)
+          g.lineTo(x + tw * 0.4, y - th)
+          g.lineTo(x + tw * 0.65, y - th * 0.55)
+          g.lineTo(x + tw * 0.3, y - th * 0.55)
+          g.lineTo(x + tw * 0.8, y)
+        }
+      }
+      g.lineTo(W, H)
+      g.closePath()
+      g.fill()
+    }
+    ridge(0.7, 0.03, 0.31, 0.6, '#161b27', false)
+    ridge(0.79, 0.025, 0.52, 2.1, '#06070a', true)
   }
-  g.fillStyle = '#05070a'
-  g.beginPath()
-  g.moveTo(0, H * 0.78)
-  for (let i = 0; i <= 8; i++) g.lineTo((W * i) / 8, H * (0.72 + (i % 3) * 0.035))
-  g.lineTo(W, H)
-  g.lineTo(0, H)
-  g.fill()
   for (const d of [[0.2, 0.74], [0.46, 0.7], [0.72, 0.76], [0.86, 0.72]] as const) {
     g.fillStyle = '#ffe9b0'
     g.fillRect(W * d[0], H * d[1], (lt ? 4 : 2) * k, (lt ? 4 : 2) * k)
@@ -1068,7 +1098,32 @@ export function thumb(pr: Pick<Preset, 'fx' | 'p' | 'seed' | 'blend'>, W = 132, 
     g.drawImage(o, 0, 0)
   }
   g.restore()
+  if (!lt) previewTone(g, W, H)
   return thumbUrl(c)
+}
+
+/**
+ * Bare for forhåndsvisningen (ikke effektlaget): en moderat S-kurve, så kjernen i lyset skiller seg fra gløden og
+ * mørke partier ikke blir grå grøt i et lite kort. Ingen skarphetsfilter; uskarpheten i selve effekten er uendret.
+ */
+let TONE: Uint8ClampedArray | null = null
+function previewTone(g: G, W: number, H: number) {
+  if (!TONE) {
+    TONE = new Uint8ClampedArray(256)
+    for (let i = 0; i < 256; i++) {
+      const x = Math.max(0, i / 255 - 0.015) / 0.985
+      const s = x < 0.5 ? 2 * x * x : 1 - 2 * (1 - x) * (1 - x)
+      TONE[i] = Math.round(255 * (x + 0.45 * (s - x)))
+    }
+  }
+  const im = g.getImageData(0, 0, W, H)
+  const d = im.data
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = TONE[d[i] ?? 0] ?? 0
+    d[i + 1] = TONE[d[i + 1] ?? 0] ?? 0
+    d[i + 2] = TONE[d[i + 2] ?? 0] ?? 0
+  }
+  g.putImageData(im, 0, 0)
 }
 
 function thumbUrl(c: HTMLCanvasElement): string {
