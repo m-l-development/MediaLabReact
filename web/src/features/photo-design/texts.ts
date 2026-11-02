@@ -288,6 +288,8 @@ export const EN = {
   'Flammer': 'Flames',
   'Flammer i vind': 'Flames in wind',
   'Flytt effekt': 'Move effect',
+  'Dra for å flytte bakgrunnsgradienten': 'Drag to move the background gradient',
+  'Flytt bakgrunnsgradienten': 'Move background gradient',
   'Flytt fargen ned': 'Move the colour down',
   'Flytt fargen opp': 'Move the colour up',
   'Flytt ned i rekkefølgen': 'Move down in the order',

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPE 
 import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStageNav } from '../../shared/lib/useStageNav'
 import { NumField } from '../../shared/ui/NumField'
+import { ColorSpectrum } from '../../shared/ui/ColorSpectrum'
 import { formatKeys } from '../../shared/ui/shortcuts'
 import { MoreButton } from '../../shared/ui/MoreButton'
 import { DockIcon, MobileDock } from '../../shared/ui/MobileDock'
@@ -452,6 +453,7 @@ function StylePanel({ c, S, tx }: EditorProps) {
       {v.on && (
         <>
           <label className={s.colorRow}><span>{tx('Vignettfarge')}</span><input type="color" value={v.color} onChange={(e) => c.setVig({ color: e.target.value }, 'vigc')} /></label>
+          <ColorSpectrum value={v.color} onChange={(x) => c.setVig({ color: x }, 'vigc')} />
           <Range label={tx('Styrke')} min={0} max={1} step={0.01} val={v.amt} show={`${Math.round(v.amt * 100)} %`} on={(x) => c.setVig({ amt: x }, 'viga')} />
           <Range label={tx('Størrelse')} min={0} max={1} step={0.01} val={v.size} show={`${Math.round(v.size * 100)} %`} on={(x) => c.setVig({ size: x }, 'vigs')} />
         </>
@@ -1127,6 +1129,41 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
             </div>
           )
         })}
+        {/* midtpunktet i bakgrunnsgradienten: dra for å flytte (samme posisjon som «Midtstill» nullstiller) */}
+        {(() => {
+          const f = c.fillOf(d)
+          if (S.tool === 'brush' || ['none', 'solid', 'mesh', 'stripes'].includes(f.mode)) return null
+          const fx = f.x ?? 0.5
+          const fy = f.y ?? 0.5
+          // hjørnetypene: håndtaket sitter på hjørnepunktet (vinkelen), og posisjonen flytter det
+          const cn = f.mode === 'corner' || f.mode === 'conicCorner'
+          const ar = ((f.angle ?? 135) * Math.PI) / 180
+          const hx = fx + (cn ? 0.5 * Math.sin(ar) : 0)
+          const hy = fy - (cn ? 0.5 * Math.cos(ar) : 0)
+          return (
+            <div className={s.pin} style={{ left: `${Math.max(0, Math.min(1, hx)) * 100}%`, top: `${Math.max(0, Math.min(1, hy)) * 100}%` }}>
+              <button type="button" className={s.pinBtn} data-pd-fillpin="" title={tx('Dra for å flytte bakgrunnsgradienten')} aria-label={tx('Flytt bakgrunnsgradienten')} onPointerDown={(e) => {
+                if (e.button !== 0) return
+                e.preventDefault()
+                e.stopPropagation()
+                const p0 = pt(e)
+                const move = (ev: PointerEvent) => {
+                  const p = pt(ev)
+                  const r = (v: number) => Math.round(Math.max(-0.5, Math.min(1.5, v)) * 1000) / 1000
+                  c.putFill({ x: r(fx + (p[0] - p0[0]) / d.w), y: r(fy + (p[1] - p0[1]) / d.h) })
+                }
+                const up = () => {
+                  window.removeEventListener('pointermove', move)
+                  window.removeEventListener('pointerup', up)
+                  window.removeEventListener('pointercancel', up)
+                }
+                window.addEventListener('pointermove', move)
+                window.addEventListener('pointerup', up)
+                window.addEventListener('pointercancel', up)
+              }}>◎</button>
+            </div>
+          )
+        })()}
         {S.tool === 'brush' && S.brushXY && <div className={s.brush} style={{ left: S.brushXY[0] * sc, top: S.brushXY[1] * sc, width: S.brush.size * sc, height: S.brush.size * sc }} />}
         {mLs.map((q) => {
           const m = dims(q)

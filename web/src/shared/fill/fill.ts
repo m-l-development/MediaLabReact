@@ -45,6 +45,34 @@ export function fillStops(f: Partial<Fill> | null | undefined): FillStop[] {
 
 const sorted = (st: FillStop[]) => st.slice().sort((a, b) => a.p - b.p)
 
+/** Blander to HEX-farger (t = 0 → a, 1 → b); andre fargeformater gir den nærmeste. */
+function mix(a: string, b: string, t: number): string {
+  const ma = /^#([0-9a-f]{6})$/i.exec(a)
+  const mb = /^#([0-9a-f]{6})$/i.exec(b)
+  if (!ma?.[1] || !mb?.[1]) return t < 0.5 ? a : b
+  const x = parseInt(ma[1], 16)
+  const y = parseInt(mb[1], 16)
+  const ch = (sh: number) => Math.round(((x >> sh) & 255) * (1 - t) + ((y >> sh) & 255) * t)
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`
+}
+
+/**
+ * Stopp som er strukket ut over 0–1 («Overgang» over 50 %): kuttes ved kantene med fargen som ligger der, i stedet for
+ * å klemmes inn på kanten (da ble gradienten uendret og glideren virket ikke på høyre halvdel).
+ */
+function clip01(st: FillStop[]): FillStop[] {
+  const l = sorted(st)
+  if (l.length < 2 || l.every((q) => q.p >= 0 && q.p <= 1)) return l
+  const at = (t: number): string => {
+    const j = l.findIndex((q) => q.p >= t)
+    if (j <= 0) return (l[j < 0 ? l.length - 1 : 0] as FillStop).c
+    const a = l[j - 1] as FillStop
+    const b = l[j] as FillStop
+    return mix(a.c, b.c, b.p > a.p ? (t - a.p) / (b.p - a.p) : 1)
+  }
+  return [{ c: at(0), p: 0 }, ...l.filter((q) => q.p > 0 && q.p < 1), { c: at(1), p: 1 }]
+}
+
 /** Tegner fyllet over hele flaten (W × H). */
 export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: number): void {
   ctx.save()
@@ -53,7 +81,7 @@ export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: 
   const SFk = 0.08 + 1.84 * sfv
   if (st.length > 1 && sfv !== 0.5) {
     const mm = st.reduce((s, q) => s + q.p, 0) / st.length
-    st = st.map((q) => ({ ...q, p: clamp(mm + (q.p - mm) * SFk, 0, 1) }))
+    st = clip01(st.map((q) => ({ ...q, p: mm + (q.p - mm) * SFk })))
   }
   const bandW = st.map((q) => clamp(Number(q.w) || 0, 0, 1))
   const mode = bf.mode
@@ -133,8 +161,8 @@ export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: 
     let ccy = cy0
     const cl: FillStop[] = []
     if (mode === 'conicCorner') {
-      ccx = W * (0.5 + 0.5 * Math.sin(ang))
-      ccy = H * (0.5 - 0.5 * Math.cos(ang))
+      ccx = W * (0.5 + 0.5 * Math.sin(ang)) + offX
+      ccy = H * (0.5 - 0.5 * Math.cos(ang)) + offY
       nR = 1
     }
     for (let cr = 0; cr < nR; cr++) {
@@ -187,8 +215,8 @@ export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: 
     ctx.fillRect(-RR * 2, -RR * 2, RR * 4, RR * 4)
     ctx.restore()
   } else if (mode === 'corner') {
-    const kx = W * (0.5 + 0.5 * Math.sin(ang))
-    const ky = H * (0.5 - 0.5 * Math.cos(ang))
+    const kx = W * (0.5 + 0.5 * Math.sin(ang)) + offX
+    const ky = H * (0.5 - 0.5 * Math.cos(ang)) + offY
     ctx.fillStyle = put(ctx.createRadialGradient(kx, ky, 0, kx, ky, Math.hypot(W, H)), st)
     ctx.fillRect(0, 0, W, H)
   } else if (mode === 'spot') {

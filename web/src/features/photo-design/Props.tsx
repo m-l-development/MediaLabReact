@@ -148,11 +148,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           </select>
         </label>
         <span className={s.dimSm}>{d.w} × {d.h} px</span>
-        <span className={s.fieldLabel}>{tx('Bakgrunn')}</span>
-        <div className={s.swatches}>
-          <input type="color" className={s.colorInput} value={hex(d.bg || '#ffffff')} aria-label={tx('Bakgrunnsfarge')} onChange={(e) => c.setDoc((q) => ({ ...q, bg: e.target.value, fill: null }), 'bg')} />
-          <Swatches cur={d.bg} list={PAL.slice(0, 8)} set={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }))} />
-        </div>
+        <BgColor label={tx('Bakgrunn')} value={hex(d.bg || '#ffffff')} def="#ffffff" note={tx('Fargen bak bildene i hele komposisjonen. Den kommer med i eksporten.')}
+          onChange={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
         <Cmyk hv={hex(d.bg || '#ffffff')} set={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
         <Toggle label={tx('Gjennomsiktig bakgrunn')} on={!d.bg} onClick={() => c.setDoc((q) => ({ ...q, bg: q.bg ? null : '#ffffff', fill: null }))} />
         <div className={s.printBox}>

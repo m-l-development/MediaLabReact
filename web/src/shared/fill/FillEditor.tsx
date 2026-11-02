@@ -1,5 +1,7 @@
 import { defaultRepeat, FILL_MODE_LABELS, fillCss, fillStops, harmonyColors, type Fill, type FillMode, type FillStop } from './fill'
+import { useState } from 'react'
 import { NumField } from '../ui/NumField'
+import { ColorSpectrum } from '../ui/ColorSpectrum'
 import s from './FillEditor.module.css'
 
 /** Tekstene i editoren (verktøyet oversetter dem). */
@@ -42,6 +44,9 @@ export function FillEditor({ fill, onChange, open, onToggle, tx, note = 'Bakgrun
   const stops = fillStops(fill)
   const ang = fill.angle == null ? 135 : fill.angle
   const put = (p: Partial<Fill>) => onChange(p)
+  // fargen som fargefeltet (metning/lysstyrke og fargetone) endrer: den sist valgte gradientfargen
+  const [act, setAct] = useState(0)
+  const ai = Math.min(act, stops.length - 1)
   const setStop = (i: number, p: Partial<FillStop>) => put({ stops: stops.map((q, j) => (j === i ? { ...q, ...p } : q)) })
   const ord = stops.map((q, i) => ({ q, i })).sort((a, b) => a.q.p - b.q.p)
   const swap = (a: number, b: number) => {
@@ -88,6 +93,7 @@ export function FillEditor({ fill, onChange, open, onToggle, tx, note = 'Bakgrun
                   <button type="button" className={s.round} title={tx('Tilfeldige farger som passer')} aria-label={tx('Tilfeldige farger som passer')} onClick={() => setStop(0, { c: harmonyColors(1)[0] ?? first.c })}><Dice /></button>
                 </div>
               )}
+              {mode === 'solid' && <ColorSpectrum value={first.c} onChange={(c) => setStop(0, { c })} />}
               {multi && (
                 <div className={s.stops}>
                   <span className={s.label}>{tx('Gradientfarger')}</span>
@@ -98,7 +104,7 @@ export function FillEditor({ fill, onChange, open, onToggle, tx, note = 'Bakgrun
                           <button type="button" disabled={k === 0} title={tx('Flytt opp i rekkefølgen')} aria-label={tx('Flytt fargen opp')} onClick={() => swap(i, (ord[k - 1] as { i: number }).i)}>▲</button>
                           <button type="button" disabled={k === ord.length - 1} title={tx('Flytt ned i rekkefølgen')} aria-label={tx('Flytt fargen ned')} onClick={() => swap(i, (ord[k + 1] as { i: number }).i)}>▼</button>
                         </div>
-                        <label className={s.swatch} style={{ background: q.c }} title={tx('Farge {n}', { n: k + 1 })}>
+                        <label className={s.swatch} style={{ background: q.c, outline: i === ai ? '2px solid #3d8bff' : undefined, outlineOffset: 2 }} title={tx('Farge {n}', { n: k + 1 })} onPointerDown={() => setAct(i)}>
                           <input type="color" value={q.c} aria-label={tx('Farge {n}', { n: k + 1 })} onChange={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value) && setStop(i, { c: e.target.value })} />
                         </label>
                         {!NO_POS.includes(mode) ? (
@@ -136,6 +142,7 @@ export function FillEditor({ fill, onChange, open, onToggle, tx, note = 'Bakgrun
                     <button type="button" className={s.btn} onClick={() => put({ stops: stops.map((q) => ({ ...q, p: 1 - q.p })) })}>{tx('⇄ Snu')}</button>
                     <button type="button" className={s.btn} onClick={() => put({ stops: stops.slice().sort((a, b) => a.p - b.p).map((q, j, a) => ({ ...q, p: a.length > 1 ? j / (a.length - 1) : 0 })) })}>{tx('Fordel jevnt')}</button>
                   </div>
+                  <ColorSpectrum value={(stops[ai] as FillStop).c} onChange={(c) => setStop(ai, { c })} />
                 </div>
               )}
               {ANGLED.includes(mode) && (
