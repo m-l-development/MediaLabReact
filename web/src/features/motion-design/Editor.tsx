@@ -3,6 +3,7 @@
 import { TRSTD, type ExpState, type Insp, type MotionController, type MState } from './controller'
 import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { FullBar } from './FullBar'
+import { MoreButton } from '../../shared/ui/MoreButton'
 import { clipFields, collapse, musicFields, ovFields, projectFields, subFields, textFields, type Field } from './fields'
 import { AdvEffects, AdvExport, AdvKeys, AdvNote, AdvSpeed, AdvText, AdvTiming } from './Advanced'
 import { LeftPanel } from './Panels'
@@ -285,6 +286,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
               onPointerDown={(e) => (S.full ? e.button === 0 && c.togglePlay() : c.canvasDown(e))} onContextMenu={(e) => (S.full ? e.preventDefault() : c.canvasCtx(e))} onDoubleClick={(e) => (S.full ? c.toggleFull() : c.canvasDbl(e))} onPointerMove={(e) => !S.full && c.canvasMove(e)} />
             {S.dragOver && <div className={s.drop}>{tx('Slipp filene for å legge dem til')}</div>}
             {S.full && <FullBar c={c} T={T} playing={S.playing} tx={tx} />}
+            {!S.full && <MoreButton className={s.pvMore} label={tx('Handlinger for forhåndsvisningen')} onOpen={() => c.touchMenu('preview')} />}
           </div>
           <div className={s.transport}>
             <button type="button" className={s.barRound} title={tx('Til start (Home)')} aria-label={tx('Til start')} onClick={() => c.seek(0)}>
@@ -296,6 +298,8 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
                 : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z" /></svg>}
             </button>
             <span ref={c.bind('time')} className={s.time} data-md-time="1">{fmtT(S.t)} / {fmtT(T)}</span>
+            {/* berøringsskjerm: handlingene for valgt klipp (eller tidslinjen), samme meny som høyreklikk i tidslinjen */}
+            <MoreButton label={tx('Handlinger for tidslinjen')} onOpen={() => c.touchMenu('timeline')} />
             <button type="button" className={s.barRound} data-md-fullscreen="" title={tx('Fullskjerm (F) – Escape avslutter')} aria-label={tx('Fullskjerm')} onClick={() => c.toggleFull()}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
             </button>

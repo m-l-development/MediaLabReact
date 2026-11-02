@@ -75,3 +75,17 @@
   font-weight: 500;
   white-space: normal;
 }
+
+/* Berøringsskjerm: tallet er et større mål for fingeren (PC med mus er uendret). */
+@media (hover: none) and (pointer: coarse) {
+  .btn {
+    min-width: 44px;
+    min-height: 36px;
+    justify-content: center;
+  }
+
+  .input {
+    min-height: 36px;
+    font-size: 16px; /* under 16 px zoomer iPhone inn når feltet får fokus */
+  }
+}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStageNav } from '../../shared/lib/useStageNav'
+import { MoreButton } from '../../shared/ui/MoreButton'
 import { useStore } from '../../shared/lib/store'
 import { ColorRow, Controls } from './Controls'
 import { autoName, ctrlsBar, ctrlsFor, ctrlsGroup, ctrlsMal, linkNote, lname } from './ctrl-defs'
@@ -486,7 +487,7 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
     window.addEventListener('keydown', esc, true)
   }
   const onDown = (e: ReactPointerEvent) => {
-    if (e.button || S.narrow) return
+    if (e.button) return
     if (c.pointerDown(pt(e), e.shiftKey)) {
       e.preventDefault()
       track()
@@ -506,14 +507,14 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
   const isGroup = multi.length > 1
   const gl = isGroup ? d.layers.filter((l) => multi.includes(l.id)) : []
   const gb = isGroup ? gbox(gl) : null
-  const sl = isGroup || S.narrow ? null : c.layer(S.sel)
+  const sl = isGroup ? null : c.layer(S.sel)
   const P = (v: number, t: number) => `${(v / t) * 100}%`
   return (
     <section className={s.canvasCol}>
       {S.narrow && (
         <div className={s.infoBox}>
-          <b>{tx('Enkel visning på mobil')}</b>
-          <span>{tx('Her kan du bytte person, navn, tema og bakgrunn, og laste ned. Vil du flytte eller endre enkeltlag, åpner du malen på en PC.')}</span>
+          <b>{tx('Redigering på mobil')}</b>
+          <span>{tx('Trykk på et lag for å velge det, dra for å flytte og bruk hjørnene for å endre størrelse. «⋯» viser handlingene for laget.')}</span>
         </div>
       )}
       {S.baseEdit && (
@@ -555,7 +556,6 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
                 }, 30)
               }}
               onContextMenu={(e) => {
-                if (S.narrow) return
                 e.preventDefault()
                 const p = pt(e)
                 const t = c.pointerHit(p)
@@ -566,8 +566,10 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
               {gl.map((l) => <div key={l.id} className={s.groupBox} style={{ left: P(l.x, W), top: P(l.y, H), width: P(l.w, W), height: P(l.h, H), transform: `rotate(${l.rot || 0}deg)` }} />)}
               {gb && <div className={s.groupOutline} style={{ left: P(gb.x, W), top: P(gb.y, H), width: P(gb.w, W), height: P(gb.h, H) }} />}
               {sl && (
-                <div className={s.selBox} data-ts-sel={sl.id} style={{ left: P(sl.x, W), top: P(sl.y, H), width: P(sl.w, W), height: P(sl.h, H), transform: `rotate(${sl.rot || 0}deg)` }}>
+                <div className={s.selBox} data-ts-sel={sl.id} data-ts-selbox="" style={{ left: P(sl.x, W), top: P(sl.y, H), width: P(sl.w, W), height: P(sl.h, H), transform: `rotate(${sl.rot || 0}deg)` }}>
                   {!sl.lock && HANDLES.map(([h, cls]) => <div key={h} className={`${s.handle} ${cls}`} data-h={h} onPointerDown={(e) => onHandle(e, h)} />)}
+                  {/* berøringsskjerm: handlingene for det valgte laget (samme meny som høyreklikk) */}
+                  <MoreButton at="center" className={s.selMore} />
                 </div>
               )}
             </div>
@@ -610,7 +612,7 @@ function PropsPanel({ c, S, tx, images }: EditorProps) {
   const multi = S.multi
   const isGroup = multi.length > 1
   const gl = isGroup ? d.layers.filter((l) => multi.includes(l.id)) : []
-  const sl = isGroup || S.narrow ? null : c.layer(S.sel)
+  const sl = isGroup ? null : c.layer(S.sel)
   const onBar = !!sl && S.barSel === sl.id && sl.type === 'text' && sl.bar
   const title: Phrase = isGroup ? 'Gruppe' : onBar ? 'Understrek' : sl ? (isLogoAsset(sl) ? 'Logo' : isLine(sl) ? 'Strek' : TAG[sl.type]) : 'Mal'
   const ctrls = isGroup ? ctrlsGroup(c, gl) : sl ? (onBar && sl.type === 'text' ? ctrlsBar(c, sl, tx) : [...linkNote(c, sl, tx), ...ctrlsFor(c, sl)]) : ctrlsMal(c, d)

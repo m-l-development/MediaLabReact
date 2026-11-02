@@ -88,3 +88,16 @@
 :root[data-theme='light'] .sep {
   background: #e2ddd4;
 }
+
+/* Berøringsskjerm: store nok mål for fingre (PC med mus er uendret). */
+@media (hover: none) and (pointer: coarse) {
+  .item {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .menu {
+    min-width: min(260px, calc(100vw - 16px));
+  }
+}

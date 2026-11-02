@@ -250,6 +250,8 @@ export const EN = {
   'Laget er kopiert. Lim inn med Ctrl/Cmd + V på hvilken som helst side.': 'The layer has been copied. Paste with Ctrl/Cmd + V on any page.',
   'Laget er limt inn.': 'The layer has been pasted.',
   'Lagmeny': 'Layer menu',
+  'Redigering på mobil': 'Editing on mobile',
+  'Trykk på et lag for å velge det, dra for å flytte og bruk hjørnene for å endre størrelse. «⋯» viser handlingene for laget.': 'Tap a layer to select it, drag to move and use the corners to resize. «⋯» shows the layer actions.',
   'Flytt fram': 'Bring forward',
   'Flytt bak': 'Send backward',
   'Arbeidsflate': 'Canvas',

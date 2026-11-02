@@ -3401,7 +3401,17 @@ export class MotionController {
   menuKey(e: React.KeyboardEvent<HTMLElement>, area: 'preview' | 'timeline'): void {
     if (!((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) return
     e.preventDefault()
-    const r = e.currentTarget.getBoundingClientRect()
+    this.areaMenu(area, e.currentTarget)
+  }
+
+  /** «⋯» på berøringsskjerm: samme meny som Shift+F10 for forhåndsvisningen eller tidslinjen. */
+  touchMenu(area: 'preview' | 'timeline'): void {
+    const el = area === 'preview' ? this.els.stage : this.els.tl
+    if (el) this.areaMenu(area, el)
+  }
+
+  private areaMenu(area: 'preview' | 'timeline', host: HTMLElement): void {
+    const r = host.getBoundingClientRect()
     const sel = this.s.sel
     if (area === 'preview') {
       const c = this.els.canvas?.getBoundingClientRect()

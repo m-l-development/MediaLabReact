@@ -232,7 +232,7 @@
 .stage {
   position: relative;
   display: grid;
-  place-items: center;
+  overflow: auto; /* innzoomet visning ruller (useStageNav); tilpasset er den sentrert av .wrap { margin: auto } */
   height: calc(100dvh - 210px);
   min-height: 360px;
   border: 1px solid var(--color-border);
@@ -246,6 +246,8 @@
 
 .wrap {
   position: relative;
+  grid-area: 1 / 1;
+  margin: auto;
   touch-action: none;
 }
 
@@ -671,4 +673,26 @@
     grid-auto-rows: max-content;
     align-content: start;
   }
+}
+
+/* «⋯» (bare berøringsskjerm, se shared/ui/MoreButton) */
+.cardItem {
+  position: relative;
+}
+
+.cardMore {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
+.stageMore {
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+  justify-self: end;
+  align-self: start;
+  margin: 8px;
+  grid-area: 1 / 1;
 }

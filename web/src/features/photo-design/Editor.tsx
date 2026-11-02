@@ -5,6 +5,7 @@ import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStageNav } from '../../shared/lib/useStageNav'
 import { NumField } from '../../shared/ui/NumField'
 import { formatKeys } from '../../shared/ui/shortcuts'
+import { MoreButton } from '../../shared/ui/MoreButton'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
@@ -712,6 +713,7 @@ function LayerList({ c, S, tx }: EditorProps) {
                 e.stopPropagation()
                 c.delLayer(q.id)
               }}>×</button>
+              <MoreButton />
             </div>
           )
         })}
@@ -940,7 +942,9 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
           // høyreklikk: handlingene for laget under pekeren (velges), eller for arbeidsflaten
           e.preventDefault()
           const p = pt(e)
-          const hitL = c.s.doc && !c.s.doc.batch ? hit(c.s.doc, p[0], p[1]) : null
+          // fra «⋯» på det valgte laget: menyen gjelder det valgte (ikke laget som tilfeldigvis ligger øverst der)
+          const fromSel = (e.target as Element).closest?.('[data-pd-selbox]') && c.selL()
+          const hitL = fromSel ? c.selL() : c.s.doc && !c.s.doc.batch ? hit(c.s.doc, p[0], p[1]) : null
           if (hitL) c.ui({ sel: hitL.id, multi: [] })
           setMenu({ x: e.clientX, y: e.clientY, id: hitL?.id ?? null })
         }}
@@ -979,7 +983,9 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
           )
         })}
         {box && (
-          <div className={s.selBox} style={{ left: box.left, top: box.top, width: box.w, height: box.h, transform: `rotate(${box.rot}deg)`, outline: `1.5px ${box.line} ${box.col}` }}>
+          <div className={s.selBox} data-pd-selbox="" style={{ left: box.left, top: box.top, width: box.w, height: box.h, transform: `rotate(${box.rot}deg)`, outline: `1.5px ${box.line} ${box.col}` }}>
+            {/* berøringsskjerm: handlingene for det valgte laget (samme meny som høyreklikk) */}
+            <MoreButton at="center" className={s.selMore} />
             {singleHandles.map((h) => (
               <button key={`${h.kind}${h.left}${h.top}`} type="button" aria-label={tx(h.label)} className={h.kind === 'rot' ? s.handleRot : s.handle} style={{ left: h.left, top: h.top, cursor: h.cursor, borderColor: box?.col }}
                 onPointerDown={(e) => {

@@ -2692,3 +2692,22 @@ button:disabled {
   background: #fff;
   color: #1d1b18;
 }
+
+/* «⋯» over det valgte laget (bare berøringsskjerm, se MoreButton) */
+.selMore {
+  position: absolute;
+  top: -56px;
+  right: -4px;
+  pointer-events: auto;
+}
+
+/* berøringsskjerm: håndtakene er større mål for fingeren (PC med mus er uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .handle,
+  .handleRot {
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border-radius: 50%;
+  }
+}

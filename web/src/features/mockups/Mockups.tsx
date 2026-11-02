@@ -12,6 +12,7 @@ import { Button } from '../../shared/ui/Button'
 import { NumField } from '../../shared/ui/NumField'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { formatKeys } from '../../shared/ui/shortcuts'
+import { MoreButton } from '../../shared/ui/MoreButton'
 import { useStageNav } from '../../shared/lib/useStageNav'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
@@ -411,6 +412,7 @@ function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, setti
               ...(m.source === 'own' ? [{ label: t('mockups.deleteOwn') + ' …', separator: true, onSelect: () => { if (confirm(t('mockups.confirmDeleteOwn'))) void lib.removeOwn(m.id) } }] : []),
             ] })
           }}>
+            <MoreButton className={styles.cardMore} label={m.name} />
             <button type="button" className={styles.card} onClick={() => onOpen(m.id)}>
               <CardPreview mockup={m} image={lib.images.get(m.id) ?? null} design={design} settings={settingsOf(m)} />
               <span className={styles.cardName}>{m.name}<small>{t(`mockups.cat.${m.cat}`)}</small></span>
@@ -1009,6 +1011,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
             // klikk på bakgrunnen utenfor mockupen: samme som klikk utenfor designet
             if (editing && !el.closest('[data-mk-wrap]')) clickOutside()
           }}>
+          <MoreButton at="center" className={styles.stageMore} />
           <div ref={wrap} className={styles.wrap} data-mk-wrap="" style={{ width: box.w, height: box.h }} onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('[data-mk-logo]')) openFull() }}>
             <canvas ref={canvas} className={styles.stageCanvas} />
             <canvas ref={overlay} className={styles.fullLayer} aria-hidden="true" />

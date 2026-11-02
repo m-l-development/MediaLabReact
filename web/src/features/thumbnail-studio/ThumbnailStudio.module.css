@@ -2570,3 +2570,25 @@ button:disabled {
   font-weight: 600;
   pointer-events: none;
 }
+
+/* «⋯» over det valgte laget (bare berøringsskjerm, se MoreButton) */
+.selMore {
+  position: absolute;
+  top: -56px;
+  right: -4px;
+  pointer-events: auto;
+}
+
+/* berøringsskjerm: større håndtak (PC med mus er uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .handle {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
+
+  .hTl { top: -13px; left: -13px; }
+  .hTr { top: -13px; right: -13px; }
+  .hBl { bottom: -13px; left: -13px; }
+  .hBr { right: -13px; bottom: -13px; }
+}

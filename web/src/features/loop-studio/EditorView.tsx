@@ -8,6 +8,7 @@ import React from 'react'
 import type { LoopView } from './controller'
 import { chk, css, interp, list, val } from './dc'
 import P from './LoopStudio.module.css'
+import { MoreButton } from '../../shared/ui/MoreButton'
 
 export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome: (e: { preventDefault(): void }) => void }; tx: (s: unknown) => string }) {
   const I = (x: unknown) => interp(x, tx)
@@ -4485,6 +4486,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                     {"\n          "}
                   </> : null}
                   {"\n          "}
+                  <MoreButton className={P.cardMore} />
                   <button onClick={v1.c?.onRemove} title={tx("Fjern slide")} aria-label={tx("Fjern slide")} style={{"position":"absolute","left":"6px","top":"6px","zIndex":"2","width":"22px","height":"22px","minHeight":"0","padding":"0","border":"1px solid rgba(255,255,255,0.25)","borderRadius":"999px","background":"rgba(0,0,0,0.7)","color":"#e9e7e2","font":"inherit","fontSize":"14px","lineHeight":"1","cursor":"pointer","display":"flex","alignItems":"center","justifyContent":"center"}} className={P.scpo}>
                     ×
                   </button>
