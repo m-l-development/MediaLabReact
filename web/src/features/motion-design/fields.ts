@@ -24,6 +24,7 @@ export type Field =
   | { k: 'num'; label: Phrase; val: number; min: number; max: number; step: number; on: (v: number) => void }
   | { k: 'area'; label: Phrase; val: string; on: (v: string) => void }
   | { k: 'curve'; c: Grade; on: (o: Partial<Grade>) => void }
+  | { k: 'bg'; label: Phrase; val: string; def: string; note?: Phrase; on: (v: string) => void }
 
 type P<T> = (o: Partial<T>) => void
 const pct = (v: number): string => `${Math.round(v * 100)} %`
@@ -141,6 +142,8 @@ export function clipFields(c: MotionController, p: Project, it: Clip, l: Placed 
     range('Mørklegg', it.dim, 0, 0.9, 0.01, pct(it.dim), (v) => set({ dim: v })))
   colorExtras(it, set, out)
   curveFields(it, set, out)
+  // prosjektets bakgrunn (bak klipp som ikke fyller bildet, og i overganger) – ved fargejusteringene
+  out.push({ k: 'bg', label: 'Bakgrunn', val: p.bg, def: '#000000', note: 'Fargen bak klippene i hele prosjektet. Den kommer med i eksporten.', on: (v) => c.setProj((q) => ({ ...q, bg: v }), true, 'bg') })
   if (idx === 0) {
     out.push(head('Overgang ved start'), select('Overgang', p.tin.type, transOpts, (v) => c.setTrans('tin', { type: v })))
     if (p.tin.type !== 'none') out.push(range('Varighet', p.tin.dur, 0.1, 3, 0.05, `${p.tin.dur.toFixed(2)} s`, (v) => c.setTrans('tin', { dur: v })))

@@ -518,9 +518,59 @@ function MaskDialog({ c, S, tx }: EditorProps) {
 
 /** Effektvelgeren (popup): søk, kategorier, favoritter, nylig brukt, egne; forhåndsvisning på bildet før «Legg til effekt». */
 /** Effektbiblioteket (Avansert modus): 1920 forhåndsvalg, favoritter, nylig brukt og egne. */
+/** Posisjonen til «Legg til effekt» (huskes i økten); null = standard ved siden av bildet. */
+let fxPopAt: { x: number; y: number; w: number } | null = null
+
+/**
+ * Standardplassering for effektpanelet: ved siden av bildet på lerretet (siden med mest plass), ikke over det. Panelet
+ * smalnes inn til 320 px for å få plass; er det for trangt likevel, legges det mot høyre kant.
+ */
+function fxPopDefault(w: number): { x: number; y: number; w: number } {
+  const r = document.querySelector('[data-pd-wrap] canvas')?.getBoundingClientRect()
+  const top = 132
+  if (!r) return { x: 16, y: top, w }
+  const left = r.left - 32
+  const right = innerWidth - r.right - 32
+  const room = Math.max(left, right)
+  const ww = Math.max(320, Math.min(w, room))
+  if (left >= right) return { x: Math.max(16, r.left - 16 - ww), y: top, w: ww }
+  return { x: Math.min(r.right + 16, innerWidth - 16 - ww), y: top, w: ww }
+}
+
 function FxPicker({ c, S, tx }: EditorProps) {
   const [, setTick] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
+  // flyttbart panel (dra i overskriften), bare på PC; på mobil ligger det i panelet over ikonlinjen
+  const popRef = useRef<HTMLDivElement>(null)
+  const [at, setAt] = useState<{ x: number; y: number; w: number } | null>(() => (S.narrow ? null : fxPopAt))
+  useLayoutEffect(() => {
+    if (S.narrow || at) return
+    const w = popRef.current?.offsetWidth ?? 460
+    setAt(fxPopDefault(w))
+  }, [S.narrow, at])
+  const dragHead = (e: RPE<HTMLDivElement>) => {
+    if (S.narrow || e.button !== 0 || (e.target as HTMLElement).closest('button')) return
+    const el = popRef.current
+    if (!el || !at) return
+    e.preventDefault()
+    const x0 = e.clientX - at.x
+    const y0 = e.clientY - at.y
+    const w = el.offsetWidth
+    const head = 48
+    const move = (ev: PointerEvent) => {
+      const p = { x: Math.max(8 - w + 80, Math.min(innerWidth - 80, ev.clientX - x0)), y: Math.max(8, Math.min(innerHeight - head, ev.clientY - y0)), w: at.w }
+      fxPopAt = p
+      setAt(p)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
   const on = S.adv
   const cat = S.fxCat || 'all'
   const q = S.fxQ.trim().toLowerCase()
@@ -545,8 +595,10 @@ function FxPicker({ c, S, tx }: EditorProps) {
   const vis = cat !== 'fav' && cat !== 'recent' && cat !== 'custom'
   const pick = S.fxPick
   return (
-    <div className={s.fxPop} role="dialog" aria-modal="false" aria-label={tx('Legg til effekt')} data-pd-fxpicker="" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); c.cancelFx() } }}>
-      <div className={s.fxPopHead}>
+    <div ref={popRef} className={s.fxPop} role="dialog" aria-modal="false" aria-label={tx('Legg til effekt')} data-pd-fxpicker=""
+      style={at && !S.narrow ? { left: at.x, top: at.y, width: at.w, bottom: 'auto', height: `min(calc(100vh - ${Math.round(at.y) + 16}px), 900px)` } : undefined}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); c.cancelFx() } }}>
+      <div className={s.fxPopHead} data-pd-fxpicker-head="" title={S.narrow ? undefined : tx('Dra for å flytte panelet')} style={S.narrow ? undefined : { cursor: 'move', touchAction: 'none' }} onPointerDown={dragHead}>
         <strong>{tx('Legg til effekt')}</strong>
         <button type="button" className={s.resetBtn} onClick={() => c.cancelFx()}>{tx('Lukk')}</button>
       </div>

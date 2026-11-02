@@ -1,0 +1,142 @@
+.box {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #9d998f;
+  font-size: 12px;
+}
+
+.reset {
+  padding: 2px 8px;
+  border: 1px solid #2b2b2b;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.reset:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.swatch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.hex {
+  width: 96px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #2b2b2b;
+  border-radius: 8px;
+  background: #0b0b0b;
+  color: #f3f1ec;
+  font: 600 13px ui-monospace, Menlo, Consolas, monospace;
+}
+
+.hex[aria-invalid='true'] {
+  border-color: #ff8a8a;
+}
+
+.err {
+  color: #ff8a8a;
+  font-size: 12px;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.preset[aria-pressed='true'] {
+  outline: 2px solid #f3f1ec;
+  outline-offset: 2px;
+}
+
+.note {
+  color: #8a867e;
+  font-size: 11.5px;
+}
+
+.swatch:focus-within,
+.preset:focus-visible,
+.reset:focus-visible,
+.hex:focus-visible {
+  outline: 2px solid #f3f1ec;
+  outline-offset: 2px;
+}
+
+:root[data-theme='light'] .head,
+:root[data-theme='light'] .note {
+  color: #5d5951;
+}
+
+:root[data-theme='light'] .hex {
+  border-color: #cfcac0;
+  background: #fff;
+  color: #1d1b18;
+}
+
+/* berøringsskjerm: fingerstore mål (PC med mus uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .swatch {
+    width: 52px;
+    height: 44px;
+  }
+
+  .hex {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .preset {
+    width: 34px;
+    height: 34px;
+  }
+
+  .reset {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+}

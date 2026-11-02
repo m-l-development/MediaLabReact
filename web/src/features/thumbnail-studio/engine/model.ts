@@ -90,6 +90,10 @@ export interface ImageLayer extends LayerBase {
   flip: boolean
   border: number
   borderColor: string
+  /** Bildejusteringer i prosent (−100…100); mangler = 0. Tegnes med canvas-filter, så de følger med i eksporten. */
+  bri?: number
+  con?: number
+  sat?: number
   tint: string | null
 }
 

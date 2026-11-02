@@ -362,7 +362,9 @@ export class Renderer {
       g.save()
       shapePath(g, l.shape, l.w, l.h, l.radius)
       g.clip()
+      g.filter = imgFilter(l)
       drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
+      g.filter = 'none'
       if (l.border > 0) {
         g.lineWidth = l.border * 2
         g.strokeStyle = l.borderColor
@@ -373,6 +375,7 @@ export class Renderer {
     } else {
       g.save()
       shadow(g, l, s)
+      g.filter = imgFilter(l)
       drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
       g.restore()
     }
@@ -526,4 +529,10 @@ export function hit(layers: readonly Layer[], p: { x: number; y: number }): Laye
     if (isE ? (lx * lx) / (hw * hw) + (ly * ly) / (hh * hh) <= 1 : Math.abs(lx) <= hw && Math.abs(ly) <= hh) return l
   }
   return null
+}
+
+/** Lysstyrke, kontrast og metning for et bildelag som canvas-filter («none» når alt er 0). */
+export function imgFilter(l: { bri?: number; con?: number; sat?: number }): string {
+  const f = (v: number | undefined) => 1 + Math.max(-100, Math.min(100, v || 0)) / 100
+  return l.bri || l.con || l.sat ? `brightness(${f(l.bri)}) contrast(${f(l.con)}) saturate(${f(l.sat)})` : 'none'
 }

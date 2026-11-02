@@ -5,6 +5,7 @@ import type { MotionController } from './controller'
 import { clamp, type CurveCh, type Grade, type Pt } from './engine/model'
 import { curveEval } from './engine/render'
 import { NumField } from '../../shared/ui/NumField'
+import { BgColor } from '../../shared/ui/BgColor'
 import type { Field, Show } from './fields'
 import type { Tx } from './texts'
 import s from './MotionDesign.module.css'
@@ -245,6 +246,8 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
           <textarea className={s.area} rows={3} value={f.val} aria-label={tx(f.label)} onChange={(e) => f.on(e.target.value)} />
         </>
       )
+    case 'bg':
+      return <BgColor label={tx(f.label)} value={f.val} def={f.def} note={f.note ? tx(f.note) : undefined} onChange={f.on} />
     case 'curve':
       return <CurveEditor g={f.c} ch={c.s.curveCh} setCh={(k) => c.set({ curveCh: k })} on={f.on} tx={tx} />
     case 'range':
