@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
+import { dock } from './dock'
 import { png } from './png'
 
 async function errorsOf(page: Page) {
@@ -66,6 +67,7 @@ test('ny mal fra grunnoppsettet: bytt navn og person, lagre, og eksporter 1080p 
 
   // Panelet «Mal»: navn og person
   await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
+  await dock(page, 'edit')
   await page.getByRole('textbox', { name: 'Navn', exact: true }).fill('Ola\nNordmann')
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Velg bilde' }).first().click()
@@ -150,14 +152,17 @@ test('lag: legg til tekst, angre, kopier og lim inn, og dra på lerretet', async
   expect(errors).toEqual([])
 })
 
-test('mobil: enkel visning med person, navn og tema', async ({ page }, info) => {
+test('mobil: lerretet øverst, egenskaper og lag i panelene over ikonlinjen', async ({ page }, info) => {
   test.skip(info.project.name !== 'mobil', 'Bare på smal skjerm')
   await page.goto('/app/thumbnail-studio?cat=kbs')
   await page.getByRole('button', { name: /Ny mal/ }).click()
   await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="base:main"]').click()
-  await expect(page.getByText('Enkel visning på mobil')).toBeVisible()
+  await expect(page.getByText('Redigering på mobil')).toBeVisible()
+  await page.locator('[data-dock-tab="edit"]').click()
   await expect(page.getByRole('textbox', { name: 'Navn', exact: true })).toBeVisible()
-  await expect(page.locator('[data-layer]')).toHaveCount(0)
+  await page.locator('[data-dock-tab="layers"]').click()
+  await expect(page.locator('[data-layer]').first()).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 2)).toBe(true) // siden blar ikke
 })
 
 test('engelsk: tekstene oversettes', async ({ page }) => {

@@ -39,7 +39,28 @@ export const LOOKS: readonly [string, string, Partial<Adj>][] = [
   ['vintage', 'Vintage', { temp: 28, tint: 10, fade: 26, sat: -25, vig: 30, grain: 30 }], ['vivid', 'Levende', { sat: 38, con: 14, exp: 6 }],
   ['matte', 'Matt', { fade: 30, con: -6, sh: 12, curve: [[0, 0.1], [0.5, 0.52], [1, 0.92]] }], ['teal', 'Blågrønn og oransje', { temp: 12, tint: -14, sat: 16, con: 12, hue: -6 }],
 ]
-export const BLENDS: readonly [GlobalCompositeOperation, string][] = [['source-over', 'Normal'], ['multiply', 'Multipliser'], ['screen', 'Raster'], ['overlay', 'Overlegg'], ['soft-light', 'Mykt lys'], ['color', 'Farge'], ['luminosity', 'Luminans']]
+export const BLENDS: readonly [GlobalCompositeOperation, string][] = [['source-over', 'Normal'], ['multiply', 'Multipliser'], ['screen', 'Raster'], ['overlay', 'Overlegg'], ['soft-light', 'Mykt lys'], ['hard-light', 'Hardt lys'], ['darken', 'Mørkere'], ['lighten', 'Lysere'], ['difference', 'Differanse'], ['hue', 'Fargetone'], ['saturation', 'Metning'], ['color', 'Farge'], ['luminosity', 'Luminans']]
+/** Kort forklaring av hver blandingsmodus (vises under valget i Avansert modus). */
+export const BLEND_HELP: Readonly<Record<string, string>> = {
+  multiply: 'Multipliser: gjør mørkere – hvitt i laget forsvinner, mørke partier blir med.',
+  screen: 'Raster: gjør lysere – svart i laget forsvinner, lyse partier blir med.',
+  overlay: 'Overlegg: mer kontrast – lyse partier lysner og mørke mørkner det som ligger under.',
+  'soft-light': 'Mykt lys: som Overlegg, men mildere.',
+  'hard-light': 'Hardt lys: kraftig kontrast etter laget selv.',
+  darken: 'Mørkere: viser det mørkeste av laget og det under, punkt for punkt.',
+  lighten: 'Lysere: viser det lyseste av laget og det under, punkt for punkt.',
+  difference: 'Differanse: forskjellen mellom laget og det under (hvitt snur fargene).',
+  hue: 'Fargetone: fargetonen fra laget, lysstyrke og metning fra det under.',
+  saturation: 'Metning: metningen fra laget, resten fra det under.',
+  color: 'Farge: fargen fra laget, lysstyrken fra det under (farger et bilde).',
+  luminosity: 'Luminans: lysstyrken fra laget, fargen fra det under.',
+}
+/** Former et bilde kan beskjæres til (samme tegning som formlagene, shapePath). «rounded» = avrundet rektangel. */
+export const CROP_SHAPES: readonly [string, string][] = [
+  ['rect', 'Rektangel'], ['rounded', 'Avrundet'], ['ellipse', 'Sirkel'], ['triangle', 'Trekant'], ['diamond', 'Rombe'], ['pentagon', 'Femkant'], ['hexagon', 'Sekskant'], ['octagon', 'Åttekant'],
+  ['star', 'Stjerne'], ['heart', 'Hjerte'], ['half', 'Halvsirkel'], ['parallelogram', 'Parallellogram'], ['trapezoid', 'Trapes'], ['chevron', 'Chevron'], ['bubble', 'Snakkeboble'], ['burst', 'Stjerneutbrudd'], ['arrow', 'Pil'],
+]
+
 export const SHAPES: readonly [string, string][] = [
   ['rect', 'Rektangel'], ['ellipse', 'Sirkel'], ['triangle', 'Trekant'], ['diamond', 'Rombe'], ['hexagon', 'Sekskant'], ['star', 'Stjerne'], ['arrow', 'Pil'], ['line', 'Linje'], ['ring', 'Ring'],
   ['pentagon', 'Femkant'], ['octagon', 'Åttekant'], ['heart', 'Hjerte'], ['plus', 'Pluss'], ['half', 'Halvsirkel'], ['parallelogram', 'Parallellogram'], ['trapezoid', 'Trapes'], ['chevron', 'Chevron'], ['bubble', 'Snakkeboble'], ['burst', 'Stjerneutbrudd'],
@@ -83,6 +104,8 @@ export interface ImageLayer extends Base {
   tint?: string | null
   /** Avansert framkalling (bare i Avansert modus; mangler = ingen). Se engine/develop.ts. */
   dev?: Dev | null
+  /** Beskjæringsform (CROP_SHAPES): bildet klippes til formen. Mangler / «rect» = rektangel. */
+  cshape?: string
 }
 
 export interface TextLayer extends Base {

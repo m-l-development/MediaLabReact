@@ -54,6 +54,13 @@ test('1080p: fullskjerm tegner 1920 × 1080; avspillingslinjen søker, spiller f
   await enterFull(page)
   await expect.poll(() => size(page)).toEqual([1920, 1080])
 
+  // linjen skjules når pekeren er borte fra den (videoen i fokus), og kommer tilbake nær bunnen
+  const fb = page.locator('[data-md-fullbar]')
+  await page.mouse.move(960, 300)
+  await expect(fb).toHaveAttribute('data-hidden', '', { timeout: 4000 })
+  await page.mouse.move(960, 1050)
+  await expect(fb).not.toHaveAttribute('data-hidden', '')
+
   // tid «m:ss.s / m:ss.s» og tidsmerker
   await expect(page.locator('[data-md-full-time]')).toHaveText(/^\d+:\d\d\.\d \/ \d+:\d\d\.\d$/)
   await expect(page.locator('[data-md-full-track] span').first()).toBeVisible()

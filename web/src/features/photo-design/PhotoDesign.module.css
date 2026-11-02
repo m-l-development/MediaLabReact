@@ -2637,3 +2637,145 @@ button:disabled {
   border-color: #cfcac0;
   color: #4a463f;
 }
+
+/* låst lag i egenskapspanelet */
+.lockNote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #5a4a1a;
+  border-radius: 8px;
+  background: rgba(245, 184, 44, 0.08);
+  color: #f5d27a;
+  font-size: 12px;
+}
+
+.lockSet {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.lockSet:disabled {
+  opacity: 0.55;
+}
+
+:root[data-theme='light'] .lockNote {
+  border-color: #d9b45a;
+  background: #fbf1d6;
+  color: #6b4e00;
+}
+
+/* beskjæringsform (Props) */
+.cropShapes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.cropShapes select {
+  grid-column: 1 / -1;
+  height: 32px;
+  border: 1px solid #2b2b2b;
+  border-radius: 8px;
+  background: #121212;
+  color: #f3f1ec;
+  font: inherit;
+  font-size: 12px;
+}
+
+:root[data-theme='light'] .cropShapes select {
+  border-color: #cfcac0;
+  background: #fff;
+  color: #1d1b18;
+}
+
+/* «⋯» over det valgte laget (bare berøringsskjerm, se MoreButton) */
+.selMore {
+  position: absolute;
+  top: -56px;
+  right: -4px;
+  pointer-events: auto;
+}
+
+/* berøringsskjerm: håndtakene er større mål for fingeren (PC med mus er uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .handle,
+  .handleRot {
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
+    border-radius: 50%;
+  }
+}
+
+/* Smal skjerm (mobil): editoren fyller skjermen og siden blar ikke. Verktøylinjen er én rad som kan sveipes sidelengs;
+   lerretet står fast øverst, og panelene ruller under det inne i editoren. PC er uendret (bare data-narrow). */
+.editor[data-narrow] {
+  height: calc(100dvh - 104px);
+  min-height: 0;
+}
+
+.editor[data-narrow] .bar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 10px;
+  scrollbar-width: none;
+}
+
+.editor[data-narrow] .bar::-webkit-scrollbar {
+  display: none;
+}
+
+.editor[data-narrow] .bar > * {
+  flex: 0 0 auto;
+}
+
+.work[data-narrow]:not([data-batch]) {
+  grid-template-rows: 44dvh max-content max-content;
+}
+
+.work[data-narrow]:not([data-batch]) > .stage {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid #1c1c1c;
+}
+
+/* «⋯» i lagradene: like høy som raden (bare berøringsskjerm) */
+@media (hover: none) and (pointer: coarse) {
+  .rowMore {
+    width: 36px;
+    height: 36px;
+  }
+
+  .selMore {
+    width: 40px;
+    height: 40px;
+    top: -50px;
+  }
+}
+
+/* Mobil: arbeidsflaten fyller høyden over panelet og ikonlinjen (MobileDock); verktøylinjen har bare de viktigste */
+.work[data-mobile] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.work[data-mobile] > .stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 140px;
+  padding: 10px;
+  border-bottom: 0;
+}
+
+.editor[data-narrow] .bar .docName,
+.editor[data-narrow] .bar .zoom,
+.editor[data-narrow] .bar [data-autosave-row] {
+  display: none;
+}

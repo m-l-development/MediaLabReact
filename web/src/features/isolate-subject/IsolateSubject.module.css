@@ -488,7 +488,8 @@
   gap: 8px;
 }
 
-.sliders label {
+.sliders label,
+.sliderRow {
   display: grid;
   gap: 4px;
   color: var(--color-text-muted);
