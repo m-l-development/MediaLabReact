@@ -2705,9 +2705,56 @@ button:disabled {
 @media (hover: none) and (pointer: coarse) {
   .handle,
   .handleRot {
-    width: 22px;
-    height: 22px;
-    margin: -11px 0 0 -11px;
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
     border-radius: 50%;
+  }
+}
+
+/* Smal skjerm (mobil): editoren fyller skjermen og siden blar ikke. Verktøylinjen er én rad som kan sveipes sidelengs;
+   lerretet står fast øverst, og panelene ruller under det inne i editoren. PC er uendret (bare data-narrow). */
+.editor[data-narrow] {
+  height: calc(100dvh - 104px);
+  min-height: 0;
+}
+
+.editor[data-narrow] .bar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 10px;
+  scrollbar-width: none;
+}
+
+.editor[data-narrow] .bar::-webkit-scrollbar {
+  display: none;
+}
+
+.editor[data-narrow] .bar > * {
+  flex: 0 0 auto;
+}
+
+.work[data-narrow]:not([data-batch]) {
+  grid-template-rows: 44dvh max-content max-content;
+}
+
+.work[data-narrow]:not([data-batch]) > .stage {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid #1c1c1c;
+}
+
+/* «⋯» i lagradene: like høy som raden (bare berøringsskjerm) */
+@media (hover: none) and (pointer: coarse) {
+  .rowMore {
+    width: 36px;
+    height: 36px;
+  }
+
+  .selMore {
+    width: 40px;
+    height: 40px;
+    top: -50px;
   }
 }

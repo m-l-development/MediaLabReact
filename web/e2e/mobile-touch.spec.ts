@@ -19,7 +19,7 @@ test.describe('mobil', () => {
     const sel = page.locator('[data-pd-selbox] [data-more]')
     await expect(sel).toBeVisible()
     const sb = (await sel.boundingBox())!
-    expect(sb.width).toBeGreaterThanOrEqual(44)
+    expect(sb.width).toBeGreaterThanOrEqual(40)
     await sel.tap()
     const menu = page.getByRole('menu', { name: 'Lagmeny' })
     await expect(menu).toBeVisible()
@@ -75,4 +75,39 @@ test('PC med mus: «⋯» er skjult (desktop uendret)', async ({ page, isMobile 
   await page.locator('[data-layer]').first().click()
   await expect(more(page).first()).toBeHidden()
   expect(await more(page).evaluateAll((els) => els.every((e) => getComputedStyle(e).display === 'none'))).toBe(true)
+})
+
+test.describe('mobil: Motion-tidslinjen', () => {
+  test.skip(({ isMobile }) => !isMobile, 'bare mobil')
+  test('trykk velger et klipp uten å flytte det; knip med to fingre zoomer tidslinjen', async ({ page }) => {
+    await page.goto('/app/motion-design')
+    await page.getByRole('button', { name: 'Nytt prosjekt' }).tap()
+    await page.locator('[data-format="wide"]').tap()
+    await page.locator('[data-tpl="blank"]').tap()
+    await page.locator('[data-adv-toggle]').tap()
+    const ch = page.waitForEvent('filechooser')
+    await page.locator('[data-md-bin-import]').tap()
+    await (await ch).setFiles([{ name: 'rod.png', mimeType: 'image/png', buffer: png(160, 90, () => [230, 20, 20, 255]) }])
+    await page.locator('[data-md-bin-item="rod.png"] [data-md-to="v1"]').tap()
+    await page.locator('[data-md-bin-item="rod.png"] [data-md-to="v1"]').tap()
+    const clip = page.locator('[data-row="video"] [data-block]').nth(1)
+    await clip.scrollIntoViewIfNeeded()
+    const left0 = await clip.evaluate((e) => (e as HTMLElement).style.left)
+    await clip.tap()
+    await expect(clip).toHaveAttribute('data-sel', '')
+    expect(await clip.evaluate((e) => (e as HTMLElement).style.left)).toBe(left0) // samme tid i tidslinjen
+    // knip: to fingre fra hverandre over tidslinjen
+    const zoom = page.locator('[data-md-zoom]')
+    const z0 = Number(await zoom.inputValue())
+    const tl = page.locator('[data-row="video"]')
+    const tb = (await tl.boundingBox())!
+    const cdp = await page.context().newCDPSession(page)
+    const y = tb.y + tb.height / 2
+    const cx = tb.x + tb.width / 2
+    const pts = (d: number) => [{ x: cx - d, y, id: 1 }, { x: cx + d, y, id: 2 }]
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(30) })
+    for (const d of [45, 60, 80, 100]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(d) })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await expect.poll(async () => Number(await zoom.inputValue())).toBeGreaterThan(z0)
+  })
 })

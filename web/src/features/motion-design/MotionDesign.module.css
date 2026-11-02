@@ -466,8 +466,9 @@
 }
 
 /* Smal skjerm: editoren får naturlig høyde, så forhåndsvisningen alltid har plass. */
+/* smal skjerm: editoren fyller skjermen (siden blar ikke); forhåndsvisning, panel og tidslinje deler høyden */
 .editorNarrow {
-  height: auto;
+  height: calc(100dvh - 104px);
   min-height: 0;
 }
 
@@ -3297,4 +3298,26 @@
   top: 4px;
   right: 4px;
   z-index: 2;
+}
+
+/* berøringsskjerm: et klipp som ikke er valgt, lar fingeren rulle tidslinjen (trykk velger, valgt klipp kan dras) */
+@media (hover: none) and (pointer: coarse) {
+  .blk:not([data-sel]) {
+    touch-action: pan-x pan-y;
+  }
+}
+
+/* Smal skjerm (mobil): verktøylinjen er én rad som kan sveipes sidelengs, så lerret og tidslinje får plassen */
+.editorNarrow .bar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.editorNarrow .bar::-webkit-scrollbar {
+  display: none;
+}
+
+.editorNarrow .bar > * {
+  flex: 0 0 auto;
 }

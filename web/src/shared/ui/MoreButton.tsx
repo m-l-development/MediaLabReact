@@ -9,10 +9,12 @@ import styles from './MoreButton.module.css'
  * `onOpen`: egen åpning (når området ikke har en høyreklikkhandler å sende til), med knappens posisjon.
  * `at`: punktet hendelsen får – «center» = midt i forelderen (f.eks. det valgte laget på lerretet), ellers ved knappen.
  */
-export function MoreButton({ label, at, className, onOpen }: { label?: string | undefined; at?: 'center' | 'button' | undefined; className?: string | undefined; onOpen?: ((x: number, y: number) => void) | undefined }) {
+export function MoreButton({ label, of, at, className, onOpen }: { label?: string | undefined; of?: string | undefined; at?: 'center' | 'button' | undefined; className?: string | undefined; onOpen?: ((x: number, y: number) => void) | undefined }) {
   const t = useT()
+  // navnet sier hva knappen gjelder («Flere handlinger: bilde.png»), så det ikke blir likt elementets eget navn
+  const name = label ?? (of ? t('more.actionsFor', { name: of }) : t('more.actions'))
   return (
-    <button type="button" className={`${styles.more} ${className ?? ''}`} aria-label={label ?? t('more.actions')} title={label ?? t('more.actions')} data-more=""
+    <button type="button" className={`${styles.more} ${className ?? ''}`} aria-label={name} title={name} data-more=""
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.preventDefault()

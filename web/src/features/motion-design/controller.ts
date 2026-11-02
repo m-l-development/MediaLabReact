@@ -1645,6 +1645,11 @@ export class MotionController {
       this.toggleMulti(kind, id)
       return
     }
+    // berøring: første trykk velger klippet; bare et valgt klipp kan dras (ellers ruller fingeren tidslinjen)
+    if (e.pointerType === 'touch' && !this.selList().some((x) => x.id === id)) {
+      this.set({ sel: { type: kind, id }, multi: [], replaceFor: null })
+      return
+    }
     if (p.tracks[TK[kind]].lock) {
       this.set({ sel: { type: kind, id }, multi: [], replaceFor: null })
       return
@@ -1961,9 +1966,11 @@ export class MotionController {
     const tl = this.els.tl
     if (tl === this.wheelEl) return
     this.wheelEl?.removeEventListener('wheel', this.onTlWheel)
+    for (const ev of ['touchstart', 'touchmove', 'touchend'] as const) this.wheelEl?.removeEventListener(ev, this.onTlTouch)
     this.wheelEl?.removeEventListener('scroll', this.onTlScroll)
     this.wheelEl = tl
     tl?.addEventListener('wheel', this.onTlWheel, { passive: false })
+    for (const ev of ['touchstart', 'touchmove', 'touchend'] as const) tl?.addEventListener(ev, this.onTlTouch, { passive: false })
     tl?.addEventListener('scroll', this.onTlScroll, { passive: true })
     this.onTlScroll()
   }
@@ -1973,6 +1980,37 @@ export class MotionController {
    * Zoom i tid: Ctrl/⌘ + hjul, Alt + hjul (Resolve, Premiere) eller knip – forankret ved pekeren. Musehjul i trinn
    * (1,25× per hakk), styreflate og knip jevnt. + / − zoomer rundt spillehodet, Shift+Z tilpasser (Final Cut, CapCut).
    */
+  /** Knip med to fingre på tidslinjen: zoom i tid rundt midtpunktet mellom fingrene (flytter aldri klipp). */
+  private pinch: { d0: number; z0: number; t: number } | null = null
+  private onTlTouch = (e: TouchEvent): void => {
+    const tl = this.els.tl
+    const inner = this.els.tlInner
+    if (!tl) return
+    if (e.touches.length !== 2) {
+      this.pinch = null
+      return
+    }
+    const a = e.touches[0] as Touch
+    const b = e.touches[1] as Touch
+    const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+    const mx = (a.clientX + b.clientX) / 2
+    const r = (inner ?? tl).getBoundingClientRect()
+    if (e.type === 'touchstart' || !this.pinch) {
+      // en påbegynt draing med første finger avbrytes (klippet går tilbake)
+      if (this.drag) this.cancelDragKey()
+      this.pinch = { d0: Math.max(10, d), z0: this.s.zoom, t: (mx - r.left) / this.s.zoom }
+      return
+    }
+    e.preventDefault()
+    const nz = clamp(this.pinch.z0 * (d / this.pinch.d0), ZMIN, ZMAX)
+    if (Math.abs(nz - this.s.zoom) < 0.01) return
+    const t = this.pinch.t
+    this.set({ zoom: nz })
+    requestAnimationFrame(() => {
+      tl.scrollLeft = t * nz - (mx - tl.getBoundingClientRect().left)
+    })
+  }
+
   private onTlWheel = (e: WheelEvent): void => {
     if (!(e.ctrlKey || e.metaKey || e.altKey)) return
     e.preventDefault()

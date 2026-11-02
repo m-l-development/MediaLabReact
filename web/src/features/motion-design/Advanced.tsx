@@ -47,7 +47,7 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
       <ul className={s.binList} aria-label={tx('Mediebibliotek')}>
         {p.media.map((m) => (
           <li key={m.id} className={s.binItem} data-md-bin-item={m.name} data-kind={m.kind} onContextMenu={(e) => c.binMenu(e, m)}>
-            <MoreButton className={s.binMore} label={m.name} />
+            <MoreButton className={s.binMore} of={m.name} />
             <span className={s.binThumb} style={{ backgroundImage: css(m.thumb) }} aria-hidden="true">{m.kind === 'audio' ? '♪' : ''}</span>
             <span className={s.binText}>
               <span className={s.binName} title={m.name}>{m.name}</span>

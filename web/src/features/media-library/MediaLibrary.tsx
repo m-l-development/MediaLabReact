@@ -244,7 +244,7 @@ function AssetCard({ asset, targets, onOpenIn, onRemove }: {
         }
       }}>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={items} label={asset.name} onClose={() => setMenu(null)} />}
-      <MoreButton className={styles.cardMore} label={asset.name} />
+      <MoreButton className={styles.cardMore} of={asset.name} />
       <div className={styles.preview}>
         {url && asset.thumb ? <img src={url} alt="" loading="lazy" /> : <span className={styles.kind}>{t(KIND_KEY[asset.kind])}</span>}
         {asset.origin.type === 'derived' && <span className={styles.badge}>{t('media.derived')}</span>}

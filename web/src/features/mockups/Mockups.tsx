@@ -412,7 +412,7 @@ function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, setti
               ...(m.source === 'own' ? [{ label: t('mockups.deleteOwn') + ' …', separator: true, onSelect: () => { if (confirm(t('mockups.confirmDeleteOwn'))) void lib.removeOwn(m.id) } }] : []),
             ] })
           }}>
-            <MoreButton className={styles.cardMore} label={m.name} />
+            <MoreButton className={styles.cardMore} of={m.name} />
             <button type="button" className={styles.card} onClick={() => onOpen(m.id)}>
               <CardPreview mockup={m} image={lib.images.get(m.id) ?? null} design={design} settings={settingsOf(m)} />
               <span className={styles.cardName}>{m.name}<small>{t(`mockups.cat.${m.cat}`)}</small></span>

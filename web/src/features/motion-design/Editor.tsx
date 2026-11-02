@@ -276,7 +276,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
         <button type="button" className={s.exportBtn} onClick={() => c.openExport()}>{tx('Eksporter')}</button>
       </header>
 
-      <div className={s.grid} style={{ gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'clamp(190px, 21vw, 290px) minmax(0, 1fr) clamp(210px, 23vw, 310px)', gridTemplateRows: narrow ? 'minmax(260px, 46dvh) minmax(0, 40dvh)' : 'minmax(0, 1fr)' }}>
+      <div className={s.grid} style={{ gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'clamp(190px, 21vw, 290px) minmax(0, 1fr) clamp(210px, 23vw, 310px)', gridTemplateRows: narrow ? 'minmax(170px, 34dvh) minmax(0, 1fr)' : 'minmax(0, 1fr)' }}>
         <aside className={`${s.aside} ${s.asideL}`} style={{ order: narrow ? 2 : 1, display: !narrow || S.drawer !== 'r' ? 'flex' : 'none' }}>
           <LeftPanel c={c} S={S} p={p} tx={tx} onShared={onShared} onLogoCloud={onLogoCloud} />
         </aside>
