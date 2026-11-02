@@ -181,7 +181,7 @@ export function HomeView({ v, tx }: { v: HomeVals; tx: (s: unknown) => string })
           {"\n    "}
         </> : null}
         {"\n\n    "}
-        <div style={{"width":"100%","maxWidth":"860px","display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(280px, 1fr))","gap":"18px"}}>
+        <div data-loop-cards="" style={{"width":"100%","maxWidth":"860px","display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(280px, 1fr))","gap":"18px"}}>
           {"\n      "}
           {list(v.cards).map(($it1, $i1) => {
             const v1 = { ...v, "c": $it1, $index: $i1 };
@@ -189,7 +189,7 @@ export function HomeView({ v, tx }: { v: HomeVals; tx: (s: unknown) => string })
               {"\n        "}
               {v1.notEditing ? <>
                 {"\n          "}
-                <a href={v1.c?.href} onClick={v1.c?.go} style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"200px","padding":"28px","border":"1px solid rgba(255,255,255,0.16)","borderRadius":"22px","background":"rgba(12,12,12,0.55)","backdropFilter":"blur(14px)","color":"#f3f1ec"}} className={P.scp5}>
+                <a href={v1.c?.href} onClick={v1.c?.go} data-loop-card-home="" style={{"display":"flex","flexDirection":"column","gap":"12px","minHeight":"200px","padding":"28px","border":"1px solid rgba(255,255,255,0.16)","borderRadius":"22px","background":"rgba(12,12,12,0.55)","backdropFilter":"blur(14px)","color":"#f3f1ec"}} className={P.scp5}>
                   {"\n            "}
                   <div style={{"fontSize":"11.5px","fontWeight":"600","letterSpacing":"0.3em","textTransform":"uppercase","color":"#9d998f"}}>
                     {I(v1.c?.cat)}

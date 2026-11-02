@@ -300,3 +300,16 @@
     display: none;
   }
 }
+
+/* Mobil i en editor: de runde knappene (konto, tilbakemelding, tema) øverst til høyre, så de ikke dekker ikonlinjen og
+   panelene nederst. PC uendret. */
+@media (max-width: 760px) {
+  .shell:has([data-ml-workspace]) .dock {
+    top: 12px;
+    bottom: auto;
+  }
+
+  .shell:has([data-ml-workspace]) .adminFab {
+    display: none;
+  }
+}

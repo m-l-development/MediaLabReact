@@ -125,6 +125,9 @@
 .cropArea {
   position: relative;
   max-width: 100%;
+  /* skyggen rundt beskjæringsrammen (box-shadow 9999px) holdes rundt bildet (med plass til håndtakene) – ellers la den
+     seg over tittel og knapper og fikk dem til å se avslåtte ut */
+  clip-path: inset(-12px);
   touch-action: none;
   user-select: none;
 }

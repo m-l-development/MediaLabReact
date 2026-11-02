@@ -300,3 +300,10 @@ button.card {
     font-size: 11px;
   }
 }
+
+/* Mobil: hilsenen under tittelen (ikke oppå den) */
+@media (max-width: 600px) {
+  .greeting {
+    margin-top: -8px;
+  }
+}

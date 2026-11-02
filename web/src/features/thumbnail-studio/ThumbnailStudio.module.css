@@ -2620,3 +2620,36 @@ button:disabled {
   min-height: 140px;
   overflow: auto;
 }
+
+/* Mobil: kategoriene i et kompakt 2-kolonners rutenett, så startsiden blar minst mulig (PC uendret). */
+@media (max-width: 600px) {
+  .catGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .catCard {
+    min-height: 0;
+    gap: 6px;
+    padding: 14px;
+  }
+
+  .catDesc {
+    display: none;
+  }
+
+  .catName {
+    font-size: 15px;
+  }
+}
+
+/* Mobil: kortere tittel og ingress på startsiden (PC uendret) */
+@media (max-width: 600px) {
+  .home .title {
+    font-size: clamp(28px, 9vw, 40px);
+  }
+
+  .home .lead {
+    font-size: 13px;
+  }
+}
