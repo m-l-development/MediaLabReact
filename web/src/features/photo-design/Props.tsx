@@ -7,6 +7,7 @@ import { Range } from './Ui'
 import { ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
 import { NumField } from '../../shared/ui/NumField'
 import { BgColor } from '../../shared/ui/BgColor'
+import { FillEditor } from '../../shared/fill/FillEditor'
 import { curveFn } from './engine/render'
 import { DEV, type Dev, type Histogram } from './engine/develop'
 import { useEffect, useRef, useState } from 'react'
@@ -151,6 +152,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
         <BgColor label={tx('Bakgrunn')} value={hex(d.bg || '#ffffff')} def="#ffffff" note={tx('Fargen bak bildene i hele komposisjonen. Den kommer med i eksporten.')}
           onChange={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
         <Cmyk hv={hex(d.bg || '#ffffff')} set={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
+        {/* gradientbakgrunnen (samme som under Stil → Bakgrunn og vignett), rett ved fargen */}
+        <FillEditor fill={c.fillOf(d)} open={c.s.fillOpen} onToggle={() => c.ui({ fillOpen: !c.s.fillOpen })} onChange={(p) => c.putFill(p)} tx={tx} />
         <Toggle label={tx('Gjennomsiktig bakgrunn')} on={!d.bg} onClick={() => c.setDoc((q) => ({ ...q, bg: q.bg ? null : '#ffffff', fill: null }))} />
         <div className={s.printBox}>
           <span className={s.eyebrowSm}>{tx('Trykk')}</span>

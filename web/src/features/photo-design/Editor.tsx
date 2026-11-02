@@ -869,18 +869,29 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
   const d = S.doc as NonNullable<PState['doc']>
   const sc = c.sc()
 
+  // hjelpelinjen under arbeidsflaten (bare PC); høyden trekkes fra når bildet tilpasses vinduet
+  const tips = useRef<HTMLDivElement>(null)
   // Tilpass til vinduet
   useEffect(() => {
     const el = stage.current
     if (!el) return
     const measure = () => {
-      c.setFit(Math.max(0.02, Math.min((el.clientWidth - 60) / d.w, (el.clientHeight - 60) / d.h)))
+      const th = tips.current ? tips.current.offsetHeight + 10 : 0
+      c.setFit(Math.max(0.02, Math.min((el.clientWidth - 60) / d.w, (el.clientHeight - 60 - th) / d.h)))
     }
     measure()
-    const ro = new ResizeObserver(measure)
+    let raf = 0
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(measure)
+    })
     ro.observe(el)
-    return () => ro.disconnect()
-  }, [c, d.w, d.h])
+    if (tips.current) ro.observe(tips.current)
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
+  }, [c, d.w, d.h, S.narrow])
 
   // Tegn lerretet (også når bare en maske er endret: hist)
   const hist = S.hist
@@ -1132,7 +1143,7 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
         {/* midtpunktet i bakgrunnsgradienten: dra for å flytte (samme posisjon som «Midtstill» nullstiller) */}
         {(() => {
           const f = c.fillOf(d)
-          if (S.tool === 'brush' || ['none', 'solid', 'mesh', 'stripes'].includes(f.mode)) return null
+          if (S.tool === 'brush' || f.mode === 'none' || f.mode === 'solid') return null
           const fx = f.x ?? 0.5
           const fy = f.y ?? 0.5
           // hjørnetypene: håndtaket sitter på hjørnepunktet (vinkelen), og posisjonen flytter det
@@ -1171,6 +1182,11 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
         })}
         {S.marq && <div className={s.marq} style={{ left: Math.min(S.marq[0], S.marq[2]) * sc, top: Math.min(S.marq[1], S.marq[3]) * sc, width: Math.abs(S.marq[2] - S.marq[0]) * sc, height: Math.abs(S.marq[3] - S.marq[1]) * sc }} />}
       </div>
+      {!S.narrow && (
+        <div ref={tips} className={s.tips} data-pd-tips="">
+          {(['Klikk: velg et lag', 'Dobbeltklikk på et bilde: beskjær', 'Shift-klikk: velg flere lag, og flytt eller skaler dem sammen', 'Dra: flytt (hold Alt for å slå av hjelpelinjer)', 'Hjørner: endre størrelse (Shift endrer forholdet)', 'Piltaster: finjuster (Shift = 10 px)', 'Delete: slett · ⌘D: dupliser · ⌘Z: angre', 'Slipp et bilde her for å legge det til', '◎: dra for å flytte bakgrunnsgradienten'] as const).map((x) => <span key={x}>{tx(x)}</span>)}
+        </div>
+      )}
       {S.dragOver && <div className={s.dropOv}>{tx('Slipp bildet her')}</div>}
       {S.busy && S.busy !== 'exp' && (
         <div className={s.busy} role="status">
