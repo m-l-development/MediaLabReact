@@ -1385,7 +1385,8 @@ export class PhotoController {
         const dy = p[1] - p0[1]
         const lx = (dx * Math.cos(a) - dy * Math.sin(a)) * (L.flipX ? -1 : 1)
         const ly = (dx * Math.sin(a) + dy * Math.cos(a)) * (L.flipY ? -1 : 1)
-        const o = { cx: mx > 0.5 ? clamp(cx0 - lx / mx, -1, 1) : 0, cy: my > 0.5 ? clamp(cy0 - ly / my, -1, 1) : 0 }
+        // også når bildet er zoomet ut (mindre enn rammen, negativ margin): flytt det innenfor rammen
+        const o = { cx: Math.abs(mx) > 0.5 ? clamp(cx0 - lx / mx, -1, 1) : 0, cy: Math.abs(my) > 0.5 ? clamp(cy0 - ly / my, -1, 1) : 0 }
         this.set((s) => (s.doc ? { doc: { ...s.doc, layers: s.doc.layers.map((q) => (q.id === L.id ? { ...q, ...o } : q)) }, hist: s.hist + 1 } : null))
       },
       up: () => this.queueSave(),

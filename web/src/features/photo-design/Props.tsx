@@ -4,7 +4,7 @@ import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
-import { ADJ, BLEED, BLENDS, CROP_SHAPES, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type PdLayer } from './engine/model'
+import { ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
 import { NumField } from '../../shared/ui/NumField'
 import { curveFn } from './engine/render'
 import { DEV, type Dev, type Histogram } from './engine/develop'
@@ -180,7 +180,10 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
     ...(L.type === 'glow' ? [rg('Mykhet', 'soft', 0, 1, 0.01, pc, 0.6)] : []),
     ...(L.type === 'shape' ? [rg('Hjørneradius', 'radius', 0, Math.round(Math.min(L.w, L.h) / 2), 1, px, 0), rg('Kontur', 'strokeW', 0, 60, 0.5, px, 0), ...(L.fill2 ? [rg('Vinkel på toning', 'gAng', 0, 360, 1, deg, 90)] : [])] : []),
     rg('Gjennomsiktighet', 'op', 0, 1, 0.01, pc, 1), rg('Rotasjon', 'rot', -180, 180, 1, deg, 0),
-    ...(has ? [rg('Zoom i utsnittet', 'cz', 1, 4, 0.01, (v) => `${Math.round(v * 100)} %`, 1)] : []),
+    // zoom i utsnittet: 10–1000 %, logaritmisk glider (100 % midt på), tallet skrives i prosent
+    ...(has ? [<Range key="cz" label={tx('Zoom i utsnittet')} min={-1} max={1} step={0.005} val={Math.log10(Math.max(0.1, (L as ImageLayer).cz || 1))} show={`${Math.round(((L as ImageLayer).cz || 1) * 100)} %`}
+      on={(x) => P({ cz: Math.round(10 ** x * 1000) / 1000 } as Partial<PdLayer>, 'cz')} reset={() => P({ cz: 1 } as Partial<PdLayer>)}
+      field={{ value: (L as ImageLayer).cz || 1, min: 0.1, max: 10, step: 0.01, scale: 100, on: (v) => P({ cz: v } as Partial<PdLayer>, 'cz') }} />] : []),
   ]
   return (
     <div className={s.props}>
@@ -297,6 +300,13 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               {BLENDS.map(([v, l]) => <option key={v} value={v}>{tx(l as Phrase)}</option>)}
             </select>
           </label>}
+          {/* hva modusen gjør, og at den bare blander med det som ligger under (alene over hvit bakgrunn ser mange like ut) */}
+          {S.adv && (L.blend || 'source-over') !== 'source-over' && (
+            <span className={s.dimSm} data-pd-blend-help="">
+              {tx((BLEND_HELP[L.blend || 'source-over'] ?? '') as Phrase)}
+              {d.layers[0]?.id === L.id ? ' ' + tx('Laget ligger rett på bakgrunnen: legg et bilde eller en farge under for å se effekten.') : ''}
+            </span>
+          )}
           <div className={s.row3}>
             <button type="button" className={s.smallBtn} onClick={() => P({ x: d.w / 2, y: d.h / 2 })}>{tx('Midtstill')}</button>
             <button type="button" className={s.smallBtn} onClick={() => c.dup()}>{tx('Dupliser')}</button>
