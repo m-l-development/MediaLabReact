@@ -252,6 +252,29 @@ function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undef
   return out
 }
 
+const foreign = new WeakMap<object, MediaEntry>()
+
+/**
+ * Justert kopi av et bilde for andre verktøy (Thumbnail Studio, Loop Studio): de samme justeringene og RGB-kurvene som i
+ * Photo. Hurtigbufret per bilde og innstilling; null når bildet ikke er lastet.
+ */
+export function adjustImage(img: HTMLImageElement | HTMLCanvasElement, a: Partial<Adj>, maxD = 2400): HTMLCanvasElement | null {
+  const w = img instanceof HTMLImageElement ? img.naturalWidth : img.width
+  const h = img instanceof HTMLImageElement ? img.naturalHeight : img.height
+  if (!w || !h) return null
+  let E = foreign.get(img)
+  if (!E || E.w !== w || E.h !== h) {
+    E = { img, w, h, url: '', cache: new Map() }
+    foreign.set(img, E)
+  }
+  return processed(E, { ...ADJ, ...a }, undefined, maxD)
+}
+
+/** Om justeringene gjør noe (alle mangler eller er 0 → bildet tegnes urørt). */
+export function adjActive(a: Partial<Adj> | null | undefined): boolean {
+  return !!a && !neutral({ ...ADJ, ...a })
+}
+
 /** Histogram for Avansert framkalling: originalen (raw) eller etter justeringer og framkalling, i liten størrelse. */
 export function histOf(E: MediaEntry, adj: Adj | null, dev: Dev | null): Histogram {
   const c = adj ? adjusted(E, adj, 256) : baseOf(E, 256)

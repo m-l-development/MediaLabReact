@@ -3,6 +3,7 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useLang } from '../../shared/i18n/i18n'
 import { BgColor } from '../../shared/ui/BgColor'
+import { AdvAdjust } from '../../shared/image/AdvAdjust'
 import { localStore } from '../../shared/lib/storage'
 import type { ThumbController } from './controller'
 import type { Ctrl, Unit } from './ctrl-defs'
@@ -33,6 +34,8 @@ export function Controls({ ctrls, c, tx, profileColors, imageUrl }: { ctrls: Ctr
             return <div key={i} className={s.ctrlHead}>{tx(x.label)}</div>
           case 'slider':
             return <Slider key={`${i}:${x.label}`} ctrl={x} tx={tx} />
+          case 'adv':
+            return <AdvAdjust key={i} value={x.val} onChange={x.set} skip={['bri', 'con', 'sat']} />
           case 'bg':
             return <BgColor key={i} label={tx(x.label)} value={x.val} def={x.def} note={tx(x.note)} onChange={x.set} />
           case 'color':

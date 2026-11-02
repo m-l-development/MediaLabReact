@@ -12,6 +12,8 @@ import { entryOf, type BaseEntry, type CentralBases, type KV, type PersonalBases
 import { __ukeloopAudioCtl, __ukeloopRendererFactory } from './engine/player.js'
 import type { AudioCtl, AudioSyncOpts } from './engine/player'
 import { buildPlayerHTML } from './engine/player-html'
+import { adjustImage } from '../photo-design/engine/render'
+import { advActive, type AdvAdj } from '../../shared/image/AdvAdjust'
 import { detectBeat, embeddedFontCSS, FONT_CSS, keyOf, parse, serialize, toDataURL } from './engine/program.js'
 import type { BeatInfo } from './engine/program'
 import type { BgFill, Box, Cfg, FText, FQr, ImgRule, Loc, LoopData, LoopMedia, Pip, Slide, SlideOv, VigLayer } from './engine/types'
@@ -115,6 +117,8 @@ export interface State {
   /** Hvor lagringsdialogen lagrer: p = Min disk (nettleseren), f = Menighetens disk */
   saveTarget: 'p' | 'f'
   autoAt: string
+  /** Avansert modus (avanserte bildejusteringer); standardvisningen er uendret når den er av. */
+  adv: boolean
   addMenu: boolean
   addForm: Record<string, string> | null
   rulesOpen: boolean
@@ -192,7 +196,7 @@ export class LoopController {
   vigEdWrap = mkRef<HTMLDivElement>(); vigEdCanvas = mkRef<HTMLCanvasElement>(); ovEdCanvas = mkRef<HTMLCanvasElement>(); cropWrapRef = mkRef<HTMLDivElement>(); panWrapRef = mkRef<HTMLDivElement>()
   inlineRef = mkRef<HTMLTextAreaElement>(); fsRef = mkRef<HTMLDivElement>(); guideRef = mkRef<HTMLDivElement>(); selBoxRef = mkRef<HTMLDivElement>(); zoomOuter = mkRef<HTMLDivElement>()
 
-  media: LoopMedia & { vids: Record<string, HTMLVideoElement> } = { images: {}, video: null, vids: {} }
+  media: LoopMedia & { vids: Record<string, HTMLVideoElement> } = { images: {}, video: null, vids: {}, adj: (img, a) => (advActive(a) ? adjustImage(img, a) : null) }
   vidGain: Record<string, GainNode> = {}
   t0 = performance.now()
   qrCache: Record<string, { rows: string[]; img: string }> = {}
@@ -315,6 +319,7 @@ export class LoopController {
       ready: false, tab: 'program', tpl: 'week', programText: '', slides: [], cfg: { ...BASE_CFG }, videoName: '', audioName: '', selected: null, playing: true, playIdx: 0, urls: {},
       parseMsg: '', parseOk: true, rec: null, busy: '', beatInfo: null, mobile: false, mPane: 'preview', guideMode: 'none', guideFlip: 0, selEl: null, hexPop: null, eyedrop: false,
       vigEd: null, ovEd: null, crop: null, panOpen: false, sharedReady: false, sharedExists: false, sharedErr: false, sharedState: '', audioLib: [], audioDur: 0, hist: '', scrubT: null,
+      adv: (() => { try { return localStorage.getItem('ukeloop.advanced') === '1' } catch { return false } })(),
       tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, slideMenu: null, pvMenu: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, saveTarget: 'p', autoAt: '', addMenu: false, addForm: null,
       rulesOpen: false, rulesDraft: null, galleryFor: null, stdOpen: false, stdDraft: null, rulePickOpen: false, fillOpen: false, panelEditFor: null, slideStyleOpen: false, fast: null, fastMsg: '',
     }
@@ -1494,6 +1499,7 @@ export class LoopController {
       fqr: cleanFqr(s.fqr, (u) => this.makeQR(u)?.rows ?? null), panels: cleanPanels(s.panels), panelBg: isHex(s.panelBg) ? s.panelBg : null, qrX: s.qrX, qrY: s.qrY, qrSize: s.qrSize, dur: s.dur,
       bgFill: cleanFill(s.bgFill), oAmt: r(s.oAmt, 0, 1.5), oSpeed: r(s.oSpeed, 0.1, 4), oAlpha: r(s.oAlpha, 0, 1), oColor: isHex(s.oColor) ? s.oColor : null, vigs: cleanVigs(s.vigs),
       vid: typeof s.vid === 'string' && s.vid.startsWith('vid-') ? s.vid : null, vidSound: s.vidSound !== false, vidMusic: !!s.vidMusic, vidVol: s.vidVol == null ? 1 : Math.max(0, Math.min(1, Number(s.vidVol) || 0)),
+      adj: s.adj && typeof s.adj === 'object' && advActive(s.adj) ? s.adj : null,
     }
   }
   payload(): LoopData {
@@ -3420,6 +3426,15 @@ export class LoopController {
         if (!s.bg || images[s.bg]) continue
         try { const b = await this.blobOf(s.bg); if (b) images[s.bg] = await toDataURL(b) } catch { /* bildet mangler */ }
       }
+      // Avansert modus: spilleren har ikke bildemotoren, så justerte bilder bakes inn som egne bilder
+      data.slides = data.slides.map((s) => {
+        const im = s.bg && advActive(s.adj) ? this.media.images[s.bg] : null
+        const c = im?.naturalWidth ? adjustImage(im, s.adj as AdvAdj, 3840) : null
+        if (!c || !s.bg) return s
+        const key = s.bg + '~adj~' + Math.abs([...JSON.stringify(s.adj)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7)).toString(36)
+        if (!images[key]) images[key] = c.toDataURL('image/jpeg', 0.92)
+        return { ...s, bg: key, adj: null }
+      })
       const ls = data.cfg.logoSrc as string | null | undefined
       if (ls && data.cfg.logoOn !== false && !images[ls]) {
         try { const b = await this.blobOf(ls); if (b) images[ls] = await toDataURL(b) } catch { /* logoen mangler */ }
@@ -3573,7 +3588,7 @@ export class LoopController {
       const cv: OffscreenCanvas | HTMLCanvasElement = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), { width: W, height: H })
       const ctx = cv.getContext('2d') as CanvasRenderingContext2D | null
       if (!ctx) throw new Error('Nettleseren kan ikke tegne videoen.')
-      const media: LoopMedia = { images: this.media.images, video: v, vids: this.media.vids }
+      const media: LoopMedia = { images: this.media.images, video: v, vids: this.media.vids, ...(this.media.adj ? { adj: this.media.adj } : {}) }
       this.pauseVids()
       for (const x of base0.slides) if (x.vid && !this.media.vids[x.vid]) await this.ensureVid(x.vid)
       for (const x of base0.slides) {
@@ -4097,6 +4112,11 @@ export class LoopController {
           },
         }
       })(),
+      // Avansert modus: bryter ved Autolagring og avanserte justeringer for slidens bakgrunnsbilde
+      advAria: S.adv ? ('true' as const) : ('false' as const), advTrack: S.adv ? '#e9e7e2' : '#2b2b2b', advKnob: S.adv ? '#000' : '#8a867e', advKnobX: S.adv ? '16px' : '2px', advTextColor: S.adv ? '#f3f1ec' : '#9d998f',
+      toggleAdv: () => { const on = !this.state.adv; try { localStorage.setItem('ukeloop.advanced', on ? '1' : '0') } catch { /* privat modus */ } this.setState({ adv: on }) },
+      advImg: !!(S.adv && sel && this.bgOf(sel) && !sel.vid), advAdj: sel?.adj ?? null,
+      onAdvAdj: (p: AdvAdj) => { const id0 = sel?.id; if (!id0) return; this.setState((st) => ({ slides: st.slides.map((x) => (x.id === id0 ? { ...x, adj: { ...(x.adj ?? {}), ...p } } : x)) })); this.pk = null },
       saveBtnLabel: this.diskId || this.sharedEntry ? 'Lagre' : 'Lagre på Disk',
       saveActionLabel: (S.saveTarget === 'f' ? this.sharedEntry : this.diskId) ? 'Lagre endringer' : 'Lagre',
       canSaveAsNew: S.saveTarget === 'f' ? !!this.sharedEntry : !!this.diskId, saveName: S.saveName == null ? '' : S.saveName,

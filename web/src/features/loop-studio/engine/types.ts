@@ -1,3 +1,4 @@
+import type { AdvAdj } from '../../../shared/image/AdvAdjust'
 /**
  * Dataformatet i Loop Studio, likt dagens app (media-lab/src/pages/studio-editor/logic.js). Alt er valgfritt fordi
  * lagrede prosjekter fra alle tidligere versjoner skal kunne åpnes; motoren tåler manglende felt.
@@ -120,6 +121,8 @@ export interface Slide {
   vidSound?: boolean | undefined
   vidMusic?: boolean | undefined
   vidVol?: number | null | undefined
+  /** Avanserte bildejusteringer for bakgrunnsbildet (Avansert modus). Mangler = bildet som før. */
+  adj?: AdvAdj | null | undefined
 }
 
 /** Fast bilde: møtenavn (nøkkelord) → bakgrunnsbilde. */
@@ -234,6 +237,8 @@ export interface Guide { t: 'v' | 'h'; v: number }
 
 export interface LoopMedia {
   images: Record<string, HTMLImageElement>
+  /** Avansert modus: justert kopi av et bakgrunnsbilde (null = tegn originalen). Finnes ikke i eksporterte spillere – der er bildene ferdig justert. */
+  adj?: (img: HTMLImageElement, a: AdvAdj) => CanvasImageSource | null
   video: HTMLVideoElement | null
   vids?: Record<string, HTMLVideoElement>
   guides?: Guide[] | null

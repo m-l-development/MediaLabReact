@@ -62,6 +62,7 @@ export interface State {
   cropBox: CropBox
   narrow: boolean
   autoSave: boolean
+  adv: boolean
   autoAt: string
   newOpen: boolean
   newMode: 'new' | 'apply'
@@ -124,6 +125,8 @@ export interface Deps {
 }
 
 const AUTO_KEY = 'thumbstudio.autosave'
+/** Avansert modus (avanserte bildejusteringer); standardvisningen er uendret når den er av. */
+const ADV_KEY = 'thumbstudio.advanced'
 const LAYOUT_KEY = 'thumbstudio.layout'
 const CUSTOM_KEY = 'thumbstudio.layoutCustom'
 const CLIP_KEY = 'thumbstudio.clip'
@@ -243,7 +246,7 @@ export class ThumbController {
       baseEdit: false, layoutId: 'main', sel: null, multi: [], barSel: null, hist: [], fut: [], gx: [], gy: [], msg: null, ai: null, maskEdit: null,
       exp: false, expRes: '1080', expFmt: 'png', expT: false, expBusy: false, expSize: null, save: false, logoOpen: false, shapeOpen: false,
       libOpen: false, busyImg: false, zoom: 1, cropId: null, cropBox: { cL: 0, cT: 0, cR: 0, cB: 0 }, narrow: false,
-      autoSave: st.get(AUTO_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', palOpen: false, previews: {},
+      autoSave: st.get(AUTO_KEY) === '1', adv: st.get(ADV_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', palOpen: false, previews: {},
       ctx: null, viewMenu: false, layoutMode: lm === 'custom' && !custom ? 'std' : (lm ?? 'std'), customLayout: custom, lcOpen: false,
       lcDraft: null, colTab: {}, addColor: null, dropOn: null, backupBusy: false, sharedReady: false, sharedExists: false, picker: null, tick: 0,
     })
@@ -876,6 +879,12 @@ export class ThumbController {
       const t = new Date(this.now())
       this.set({ autoAt: `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}` })
     }
+  }
+
+  toggleAdv(): void {
+    const on = !this.s.adv
+    this.d.storage.set(ADV_KEY, on ? '1' : '0')
+    this.set({ adv: on })
   }
 
   toggleAuto(): void {

@@ -561,7 +561,8 @@ export function __ukeloopRendererFactory() {
       var cs = Math.max(W / iw, H / ih) * z, cw = iw * cs, ch = ih * cs, limX = Math.max(0, (cw - W) / 2), limY = Math.max(0, (ch - H) / 2);
       var pX = s.panX != null ? s.panX : PT ? (s.fx == null ? 0.66 : s.fx) : 0.5, pY = s.panY != null ? s.panY : 0.5;
       var fdx = clamp((0.5 - pX) * cw, -limX, limX), fdy = clamp((0.5 - pY) * ch, -limY, limY);
-      ctx.globalAlpha = a; cover(ctx, img, iw, ih, W, H, z, dx + shx + fdx, shy + fdy);
+      var dimg = img; if (!isV && s.adj && E.media.adj) { var aj = E.media.adj(img, s.adj); if (aj) dimg = aj; }
+      ctx.globalAlpha = a; cover(ctx, dimg, iw, ih, W, H, z, dx + shx + fdx, shy + fdy);
       var tMode = s.tintMode || 'auto', tOn = tMode === 'off' ? false : tMode === 'custom' ? !!s.tint : !!cfg.duotone;
       if (tOn) {
         var tList = cfg.tintColor ? [cfg.tintColor] : cfg.panels && cfg.panels.length ? cfg.panels.map(function (p) { return p.color; }) : pal;
@@ -579,7 +580,7 @@ export function __ukeloopRendererFactory() {
           for (var gk = 0; gk < 9; gk++) {
             var gy = hsh(fr * 13.1 + gk) * H, gh = (0.02 + 0.1 * hsh(fr * 7.7 + gk * 3.1)) * H, gx = (hsh(fr * 3.3 + gk * 5.7) - 0.5) * 180 * u * gi;
             ctx.save(); ctx.beginPath(); ctx.rect(0, gy, W, gh); ctx.clip();
-            cover(ctx, img, img.naturalWidth, img.naturalHeight, W, H, z * (1 + 0.03 * gi), dx + shx + fdx + gx, shy); ctx.restore();
+            cover(ctx, dimg, img.naturalWidth, img.naturalHeight, W, H, z * (1 + 0.03 * gi), dx + shx + fdx + gx, shy); ctx.restore();
           }
           ctx.save(); ctx.globalCompositeOperation = 'screen';
           for (var gb = 0; gb < 4; gb++) { ctx.fillStyle = rgba(gb % 2 ? '#ffffff' : cfg.accent, (0.18 + 0.2 * hsh(fr + gb * 9.1)) * gi); ctx.fillRect(0, hsh(fr * 5.1 + gb * 2.3) * H, W, (2 + 10 * hsh(fr + gb)) * u); }

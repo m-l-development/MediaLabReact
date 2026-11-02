@@ -1,4 +1,6 @@
 import { rgba } from './colors'
+import { adjustImage } from '../../photo-design/engine/render'
+import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { ImageCache, LoadedImage } from './images'
 import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
@@ -348,7 +350,8 @@ export class Renderer {
       g.restore()
       return
     }
-    const im = l.tint ? this.images.tinted(e, l.tint) : e.img
+    // avanserte justeringer (Avansert modus) tegnes med Photo-motoren; uten dem tegnes bildet nøyaktig som før
+    const im = l.tint ? this.images.tinted(e, l.tint) : advActive(l.adj) ? (adjustImage(e.img, l.adj as AdvAdj) ?? e.img) : e.img
     const clip = l.shape !== 'rect' || l.fit === 'cover' || l.zoom > 1 || l.border > 0
     if (clip) {
       if (l.shadow > 0) {

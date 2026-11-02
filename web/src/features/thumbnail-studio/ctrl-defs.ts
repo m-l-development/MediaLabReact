@@ -1,4 +1,5 @@
 import { gbox, type LayerPatch, type ThumbController } from './controller'
+import type { AdvAdj } from '../../shared/image/AdvAdjust'
 import { countImgs, FONTS, H, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
 import { fitSize } from './engine/render'
 import { bakeList } from './engine/text-list'
@@ -18,6 +19,7 @@ export type Ctrl =
   | { k: 'nums'; items: [string, number, (v: number) => void][] }
   | { k: 'btns'; items: { label: Phrase; v?: Vars; on: () => void; kind?: 'p' | 'd' | ''; disabled?: boolean }[] }
   | { k: 'img'; label: Phrase; src: string | null; pick: () => void; clear: () => void; layer?: ImageLayer }
+  | { k: 'adv'; val: AdvAdj | null; set: (p: AdvAdj) => void }
   | { k: 'bg'; label: Phrase; val: string; def: string; note: Phrase; set: (v: string) => void }
 
 export const WEIGHT_NAMES: Record<number, Phrase> = { 400: 'Vanlig', 500: 'Medium', 600: 'Halvfet', 700: 'Fet', 800: 'Ekstra fet', 900: 'Svart' }
@@ -164,6 +166,8 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
         SL('Kontrast', l.con || 0, -100, 100, 1, (v) => set({ con: v }), ''),
         SL('Metning', l.sat || 0, -100, 100, 1, (v) => set({ sat: v }), ''))
       if (l.bri || l.con || l.sat) C.push(BT([{ label: 'Nullstill justeringene', on: () => set({ bri: 0, con: 0, sat: 0 }) }]))
+      // Avansert modus: flere justeringer og RGB-kurver (i tillegg til de over, som er uendret)
+      if (c.s.adv) C.push({ k: 'adv', val: l.adj ?? null, set: (p) => set({ adj: { ...(l.adj ?? {}), ...p } }) })
     }
     // malens bakgrunn rett ved bildet (samme verdi som under «Bakgrunn» i malpanelet)
     if (c.s.doc?.bg.type === 'color') C.push({ k: 'bg', label: 'Bakgrunn', val: c.s.doc.bg.color, def: '#000000', note: 'Fargen bak bildene i hele malen. Den kommer med i eksporten.', set: (v) => c.setBg({ color: v }) })
