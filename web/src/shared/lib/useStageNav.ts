@@ -22,13 +22,15 @@ export function useStageNav(o: {
   enabled?: boolean
   /** Hvor tastaturåpnet meny skal vises (klientkoordinater), f.eks. midt på valgt lag. */
   menuPoint?: () => { x: number; y: number } | null
-}): { panning: boolean; space: boolean; back: () => void } {
+  /** Det valgte i klientkoordinater, for Shift+2 «zoom til markering» (Figma). */
+  selRect?: () => { left: number; top: number; width: number; height: number } | null
+}): { panning: boolean; space: boolean; back: () => void; toSelection: () => void } {
   const latest = useRef(o)
   // siste verdier for lytterne (oppdateres etter rendering, ikke under)
   useLayoutEffect(() => {
     latest.current = o
   })
-  const pending = useRef<{ left: number; top: number; width: number; height: number; px: number; py: number } | null>(null)
+  const pending = useRef<{ left: number; top: number; width: number; height: number; px: number; py: number; center?: boolean } | null>(null)
   const [panning, setPanning] = useState(false)
   const [space, setSpace] = useState(false)
   const spaceRef = useRef(false)
@@ -53,7 +55,17 @@ export function useStageNav(o: {
     const r = restore.current
     restore.current = null
     if (r && st) scrollTo(st, r.sl, r.st)
-    else if (p && st && ct) anchorScroll(st, ct, p)
+    else if (p && st && ct) {
+      anchorScroll(st, ct, p)
+      // zoom til markering: punktet (midt i markeringen) flyttes til midten av flaten
+      if (p.center) {
+        const sr = st.getBoundingClientRect()
+        const cr = ct.getBoundingClientRect()
+        const fx = (p.px - p.left) / Math.max(1, p.width)
+        const fy = (p.py - p.top) / Math.max(1, p.height)
+        scrollTo(st, st.scrollLeft + cr.left + fx * cr.width - (sr.left + sr.width / 2), st.scrollTop + cr.top + fy * cr.height - (sr.top + sr.height / 2))
+      }
+    }
     if (st) {
       V.sl = st.scrollLeft
       V.st = st.scrollTop
@@ -73,9 +85,29 @@ export function useStageNav(o: {
       restore.current = null
     } else latest.current.setZoom(p.zoom)
   }
+  const toSelection = () => {
+    const L = latest.current
+    const st = o.stage.current
+    const ct = L.content.current
+    const b = L.selRect?.()
+    if (!st || !ct || !b || b.width < 1 || b.height < 1) return
+    const z = Math.max(L.min, Math.min(L.max, L.zoom * Math.min((st.clientWidth * 0.8) / b.width, (st.clientHeight * 0.8) / b.height)))
+    const r = ct.getBoundingClientRect()
+    const p = { left: r.left, top: r.top, width: r.width, height: r.height, px: b.left + b.width / 2, py: b.top + b.height / 2, center: true }
+    if (Math.abs(z - L.zoom) < 1e-4) {
+      // samme zoom: bare midtstill markeringen
+      const sr = st.getBoundingClientRect()
+      scrollTo(st, st.scrollLeft + p.px - (sr.left + sr.width / 2), st.scrollTop + p.py - (sr.top + sr.height / 2))
+    } else {
+      pending.current = p
+      L.setZoom(z)
+    }
+  }
+  const selRef = useRef(toSelection)
   const backRef = useRef(back)
   useLayoutEffect(() => {
     backRef.current = back
+    selRef.current = toSelection
   })
 
 
@@ -145,6 +177,11 @@ export function useStageNav(o: {
     const key = (e: KeyboardEvent) => {
       if (e.type === 'keydown' && latest.current.enabled !== false && !isTypingTarget(e.target) && !document.querySelector('[data-ctx-menu]')) {
         const inside = st.contains(document.activeElement) || over.current
+        if (inside && e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'Digit2') {
+          e.preventDefault()
+          selRef.current()
+          return
+        }
         if (inside && e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'Digit0') {
           e.preventDefault()
           backRef.current()
@@ -201,7 +238,7 @@ export function useStageNav(o: {
     }
   }, [o.stage])
 
-  return { panning, space, back }
+  return { panning, space, back, toSelection }
 }
 
 function scrollTo(el: HTMLElement, left: number, top: number): void {

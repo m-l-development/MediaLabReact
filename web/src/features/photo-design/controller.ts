@@ -27,6 +27,8 @@ export type Picker = { kind: 'media' | 'cloud'; target: PickerTarget; start?: 'f
 export interface BatchJob { kind: 'import' | 'export'; done: number; total: number; failed: string[]; end: boolean }
 
 export interface PState {
+  /** Høyreklikkmenyen (lerretet eller lagpanelet): posisjon og laget den gjelder (null = tom flate). */
+  ctx: { x: number; y: number; id: string | null } | null
   ready: boolean
   view: 'home' | 'edit'
   entries: PdEntry[]
@@ -176,7 +178,7 @@ export class PhotoController {
       projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, ctx: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), bx: null, bfmt: 'jpg', tver: 0,
     })
   }
@@ -908,6 +910,16 @@ export class PhotoController {
       const ti = a.findIndex((x) => x.id === to)
       if (m) a.splice(ti + 1, 0, m)
       return { ...dd, layers: a }
+    })
+  }
+
+  /** Til fremst (øverst) eller bakerst (nederst) i lagrekkefølgen (Photoshop / Figma). */
+  moveToEnd(id: string, end: 'front' | 'back'): void {
+    this.setDoc((d) => {
+      const L = d.layers.find((q) => q.id === id)
+      if (!L) return d
+      const rest = d.layers.filter((q) => q.id !== id)
+      return { ...d, layers: end === 'front' ? [...rest, L] : [L, ...rest] }
     })
   }
 
@@ -1993,7 +2005,7 @@ export class PhotoController {
 
   // ---------- diverse ----------
 
-  ui(p: Partial<Pick<PState, 'fmt' | 'cw' | 'ch' | 'tool' | 'tab' | 'brush' | 'zoom' | 'exp' | 'expOpen' | 'ltab' | 'fillOpen' | 'linkCol' | 'dragOver' | 'brushXY' | 'narrow' | 'shapesOpen' | 'logoOpen' | 'fxCat' | 'fxQ' | 'fxN' | 'fxPal' | 'fxStr' | 'fxCk' | 'sel' | 'multi' | 'bfmt'>>): void {
+  ui(p: Partial<Pick<PState, 'fmt' | 'cw' | 'ch' | 'tool' | 'tab' | 'brush' | 'zoom' | 'exp' | 'expOpen' | 'ltab' | 'fillOpen' | 'linkCol' | 'dragOver' | 'brushXY' | 'narrow' | 'shapesOpen' | 'logoOpen' | 'fxCat' | 'fxQ' | 'fxN' | 'fxPal' | 'fxStr' | 'fxCk' | 'sel' | 'multi' | 'bfmt' | 'ctx'>>): void {
     this.set(p)
   }
 

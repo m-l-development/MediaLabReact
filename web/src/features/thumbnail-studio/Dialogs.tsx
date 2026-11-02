@@ -348,6 +348,8 @@ export function ContextMenu({ c, S, tx }: { c: ThumbController; S: State; tx: Tx
     ['Speil vannrett', 'Shift+H', () => c.flipSel('x'), has],
     ['Speil loddrett', 'Shift+V', () => c.flipSel('y'), has],
     ['Dupliser', `${mod}D`, () => S.sel && c.dupLayer(S.sel), has && c.selIds().length === 1],
+    ['Flytt fram', '', () => S.sel && c.moveZ(S.sel, 1), has && c.selIds().length === 1],
+    ['Flytt bak', '', () => S.sel && c.moveZ(S.sel, -1), has && c.selIds().length === 1],
     ['Slett', 'Del', () => (S.multi.length > 1 ? c.delGroup() : S.sel && c.delLayer(S.sel)), has],
   ]
   // felles meny (shared/ui/ContextMenu): tastatur (piltaster, Enter, Escape), fokus tilbake, innenfor vinduet
@@ -359,6 +361,7 @@ export function ContextMenu({ c, S, tx }: { c: ThumbController; S: State; tx: Tx
       { label: tx('Zoom inn'), keys: '+', separator: true, disabled: S.zoom >= 4, onSelect: () => c.zoomIn() },
       { label: tx('Zoom ut'), keys: '−', disabled: S.zoom <= 1, onSelect: () => c.zoomOut() },
       { label: '100 %', keys: '0 · Shift+1', disabled: S.zoom === 1, onSelect: () => c.setZoom(1) },
+      { label: tx('Zoom til markering'), keys: 'Shift+2', disabled: !has, onSelect: () => c.viewSel() },
       { label: tx('Forrige visning'), keys: mod === '⌘' ? '⌥0' : 'Alt+0', onSelect: () => c.viewBack() },
     ]} />
   )

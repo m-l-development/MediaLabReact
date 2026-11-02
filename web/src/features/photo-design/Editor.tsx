@@ -673,6 +673,12 @@ function LayerList({ c, S, tx }: EditorProps) {
           return (
             <div key={q.id} data-layer={q.id} className={[s.layerRow, ids.has(q.id) ? s.layerOn : '', q.hidden ? s.layerHidden : ''].join(' ')} title={tx('Dra for å endre rekkefølge')} draggable
               onClick={(e) => c.clickLayer(q.id, e.shiftKey || e.ctrlKey || e.metaKey)}
+              onContextMenu={(e) => {
+                // samme lagmeny som på lerretet, for laget i raden (velges hvis det ikke er med i markeringen)
+                e.preventDefault()
+                if (!c.selIds().includes(q.id)) c.clickLayer(q.id, false)
+                c.ui({ ctx: { x: e.clientX, y: e.clientY, id: q.id } })
+              }}
               onDragStart={(e) => {
                 lagDrag = q.id
                 try {
@@ -744,7 +750,7 @@ function LayerName({ value, display, onRename, tx }: { value: string; display: s
 
 const H = (kind: 'corner' | 'edgeX' | 'edgeY' | 'rot', sx: number, sy: number, left: string, top: string, cursor: string, label: Phrase) => ({ kind, sx, sy, left, top, cursor, label })
 
-function Stage({ c, S, tx }: EditorProps) {
+function Stage({ c, S, tx, pickFile }: EditorProps) {
   const stage = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -755,10 +761,8 @@ function Stage({ c, S, tx }: EditorProps) {
   useEffect(() => {
     const el = stage.current
     if (!el) return
-    // ytre mål (offsetWidth/-Height): uendret når rullefeltene kommer og går ved zoom, så «tilpass» endrer seg ikke
-    // under brukeren (punktet under pekeren ville ellers drevet)
     const measure = () => {
-      c.setFit(Math.max(0.02, Math.min((el.offsetWidth - 60) / d.w, (el.offsetHeight - 60) / d.h)))
+      c.setFit(Math.max(0.02, Math.min((el.clientWidth - 60) / d.w, (el.clientHeight - 60) / d.h)))
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -824,8 +828,18 @@ function Stage({ c, S, tx }: EditorProps) {
       const r = wrap.current?.getBoundingClientRect()
       return q && r ? { x: r.left + q.x * c.sc(), y: r.top + q.y * c.sc() } : null
     },
+    // Shift+2: zoom til markeringen (ett eller flere lag)
+    selRect: () => {
+      const ids = c.selIds()
+      const r = wrap.current?.getBoundingClientRect()
+      if (!ids.length || !r) return null
+      const b = c.boundsOf(ids)
+      const k = c.sc()
+      return { left: r.left + b.x0 * k, top: r.top + b.y0 * k, width: (b.x1 - b.x0) * k, height: (b.y1 - b.y0) * k }
+    },
   })
-  const [menu, setMenu] = useState<{ x: number; y: number; id: string | null } | null>(null)
+  const menu = S.ctx
+  const setMenu = (m: PState['ctx']) => c.ui({ ctx: m })
   // høyreklikkmeny: bare handlinger som passer det som er under pekeren (lag eller tom flate), med tastene ved siden av
   const menuItems = (id: string | null): MenuItem[] => {
     const batch = !!d.batch
@@ -835,6 +849,7 @@ function Stage({ c, S, tx }: EditorProps) {
       { label: '100 %', keys: K('Shift+0'), onSelect: () => c.ui({ zoom: Math.min(8, Math.max(0.1, 1 / (c.s.fit || 1))) }) },
       { label: tx('Zoom inn'), keys: '+', onSelect: () => c.ui({ zoom: Math.min(8, c.s.zoom * 1.25) }) },
       { label: tx('Zoom ut'), keys: '−', onSelect: () => c.ui({ zoom: Math.max(0.1, c.s.zoom / 1.25) }) },
+      { label: tx('Zoom til markering'), keys: K('Shift+2'), disabled: !c.selIds().length, onSelect: () => nav.toSelection() },
       { label: tx('Forrige visning'), keys: K('Alt+0'), onSelect: () => nav.back() },
     ]
     const edit: MenuItem[] = [
@@ -853,6 +868,16 @@ function Stage({ c, S, tx }: EditorProps) {
       ...(many ? [{ label: tx('Grupper'), keys: K('Mod+G'), separator: true, onSelect: () => c.group() }] : Lm?.grp ? [{ label: tx('Del opp gruppen'), keys: K('Mod+G'), separator: true, onSelect: () => c.ungroup() }] : []),
       { label: tx('Flytt fram'), separator: !many && !Lm?.grp, onSelect: () => c.move(id, 1) },
       { label: tx('Flytt bak'), onSelect: () => c.move(id, -1) },
+      ...(!many ? [{ label: tx('Til fremst'), onSelect: () => c.moveToEnd(id, 'front') }, { label: tx('Til bakerst'), onSelect: () => c.moveToEnd(id, 'back') }] : []),
+      // bildelag: de vanligste bildehandlingene (som i Photoshops lagmeny)
+      ...(Lm?.type === 'image' && !many ? [
+        { label: tx('Bytt bilde'), separator: true, disabled: !!Lm.locked, onSelect: () => pickFile(id) },
+        ...(Lm.src ? [
+          { label: tx('Beskjær'), keys: 'C', disabled: !!Lm.locked, onSelect: () => c.ui({ tool: 'crop', tab: 'layer' }) },
+          { label: tx('Speil'), disabled: !!Lm.locked, onSelect: () => c.patchL(id, { flipX: !Lm.flipX }) },
+          { label: tx('Finjuster masken …'), disabled: !!Lm.locked, onSelect: () => c.openMaskEdit() },
+        ] : []),
+      ] : []),
       ...(Lm && !many ? [
         { label: Lm.hidden ? tx('Vis') : tx('Skjul'), onSelect: () => c.patchL(id, { hidden: !Lm.hidden }) },
         { label: Lm.locked ? tx('Lås opp') : tx('Lås'), onSelect: () => c.patchL(id, { locked: !Lm.locked }) },

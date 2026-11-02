@@ -14,6 +14,7 @@ import { useStore } from '../../shared/lib/store'
 import { fitUpload } from '../../shared/media/upload-fit'
 import { useTheme } from '../../shared/theme/theme'
 import { CloudPicker, type CloudArea, type CloudPick } from '../cloud-picker/CloudPicker'
+import { ContextMenu } from '../../shared/ui/ContextMenu'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { centralBases, personalBases, type KV } from './bases'
 import { LoopController, type LoopDeps } from './controller'
@@ -287,6 +288,12 @@ function Editor({ deps, tx, homeHref, registerLifecycle }: { deps: LoopDeps; tx:
           innlastingen det brukeren rakk å skrive, og «Oppdater grunnoppsettet» lagret det gamle innholdet */}
       {c.state.ready ? <EditorView v={{ ...v, homeHref, goHome }} tx={tx} /> : <div className={L.loading} data-loop-loading="1">{tx('LASTER …')}</div>}
       <Banners c={c} tx={tx} />
+      {c.state.pvMenu && (
+        <ContextMenu x={c.state.pvMenu.x} y={c.state.pvMenu.y} label={tx('Forhåndsvisning')} items={() => c.pvMenuItems()} onClose={() => c.setState({ pvMenu: null })} />
+      )}
+      {c.state.slideMenu && (
+        <ContextMenu x={c.state.slideMenu.x} y={c.state.slideMenu.y} label={tx('Slide')} items={() => c.slideMenuItems(c.state.slideMenu?.id ?? '')} onClose={() => c.setState({ slideMenu: null })} />
+      )}
     </div>
   )
 }

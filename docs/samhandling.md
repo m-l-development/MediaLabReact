@@ -19,7 +19,7 @@ Kildene er offisiell dokumentasjon der den finnes. «Dokumentert» betyr at det 
 | **DaVinci Resolve** | Alt/⌥ + hjul zoomer tidslinjen. Vanlig hjul ruller loddrett, Shift + hjul ruller i tid. Ikke offisielt bekreftet: kilden er manualen for 18.6 (speil) og forum. ([18.6](https://www.steakunderwater.com/VFXPedia/__man/Resolve18-6/DaVinciResolve18_Manual_files/part3562.htm), [forum](https://forum.blackmagicdesign.com/viewtopic.php?p=772257)) | En tidslinje er ikke et lerret: hjulet ruller, og zoom krever en modifikatortast. | Motion: hjul ruller mellom spor, Shift ruller i tid. Alt + hjul og Ctrl/⌘ + hjul zoomer ved pekeren. |
 | **Final Cut Pro** | ⌘+ / ⌘− zoomer. Shift-Z = Zoom to Fit. Option-Shift-Z tilpasser høyden. Hold Z = midlertidig zoomverktøy. ([tidslinje](https://support.apple.com/guide/final-cut-pro/zoom-in-to-and-out-of-the-timeline-ver4e2edcc/mac)) | Shift-Z som «tilpass». | Shift+Z tilpasser tidslinjen (Avansert-modus). |
 | **CapCut** | Ctrl/⌘ + B deler, Shift+Z tilpasser, Ctrl ± zoomer. Ikke offisielt bekreftet: bare tredjepartslister. ([liste](https://www.skillademia.com/shortcuts/capcut-shortcuts/)) | Shift+Z går igjen også her. | Samme Shift+Z. Media Lab beholder S for «del» (som før). |
-| **Figma** | Shift+1 tilpasser, Shift+2 zoomer til markeringen. Mellomrom eller H gir hånd. Knip og Ctrl/⌘ + hjul zoomer. Piltaster panorerer når ingenting er valgt. Snarveipanel med Ctrl+Shift+?. F6 / Ctrl+F6 gir verktøylinjen fokus. ([zoom](https://help.figma.com/hc/en-us/articles/360041065034-Adjust-your-zoom-and-view-options), [tastatur](https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard)) | Shift+1 / Shift+0, snarveipanel, tastaturnavigering. | Shift+1 tilpasser og Shift+0 gir 100 %. Snarveipanel med «?» eller Ctrl/⌘+Shift+?. F6 er ikke tatt med (se § 4). |
+| **Figma** | Shift+1 tilpasser, Shift+2 zoomer til markeringen (Media Lab: Shift+2 i Photo og Thumbnail). Mellomrom eller H gir hånd. Knip og Ctrl/⌘ + hjul zoomer. Piltaster panorerer når ingenting er valgt. Snarveipanel med Ctrl+Shift+?. F6 / Ctrl+F6 gir verktøylinjen fokus. ([zoom](https://help.figma.com/hc/en-us/articles/360041065034-Adjust-your-zoom-and-view-options), [tastatur](https://help.figma.com/hc/en-us/articles/360040328653-Use-Figma-products-with-a-keyboard)) | Shift+1 / Shift+0, snarveipanel, tastaturnavigering. | Shift+1 tilpasser og Shift+0 gir 100 %. Snarveipanel med «?» eller Ctrl/⌘+Shift+?. F6 er ikke tatt med (se § 4). |
 | **FigJam** | Mellomrom = midlertidig hånd. Shift + hjul ruller sideveis. Ctrl/⌘ + hjul zoomer, og vanlig hjul kan slås på som zoom. Zoomprosenten kan skrives inn. Shift+1 / Shift+2. ([pan og zoom](https://help.figma.com/hc/en-us/articles/1500004414582-Pan-and-zoom-in-FigJam)) | Zoomprosenten kan skrives inn. | Zoomprosenten kan skrives inn i Photo Design og i maskeredigeringen. |
 | **Canva** | Ctrl ± zoomer, Ctrl+0 gir faktisk størrelse, Alt+Ctrl+0 tilpasser. Ctrl+D dupliserer, Ctrl+G grupperer, Alt+Shift+L låser. ([snarveier](https://www.canva.com/help/canva-keyboard-shortcuts/)) | Dupliser, grupper og lås som vanlige handlinger. | Ctrl/⌘ + D og Ctrl/⌘ + G. Lås og skjul ligger i høyreklikkmenyen. |
 | **Illustrator** | Ctrl ± zoomer. Ctrl + mellomrom gir zoomverktøyet. Fant ingen offisiell innstilling for zoom med hjulet. ([navigasjon](https://helpx.adobe.com/illustrator/desktop/get-started/learn-the-basics/navigate-and-zoom-artwork.html)) | Vektorprogrammene ruller som standard, derfor er hjulzoom et bevisst valg hos oss. | Hjulzoom på lerreter (kravet ditt). Rulling i paneler er uendret. |
@@ -60,26 +60,35 @@ Kildene er offisiell dokumentasjon der den finnes. «Dokumentert» betyr at det 
 - Desimalkomma, minus og enhet godtas. Verdien holdes innenfor grensene. Ugyldig tekst gir en beskjed med `role="alert"`, og siste gyldige verdi beholdes.
 - Verdien vises med stiplet understrek og har tydelig fokusmarkering. Det tilgjengelige navnet er «Etikett: verdi».
 
-## 3. Endringer per app
+## 3. Dekning per app og arbeidsområde
 
-| App | Endret |
-|---|---|
-| **Photo Design** | Hjul og knip zoomer ved pekeren. Panorering med mellomrom eller midtknapp. Tallfelt i alle glidere og zoomprosent som kan skrives inn, med egen tilpass-knapp. Escape avbryter draing. Ctrl/⌘ + C/X/V for lag. Forrige visning (Alt+0). Høyreklikkmeny for lag (kopier, klipp ut, lim inn, dupliser, grupper / del opp, flytt fram / bak, skjul, lås, slett, angre, visning) og for tom flate (lim inn, velg alle, visning). Arbeidsflaten kan få fokus, og Shift+F10 åpner menyen. Delete og Ctrl+Z i maskedialogen virker ikke lenger på dokumentet bak. |
-| **Thumbnail Studio** | Samme lerretsmodell. Escape avbryter draing. Forrige visning. Lagmenyen bruker den felles menyen og har fått visningshandlinger. Shift+F10 virker. Taster sperres mens maskeredigering eller meny er åpen. |
-| **Maskeredigeringen** (Isolate, Photo, Thumbnail) | Ny hjul- og styreflateregel. Høyreklikkmeny (Behold/Fjern, verktøy, angre, visning). Penselstørrelse, hardhet og zoom kan skrives inn. Escape avbryter strøket. |
-| **Isolate Subject** | «Myke kanter» og «Stram inn kantene» viser og tar imot tall. |
-| **Motion Design** | Alt + hjul zoomer i tid, og musehjulet zoomer i trinn. Tall ved glidere og effekter kan skrives inn. Tidslinjens mønster er dokumentert. |
-| **Loop Studio** | Rulling zoomer uten Ctrl. Tallene ved glidebryterne er merket, kan klikkes (før: bare dobbeltklikk), nås med Tab og har navn. Pil opp/ned virker, og ugyldig tekst gir en beskjed. |
-| **Mockups** | Høyreklikkmeny på mockupen (bytt eller plasser design, vis hele, roter, speil, tilbakestill, fjern, angre / gjør om, forrige / neste). «Gjør om» (Ctrl/⌘+Shift+Z, Ctrl+Y) og egen knapp. Arbeidsflaten kan få fokus. Felles tallfelt. |
-| **Dine medier** | Kortene kan få fokus. Høyreklikk og Shift+F10 gir «Åpne i …», «Last ned» og «Slett …» (spør først). Delete på et kort sletter etter bekreftelse. |
-| **Fyllredigeringen** (Photo, Thumbnail) | Posisjon, mengde, retning, overgang, skarphet og antall kan skrives inn. |
-| **Alle apper** | Søkbart snarveipanel. Fokusmarkering for arbeidsflater (`data-focus-region`). |
+✔ = implementert. «(fra før)» = fantes og er beholdt. – = ikke relevant (begrunnet i § 4). Testene som dekker dette: `e2e/workspace-nav`, `interaction`, `interaction-more`, `motion-context-menus`, `num-field`, `isolate-mask-direct` og `isolate-mask-editor`, i tillegg til de eksisterende app-testene.
+
+| App / område | Mus og styreflate (hjul, knip) | Zoom og panorering | Dra og slipp | Tastatur, snarveier, panelfokus | Høyreklikkmeny | Tallverdier |
+|---|---|---|---|---|---|---|
+| **Photo Design**, lerret | ✔ zoom ved pekeren, styreflate jevnt, hjul i trinn | ✔ mellomrom/midtknapp, + − 0 Shift+1/0/2, Alt+0, 100 %-knapp, zoomprosent kan skrives | ✔ terskel, Escape avbryter uten angresteg, slippmarkering for filer | ✔ fokuserbar flate, Ctrl/⌘ C/X/V/D/G/A, piltaster, V/C/B | ✔ lag (kopier, klipp ut, lim inn, dupliser, grupper, fram/bak, skjul, lås, slett) og tom flate | ✔ alle glidere, X/Y/B/H/rotasjon, zoom |
+| Photo Design, lagpanel | panel ruller som vanlig | – | ✔ omorganisering (fra før) | ✔ | ✔ samme lagmeny for raden | – |
+| **Thumbnail Studio**, lerret | ✔ | ✔ som Photo (min. tilpasset), Shift+2, Alt+0 | ✔ Escape avbryter, slippmarkering «legg til / bytt bildet» | ✔ fokuserbar flate, Ctrl/⌘ C/X/V/D, Shift+H/V | ✔ lagmeny med visning | ✔ (fra før: felt ved gliderne) |
+| Thumbnail Studio, lagpanel | panel ruller | – | ✔ (fra før) | ✔ | ✔ samme lagmeny for raden | – |
+| **Maskeredigeringen** (Isolate, Photo, Thumbnail) | ✔ | ✔ + − 0 Shift+1/0, zoomprosent kan skrives | ✔ Escape avbryter strøk | ✔ B/R/E/L/V, X, [ ], Alt+hjul; dokumentet bak får ikke tastene | ✔ verktøy, Behold/Fjern, angre, visning | ✔ penselstørrelse, hardhet, zoom |
+| **Isolate Subject**, panel | – | – (maskeredigeringen) | ✔ (fra før) | ✔ | ✔ Media Lab-meny (ingen egne handlinger) | ✔ myke kanter, stram inn |
+| **Motion Design**, tidslinje | ✔ hjul ruller spor, Shift i tid; Ctrl/⌘/Alt + hjul og knip zoomer ved pekeren | ✔ + − rundt spillehodet, Shift+Z | ✔ (fra før) + Escape avbryter | ✔ fokuserbar, Shift+F10, S/Q/W/M, Alt+piler, Home/End | ✔ klipp, flere klipp, tomt område (tid under pekeren), spor (lås/skjul), markør; låst spor bare ufarlige valg | ✔ effekter og egenskaper, tider (fra før) |
+| Motion Design, forhåndsvisning | – (videovisning, se § 4) | ✔ fullskjerm (F / knapp): prosjektets oppløsning (1080p → 1920 × 1080, 4K → 3840 × 2160, begrenset av skjermen; ned til 1080p hvis maskinen ikke rekker 4K) | ✔ flytt objekt (fra før) | ✔ fokuserbar, Shift+F10; i fullskjerm: mellomrom, Escape, avspillingslinje med glider (piler, Shift, Home/End, Page Up/Down) | ✔ eget sett for objektet under pekeren / tom visning | – |
+| Motion Design, mediebibliotek | panel ruller | – | ✔ (fra før) | ✔ | ✔ legg på spor, bytt media, fjern | – |
+| **Loop Studio**, forhåndsvisning | ✔ zoom uten Ctrl | ✔ | ✔ (fra før) | ✔ mellomrom, Ctrl/⌘ Z | ✔ Media Lab-meny | – |
+| Loop Studio, slidekort | – | – | ✔ (fra før, med markør) | ✔ Alt+piler/Home/End, Shift+F10 | ✔ dupliser, skjul, flytt, fjern | – |
+| Loop Studio, paneler | panel ruller | – | – | ✔ tallene nås med Tab | ✔ Media Lab-meny | ✔ alle tall ved gliderne (klikk, Enter/F2, piler) |
+| **Mockups**, mockup | ✔ zoom ved pekeren | ✔ mellomrom/midtknapp, + − 0, Alt+0 | ✔ design, logo, hjørner (fra før) | ✔ fokuserbar, Ctrl/⌘ Z / Shift+Z / Y, ← → | ✔ design (bytt, plasser, roter, speil, tilbakestill, fjern), visning, angre/gjør om | ✔ zoom, forskyvning, vinkel, skygge, glans |
+| Mockups, galleri | side ruller | – | ✔ slipp design (fra før) | ✔ | ✔ åpne, last opp design, slett egne | – |
+| **Dine medier** | side ruller | – | ✔ slipp filer (fra før) | ✔ fokuserbare kort, Delete, Shift+F10 | ✔ åpne i app, last ned, slett | – |
+| **Alle apper** | hjulet fanges bare over arbeidsflater | – | – | ✔ snarveipanel («?», Ctrl/⌘+Shift+?), fokusmarkering | ✔ Media Lab-meny i stedet for nettleserens (unntatt tekstfelt, lenker og markert tekst) | ✔ felles NumField |
 
 ## 4. Bevisste avvik og begrensninger
 
 - **Ctrl/⌘ ± og Ctrl/⌘ + 0** zoomer siden i nettleseren. Media Lab bruker derfor `+`, `−`, `0`, Shift+1 og Shift+0.
 - **F6** gir fokus til adressefeltet i nettleseren. Media Lab bruker vanlig Tab-rekkefølge og synlig fokus i stedet.
 - **Høyre knapp + dra for å panorere** (Miro) passer ikke, fordi høyreklikk skal gi en meny.
-- **Zoom til markering** (Figma Shift+2) og **dra over etiketten for å endre verdien** (Photoshop, Blender) er ikke laget ennå.
+- **Dra over etiketten for å endre verdien** (Photoshop, Blender) er ikke tatt med: det konkurrerer med markering av tekst og dra i panelene, og pil opp/ned + innskriving dekker behovet.
+- **Motion-forhåndsvisningen** zoomer ikke med hjulet: den er en videovisning (som Premières og Resolves programvisning), og hjulet over den ville kollidere med tidslinjens rulling. Objektene flyttes og transformeres der.
 - Dra og slipp har allerede terskel og slippemarkering i Photo, Thumbnail, Motion og Loop. Escape-avbryt er lagt til der den manglet. Slipp mellom apper går via «Bruk i …» og Dine medier.
 - Fysisk mus og styreflate er ikke prøvd. Testene sender hjul-, peker- og tastehendelser med de verdiene nettleserne gir: hakk på 100/120 eller `deltaMode` 1, brøkdeler for styreflate, og `ctrlKey` for knip.

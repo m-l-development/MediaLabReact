@@ -236,6 +236,8 @@ export interface Project {
   logo: Logo
   /** Dempede lydspor (lag i `music`, A1 = 0). Dempet spor høres ikke i avspilling eller eksport; klippene beholdes. */
   muteA?: number[]
+  /** Valgt oppløsning for prosjektet (eksport og fullskjermvisning). Mangler = 1080p. */
+  res?: '720' | '1080' | '4k'
   /** Prosjektvarighet i sekunder (sekvensens definerte slutt; avspilling og eksport stopper der). Mangler = følger innholdet. */
   dur?: number | null
 }
@@ -519,6 +521,7 @@ export function normalize(input: unknown): Project {
     subStyle: { mode: oneOf(ss.mode, ['line', 'words'] as const, 'line'), hl: col(ss.hl, '#f5b82c'), size: num(ss.size, 46, 12, 200), color: col(ss.color, '#ffffff'), bgOn: ss.bgOn !== false, bg: col(ss.bg, '#000000'), bgA: num(ss.bgA, 0.6, 0, 1), pos: oneOf(ss.pos, ['bottom', 'center', 'top'] as const, 'bottom'), font: oneOf(ss.font, FONTS, 'Archivo'), weight: num(ss.weight, 600, 100, 900), upper: !!ss.upper },
     music: musicList,
     ...(typeof p.dur === 'number' && p.dur > 0 ? { dur: num(p.dur, 60, 0.5, 86400) } : {}),
+    ...(p.res === '720' || p.res === '1080' || p.res === '4k' ? { res: p.res } : {}),
     ...(Array.isArray(p.muteA) && p.muteA.length ? { muteA: [...new Set(p.muteA.map((x) => Math.round(Number(x))).filter((x) => x >= 0 && x < 50))].sort((a, b) => a - b) } : {}),
     logo: { x: lg.x === null || lg.x === undefined ? null : num(lg.x, 0.5, 0, 1), y: lg.y === null || lg.y === undefined ? null : num(lg.y, 0.5, 0, 1), src: typeof lg.src === 'string' && /^(images\/[\w.-]+\.(png|jpe?g|webp|svg)|m-[\w-]+)$/.test(lg.src) ? lg.src : '', pos: oneOf(lg.pos, ['tl', 'tr', 'bl', 'br'] as const, 'tr'), size: num(lg.size, 0.12, 0.03, 0.6), opacity: num(lg.opacity, 0.9, 0, 1), on: !!lg.on },
   }

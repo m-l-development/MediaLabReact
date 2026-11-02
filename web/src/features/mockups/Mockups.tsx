@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { useServices } from '../../app/services'
 import { TOOLS, type ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
@@ -12,6 +12,7 @@ import { Button } from '../../shared/ui/Button'
 import { NumField } from '../../shared/ui/NumField'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { formatKeys } from '../../shared/ui/shortcuts'
+import { useStageNav } from '../../shared/lib/useStageNav'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import type { MockupCategory, MockupEntry } from './engine/catalog'
@@ -361,6 +362,7 @@ interface GalleryProps {
 }
 
 function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, settingsOf, onOpen, onUpload, onPick, onClearDesign, onAddOwn, onToast }: GalleryProps) {
+  const [cardMenu, setCardMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
   const t = useT()
   const count = (c: 'all' | MockupCategory) => (c === 'all' ? allEntries.length : allEntries.filter((m) => m.cat === c).length)
   return (
@@ -400,7 +402,15 @@ function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, setti
 
       <ul className={styles.cards}>
         {entries.map((m) => (
-          <li key={m.id} className={styles.cardItem}>
+          <li key={m.id} className={styles.cardItem} onContextMenu={(e) => {
+            // høyreklikk på et kort: kortets handlinger (åpne, last opp design, slette egne)
+            e.preventDefault()
+            setCardMenu({ x: e.clientX, y: e.clientY, items: [
+              { label: t('mockups.menu.open'), onSelect: () => onOpen(m.id) },
+              { label: design ? t('mockups.menu.replace') : t('mockups.upload'), onSelect: onUpload },
+              ...(m.source === 'own' ? [{ label: t('mockups.deleteOwn') + ' …', separator: true, onSelect: () => { if (confirm(t('mockups.confirmDeleteOwn'))) void lib.removeOwn(m.id) } }] : []),
+            ] })
+          }}>
             <button type="button" className={styles.card} onClick={() => onOpen(m.id)}>
               <CardPreview mockup={m} image={lib.images.get(m.id) ?? null} design={design} settings={settingsOf(m)} />
               <span className={styles.cardName}>{m.name}<small>{t(`mockups.cat.${m.cat}`)}</small></span>
@@ -413,6 +423,7 @@ function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, setti
           </li>
         ))}
       </ul>
+      {cardMenu && <ContextMenu x={cardMenu.x} y={cardMenu.y} items={cardMenu.items} label={t('mockups.menu.label')} onClose={() => setCardMenu(null)} />}
     </section>
   )
 }
@@ -481,7 +492,11 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   const stage = useRef<HTMLElement>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
-  const [box, setBox] = useState({ w: 600, h: 400 })
+  const [fitBox, setBox] = useState({ w: 600, h: 400 })
+  // visningszoom (1 = tilpasset): hjul/knip ved pekeren, mellomrom/midtknapp panorerer, + / − / 0 (shared/lib/useStageNav)
+  const [vz, setVz] = useState(1)
+  const box = useMemo(() => ({ w: fitBox.w * vz, h: fitBox.h * vz }), [fitBox, vz])
+  const nav = useStageNav({ stage, content: wrap, zoom: vz, setZoom: setVz, min: 1, max: 6 })
   const [adj, setAdj] = useState(false)
   const [fmt, setFmt] = useState<'png' | 'jpg'>('png')
   const [busy, setBusy] = useState(false)
@@ -527,7 +542,11 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
         }
         return
       }
-      if (e.key === 'ArrowLeft') {
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_' || e.key === '0' || (e.shiftKey && (e.code === 'Digit1' || e.code === 'Digit0')))) {
+        // visning: + / − zoom, 0 / Shift+1 / Shift+0 tilpass (mockupen tilpasset vinduet)
+        e.preventDefault()
+        setVz((z) => (e.key === '+' || e.key === '=' ? Math.min(6, z * 1.25) : e.key === '-' || e.key === '_' ? Math.max(1, z / 1.25) : 1))
+      } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
         step(-1)
       } else if (e.key === 'ArrowRight') {
@@ -792,6 +811,10 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
       { label: t('mockups.removeDesign'), keys: 'Delete', disabled: !has, onSelect: () => { endEdit(); onClearDesign() } },
       { label: t('mockups.menu.undo'), keys: K('Mod+Z'), disabled: !canUndo, separator: true, onSelect: onUndo },
       { label: t('mockups.menu.redo'), keys: K('Mod+Shift+Z'), disabled: !canRedo, onSelect: onRedo },
+      { label: t('mockups.menu.zoomIn'), keys: '+', separator: true, disabled: vz >= 6, onSelect: () => setVz((z) => Math.min(6, z * 1.25)) },
+      { label: t('mockups.menu.zoomOut'), keys: '−', disabled: vz <= 1, onSelect: () => setVz((z) => Math.max(1, z / 1.25)) },
+      { label: t('mockups.menu.fit'), keys: '0', disabled: vz === 1, onSelect: () => setVz(1) },
+      { label: t('mockups.menu.back'), keys: K('Alt+0'), onSelect: nav.back },
       { label: t('mockups.menu.prev'), keys: '←', separator: true, disabled: list.length < 2, onSelect: () => step(-1) },
       { label: t('mockups.menu.next'), keys: '→', disabled: list.length < 2, onSelect: () => step(1) },
     ]
@@ -959,8 +982,19 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
       <div className={styles.editorBody}>
         <section ref={stage} className={styles.stage} data-mk-full={full || undefined} tabIndex={0} aria-label={t('mockups.menu.label')} data-focus-region=""
           onContextMenu={(e) => {
-            if ((e.target as HTMLElement).closest('input,textarea')) return
+            const el = e.target as HTMLElement
+            if (el.closest('input,textarea')) return
             e.preventDefault()
+            // logoen har sin egen meny (bytt / fjern); ellers designets og visningens
+            if (el.closest('[data-mk-logo]') && logo) {
+              setLogoSel(true)
+              setMenu({ x: e.clientX, y: e.clientY, items: [
+                { label: t('mockups.menu.logoReplace'), onSelect: onLogoUpload },
+                { label: t('mockups.menu.logoRemove'), keys: 'Delete', separator: true, onSelect: onLogoRemove },
+                { label: t('mockups.menu.undo'), keys: formatKeys('Mod+Z'), separator: true, disabled: !canUndo, onSelect: onUndo },
+              ] })
+              return
+            }
             setMenu({ x: e.clientX, y: e.clientY, items: menuItems() })
           }}
           onKeyDown={(e) => {

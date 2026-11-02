@@ -1522,6 +1522,10 @@ export class ThumbController {
 
   /** «Forrige visning» (Alt+0): settes av arbeidsflaten (useStageNav), brukes av høyreklikkmenyen. */
   viewBack: () => void = () => undefined
+  viewSel: () => void = () => undefined
+  setViewSel(fn: () => void): void {
+    this.viewSel = fn
+  }
   setViewBack(fn: () => void): void {
     this.viewBack = fn
   }

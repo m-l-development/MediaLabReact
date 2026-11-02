@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLang, useT } from '../i18n/i18n'
 import { isTypingTarget } from '../lib/workspace-nav'
 import { formatKeys, pick, SHORTCUTS } from './shortcuts'
+import { ContextMenu } from './ContextMenu'
 import styles from './ShortcutsPanel.module.css'
 
 /**
@@ -15,6 +16,7 @@ export function ShortcutsButton({ tool, fabClass }: { tool: string; fabClass: st
   const [open, setOpen] = useState(false)
   const groups = SHORTCUTS[tool]
   const close = useCallback(() => setOpen(false), [])
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   useEffect(() => {
     if (!groups) return
     const key = (e: KeyboardEvent) => {
@@ -24,8 +26,23 @@ export function ShortcutsButton({ tool, fabClass }: { tool: string; fabClass: st
         setOpen((v) => !v)
       }
     }
+    // Høyreklikk der appen ikke har en egen meny: Media Labs meny i stedet for nettleserens. Tekstfelt, lenker og
+    // markert tekst beholder nettleserens meny (kopier, lim inn, åpne lenke).
+    const ctx = (e: MouseEvent) => {
+      if (e.defaultPrevented) return
+      const t = e.target as Element | null
+      if (isTypingTarget(t) || t?.closest?.('a[href], [data-native-menu]')) return
+      const sel = window.getSelection?.()
+      if (sel && String(sel) && t && sel.containsNode(t, true)) return
+      e.preventDefault()
+      setMenu({ x: e.clientX, y: e.clientY })
+    }
     window.addEventListener('keydown', key)
-    return () => window.removeEventListener('keydown', key)
+    window.addEventListener('contextmenu', ctx)
+    return () => {
+      window.removeEventListener('keydown', key)
+      window.removeEventListener('contextmenu', ctx)
+    }
   }, [groups])
   if (!groups) return null
   return (
@@ -38,6 +55,14 @@ export function ShortcutsButton({ tool, fabClass }: { tool: string; fabClass: st
         </svg>
       </button>
       {open && <Panel tool={tool} onClose={close} />}
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} label={t('ctx.app')} onClose={() => setMenu(null)} items={() => [
+          { label: t('shortcuts.title') + ' …', keys: '?', onSelect: () => setOpen(true) },
+          document.fullscreenElement
+            ? { label: t('ctx.fullscreenOff'), keys: 'Esc', onSelect: () => void document.exitFullscreen?.() }
+            : { label: t('ctx.fullscreen'), onSelect: () => void document.documentElement.requestFullscreen?.().catch(() => undefined) },
+        ]} />
+      )}
     </>
   )
 }

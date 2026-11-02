@@ -731,12 +731,19 @@ button:disabled {
 
 .work[data-narrow] {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 60vh auto auto;
+  grid-template-rows: 60vh max-content max-content;
   overflow-y: auto;
 }
 
 .work[data-narrow] .left {
   order: 2;
+}
+
+/* smal skjerm: panelene under lerretet får sin fulle høyde, og arbeidsflaten ruller (før ble lagpanelet klemt til
+   noen få piksler fordi lerretsraden er 60vh og panelene har min-height: 0) */
+.work[data-narrow] > .left,
+.work[data-narrow] > .right {
+  min-height: max-content;
 }
 
 .work[data-narrow] .stage {
@@ -2601,4 +2608,32 @@ button:disabled {
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
+}
+
+/* posisjon, størrelse og rotasjon (Props: Transform) */
+.tf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px;
+}
+
+.tfField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid #2b2b2b;
+  border-radius: 8px;
+  color: #9d998f;
+  font-size: 12px;
+}
+
+.tfField input {
+  width: 4.5em;
+}
+
+:root[data-theme='light'] .tfField {
+  border-color: #cfcac0;
+  color: #4a463f;
 }

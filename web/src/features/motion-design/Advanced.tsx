@@ -45,7 +45,7 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
       {!p.media.length && <span className={s.note}>{tx('Biblioteket er tomt. Importer filer for å legge dem på tidslinjen.')}</span>}
       <ul className={s.binList} aria-label={tx('Mediebibliotek')}>
         {p.media.map((m) => (
-          <li key={m.id} className={s.binItem} data-md-bin-item={m.name} data-kind={m.kind}>
+          <li key={m.id} className={s.binItem} data-md-bin-item={m.name} data-kind={m.kind} onContextMenu={(e) => c.binMenu(e, m)}>
             <span className={s.binThumb} style={{ backgroundImage: css(m.thumb) }} aria-hidden="true">{m.kind === 'audio' ? '♪' : ''}</span>
             <span className={s.binText}>
               <span className={s.binName} title={m.name}>{m.name}</span>
@@ -340,7 +340,7 @@ export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
         const keys = tg.it.kf?.[k] ?? []
         const at = keyAt(keys, tg.lt)
         return (
-          <div key={k} className={s.kfProp} data-md-kf={k} data-animated={keys.length ? '1' : undefined}>
+          <div key={k} className={s.kfProp} data-md-kf={k} data-animated={keys.length ? '1' : undefined} onContextMenu={(e) => { if (!(e.target as HTMLElement).closest('input,select')) c.kfMenu(e, k, null) }}>
             <div className={s.kfRow}>
               <button type="button" className={s.kfDia} aria-pressed={at >= 0} data-md-kf-toggle="" title={tx(at >= 0 ? 'Fjern keyframen her' : 'Keyframe her')} aria-label={tx(at >= 0 ? 'Fjern keyframen her' : 'Keyframe her')}
                 disabled={tg.lt < 0 || tg.lt > tg.dur} onClick={() => c.toggleKey(k)}>◆</button>
@@ -350,7 +350,7 @@ export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
             {keys.length > 0 && (
               <ol className={s.kfList}>
                 {keys.map((key, i) => (
-                  <li key={i} className={s.kfKey} data-md-key={i} data-here={i === at ? '1' : undefined}>
+                  <li key={i} className={s.kfKey} data-md-key={i} data-here={i === at ? '1' : undefined} onContextMenu={(e) => { if ((e.target as HTMLElement).closest('input,select')) return; e.stopPropagation(); c.kfMenu(e, k, i) }}>
                     <KNum k={`${k}-t-${i}`} label={tx('Tid (s)')} v={key.t} step={0.01} on={(t) => c.moveKey(k, i, t)} />
                     <KNum k={`${k}-v-${i}`} label={tx('Verdi')} v={key.v} min={mn} max={mx} step={st} on={(v) => c.setKeyVal(k, i, v)} />
                     <select aria-label={tx('Interpolering')} value={key.e ?? 'lin'} data-md-kf-ease="" onChange={(e) => c.setKeyEase(k, i, e.target.value as Ease)}>

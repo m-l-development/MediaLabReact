@@ -104,6 +104,10 @@ export interface State {
   zoom: { z: number; x: number; y: number } | null
   inlineEd: InlineEd | null
   numEd: { k: string; t: string } | null
+  /** Høyreklikkmenyen på et slidekort (LoopStudio viser den med den felles menyen). */
+  slideMenu: { x: number; y: number; id: string } | null
+  /** Høyreklikkmenyen i forhåndsvisningen (punktet ble klikket der). */
+  pvMenu: { x: number; y: number } | null
   playFlash: string | null
   saveOpen: boolean
   saveMsg: string
@@ -311,7 +315,7 @@ export class LoopController {
       ready: false, tab: 'program', tpl: 'week', programText: '', slides: [], cfg: { ...BASE_CFG }, videoName: '', audioName: '', selected: null, playing: true, playIdx: 0, urls: {},
       parseMsg: '', parseOk: true, rec: null, busy: '', beatInfo: null, mobile: false, mPane: 'preview', guideMode: 'none', guideFlip: 0, selEl: null, hexPop: null, eyedrop: false,
       vigEd: null, ovEd: null, crop: null, panOpen: false, sharedReady: false, sharedExists: false, sharedErr: false, sharedState: '', audioLib: [], audioDur: 0, hist: '', scrubT: null,
-      tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, saveTarget: 'p', autoAt: '', addMenu: false, addForm: null,
+      tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, slideMenu: null, pvMenu: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, saveTarget: 'p', autoAt: '', addMenu: false, addForm: null,
       rulesOpen: false, rulesDraft: null, galleryFor: null, stdOpen: false, stdDraft: null, rulePickOpen: false, fillOpen: false, panelEditFor: null, slideStyleOpen: false, fast: null, fastMsg: '',
     }
   }
@@ -2339,6 +2343,21 @@ export class LoopController {
       return cur.type === 'day' ? { slides: a, selected: c.id, programText: serialize(a.filter((x) => x.type === 'day')) } : { slides: a, selected: c.id }
     })
   }
+  /** Handlingene i slidekortets meny: bare det Loop allerede kan gjøre med en slide (alt kan angres). */
+  slideMenuItems(id: string): { label: string; keys?: string; disabled?: boolean; separator?: boolean; onSelect: () => void }[] {
+    const all = this.state.slides, i = all.findIndex((x) => x.id === id), s = all[i]
+    if (!s) return []
+    const t = (x: string) => this.t(x)
+    return [
+      { label: t('Dupliser'), onSelect: () => this.duplicate(id) },
+      { label: s.hidden ? t('Vis i loopen') : t('Skjul i loopen'), onSelect: () => this.setF(id, 'hidden', !s.hidden) },
+      { label: t('Flytt til venstre'), keys: 'Alt+←', separator: true, disabled: i <= 0, onSelect: () => this.reorder(id, i - 1) },
+      { label: t('Flytt til høyre'), keys: 'Alt+→', disabled: i >= all.length - 1, onSelect: () => this.reorder(id, i + 1) },
+      { label: t('Flytt først'), keys: 'Alt+Home', disabled: i <= 0, onSelect: () => this.reorder(id, 0) },
+      { label: t('Flytt sist'), keys: 'Alt+End', disabled: i >= all.length - 1, onSelect: () => this.reorder(id, all.length - 1) },
+      { label: t('Fjern slide'), separator: true, onSelect: () => this.del(id) },
+    ]
+  }
   del(id: string) {
     const s = this.state, i = s.slides.findIndex((x) => x.id === id), cur = s.slides[i]
     if (!cur) return
@@ -3002,6 +3021,24 @@ export class LoopController {
     clearTimeout(this.flashT)
     this.setState({ playFlash: k })
     this.flashT = setTimeout(() => { if (this.alive) this.setState({ playFlash: null }) }, 650)
+  }
+  /** Høyreklikk i forhåndsvisningen: avspilling, redigering av teksten under pekeren og visning. */
+  onCanvasCtx = (e: { clientX: number; clientY: number; preventDefault(): void }) => {
+    e.preventDefault()
+    this.setState({ pvMenu: { x: e.clientX, y: e.clientY } })
+  }
+  pvMenuItems(): { label: string; keys?: string; separator?: boolean; onSelect: () => void }[] {
+    const m = this.state.pvMenu
+    if (!m) return []
+    const ev = { clientX: m.x, clientY: m.y, preventDefault: () => undefined, stopPropagation: () => undefined } as unknown as PEv
+    const p = this.canvasPoint(ev)
+    const txt = p ? this.findText(p) : null
+    return [
+      { label: this.t(this.state.playing ? 'Pause' : 'Spill av'), keys: this.t('Mellomrom'), onSelect: () => this.togglePlay() },
+      ...(txt ? [{ label: this.t('Rediger teksten'), onSelect: () => this.onCanvasDbl(ev) }] : []),
+      { label: this.t('Fullskjerm'), separator: true, onSelect: () => this.enterFs() },
+      ...(this.state.zoom ? [{ label: this.t('Standard visning'), onSelect: () => this.setState({ zoom: null }) }] : []),
+    ]
   }
   onCanvasDbl = (e: PEv) => {
     clearTimeout(this.clickT)
@@ -3710,7 +3747,19 @@ export class LoopController {
       },
       onDragEnd: () => { this.dragId = null; if (this.state.dropAt != null) this.setState({ dropAt: null }) },
       onPointerDown: (e: TouchDownEv) => { if (e.pointerType === 'touch') this.touchDrag(e, s.id) },
-      onKeyDown: (e: { altKey: boolean; key: string; preventDefault(): void }) => {
+      onContextMenu: (e: { clientX: number; clientY: number; preventDefault(): void }) => {
+        e.preventDefault()
+        this.select(s.id)
+        this.setState({ slideMenu: { x: e.clientX, y: e.clientY, id: s.id } })
+      },
+      onKeyDown: (e: { altKey: boolean; shiftKey?: boolean; key: string; preventDefault(): void; currentTarget?: EventTarget | null }) => {
+        if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') {
+          e.preventDefault()
+          const r = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+          this.select(s.id)
+          this.setState({ slideMenu: { x: r ? r.left + 24 : 100, y: r ? r.top + 24 : 100, id: s.id } })
+          return
+        }
         if (!e.altKey) return
         const k = e.key, to = k === 'ArrowLeft' ? i - 1 : k === 'ArrowRight' ? i + 1 : k === 'Home' ? 0 : k === 'End' ? all.length - 1 : null
         if (to == null) return
@@ -4253,7 +4302,7 @@ export class LoopController {
       recNote: (recMime === null ? 'Opptak krever Chrome eller Edge.' : recMime.includes('mp4') ? 'Lagres som MP4.' : 'Lagres som WebM. Gjør den om til MP4 hvis sendeprogrammet ikke spiller WebM.') + (S.audioName && S.cfg.exportAudio !== false ? ' Lydsporet «' + S.audioName + '» blir med.' : ''),
       htmlNote: [S.audioName && S.cfg.exportAudio !== false ? 'Lydsporet blir med. Sjekk at lyden fra kilden er slått på i sendeprogrammet.' : '', S.slides.some((x) => x.vid && !x.hidden) ? 'Videoer på slidene blir ikke med i HTML-spilleren (bakgrunnsbildet vises i stedet). Bruk MP4-eksport for å få dem med.' : ''].filter(Boolean).join(' '),
       statusLine: S.rec ? 'Tar opp video … ' + S.rec.pct + ' %' : !active.length ? 'Ingen slides ennå – skriv ukens program, eller trykk «Legg til».' : live ? 'Spiller slide ' + (S.playIdx + 1) + ' av ' + active.length + ' · ' + loopLen + ' per runde · ' + this.fmtLabel() : S.tst ? 'Tester effekten på slide ' + (idx + 1) + ' · ' + this.fmtLabel() : sel ? 'Pause · viser slide ' + (idx + 1) + (activeIdx < 0 ? ' (skjult i loopen)' : '') : 'Pause',
-      onCanvasDown: this.onCanvasDown, onCanvasMove: this.onCanvasMove, onCanvasDbl: this.onCanvasDbl,
+      onCanvasDown: this.onCanvasDown, onCanvasMove: this.onCanvasMove, onCanvasDbl: this.onCanvasDbl, onCanvasCtx: this.onCanvasCtx,
       hasInline: !!S.inlineEd, inlineRef: this.inlineRef, inlineVal: S.inlineEd ? S.inlineEd.value : '',
       inlineL: S.inlineEd ? S.inlineEd.left + 'px' : '0px', inlineT: S.inlineEd ? S.inlineEd.top + 'px' : '0px', inlineW: S.inlineEd ? S.inlineEd.width + 'px' : '0px',
       inlineH: S.inlineEd ? S.inlineEd.height + 'px' : '0px', inlineFs: S.inlineEd ? S.inlineEd.fs + 'px' : '16px', inlineHintT: S.inlineEd ? S.inlineEd.top + S.inlineEd.height + 6 + 'px' : '0px',

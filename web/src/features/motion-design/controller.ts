@@ -64,6 +64,8 @@ export interface MState {
   /** Avansert modus (huskes på enheten): ekstra verktøy i egenskapspanelet. */
   adv: boolean
   pv: { w: number; h: number; cw: number; ch: number }
+  /** Fullskjermvisning av komposisjonen (se toggleFull). */
+  full: boolean
   narrow: boolean
   vw: number
   dragOver: boolean
@@ -252,7 +254,7 @@ export class MotionController {
     this.state = createStore<MState>({
       ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
-      toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, narrow: false, vw: 1440, dragOver: false,
+      toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, full: false, narrow: false, vw: 1440, dragOver: false,
       clipDrag: null, packing: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
       folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], insp: 'clip', tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
     })
@@ -993,10 +995,22 @@ export class MotionController {
     const ctx = c.getContext('2d')
     if (!ctx) return
     this.rects = {}
+    const t0 = performance.now()
     try {
       drawFrame(ctx, c.width, c.height, p, this.M, this.t, this.rects)
     } catch {
       // et bilde som ikke kan tegnes, hoppes over
+    }
+    if (this.s.full) {
+      // fullskjerm viser bare komposisjonen (ingen markering); for treg 4K-tegning under avspilling: ned til 1080p
+      if (this.playing && !this.fullDown && c.width > 2600) {
+        this.fullMs = this.fullMs * 0.9 + (performance.now() - t0) * 0.1
+        if (++this.fullN > 30 && this.fullMs > 45) {
+          this.fullDown = true
+          this.measure()
+        }
+      }
+      return
     }
     const s = this.s.sel
     const rk = s && (s.type === 'text' ? s.id : s.type === 'ov' ? `ov:${s.id}` : null)
@@ -1092,11 +1106,33 @@ export class MotionController {
     this.measure()
   }
 
+  private fullDown = false
+  private fullMs = 0
+  private fullN = 0
+
+  /** Fullskjerm for forhåndsvisningen: bare komposisjonen, Escape avslutter (nettleseren), mellomrom spiller av / pauser. */
+  toggleFull(): void {
+    const el = this.els.stage
+    if (!el) return
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined)
+    else void el.requestFullscreen?.().catch(() => this.flash('Fullskjerm er ikke tilgjengelig i denne nettleseren.'))
+  }
+
+  /** Kalles ved fullscreenchange: ny tegnestørrelse for den nye flaten. */
+  fullChanged(): void {
+    const on = !!this.els.stage && document.fullscreenElement === this.els.stage
+    this.fullDown = false
+    this.fullMs = 0
+    this.fullN = 0
+    this.set({ full: on })
+    requestAnimationFrame(() => this.measure())
+  }
+
   measure(): void {
     const el = this.els.stage
     const p = this.s.proj
     if (!el || !p) return
-    const pad = p.h > p.w * 1.05 ? 16 : 32
+    const pad = this.s.full ? 0 : p.h > p.w * 1.05 ? 16 : 32
     const aw = Math.max(40, el.clientWidth - pad)
     const ah = Math.max(40, el.clientHeight - pad)
     const r = p.w / p.h
@@ -1106,8 +1142,13 @@ export class MotionController {
       h = ah
       w = ah * r
     }
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
-    const cw = Math.max(2, Math.round(Math.min(p.w, w * dpr)))
+    // Fullskjerm: tegnes i prosjektets oppløsning (1080p / 4K), men ikke i flere piksler enn skjermen har (da brukes
+    // skjermens høyeste oppløsning), og en maskin som ikke rekker å tegne 4K i sanntid går ned til 1080p (fullDown).
+    // Vanlig visning: vindusstørrelse × pikseltetthet (høyst 2×), høyst prosjektets egen størrelse, som før.
+    const full = this.s.full
+    const dpr = full ? window.devicePixelRatio || 1 : Math.min(2, window.devicePixelRatio || 1)
+    const target = full ? exportSize(p, this.fullDown && p.res === '4k' ? '1080' : p.res ?? '1080') : { w: p.w, h: p.h }
+    const cw = Math.max(2, Math.round(Math.min(target.w, w * dpr)))
     const ch = Math.max(2, Math.round(cw / r))
     const pv = this.s.pv
     if (Math.abs(pv.w - w) > 0.5 || Math.abs(pv.h - h) > 0.5 || pv.cw !== cw) {
@@ -3353,6 +3394,102 @@ export class MotionController {
     ])
   }
 
+  /**
+   * Shift+F10 / menytasten i forhåndsvisningen eller tidslinjen: samme meny som høyreklikk, for det valgte (eller for
+   * området når ingenting er valgt), plassert ved det valgte objektet / spillehodet.
+   */
+  menuKey(e: React.KeyboardEvent<HTMLElement>, area: 'preview' | 'timeline'): void {
+    if (!((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu')) return
+    e.preventDefault()
+    const r = e.currentTarget.getBoundingClientRect()
+    const sel = this.s.sel
+    if (area === 'preview') {
+      const c = this.els.canvas?.getBoundingClientRect()
+      const b = sel ? this.rects[sel.type === 'ov' ? `ov:${sel.id}` : sel.id] : undefined
+      const cv = this.els.canvas
+      const x = c && b && cv ? c.left + ((b.x + b.w / 2) / cv.width) * c.width : (c ? c.left + c.width / 2 : r.left + r.width / 2)
+      const y = c && b && cv ? c.top + ((b.y + b.h / 2) / cv.height) * c.height : (c ? c.top + c.height / 2 : r.top + r.height / 2)
+      this.canvasCtx({ clientX: x, clientY: y, preventDefault: () => undefined, stopPropagation: () => undefined } as unknown as React.MouseEvent)
+      return
+    }
+    const ev = { clientX: r.left + Math.min(r.width - 20, Math.max(20, this.t * this.s.zoom - (this.els.tl?.scrollLeft ?? 0))), clientY: r.top + 40, preventDefault: () => undefined, stopPropagation: () => undefined }
+    if (sel) this.ctxFor(sel.type, sel.id, ev)
+    else this.rowMenu(ev)
+  }
+
+  /**
+   * Høyreklikk på en animert egenskap (`i` = null) eller på én keyframe i listen: handlingene After Effects har i
+   * keyframemenyen – gå til, interpolering (lineær / myk / hold), slett – og for egenskapen: keyframe her, forrige /
+   * neste, fjern alle. Bare for det valgte klippet (kfTarget).
+   */
+  kfMenu(e: React.MouseEvent, prop: string, i: number | null): void {
+    const tg = this.kfTarget()
+    if (!tg) return
+    const keys = tg.it.kf?.[prop] ?? []
+    const k = i == null ? null : keys[i]
+    const inside = tg.lt >= 0 && tg.lt <= tg.dur
+    if (k && i != null) {
+      const cur = k.e ?? 'lin'
+      this.openMenu(e, [
+        this.mi('Gå til keyframen', '', () => this.seek(this.t + (k.t - tg.lt))),
+        'sep',
+        this.mi('Lineær', cur === 'lin' ? '✓' : '', () => this.setKeyEase(prop, i, 'lin')),
+        this.mi('Myk', cur === 'ease' ? '✓' : '', () => this.setKeyEase(prop, i, 'ease')),
+        this.mi('Hold', cur === 'hold' ? '✓' : '', () => this.setKeyEase(prop, i, 'hold')),
+        'sep',
+        this.mi('Slett keyframen', 'Delete', () => this.delKey(prop, i), true),
+      ])
+      return
+    }
+    const here = keyAt(keys, tg.lt) >= 0
+    this.openMenu(e, [
+      inside ? this.mi(here ? 'Fjern keyframen her' : 'Keyframe her', '', () => this.toggleKey(prop)) : null,
+      keys.length ? this.mi('Forrige keyframe', '', () => this.jumpKey(-1)) : null,
+      keys.length ? this.mi('Neste keyframe', '', () => this.jumpKey(1)) : null,
+      'sep',
+      keys.length ? this.mi('Fjern alle keyframes', '', () => { for (let j = keys.length - 1; j >= 0; j--) this.delKey(prop, j) }, true) : null,
+    ])
+  }
+
+  /**
+   * Høyreklikk på en keyframe-prikk i tidslinjen: velger elementet og går dit (som venstreklikk), og gir
+   * interpolering og sletting for alle keyframes på dette tidspunktet (After Effects: keyframe-menyen i tidslinjen).
+   */
+  kfDotMenu(e: React.MouseEvent, type: 'clip' | 'ov' | 'text', id: string, at: number, lt: number): void {
+    e.stopPropagation()
+    this.pickKey(type, id, at)
+    const kf = this.kfTarget()?.it.kf ?? {}
+    const hits = Object.entries(kf).flatMap(([prop, ks]) => ks.map((k, i) => ({ prop, i, k })).filter((x) => Math.abs(x.k.t - lt) < 1e-3))
+    if (!hits.length) return
+    const cur = hits.every((h) => (h.k.e ?? 'lin') === (hits[0]?.k.e ?? 'lin')) ? (hits[0]?.k.e ?? 'lin') : null
+    const ease = (v: Ease) => () => { for (const h of hits) this.setKeyEase(h.prop, h.i, v) }
+    this.openMenu(e, [
+      this.mi('Lineær', cur === 'lin' ? '✓' : '', ease('lin')),
+      this.mi('Myk', cur === 'ease' ? '✓' : '', ease('ease')),
+      this.mi('Hold', cur === 'hold' ? '✓' : '', ease('hold')),
+      'sep',
+      this.mi(hits.length > 1 ? 'Slett keyframene her' : 'Slett keyframen', 'Delete', () => {
+        // fra siste indeks i hver egenskap, så indeksene som gjenstår stemmer
+        for (const h of [...hits].sort((a, b) => b.i - a.i)) this.delKey(h.prop, h.i)
+      }, true),
+    ])
+  }
+
+  /** Høyreklikk på en fil i mediebiblioteket: legg den på et spor, bruk den i valgt klipp, eller fjern den. */
+  binMenu(e: React.MouseEvent, m: Media): void {
+    const s = this.selItem()
+    const rep = this.s.replaceFor ?? (s?.type === 'clip' && (s.it as Clip).kind !== 'color' ? s.it.id : null)
+    const vis = m.kind !== 'audio'
+    this.openMenu(e, [
+      vis ? this.mi('Legg på hovedsporet (V1)', '', () => this.addToTrack(m, 'v1')) : null,
+      vis ? this.mi('Legg på nytt videospor', '', () => this.addToTrack(m, 'v')) : null,
+      !vis ? this.mi('Legg på lydspor', '', () => this.addToTrack(m, 'a')) : null,
+      vis && rep ? this.mi('Bytt media i valgt klipp', '', () => this.replaceClip(rep, m)) : null,
+      'sep',
+      this.mi('Fjern fra biblioteket', '', () => this.removeMedia(m), true),
+    ])
+  }
+
   /** Høyreklikk på en markør i linjalen: gå dit eller fjern (høyreklikk alene sletter ikke lenger). */
   markerMenu(e: React.MouseEvent, id: string): void {
     const k = this.s.proj?.markers.find((m) => m.id === id)
@@ -3375,6 +3512,12 @@ export class MotionController {
 
   onKey(e: KeyboardEvent): void {
     if (this.s.view !== 'edit' || this.s.exp || this.s.picker || this.s.folderDlg) return
+    // fullskjerm: Escape avslutter (også der nettleseren selv ikke gjør det)
+    if (e.key === 'Escape' && this.s.full) {
+      e.preventDefault()
+      this.toggleFull()
+      return
+    }
     const tg = e.target as HTMLElement | null
     if (tg && (/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) || tg.isContentEditable)) return
     const mod = e.ctrlKey || e.metaKey
@@ -3442,6 +3585,10 @@ export class MotionController {
         e.preventDefault()
         this.delSel()
       }
+    } else if (k === 'f' && !e.shiftKey && !e.altKey) {
+      // F: fullskjerm for forhåndsvisningen (Escape avslutter)
+      e.preventDefault()
+      this.toggleFull()
     } else if (k === 's') {
       e.preventDefault()
       this.split()
@@ -3513,7 +3660,8 @@ export class MotionController {
     this.stop()
     const T = this.s.proj ? totalDur(this.s.proj) : 0
     const a = this.expAdv
-    this.set((s) => ({ exp: { q: s.exp?.q ?? '1080-30', busy: false, pct: 0, phase: null, msg: null, err: false, adv: { ...a, to: a.range === 'custom' && a.to > a.from ? Math.min(a.to, T) : T, from: a.range === 'custom' ? Math.min(a.from, T) : 0 } } }))
+    const pr = this.s.proj?.res
+    this.set((s) => ({ exp: { q: s.exp?.q ?? (pr === '4k' ? '4k-30' : '1080-30'), busy: false, pct: 0, phase: null, msg: null, err: false, adv: { ...a, ...(pr ? { res: pr } : {}), to: a.range === 'custom' && a.to > a.from ? Math.min(a.to, T) : T, from: a.range === 'custom' ? Math.min(a.from, T) : 0 } } }))
   }
 
   /** Avanserte eksportinnstillinger (huskes til neste eksport i økten). */
@@ -3522,6 +3670,7 @@ export class MotionController {
       if (!s.exp?.adv || s.exp.busy) return null
       const adv = { ...s.exp.adv, ...o }
       this.expAdv = adv
+      if (o.res) queueMicrotask(() => this.rememberRes(adv.res))
       return { exp: { ...s.exp, adv, msg: null } }
     })
   }
@@ -3532,6 +3681,14 @@ export class MotionController {
 
   pickQuality(q: ExpState['q']): void {
     this.set((s) => (s.exp && !s.exp.busy ? { exp: { ...s.exp, q, msg: null } } : null))
+    this.rememberRes(q.split('-')[0] as '1080' | '4k')
+  }
+
+  /** Oppløsningen som er valgt i eksporten, lagres i prosjektet (brukes neste gang og av fullskjermvisningen). */
+  private rememberRes(r: '720' | '1080' | '4k'): void {
+    const p = this.s.proj
+    if (!p || (p.res ?? '1080') === r) return
+    this.setProj((q) => ({ ...q, res: r }), false)
   }
 
   abortExport(): void {

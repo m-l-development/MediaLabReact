@@ -238,6 +238,11 @@ function LayersPanel({ c, S, tx }: EditorProps) {
             <div key={l.id} role="listitem">
               <div className={rowCls} style={{ marginLeft: isKid ? 18 : 0 }} draggable data-layer={l.id}
                 onClick={(e) => c.select(l.id, e.shiftKey)}
+                onContextMenu={(e) => {
+                  // samme lagmeny som på lerretet, for laget i raden
+                  e.preventDefault()
+                  c.openContext(e.clientX, e.clientY, { x: l.x + l.w / 2, y: l.y + l.h / 2 }, l)
+                }}
                 onDragStart={(e) => {
                   dndPayload = { id: l.id }
                   try {
@@ -421,6 +426,7 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
   }
 
   // arbeidsflaten: rulling/knip zoomer rundt pekeren, mellomrom/midtknapp panorerer (shared/lib/useStageNav)
+  const [dropHint, setDropHint] = useState<'add' | 'replace' | null>(null)
   const nav = useStageNav({
     stage: zoomBox, content: inner, zoom: S.zoom, setZoom: (z) => c.setZoom(z), min: 1, max: 4, enabled: !S.maskEdit && !S.cropId,
     // Shift+F10 / menytasten: menyen for det valgte laget, midt på laget
@@ -429,6 +435,18 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
       const r = overlay.current?.getBoundingClientRect()
       return l && r ? { x: r.left + ((l.x + l.w / 2) / W) * r.width, y: r.top + ((l.y + l.h / 2) / H) * r.height } : null
     },
+    // Shift+2: zoom til markeringen
+    selRect: () => {
+      const ls = c.selIds().map((id) => c.layer(id)).filter((l): l is NonNullable<typeof l> => !!l)
+      const r = overlay.current?.getBoundingClientRect()
+      if (!ls.length || !r) return null
+      const x0 = Math.min(...ls.map((l) => l.x)), y0 = Math.min(...ls.map((l) => l.y))
+      const x1 = Math.max(...ls.map((l) => l.x + l.w)), y1 = Math.max(...ls.map((l) => l.y + l.h))
+      return { left: r.left + (x0 / W) * r.width, top: r.top + (y0 / H) * r.height, width: ((x1 - x0) / W) * r.width, height: ((y1 - y0) / H) * r.height }
+    },
+  })
+  useEffect(() => {
+    c.setViewSel(nav.toSelection)
   })
   useEffect(() => {
     c.setViewBack(nav.back)
@@ -507,15 +525,25 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
       <div className={s.stageWrap}>
         <div ref={zoomBox} className={s.stage} tabIndex={0} aria-label={tx('Arbeidsflate')} data-focus-region="" style={{ overflow: S.zoom > 1 ? 'auto' : 'visible' }}>
           <div ref={inner} className={s.stageInner} style={{ width: `${Math.round(S.zoom * 100)}%`, ...(nav.panning ? { cursor: 'grabbing' } : nav.space ? { cursor: 'grab' } : {}) }}
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              e.preventDefault()
+              // fil fra datamaskinen: vis om den legges til eller bytter bildet i det valgte laget
+              if (!e.dataTransfer?.types?.includes('Files')) return
+              const l = c.layer(S.sel)
+              const k = l?.type === 'image' ? 'replace' : 'add'
+              if (dropHint !== k) setDropHint(k)
+            }}
+            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropHint(null) }}
             onDrop={(e) => {
               e.preventDefault()
+              setDropHint(null)
               const f = e.dataTransfer?.files?.[0]
               if (!f) return
               const l = c.layer(S.sel)
               void c.addFile(f, l?.type === 'image' ? { mode: 'replace', id: l.id } : { mode: 'add' })
             }}>
             <canvas ref={canvas} width={W} height={H} className={s.canvas} aria-label={tx('Lerret')} />
+            {dropHint && <div className={s.dropHint} data-ts-drop={dropHint} aria-live="polite">{tx(dropHint === 'replace' ? 'Slipp for å bytte bildet i det valgte laget' : 'Slipp for å legge til bildet')}</div>}
             <div ref={overlay} className={s.overlay} data-ts-overlay="1" onPointerDown={onDown} style={nav.panning || nav.space ? { cursor: 'inherit' } : undefined}
               onDoubleClick={() => {
                 const l = c.layer(S.sel)

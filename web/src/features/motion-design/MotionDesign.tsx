@@ -162,11 +162,14 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
       }
     }
     const evs = ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'input', 'touchstart', 'drop'] as const
+    const full = () => c.fullChanged()
+    document.addEventListener('fullscreenchange', full)
     window.addEventListener('keydown', key)
     window.addEventListener('pagehide', hide)
     window.addEventListener('beforeunload', before)
     for (const ev of evs) window.addEventListener(ev, poke, { capture: true, passive: true })
     return () => {
+      document.removeEventListener('fullscreenchange', full)
       window.removeEventListener('keydown', key)
       window.removeEventListener('pagehide', hide)
       window.removeEventListener('beforeunload', before)
