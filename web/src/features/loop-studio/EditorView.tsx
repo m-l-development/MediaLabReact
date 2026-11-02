@@ -9,9 +9,12 @@ import type { LoopView } from './controller'
 import { chk, css, interp, list, val } from './dc'
 import P from './LoopStudio.module.css'
 import { MoreButton } from '../../shared/ui/MoreButton'
+import { AdvAdjust } from '../../shared/image/AdvAdjust'
+import { useT } from '../../shared/i18n/i18n'
 
 export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome: (e: { preventDefault(): void }) => void }; tx: (s: unknown) => string }) {
   const I = (x: unknown) => interp(x, tx)
+  const t = useT()
   return (
     <>
     <div data-ml-bg="static" style={css(`min-height:100vh; padding-bottom:${v.rootPadB ?? ""}; display:flex; flex-direction:${v.rootDir ?? ""}; flex-wrap:${v.rootWrap ?? ""}; font-family:Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif; color:#f3f1ec; background:transparent; font-size:14px;`)}>
@@ -127,6 +130,12 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                     </span>
                   </> : null}
                   {"\n            "}
+                </button>
+                <button onClick={v.toggleAdv} role="switch" aria-checked={v.advAria} data-adv-toggle="" title={t('adv.modeTip')} style={css(`display:inline-flex; align-items:center; gap:9px; height:34px; min-height:0; padding:0 12px 0 6px; border:1px solid #2b2b2b; border-radius:999px; background:transparent; color:${v.advTextColor ?? ""}; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;`)} className={P.scp2}>
+                  <span data-keep-color="1" style={css(`position:relative; width:34px; height:20px; border-radius:999px; background:${v.advTrack ?? ""}; transition:background 180ms ease;`)}>
+                    <span style={css(`position:absolute; top:2px; left:${v.advKnobX ?? ""}; width:16px; height:16px; border-radius:999px; background:${v.advKnob ?? ""}; transition:left 180ms ease;`)} />
+                  </span>
+                  <span>{t('adv.mode')}</span>
                 </button>
                 {"\n          "}
               </div>
@@ -1724,6 +1733,8 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                   </> : null}
                   {"\n            "}
                 </div>
+                {/* Avansert modus: avanserte justeringer og RGB-kurver for slidens bakgrunnsbilde */}
+                {v.advImg ? <AdvAdjust value={v.advAdj} onChange={v.onAdvAdj} /> : null}
                 {"\n            "}
                 {v.ruleLinked ? <>
                   {"\n              "}

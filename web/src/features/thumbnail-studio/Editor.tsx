@@ -6,6 +6,7 @@ import { useStageNav } from '../../shared/lib/useStageNav'
 import { MoreButton } from '../../shared/ui/MoreButton'
 import { DockIcon, MobileDock } from '../../shared/ui/MobileDock'
 import { useStore } from '../../shared/lib/store'
+import { useT } from '../../shared/i18n/i18n'
 import { ColorRow, Controls } from './Controls'
 import { autoName, ctrlsBar, ctrlsFor, ctrlsGroup, ctrlsMal, linkNote, lname } from './ctrl-defs'
 import { gbox, PRESETS, rowOrder, type AddTarget, type PanelKey, type State, type ThumbController } from './controller'
@@ -40,6 +41,7 @@ const VIEW_OPTS: [string, Phrase, Phrase][] = [
 /** Redigering av en mal eller et grunnoppsett. */
 export function Editor(p: EditorProps) {
   const { c, S, tx } = p
+  const t = useT()
   const snapOn = useStore(snapPref)
   const cat = c.cat()
   const modes = VIEW_OPTS.map((o) => o[0])
@@ -64,6 +66,10 @@ export function Editor(p: EditorProps) {
             <i aria-hidden="true" />
             <span>{tx('Autolagring')}</span>
             {S.autoSave && S.autoAt && <em>{tx('lagret {time}', { time: S.autoAt })}</em>}
+          </button>
+          <button type="button" role="switch" aria-checked={S.adv} className={s.autoSwitch} data-adv-toggle="" title={t('adv.modeTip')} onClick={() => c.toggleAdv()}>
+            <i aria-hidden="true" />
+            <span>{t('adv.mode')}</span>
           </button>
         </div>
         <div className={s.editBarRight}>

@@ -1,3 +1,4 @@
+import type { AdvAdj } from '../../../shared/image/AdvAdjust'
 /**
  * Dokumentformatet i Thumbnail Studio (1920 × 1080). Samme felt og standardverdier som dagens app
  * (media-lab/src/legacy/thumb-engine.js), så maler, grunnoppsett og sikkerhetskopier kan brukes i begge.
@@ -94,6 +95,8 @@ export interface ImageLayer extends LayerBase {
   bri?: number
   con?: number
   sat?: number
+  /** Avanserte bildejusteringer (Avansert modus): lys, farge, effekter og RGB-kurver med Photo-motoren. Mangler = ingen. */
+  adj?: AdvAdj | null
   tint: string | null
 }
 

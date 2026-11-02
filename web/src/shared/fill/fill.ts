@@ -2,10 +2,18 @@
  * Bakgrunnsfyll (farge og gradienter) – samme motor i Photo Design og Loop Studio (media-lab/src/legacy/photo-engine.js
  * `drawFill` og fillVals i photo-design/logic.js). Formatet lagres uendret i prosjektene.
  */
+import { curveFn } from './curve'
+
 export interface FillStop { c: string; p: number; w?: number; hard?: boolean }
+/** Kurvepunkter (0–1) for fargekurve-gradienten: m = alle kanaler (RGB), r/g/b = hver kanal. */
+export type CurvePts = [number, number][]
+/** Formen på fargekurve-gradienten: hvordan posisjonen (0–1) i kurvene legges ut over flaten. */
+export type CurveShape = 'linear' | 'mirror' | 'cross' | 'diamond' | 'square' | 'radial' | 'conic'
+export const CURVE_SHAPES: readonly CurveShape[] = ['linear', 'mirror', 'cross', 'diamond', 'square', 'radial', 'conic']
+export interface FillCurves { m?: CurvePts | null; r?: CurvePts | null; g?: CurvePts | null; b?: CurvePts | null }
 export type FillMode =
   | 'none' | 'solid' | 'linear' | 'mirror' | 'radial' | 'conic' | 'mesh' | 'stripes' | 'wave' | 'ellipse' | 'corner' | 'spot' | 'glow'
-  | 'conicRep' | 'conicMirror' | 'rays' | 'conicCorner'
+  | 'conicRep' | 'conicMirror' | 'rays' | 'conicCorner' | 'curves'
 export interface Fill {
   mode: FillMode
   stops?: FillStop[]
@@ -17,9 +25,18 @@ export interface Fill {
   repeat?: number
   x?: number
   y?: number
+  /** Fargekurve-gradient (modus 'curves'): fargen langs retningen bestemmes av RGB-kurvene. */
+  curves?: FillCurves | null
+  /** Metning for fargekurve-gradienten (1 = som kurvene gir, mer = sterkere farger). Mangler = CURVE_SAT. */
+  csat?: number
+  /** Form for fargekurve-gradienten (mangler = lineær). */
+  cshape?: CurveShape
 }
 
-export const FILL_MODES: readonly FillMode[] = ['none', 'solid', 'linear', 'mirror', 'radial', 'conic', 'mesh', 'stripes', 'wave', 'ellipse', 'corner', 'spot', 'glow', 'conicRep', 'conicMirror', 'rays', 'conicCorner']
+/** Standard metning for fargekurve-gradienten: litt sterkere enn kurvene alene, som ellers gir blasse blandingsfarger. */
+export const CURVE_SAT = 1.4
+
+export const FILL_MODES: readonly FillMode[] = ['none', 'solid', 'linear', 'mirror', 'radial', 'conic', 'mesh', 'stripes', 'wave', 'ellipse', 'corner', 'spot', 'glow', 'conicRep', 'conicMirror', 'rays', 'conicCorner', 'curves']
 
 /** Rekkefølgen og navnene i «Type» (samme som i dag). */
 export const FILL_MODE_LABELS: readonly [FillMode, string][] = [['none', 'Ingen'], ['solid', 'Farge'], ['linear', 'Lineær'], ['mirror', 'Speilet'], ['radial', 'Rund'], ['ellipse', 'Oval'], ['conic', 'Vinkel'], ['conicRep', 'Vinkel gjentatt'], ['conicMirror', 'Vinkel speilet'], ['conicCorner', 'Vinkel fra hjørne'], ['rays', 'Stråler'], ['mesh', 'Myk blanding'], ['stripes', 'Striper'], ['wave', 'Bølger'], ['corner', 'Fra hjørne'], ['spot', 'Spotlys'], ['glow', 'Glød']]
@@ -73,8 +90,117 @@ function clip01(st: FillStop[]): FillStop[] {
   return [{ c: at(0), p: 0 }, ...l.filter((q) => q.p > 0 && q.p < 1), { c: at(1), p: 1 }]
 }
 
+/**
+ * Fargekurve-gradient: fargen ved posisjon t (0–1 langs retningen) er (R, G, B) = m(kanalkurven(t)). Uten kurver blir
+ * den svart → hvit; hver kanal formes med sin kurve, og RGB-kurven virker på alle tre.
+ */
+export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURVE_SAT): FillStop[] {
+  const fm = curveFn(cv?.m)
+  const fr = curveFn(cv?.r)
+  const fg = curveFn(cv?.g)
+  const fb = curveFn(cv?.b)
+  const ch = (f: ((x: number) => number) | null, t: number) => {
+    const v = f ? f(t) : t
+    return Math.round(clamp(fm ? fm(clamp(v, 0, 1)) : v, 0, 1) * 255)
+  }
+  const k = clamp(sat, 0, 3)
+  const out: FillStop[] = []
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    let r = ch(fr, t)
+    let g = ch(fg, t)
+    let b = ch(fb, t)
+    if (k !== 1) {
+      const y = 0.299 * r + 0.587 * g + 0.114 * b
+      r = Math.round(clamp(y + (r - y) * k, 0, 255))
+      g = Math.round(clamp(y + (g - y) * k, 0, 255))
+      b = Math.round(clamp(y + (b - y) * k, 0, 255))
+    }
+    out.push({ c: `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`, p: t })
+  }
+  return out
+}
+
+let shapeCache: { key: string; img: CanvasImageSource } | null = null
+
+/**
+ * Fargekurve-gradient med form (kryss, diamant, rund …): posisjonen regnes ut per punkt i et lite bilde (maks 640 px,
+ * gradienter er myke) som skaleres opp. Retningen roterer formen, og x/y flytter midten. Siste bilde huskes.
+ */
+function drawCurveShape(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: number): void {
+  const k = Math.min(1, 640 / Math.max(W, H))
+  const cw = Math.max(2, Math.round(W * k))
+  const chh = Math.max(2, Math.round(H * k))
+  const key = JSON.stringify([bf.curves, bf.csat, bf.cshape, bf.angle, bf.x, bf.y, cw, chh, W, H])
+  if (shapeCache?.key !== key) {
+    const lut = curveStops(bf.curves, 255, bf.csat ?? CURVE_SAT).map((q) => parseInt(q.c.slice(1), 16))
+    const cv: OffscreenCanvas | HTMLCanvasElement = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(cw, chh) : Object.assign(document.createElement('canvas'), { width: cw, height: chh })
+    const g = cv.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
+    if (!g) return
+    const im = g.createImageData(cw, chh)
+    const px = im.data
+    const a = ((bf.angle == null ? 90 : bf.angle) * Math.PI) / 180
+    const sa = Math.sin(a)
+    const ca = Math.cos(a)
+    const cx = W * (bf.x == null ? 0.5 : bf.x)
+    const cy = H * (bf.y == null ? 0.5 : bf.y)
+    const L = Math.max(1, (Math.abs(W * sa) + Math.abs(H * ca)) / 2)
+    const Lp = Math.max(1, (Math.abs(W * ca) + Math.abs(H * sa)) / 2)
+    const R = Math.max(1, Math.hypot(W, H) / 2)
+    const a0 = a - Math.PI / 2
+    const sh = bf.cshape
+    let i = 0
+    for (let y = 0; y < chh; y++) {
+      const dy = (y + 0.5) / k - cy
+      for (let x = 0; x < cw; x++) {
+        const dx = (x + 0.5) / k - cx
+        const U = Math.abs((dx * sa - dy * ca) / L)
+        const V = Math.abs((dx * ca + dy * sa) / Lp)
+        let t = sh === 'mirror' ? U
+          : sh === 'cross' ? Math.min(U, V)
+            : sh === 'diamond' ? (U + V) / 2
+              : sh === 'square' ? Math.max(U, V)
+                : sh === 'radial' ? Math.hypot(dx, dy) / R
+                  : (((Math.atan2(dy, dx) - a0) / (2 * Math.PI)) % 1 + 1) % 1
+        t = t < 0 ? 0 : t > 1 ? 1 : t
+        const c = lut[Math.round(t * 255)] ?? 0
+        px[i++] = (c >> 16) & 255
+        px[i++] = (c >> 8) & 255
+        px[i++] = c & 255
+        px[i++] = 255
+      }
+    }
+    g.putImageData(im, 0, 0)
+    shapeCache = { key, img: cv }
+  }
+  ctx.save()
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(shapeCache.img, 0, 0, W, H)
+  ctx.restore()
+}
+
 /** Tegner fyllet over hele flaten (W × H). */
 export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: number): void {
+  if (bf.mode === 'curves' && bf.cshape && bf.cshape !== 'linear' && CURVE_SHAPES.includes(bf.cshape)) {
+    drawCurveShape(ctx, bf, W, H)
+    return
+  }
+  if (bf.mode === 'curves') {
+    const a = ((bf.angle == null ? 90 : bf.angle) * Math.PI) / 180
+    const dx = Math.sin(a)
+    const dy = -Math.cos(a)
+    const ln = Math.abs(W * dx) + Math.abs(H * dy)
+    const cx = W * (bf.x == null ? 0.5 : bf.x)
+    const cy = H * (bf.y == null ? 0.5 : bf.y)
+    const g = ctx.createLinearGradient(cx - (dx * ln) / 2, cy - (dy * ln) / 2, cx + (dx * ln) / 2, cy + (dy * ln) / 2)
+    for (const q of curveStops(bf.curves, 48, bf.csat ?? CURVE_SAT)) g.addColorStop(q.p, q.c)
+    ctx.save()
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, W, H)
+    ctx.restore()
+    return
+  }
   ctx.save()
   let st: FillStop[] = Array.isArray(bf.stops) && bf.stops.length ? sorted(bf.stops) : [{ c: bf.c1 || '#1a1a1a', p: 0 }, { c: bf.c2 || '#000000', p: 1 }]
   const sfv = bf.soft == null ? 0.5 : clamp(bf.soft, 0, 1)
@@ -260,6 +386,7 @@ export function fillCss(f: Fill): string {
   const li = ss.map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')
   if (mode === 'none') return 'transparent'
   if (mode === 'solid') return first.c
+  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16, f.csat ?? CURVE_SAT).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
   if (mode === 'radial') return `radial-gradient(circle at 50% 50%, ${li})`
   if (mode === 'conicRep' || mode === 'conicMirror' || mode === 'rays' || mode === 'conicCorner') {
     const n = mode === 'conicCorner' ? 1 : Math.max(1, Math.round(f.repeat || (mode === 'rays' ? 8 : 3)))

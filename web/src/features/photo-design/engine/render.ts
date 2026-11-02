@@ -1,4 +1,5 @@
 import { drawFill } from '../../../shared/fill/fill'
+import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
 import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
 import { applyDev, cleanDev, histogram, type Dev, type Histogram } from './develop'
@@ -56,51 +57,8 @@ export async function loadImg(blob: Blob): Promise<MediaEntry> {
 
 // ---------- bildebehandling ----------
 
-/** Monoton kubisk kurve gjennom punktene (0–1). */
-export function curveFn(pts: [number, number][] | null | undefined): ((x: number) => number) | null {
-  if (!pts || pts.length < 2) return null
-  const p = pts.slice().sort((a, b) => a[0] - b[0])
-  const n = p.length
-  const X = (i: number) => (p[i] as [number, number])[0]
-  const Yv = (i: number) => (p[i] as [number, number])[1]
-  const d: number[] = []
-  const m: number[] = []
-  for (let i = 0; i < n - 1; i++) d.push((Yv(i + 1) - Yv(i)) / Math.max(1e-6, X(i + 1) - X(i)))
-  m[0] = d[0] ?? 0
-  m[n - 1] = d[n - 2] ?? 0
-  for (let i = 1; i < n - 1; i++) {
-    const a = d[i - 1] ?? 0
-    const b = d[i] ?? 0
-    m[i] = a * b <= 0 ? 0 : (a + b) / 2
-  }
-  for (let i = 0; i < n - 1; i++) {
-    const di = d[i] ?? 0
-    if (di === 0) {
-      m[i] = 0
-      m[i + 1] = 0
-      continue
-    }
-    const a = (m[i] ?? 0) / di
-    const b = (m[i + 1] ?? 0) / di
-    const s = a * a + b * b
-    if (s > 9) {
-      const t = 3 / Math.sqrt(s)
-      m[i] = t * a * di
-      m[i + 1] = t * b * di
-    }
-  }
-  return (x: number) => {
-    if (x <= X(0)) return Yv(0)
-    if (x >= X(n - 1)) return Yv(n - 1)
-    let k = 0
-    while (k < n - 2 && x > X(k + 1)) k++
-    const h = X(k + 1) - X(k)
-    const t = (x - X(k)) / h
-    const t2 = t * t
-    const t3 = t2 * t
-    return (2 * t3 - 3 * t2 + 1) * Yv(k) + (t3 - 2 * t2 + t) * h * (m[k] ?? 0) + (-2 * t3 + 3 * t2) * Yv(k + 1) + (t3 - t2) * h * (m[k + 1] ?? 0)
-  }
-}
+export { curveFn }
+
 
 function luts(a: Adj): [Uint8ClampedArray, Uint8ClampedArray, Uint8ClampedArray] {
   const R = new Uint8ClampedArray(256)
@@ -292,6 +250,29 @@ function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undef
   E.pk = key
   E.p = out
   return out
+}
+
+const foreign = new WeakMap<object, MediaEntry>()
+
+/**
+ * Justert kopi av et bilde for andre verktøy (Thumbnail Studio, Loop Studio): de samme justeringene og RGB-kurvene som i
+ * Photo. Hurtigbufret per bilde og innstilling; null når bildet ikke er lastet.
+ */
+export function adjustImage(img: HTMLImageElement | HTMLCanvasElement, a: Partial<Adj>, maxD = 2400): HTMLCanvasElement | null {
+  const w = img instanceof HTMLImageElement ? img.naturalWidth : img.width
+  const h = img instanceof HTMLImageElement ? img.naturalHeight : img.height
+  if (!w || !h) return null
+  let E = foreign.get(img)
+  if (!E || E.w !== w || E.h !== h) {
+    E = { img, w, h, url: '', cache: new Map() }
+    foreign.set(img, E)
+  }
+  return processed(E, { ...ADJ, ...a }, undefined, maxD)
+}
+
+/** Om justeringene gjør noe (alle mangler eller er 0 → bildet tegnes urørt). */
+export function adjActive(a: Partial<Adj> | null | undefined): boolean {
+  return !!a && !neutral({ ...ADJ, ...a })
 }
 
 /** Histogram for Avansert framkalling: originalen (raw) eller etter justeringer og framkalling, i liten størrelse. */
