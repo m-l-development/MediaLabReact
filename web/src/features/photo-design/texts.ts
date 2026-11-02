@@ -711,6 +711,8 @@ export const EN = {
   'Flytt bak': 'Send backward',
   'Tilpass visning': 'Fit to view',
   'Lagmeny': 'Layer menu',
+  'Laget er låst: det kan ikke flyttes, endres eller slettes.': 'The layer is locked: it cannot be moved, changed or deleted.',
+  'Låste lag slettes ikke. Lås dem opp først.': 'Locked layers are not deleted. Unlock them first.',
   'Til fremst': 'Bring to front',
   'Til bakerst': 'Send to back',
   'Arbeidsflate': 'Canvas',

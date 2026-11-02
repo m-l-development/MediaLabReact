@@ -860,6 +860,17 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
     if (!id || batch) return [paste, { label: tx('Velg alle'), keys: K('Mod+A'), disabled: batch, onSelect: () => c.selectAll() }, ...edit, ...view]
     const Lm = d.layers.find((q) => q.id === id)
     const many = c.selIds().length > 1
+    // låst lag: bare det som ikke endrer laget (kopier, dupliser, skjul) og «Lås opp»
+    if (Lm?.locked && !many) {
+      return [
+        { label: tx('Lås opp'), onSelect: () => c.patchL(id, { locked: false }) },
+        { label: tx('Kopier'), keys: K('Mod+C'), separator: true, onSelect: () => c.copyLayers(false) },
+        { label: tx('Dupliser'), keys: K('Mod+D'), onSelect: () => c.dup() },
+        { label: Lm.hidden ? tx('Vis') : tx('Skjul'), onSelect: () => c.patchL(id, { hidden: !Lm.hidden }) },
+        ...edit,
+        ...view,
+      ]
+    }
     return [
       { label: tx('Kopier'), keys: K('Mod+C'), onSelect: () => c.copyLayers(false) },
       { label: tx('Klipp ut'), keys: K('Mod+X'), onSelect: () => c.copyLayers(true) },

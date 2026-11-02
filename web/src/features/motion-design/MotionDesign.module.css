@@ -3140,53 +3140,71 @@
   display: none;
 }
 
-/* avspillingslinjen i fullskjerm (FullBar) */
+/* avspillingslinjen i fullskjerm (FullBar): kompakt, sentrert nederst; skjules når pekeren ikke er nær (data-hidden) */
 .fullBar {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  bottom: 14px;
+  left: 50%;
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 28px 18px 14px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0));
+  gap: 8px;
+  width: min(720px, calc(100% - 32px));
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.62);
+  backdrop-filter: blur(8px);
   color: #f3f1ec;
-  font-size: 12.5px;
+  font-size: 11.5px;
+  transform: translateX(-50%);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fullBar[data-hidden] {
+  opacity: 0;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+}
+
+.stage[data-md-full][data-md-idle] {
+  cursor: none;
 }
 
 .fullBtn,
 .fullExit {
   display: inline-grid;
   place-items: center;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  height: 28px;
+  border: 0;
   border-radius: 999px;
-  background: rgba(20, 20, 20, 0.7);
+  background: transparent;
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
 
 .fullBtn {
-  width: 34px;
-  flex: 0 0 34px;
+  width: 28px;
+  flex: 0 0 28px;
+}
+
+.fullBtn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .fullExit {
   display: inline-flex;
-  gap: 8px;
-  padding: 0 14px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 6px;
+  padding: 0 8px;
 }
 
 .fullExit kbd {
-  padding: 0 5px;
+  padding: 0 4px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
-  font: 600 11px ui-monospace, Menlo, Consolas, monospace;
+  font: 600 10px ui-monospace, Menlo, Consolas, monospace;
 }
 
 .fullBtn:hover,
@@ -3204,7 +3222,7 @@
 .fullTrack {
   position: relative;
   flex: 1;
-  height: 34px;
+  height: 26px;
   border-radius: 6px;
   cursor: pointer;
   touch-action: none;
@@ -3212,10 +3230,10 @@
 
 .fullRail {
   position: absolute;
-  top: 8px;
+  top: 6px;
   right: 0;
   left: 0;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.25);
 }
@@ -3228,10 +3246,10 @@
 
 .fullTick {
   position: absolute;
-  top: 14px;
+  top: 11px;
   transform: translateX(-50%);
-  color: rgba(243, 241, 236, 0.7);
-  font-size: 10.5px;
+  color: rgba(243, 241, 236, 0.6);
+  font-size: 9.5px;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
@@ -3239,16 +3257,16 @@
 .fullTick i {
   display: block;
   width: 1px;
-  height: 5px;
+  height: 4px;
   margin: 0 auto 1px;
-  background: rgba(243, 241, 236, 0.55);
+  background: rgba(243, 241, 236, 0.5);
 }
 
 .fullHead {
   position: absolute;
-  top: 3px;
-  width: 14px;
-  height: 14px;
+  top: 2px;
+  width: 11px;
+  height: 11px;
   border: 2px solid #000;
   border-radius: 50%;
   background: #f3f1ec;
@@ -3257,7 +3275,7 @@
 }
 
 .fullTime {
-  min-width: 108px;
+  min-width: 84px;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }

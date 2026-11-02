@@ -2637,3 +2637,34 @@ button:disabled {
   border-color: #cfcac0;
   color: #4a463f;
 }
+
+/* låst lag i egenskapspanelet */
+.lockNote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #5a4a1a;
+  border-radius: 8px;
+  background: rgba(245, 184, 44, 0.08);
+  color: #f5d27a;
+  font-size: 12px;
+}
+
+.lockSet {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.lockSet:disabled {
+  opacity: 0.55;
+}
+
+:root[data-theme='light'] .lockNote {
+  border-color: #d9b45a;
+  background: #fbf1d6;
+  color: #6b4e00;
+}

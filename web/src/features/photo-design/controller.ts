@@ -888,13 +888,21 @@ export class PhotoController {
   }
 
   del(): void {
-    const ids = new Set(this.selIds())
+    // låste lag slettes ikke (lås dem opp først), som i Photoshop og Canva
+    const all = this.selIds()
+    const lockedN = all.filter((id) => this.s.doc?.layers.find((L) => L.id === id)?.locked).length
+    const ids = new Set(all.filter((id) => !this.s.doc?.layers.find((L) => L.id === id)?.locked))
+    if (lockedN) this.flash('Låste lag slettes ikke. Lås dem opp først.')
     if (!ids.size) return
     this.setDoc((d) => ({ ...d, layers: d.layers.filter((L) => !ids.has(L.id)) }))
     this.set({ sel: null, multi: [], tool: 'move' })
   }
 
   delLayer(id: string): void {
+    if (this.s.doc?.layers.find((x) => x.id === id)?.locked) {
+      this.flash('Låste lag slettes ikke. Lås dem opp først.')
+      return
+    }
     this.setDoc((dd) => ({ ...dd, layers: dd.layers.filter((x) => x.id !== id) }))
     if (this.s.sel === id) this.set({ sel: null, multi: [], tool: 'move' })
   }
@@ -1101,7 +1109,7 @@ export class PhotoController {
     this.set({ expOpen: false })
     const sl = this.selL()
     if (S.tool === 'brush' && sl?.type === 'image' && sl.src) return this.brushStart(sl, p, alt)
-    if (S.tool === 'crop' && sl?.type === 'image' && sl.src) {
+    if (S.tool === 'crop' && sl?.type === 'image' && sl.src && !sl.locked) {
       const lp = toLocal(sl, p[0], p[1])
       if (Math.abs(lp[0]) <= sl.w / 2 && Math.abs(lp[1]) <= sl.h / 2) return this.cropDrag(sl, p)
     }

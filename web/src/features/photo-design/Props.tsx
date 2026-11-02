@@ -184,6 +184,14 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
   ]
   return (
     <div className={s.props}>
+      {L.locked && (
+        <div className={s.lockNote} data-pd-locked="">
+          <span>{tx('Laget er låst: det kan ikke flyttes, endres eller slettes.')}</span>
+          <button type="button" className={s.smallBtn} onClick={() => P({ locked: false })}>{tx('Lås opp')}</button>
+        </div>
+      )}
+      {/* låst lag: alle kontroller sperret (fieldset disabled) */}
+      <fieldset className={s.lockSet} disabled={!!L.locked}>
       <label className={s.field}>
         <span>{tx('Lagnavn')}</span>
         <input value={L.name} onChange={(e) => P({ name: e.target.value.slice(0, 60) }, 'lname')} />
@@ -316,6 +324,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           </div>
         </>
       )}
+      </fieldset>
     </div>
   )
 }
