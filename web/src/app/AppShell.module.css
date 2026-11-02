@@ -293,3 +293,10 @@
     min-width: 0;
   }
 }
+
+/* Mobil i en editor (Photo, Motion …): ingen kreditering under arbeidsflaten, så siden ikke blar (PC uendret). */
+@media (max-width: 760px) {
+  .main:has([data-ml-workspace]) .credit {
+    display: none;
+  }
+}

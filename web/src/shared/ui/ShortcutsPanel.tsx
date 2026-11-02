@@ -28,8 +28,45 @@ export function ShortcutsButton({ tool, fabClass }: { tool: string; fabClass: st
     }
     // Høyreklikk der appen ikke har en egen meny: Media Labs meny i stedet for nettleserens. Tekstfelt, lenker og
     // markert tekst beholder nettleserens meny (kopier, lim inn, åpne lenke).
+    // Langt trykk med finger åpner de samme menyene som høyreklikk (iPhone har ikke contextmenu ved langt trykk;
+    // Android har det, og da brukes nettleserens hendelse og ikke vår). Flytter fingeren seg, er det en draing.
+    let lp: { id: number; x: number; y: number; t: number; native: boolean } | null = null
+    let lastTouch = 0
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      lastTouch = Date.now()
+      if (lp) clearTimeout(lp.t)
+      if (isTypingTarget(e.target)) return
+      const id = e.pointerId
+      const x = e.clientX
+      const y = e.clientY
+      lp = { id, x, y, native: false, t: window.setTimeout(() => {
+        if (!lp || lp.native) return
+        lp = null
+        const el = document.elementFromPoint(x, y)
+        if (!el) return
+        el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 2 }))
+        // klikket som følger når fingeren slippes, skal ikke også aktivere det som ble trykket på
+        const eat = (ev: Event) => { ev.preventDefault(); ev.stopPropagation() }
+        window.addEventListener('click', eat, { capture: true, once: true })
+        setTimeout(() => window.removeEventListener('click', eat, { capture: true }), 700)
+      }, 650) }
+    }
+    const moveOrUp = (e: PointerEvent) => {
+      if (!lp || e.pointerId !== lp.id) return
+      if (e.type === 'pointermove' && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) < 10) return
+      clearTimeout(lp.t)
+      lp = null
+    }
     const ctx = (e: MouseEvent) => {
+      if (lp && e.isTrusted) {
+        // nettleserens egen (Android): vår lange-trykk-hendelse trengs ikke
+        lp.native = true
+        clearTimeout(lp.t)
+      }
       if (e.defaultPrevented) return
+      // berøring uten egen meny i området: ingen reservemeny (hurtigtaster og fullskjerm hører ikke hjemme der)
+      if (Date.now() - lastTouch < 1500) return
       const t = e.target as Element | null
       if (isTypingTarget(t) || t?.closest?.('a[href], [data-native-menu]')) return
       const sel = window.getSelection?.()
@@ -39,9 +76,18 @@ export function ShortcutsButton({ tool, fabClass }: { tool: string; fabClass: st
     }
     window.addEventListener('keydown', key)
     window.addEventListener('contextmenu', ctx)
+    window.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointermove', moveOrUp, true)
+    window.addEventListener('pointerup', moveOrUp, true)
+    window.addEventListener('pointercancel', moveOrUp, true)
     return () => {
+      if (lp) clearTimeout(lp.t)
       window.removeEventListener('keydown', key)
       window.removeEventListener('contextmenu', ctx)
+      window.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointermove', moveOrUp, true)
+      window.removeEventListener('pointerup', moveOrUp, true)
+      window.removeEventListener('pointercancel', moveOrUp, true)
     }
   }, [groups])
   if (!groups) return null

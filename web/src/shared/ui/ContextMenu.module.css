@@ -10,10 +10,13 @@
   min-width: 220px;
   max-width: 320px;
   padding: 6px;
-  border: 1px solid var(--color-border, #2b2b2b);
+  /* ugjennomsiktig (ikke tema-overflaten, som er halvgjennomsiktig): menyen skal være lett å lese over alt innhold */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
+  border: 1px solid #3a3a3a;
   border-radius: 10px;
-  background: var(--color-surface, #141414);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  background: #161616;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.4);
   color: var(--color-text-strong, #f3f1ec);
   font-size: 13px;
 }
@@ -47,11 +50,11 @@
 .item:hover:not([aria-disabled='true']),
 .item:focus-visible {
   outline: none;
-  background: var(--color-surface-raised, #232323);
+  background: #2c2c2c;
 }
 
 .item[aria-disabled='true'] {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: default;
 }
 
@@ -64,4 +67,37 @@
   color: var(--color-text-muted, #9d998f);
   font: inherit;
   font-size: 12px;
+}
+
+:root[data-theme='light'] .menu {
+  border-color: #cfcac0;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  color: #1d1b18;
+}
+
+:root[data-theme='light'] .item:hover:not([aria-disabled='true']),
+:root[data-theme='light'] .item:focus-visible {
+  background: #ece8e1;
+}
+
+:root[data-theme='light'] .keys {
+  color: #6b665d;
+}
+
+:root[data-theme='light'] .sep {
+  background: #e2ddd4;
+}
+
+/* Berøringsskjerm: store nok mål for fingre (PC med mus er uendret). */
+@media (hover: none) and (pointer: coarse) {
+  .item {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  .menu {
+    min-width: min(260px, calc(100vw - 16px));
+  }
 }

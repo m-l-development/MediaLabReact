@@ -1,6 +1,6 @@
 import { drawFill } from '../../../shared/fill/fill'
 import { draw as drawFx } from '../../../shared/fx/fx'
-import { ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
+import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
 import { applyDev, cleanDev, histogram, type Dev, type Histogram } from './develop'
 
 type G = CanvasRenderingContext2D
@@ -498,6 +498,12 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
       const P = processed(E, before ? ADJ : L.adj, M.masks.get(L.id), maxD, before ? null : cleanDev(L.dev))
       const k = P.width / E.w
       const r = cover(E.w, E.h, w, h, L.cz, L.cx, L.cy)
+      // beskjæringsform: klipp bildet til formen (før speiling, så formen står som valgt)
+      const cs = L.cshape
+      if (cs && cs !== 'rect' && CROP_SHAPES.some(([k]) => k === cs)) {
+        shapePath(g, cs === 'rounded' ? 'rect' : cs, w, h, cs === 'rounded' ? Math.min(Math.abs(w), Math.abs(h)) * 0.14 : 0)
+        g.clip()
+      }
       g.scale(L.flipX ? -1 : 1, L.flipY ? -1 : 1)
       g.imageSmoothingQuality = 'high'
       if (L.tint) {

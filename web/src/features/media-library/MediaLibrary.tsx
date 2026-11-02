@@ -14,6 +14,7 @@ import { useAssetUrl } from '../../shared/media/useAssetUrl'
 import { Button } from '../../shared/ui/Button'
 import { Icon } from '../../shared/ui/Icon'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
+import { MoreButton } from '../../shared/ui/MoreButton'
 import styles from './MediaLibrary.module.css'
 
 type Filter = 'all' | AssetKind
@@ -243,6 +244,7 @@ function AssetCard({ asset, targets, onOpenIn, onRemove }: {
         }
       }}>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={items} label={asset.name} onClose={() => setMenu(null)} />}
+      <MoreButton className={styles.cardMore} of={asset.name} />
       <div className={styles.preview}>
         {url && asset.thumb ? <img src={url} alt="" loading="lazy" /> : <span className={styles.kind}>{t(KIND_KEY[asset.kind])}</span>}
         {asset.origin.type === 'derived' && <span className={styles.badge}>{t('media.derived')}</span>}

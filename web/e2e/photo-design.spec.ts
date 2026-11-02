@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { png } from './png'
+import { dock } from './dock'
 
 async function errorsOf(page: Page) {
   const errors: string[] = []
@@ -46,15 +47,19 @@ test('nytt prosjekt fra mal: bilde, tekst, lagre og eksporter PNG, JPG og PDF', 
   await expect(page.getByText('Lag', { exact: true }).first()).toBeVisible()
 
   // Bilde inn i den tomme bildeplassen (valgt) via filvelgeren
+  await dock(page, 'layers')
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()
+  await dock(page, 'edit')
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Bytt bilde' }).click()
   await (await chooser).setFiles({ name: 'rod.png', mimeType: 'image/png', buffer: png(300, 300, () => [230, 20, 20, 255]) })
   // Den tomme bildeplassen får bildet og filnavnet (som i dagens app)
+  await dock(page, 'layers')
   await expect(page.locator('[data-layer]').filter({ hasText: 'rod' })).toBeVisible()
   await expect(page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' })).toHaveCount(0)
 
   // Ny tekst
+  await dock(page, 'add')
   await page.getByRole('button', { name: 'Tekst', exact: true }).click()
   await expect(page.locator('textarea[data-pd-text]')).toHaveValue('Skriv her')
   await page.locator('textarea[data-pd-text]').fill('Hei verden')
@@ -180,10 +185,13 @@ test('nytt bilde fyller malens tomme bildeplass (uten at den er valgt), og tekst
   await page.goto('/app/photo-design')
   await page.locator('[data-tpl="split"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
+  await dock(page, 'layers')
   const n = await page.locator('[data-layer]').count()
+  await dock(page, 'add')
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Bilde', exact: true }).first().click()
   await (await chooser).setFiles({ name: 'rod.png', mimeType: 'image/png', buffer: png(300, 200, () => [230, 20, 20, 255]) })
+  await dock(page, 'layers')
   await expect(page.locator('[data-layer]').filter({ hasText: 'rod' })).toBeVisible()
   // samme antall lag: bildet gikk inn i bildeplassen i stedet for et nytt lag øverst
   await expect(page.locator('[data-layer]')).toHaveCount(n)
@@ -200,6 +208,7 @@ test('de 10 nye malene åpnes i editoren med lagene sine', async ({ page }) => {
     await page.goto('/app/photo-design')
     await page.locator(`[data-tpl="${k}"]`).click()
     await expect(page.locator('[data-pd-view="edit"]'), k).toBeVisible()
+    await dock(page, 'layers')
     expect(await page.locator('[data-layer]').count(), k).toBeGreaterThan(2)
   }
   expect(errors).toEqual([])

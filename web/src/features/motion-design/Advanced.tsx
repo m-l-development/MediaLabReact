@@ -12,6 +12,7 @@ import { FX_DEFS, FX_KINDS, type FxDef, type FxKind } from './engine/fx'
 import { EASES, KF_PROPS, keyAt, keysOutside, type Ease, type PropDef } from './engine/kf'
 import type { Phrase, Tx } from './texts'
 import { NumField } from '../../shared/ui/NumField'
+import { MoreButton } from '../../shared/ui/MoreButton'
 import s from './MotionDesign.module.css'
 
 const KIND: Record<Media['kind'], Phrase> = { video: 'Video', image: 'Bilde', audio: 'Lyd' }
@@ -46,6 +47,7 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
       <ul className={s.binList} aria-label={tx('Mediebibliotek')}>
         {p.media.map((m) => (
           <li key={m.id} className={s.binItem} data-md-bin-item={m.name} data-kind={m.kind} onContextMenu={(e) => c.binMenu(e, m)}>
+            <MoreButton className={s.binMore} of={m.name} />
             <span className={s.binThumb} style={{ backgroundImage: css(m.thumb) }} aria-hidden="true">{m.kind === 'audio' ? '♪' : ''}</span>
             <span className={s.binText}>
               <span className={s.binName} title={m.name}>{m.name}</span>

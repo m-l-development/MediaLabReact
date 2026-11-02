@@ -248,3 +248,55 @@ button.card {
 :root[data-theme='light'] .folderLink[style*='#f3f1ec']:hover {
   border-left-color: var(--color-text-strong);
 }
+
+/* Mobil: forsiden får plass uten å bla – kortene i et 2 × 2-rutenett, uten beskrivelse (hele kortet er en lenke/knapp).
+   PC er uendret. */
+@media (max-width: 600px) {
+  .hub {
+    gap: 18px;
+    padding-top: 8px;
+  }
+
+  .title {
+    font-size: clamp(30px, 10vw, 44px);
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card {
+    min-height: 0;
+    gap: 6px;
+    padding: 14px;
+  }
+
+  .cardTitle {
+    font-size: 15px;
+    overflow-wrap: anywhere;
+  }
+
+  .label {
+    font-size: 10px;
+  }
+
+  .desc {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .footer {
+    padding-top: 4px;
+  }
+
+  .open {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 11px;
+  }
+}

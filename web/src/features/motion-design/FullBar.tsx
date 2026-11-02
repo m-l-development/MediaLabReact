@@ -4,10 +4,10 @@ import { fmtT } from './engine/model'
 import type { Tx } from './texts'
 import s from './MotionDesign.module.css'
 
-/** Tidsmerker med «pene» steg (0,5 s, 1 s, 2 s, 5 s … 10 min), høyst ca. 10 på linjen. */
+/** Tidsmerker med «pene» steg (0,5 s, 1 s, 2 s, 5 s … 10 min), høyst ca. 6 på linjen. */
 function ticks(T: number): number[] {
   const steps = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600]
-  const st = steps.find((x) => T / x <= 10) ?? 600
+  const st = steps.find((x) => T / x <= 6) ?? 600
   const out: number[] = []
   for (let v = 0; v <= T + 1e-6; v += st) out.push(Math.round(v * 1000) / 1000)
   return out
@@ -22,6 +22,55 @@ function ticks(T: number): number[] {
 export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number; playing: boolean; tx: Tx }) {
   const [t, setT] = useState(c.t)
   const track = useRef<HTMLDivElement>(null)
+  const bar = useRef<HTMLDivElement>(null)
+  // Skjules når pekeren ikke er nær linjen (etter 1,5 s), så videoen er i fokus; vises igjen når pekeren nærmer seg
+  // bunnen, ved tastetrykk, mens linjen har fokus eller mens man drar. Pekeren skjules sammen med linjen.
+  const [shown, setShown] = useState(true)
+  const dragging = useRef(false)
+  useEffect(() => {
+    let timer = 0
+    const stage = bar.current?.parentElement
+    const hideLater = () => {
+      clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        if (dragging.current || bar.current?.contains(document.activeElement)) return
+        setShown(false)
+      }, 1500)
+    }
+    const near = (y: number) => y > window.innerHeight - 140
+    const move = (e: globalThis.PointerEvent) => {
+      if (near(e.clientY) || dragging.current) {
+        clearTimeout(timer)
+        setShown(true)
+      } else {
+        setShown(true)
+        hideLater()
+      }
+    }
+    const key = () => {
+      setShown(true)
+      hideLater()
+    }
+    const blur = () => hideLater()
+    hideLater()
+    window.addEventListener('pointermove', move)
+    window.addEventListener('keydown', key, true)
+    bar.current?.addEventListener('focusout', blur)
+    const b = bar.current
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('keydown', key, true)
+      b?.removeEventListener('focusout', blur)
+      stage?.removeAttribute('data-md-idle')
+    }
+  }, [])
+  useEffect(() => {
+    const stage = bar.current?.parentElement
+    if (!stage) return
+    if (shown) stage.removeAttribute('data-md-idle')
+    else stage.setAttribute('data-md-idle', '')
+  }, [shown])
   // spillehodet går uten React-oppdateringer under avspilling: følg det med en lett tegneløkke mens linjen vises
   useEffect(() => {
     let raf = 0
@@ -45,9 +94,11 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
     e.currentTarget.focus()
     e.currentTarget.setPointerCapture(e.pointerId)
     c.seek(at(e.clientX))
+    dragging.current = true
     const el = e.currentTarget
     const move = (ev: globalThis.PointerEvent) => c.seek(at(ev.clientX), true)
     const up = () => {
+      dragging.current = false
       el.removeEventListener('pointermove', move)
       c.seek(c.t)
     }
@@ -76,7 +127,7 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
   const label = `${fmtT(t)} / ${fmtT(T)}`
 
   return (
-    <div className={s.fullBar} data-md-fullbar="" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+    <div ref={bar} className={s.fullBar} data-md-fullbar="" data-hidden={shown ? undefined : ''} onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       <button type="button" className={s.fullBtn} data-md-full-play="" aria-label={tx(playing ? 'Pause' : 'Spill av')} title={tx('Spill av / pause (mellomrom)')} onClick={() => c.togglePlay()}>
         {playing
           ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
@@ -97,9 +148,9 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
         <span className={s.fullHead} style={{ left: pct(t) }} aria-hidden="true" />
       </div>
       <span className={s.fullTime} data-md-full-time="">{label}</span>
-      <button type="button" className={s.fullExit} data-md-full-exit="" onClick={() => c.toggleFull()}>
+      <button type="button" className={s.fullExit} data-md-full-exit="" aria-label={tx('Avslutt fullskjerm')} title={tx('Avslutt fullskjerm') + ' (Esc)'} onClick={() => c.toggleFull()}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
-        {tx('Avslutt fullskjerm')} <kbd>Esc</kbd>
+        <kbd>Esc</kbd>
       </button>
     </div>
   )

@@ -28,7 +28,7 @@ interface BlockProps {
 }
 function Block({ c, kind, id, cls, sel, link, style, children }: BlockProps) {
   return (
-    <div className={`${s.blk} ${cls} ${sel ? s.blkSel : ''}`} style={style} data-block={kind}
+    <div className={`${s.blk} ${cls} ${sel ? s.blkSel : ''}`} style={style} data-block={kind} data-sel={sel ? '' : undefined}
       onPointerDown={(e) => c.startDrag(e, kind, id)} onContextMenu={(e) => c.ctxFor(kind, id, e)}>
       {link && <div className={s.linkBar} style={{ background: linkColor(link) }} />}
       {children}

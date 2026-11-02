@@ -95,3 +95,10 @@ svg {
   outline: 2px solid var(--color-text-strong, #f3f1ec);
   outline-offset: -2px;
 }
+
+/* Berøringsskjerm uten tastatur: hurtigtastknappen trengs ikke og dekker innhold (PC er uendret). */
+@media (hover: none) and (pointer: coarse) {
+  [data-ml-shortcuts] {
+    display: none !important;
+  }
+}

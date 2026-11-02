@@ -5,6 +5,8 @@ import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStageNav } from '../../shared/lib/useStageNav'
 import { NumField } from '../../shared/ui/NumField'
 import { formatKeys } from '../../shared/ui/shortcuts'
+import { MoreButton } from '../../shared/ui/MoreButton'
+import { DockIcon, MobileDock } from '../../shared/ui/MobileDock'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
@@ -105,11 +107,22 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
 export function Editor(p: EditorProps) {
   const { c, S, tx, onExport } = p
   const snapOn = useStore(snapPref)
+  // mobil: hvilket panel som er åpent over ikonlinjen (null = bare arbeidsflaten)
+  const [mtab, setMtab] = useState<string | null>(null)
+  // nytt lag (fra «Legg til», «Dupliser» …): rett til «Rediger», så det kan endres med én gang
+  const nLayers = S.doc?.layers.length ?? 0
+  const prevN = useRef(nLayers)
+  useEffect(() => {
+    if (S.narrow && nLayers > prevN.current && mtab !== 'edit') setMtab('edit')
+    prevN.current = nLayers
+  }, [nLayers, S.narrow, mtab])
   const d = S.doc
   if (!d) return null
+  const mobile = S.narrow && !d.batch
+  const L0 = c.selL()
   const saved = S.saved?.kind === 'unsaved' ? tx('Ikke lagret') : S.saved?.kind === 'saved' ? `${tx('Lagret')} ${new Date(S.saved.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
   return (
-    <div className={s.editor} data-ml-workspace="">
+    <div className={s.editor} data-ml-workspace="" data-narrow={S.narrow ? '1' : undefined}>
       <header className={s.bar}>
         <button type="button" className={s.barBtn} onClick={() => void c.leave()}><span aria-hidden="true">←</span> {tx('Prosjekter')}</button>
         <input className={s.docName} value={d.name} aria-label={tx('Prosjektnavn')} onChange={(e) => c.setDocName(e.target.value)} />
@@ -176,6 +189,49 @@ export function Editor(p: EditorProps) {
           </div>
         )}
       </header>
+      {mobile ? (
+        // Mobil: arbeidsflaten øverst (hele tiden synlig), paneler som glir opp over ikonlinjen nederst
+        <div className={s.work} data-narrow="1" data-mobile="1">
+          <Stage {...p} />
+          {S.maskEdit && <MaskDialog {...p} />}
+          <MobileDock label={tx('Verktøy')} open={mtab} onOpen={setMtab}
+            bar={L0 ? (
+              <>
+                <button type="button" className={s.smallBtn} onClick={() => setMtab('edit')}>{tx('Rediger')}</button>
+                <button type="button" className={s.smallBtn} disabled={!!L0.locked} onClick={() => c.dup()}>{tx('Dupliser')}</button>
+                <button type="button" className={s.smallBtn} onClick={() => setMtab('layers')}>{tx('Lag')}</button>
+                <button type="button" className={s.smallBtnDanger} disabled={!!L0.locked} onClick={() => c.del()}>{tx('Slett')}</button>
+                <button type="button" className={s.smallBtn} aria-label={tx('Flere handlinger')} onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect()
+                  c.ui({ ctx: { x: r.left, y: r.top, id: L0.id } })
+                }}>⋯</button>
+              </>
+            ) : undefined}
+            tabs={[
+              { key: 'add', label: tx('Legg til'), icon: <DockIcon d="add" />, content: () => <AddPanel {...p} /> },
+              { key: 'layers', label: tx('Lag'), icon: <DockIcon d="layers" />, content: () => <LayerList {...p} /> },
+              { key: 'edit', label: tx('Rediger'), icon: <DockIcon d="edit" />, content: () => <Props c={c} S={S} tx={tx} pickFile={p.pickFile} /> },
+              { key: 'style', label: tx('Stil'), icon: <DockIcon d="style" />, content: () => <StylePanel {...p} /> },
+              { key: 'fx', label: tx('Effekter'), icon: <DockIcon d="fx" />, content: () => <><FxPanel {...p} />{S.fxOpen && S.adv && <FxPicker {...p} />}</> },
+              { key: 'more', label: tx('Mer'), icon: <DockIcon d="more" />, content: () => (
+                <div className={s.props}>
+                  <label className={s.field}><span>{tx('Prosjektnavn')}</span><input value={d.name} onChange={(e) => c.setDocName(e.target.value)} /></label>
+                  <Toggle label={tx('Autolagring')} on={S.autosave} onClick={() => c.toggleAutosave()} />
+                  <Toggle label={tx('Avansert modus')} on={S.adv} onClick={() => c.toggleAdv()} />
+                  <div className={s.row2}>
+                    <button type="button" className={s.smallBtn} onClick={() => c.ui({ zoom: 1 })}>{tx('Tilpass til vinduet')}</button>
+                    <button type="button" className={s.smallBtn} onClick={() => c.ui({ zoom: Math.min(8, Math.max(0.1, 1 / (S.fit || 1))) })}>100 %</button>
+                  </div>
+                  {d.back && (
+                    <div className={s.seg}>
+                      {(['front', 'back'] as const).map((k) => <button key={k} type="button" aria-pressed={(d.side ?? 'front') === k} onClick={() => c.showSide(k)}>{tx(k === 'front' ? 'Forside' : 'Bakside')}</button>)}
+                    </div>
+                  )}
+                </div>
+              ) },
+            ]} />
+        </div>
+      ) : (
       <div className={s.work} data-narrow={S.narrow ? '1' : undefined} data-batch={d.batch ? '1' : undefined}>
         {d.batch ? (
           <aside className={s.left}>
@@ -203,6 +259,7 @@ export function Editor(p: EditorProps) {
           <Props c={c} S={S} tx={tx} pickFile={p.pickFile} />
         </aside>
       </div>
+      )}
       {d.batch && !S.narrow && <BatchStrip {...p} />}
     </div>
   )
@@ -712,6 +769,7 @@ function LayerList({ c, S, tx }: EditorProps) {
                 e.stopPropagation()
                 c.delLayer(q.id)
               }}>×</button>
+              <MoreButton className={s.rowMore} />
             </div>
           )
         })}
@@ -860,6 +918,17 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
     if (!id || batch) return [paste, { label: tx('Velg alle'), keys: K('Mod+A'), disabled: batch, onSelect: () => c.selectAll() }, ...edit, ...view]
     const Lm = d.layers.find((q) => q.id === id)
     const many = c.selIds().length > 1
+    // låst lag: bare det som ikke endrer laget (kopier, dupliser, skjul) og «Lås opp»
+    if (Lm?.locked && !many) {
+      return [
+        { label: tx('Lås opp'), onSelect: () => c.patchL(id, { locked: false }) },
+        { label: tx('Kopier'), keys: K('Mod+C'), separator: true, onSelect: () => c.copyLayers(false) },
+        { label: tx('Dupliser'), keys: K('Mod+D'), onSelect: () => c.dup() },
+        { label: Lm.hidden ? tx('Vis') : tx('Skjul'), onSelect: () => c.patchL(id, { hidden: !Lm.hidden }) },
+        ...edit,
+        ...view,
+      ]
+    }
     return [
       { label: tx('Kopier'), keys: K('Mod+C'), onSelect: () => c.copyLayers(false) },
       { label: tx('Klipp ut'), keys: K('Mod+X'), onSelect: () => c.copyLayers(true) },
@@ -929,7 +998,9 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
           // høyreklikk: handlingene for laget under pekeren (velges), eller for arbeidsflaten
           e.preventDefault()
           const p = pt(e)
-          const hitL = c.s.doc && !c.s.doc.batch ? hit(c.s.doc, p[0], p[1]) : null
+          // fra «⋯» på det valgte laget: menyen gjelder det valgte (ikke laget som tilfeldigvis ligger øverst der)
+          const fromSel = (e.target as Element).closest?.('[data-pd-selbox]') && c.selL()
+          const hitL = fromSel ? c.selL() : c.s.doc && !c.s.doc.batch ? hit(c.s.doc, p[0], p[1]) : null
           if (hitL) c.ui({ sel: hitL.id, multi: [] })
           setMenu({ x: e.clientX, y: e.clientY, id: hitL?.id ?? null })
         }}
@@ -968,7 +1039,9 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
           )
         })}
         {box && (
-          <div className={s.selBox} style={{ left: box.left, top: box.top, width: box.w, height: box.h, transform: `rotate(${box.rot}deg)`, outline: `1.5px ${box.line} ${box.col}` }}>
+          <div className={s.selBox} data-pd-selbox="" style={{ left: box.left, top: box.top, width: box.w, height: box.h, transform: `rotate(${box.rot}deg)`, outline: `1.5px ${box.line} ${box.col}` }}>
+            {/* berøringsskjerm: handlingene for det valgte laget (samme meny som høyreklikk) */}
+            <MoreButton at="center" className={s.selMore} />
             {singleHandles.map((h) => (
               <button key={`${h.kind}${h.left}${h.top}`} type="button" aria-label={tx(h.label)} className={h.kind === 'rot' ? s.handleRot : s.handle} style={{ left: h.left, top: h.top, cursor: h.cursor, borderColor: box?.col }}
                 onPointerDown={(e) => {

@@ -1363,7 +1363,7 @@ export class ThumbController {
   /** Trykk på lerretet (p i 1920 × 1080). */
   pointerDown(p: { x: number; y: number }, shift: boolean): boolean {
     const d = this.s.doc
-    if (!d || this.s.narrow) return false
+    if (!d) return false
     const cur = this.layer(this.s.sel)
     const m = this.s.multi
     if (shift) {

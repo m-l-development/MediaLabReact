@@ -233,3 +233,15 @@
   outline: 2px solid var(--color-text-strong);
   outline-offset: 2px;
 }
+
+/* «⋯» på kortet (bare berøringsskjerm) */
+.card {
+  position: relative;
+}
+
+.cardMore {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}

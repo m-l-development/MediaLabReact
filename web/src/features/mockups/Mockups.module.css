@@ -232,7 +232,7 @@
 .stage {
   position: relative;
   display: grid;
-  place-items: center;
+  overflow: auto; /* innzoomet visning ruller (useStageNav); tilpasset er den sentrert av .wrap { margin: auto } */
   height: calc(100dvh - 210px);
   min-height: 360px;
   border: 1px solid var(--color-border);
@@ -246,6 +246,8 @@
 
 .wrap {
   position: relative;
+  grid-area: 1 / 1;
+  margin: auto;
   touch-action: none;
 }
 
@@ -670,5 +672,61 @@
     /* radene beholder sin naturlige høyde; panelet ruller i stedet for å klemme dem */
     grid-auto-rows: max-content;
     align-content: start;
+  }
+}
+
+/* «⋯» (bare berøringsskjerm, se shared/ui/MoreButton) */
+.cardItem {
+  position: relative;
+}
+
+.cardMore {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
+.stageMore {
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+  justify-self: end;
+  align-self: start;
+  margin: 8px;
+  grid-area: 1 / 1;
+}
+
+/* Mobil: editoren fyller skjermen uten at siden blar – mockupen øverst, panelet i nedre del ruller inni seg selv. */
+@media (max-width: 760px) {
+  .editor[data-ml-workspace] {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100dvh - 104px);
+    gap: 8px;
+  }
+
+  .editor[data-ml-workspace] .editorBar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .editor[data-ml-workspace] .editorBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .editor[data-ml-workspace] .stage {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 180px;
+  }
+
+  .editor[data-ml-workspace] .panel {
+    flex: 0 1 44%;
+    max-height: 44%;
+    padding: 14px;
   }
 }

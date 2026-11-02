@@ -298,9 +298,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-.range input,
+.range input[type='range'],
 .stopRow input[type='range'],
-.amount input {
+.amount input[type='range'] {
   width: 100%;
   accent-color: #e9e7e2;
 }
