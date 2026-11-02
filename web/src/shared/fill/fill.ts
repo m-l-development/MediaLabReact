@@ -2,10 +2,15 @@
  * Bakgrunnsfyll (farge og gradienter) – samme motor i Photo Design og Loop Studio (media-lab/src/legacy/photo-engine.js
  * `drawFill` og fillVals i photo-design/logic.js). Formatet lagres uendret i prosjektene.
  */
+import { curveFn } from './curve'
+
 export interface FillStop { c: string; p: number; w?: number; hard?: boolean }
+/** Kurvepunkter (0–1) for fargekurve-gradienten: m = alle kanaler (RGB), r/g/b = hver kanal. */
+export type CurvePts = [number, number][]
+export interface FillCurves { m?: CurvePts | null; r?: CurvePts | null; g?: CurvePts | null; b?: CurvePts | null }
 export type FillMode =
   | 'none' | 'solid' | 'linear' | 'mirror' | 'radial' | 'conic' | 'mesh' | 'stripes' | 'wave' | 'ellipse' | 'corner' | 'spot' | 'glow'
-  | 'conicRep' | 'conicMirror' | 'rays' | 'conicCorner'
+  | 'conicRep' | 'conicMirror' | 'rays' | 'conicCorner' | 'curves'
 export interface Fill {
   mode: FillMode
   stops?: FillStop[]
@@ -17,9 +22,11 @@ export interface Fill {
   repeat?: number
   x?: number
   y?: number
+  /** Fargekurve-gradient (modus 'curves'): fargen langs retningen bestemmes av RGB-kurvene. */
+  curves?: FillCurves | null
 }
 
-export const FILL_MODES: readonly FillMode[] = ['none', 'solid', 'linear', 'mirror', 'radial', 'conic', 'mesh', 'stripes', 'wave', 'ellipse', 'corner', 'spot', 'glow', 'conicRep', 'conicMirror', 'rays', 'conicCorner']
+export const FILL_MODES: readonly FillMode[] = ['none', 'solid', 'linear', 'mirror', 'radial', 'conic', 'mesh', 'stripes', 'wave', 'ellipse', 'corner', 'spot', 'glow', 'conicRep', 'conicMirror', 'rays', 'conicCorner', 'curves']
 
 /** Rekkefølgen og navnene i «Type» (samme som i dag). */
 export const FILL_MODE_LABELS: readonly [FillMode, string][] = [['none', 'Ingen'], ['solid', 'Farge'], ['linear', 'Lineær'], ['mirror', 'Speilet'], ['radial', 'Rund'], ['ellipse', 'Oval'], ['conic', 'Vinkel'], ['conicRep', 'Vinkel gjentatt'], ['conicMirror', 'Vinkel speilet'], ['conicCorner', 'Vinkel fra hjørne'], ['rays', 'Stråler'], ['mesh', 'Myk blanding'], ['stripes', 'Striper'], ['wave', 'Bølger'], ['corner', 'Fra hjørne'], ['spot', 'Spotlys'], ['glow', 'Glød']]
@@ -73,8 +80,44 @@ function clip01(st: FillStop[]): FillStop[] {
   return [{ c: at(0), p: 0 }, ...l.filter((q) => q.p > 0 && q.p < 1), { c: at(1), p: 1 }]
 }
 
+/**
+ * Fargekurve-gradient: fargen ved posisjon t (0–1 langs retningen) er (R, G, B) = m(kanalkurven(t)). Uten kurver blir
+ * den svart → hvit; hver kanal formes med sin kurve, og RGB-kurven virker på alle tre.
+ */
+export function curveStops(cv: FillCurves | null | undefined, n = 48): FillStop[] {
+  const fm = curveFn(cv?.m)
+  const fr = curveFn(cv?.r)
+  const fg = curveFn(cv?.g)
+  const fb = curveFn(cv?.b)
+  const ch = (f: ((x: number) => number) | null, t: number) => {
+    const v = f ? f(t) : t
+    return Math.round(clamp(fm ? fm(clamp(v, 0, 1)) : v, 0, 1) * 255)
+  }
+  const out: FillStop[] = []
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    out.push({ c: `#${((ch(fr, t) << 16) | (ch(fg, t) << 8) | ch(fb, t)).toString(16).padStart(6, '0')}`, p: t })
+  }
+  return out
+}
+
 /** Tegner fyllet over hele flaten (W × H). */
 export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: number): void {
+  if (bf.mode === 'curves') {
+    const a = ((bf.angle == null ? 90 : bf.angle) * Math.PI) / 180
+    const dx = Math.sin(a)
+    const dy = -Math.cos(a)
+    const ln = Math.abs(W * dx) + Math.abs(H * dy)
+    const cx = W * (bf.x == null ? 0.5 : bf.x)
+    const cy = H * (bf.y == null ? 0.5 : bf.y)
+    const g = ctx.createLinearGradient(cx - (dx * ln) / 2, cy - (dy * ln) / 2, cx + (dx * ln) / 2, cy + (dy * ln) / 2)
+    for (const q of curveStops(bf.curves)) g.addColorStop(q.p, q.c)
+    ctx.save()
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, W, H)
+    ctx.restore()
+    return
+  }
   ctx.save()
   let st: FillStop[] = Array.isArray(bf.stops) && bf.stops.length ? sorted(bf.stops) : [{ c: bf.c1 || '#1a1a1a', p: 0 }, { c: bf.c2 || '#000000', p: 1 }]
   const sfv = bf.soft == null ? 0.5 : clamp(bf.soft, 0, 1)
@@ -260,6 +303,7 @@ export function fillCss(f: Fill): string {
   const li = ss.map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')
   if (mode === 'none') return 'transparent'
   if (mode === 'solid') return first.c
+  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
   if (mode === 'radial') return `radial-gradient(circle at 50% 50%, ${li})`
   if (mode === 'conicRep' || mode === 'conicMirror' || mode === 'rays' || mode === 'conicCorner') {
     const n = mode === 'conicCorner' ? 1 : Math.max(1, Math.round(f.repeat || (mode === 'rays' ? 8 : 3)))
