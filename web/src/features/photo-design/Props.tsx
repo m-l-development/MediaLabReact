@@ -6,6 +6,7 @@ import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
 import { ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
 import { NumField } from '../../shared/ui/NumField'
+import { BgColor } from '../../shared/ui/BgColor'
 import { curveFn } from './engine/render'
 import { DEV, type Dev, type Histogram } from './engine/develop'
 import { useEffect, useRef, useState } from 'react'
@@ -45,8 +46,14 @@ function ColorPick({ val, set, label, cmyk }: { val: string; set: (v: string) =>
   )
 }
 
+/**
+ * CMYK-felt. Verdiene som skrives holdes lokalt så lenge fargen fortsatt er den de ga: å regne HEX → CMYK på nytt for
+ * hvert tastetrykk normaliserer verdiene (like C/M/Y blir K, K = 100 nuller resten, avrunding driver), så feltene hoppet
+ * tilbake og CMYK virket ikke.
+ */
 function Cmyk({ hv, set }: { hv: string; set: (v: string) => void }) {
-  const cm = toCMYK(hv)
+  const [own, setOwn] = useState<{ hex: string; v: string[] } | null>(null)
+  const cm = own && own.hex === hv.toLowerCase() ? own.v : toCMYK(hv).map(String)
   return (
     <div className={s.cmyk} title="CMYK">
       <span>CMYK</span>
@@ -54,10 +61,12 @@ function Cmyk({ hv, set }: { hv: string; set: (v: string) => void }) {
         <label key={i}>
           <span>{'CMYK'[i]}</span>
           <input type="number" min={0} max={100} value={v} onChange={(e) => {
-            const n = toCMYK(hv)
-            n[i] = Math.max(0, Math.min(100, Math.round(+e.target.value || 0)))
-            set(fromCMYK(n))
-          }} />
+            const t = cm.slice()
+            t[i] = e.target.value
+            const hex2 = fromCMYK(t.map((x) => Math.max(0, Math.min(100, Math.round(+x || 0))))).toLowerCase()
+            setOwn({ hex: hex2, v: t })
+            if (hex2 !== hv.toLowerCase()) set(hex2)
+          }} onBlur={() => setOwn((o) => o && { ...o, v: o.v.map((x) => String(Math.max(0, Math.min(100, Math.round(+x || 0))))) })} />
         </label>
       ))}
     </div>
@@ -555,6 +564,11 @@ function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type
       {!adv && <span className={s.dimSm}>{tx('Flere verktøy (kurver, høylys og skygger, framkalling) finnes i Avansert modus.')}</span>}
       {adv && <CurveEditor c={c} L={L} tx={tx} />}
       {adv && <AdvDevelop c={c} L={L} tx={tx} />}
+      {/* bakgrunnen i komposisjonen (synlig bak gjennomsiktige og beskårne bilder, eksporteres) – samme verdi som under Dokument */}
+      {c.s.doc && (
+        <BgColor label={tx('Bakgrunn')} value={c.s.doc.bg || '#ffffff'} def="#ffffff" note={tx('Fargen bak bildene i hele komposisjonen. Den kommer med i eksporten.')}
+          onChange={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
+      )}
     </>
   )
 }

@@ -711,6 +711,8 @@ export const EN = {
   'Flytt bak': 'Send backward',
   'Tilpass visning': 'Fit to view',
   'Lagmeny': 'Layer menu',
+  'Dra for å flytte panelet': 'Drag to move the panel',
+  'Fargen bak bildene i hele komposisjonen. Den kommer med i eksporten.': 'The colour behind the images in the whole composition. It is included in the export.',
   'Verktøy': 'Tools',
   'Rediger': 'Edit',
   'Mer': 'More',

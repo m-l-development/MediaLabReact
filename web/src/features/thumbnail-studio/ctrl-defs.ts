@@ -18,6 +18,7 @@ export type Ctrl =
   | { k: 'nums'; items: [string, number, (v: number) => void][] }
   | { k: 'btns'; items: { label: Phrase; v?: Vars; on: () => void; kind?: 'p' | 'd' | ''; disabled?: boolean }[] }
   | { k: 'img'; label: Phrase; src: string | null; pick: () => void; clear: () => void; layer?: ImageLayer }
+  | { k: 'bg'; label: Phrase; val: string; def: string; note: Phrase; set: (v: string) => void }
 
 export const WEIGHT_NAMES: Record<number, Phrase> = { 400: 'Vanlig', 500: 'Medium', 600: 'Halvfet', 700: 'Fet', 800: 'Ekstra fet', 900: 'Svart' }
 
@@ -156,6 +157,16 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
     if (l.border > 0) C.push(CO('Kantfarge', l.borderColor, (v) => set({ borderColor: v })))
     C.push(CK('Ensfarget (for logoer)', !!l.tint, (v) => set({ tint: v ? '#ffffff' : null })))
     if (l.tint) C.push(CO('Logofarge', l.tint, (v) => set({ tint: v })))
+    // bildejusteringer for dette bildet (følger med i eksporten); ikke for ensfargede logoer
+    if (l.src && !l.tint) {
+      C.push(HD('Bildejusteringer'),
+        SL('Lysstyrke', l.bri || 0, -100, 100, 1, (v) => set({ bri: v }), ''),
+        SL('Kontrast', l.con || 0, -100, 100, 1, (v) => set({ con: v }), ''),
+        SL('Metning', l.sat || 0, -100, 100, 1, (v) => set({ sat: v }), ''))
+      if (l.bri || l.con || l.sat) C.push(BT([{ label: 'Nullstill justeringene', on: () => set({ bri: 0, con: 0, sat: 0 }) }]))
+    }
+    // malens bakgrunn rett ved bildet (samme verdi som under «Bakgrunn» i malpanelet)
+    if (c.s.doc?.bg.type === 'color') C.push({ k: 'bg', label: 'Bakgrunn', val: c.s.doc.bg.color, def: '#000000', note: 'Fargen bak bildene i hele malen. Den kommer med i eksporten.', set: (v) => c.setBg({ color: v }) })
   } else if (l.type === 'shape') {
     C.push(SG('Form', l.kind, [['rect', 'Firkant'], ['rounded', 'Avrundet'], ['ellipse', 'Sirkel'], ['line', 'Strek']], (v) => {
       if (v === l.kind) return

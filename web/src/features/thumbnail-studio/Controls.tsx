@@ -2,6 +2,7 @@
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useLang } from '../../shared/i18n/i18n'
+import { BgColor } from '../../shared/ui/BgColor'
 import { localStore } from '../../shared/lib/storage'
 import type { ThumbController } from './controller'
 import type { Ctrl, Unit } from './ctrl-defs'
@@ -32,6 +33,8 @@ export function Controls({ ctrls, c, tx, profileColors, imageUrl }: { ctrls: Ctr
             return <div key={i} className={s.ctrlHead}>{tx(x.label)}</div>
           case 'slider':
             return <Slider key={`${i}:${x.label}`} ctrl={x} tx={tx} />
+          case 'bg':
+            return <BgColor key={i} label={tx(x.label)} value={x.val} def={x.def} note={tx(x.note)} onChange={x.set} />
           case 'color':
             return <ColorRow key={i} label={tx(x.label)} val={x.val} set={x.set} profile={profileColors} tx={tx} />
           case 'seg':

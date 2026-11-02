@@ -448,6 +448,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Lim inn': 'Paste',
   'Lim inn farge': 'Paste color',
   'Lim inn her': 'Paste here',
+  'Fargen bak klippene i hele prosjektet. Den kommer med i eksporten.': 'The colour behind the clips in the whole project. It is included in the export.',
   'Handlinger for forhåndsvisningen': 'Preview actions',
   'Handlinger for tidslinjen': 'Timeline actions',
   'Slett keyframene her': 'Delete the keyframes here',
