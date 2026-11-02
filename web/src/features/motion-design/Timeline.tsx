@@ -57,7 +57,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
   // keyframes som små ruter på klippet (klikk = spillehodet dit)
   // keyframe-prikk: velger elementet, flytter spillehodet dit og åpner Animasjon i inspektøren
   const kfDots = (kf: Keys | undefined, start: number, type: 'clip' | 'ov' | 'text', id: string) => (adv && kf ? [...new Set(Object.values(kf).flat().map((k) => k.t))].map((t) => (
-    <i key={t} className={s.kfDot} style={{ left: t * Z }} data-md-kfdot="" title={tx('Keyframe – klikk for å redigere')} onPointerDown={(e) => { e.stopPropagation(); c.pickKey(type, id, start + t) }} />
+    <i key={t} className={s.kfDot} style={{ left: t * Z }} data-md-kfdot="" title={tx('Keyframe – klikk for å redigere')} onPointerDown={(e) => { e.stopPropagation(); c.pickKey(type, id, start + t) }} onContextMenu={(e) => c.kfDotMenu(e, type, id, start + t, t)} />
   )) : null)
   const laneName = (k: TrackKey, lane: number) => (k === 'video' ? 'V1 · Hoved' : k === 'ov' ? trackName(p, 'ov', lane) : k === 'music' ? trackName(p, 'music', lane) : k === 'text' ? trackName(p, 'text', lane) : 'UT')
   const selId = S.sel?.id
@@ -125,7 +125,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
             )
           })}
         </div>
-        <div ref={c.bind('tl')} className={s.tl}>
+        <div ref={c.bind('tl')} className={s.tl} tabIndex={0} aria-label={tx('Tidslinje')} data-focus-region="" onKeyDown={(e) => c.menuKey(e, 'timeline')}>
           <div ref={c.bind('tlInner')} className={s.tlInner} style={{ width: Math.max(200, (E + Math.max(12, V.w * 0.9)) * Z) }}>
             <div className={s.ruler} data-md-ruler="" onPointerDown={(e) => c.rulerDown(e)}>
               {ticks.map((k) => <div key={k.left} className={s.tick} style={{ left: k.left }}>{k.label}</div>)}
@@ -135,11 +135,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
                     e.stopPropagation()
                     if (e.button === 0) c.seek(k.t)
                   }}
-                  onContextMenu={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    c.delMarker(k.id)
-                  }}
+                  onContextMenu={(e) => c.markerMenu(e, k.id)}
                   onDoubleClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()

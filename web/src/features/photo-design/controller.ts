@@ -27,6 +27,8 @@ export type Picker = { kind: 'media' | 'cloud'; target: PickerTarget; start?: 'f
 export interface BatchJob { kind: 'import' | 'export'; done: number; total: number; failed: string[]; end: boolean }
 
 export interface PState {
+  /** Høyreklikkmenyen (lerretet eller lagpanelet): posisjon og laget den gjelder (null = tom flate). */
+  ctx: { x: number; y: number; id: string | null } | null
   ready: boolean
   view: 'home' | 'edit'
   entries: PdEntry[]
@@ -176,7 +178,7 @@ export class PhotoController {
       projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, ctx: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), bx: null, bfmt: 'jpg', tver: 0,
     })
   }
@@ -558,6 +560,18 @@ export class PhotoController {
     this.queueSave()
   }
 
+  /** Før en draing: tilstanden som Escape går tilbake til (se Editor.track). */
+  beginGesture(): { sn: Snapshot; n: number; f: number } {
+    return { sn: this.snap(), n: this.past.length, f: this.future.length }
+  }
+
+  /** Escape under draing: alt går tilbake til før draingen, uten angresteg. */
+  cancelGesture(g: { sn: Snapshot; n: number; f: number }): void {
+    this.past.length = Math.min(this.past.length, g.n)
+    this.restore(g.sn)
+    this.hk = null
+  }
+
   undo(): void {
     const p = this.past.pop()
     if (!p) return
@@ -808,6 +822,52 @@ export class PhotoController {
     return n
   }
 
+/** Utklipp for lag (Ctrl/⌘+C, X, V – som i Thumbnail Studio, Figma og Canva). Bare i denne fanen. */
+  private clip: { L: PdLayer; mask: HTMLCanvasElement | null }[] = []
+  private pastes = 0
+
+  /** Kopierer (eller klipper ut) de valgte lagene. Gir false når ingenting er valgt. */
+  copyLayers(cut: boolean): boolean {
+    const set = new Set(this.selIds())
+    const ls = (this.s.doc?.layers ?? []).filter((L) => set.has(L.id))
+    if (!ls.length) return false
+    this.clip = ls.map((L) => {
+      const m = this.M.masks.get(L.id)
+      let mask: HTMLCanvasElement | null = null
+      if (m && L.type === 'image') {
+        mask = mk(m.c.width, m.c.height)
+        mask.getContext('2d')?.drawImage(m.c, 0, 0)
+      }
+      return { L: structuredClone(L), mask }
+    })
+    this.pastes = 0
+    if (cut) this.del()
+    return true
+  }
+
+  hasClip(): boolean {
+    return this.clip.length > 0
+  }
+
+  /** Limer inn kopierte lag, litt forskjøvet for hver innliming, og velger dem. */
+  pasteLayers(): void {
+    if (!this.clip.length || !this.s.doc) return
+    const off = 30 * ++this.pastes
+    const gm: Record<string, string> = {}
+    const out = this.clip.map(({ L, mask }) => {
+      const n = { ...structuredClone(L), id: uid(L.type[0]), x: L.x + off, y: L.y + off, grp: L.grp ? (gm[L.grp] ?? (gm[L.grp] = uid('g'))) : null } as PdLayer
+      if (mask && n.type === 'image') {
+        const c = mk(mask.width, mask.height)
+        c.getContext('2d')?.drawImage(mask, 0, 0)
+        this.M.masks.set(n.id, { c, v: 1 })
+        n.mask = uid('k')
+      }
+      return n
+    })
+    this.setDoc((d) => ({ ...d, layers: [...d.layers, ...out] }))
+    this.setSel(out.map((n) => n.id))
+  }
+
   dup(): void {
     const ids = this.selIds()
     if (!ids.length) return
@@ -850,6 +910,16 @@ export class PhotoController {
       const ti = a.findIndex((x) => x.id === to)
       if (m) a.splice(ti + 1, 0, m)
       return { ...dd, layers: a }
+    })
+  }
+
+  /** Til fremst (øverst) eller bakerst (nederst) i lagrekkefølgen (Photoshop / Figma). */
+  moveToEnd(id: string, end: 'front' | 'back'): void {
+    this.setDoc((d) => {
+      const L = d.layers.find((q) => q.id === id)
+      if (!L) return d
+      const rest = d.layers.filter((q) => q.id !== id)
+      return { ...d, layers: end === 'front' ? [...rest, L] : [L, ...rest] }
     })
   }
 
@@ -1935,7 +2005,7 @@ export class PhotoController {
 
   // ---------- diverse ----------
 
-  ui(p: Partial<Pick<PState, 'fmt' | 'cw' | 'ch' | 'tool' | 'tab' | 'brush' | 'zoom' | 'exp' | 'expOpen' | 'ltab' | 'fillOpen' | 'linkCol' | 'dragOver' | 'brushXY' | 'narrow' | 'shapesOpen' | 'logoOpen' | 'fxCat' | 'fxQ' | 'fxN' | 'fxPal' | 'fxStr' | 'fxCk' | 'sel' | 'multi' | 'bfmt'>>): void {
+  ui(p: Partial<Pick<PState, 'fmt' | 'cw' | 'ch' | 'tool' | 'tab' | 'brush' | 'zoom' | 'exp' | 'expOpen' | 'ltab' | 'fillOpen' | 'linkCol' | 'dragOver' | 'brushXY' | 'narrow' | 'shapesOpen' | 'logoOpen' | 'fxCat' | 'fxQ' | 'fxN' | 'fxPal' | 'fxStr' | 'fxCk' | 'sel' | 'multi' | 'bfmt' | 'ctx'>>): void {
     this.set(p)
   }
 

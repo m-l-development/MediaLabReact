@@ -4,6 +4,7 @@ import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ToolId } from '../../domain/tool'
 import { useLang } from '../../shared/i18n/i18n'
 import { MaskEditor } from '../../shared/mask/MaskEditor'
+import { ContextMenu as Menu } from '../../shared/ui/ContextMenu'
 import { type CropBox, type PanelKey, type State, type ThumbController } from './controller'
 import { COMBOS } from './engine/colors'
 import type { ImageCache } from './engine/images'
@@ -347,23 +348,22 @@ export function ContextMenu({ c, S, tx }: { c: ThumbController; S: State; tx: Tx
     ['Speil vannrett', 'Shift+H', () => c.flipSel('x'), has],
     ['Speil loddrett', 'Shift+V', () => c.flipSel('y'), has],
     ['Dupliser', `${mod}D`, () => S.sel && c.dupLayer(S.sel), has && c.selIds().length === 1],
+    ['Flytt fram', '', () => S.sel && c.moveZ(S.sel, 1), has && c.selIds().length === 1],
+    ['Flytt bak', '', () => S.sel && c.moveZ(S.sel, -1), has && c.selIds().length === 1],
     ['Slett', 'Del', () => (S.multi.length > 1 ? c.delGroup() : S.sel && c.delLayer(S.sel)), has],
   ]
+  // felles meny (shared/ui/ContextMenu): tastatur (piltaster, Enter, Escape), fokus tilbake, innenfor vinduet
   return (
-    <>
-      <div className={s.ctxScrim} onPointerDown={() => c.ui({ ctx: null })} onContextMenu={(e) => e.preventDefault()} />
-      <div className={s.ctxMenu} role="menu" aria-label={tx('Lagmeny')} style={{ left: m.x, top: m.y }} onContextMenu={(e) => e.preventDefault()}>
-        {items.map(([label, sc, fn, en]) => (
-          <button key={label} type="button" role="menuitem" disabled={!en} onClick={() => {
-            c.ui({ ctx: null })
-            if (en) fn()
-          }}>
-            <span>{tx(label)}</span>
-            <span className={s.dimSm}>{sc}</span>
-          </button>
-        ))}
-      </div>
-    </>
+    <Menu x={m.x} y={m.y} label={tx('Lagmeny')} onClose={() => c.ui({ ctx: null })} items={[
+      ...items.map(([label, sc, fn, en]) => ({ label: tx(label), keys: sc, disabled: !en, onSelect: fn })),
+      { label: tx('Angre'), keys: `${mod}Z`, separator: true, onSelect: () => c.undo() },
+      { label: tx('Gjør om'), keys: `${mod}Shift+Z`, onSelect: () => c.redo() },
+      { label: tx('Zoom inn'), keys: '+', separator: true, disabled: S.zoom >= 4, onSelect: () => c.zoomIn() },
+      { label: tx('Zoom ut'), keys: '−', disabled: S.zoom <= 1, onSelect: () => c.zoomOut() },
+      { label: '100 %', keys: '0 · Shift+1', disabled: S.zoom === 1, onSelect: () => c.setZoom(1) },
+      { label: tx('Zoom til markering'), keys: 'Shift+2', disabled: !has, onSelect: () => c.viewSel() },
+      { label: tx('Forrige visning'), keys: mod === '⌘' ? '⌥0' : 'Alt+0', onSelect: () => c.viewBack() },
+    ]} />
   )
 }
 

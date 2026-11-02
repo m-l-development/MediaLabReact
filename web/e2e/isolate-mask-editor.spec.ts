@@ -94,12 +94,12 @@ test('maskeredigering: verktøyene endrer den faktiske masken, og eksporten føl
   await page.keyboard.down('Control')
   for (let i = 0; i < 4; i++) await page.mouse.wheel(0, -120)
   await page.keyboard.up('Control')
-  await expect(page.locator('[data-mask-zoom]')).not.toHaveText('Tilpass')
+  await expect(page.locator('[data-mask-zoom]')).toHaveAttribute('aria-pressed', 'false')
   const z = await scr(page, 50, 60)
   expect(z.s).toBeGreaterThan(c0.s * 1.5)
   await page.mouse.click(z.x, z.y)
   await page.locator('[data-mask-zoom]').click() // tilpass igjen
-  await expect(page.locator('[data-mask-zoom]')).toHaveText('Tilpass')
+  await expect(page.locator('[data-mask-zoom]')).toHaveAttribute('aria-pressed', 'true')
 
   // rektangel Behold oppe til høyre i bakgrunnen
   await page.locator('[data-mask-tool="rect"]').click()

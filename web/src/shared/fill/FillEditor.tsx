@@ -1,4 +1,5 @@
 import { defaultRepeat, FILL_MODE_LABELS, fillCss, fillStops, harmonyColors, type Fill, type FillMode, type FillStop } from './fill'
+import { NumField } from '../ui/NumField'
 import s from './FillEditor.module.css'
 
 /** Tekstene i editoren (verktøyet oversetter dem). */
@@ -103,13 +104,13 @@ export function FillEditor({ fill, onChange, open, onToggle, tx, note = 'Bakgrun
                         {!NO_POS.includes(mode) ? (
                           <input type="range" min={0} max={100} step={1} value={Math.round(q.p * 100)} aria-label={tx('Posisjon for farge {n}', { n: k + 1 })} onChange={(e) => setStop(i, { p: Number(e.target.value) / 100 })} />
                         ) : <span />}
-                        <span className={s.num}>{Math.round(q.p * 100)}%</span>
+                        <NumField className={s.num} value={q.p} min={0} max={1} step={0.01} scale={100} decimals={0} unit="%" label={tx('Posisjon for farge {n}', { n: k + 1 })} disabled={NO_POS.includes(mode)} onCommit={(v) => setStop(i, { p: v })} />
                         {stops.length > 2 ? <button type="button" className={s.del} title={tx('Fjern farge')} aria-label={tx('Fjern farge')} onClick={() => put({ stops: stops.filter((_, j) => j !== i) })}>×</button> : <span />}
                       </div>
                       <div className={s.amount}>
                         <span>{tx('Mengde')}</span>
                         <input type="range" min={0} max={100} step={1} value={Math.round((q.w ?? 0) * 100)} aria-label={tx('Mengde av farge {n}', { n: k + 1 })} onChange={(e) => setStop(i, { w: Number(e.target.value) / 100 })} />
-                        <span className={s.num}>{Math.round((q.w ?? 0) * 100)}%</span>
+                        <NumField className={s.num} value={q.w ?? 0} min={0} max={1} step={0.01} scale={100} decimals={0} unit="%" label={tx('Mengde av farge {n}', { n: k + 1 })} onCommit={(v) => setStop(i, { w: v })} />
                         <span />
                       </div>
                       {k < ord.length - 1 && (
@@ -138,28 +139,28 @@ export function FillEditor({ fill, onChange, open, onToggle, tx, note = 'Bakgrun
                 </div>
               )}
               {ANGLED.includes(mode) && (
-                <label className={s.range}>
-                  <span><b>{tx('Retning')}</b><span>{Math.round(ang)}°</span></span>
+                <div className={s.range}>
+                  <span><b>{tx('Retning')}</b><NumField value={ang} min={0} max={360} step={1} decimals={0} unit="°" label={tx('Retning')} onCommit={(v) => put({ angle: v })} /></span>
                   <input type="range" min={0} max={360} step={1} value={Math.round(ang)} aria-label={tx('Retning')} onChange={(e) => put({ angle: Number(e.target.value) })} />
-                </label>
+                </div>
               )}
               {multi && (
                 <>
                   <div className={s.range}>
-                    <span><b>{tx('Overgang')}</b><span>{Math.round((fill.soft == null ? 0.5 : fill.soft) * 100)} % <button type="button" className={s.link} onClick={() => put({ soft: 0.5 })}>{tx('Standard')}</button></span></span>
+                    <span><b>{tx('Overgang')}</b><span><NumField value={fill.soft == null ? 0.5 : fill.soft} min={0} max={1} step={0.01} scale={100} decimals={0} unit=" %" label={tx('Overgang')} onCommit={(v) => put({ soft: v })} /> <button type="button" className={s.link} onClick={() => put({ soft: 0.5 })}>{tx('Standard')}</button></span></span>
                     <input type="range" min={0} max={100} step={1} value={Math.round((fill.soft == null ? 0.5 : fill.soft) * 100)} aria-label={tx('Overgang')} onChange={(e) => put({ soft: Number(e.target.value) / 100 })} />
                     <span className={s.ends}><span>{tx('Skarp kant')}</span><span>{tx('Myk, diffus')}</span></span>
                   </div>
                   <div className={s.range}>
-                    <span><b>{tx('Skarphet')}</b><span>{Math.round((Number(fill.sharp) || 0) * 100)} % <button type="button" className={s.link} onClick={() => put({ sharp: 0 })}>0 %</button></span></span>
+                    <span><b>{tx('Skarphet')}</b><span><NumField value={Number(fill.sharp) || 0} min={0} max={1} step={0.01} scale={100} decimals={0} unit=" %" label={tx('Skarphet')} onCommit={(v) => put({ sharp: v })} /> <button type="button" className={s.link} onClick={() => put({ sharp: 0 })}>0 %</button></span></span>
                     <input type="range" min={0} max={100} step={1} value={Math.round((Number(fill.sharp) || 0) * 100)} aria-label={tx('Skarphet')} onChange={(e) => put({ sharp: Number(e.target.value) / 100 })} />
                     <span className={s.ends}><span>{tx('Myke overganger')}</span><span>{tx('Skarpe kanter')}</span></span>
                   </div>
                   {REPEAT.includes(mode) && (
-                    <label className={s.range}>
-                      <span><b>{tx('Antall gjentakelser')}</b><span>{Math.round(fill.repeat || defaultRepeat(mode))}</span></span>
+                    <div className={s.range}>
+                      <span><b>{tx('Antall gjentakelser')}</b><NumField value={Math.round(fill.repeat || defaultRepeat(mode))} min={1} max={20} step={1} decimals={0} label={tx('Antall gjentakelser')} onCommit={(v) => put({ repeat: Math.round(v) })} /></span>
                       <input type="range" min={1} max={20} step={1} value={Math.round(fill.repeat || defaultRepeat(mode))} aria-label={tx('Antall gjentakelser')} onChange={(e) => put({ repeat: Number(e.target.value) })} />
-                    </label>
+                    </div>
                   )}
                 </>
               )}

@@ -219,7 +219,8 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       const st = c.s
-      if (st.view !== 'edit') return
+      // maskedialogen («Finjuster utklippet») og menyer har egne taster: malen bak skal ikke angre/slette samtidig
+      if (st.view !== 'edit' || st.maskEdit || document.querySelector('[data-ctx-menu]')) return
       const tg = e.target as HTMLElement | null
       const typing = !!tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable)
       const mod = e.metaKey || e.ctrlKey
@@ -260,6 +261,14 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
           e.preventDefault()
           c.pasteLayers(null)
         }
+        return
+      }
+      // visning (som i Figma: Shift+1 tilpass, Shift+0 100 %; + / − zoom; 0 tilpass). Ikke Ctrl+± / Ctrl+0: nettleserens zoom
+      if (!mod && !e.altKey && (k === '0' || k === '+' || k === '=' || k === '-' || k === '_' || (e.shiftKey && (e.code === 'Digit1' || e.code === 'Digit0')))) {
+        e.preventDefault()
+        if (k === '+' || k === '=') c.zoomIn()
+        else if (k === '-' || k === '_') c.zoomOut()
+        else c.setZoom(1)
         return
       }
       const id = st.sel

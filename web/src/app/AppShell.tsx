@@ -4,6 +4,7 @@ import { setLang, useLang, useT } from '../shared/i18n/i18n'
 import { setTheme, useTheme } from '../shared/theme/theme'
 import { Backdrop } from '../shared/ui/Backdrop'
 import { Icon } from '../shared/ui/Icon'
+import { ShortcutsButton } from '../shared/ui/ShortcutsPanel'
 import styles from './AppShell.module.css'
 import { FeedbackButton } from './Feedback'
 import { Link } from './Link'
@@ -79,6 +80,7 @@ export function AppShell({ route, me, onSignOut, children, realMe = me, testRole
       <div className={styles.dock}>
         {me && <FeedbackButton me={me} fabClass={styles.fab} open={panel === 'feedback'} onOpen={(v) => setPanel(v ? 'feedback' : null)} />}
         {me && <AccountMenu me={me} realMe={realMe ?? me} testRole={testRole} testAllowed={testAllowed} onSignOut={onSignOut} open={panel === 'account'} setOpen={(v) => setPanel(v ? 'account' : null)} fabClass={styles.fab} />}
+        {route.name === 'tool' && route.tool && <ShortcutsButton tool={route.tool} fabClass={styles.fab ?? ''} />}
         <ThemeButton />
       </div>
       {me && <AdoptPrompt userId={me.id} />}

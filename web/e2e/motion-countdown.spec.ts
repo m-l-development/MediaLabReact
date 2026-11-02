@@ -120,7 +120,7 @@ test('nedtelling 20 min: bakgrunn følger, delt med video imellom, hjørne over 
   await tm(page, 'start').fill(String(Math.round(t * 100) / 100))
   await tm(page, 'start').blur()
   await page.locator('[data-md-place="tr"]').click()
-  await props(page).locator('label', { hasText: /^Størrelse/ }).locator('input[type="range"]').fill('90')
+  await props(page).getByRole('slider', { name: /^Størrelse/ }).fill('90')
   await seekAbs(page, Math.ceil(t) + 1)
   const corner = await page.locator('[data-md-canvas]').evaluate((c: HTMLCanvasElement) => {
     const g = c.getContext('2d') as CanvasRenderingContext2D

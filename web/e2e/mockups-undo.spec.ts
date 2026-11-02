@@ -158,10 +158,13 @@ test('skriv inn sliderverdier: Enter lagrer, grensene holdes, Esc avbryter, ugyl
   expect((await saved(page, 'tv-wall')).zoom).toBe(6) // maks
   await type(/^Zoom:/, 'Zoom', '-5')
   expect((await saved(page, 'tv-wall')).zoom).toBe(0.1) // min
-  await type(/^Zoom:/, 'Zoom', 'abc')
-  expect((await saved(page, 'tv-wall')).zoom).toBe(0.1) // uendret
-  await type(/^Zoom:/, 'Zoom', '')
-  expect((await saved(page, 'tv-wall')).zoom).toBe(0.1) // tomt: uendret
+  // ugyldig eller tomt: en beskjed, feltet blir stående til Escape, verdien er uendret
+  for (const bad of ['abc', '']) {
+    await type(/^Zoom:/, 'Zoom', bad)
+    await expect(page.getByRole('alert').filter({ hasText: 'Skriv et tall' })).toBeVisible()
+    await page.getByRole('textbox', { name: 'Zoom' }).press('Escape')
+    expect((await saved(page, 'tv-wall')).zoom).toBe(0.1)
+  }
   await type(/^Zoom:/, 'Zoom', '200', 'Escape')
   expect((await saved(page, 'tv-wall')).zoom).toBe(0.1) // Esc avbryter
   await expect(page.getByText('design.png')).toBeVisible() // Esc i feltet går ikke til galleriet

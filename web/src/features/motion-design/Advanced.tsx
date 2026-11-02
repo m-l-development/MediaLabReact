@@ -11,6 +11,7 @@ import { contentDur, exportSize, totalDur, type Media, type Project } from './en
 import { FX_DEFS, FX_KINDS, type FxDef, type FxKind } from './engine/fx'
 import { EASES, KF_PROPS, keyAt, keysOutside, type Ease, type PropDef } from './engine/kf'
 import type { Phrase, Tx } from './texts'
+import { NumField } from '../../shared/ui/NumField'
 import s from './MotionDesign.module.css'
 
 const KIND: Record<Media['kind'], Phrase> = { video: 'Video', image: 'Bilde', audio: 'Lyd' }
@@ -44,7 +45,7 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
       {!p.media.length && <span className={s.note}>{tx('Biblioteket er tomt. Importer filer for å legge dem på tidslinjen.')}</span>}
       <ul className={s.binList} aria-label={tx('Mediebibliotek')}>
         {p.media.map((m) => (
-          <li key={m.id} className={s.binItem} data-md-bin-item={m.name} data-kind={m.kind}>
+          <li key={m.id} className={s.binItem} data-md-bin-item={m.name} data-kind={m.kind} onContextMenu={(e) => c.binMenu(e, m)}>
             <span className={s.binThumb} style={{ backgroundImage: css(m.thumb) }} aria-hidden="true">{m.kind === 'audio' ? '♪' : ''}</span>
             <span className={s.binText}>
               <span className={s.binName} title={m.name}>{m.name}</span>
@@ -198,11 +199,11 @@ const pctOrUnit = (d: FxDef, v: number) => (d.unit === '%' ? `${Math.round(v * 1
 
 function FxSlider({ label, d, v, on, k }: { label: string; d: FxDef; v: number; on: (v: number) => void; k: string }) {
   return (
-    <label className={s.fxRow}>
+    <div className={s.fxRow}>
       <span className={s.fxLbl}>{label}</span>
-      <input type="range" min={d.min} max={d.max} step={d.step} value={v} data-md-fxv={k} onChange={(e) => on(+e.target.value)} />
-      <output className={s.fxVal}>{pctOrUnit(d, v)}</output>
-    </label>
+      <input type="range" min={d.min} max={d.max} step={d.step} value={v} data-md-fxv={k} aria-label={label} onChange={(e) => on(+e.target.value)} />
+      <NumField className={s.fxVal} value={v} min={d.min} max={d.max} step={d.step} show={pctOrUnit(d, v)} scale={d.unit === '%' ? 100 : 1} label={label} onCommit={on} />
+    </div>
   )
 }
 
@@ -339,7 +340,7 @@ export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
         const keys = tg.it.kf?.[k] ?? []
         const at = keyAt(keys, tg.lt)
         return (
-          <div key={k} className={s.kfProp} data-md-kf={k} data-animated={keys.length ? '1' : undefined}>
+          <div key={k} className={s.kfProp} data-md-kf={k} data-animated={keys.length ? '1' : undefined} onContextMenu={(e) => { if (!(e.target as HTMLElement).closest('input,select')) c.kfMenu(e, k, null) }}>
             <div className={s.kfRow}>
               <button type="button" className={s.kfDia} aria-pressed={at >= 0} data-md-kf-toggle="" title={tx(at >= 0 ? 'Fjern keyframen her' : 'Keyframe her')} aria-label={tx(at >= 0 ? 'Fjern keyframen her' : 'Keyframe her')}
                 disabled={tg.lt < 0 || tg.lt > tg.dur} onClick={() => c.toggleKey(k)}>◆</button>
@@ -349,7 +350,7 @@ export function AdvKeys({ c, S, p, tx }: { c: MotionController; S: MState; p: Pr
             {keys.length > 0 && (
               <ol className={s.kfList}>
                 {keys.map((key, i) => (
-                  <li key={i} className={s.kfKey} data-md-key={i} data-here={i === at ? '1' : undefined}>
+                  <li key={i} className={s.kfKey} data-md-key={i} data-here={i === at ? '1' : undefined} onContextMenu={(e) => { if ((e.target as HTMLElement).closest('input,select')) return; e.stopPropagation(); c.kfMenu(e, k, i) }}>
                     <KNum k={`${k}-t-${i}`} label={tx('Tid (s)')} v={key.t} step={0.01} on={(t) => c.moveKey(k, i, t)} />
                     <KNum k={`${k}-v-${i}`} label={tx('Verdi')} v={key.v} min={mn} max={mx} step={st} on={(v) => c.setKeyVal(k, i, v)} />
                     <select aria-label={tx('Interpolering')} value={key.e ?? 'lin'} data-md-kf-ease="" onChange={(e) => c.setKeyEase(k, i, e.target.value as Ease)}>

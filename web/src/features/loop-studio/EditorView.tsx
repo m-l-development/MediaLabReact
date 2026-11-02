@@ -4127,7 +4127,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                 {"\n      "}
               </> : null}
               {"\n      "}
-              <canvas data-loop-canvas="" ref={v.canvasRef} onPointerDown={v.onCanvasDown} onPointerMove={v.onCanvasMove} onDoubleClick={v.onCanvasDbl} title={tx("Dra tekster, bilder, logo og QR for å flytte · dra i hjørnene for å endre størrelse · klikk på et tomt område for å spille av/pause · dobbeltklikk tekst for å redigere")} style={css(`touch-action:none; cursor:${v.canvasCursor ?? ""}; display:block; width:100%; height:auto; max-height:${v.canvasMaxH ?? ""}; object-fit:contain; aspect-ratio:${v.canvasAspect ?? ""};`)} />
+              <canvas data-loop-canvas="" ref={v.canvasRef} onContextMenu={v.onCanvasCtx} onPointerDown={v.onCanvasDown} onPointerMove={v.onCanvasMove} onDoubleClick={v.onCanvasDbl} title={tx("Dra tekster, bilder, logo og QR for å flytte · dra i hjørnene for å endre størrelse · klikk på et tomt område for å spille av/pause · dobbeltklikk tekst for å redigere")} style={css(`touch-action:none; cursor:${v.canvasCursor ?? ""}; display:block; width:100%; height:auto; max-height:${v.canvasMaxH ?? ""}; object-fit:contain; aspect-ratio:${v.canvasAspect ?? ""};`)} />
               {"\n      "}
               <div ref={v.guideRef} aria-hidden="true" style={{"position":"absolute","zIndex":"3","left":"0","top":"0","width":"0","height":"0","display":"none","pointerEvents":"none"}}>
                 {"\n        "}
@@ -4416,7 +4416,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               const v1 = { ...v, "c": $it1, $index: $i1 };
               return <React.Fragment key={$i1}>
                 {"\n          "}
-                <div data-loop-card={v1.c?.num} draggable={true} onPointerDown={v1.c?.onPointerDown} onDragStart={v1.c?.onDragStart} onDragOver={v1.c?.onDragOver} onDrop={v1.c?.onDrop} onDragEnd={v1.c?.onDragEnd} onKeyDown={v1.c?.onKeyDown} title={tx("Dra for å flytte (Alt + piltast med tastaturet)")} style={{"position":"relative","flex":"0 0 172px","display":"flex","WebkitUserSelect":"none","userSelect":"none","WebkitTouchCallout":"none"}}>
+                <div data-loop-card={v1.c?.num} draggable={true} onContextMenu={v1.c?.onContextMenu} onPointerDown={v1.c?.onPointerDown} onDragStart={v1.c?.onDragStart} onDragOver={v1.c?.onDragOver} onDrop={v1.c?.onDrop} onDragEnd={v1.c?.onDragEnd} onKeyDown={v1.c?.onKeyDown} title={tx("Dra for å flytte (Alt + piltast med tastaturet)")} style={{"position":"relative","flex":"0 0 172px","display":"flex","WebkitUserSelect":"none","userSelect":"none","WebkitTouchCallout":"none"}}>
                   {v1.c?.dropBefore ? <div data-loop-drop="" style={{"position":"absolute","left":"-7px","top":"0","bottom":"0","width":"3px","borderRadius":"2px","background":"#f3f1ec","boxShadow":"0 0 8px rgba(255,255,255,0.6)","zIndex":"3","pointerEvents":"none"}} /> : null}
                   {v1.c?.dropAfter ? <div data-loop-drop="" style={{"position":"absolute","right":"-7px","top":"0","bottom":"0","width":"3px","borderRadius":"2px","background":"#f3f1ec","boxShadow":"0 0 8px rgba(255,255,255,0.6)","zIndex":"3","pointerEvents":"none"}} /> : null}
                   {"\n          "}

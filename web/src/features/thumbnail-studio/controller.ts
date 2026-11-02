@@ -1520,6 +1520,28 @@ export class ThumbController {
     this.set({ ctx: { x: Math.min(x, vw - 220), y: Math.min(y, vh - 260), p, on: !!t || this.selIds().length > 0 } })
   }
 
+  /** «Forrige visning» (Alt+0): settes av arbeidsflaten (useStageNav), brukes av høyreklikkmenyen. */
+  viewBack: () => void = () => undefined
+  viewSel: () => void = () => undefined
+  setViewSel(fn: () => void): void {
+    this.viewSel = fn
+  }
+  setViewBack(fn: () => void): void {
+    this.viewBack = fn
+  }
+
+  /** Før en draing: dokumentet og historikken som Escape går tilbake til. */
+  beginGesture(): { doc: string; n: number; fut: string[] } | null {
+    return this.s.doc ? { doc: JSON.stringify(this.s.doc), n: this.s.hist.length, fut: this.s.fut } : null
+  }
+
+  /** Escape under draing: alt går tilbake til før draingen, uten angresteg (som i Photoshop og Figma). */
+  cancelGesture(g: { doc: string; n: number; fut: string[] } | null): void {
+    this.pointerUp()
+    if (!g) return
+    this.set((s) => ({ doc: JSON.parse(g.doc) as Doc, hist: s.hist.slice(0, g.n), fut: g.fut }))
+  }
+
   pointerUp(): void {
     this.drag = null
     this.lastKey = null

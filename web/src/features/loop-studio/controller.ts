@@ -4,6 +4,7 @@
  * handlinger via `view()`. Globale skript (UkeLoop, MLShare, MLCloud, CH) er byttet ut med tjenester i `deps`.
  */
 import type { Me } from '../../domain/account'
+import { wheelAction } from '../../shared/lib/workspace-nav'
 import type { SharedSetup } from '../../services/shared-setup'
 import { ServiceError } from '../../services/errors'
 import { forSharedDisk, type LoopDiskData, type LoopDiskService } from '../../services/loop-disk'
@@ -103,6 +104,10 @@ export interface State {
   zoom: { z: number; x: number; y: number } | null
   inlineEd: InlineEd | null
   numEd: { k: string; t: string } | null
+  /** Høyreklikkmenyen på et slidekort (LoopStudio viser den med den felles menyen). */
+  slideMenu: { x: number; y: number; id: string } | null
+  /** Høyreklikkmenyen i forhåndsvisningen (punktet ble klikket der). */
+  pvMenu: { x: number; y: number } | null
   playFlash: string | null
   saveOpen: boolean
   saveMsg: string
@@ -310,7 +315,7 @@ export class LoopController {
       ready: false, tab: 'program', tpl: 'week', programText: '', slides: [], cfg: { ...BASE_CFG }, videoName: '', audioName: '', selected: null, playing: true, playIdx: 0, urls: {},
       parseMsg: '', parseOk: true, rec: null, busy: '', beatInfo: null, mobile: false, mPane: 'preview', guideMode: 'none', guideFlip: 0, selEl: null, hexPop: null, eyedrop: false,
       vigEd: null, ovEd: null, crop: null, panOpen: false, sharedReady: false, sharedExists: false, sharedErr: false, sharedState: '', audioLib: [], audioDur: 0, hist: '', scrubT: null,
-      tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, saveTarget: 'p', autoAt: '', addMenu: false, addForm: null,
+      tst: null, soundOn: true, fs: false, zoom: null, inlineEd: null, numEd: null, slideMenu: null, pvMenu: null, playFlash: null, saveOpen: false, saveMsg: '', saveName: null, saveTarget: 'p', autoAt: '', addMenu: false, addForm: null,
       rulesOpen: false, rulesDraft: null, galleryFor: null, stdOpen: false, stdDraft: null, rulePickOpen: false, fillOpen: false, panelEditFor: null, slideStyleOpen: false, fast: null, fastMsg: '',
     }
   }
@@ -1780,8 +1785,11 @@ export class LoopController {
       zo.addEventListener('wheel', (ev) => {
         if (this.state.fs) return
         const r = zo.getBoundingClientRect()
-        if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); const Z = this.state.zoom || { z: 1 }; this.setZoom(Z.z * Math.exp(-ev.deltaY * 0.01), ev.clientX - r.left, ev.clientY - r.top) }
-        else if (this.state.zoom) { ev.preventDefault(); this.panZoom(ev.deltaX, ev.deltaY) }
+        // felles regel for arbeidsflater (shared/lib/workspace-nav): loddrett rulling og knip zoomer rundt pekeren,
+        // sidelengs rulling / Shift + hjul flytter sideveis når det er zoomet inn
+        const act = wheelAction(ev, zo.clientHeight)
+        if (act.kind === 'zoom') { ev.preventDefault(); const Z = this.state.zoom || { z: 1 }; this.setZoom(Z.z * act.f, ev.clientX - r.left, ev.clientY - r.top) }
+        else if (act.kind === 'pan' && this.state.zoom) { ev.preventDefault(); this.panZoom(act.dx, act.dy) }
       }, { passive: false })
     }
     if (!this.roOn && window.ResizeObserver) {
@@ -2335,6 +2343,21 @@ export class LoopController {
       return cur.type === 'day' ? { slides: a, selected: c.id, programText: serialize(a.filter((x) => x.type === 'day')) } : { slides: a, selected: c.id }
     })
   }
+  /** Handlingene i slidekortets meny: bare det Loop allerede kan gjøre med en slide (alt kan angres). */
+  slideMenuItems(id: string): { label: string; keys?: string; disabled?: boolean; separator?: boolean; onSelect: () => void }[] {
+    const all = this.state.slides, i = all.findIndex((x) => x.id === id), s = all[i]
+    if (!s) return []
+    const t = (x: string) => this.t(x)
+    return [
+      { label: t('Dupliser'), onSelect: () => this.duplicate(id) },
+      { label: s.hidden ? t('Vis i loopen') : t('Skjul i loopen'), onSelect: () => this.setF(id, 'hidden', !s.hidden) },
+      { label: t('Flytt til venstre'), keys: 'Alt+←', separator: true, disabled: i <= 0, onSelect: () => this.reorder(id, i - 1) },
+      { label: t('Flytt til høyre'), keys: 'Alt+→', disabled: i >= all.length - 1, onSelect: () => this.reorder(id, i + 1) },
+      { label: t('Flytt først'), keys: 'Alt+Home', disabled: i <= 0, onSelect: () => this.reorder(id, 0) },
+      { label: t('Flytt sist'), keys: 'Alt+End', disabled: i >= all.length - 1, onSelect: () => this.reorder(id, all.length - 1) },
+      { label: t('Fjern slide'), separator: true, onSelect: () => this.del(id) },
+    ]
+  }
   del(id: string) {
     const s = this.state, i = s.slides.findIndex((x) => x.id === id), cur = s.slides[i]
     if (!cur) return
@@ -2788,10 +2811,18 @@ export class LoopController {
       },
     }
   }
-  /** Dobbeltklikk på et tall ved en glidebryter gir et felt der verdien kan skrives inn. */
+  /**
+   * Tallet ved en glidebryter kan klikkes (eller fokuseres og Enter/F2) og skrives inn, som NumField i de andre appene.
+   * Visningen i EditorView er generert, så tallene merkes her: hver glidebryter får sitt tall merket med data-num-edit
+   * (stiplet understrek, tabulatorstopp, rolle «button» og navn). Pil opp/ned på tallet endrer med ett steg (Shift: ti).
+   * Enter godtar, Escape forkaster; tekst som ikke er et tall gir en beskjed (Enter) eller siste gyldige verdi (klikk
+   * utenfor). Verdien sendes til glidebryteren, så slider og tall alltid viser det samme.
+   */
   setupNumEdit() {
-    const NUM = /^\s*([-+]?\d+(?:[.,]\d+)?)\s*[a-zæøå%°]{0,4}\s*$/i
-    const findRange = (el: Element) => {
+    // tall med enhet, ev. med en forklaring i parentes («5 s (standard)»)
+    const NUM = /^\s*([-+−]?\d+(?:[.,]\d+)?)\s*([a-zæøå%°×/]{0,4})\s*(?:\([^)]*\))?\s*$/i
+    /** Glidebryteren som hører til et tall: nærmeste forelder med nøyaktig én glidebryter. */
+    const rangeFor = (el: Element) => {
       let n: Element | null = el
       for (let i = 0; i < 4 && n; i++, n = n.parentElement) {
         const rs = n.querySelectorAll('input[type=range]')
@@ -2800,46 +2831,172 @@ export class LoopController {
       }
       return null
     }
-    this.on(document, 'dblclick', (e) => {
-      const t = e.target as Element | null
-      if (!t || t.closest('input,textarea,select,button,canvas')) return
-      if (!t.closest('[data-loop-editor]')) return
-      let span: Element | null = t.nodeType === 1 ? t : t.parentElement, m: RegExpMatchArray | null = null
-      for (let i = 0; i < 3 && span && !m; i++) { m = (span.textContent || '').match(NUM); if (!m) span = span.parentElement }
-      if (!span || !m?.[1]) return
-      const range = findRange(span)
+    const labelOf = (range: HTMLInputElement, box: Element, hit: Element) => {
+      const a = range.getAttribute('aria-label')
+      if (a) return a
+      // første tekst i boksen som ikke er selve tallet
+      for (const el of box.querySelectorAll('span,b,strong,label,div')) {
+        if (el === hit || el.children.length || el.contains(hit)) continue
+        const t = (el.textContent || '').trim()
+        if (t && !NUM.test(t)) return t.slice(0, 40)
+      }
+      return this.t('Verdi')
+    }
+    const mark = () => {
+      const root = document.querySelector('[data-loop-editor]')
+      if (!root) return
+      for (const range of root.querySelectorAll<HTMLInputElement>('input[type=range]')) {
+        // tallet: siste blad-element med bare et tall før glidebryteren, i nærmeste boks med kun denne glidebryteren
+        let box: Element | null = range.parentElement
+        let hit = null as HTMLElement | null
+        for (let i = 0; i < 3 && box && !hit; i++) {
+          if (box.querySelectorAll('input[type=range]').length !== 1) break
+          for (const el of box.querySelectorAll<HTMLElement>('span,output,b,div')) {
+            if (el.children.length || !NUM.test(el.textContent || '')) continue
+            if (el.compareDocumentPosition(range) & Node.DOCUMENT_POSITION_FOLLOWING || !hit) hit = el
+          }
+          if (!hit) box = box.parentElement
+        }
+        if (!hit || !box) continue
+        // tallet og enheten står ofte i hvert sitt tekststykke («5» + « %»): merk hele «5 %»
+        for (let p = hit.parentElement; p && p !== box && NUM.test(p.textContent || '') && !p.querySelector('input,button,select'); p = p.parentElement) hit = p
+        const on = !range.disabled
+        if (hit.dataset.numEdit === undefined) {
+          hit.dataset.numEdit = ''
+          hit.setAttribute('role', 'button')
+        }
+        if (hit.tabIndex !== (on ? 0 : -1)) hit.tabIndex = on ? 0 : -1
+        if (hit.getAttribute('aria-disabled') !== String(!on)) hit.setAttribute('aria-disabled', String(!on))
+        const name = labelOf(range, box, hit) + ': ' + (hit.textContent || '').trim()
+        if (hit.getAttribute('aria-label') !== name) hit.setAttribute('aria-label', name)
+        if (!hit.title) hit.title = this.t('Klikk for å skrive inn verdien (pil opp/ned endrer, Shift: ti steg)')
+      }
+    }
+    // Merkingen kjøres når paneler byttes (nye elementer), og når pekeren eller fokus kommer inn i editoren (da er
+    // navnet med verdien oppdatert). Ikke ved hver tekstendring: forhåndsvisningen endrer tid og tellere hele tiden.
+    let timer: ReturnType<typeof setTimeout> | 0 = 0
+    const soon = () => {
+      if (!timer) timer = setTimeout(() => { timer = 0; mark() }, 200)
+    }
+    const mo = new MutationObserver(soon)
+    mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled'] })
+    this.listeners.push(() => { mo.disconnect(); if (timer) clearTimeout(timer) })
+    this.on(document, 'focusin', (e) => { if ((e.target as Element | null)?.closest?.('[data-loop-editor]')) mark() })
+    this.on(document, 'pointerover', (e) => { if ((e.target as Element | null)?.closest?.('[data-num-edit]')) mark() })
+    this.on(document, 'keydown', (e) => { if (e.key === 'Tab') mark() }, true)
+    requestAnimationFrame(mark)
+
+    const setRange = (range: HTMLInputElement, v: number) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(range, String(v))
+      range.dispatchEvent(new Event('input', { bubbles: true }))
+      range.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+    const parse = (t: string) => {
+      const m = t.replace(/−/g, '-').match(NUM)
+      const n = m?.[1] ? parseFloat(m[1].replace(',', '.')) : NaN
+      return Number.isFinite(n) ? n : null
+    }
+    /** Faktor mellom glidebryterens verdi og tallet som vises (f.eks. 0,5 → «50 %»). */
+    const factor = (span: Element, range: HTMLInputElement) => {
+      const shown = parse(span.textContent || ''), cur = parseFloat(range.value), max = parseFloat(range.max || '100')
+      if (shown && cur) return 10 ** Math.round(Math.log10(Math.abs(shown / cur)))
+      return max <= 1 && /%/.test(span.textContent || '') ? 100 : 1
+    }
+    const stepOf = (range: HTMLInputElement, e: KeyboardEvent) => (e.shiftKey ? 10 : 1) * (parseFloat(range.step || '1') || 1) * (e.key === 'ArrowUp' ? 1 : -1)
+    const open = (span: HTMLElement) => {
+      const range = rangeFor(span)
       if (!range || range.disabled) return
-      e.preventDefault()
-      const shown = parseFloat(m[1].replace(',', '.')), cur = parseFloat(range.value), min = parseFloat(range.min || '0'), max = parseFloat(range.max || '100')
-      const k = shown !== 0 && cur !== 0 ? cur / shown : max <= 1 && /%/.test(span.textContent || '') ? 0.01 : 1
-      const r = span.getBoundingClientRect(), inp = document.createElement('input')
+      const m = (span.textContent || '').replace(/−/g, '-').match(NUM)
+      if (!m?.[1]) return
+      const k = factor(span, range), min = parseFloat(range.min || '0'), max = parseFloat(range.max || '100')
+      const clamp = (v: number) => Math.max(min, Math.min(max, v))
+      const r = span.getBoundingClientRect()
+      const inp = document.createElement('input')
+      const msg = document.createElement('div')
       inp.type = 'text'
       inp.inputMode = 'decimal'
       inp.value = m[1]
-      inp.setAttribute('aria-label', this.t('Skriv inn verdi'))
-      inp.style.cssText = 'position:fixed;z-index:9999;left:' + Math.max(4, r.right - 72) + 'px;top:' + (r.top + r.height / 2 - 15) + 'px;width:72px;height:30px;padding:0 8px;border:1.5px solid #e9e7e2;border-radius:8px;background:#000;color:#fff;font:600 13px Archivo,Helvetica,Arial,sans-serif;text-align:right;outline:none;box-shadow:0 6px 20px rgba(0,0,0,.6)'
+      inp.setAttribute('aria-label', span.getAttribute('aria-label')?.split(':')[0] || this.t('Skriv inn verdi'))
+      inp.dataset.numInput = ''
+      const left = Math.max(4, Math.min(innerWidth - 80, r.right - 72))
+      inp.style.cssText = 'position:fixed;z-index:9999;left:' + left + 'px;top:' + (r.top + r.height / 2 - 15) + 'px;width:72px;height:30px;padding:0 8px;border:1.5px solid #e9e7e2;border-radius:8px;background:#000;color:#fff;font:600 13px Archivo,Helvetica,Arial,sans-serif;text-align:right;outline:2px solid #f3f1ec;outline-offset:1px;box-shadow:0 6px 20px rgba(0,0,0,.6)'
+      msg.id = 'ml-num-msg'
+      msg.setAttribute('role', 'alert')
+      msg.style.cssText = 'position:fixed;z-index:9999;left:' + Math.max(4, left - 168) + 'px;top:' + (r.top + r.height / 2 + 19) + 'px;width:240px;padding:4px 8px;border-radius:6px;background:#2a1414;color:#ff8a8a;font:500 12px Archivo,Helvetica,Arial,sans-serif'
+      const fmt = (n: number) => String(+(n * k).toFixed(4)).replace('.', this.deps.lang() === 'en' ? '.' : ',')
+      const ok = () => {
+        msg.remove()
+        inp.removeAttribute('aria-invalid')
+        inp.removeAttribute('aria-describedby')
+        inp.style.borderColor = '#e9e7e2'
+      }
       let done = false
-      const finish = (ok: boolean) => {
-        if (done) return
+      const finish = (accept: boolean) => {
+        if (done) return true
+        if (accept) {
+          const raw = parse(inp.value)
+          if (raw == null) {
+            msg.textContent = this.t('Skriv et tall ({a}–{b}). Escape avbryter.').replace('{a}', fmt(min)).replace('{b}', fmt(max))
+            inp.setAttribute('aria-invalid', 'true')
+            inp.setAttribute('aria-describedby', msg.id)
+            inp.style.borderColor = '#ff8a8a'
+            if (!msg.isConnected) document.body.appendChild(msg)
+            return false
+          }
+          setRange(range, clamp(raw / k))
+        }
         done = true
-        const raw = parseFloat(String(inp.value).replace(',', '.').replace(/[^\d.+-]/g, ''))
         inp.remove()
-        if (!ok || !Number.isFinite(raw)) return
-        const v = Math.max(min, Math.min(max, raw * k))
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(range, String(v))
-        range.dispatchEvent(new Event('input', { bubbles: true }))
-        range.dispatchEvent(new Event('change', { bubbles: true }))
+        msg.remove()
+        if (span.isConnected) span.focus()
+        return true
       }
       inp.addEventListener('keydown', (ev) => {
+        ev.stopPropagation()
         if (ev.key === 'Enter') { ev.preventDefault(); finish(true) }
         else if (ev.key === 'Escape') { ev.preventDefault(); finish(false) }
-        ev.stopPropagation()
+        else if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
+          ev.preventDefault()
+          const cur = parse(inp.value)
+          const v = clamp((cur == null ? parseFloat(range.value) : cur / k) + stepOf(range, ev))
+          setRange(range, v)
+          inp.value = fmt(v)
+          ok()
+        }
       })
-      inp.addEventListener('blur', () => finish(true))
+      inp.addEventListener('input', ok)
+      inp.addEventListener('blur', () => { if (!finish(true)) finish(false) })
       document.body.appendChild(inp)
       inp.focus()
       inp.select()
-    })
+    }
+    const target = (e: Event) => {
+      const t = e.target as Element | null
+      const span = t?.closest?.('[data-num-edit]') as HTMLElement | null
+      return span && span.closest('[data-loop-editor]') && span.getAttribute('aria-disabled') !== 'true' ? span : null
+    }
+    this.on(document, 'click', (e) => {
+      const span = target(e)
+      if (!span) return
+      e.preventDefault()
+      e.stopPropagation()
+      open(span)
+    }, true)
+    this.on(document, 'keydown', (e) => {
+      const span = target(e)
+      if (!span) return
+      if (e.key === 'Enter' || e.key === 'F2' || e.key === ' ') {
+        e.preventDefault()
+        e.stopPropagation()
+        open(span)
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const range = rangeFor(span)
+        if (!range || range.disabled) return
+        e.preventDefault()
+        e.stopPropagation()
+        setRange(range, Math.max(parseFloat(range.min || '0'), Math.min(parseFloat(range.max || '100'), parseFloat(range.value) + stepOf(range, e))))
+      }
+    }, true)
   }
   placeInline(r: Box & { field: string }) {
     const c = this.canvasRef.current
@@ -2864,6 +3021,24 @@ export class LoopController {
     clearTimeout(this.flashT)
     this.setState({ playFlash: k })
     this.flashT = setTimeout(() => { if (this.alive) this.setState({ playFlash: null }) }, 650)
+  }
+  /** Høyreklikk i forhåndsvisningen: avspilling, redigering av teksten under pekeren og visning. */
+  onCanvasCtx = (e: { clientX: number; clientY: number; preventDefault(): void }) => {
+    e.preventDefault()
+    this.setState({ pvMenu: { x: e.clientX, y: e.clientY } })
+  }
+  pvMenuItems(): { label: string; keys?: string; separator?: boolean; onSelect: () => void }[] {
+    const m = this.state.pvMenu
+    if (!m) return []
+    const ev = { clientX: m.x, clientY: m.y, preventDefault: () => undefined, stopPropagation: () => undefined } as unknown as PEv
+    const p = this.canvasPoint(ev)
+    const txt = p ? this.findText(p) : null
+    return [
+      { label: this.t(this.state.playing ? 'Pause' : 'Spill av'), keys: this.t('Mellomrom'), onSelect: () => this.togglePlay() },
+      ...(txt ? [{ label: this.t('Rediger teksten'), onSelect: () => this.onCanvasDbl(ev) }] : []),
+      { label: this.t('Fullskjerm'), separator: true, onSelect: () => this.enterFs() },
+      ...(this.state.zoom ? [{ label: this.t('Standard visning'), onSelect: () => this.setState({ zoom: null }) }] : []),
+    ]
   }
   onCanvasDbl = (e: PEv) => {
     clearTimeout(this.clickT)
@@ -3572,7 +3747,19 @@ export class LoopController {
       },
       onDragEnd: () => { this.dragId = null; if (this.state.dropAt != null) this.setState({ dropAt: null }) },
       onPointerDown: (e: TouchDownEv) => { if (e.pointerType === 'touch') this.touchDrag(e, s.id) },
-      onKeyDown: (e: { altKey: boolean; key: string; preventDefault(): void }) => {
+      onContextMenu: (e: { clientX: number; clientY: number; preventDefault(): void }) => {
+        e.preventDefault()
+        this.select(s.id)
+        this.setState({ slideMenu: { x: e.clientX, y: e.clientY, id: s.id } })
+      },
+      onKeyDown: (e: { altKey: boolean; shiftKey?: boolean; key: string; preventDefault(): void; currentTarget?: EventTarget | null }) => {
+        if ((e.shiftKey && e.key === 'F10') || e.key === 'ContextMenu') {
+          e.preventDefault()
+          const r = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+          this.select(s.id)
+          this.setState({ slideMenu: { x: r ? r.left + 24 : 100, y: r ? r.top + 24 : 100, id: s.id } })
+          return
+        }
         if (!e.altKey) return
         const k = e.key, to = k === 'ArrowLeft' ? i - 1 : k === 'ArrowRight' ? i + 1 : k === 'Home' ? 0 : k === 'End' ? all.length - 1 : null
         if (to == null) return
@@ -4115,7 +4302,7 @@ export class LoopController {
       recNote: (recMime === null ? 'Opptak krever Chrome eller Edge.' : recMime.includes('mp4') ? 'Lagres som MP4.' : 'Lagres som WebM. Gjør den om til MP4 hvis sendeprogrammet ikke spiller WebM.') + (S.audioName && S.cfg.exportAudio !== false ? ' Lydsporet «' + S.audioName + '» blir med.' : ''),
       htmlNote: [S.audioName && S.cfg.exportAudio !== false ? 'Lydsporet blir med. Sjekk at lyden fra kilden er slått på i sendeprogrammet.' : '', S.slides.some((x) => x.vid && !x.hidden) ? 'Videoer på slidene blir ikke med i HTML-spilleren (bakgrunnsbildet vises i stedet). Bruk MP4-eksport for å få dem med.' : ''].filter(Boolean).join(' '),
       statusLine: S.rec ? 'Tar opp video … ' + S.rec.pct + ' %' : !active.length ? 'Ingen slides ennå – skriv ukens program, eller trykk «Legg til».' : live ? 'Spiller slide ' + (S.playIdx + 1) + ' av ' + active.length + ' · ' + loopLen + ' per runde · ' + this.fmtLabel() : S.tst ? 'Tester effekten på slide ' + (idx + 1) + ' · ' + this.fmtLabel() : sel ? 'Pause · viser slide ' + (idx + 1) + (activeIdx < 0 ? ' (skjult i loopen)' : '') : 'Pause',
-      onCanvasDown: this.onCanvasDown, onCanvasMove: this.onCanvasMove, onCanvasDbl: this.onCanvasDbl,
+      onCanvasDown: this.onCanvasDown, onCanvasMove: this.onCanvasMove, onCanvasDbl: this.onCanvasDbl, onCanvasCtx: this.onCanvasCtx,
       hasInline: !!S.inlineEd, inlineRef: this.inlineRef, inlineVal: S.inlineEd ? S.inlineEd.value : '',
       inlineL: S.inlineEd ? S.inlineEd.left + 'px' : '0px', inlineT: S.inlineEd ? S.inlineEd.top + 'px' : '0px', inlineW: S.inlineEd ? S.inlineEd.width + 'px' : '0px',
       inlineH: S.inlineEd ? S.inlineEd.height + 'px' : '0px', inlineFs: S.inlineEd ? S.inlineEd.fs + 'px' : '16px', inlineHintT: S.inlineEd ? S.inlineEd.top + S.inlineEd.height + 6 + 'px' : '0px',

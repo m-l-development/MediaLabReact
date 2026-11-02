@@ -25,7 +25,7 @@ const blocks = (page: Page) => page.locator('[data-row="text"] [data-block="text
 
 async function styleText(page: Page, color: string) {
   await insp(page).getByLabel('Tekstfarge').fill(color)
-  await insp(page).locator('label', { hasText: 'Størrelse' }).locator('input[type="range"]').fill('260')
+  await insp(page).getByRole('slider', { name: 'Størrelse' }).fill('260')
   const anim = insp(page).getByLabel('Animasjon')
   if (await anim.count()) await anim.selectOption('none')
 }

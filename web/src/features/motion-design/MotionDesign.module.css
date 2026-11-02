@@ -3127,3 +3127,137 @@
   gap: 14px;
   min-width: 0;
 }
+.fxVal input {
+  width: 56px;
+}
+
+/* fullskjerm: bare komposisjonen, sentrert på svart */
+.stage[data-md-full] {
+  background: #000;
+}
+
+.stage[data-md-full] .drop {
+  display: none;
+}
+
+/* avspillingslinjen i fullskjerm (FullBar) */
+.fullBar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 18px 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0));
+  color: #f3f1ec;
+  font-size: 12.5px;
+}
+
+.fullBtn,
+.fullExit {
+  display: inline-grid;
+  place-items: center;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.7);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fullBtn {
+  width: 34px;
+  flex: 0 0 34px;
+}
+
+.fullExit {
+  display: inline-flex;
+  gap: 8px;
+  padding: 0 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fullExit kbd {
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font: 600 11px ui-monospace, Menlo, Consolas, monospace;
+}
+
+.fullBtn:hover,
+.fullExit:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.fullBtn:focus-visible,
+.fullExit:focus-visible,
+.fullTrack:focus-visible {
+  outline: 2px solid #f3f1ec;
+  outline-offset: 2px;
+}
+
+.fullTrack {
+  position: relative;
+  flex: 1;
+  height: 34px;
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.fullRail {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.fullFill {
+  height: 100%;
+  border-radius: 2px;
+  background: #f3f1ec;
+}
+
+.fullTick {
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  color: rgba(243, 241, 236, 0.7);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.fullTick i {
+  display: block;
+  width: 1px;
+  height: 5px;
+  margin: 0 auto 1px;
+  background: rgba(243, 241, 236, 0.55);
+}
+
+.fullHead {
+  position: absolute;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: #f3f1ec;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.fullTime {
+  min-width: 108px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

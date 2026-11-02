@@ -2555,3 +2555,18 @@ button:disabled {
   flex-direction: column;
   min-height: 0;
 }
+
+/* slippmarkering for filer (legg til / bytt ut) */
+.dropHint {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  border: 2px dashed #f3f1ec;
+  background: rgba(0, 0, 0, 0.45);
+  color: #f3f1ec;
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}

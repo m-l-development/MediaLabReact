@@ -4,7 +4,8 @@ import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
-import { ADJ, BLEED, BLENDS, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type PdLayer } from './engine/model'
+import { ADJ, BLEED, BLENDS, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type PdLayer } from './engine/model'
+import { NumField } from '../../shared/ui/NumField'
 import { curveFn } from './engine/render'
 import { DEV, type Dev, type Histogram } from './engine/develop'
 import { useEffect, useRef, useState } from 'react'
@@ -59,6 +60,31 @@ function Cmyk({ hv, set }: { hv: string; set: (v: string) => void }) {
           }} />
         </label>
       ))}
+    </div>
+  )
+}
+
+/**
+ * Posisjon, størrelse og rotasjon for laget, skrevet inn som tall (som Figmas og Photoshops transformfelt).
+ * X/Y er venstre og øvre kant i dokumentets piksler; tekst endrer størrelse med skriftstørrelsen, så bare X, Y og rotasjon.
+ */
+function Transform({ L, d, tx, P }: { L: PdLayer; d: { w: number; h: number }; tx: Tx; P: (o: Partial<PdLayer>, key?: string) => void }) {
+  const dm = dims(L)
+  const lock = !!L.locked
+  const big = Math.max(d.w, d.h) * 4
+  const f = (label: Phrase, value: number, min: number, max: number, on: (v: number) => void, unit = ' px') => (
+    <div className={s.tfField}>
+      <span>{tx(label)}</span>
+      <NumField value={Math.round(value * 10) / 10} min={min} max={max} step={1} decimals={0} unit={unit} label={tx(label)} disabled={lock} onCommit={on} />
+    </div>
+  )
+  return (
+    <div className={s.tf} role="group" aria-label={tx('Posisjon og størrelse')} data-pd-transform="">
+      {f('X', L.x - dm.w / 2, -big, big, (v) => P({ x: v + dm.w / 2 }, 'tfx'))}
+      {f('Y', L.y - dm.h / 2, -big, big, (v) => P({ y: v + dm.h / 2 }, 'tfy'))}
+      {L.type !== 'text' && f('B', dm.w, 1, big, (v) => P({ w: v, x: L.x - dm.w / 2 + v / 2 }, 'tfw'))}
+      {L.type !== 'text' && f('H', dm.h, 1, big, (v) => P({ h: v, y: L.y - dm.h / 2 + v / 2 }, 'tfh'))}
+      {f('Rotasjon', L.rot || 0, -180, 180, (v) => P({ rot: v }, 'tfr'), '°')}
     </div>
   )
 }
@@ -169,6 +195,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
       )}
       {tab === 'layer' && (
         <>
+          <Transform L={L} d={d} tx={tx} P={P} />
           {L.type === 'image' && (
             <>
               <div className={s.row2}>

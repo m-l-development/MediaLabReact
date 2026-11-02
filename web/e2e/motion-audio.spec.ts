@@ -32,10 +32,10 @@ test('lyd: to lydspor, start, volum og fade, trim/del/slett, demp spor og lagrin
   await expect(timing(page).locator('[data-md-tm="end"]')).toHaveText('9.50')
 
   // volum og fade (lagres i klippet)
-  await insp(page).locator('label', { hasText: 'Volum' }).locator('input[type="range"]').fill('0.4')
-  await insp(page).locator('label', { hasText: 'Ton inn' }).locator('input[type="range"]').fill('2')
-  await insp(page).locator('label', { hasText: 'Ton ut' }).locator('input[type="range"]').fill('1.5')
-  await expect(insp(page).locator('label', { hasText: 'Volum' })).toContainText('40')
+  await insp(page).getByRole('slider', { name: 'Volum' }).fill('0.4')
+  await insp(page).getByRole('slider', { name: 'Ton inn' }).fill('2')
+  await insp(page).getByRole('slider', { name: 'Ton ut' }).fill('1.5')
+  await expect(insp(page).getByRole('button', { name: /^Volum: / })).toContainText('40')
 
   // trim slutten til 8 s (W), del ved 4 s (S), slett den nye delen, angre
   await seekTo(page, 8)
@@ -64,7 +64,7 @@ test('lyd: to lydspor, start, volum og fade, trim/del/slett, demp spor og lagrin
   await blocks(page).nth(1).click()
   await expect(timing(page).locator('[data-md-track]')).toHaveText('A2')
   await expect(timing(page).locator('[data-md-tm="start"]')).toHaveValue('1.50')
-  await expect(insp(page).locator('label', { hasText: 'Volum' })).toContainText('40')
-  await expect(insp(page).locator('label', { hasText: 'Ton inn' })).toContainText('2.0 s')
+  await expect(insp(page).getByRole('button', { name: /^Volum: / })).toContainText('40')
+  await expect(insp(page).getByRole('button', { name: /^Ton inn: / })).toContainText('2.0 s')
   expect(errors).toEqual([])
 })
