@@ -6,6 +6,7 @@ import { useStageNav } from '../../shared/lib/useStageNav'
 import { NumField } from '../../shared/ui/NumField'
 import { formatKeys } from '../../shared/ui/shortcuts'
 import { MoreButton } from '../../shared/ui/MoreButton'
+import { DockIcon, MobileDock } from '../../shared/ui/MobileDock'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { useStore } from '../../shared/lib/store'
 import type { ToolId } from '../../domain/tool'
@@ -106,8 +107,19 @@ function Toggle({ label, on, onClick }: { label: string; on: boolean; onClick: (
 export function Editor(p: EditorProps) {
   const { c, S, tx, onExport } = p
   const snapOn = useStore(snapPref)
+  // mobil: hvilket panel som er åpent over ikonlinjen (null = bare arbeidsflaten)
+  const [mtab, setMtab] = useState<string | null>(null)
+  // nytt lag (fra «Legg til», «Dupliser» …): rett til «Rediger», så det kan endres med én gang
+  const nLayers = S.doc?.layers.length ?? 0
+  const prevN = useRef(nLayers)
+  useEffect(() => {
+    if (S.narrow && nLayers > prevN.current && mtab !== 'edit') setMtab('edit')
+    prevN.current = nLayers
+  }, [nLayers, S.narrow, mtab])
   const d = S.doc
   if (!d) return null
+  const mobile = S.narrow && !d.batch
+  const L0 = c.selL()
   const saved = S.saved?.kind === 'unsaved' ? tx('Ikke lagret') : S.saved?.kind === 'saved' ? `${tx('Lagret')} ${new Date(S.saved.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
   return (
     <div className={s.editor} data-ml-workspace="" data-narrow={S.narrow ? '1' : undefined}>
@@ -177,6 +189,49 @@ export function Editor(p: EditorProps) {
           </div>
         )}
       </header>
+      {mobile ? (
+        // Mobil: arbeidsflaten øverst (hele tiden synlig), paneler som glir opp over ikonlinjen nederst
+        <div className={s.work} data-narrow="1" data-mobile="1">
+          <Stage {...p} />
+          {S.maskEdit && <MaskDialog {...p} />}
+          <MobileDock label={tx('Verktøy')} open={mtab} onOpen={setMtab}
+            bar={L0 ? (
+              <>
+                <button type="button" className={s.smallBtn} onClick={() => setMtab('edit')}>{tx('Rediger')}</button>
+                <button type="button" className={s.smallBtn} disabled={!!L0.locked} onClick={() => c.dup()}>{tx('Dupliser')}</button>
+                <button type="button" className={s.smallBtn} onClick={() => setMtab('layers')}>{tx('Lag')}</button>
+                <button type="button" className={s.smallBtnDanger} disabled={!!L0.locked} onClick={() => c.del()}>{tx('Slett')}</button>
+                <button type="button" className={s.smallBtn} aria-label={tx('Flere handlinger')} onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect()
+                  c.ui({ ctx: { x: r.left, y: r.top, id: L0.id } })
+                }}>⋯</button>
+              </>
+            ) : undefined}
+            tabs={[
+              { key: 'add', label: tx('Legg til'), icon: <DockIcon d="add" />, content: () => <AddPanel {...p} /> },
+              { key: 'layers', label: tx('Lag'), icon: <DockIcon d="layers" />, content: () => <LayerList {...p} /> },
+              { key: 'edit', label: tx('Rediger'), icon: <DockIcon d="edit" />, content: () => <Props c={c} S={S} tx={tx} pickFile={p.pickFile} /> },
+              { key: 'style', label: tx('Stil'), icon: <DockIcon d="style" />, content: () => <StylePanel {...p} /> },
+              { key: 'fx', label: tx('Effekter'), icon: <DockIcon d="fx" />, content: () => <><FxPanel {...p} />{S.fxOpen && S.adv && <FxPicker {...p} />}</> },
+              { key: 'more', label: tx('Mer'), icon: <DockIcon d="more" />, content: () => (
+                <div className={s.props}>
+                  <label className={s.field}><span>{tx('Prosjektnavn')}</span><input value={d.name} onChange={(e) => c.setDocName(e.target.value)} /></label>
+                  <Toggle label={tx('Autolagring')} on={S.autosave} onClick={() => c.toggleAutosave()} />
+                  <Toggle label={tx('Avansert modus')} on={S.adv} onClick={() => c.toggleAdv()} />
+                  <div className={s.row2}>
+                    <button type="button" className={s.smallBtn} onClick={() => c.ui({ zoom: 1 })}>{tx('Tilpass til vinduet')}</button>
+                    <button type="button" className={s.smallBtn} onClick={() => c.ui({ zoom: Math.min(8, Math.max(0.1, 1 / (S.fit || 1))) })}>100 %</button>
+                  </div>
+                  {d.back && (
+                    <div className={s.seg}>
+                      {(['front', 'back'] as const).map((k) => <button key={k} type="button" aria-pressed={(d.side ?? 'front') === k} onClick={() => c.showSide(k)}>{tx(k === 'front' ? 'Forside' : 'Bakside')}</button>)}
+                    </div>
+                  )}
+                </div>
+              ) },
+            ]} />
+        </div>
+      ) : (
       <div className={s.work} data-narrow={S.narrow ? '1' : undefined} data-batch={d.batch ? '1' : undefined}>
         {d.batch ? (
           <aside className={s.left}>
@@ -204,6 +259,7 @@ export function Editor(p: EditorProps) {
           <Props c={c} S={S} tx={tx} pickFile={p.pickFile} />
         </aside>
       </div>
+      )}
       {d.batch && !S.narrow && <BatchStrip {...p} />}
     </div>
   )

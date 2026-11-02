@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type DragEvent, type PointerEvent as React
 import { setSnap, snapPref } from '../../shared/lib/snap'
 import { useStageNav } from '../../shared/lib/useStageNav'
 import { MoreButton } from '../../shared/ui/MoreButton'
+import { DockIcon, MobileDock } from '../../shared/ui/MobileDock'
 import { useStore } from '../../shared/lib/store'
 import { ColorRow, Controls } from './Controls'
 import { autoName, ctrlsBar, ctrlsFor, ctrlsGroup, ctrlsMal, linkNote, lname } from './ctrl-defs'
@@ -45,8 +46,11 @@ export function Editor(p: EditorProps) {
   const LM = modes.includes(S.layoutMode) ? S.layoutMode : 'std'
   const Lx = S.narrow ? { cols: [['canvas', 'props']] as PanelKey[][], tabs: [false] } : c.layoutOf(LM)
   const n = S.doc?.layers.length ?? 0
+  // mobil: hvilket panel som er åpent over ikonlinjen
+  const [mtab, setMtab] = useState<string | null>(null)
+  const sel = S.sel ? c.layer(S.sel) : null
   return (
-    <div className={s.editor} data-ml-workspace="">
+    <div className={s.editor} data-ml-workspace="" data-narrow={S.narrow ? '1' : undefined}>
       <div className={s.editBar}>
         <div className={s.editBarLeft}>
           <button type="button" className={s.pill} onClick={() => void c.leaveEdit()}>
@@ -99,6 +103,25 @@ export function Editor(p: EditorProps) {
           <button type="button" className={s.pillPrimary} onClick={() => c.openExport()}>{tx('Eksporter')}</button>
         </div>
       </div>
+      {S.narrow ? (
+        // Mobil: lerretet øverst (hele tiden synlig), paneler som glir opp over ikonlinjen nederst
+        <div className={s.mobileWork}>
+          <div className={s.mobileCanvas}><CanvasPanel {...p} /></div>
+          <MobileDock label={tx('Verktøy')} open={mtab} onOpen={setMtab}
+            bar={sel ? (
+              <>
+                <button type="button" className={s.pillSm} onClick={() => setMtab('edit')}>{tx('Rediger')}</button>
+                <button type="button" className={s.pillSm} onClick={() => c.dupLayer(sel.id)}>{tx('Dupliser')}</button>
+                <button type="button" className={s.pillSm} onClick={() => c.delLayer(sel.id)}>{tx('Slett')}</button>
+              </>
+            ) : undefined}
+            tabs={[
+              { key: 'add', label: tx('Legg til'), icon: <DockIcon d="add" />, content: () => <AddPanel {...p} /> },
+              { key: 'layers', label: tx('Lag'), icon: <DockIcon d="layers" />, content: () => <LayersPanel {...p} /> },
+              { key: 'edit', label: tx('Rediger'), icon: <DockIcon d="edit" />, content: () => <PropsPanel {...p} /> },
+            ]} />
+        </div>
+      ) : (
       <div className={s.columns}>
         {Lx.cols.filter((col) => col.length).map((col, ci) => {
           const tabs = !!Lx.tabs[ci] && col.length > 1
@@ -129,6 +152,7 @@ export function Editor(p: EditorProps) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

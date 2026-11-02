@@ -2758,3 +2758,24 @@ button:disabled {
     top: -50px;
   }
 }
+
+/* Mobil: arbeidsflaten fyller høyden over panelet og ikonlinjen (MobileDock); verktøylinjen har bare de viktigste */
+.work[data-mobile] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.work[data-mobile] > .stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 140px;
+  padding: 10px;
+  border-bottom: 0;
+}
+
+.editor[data-narrow] .bar .docName,
+.editor[data-narrow] .bar .zoom,
+.editor[data-narrow] .bar [data-autosave-row] {
+  display: none;
+}

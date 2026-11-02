@@ -14,6 +14,7 @@ test.describe('mobil', () => {
   test('Photo Design: «⋯» på det valgte laget og i lagpanelet åpner lagmenyen; menyvalgene er fingerstore', async ({ page }) => {
     await page.goto('/app/photo-design')
     await page.locator('[data-tpl="photo"]').tap()
+    await page.locator('[data-dock-tab="layers"]').tap()
     const row = page.locator('[data-layer]').first()
     await row.tap()
     const sel = page.locator('[data-pd-selbox] [data-more]')
@@ -28,6 +29,7 @@ test.describe('mobil', () => {
     await menu.getByRole('menuitem', { name: /^Dupliser/ }).tap()
     await expect(menu).toHaveCount(0)
     // lagpanelets «⋯»
+    await page.locator('[data-dock-tab="layers"]').tap() // Dupliser åpnet «Rediger» for det nye laget
     await row.locator('[data-more]').tap()
     await expect(menu).toBeVisible()
   })

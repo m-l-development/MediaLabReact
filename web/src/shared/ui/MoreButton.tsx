@@ -11,10 +11,11 @@ import styles from './MoreButton.module.css'
  */
 export function MoreButton({ label, of, at, className, onOpen }: { label?: string | undefined; of?: string | undefined; at?: 'center' | 'button' | undefined; className?: string | undefined; onOpen?: ((x: number, y: number) => void) | undefined }) {
   const t = useT()
-  // navnet sier hva knappen gjelder («Flere handlinger: bilde.png»), så det ikke blir likt elementets eget navn
-  const name = label ?? (of ? t('more.actionsFor', { name: of }) : t('more.actions'))
+  // navnet er «Flere handlinger» (ikke elementets eget navn, så det ikke forveksles med kortet); verktøytipset sier hvilket
+  const name = label ?? t('more.actions')
+  const tip = of ? t('more.actionsFor', { name: of }) : name
   return (
-    <button type="button" className={`${styles.more} ${className ?? ''}`} aria-label={name} title={name} data-more=""
+    <button type="button" className={`${styles.more} ${className ?? ''}`} aria-label={name} title={tip} data-more=""
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.preventDefault()

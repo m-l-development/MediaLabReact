@@ -2592,3 +2592,31 @@ button:disabled {
   .hBl { bottom: -13px; left: -13px; }
   .hBr { right: -13px; bottom: -13px; }
 }
+
+/* Mobil: editoren fyller skjermen; lerretet over panelet og ikonlinjen (shared/ui/MobileDock). PC uendret. */
+.editor[data-narrow] {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 104px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor[data-narrow] .editBar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mobileWork {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mobileCanvas {
+  flex: 1 1 auto;
+  min-height: 140px;
+  overflow: auto;
+}

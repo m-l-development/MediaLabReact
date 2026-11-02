@@ -696,3 +696,37 @@
   margin: 8px;
   grid-area: 1 / 1;
 }
+
+/* Mobil: editoren fyller skjermen uten at siden blar – mockupen øverst, panelet i nedre del ruller inni seg selv. */
+@media (max-width: 760px) {
+  .editor[data-ml-workspace] {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100dvh - 104px);
+    gap: 8px;
+  }
+
+  .editor[data-ml-workspace] .editorBar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .editor[data-ml-workspace] .editorBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+  }
+
+  .editor[data-ml-workspace] .stage {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 180px;
+  }
+
+  .editor[data-ml-workspace] .panel {
+    flex: 0 1 44%;
+    max-height: 44%;
+    padding: 14px;
+  }
+}
