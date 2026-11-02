@@ -24,7 +24,12 @@ export interface Fill {
   y?: number
   /** Fargekurve-gradient (modus 'curves'): fargen langs retningen bestemmes av RGB-kurvene. */
   curves?: FillCurves | null
+  /** Metning for fargekurve-gradienten (1 = som kurvene gir, mer = sterkere farger). Mangler = CURVE_SAT. */
+  csat?: number
 }
+
+/** Standard metning for fargekurve-gradienten: litt sterkere enn kurvene alene, som ellers gir blasse blandingsfarger. */
+export const CURVE_SAT = 1.4
 
 export const FILL_MODES: readonly FillMode[] = ['none', 'solid', 'linear', 'mirror', 'radial', 'conic', 'mesh', 'stripes', 'wave', 'ellipse', 'corner', 'spot', 'glow', 'conicRep', 'conicMirror', 'rays', 'conicCorner', 'curves']
 
@@ -84,7 +89,7 @@ function clip01(st: FillStop[]): FillStop[] {
  * Fargekurve-gradient: fargen ved posisjon t (0–1 langs retningen) er (R, G, B) = m(kanalkurven(t)). Uten kurver blir
  * den svart → hvit; hver kanal formes med sin kurve, og RGB-kurven virker på alle tre.
  */
-export function curveStops(cv: FillCurves | null | undefined, n = 48): FillStop[] {
+export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURVE_SAT): FillStop[] {
   const fm = curveFn(cv?.m)
   const fr = curveFn(cv?.r)
   const fg = curveFn(cv?.g)
@@ -93,10 +98,20 @@ export function curveStops(cv: FillCurves | null | undefined, n = 48): FillStop[
     const v = f ? f(t) : t
     return Math.round(clamp(fm ? fm(clamp(v, 0, 1)) : v, 0, 1) * 255)
   }
+  const k = clamp(sat, 0, 3)
   const out: FillStop[] = []
   for (let i = 0; i <= n; i++) {
     const t = i / n
-    out.push({ c: `#${((ch(fr, t) << 16) | (ch(fg, t) << 8) | ch(fb, t)).toString(16).padStart(6, '0')}`, p: t })
+    let r = ch(fr, t)
+    let g = ch(fg, t)
+    let b = ch(fb, t)
+    if (k !== 1) {
+      const y = 0.299 * r + 0.587 * g + 0.114 * b
+      r = Math.round(clamp(y + (r - y) * k, 0, 255))
+      g = Math.round(clamp(y + (g - y) * k, 0, 255))
+      b = Math.round(clamp(y + (b - y) * k, 0, 255))
+    }
+    out.push({ c: `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`, p: t })
   }
   return out
 }
@@ -111,7 +126,7 @@ export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: 
     const cx = W * (bf.x == null ? 0.5 : bf.x)
     const cy = H * (bf.y == null ? 0.5 : bf.y)
     const g = ctx.createLinearGradient(cx - (dx * ln) / 2, cy - (dy * ln) / 2, cx + (dx * ln) / 2, cy + (dy * ln) / 2)
-    for (const q of curveStops(bf.curves)) g.addColorStop(q.p, q.c)
+    for (const q of curveStops(bf.curves, 48, bf.csat ?? CURVE_SAT)) g.addColorStop(q.p, q.c)
     ctx.save()
     ctx.fillStyle = g
     ctx.fillRect(0, 0, W, H)
@@ -303,7 +318,7 @@ export function fillCss(f: Fill): string {
   const li = ss.map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')
   if (mode === 'none') return 'transparent'
   if (mode === 'solid') return first.c
-  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
+  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16, f.csat ?? CURVE_SAT).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
   if (mode === 'radial') return `radial-gradient(circle at 50% 50%, ${li})`
   if (mode === 'conicRep' || mode === 'conicMirror' || mode === 'rays' || mode === 'conicCorner') {
     const n = mode === 'conicCorner' ? 1 : Math.max(1, Math.round(f.repeat || (mode === 'rays' ? 8 : 3)))
