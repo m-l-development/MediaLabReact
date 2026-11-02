@@ -40,6 +40,12 @@ export const LOOKS: readonly [string, string, Partial<Adj>][] = [
   ['matte', 'Matt', { fade: 30, con: -6, sh: 12, curve: [[0, 0.1], [0.5, 0.52], [1, 0.92]] }], ['teal', 'Blågrønn og oransje', { temp: 12, tint: -14, sat: 16, con: 12, hue: -6 }],
 ]
 export const BLENDS: readonly [GlobalCompositeOperation, string][] = [['source-over', 'Normal'], ['multiply', 'Multipliser'], ['screen', 'Raster'], ['overlay', 'Overlegg'], ['soft-light', 'Mykt lys'], ['color', 'Farge'], ['luminosity', 'Luminans']]
+/** Former et bilde kan beskjæres til (samme tegning som formlagene, shapePath). «rounded» = avrundet rektangel. */
+export const CROP_SHAPES: readonly [string, string][] = [
+  ['rect', 'Rektangel'], ['rounded', 'Avrundet'], ['ellipse', 'Sirkel'], ['triangle', 'Trekant'], ['diamond', 'Rombe'], ['pentagon', 'Femkant'], ['hexagon', 'Sekskant'], ['octagon', 'Åttekant'],
+  ['star', 'Stjerne'], ['heart', 'Hjerte'], ['half', 'Halvsirkel'], ['parallelogram', 'Parallellogram'], ['trapezoid', 'Trapes'], ['chevron', 'Chevron'], ['bubble', 'Snakkeboble'], ['burst', 'Stjerneutbrudd'], ['arrow', 'Pil'],
+]
+
 export const SHAPES: readonly [string, string][] = [
   ['rect', 'Rektangel'], ['ellipse', 'Sirkel'], ['triangle', 'Trekant'], ['diamond', 'Rombe'], ['hexagon', 'Sekskant'], ['star', 'Stjerne'], ['arrow', 'Pil'], ['line', 'Linje'], ['ring', 'Ring'],
   ['pentagon', 'Femkant'], ['octagon', 'Åttekant'], ['heart', 'Hjerte'], ['plus', 'Pluss'], ['half', 'Halvsirkel'], ['parallelogram', 'Parallellogram'], ['trapezoid', 'Trapes'], ['chevron', 'Chevron'], ['bubble', 'Snakkeboble'], ['burst', 'Stjerneutbrudd'],
@@ -83,6 +89,8 @@ export interface ImageLayer extends Base {
   tint?: string | null
   /** Avansert framkalling (bare i Avansert modus; mangler = ingen). Se engine/develop.ts. */
   dev?: Dev | null
+  /** Beskjæringsform (CROP_SHAPES): bildet klippes til formen. Mangler / «rect» = rektangel. */
+  cshape?: string
 }
 
 export interface TextLayer extends Base {

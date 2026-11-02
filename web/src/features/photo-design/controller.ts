@@ -1136,9 +1136,143 @@ export class PhotoController {
   }
 
   /** Håndtak: hjørne (skaler), side (bredde/høyde) eller rotasjon. */
+  /**
+   * Beskjæringshåndtak (verktøyet «Beskjær» på et bildelag): bildet står stille på lerretet (samme skala og plassering),
+   * og bare kanten eller hjørnet som dras flytter seg – som i Photoshop og Canva. Rammen kan ikke dras forbi bildets
+   * kanter. Fungerer for roterte og speilede bilder (regnes i lagets egne akser).
+   */
+  /**
+   * Beskjæringsform for et bildelag (CROP_SHAPES). «Sirkel» gjør også rammen kvadratisk rundt samme midte, med bildet
+   * stående stille (samme skala), så resultatet blir en ekte sirkel.
+   */
+  setCropShape(id: string, kind: string): void {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    if (!L || L.type !== 'image' || L.locked) return
+    const E = L.src ? this.M.media.get(L.src) : undefined
+    let o: Partial<ImageLayer> = { cshape: kind }
+    if (kind === 'ellipse' && E && Math.abs(L.w - L.h) > 0.5) {
+      const r0 = cover(E.w, E.h, L.w, L.h, L.cz, L.cx, L.cy)
+      const s = r0.s
+      const side = Math.min(L.w, L.h)
+      const v = side / s
+      const x0 = clamp(r0.sx + r0.sw / 2 - v / 2, 0, E.w - v)
+      const y0 = clamp(r0.sy + r0.sh / 2 - v / 2, 0, E.h - v)
+      const mxs = (E.w - v) / 2
+      const mys = (E.h - v) / 2
+      o = { ...o, w: side, h: side, cz: Math.max(1, s / Math.max(side / E.w, side / E.h)), cx: mxs > 0.01 ? clamp((x0 - mxs) / mxs, -1, 1) : 0, cy: mys > 0.01 ? clamp((y0 - mys) / mys, -1, 1) : 0 }
+    }
+    this.patchL(id, o as Partial<PdLayer>, 'cshape')
+  }
+
+  private cropHandle(L: ImageLayer, kind: 'corner' | 'edgeX' | 'edgeY', hx: number, hy: number): Interaction | null {
+    const E = L.src ? this.M.media.get(L.src) : undefined
+    if (!E) return null
+    this.push()
+    const r0 = cover(E.w, E.h, L.w, L.h, L.cz, L.cx, L.cy)
+    const s = r0.s
+    const a = ((L.rot || 0) * Math.PI) / 180
+    const ca = Math.cos(a)
+    const sa = Math.sin(a)
+    const fx = L.flipX ? -1 : 1
+    const fy = L.flipY ? -1 : 1
+    // rammen i lagets akser (bildets egne akser når laget er speilet), og kildepunktet for hver kant
+    const toSrcX = (lx: number) => r0.sx + (lx * fx + L.w / 2) / s
+    const toSrcY = (ly: number) => r0.sy + (ly * fy + L.h / 2) / s
+    const min = 8 / s
+    const keep = !!L.cshape && L.cshape !== 'rect' && L.cshape !== 'rounded'
+    const ar = L.w / Math.max(1, L.h)
+    // kildepunktene for de faste kantene (motsatt side av håndtaket)
+    const fixX = toSrcX(hx > 0 ? -L.w / 2 : L.w / 2)
+    const fixY = toSrcY(hy > 0 ? -L.h / 2 : L.h / 2)
+    return {
+      move: (p) => {
+        const dx = p[0] - L.x
+        const dy = p[1] - L.y
+        const lx = dx * ca + dy * sa
+        const ly = -dx * sa + dy * ca
+        // kantene i lagets akser: den som dras følger pekeren, den motsatte står fast
+        let left = -L.w / 2
+        let right = L.w / 2
+        let top = -L.h / 2
+        let bottom = L.h / 2
+        if (kind !== 'edgeY') {
+          if (hx > 0) right = lx
+          else left = lx
+        }
+        if (kind !== 'edgeX') {
+          if (hy > 0) bottom = ly
+          else top = ly
+        }
+        // form (snakkeboble, sirkel, stjerne …): rammen beholder sideforholdet, så formen ikke strekkes (som Canvas rammer)
+        if (keep) {
+          if (kind === 'edgeX') {
+            const h = (right - left) / ar
+            top = -h / 2
+            bottom = h / 2
+          } else if (kind === 'edgeY') {
+            const w = (bottom - top) * ar
+            left = -w / 2
+            right = w / 2
+          } else {
+            const f = Math.max((right - left) / L.w, (bottom - top) / L.h)
+            if (hx > 0) right = left + L.w * f
+            else left = right - L.w * f
+            if (hy > 0) bottom = top + L.h * f
+            else top = bottom - L.h * f
+          }
+        }
+        // til bildets kildepiksler, innenfor bildet og med minste størrelse
+        let x0 = Math.min(toSrcX(left), toSrcX(right))
+        let x1 = Math.max(toSrcX(left), toSrcX(right))
+        let y0 = Math.min(toSrcY(top), toSrcY(bottom))
+        let y1 = Math.max(toSrcY(top), toSrcY(bottom))
+        x0 = Math.max(0, x0)
+        x1 = Math.min(E.w, Math.max(x1, x0 + min))
+        y0 = Math.max(0, y0)
+        y1 = Math.min(E.h, Math.max(y1, y0 + min))
+        if (keep) {
+          // bildekanten stoppet én side: krymp den andre tilsvarende, mot den faste kanten (eller midten)
+          const cw = x1 - x0
+          const chh = y1 - y0
+          if (cw / chh > ar) {
+            const nw = chh * ar
+            if (kind === 'edgeY') { const m = (x0 + x1) / 2; x0 = m - nw / 2; x1 = m + nw / 2 } else if (Math.abs(x0 - fixX) < Math.abs(x1 - fixX)) x1 = x0 + nw
+            else x0 = x1 - nw
+          } else if (cw / chh < ar) {
+            const nh = cw / ar
+            if (kind === 'edgeX') { const m = (y0 + y1) / 2; y0 = m - nh / 2; y1 = m + nh / 2 } else if (Math.abs(y0 - fixY) < Math.abs(y1 - fixY)) y1 = y0 + nh
+            else y0 = y1 - nh
+          }
+        }
+        const w = (x1 - x0) * s
+        const h = (y1 - y0) * s
+        // ny midte i lagets akser, så tilbake til lerretet
+        const mx = (((x0 + x1) / 2 - r0.sx) * s - L.w / 2) * fx
+        const my = (((y0 + y1) / 2 - r0.sy) * s - L.h / 2) * fy
+        const cz = s / Math.max(w / E.w, h / E.h)
+        const vw = w / s
+        const vh = h / s
+        const mxs = (E.w - vw) / 2
+        const mys = (E.h - vh) / 2
+        const o = {
+          w, h,
+          x: L.x + mx * ca - my * sa,
+          y: L.y + mx * sa + my * ca,
+          cz: Math.max(1, cz),
+          cx: mxs > 0.01 ? clamp((x0 - mxs) / mxs, -1, 1) : 0,
+          cy: mys > 0.01 ? clamp((y0 - mys) / mys, -1, 1) : 0,
+        }
+        this.set((st) => (st.doc ? { doc: { ...st.doc, layers: st.doc.layers.map((q) => (q.id === L.id ? ({ ...q, ...o } as PdLayer) : q)) }, hist: st.hist + 1 } : null))
+      },
+      up: () => this.queueSave(),
+    }
+  }
+
   handleDown(kind: 'corner' | 'edgeX' | 'edgeY' | 'rot', sx: number, sy: number): Interaction | null {
     const L = this.selL()
     if (!L) return null
+    // beskjæring: rammen kuttes, bildet står stille (ikke skalering)
+    if (kind !== 'rot' && this.s.tool === 'crop' && L.type === 'image' && L.src && !L.locked) return this.cropHandle(L, kind, sx, sy)
     this.push()
     const dm = dims(L)
     const w0 = dm.w

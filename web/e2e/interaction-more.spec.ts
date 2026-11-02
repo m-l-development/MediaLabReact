@@ -227,3 +227,88 @@ test('Photo Design: lås fra høyreklikkmenyen sperrer egenskaper, sletting og e
   await page.getByRole('menu').getByRole('menuitem', { name: 'Lås opp' }).click()
   await expect(page.locator('[data-pd-locked]')).toHaveCount(0)
 })
+
+test('Photo Design: «Beskjær» – kanten kutter rammen, bildet står stille (ikke skalering)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/app/photo-design')
+  await page.locator('[data-tpl="photo"]').click()
+  const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
+  await page.locator(`[data-layer="${id}"]`).click()
+  const ch = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Bytt bilde' }).click()
+  await (await ch).setFiles({ name: 'b.png', mimeType: 'image/png', buffer: png(800, 600, (x, y) => [x % 256, (y * 2) % 256, 120, 255]) })
+  await page.waitForTimeout(800)
+  const tf = page.locator('[data-pd-transform]')
+  const num = async (n: string) => Number(((await tf.getByRole('button', { name: new RegExp(`^${n}: `) }).textContent()) ?? '').replace(/[^\d-]/g, ''))
+  const w0 = await num('B')
+  const x0 = await num('X')
+  const h0 = await num('H')
+  await page.getByRole('button', { name: 'Beskjær', exact: true }).click()
+  const wrap = page.locator('[data-pd-wrap]')
+  const pixel = async (fx: number, fy: number) => wrap.locator('canvas').first().evaluate((c: HTMLCanvasElement, [a, b]) => [...c.getContext('2d')!.getImageData(Math.round(c.width * (a as number)), Math.round(c.height * (b as number)), 1, 1).data], [fx, fy])
+  const before = await pixel(0.3, 0.5)
+  const edge = page.getByRole('button', { name: 'Bredde', exact: true }).last()
+  const eb = (await edge.boundingBox())!
+  await page.mouse.move(eb.x + eb.width / 2, eb.y + eb.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(eb.x + eb.width / 2 - 120, eb.y + eb.height / 2, { steps: 6 })
+  await page.mouse.up()
+  await expect.poll(() => num('B')).toBeLessThan(w0 - 50)
+  expect(await num('X')).toBe(x0) // venstre kant står fast
+  expect(await num('H')).toBe(h0) // høyden er uendret (ikke skalert)
+  expect(await pixel(0.3, 0.5)).toEqual(before) // bildeinnholdet står stille
+})
+
+test('Photo Design: beskjæring med form – «Sirkel» gir kvadratisk ramme og runde kanter', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/app/photo-design')
+  await page.locator('[data-tpl="photo"]').click()
+  const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
+  await page.locator(`[data-layer="${id}"]`).click()
+  const ch = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Bytt bilde' }).click()
+  await (await ch).setFiles({ name: 'b.png', mimeType: 'image/png', buffer: png(800, 600, () => [20, 120, 220, 255]) })
+  await page.waitForTimeout(800)
+  await page.getByRole('button', { name: 'Beskjær', exact: true }).click()
+  await page.locator('[data-pd-crop-shape]').getByRole('button', { name: 'Sirkel' }).click()
+  const tf = page.locator('[data-pd-transform]')
+  const num = async (n: string) => Number(((await tf.getByRole('button', { name: new RegExp(`^${n}: `) }).textContent()) ?? '').replace(/[^\d-]/g, ''))
+  await expect.poll(async () => (await num('B')) - (await num('H'))).toBe(0)
+  // hjørnet av rammen er utenfor sirkelen: der er bildet borte (bakgrunnen/rutemønsteret, ikke blått)
+  const X = await num('X'), Y = await num('Y'), B = await num('B')
+  const px = await page.locator('[data-pd-wrap] canvas').first().evaluate((c: HTMLCanvasElement, [x, y, b]) => {
+    const k = c.width / 1080
+    const d = c.getContext('2d')!.getImageData(Math.round((x + b * 0.04) * k), Math.round((y + b * 0.04) * k), 1, 1).data
+    const m = c.getContext('2d')!.getImageData(Math.round((x + b / 2) * k), Math.round((y + b / 2) * k), 1, 1).data
+    return [[...d], [...m]]
+  }, [X, Y, B])
+  const blue = (p: number[]) => Math.abs(p[0]! - 20) < 30 && Math.abs(p[1]! - 120) < 30 && Math.abs(p[2]! - 220) < 30
+  expect(blue(px[1]!), 'midten: bildet ' + px[1]).toBe(true)
+  expect(blue(px[0]!), 'hjørnet: klippet bort ' + px[0]).toBe(false)
+})
+
+test('Photo Design: beskjæring med snakkeboble – rammen beholder sideforholdet når kanten dras', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/app/photo-design')
+  await page.locator('[data-tpl="photo"]').click()
+  const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
+  await page.locator(`[data-layer="${id}"]`).click()
+  const ch = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Bytt bilde' }).click()
+  await (await ch).setFiles({ name: 'b.png', mimeType: 'image/png', buffer: png(800, 600, (x) => [x % 256, 120, 220, 255]) })
+  await page.waitForTimeout(800)
+  await page.getByRole('button', { name: 'Beskjær', exact: true }).click()
+  await page.locator('[data-pd-crop-shape] select').selectOption('bubble')
+  const tf = page.locator('[data-pd-transform]')
+  const num = async (n: string) => Number(((await tf.getByRole('button', { name: new RegExp(`^${n}: `) }).textContent()) ?? '').replace(/[^\d-]/g, ''))
+  const r0 = (await num('B')) / (await num('H'))
+  const w0 = await num('B')
+  const edge = page.getByRole('button', { name: 'Bredde', exact: true }).last()
+  const eb = (await edge.boundingBox())!
+  await page.mouse.move(eb.x + eb.width / 2, eb.y + eb.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(eb.x + eb.width / 2 - 120, eb.y + eb.height / 2, { steps: 6 })
+  await page.mouse.up()
+  await expect.poll(() => num('B')).toBeLessThan(w0 - 50)
+  expect(Math.abs((await num('B')) / (await num('H')) - r0)).toBeLessThan(0.02)
+})

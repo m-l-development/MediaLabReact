@@ -4,7 +4,7 @@ import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
-import { ADJ, BLEED, BLENDS, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type PdLayer } from './engine/model'
+import { ADJ, BLEED, BLENDS, CROP_SHAPES, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type PdLayer } from './engine/model'
 import { NumField } from '../../shared/ui/NumField'
 import { curveFn } from './engine/render'
 import { DEV, type Dev, type Histogram } from './engine/develop'
@@ -215,6 +215,20 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
                 <button type="button" className={s.smallBtn} onClick={() => c.showWhole()}>{tx('Vis hele bildet')}</button>
               </div>
               {S.tool === 'crop' && <span className={s.warnNote}>{tx('Dra i bildet for å flytte utsnittet. Dra i kantene for å beskjære rammen.')}</span>}
+              {/* beskjæringsform: de vanligste som knapper, resten i en liste */}
+              {(S.tool === 'crop' || (L.cshape && L.cshape !== 'rect')) && (
+                <div className={s.cropShapes} role="group" aria-label={tx('Form på beskjæringen')} data-pd-crop-shape="">
+                  {(['rect', 'rounded', 'ellipse'] as const).map((k) => (
+                    <button key={k} type="button" className={(L.cshape || 'rect') === k ? s.smallBtnOn : s.smallBtn} aria-pressed={(L.cshape || 'rect') === k} onClick={() => c.setCropShape(L.id, k)}>
+                      {tx(CROP_SHAPES.find(([v]) => v === k)?.[1] as Phrase)}
+                    </button>
+                  ))}
+                  <select aria-label={tx('Flere former')} value={['rect', 'rounded', 'ellipse'].includes(L.cshape || 'rect') ? '' : L.cshape} onChange={(e) => e.target.value && c.setCropShape(L.id, e.target.value)}>
+                    <option value="">{tx('Flere former …')}</option>
+                    {CROP_SHAPES.filter(([k]) => !['rect', 'rounded', 'ellipse'].includes(k)).map(([k, l]) => <option key={k} value={k}>{tx(l as Phrase)}</option>)}
+                  </select>
+                </div>
+              )}
               {has && <Toggle label={tx('Fargelegg bildet')} on={!!L.tint} onClick={() => P({ tint: L.tint ? null : (S.newCol || '#f5b82c') })} />}
               {has && L.tint && (
                 <div className={s.swatches}>
