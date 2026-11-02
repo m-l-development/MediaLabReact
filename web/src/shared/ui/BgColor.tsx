@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useT } from '../i18n/i18n'
+import { ColorSpectrum } from './ColorSpectrum'
 import styles from './BgColor.module.css'
 
 const PRESETS = ['#000000', '#ffffff', '#111111', '#2a2a2a', '#f3f1ec', '#1e3a8a', '#7f1d1d', '#14532d', '#f5b82c', '#e11d48']
@@ -42,6 +43,7 @@ export function BgColor({ label, value, def, onChange, note }: { label: string; 
             else if (e.key === 'Escape') { setText(null); setBad(false) }
           }} />
       </div>
+      <ColorSpectrum value={cur} onChange={onChange} />
       {bad && <span className={styles.err} role="alert">{t('bg.bad')}</span>}
       <div className={styles.presets}>
         {PRESETS.map((p) => (
