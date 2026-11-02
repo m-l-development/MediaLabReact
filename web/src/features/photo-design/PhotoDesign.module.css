@@ -1204,13 +1204,16 @@ button:disabled {
 }
 
 /* hjelpelinjen under arbeidsflaten (bare PC): egen rad nederst, blir stående ved rulling */
+/* kolonnen følger arbeidsflaten (ikke bildet), så hjelpelinjen ikke brytes om – og «tilpass» endres – når det zoomes */
 .stage:has(> .tips) {
   grid-template-rows: 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .tips {
   position: sticky;
   bottom: -20px;
+  left: 0;
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
