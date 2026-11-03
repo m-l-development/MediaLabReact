@@ -88,7 +88,9 @@
     -webkit-box-orient: vertical;
   }
 
-  :global([data-loop-card-home]) span {
+  /* bare «Velg»-knappen: regelen traff alle span (også teksten inni knappen og i beskrivelsen), så teksten la seg øverst
+     i knappen og beskrivelsen fikk innrykk på iPhone */
+  :global([data-loop-card-home]) .tplBtn {
     height: 34px !important;
     padding: 0 14px !important;
     font-size: 11px !important;
