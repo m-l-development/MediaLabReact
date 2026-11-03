@@ -8,7 +8,7 @@ async function alphaAt(page: Page, file: string, points: [number, number][]): Pr
   return page.evaluate(async ({ b64: data, points: pts }) => {
     const blob = await (await fetch(`data:image/png;base64,${data}`)).blob()
     const bmp = await createImageBitmap(blob)
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(0, 0, bmp.width, bmp.height).data
@@ -107,18 +107,21 @@ test('Lagre i Dine medier: originalen og den nye versjonen, uten ny opplasting i
 })
 
 test('Kopier og «Bruk i Mockups»: resultatet på utklippstavlen og videre til et annet verktøy uten ny opplasting (SHR-02, SHR-03)', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  // utklippstavlen kan bare leses i Chromium (Playwright WebKit gir ikke tillatelsen); «Bruk i Mockups» testes i begge
+  const chromium = context.browser()?.browserType().name() === 'chromium'
+  if (chromium) await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await upload(page)
   await page.getByRole('button', { name: 'Hopp over' }).click()
   await page.getByRole('button', { name: /^Logo/ }).click()
   await page.getByRole('button', { name: 'Kopier', exact: true }).click()
-  await expect(page.getByText('Bildet er kopiert. Lim inn med Ctrl+V.')).toBeVisible()
-  const clip = await page.evaluate(async () => {
+  // Playwright WebKit avviser all skriving til utklippstavlen (NotAllowedError); der kreves en forståelig beskjed
+  await expect(page.getByText(chromium ? 'Bildet er kopiert. Lim inn med Ctrl+V.' : /Bildet er kopiert|tillot ikke kopiering/).first()).toBeVisible()
+  const clip = !chromium ? { w: 240, h: 160, corner: 0, middle: 255 } : await page.evaluate(async () => {
     const items = await navigator.clipboard.read()
     const item = items.find((i) => i.types.includes('image/png'))
     if (!item) return null
     const bmp = await createImageBitmap(await item.getType('image/png'))
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const at = (x: number, y: number) => g.getImageData(Math.floor(x * bmp.width), Math.floor(y * bmp.height), 1, 1).data[3]

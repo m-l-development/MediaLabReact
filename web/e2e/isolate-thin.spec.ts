@@ -24,7 +24,7 @@ async function exported(page: Page, file: string, list: [number, number][]) {
   const b64 = fs.readFileSync(file).toString('base64')
   return page.evaluate(async ({ data, pts }) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     return pts.map(([x, y]) => g.getImageData(x, y, 1, 1).data[3] ?? -1)

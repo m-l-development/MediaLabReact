@@ -18,7 +18,7 @@ async function analyse(page: Page, src: { canvas: true } | { file: string }) {
     let W: number, H: number, px: Uint8ClampedArray
     if (d) {
       const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${d}`)).blob())
-      const c = new OffscreenCanvas(bmp.width, bmp.height)
+      const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
       const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
       g.drawImage(bmp, 0, 0)
       W = bmp.width; H = bmp.height; px = g.getImageData(0, 0, W, H).data
@@ -159,7 +159,7 @@ test('skjermkvalitet: ingen sømmer i forvrengningen og ingenting utenfor skjerm
   await (await dl).saveAs(file)
   const r = await page.evaluate(async (data) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const W = bmp.width, H = bmp.height, d = g.getImageData(0, 0, W, H).data

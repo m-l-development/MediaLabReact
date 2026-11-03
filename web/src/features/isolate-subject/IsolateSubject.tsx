@@ -14,6 +14,7 @@ import { AssetPicker } from '../media-library/AssetPicker'
 import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { COLORS, IsolateController, type Aspect, type CropRect, type ImagePoint, type Kind } from './controller'
 import styles from './IsolateSubject.module.css'
+import { copyImage } from '../../shared/lib/clipboard'
 
 const KINDS: readonly Kind[] = ['person', 'object', 'logo', 'text']
 const ASPECTS: readonly { value: Aspect; label: string | MessageKey }[] = [
@@ -124,14 +125,10 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
   }
 
   async function copy() {
-    const png = await ctl.exportPng()
-    if (!png) return
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
-      setMessage(t('isolate.copied'))
-    } catch {
-      setMessage(t('isolate.copyFailed'))
-    }
+    // utklippstavlen skrives straks i trykket (Safari), bildet lages mens den venter (shared/lib/clipboard)
+    const r = await copyImage(() => ctl.exportPng())
+    if (r === 'ok') setMessage(t('isolate.copied'))
+    else if (r === 'denied') setMessage(t('isolate.copyFailed'))
   }
 
   const targets = TOOLS.filter((tool) => tool.id !== 'isolate-subject' && tool.load && tool.accepts.includes('image'))

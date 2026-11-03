@@ -2568,8 +2568,10 @@ button:disabled {
   }
 }
 /* smal skjerm: lerret, filmstrip, justeringer og seriepanelet under hverandre (panelene får sin egen høyde) */
+/* radene er max-content: Safari/WebKit tar ikke hensyn til min-height: max-content på panelene, så seriepanelet (med
+   «Legg til bilder …») fikk 0 px og kunne ikke nås på iPhone */
 .work[data-narrow][data-batch] {
-  grid-template-rows: 60vh auto auto auto;
+  grid-template-rows: 60vh max-content max-content max-content;
 }
 .work[data-narrow][data-batch] > .left,
 .work[data-narrow][data-batch] > .right {
@@ -2790,10 +2792,12 @@ button:disabled {
     height: 36px;
   }
 
+  /* ut til høyre forbi hjørnet: på et smalt lag lå «⋯» ellers over roteringshåndtaket (midt over laget), som tok trykket */
   .selMore {
     width: 40px;
     height: 40px;
     top: -50px;
+    right: -52px;
   }
 }
 

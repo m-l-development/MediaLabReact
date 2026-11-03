@@ -14,7 +14,7 @@ async function size(page: Page, file: string): Promise<{ w: number; h: number; r
   const kind = file.endsWith('.jpg') ? 'image/jpeg' : 'image/png'
   return page.evaluate(async ({ data, mime }) => {
     const bmp = await createImageBitmap(await (await fetch(`data:${mime};base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(0, 0, bmp.width, bmp.height).data

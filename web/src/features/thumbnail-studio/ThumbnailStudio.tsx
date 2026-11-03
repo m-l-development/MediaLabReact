@@ -28,6 +28,7 @@ import { CategoryView, Home } from './Pages'
 import { ThumbRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
 import s from './ThumbnailStudio.module.css'
+import { copyImage } from '../../shared/lib/clipboard'
 
 const IMAGE_TYPES = 'image/png,image/jpeg,image/webp,image/avif,image/gif,image/bmp'
 const M_ID = (src: string) => src.slice(2) as AssetId
@@ -373,22 +374,9 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   }
 
   async function copyExport() {
-    try {
-      let b = await c.exportBlob()
-      if (b.type !== 'image/png') {
-        const bmp = await createImageBitmap(b)
-        const cv = document.createElement('canvas')
-        cv.width = bmp.width
-        cv.height = bmp.height
-        cv.getContext('2d')?.drawImage(bmp, 0, 0)
-        bmp.close()
-        b = await new Promise<Blob>((res, rej) => cv.toBlob((x) => (x ? res(x) : rej(new Error('png'))), 'image/png'))
-      }
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })])
-      c.flash('Bildet er kopiert. Lim inn med Ctrl+V.')
-    } catch {
-      c.flash('Nettleseren tillot ikke kopiering.')
-    }
+    // utklippstavlen skrives straks i trykket (Safari), bildet lages mens den venter (shared/lib/clipboard)
+    const r = await copyImage(() => c.exportBlob())
+    c.flash(r === 'ok' ? 'Bildet er kopiert. Lim inn med Ctrl+V.' : 'Nettleseren tillot ikke kopiering.')
   }
 
   async function saveExportToMedia(to?: ToolId) {

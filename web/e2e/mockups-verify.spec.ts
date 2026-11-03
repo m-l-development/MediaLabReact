@@ -11,7 +11,7 @@ const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rec
 /** Analyse av et PNG-bilde (som base64): fargefeltenes rekkefølge og logoens midtpunkt. */
 const analyse = (page: Page, b64: string) => page.evaluate(async (data) => {
   const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-  const c = new OffscreenCanvas(bmp.width, bmp.height)
+  const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
   const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
   g.drawImage(bmp, 0, 0)
   const W = bmp.width, H = bmp.height, px = g.getImageData(0, 0, W, H).data

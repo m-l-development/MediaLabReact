@@ -3350,3 +3350,18 @@
 .editorNarrow .bar {
   mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
 }
+
+/* Smal skjerm: fanene i «Legg til» er én rad som kan sveipes sidelengs. To rader (105 px) dekket hele panelet på lave
+   skjermer (iPhone i Safari: 88 px), så «Last opp» og resten av innholdet ikke kunne nås. PC er uendret. */
+.editorNarrow .tabs {
+  flex: none;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(84px, 1fr);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.editorNarrow .tabs::-webkit-scrollbar {
+  display: none;
+}
