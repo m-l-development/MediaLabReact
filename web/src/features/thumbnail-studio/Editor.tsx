@@ -500,9 +500,11 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
       window.removeEventListener('pointercancel', up)
       window.removeEventListener('keydown', esc, true)
     }
-    const up = () => {
+    const up = (e: PointerEvent) => {
       off()
-      c.pointerUp()
+      // avbrutt (nettleseren tok over, eller et knip med to fingre startet): alt går tilbake, uten angresteg
+      if (e.type === 'pointercancel') c.cancelGesture(g)
+      else c.pointerUp()
     }
     const esc = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return

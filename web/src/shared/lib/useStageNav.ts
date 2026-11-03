@@ -161,6 +161,53 @@ export function useStageNav(o: {
       pan = null
       setPanning(false)
     }
+    // to fingre (berøringsskjerm): knip zoomer rundt midtpunktet, og flytting av midtpunktet panorerer. Når den andre
+    // fingeren kommer, avbrytes det den første fingeren startet (verktøyene avslutter ved pointercancel), og ingen av
+    // fingrene når verktøyene før begge er løftet. Mus, penn og styreflate er uendret.
+    const touches = new Map<number, { x: number; y: number }>()
+    let pinch: { d0: number; z0: number; mx: number; my: number } | null = null
+    const tpts = () => [...touches.values()] as [{ x: number; y: number }, { x: number; y: number }]
+    const tdown = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch' || latest.current.enabled === false) return
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (touches.size !== 2 && !pinch) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (pinch) return
+      const first = [...touches.keys()][0] as number
+      window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: first, pointerType: 'touch', bubbles: true }))
+      const [a, b] = tpts()
+      pinch = { d0: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)), z0: latest.current.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }
+    }
+    const tmove = (e: PointerEvent) => {
+      if (!touches.has(e.pointerId)) return
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (!pinch || touches.size < 2) return
+      e.preventDefault()
+      e.stopPropagation()
+      const L = latest.current
+      const [a, b] = tpts()
+      const mx = (a.x + b.x) / 2
+      const my = (a.y + b.y) / 2
+      const z = Math.max(L.min, Math.min(L.max, pinch.z0 * (Math.hypot(b.x - a.x, b.y - a.y) / pinch.d0)))
+      const ct = L.content.current
+      if (ct && Math.abs(z - L.zoom) > 1e-3) {
+        const r = ct.getBoundingClientRect()
+        pending.current = { left: r.left, top: r.top, width: r.width, height: r.height, px: mx, py: my }
+        L.setZoom(z)
+      } else {
+        st.scrollLeft -= mx - pinch.mx
+        st.scrollTop -= my - pinch.my
+      }
+      pinch.mx = mx
+      pinch.my = my
+    }
+    const tup = (e: PointerEvent) => {
+      if (!touches.delete(e.pointerId)) return
+      if (!pinch) return
+      e.stopPropagation()
+      if (!touches.size) pinch = null
+    }
     const aux = (e: MouseEvent) => {
       if (e.button === 1) e.preventDefault()
     }
@@ -218,6 +265,10 @@ export function useStageNav(o: {
     st.addEventListener('pointermove', move, true)
     st.addEventListener('pointerup', up, true)
     st.addEventListener('pointercancel', up, true)
+    st.addEventListener('pointerdown', tdown, true)
+    st.addEventListener('pointermove', tmove, true)
+    st.addEventListener('pointerup', tup, true)
+    st.addEventListener('pointercancel', tup, true)
     st.addEventListener('mousedown', aux, true)
     st.addEventListener('pointerenter', enter)
     st.addEventListener('pointerleave', leave)
@@ -230,6 +281,10 @@ export function useStageNav(o: {
       st.removeEventListener('pointermove', move, true)
       st.removeEventListener('pointerup', up, true)
       st.removeEventListener('pointercancel', up, true)
+      st.removeEventListener('pointerdown', tdown, true)
+      st.removeEventListener('pointermove', tmove, true)
+      st.removeEventListener('pointerup', tup, true)
+      st.removeEventListener('pointercancel', tup, true)
       st.removeEventListener('mousedown', aux, true)
       st.removeEventListener('pointerenter', enter)
       st.removeEventListener('pointerleave', leave)

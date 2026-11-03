@@ -383,3 +383,20 @@
   border-color: #8a867e;
   color: #1f1d1a;
 }
+
+/* berøringsmål ~44 px på berøringsskjerm (PC med mus er uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .head {
+    min-height: 44px;
+  }
+
+  .modes button {
+    min-height: 44px;
+  }
+
+  .swatch,
+  .round {
+    width: 44px;
+    height: 44px;
+  }
+}

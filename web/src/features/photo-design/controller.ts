@@ -16,7 +16,8 @@ import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
 
 export type Pt = [number, number]
-export interface Interaction { move(p: Pt, e: { altKey: boolean; shiftKey: boolean }): void; up(): void }
+/** En draing på arbeidsflaten. `cancel` (valgfri) avbryter uten å fullføre (pointercancel, f.eks. når et knip tar over). */
+export interface Interaction { move(p: Pt, e: { altKey: boolean; shiftKey: boolean }): void; up(): void; cancel?(): void }
 export interface Msg { p: Phrase; v?: Vars }
 export type Tool = 'move' | 'crop' | 'brush'
 export type Saved = { kind: 'unsaved' } | { kind: 'saved'; at: number } | null
@@ -1029,6 +1030,7 @@ export class PhotoController {
         moved = true
         this.set({ marq: [p0[0], p0[1], p[0], p[1]] })
       },
+      cancel: () => this.set({ marq: null }),
       up: () => {
         const m = this.s.marq
         this.set({ marq: null })
@@ -1095,8 +1097,8 @@ export class PhotoController {
     if (!this.s.doc) return null
     this.set({ expOpen: false })
     if (touch) {
-      this.setSel([])
-      return null
+      // fjernes når fingeren slippes (et trykk), ikke ved nedtrykk – så et knip eller en rulling beholder valget
+      return { move: () => undefined, up: () => this.setSel([]), cancel: () => undefined }
     }
     return this.marquee(p, add ? this.selIds() : [])
   }

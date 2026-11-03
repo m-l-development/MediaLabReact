@@ -205,6 +205,13 @@ export function useMockupLibrary(): MockupLibrary {
         skipped++
         continue
       }
+      // filtypen alene er ikke nok: et ødelagt bilde lagres ellers i Dine medier og vises som et tomt kort
+      try {
+        ;(await createImageBitmap(f)).close()
+      } catch {
+        skipped++
+        continue
+      }
       const a = await assets.register(f)
       if (!ids.includes(a.id)) ids.push(a.id)
       added++

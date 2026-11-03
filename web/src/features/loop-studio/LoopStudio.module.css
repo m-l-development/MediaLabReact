@@ -49,3 +49,11 @@
   right: 4px;
   z-index: 3;
 }
+
+/* berøringsmål ~44 px på berøringsskjerm for knappene under forhåndsvisningen (PC med mus er uendret; stilene står i linjen) */
+@media (hover: none) and (pointer: coarse) {
+  [data-loop-pv] {
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+}

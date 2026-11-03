@@ -179,3 +179,42 @@ test('maskeredigering: verktøyene endrer den faktiske masken, og eksporten føl
   expect(a, 'trukket inn 4 px fra 97: kanten står ved x = 101').toEqual([0, 255, 255])
   expect(errors).toEqual([])
 })
+
+test('visningsbakgrunnen i maskeredigeringen endrer ikke masken, fargene eller eksporten', async ({ page }, info) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/app/isolate-subject')
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: /Slipp et bilde her/ }).click()
+  await (await chooser).setFiles({ name: 'kvadrat.png', mimeType: 'image/png', buffer: IMG })
+  await page.getByRole('button', { name: 'Hopp over' }).click()
+  await page.getByRole('button', { name: /^Logo/ }).click()
+  await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled()
+  const grid: [number, number][] = []
+  for (let y = 10; y < H; y += 40) for (let x = 10; x < W; x += 40) grid.push([x, y])
+  const rgba = async (file: string) => {
+    const dl = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Last ned PNG' }).click()
+    await (await dl).saveAs(file)
+    const close = page.getByRole('button', { name: 'Nei takk' })
+    if (await close.count()) await close.click()
+    const b64 = fs.readFileSync(file).toString('base64')
+    return page.evaluate(async ({ data, list }) => {
+      const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
+      const c = new OffscreenCanvas(bmp.width, bmp.height)
+      const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+      g.drawImage(bmp, 0, 0)
+      return list.map(([x, y]) => [...g.getImageData(x, y, 1, 1).data].join(','))
+    }, { data: b64, list: grid })
+  }
+  const before = await rgba(info.outputPath('for.png'))
+  await page.locator('[data-mask-open]').click()
+  await expect(page.locator('[data-mask-canvas]')).toBeVisible()
+  for (const v of ['magenta', 'black', 'white', 'original']) await page.locator(`[data-mask-view="${v}"]`).click()
+  await page.locator('[data-mask-done]').click()
+  await expect(page.locator('[data-mask-canvas]')).toHaveCount(0)
+  const after = await rgba(info.outputPath('etter.png'))
+  expect(after).toEqual(before)
+  expect(errors).toEqual([])
+})
