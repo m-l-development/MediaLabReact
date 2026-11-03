@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { framesAt, near } from './media-probe'
 import { png } from './png'
 
 /** Felles hjelpere for Motion Design → Avansert-testene. */
@@ -76,7 +77,24 @@ export async function saveAndReload(page: Page) {
  * Ekte videofil (WebM fra MediaRecorder, med lyd): fargesegmenter etter hverandre, ett sekund hvert som standard
  * (f.eks. rødt 0–1 s, grønt 1–2 s, blått 2–3 s) og en tone (440 Hz) hele veien. Tas opp i nettleseren i sanntid.
  */
+/**
+ * Testvideoen tas opp i sanntid (MediaRecorder). Under tung belastning (mange parallelle nettlesere) kan tegnesløyfen stå
+ * stille så et segment mangler i opptaket – da blir alle eksporttestene feil uten at appen er det. Opptaket kontrolleres
+ * derfor (midt i hvert segment) og tas opp på nytt; kravene til eksporten er de samme.
+ */
 export async function recordVideo(page: Page, name: string, colors: string[], segSec = 1): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+  const mids = colors.map((_, i) => (i + 0.5) * segSec)
+  let got: number[][] = []
+  for (let n = 0; n < 4; n++) {
+    const v = await recordOnce(page, name, colors, segSec)
+    got = (await framesAt(page, v.buffer, mids, 'video/webm')).px
+    if (got.every((c, i) => near(c, rgb(colors[i] ?? '#000000')))) return v
+  }
+  throw new Error('testvideoen ble ikke tatt opp riktig fire ganger på rad: ' + JSON.stringify(got))
+}
+
+async function recordOnce(page: Page, name: string, colors: string[], segSec: number): Promise<{ name: string; mimeType: string; buffer: Buffer }> {
   const b64 = await page.evaluate(async ({ cols, seg }) => {
     const c = document.createElement('canvas')
     c.width = 320

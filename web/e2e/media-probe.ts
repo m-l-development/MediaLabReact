@@ -29,8 +29,24 @@ export async function framesAt(page: Page, file: Buffer, times: number[], mime =
       v.onended = () => r()
       void v.play()
     })
+    // bildene leses ved å spole til hvert tidspunkt (ikke fra avspillingen over): under belastning hopper avspillingen
+    // over bilder, og «siste bilde før t» ble da et eldre bilde – testen feilet uten at filen var feil
+    const px: number[][] = []
+    for (const t of ts) {
+      v.currentTime = Math.min(t, Math.max(0, v.duration - 1e-3))
+      // vent til bildet ved t faktisk vises (etter «seeked» kan forrige bilde ennå stå på skjermen, særlig i H.264)
+      await new Promise<void>((r) => {
+        let done = false
+        const fin = () => { if (!done) { done = true; r() } }
+        v.requestVideoFrameCallback(() => fin())
+        setTimeout(fin, 2000)
+      })
+      g.drawImage(v, 0, 0)
+      const d = g.getImageData(c.width >> 1, c.height >> 1, 1, 1).data
+      px.push([d[0] ?? 0, d[1] ?? 0, d[2] ?? 0])
+    }
     return {
-      px: ts.map((t) => (seen.filter(([mt]) => mt <= t + 1e-3).pop() ?? seen[0] ?? [0, [0, 0, 0]])[1]),
+      px,
       last: seen.length ? Math.max(...seen.map(([mt]) => mt)) : 0,
     }
   }, { b64: file.toString('base64'), ts: times, type: mime })

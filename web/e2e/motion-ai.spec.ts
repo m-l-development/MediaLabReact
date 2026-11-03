@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 /* AI-undertekster (Whisper i nettleseren). Krever nett første gang (talemodellen lastes ned fra Hugging Face).
    Lyden her er en tone, ikke tale: testen viser at modellen lastes og kjører helt gjennom, ikke hvor god teksten blir. */
-test.beforeEach(() => test.skip(test.info().project.name === 'mobil' || !process.env.RUN_AI, 'Kjøres bare med RUN_AI=1 (nett og lang tid). I hodeløs Chrome ble tolkingen ikke ferdig (2026-10-11), se docs/gjenoppretting.md'))
+test.beforeEach(() => test.skip(test.info().project.name === 'mobil' || !process.env.RUN_AI, 'Kjøres bare med RUN_AI=1 (nett og lang tid). I hodeløs Chromium blir tolkingen ikke ferdig (prøvd igjen 2026-11-03: ingen melding etter 9 min); i ekte Chrome med WebGPU består den: npx playwright test -c e2e-real motion-subs. Se docs/gjenoppretting.md'))
 
 test('AI-undertekster: talemodellen lastes og kjøres på klippets lyd @nett', async ({ page }) => {
   test.setTimeout(600000)

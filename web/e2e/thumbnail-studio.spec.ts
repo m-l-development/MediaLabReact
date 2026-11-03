@@ -115,7 +115,7 @@ test('ny mal fra grunnoppsettet: bytt navn og person, lagre, og eksporter 1080p 
 })
 
 test('lag: legg til tekst, angre, kopier og lim inn, og dra på lerretet', async ({ page }, info) => {
-  test.skip(info.project.name === 'mobil', 'Mobil har enkel visning uten lagverktøy (som i dag)')
+  test.skip(info.project.name === 'mobil', 'mus og tastatur (Ctrl+C/V, Delete) testes på PC; mobil: mobile-workflows.spec.ts (fingerdrag, angre) og mobile-touch.spec.ts (lagmenyen «⋯»)')
   const errors = await errorsOf(page)
   await page.goto('/app/thumbnail-studio')
   await page.getByRole('button', { name: /Ungdomsmøte/ }).click()

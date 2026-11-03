@@ -807,7 +807,9 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   if (o.rot) ctx.rotate((o.rot * Math.PI) / 180)
   if (o.flipH || o.flipV) ctx.scale(o.flipH ? -1 : 1, o.flipV ? -1 : 1)
   const rad = ((o.radius || 0) * Math.min(dw, dh)) / 2
-  if (o.shadow) {
+  // skyggen er et fylt rektangel bak overlegget; med grønnskjerm er overlegget gjennomsiktig der nøkkelfargen var, så
+  // skyggen følger da det som er igjen (under), ellers ble hele rektangelet svart i stedet for klippet bak
+  if (o.shadow && !o.keyOn) {
     ctx.save()
     ctx.shadowColor = 'rgba(0,0,0,0.55)'
     ctx.shadowBlur = Math.min(W, H) * 0.03
@@ -836,7 +838,14 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
     if (F) px.filter = 'none'
     if (!F && oblur > 0.3) softBlur(px, sw, sh, oblur)
     pixFx(px, sw, sh, ops0.length ? { ...o, ops: ops0 } : o)
-    ctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh)
+    if (o.shadow && o.keyOn) {
+      ctx.save()
+      ctx.shadowColor = 'rgba(0,0,0,0.55)'
+      ctx.shadowBlur = Math.min(W, H) * 0.03
+      ctx.shadowOffsetY = Math.min(W, H) * 0.01
+      ctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh)
+      ctx.restore()
+    } else ctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh)
   } else {
     if (f && F) ctx.filter = f
     ctx.drawImage(s, cr[0], cr[1], cr[2], cr[3], -dw / 2, -dh / 2, dw, dh)

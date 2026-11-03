@@ -234,8 +234,10 @@ test('Thumbnail, Mockups og Photo: innliming i felt og dialoger ignoreres; på s
   for (const sel of ['#fb-text', '#plain-input']) await pasteImage(page, sel)
   await page.waitForTimeout(600)
   await expect(page.getByText('Designet er lagt inn i alle mockupene. Velg den du vil bruke.')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Bytt design', exact: true }), 'innliming i felt la ikke inn et design').toHaveCount(0)
   await pasteImage(page, null)
-  await expect(page.getByText('Designet er lagt inn i alle mockupene. Velg den du vil bruke.')).toBeVisible()
+  // varig resultat (meldingen over står bare i 2,6 s, og innlesingen kan ta lenger tid enn 5 s under full testbelastning)
+  await expect(page.getByRole('button', { name: 'Bytt design', exact: true }).first()).toBeVisible({ timeout: 20000 })
 
   // Photo Design (innlimt bilde på startsiden = nytt prosjekt)
   await page.goto('/app/photo-design')

@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
  * piltastene flytter nøyaktig 1 px (Shift: 10 px) i lerretets koordinater, et klikk uten draing flytter ingenting,
  * og plasseringen er den samme etter lagring og omlasting.
  */
-test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'mobil har ikke lagverktøy med peker'))
+test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'presis musedrag og piltaster testes på PC; fingerdrag på mobil: mobile-workflows.spec.ts'))
 
 const sel = (page: Page) => page.locator('[data-ts-sel]')
 const canvas = (page: Page) => page.locator('[data-ts-overlay]')
