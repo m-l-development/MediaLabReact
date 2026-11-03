@@ -48,15 +48,24 @@ function track(id: number, toPt: (e: PointerEvent) => Pt, it: Interaction | null
   const m = (ev: PointerEvent) => {
     if (ev.pointerId === id) it.move(toPt(ev), ev)
   }
-  const end = () => {
+  const off = () => {
     window.removeEventListener('pointermove', m)
     window.removeEventListener('pointerup', u)
     window.removeEventListener('pointercancel', u)
     window.removeEventListener('keydown', k, true)
+  }
+  const end = () => {
+    off()
     it.up()
   }
   const u = (ev: PointerEvent) => {
-    if (ev.pointerId === id) end()
+    if (ev.pointerId !== id) return
+    if (ev.type !== 'pointercancel') return end()
+    // avbrutt (nettleseren tok over, eller et knip med to fingre startet): ingenting fullføres, alt går tilbake
+    off()
+    if (it.cancel) it.cancel()
+    else it.up()
+    if (c && g) c.cancelGesture(g)
   }
   const k = (ev: KeyboardEvent) => {
     if (ev.key !== 'Escape' || !c || !g) return
@@ -1033,11 +1042,14 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
     const b = c.boundsOf(ids)
     box = { left: b.x0 * sc, top: b.y0 * sc, w: (b.x1 - b.x0) * sc, h: (b.y1 - b.y0) * sc, rot: 0, col: '#3d8bff', line: mGrp ? 'solid' : 'dashed' }
   }
+  // berøringsskjerm: på et lite lag (under 72 px på skjermen) dekker sidehåndtakene nesten hele laget, så fingeren ikke
+  // får tak i selve laget for å flytte det – da vises bare hjørnene (endrer størrelse) langs den korte siden. PC er uendret.
+  const coarse = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches
   const singleHandles = !L || L.locked || S.tool === 'brush' ? [] : [
     H('corner', -1, -1, '0%', '0%', 'nwse-resize', 'Skaler'), H('corner', 1, -1, '100%', '0%', 'nesw-resize', 'Skaler'), H('corner', 1, 1, '100%', '100%', 'nwse-resize', 'Skaler'), H('corner', -1, 1, '0%', '100%', 'nesw-resize', 'Skaler'),
     H('edgeX', -1, 0, '0%', '50%', 'ew-resize', 'Bredde'), H('edgeX', 1, 0, '100%', '50%', 'ew-resize', 'Bredde'), H('edgeY', 0, -1, '50%', '0%', 'ns-resize', 'Høyde'), H('edgeY', 0, 1, '50%', '100%', 'ns-resize', 'Høyde'),
     ...(S.tool === 'crop' ? [] : [H('rot', 0, 0, '50%', '-26px', 'grab', 'Roter')]),
-  ]
+  ].filter((h) => !coarse || !box || (h.kind === 'edgeY' ? box.h >= 72 : h.kind === 'edgeX' ? box.w >= 72 : true))
   const multiHandles: [number, number, string, string, string][] = isMulti ? [[-1, -1, '0%', '0%', 'nwse-resize'], [1, -1, '100%', '0%', 'nesw-resize'], [1, 1, '100%', '100%', 'nwse-resize'], [-1, 1, '0%', '100%', 'nesw-resize'], [0, -1, '50%', '0%', 'ns-resize'], [1, 0, '100%', '50%', 'ew-resize'], [0, 1, '50%', '100%', 'ns-resize'], [-1, 0, '0%', '50%', 'ew-resize']] : []
   const down = (e: RPE, it: Interaction | null) => {
     if (!it) return

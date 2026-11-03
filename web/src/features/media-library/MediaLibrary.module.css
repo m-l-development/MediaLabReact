@@ -245,3 +245,10 @@
   right: 6px;
   z-index: 2;
 }
+
+/* berøringsmål ~44 px på berøringsskjerm (PC med mus er uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .chip {
+    min-height: 40px;
+  }
+}

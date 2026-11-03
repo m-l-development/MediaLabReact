@@ -2817,3 +2817,27 @@ button:disabled {
 .editor[data-narrow] .bar [data-autosave-row] {
   display: none;
 }
+
+/* berøringsmål ~44 px på berøringsskjerm (PC med mus er uendret): brytere, fargeprøver og kategoribrikker */
+@media (hover: none) and (pointer: coarse) {
+  .toggle {
+    min-height: 44px;
+  }
+
+  .sw22,
+  .sw24 {
+    width: 36px;
+    height: 36px;
+  }
+
+  .chip,
+  .chipAdd,
+  .autoChip {
+    min-height: 40px;
+  }
+}
+
+/* Mobil: verktøylinjen kan sveipes sidelengs – svak toning i høyre kant viser at det er mer */
+.editor[data-narrow] .bar {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}

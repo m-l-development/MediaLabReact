@@ -2653,3 +2653,61 @@ button:disabled {
     font-size: 13px;
   }
 }
+
+/* berøringsmål ~44 px på berøringsskjerm (PC med mus er uendret): fargeprøver, zoom, valgknapper og avkrysning */
+@media (hover: none) and (pointer: coarse) {
+  .swatch,
+  .custom {
+    width: 36px;
+    height: 36px;
+  }
+
+  .zoomCtl button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .seg button,
+  .textBtn {
+    min-height: 40px;
+  }
+
+  .check input {
+    width: 24px;
+    height: 24px;
+  }
+
+  .check {
+    min-height: 40px;
+  }
+}
+
+/* Mobil: verktøylinjen er to rader som hver kan sveipes sidelengs (gruppene brøt ellers over mange linjer og presset
+   lerretet ned bak panelet): mal og lagring øverst, angre/gjør om og handlingene under, så angre alltid er synlig. Svak
+   toning i høyre kant viser at det er mer. PC er uendret (bare data-narrow). */
+.editor[data-narrow] .editBar {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 8px;
+  overflow: visible;
+}
+
+.editor[data-narrow] .editBarLeft,
+.editor[data-narrow] .editBarRight {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+
+.editor[data-narrow] .editBarLeft::-webkit-scrollbar,
+.editor[data-narrow] .editBarRight::-webkit-scrollbar {
+  display: none;
+}
+
+.editor[data-narrow] .editBarLeft > *,
+.editor[data-narrow] .editBarRight > * {
+  flex: 0 0 auto;
+}

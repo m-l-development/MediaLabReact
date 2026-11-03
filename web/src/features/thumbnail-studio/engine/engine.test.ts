@@ -71,6 +71,13 @@ describe('dokumenter og sikkerhetskopi', () => {
     expect(cleanDoc({ layers: 'nei' }, () => null)).toBeNull()
   })
 
+  it('bildejusteringene (vanlige og avanserte) beholdes når malen åpnes, innenfor grensene', () => {
+    const doc = { ...emptyDoc(), layers: [{ ...L('image', { src: 'asset:x' }), id: 'a', bri: 30, con: -500, sat: 'mye', adj: { temp: 70, hue: 999, fade: -5, evil: 1, curveR: [[0, 0], [0.5, 0.8], [1, 1]], curve: [[0, 0], [2, 1]] } }] }
+    const img = cleanDoc(doc, () => null)?.layers[0] as unknown as Record<string, unknown>
+    expect([img.bri, img.con, img.sat]).toEqual([30, -100, undefined])
+    expect(img.adj).toEqual({ temp: 70, hue: 180, curveR: [[0, 0], [0.5, 0.8], [1, 1]] })
+  })
+
   it('kategori med flere grunnoppsett', () => {
     const c = cleanCategory({ id: 'x', name: 'N', base: 'kbs', layouts: [{ id: 'l1', name: 'To', doc: base('kbs') }], defaultLayout: 'l1' }, () => null)
     expect(c?.layouts?.[0]?.id).toBe('l1')

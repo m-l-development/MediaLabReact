@@ -18,7 +18,7 @@ async function errorsOf(page: Page) {
   return errors
 }
 /** Trykk (mobil) eller klikk (PC). */
-async function press(page: Page, l: ReturnType<Page['locator']>) {
+async function press(_page: Page, l: ReturnType<Page["locator"]>) {
   await l.scrollIntoViewIfNeeded()
   if (mobile()) await l.tap()
   else await l.click()
@@ -165,5 +165,29 @@ test('Mockups: designimport, egne mockup-bilder og nedlasting', async ({ page })
   await press(page, page.getByRole('button', { name: /Imac Desk|iMac på skrivebord/ }).first())
   const d = await download(page, page.getByRole('button', { name: 'Last ned', exact: true }).last())
   expect(isPng(d.head) || isJpg(d.head), d.name).toBe(true)
+  expect(errors).toEqual([])
+})
+
+test('Photo Design: «Kopier bilde» gir et PNG på utklippstavlen, «Bruk i …» åpner bildet i mottakeren', async ({ page, context }) => {
+  const errors = await errorsOf(page)
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/app/photo-design')
+  await press(page, page.locator('[data-tpl="photo"]'))
+  await press(page, page.getByRole('button', { name: 'Eksporter', exact: true }).first())
+  await press(page, page.getByRole('button', { name: 'Kopier bilde' }))
+  await expect(page.getByText('Bildet er kopiert.', { exact: false })).toBeVisible()
+  const clip = await page.evaluate(async () => {
+    const it = (await navigator.clipboard.read())[0]
+    if (!it?.types.includes('image/png')) return 0
+    const b = await it.getType('image/png')
+    const bmp = await createImageBitmap(b)
+    return bmp.width
+  })
+  expect(clip, 'PNG med innhold på utklippstavlen').toBeGreaterThan(100)
+  const use = page.getByRole('button', { name: 'Bruk i Isolate Subject' })
+  if (!(await use.isVisible())) await press(page, page.getByRole('button', { name: 'Eksporter', exact: true }).first())
+  await press(page, use)
+  await expect(page).toHaveURL(/isolate-subject\?asset=/, { timeout: 30000 })
+  await expect(page.getByRole('button', { name: 'Hopp over' }).or(page.locator('[data-mask-open]')).first()).toBeVisible({ timeout: 30000 })
   expect(errors).toEqual([])
 })

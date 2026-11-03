@@ -313,3 +313,11 @@
     display: none;
   }
 }
+
+/* berøringsmål ~44 px på berøringsskjerm (PC med mus er uendret) */
+@media (hover: none) and (pointer: coarse) {
+  .lang button {
+    min-width: 44px;
+    min-height: 40px;
+  }
+}

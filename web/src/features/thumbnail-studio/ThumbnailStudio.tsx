@@ -334,6 +334,17 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   }
 
   async function doRestore(f: File) {
+    // en fil som ikke er en sikkerhetskopi, avvises før spørsmålet om å erstatte alt
+    let isJson = false
+    try {
+      isJson = typeof JSON.parse(await f.text()) === 'object'
+    } catch {
+      /* ikke JSON */
+    }
+    if (!isJson) {
+      c.flash('Filen kunne ikke leses. Velg en sikkerhetskopi fra Thumbnail Studio.')
+      return
+    }
     if (!window.confirm(tx('Gjenopprette fra filen? Kategoriene og malene i denne nettleseren blir erstattet.'))) return
     try {
       const r = await restore(f, async (blob, key) => {

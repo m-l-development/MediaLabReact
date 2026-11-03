@@ -1,5 +1,6 @@
 import { isBaseKey, type BaseKey } from './layouts'
 import { ASSETS, emptyDoc, L, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
+import type { AdvAdj, AdvKey } from '../../../shared/image/AdvAdjust'
 
 /** Kategori (felles for menigheten når ConnectHub er tilgjengelig): navn, standardoppsett og grunnoppsett. */
 export interface Category {
@@ -86,10 +87,38 @@ export function cleanDoc(doc: unknown, local: LocalMap): Doc | null {
     if (n.type === 'image') {
       n.src = cleanSrc(n.src, local)
       n.orig = cleanSrc(n.orig, local)
+      // bildejusteringene finnes ikke i standardlaget, så cleanObj tar dem ikke med – før ble de borte når malen ble åpnet
+      for (const k of ['bri', 'con', 'sat'] as const) {
+        const v = l[k]
+        if (typeof v === 'number' && Number.isFinite(v)) n[k] = Math.max(-100, Math.min(100, v))
+      }
+      const adj = cleanAdj(l.adj)
+      if (adj) n.adj = adj
     }
     return n
   })
   return d
+}
+
+const ADJ_RANGE: Record<AdvKey, [number, number]> = { exp: [-100, 100], bri: [-100, 100], con: [-100, 100], hi: [-100, 100], sh: [-100, 100], sat: [-100, 100], temp: [-100, 100], tint: [-100, 100], hue: [-180, 180], fade: [0, 100], blur: [0, 100], vig: [-100, 100], grain: [0, 100] }
+
+/** Avanserte bildejusteringer etter kontroll: kjente tall innenfor grensene og kurver med 2–16 punkter i 0–1. */
+function cleanAdj(v: unknown): AdvAdj | null {
+  if (!isRec(v)) return null
+  const out: AdvAdj = {}
+  for (const k of Object.keys(ADJ_RANGE) as AdvKey[]) {
+    const x = v[k]
+    const [a, b] = ADJ_RANGE[k]
+    const c = typeof x === 'number' && Number.isFinite(x) ? Math.max(a, Math.min(b, x)) : 0
+    if (c) out[k] = c
+  }
+  for (const k of ['curve', 'curveR', 'curveG', 'curveB'] as const) {
+    const p = v[k]
+    if (!Array.isArray(p) || p.length < 2 || p.length > 16) continue
+    const pts = p.filter((q): q is [number, number] => Array.isArray(q) && q.length === 2 && q.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1))
+    if (pts.length === p.length) out[k] = pts.map((q) => [q[0], q[1]] as [number, number])
+  }
+  return Object.keys(out).length ? out : null
 }
 
 export function cleanCategory(c: unknown, local: LocalMap): Category | null {

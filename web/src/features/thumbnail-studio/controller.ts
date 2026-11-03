@@ -1627,8 +1627,10 @@ export class ThumbController {
     this.set({ busyImg: true })
     let src: string
     try {
+      // et ødelagt bilde avvises før det lagres i Dine medier (ellers ble det et tomt bildelag uten beskjed)
+      if (typeof createImageBitmap === 'function') (await createImageBitmap(f)).close()
       src = await this.d.putImage(f, (f as File).name || 'bilde')
-      await this.d.images.load(src)
+      if (!(await this.d.images.load(src))) throw new Error('bildet kan ikke vises')
     } catch {
       this.set({ busyImg: false })
       this.flash('Klarte ikke å lese bildet. Prøv JPG eller PNG.')

@@ -4299,7 +4299,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               +
             </button>
             {"\n      "}
-            <button onClick={v.zoomFit} title={tx("Standard visning")} aria-label={tx("Standard visning")} style={css(`width:34px; min-height:0; padding:6px 0; border:1px solid #3a3a3a; border-radius:999px; background:${v.zoomFitBgV ?? ""}; color:${v.zoomFitFg ?? ""}; font:inherit; font-size:10px; font-weight:700; line-height:1.1; cursor:pointer; font-variant-numeric:tabular-nums; writing-mode:horizontal-tb;`)} className={P.scp1}>
+            <button data-loop-pv="" onClick={v.zoomFit} title={tx("Standard visning")} aria-label={tx("Standard visning")} style={css(`width:34px; min-height:0; padding:6px 0; border:1px solid #3a3a3a; border-radius:999px; background:${v.zoomFitBgV ?? ""}; color:${v.zoomFitFg ?? ""}; font:inherit; font-size:10px; font-weight:700; line-height:1.1; cursor:pointer; font-variant-numeric:tabular-nums; writing-mode:horizontal-tb;`)} className={P.scp1}>
               {I(v.zoomLabelShort)}
             </button>
             {"\n      "}
@@ -4317,7 +4317,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
             {"\n        "}
             <div style={{"display":"flex","alignItems":"center","gap":"10px","flexWrap":"wrap","minWidth":"0"}}>
               {"\n          "}
-              <button onClick={v.togglePlay} title={`${v.playLabel ?? ""} (mellomrom)`} aria-label={tx(v.playLabel)} style={{"flexShrink":"0","width":"30px","height":"30px","minHeight":"0","padding":"0","border":"1px solid #3a3a3a","borderRadius":"999px","background":"#121212","color":"#f3f1ec","cursor":"pointer","display":"flex","alignItems":"center","justifyContent":"center"}} className={P.scp1}>
+              <button data-loop-pv="" onClick={v.togglePlay} title={`${v.playLabel ?? ""} (mellomrom)`} aria-label={tx(v.playLabel)} style={{"flexShrink":"0","width":"30px","height":"30px","minHeight":"0","padding":"0","border":"1px solid #3a3a3a","borderRadius":"999px","background":"#121212","color":"#f3f1ec","cursor":"pointer","display":"flex","alignItems":"center","justifyContent":"center"}} className={P.scp1}>
                 {"\n            "}
                 {v.isLive ? <>
                   <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor">
@@ -4334,7 +4334,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                 {"\n          "}
               </button>
               {"\n          "}
-              <button onClick={v.volBtn} title={tx(v.volTitle)} aria-label={tx(v.volTitle)} style={css(`flex-shrink:0; width:30px; height:30px; min-height:0; padding:0; border:1px solid #3a3a3a; border-radius:999px; background:#121212; color:${v.volIconColor ?? ""}; cursor:pointer; display:flex; align-items:center; justify-content:center;`)} className={P.scp0}>
+              <button data-loop-pv="" onClick={v.volBtn} title={tx(v.volTitle)} aria-label={tx(v.volTitle)} style={css(`flex-shrink:0; width:30px; height:30px; min-height:0; padding:0; border:1px solid #3a3a3a; border-radius:999px; background:#121212; color:${v.volIconColor ?? ""}; cursor:pointer; display:flex; align-items:center; justify-content:center;`)} className={P.scp0}>
                 {"\n            "}
                 {v.volOn ? <>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -4353,7 +4353,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                 </> : null}
                 {"\n          "}
               </button>
-              <button onClick={v.enterFs} title={tx("Fullskjerm")} aria-label={tx("Fullskjerm")} style={{"flexShrink":"0","width":"30px","height":"30px","minHeight":"0","padding":"0","border":"1px solid #3a3a3a","borderRadius":"999px","background":"#121212","color":"#f3f1ec","cursor":"pointer","display":"flex","alignItems":"center","justifyContent":"center"}} className={P.scp0}>
+              <button data-loop-pv="" onClick={v.enterFs} title={tx("Fullskjerm")} aria-label={tx("Fullskjerm")} style={{"flexShrink":"0","width":"30px","height":"30px","minHeight":"0","padding":"0","border":"1px solid #3a3a3a","borderRadius":"999px","background":"#121212","color":"#f3f1ec","cursor":"pointer","display":"flex","alignItems":"center","justifyContent":"center"}} className={P.scp0}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
                 </svg>
