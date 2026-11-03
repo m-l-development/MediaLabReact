@@ -9,7 +9,8 @@ import { importFiles, main, newAdvProject, recordVideo } from './motion-helpers'
  * kodere (som i nettlesere som mangler dem). 1) Uten H.264/AAC: MP4 med VP9 og Opus via WebCodecs. 2) Uten WebCodecs:
  * prosjektet tas opp i sanntid med MediaRecorder. Filen kontrolleres i begge tilfeller – ikke dialogteksten.
  */
-test.use({ channel: 'chrome' })
+// ekte Chrome (H.264/AAC); i iPhone-konfigurasjonen (WebKit) finnes ikke Chrome-kanalen, og testene hoppes over der
+test.use(process.env.ML_WEBKIT ? {} : { channel: 'chrome' })
 
 /** Skjuler H.264- og AAC-koderne (isConfigSupported svarer «nei»), slik Firefox gjør på enkelte systemer. */
 const NO_H264 = () => {

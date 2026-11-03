@@ -23,6 +23,7 @@ import { centroid, clampOffset, designBox, imageCorners, moveSide, patchFreeform
 import { DEFAULT_SETTINGS, detect, render, validQuad, warp, type MockupSettings } from './engine/render'
 import styles from './Mockups.module.css'
 import { useMockupLibrary } from './useMockupLibrary'
+import { copyImage } from '../../shared/lib/clipboard'
 
 const CATS: readonly ('all' | MockupCategory)[] = ['all', 'phone', 'laptop', 'screen', 'print', 'other', 'collab']
 /** Små linjeikoner for retning (samme strekstil som ikonene ellers i appen). */
@@ -644,20 +645,10 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   }
 
   async function copy() {
-    const b = await exportBlob()
-    if (!b) return
-    try {
-      const png = b.type === 'image/png' ? b : await (async () => {
-        const bmp = await createImageBitmap(b)
-        const c = new OffscreenCanvas(bmp.width, bmp.height)
-        c.getContext('2d')?.drawImage(bmp, 0, 0)
-        return c.convertToBlob({ type: 'image/png' })
-      })()
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
-      onToast(t('mockups.toast.copied'))
-    } catch {
-      onToast(t('mockups.toast.copyFailed'))
-    }
+    // utklippstavlen skrives straks i trykket (Safari), bildet lages mens den venter (shared/lib/clipboard)
+    const r = await copyImage(() => exportBlob())
+    if (r === 'ok') onToast(t('mockups.toast.copied'))
+    else if (r === 'denied') onToast(t('mockups.toast.copyFailed'))
   }
 
   /** Lagres som ny versjon av designet (kobling til originalen), eller som generert bilde uten design-asset. */

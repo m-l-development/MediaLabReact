@@ -61,7 +61,7 @@ async function exported(page: Page, file: string, pts: [number, number][]) {
   const b64 = fs.readFileSync(file).toString('base64')
   return page.evaluate(async ({ data, list }) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     return { w: bmp.width, h: bmp.height, a: list.map(([x, y]) => g.getImageData(x, y, 1, 1).data[3] ?? -1) }
@@ -208,7 +208,7 @@ test('arbeidsbakgrunn: alle farger vises bak det fjernede, masken beholdes, og f
   expect(r.a, 'stripen fjernet (0), resten beholdt (255)').toEqual([0, 0, 255, 255, 255])
   const rgb = await page.evaluate(async (data) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(0, 0, bmp.width, bmp.height).data
@@ -241,7 +241,7 @@ test('arbeidsbakgrunn: alle farger vises bak det fjernede, masken beholdes, og f
       const blob = st instanceof Blob ? st : st && typeof st === 'object' && 'bytes' in st ? new Blob([(st as { bytes: ArrayBuffer }).bytes]) : null
       if (!blob) return null
       const bmp = await createImageBitmap(blob)
-      const c = new OffscreenCanvas(bmp.width, bmp.height)
+      const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
       const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
       g.drawImage(bmp, 0, 0)
       return { removed: g.getImageData(200, 40, 1, 1).data[3], kept: g.getImageData(30, 270, 1, 1).data[3] }

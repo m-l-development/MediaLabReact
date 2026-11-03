@@ -212,3 +212,46 @@ describe('import fra dagens delte mappe', () => {
     w.close()
   })
 })
+
+describe('Blob i IndexedDB', () => {
+  it('når nettleseren avviser Blob (Safari i privat modus, WebKit), lagres bytes + type, og innholdet leses uendret', async () => {
+    const real = await openMediaDb(`blobtest-${Date.now()}` as UserId)
+    // som WebKit: en Blob i put() gjør at transaksjonen feiler
+    let rejected = 0
+    const db = new Proxy(real, {
+      get(target, prop) {
+        if (prop !== 'transaction') return Reflect.get(target, prop)
+        return (names: string | string[], mode?: IDBTransactionMode) => {
+          const tx = target.transaction(names, mode)
+          return new Proxy(tx, {
+            get(t2, p2) {
+              if (p2 !== 'objectStore') { const v = Reflect.get(t2, p2); return typeof v === 'function' ? v.bind(t2) : v }
+              return (n: string) => {
+                const os = t2.objectStore(n)
+                return new Proxy(os, {
+                  get(o3, p3) {
+                    if (p3 === 'put') return (v: unknown, k?: IDBValidKey) => { if (v instanceof Blob) { rejected++; t2.abort(); return {} } return o3.put(v, k) }
+                    const v = Reflect.get(o3, p3)
+                    return typeof v === 'function' ? v.bind(o3) : v
+                  },
+                })
+              }
+            },
+            set(t2, p2, v) { return Reflect.set(t2, p2, v) },
+          })
+        }
+      },
+    })
+    const repo = createAssetRepository(db) // standard: prøver Blob først
+    const h = 'h1' as Parameters<typeof repo.putBlob>[0]
+    await repo.putBlob(h, new Blob(['hei på deg'], { type: 'text/plain' }))
+    expect(rejected, 'Blob ble prøvd først og avvist').toBe(1)
+    const b = await repo.getBlob(h)
+    expect(b?.type).toBe('text/plain')
+    expect(new TextDecoder().decode(await b!.arrayBuffer())).toBe('hei på deg')
+    // resten av økten: rett til bytes (ingen nytt forsøk med Blob)
+    await repo.putBlob('h2' as typeof h, new Blob(['to'], { type: 'text/plain' }))
+    expect(rejected).toBe(1)
+    real.close()
+  })
+})

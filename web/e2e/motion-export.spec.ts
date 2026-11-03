@@ -8,7 +8,8 @@ import { importFiles, insp, leftTab, main, newAdvProject, recordVideo, seekTo, s
  * Motion Design → Avansert: ekte eksport i Chrome (H.264/AAC med WebCodecs), og kontroll av selve filen: MP4-strukturen
  * (kodek, oppløsning, varighet, antall bilder) leses i Node, og bilde og lyd dekodes i Chrome ved bestemte tider.
  */
-test.use({ channel: 'chrome' })
+// ekte Chrome (H.264/AAC); i iPhone-konfigurasjonen (WebKit) finnes ikke Chrome-kanalen, og testene hoppes over der
+test.use(process.env.ML_WEBKIT ? {} : { channel: 'chrome' })
 
 const gray = (c: number[]) => Math.max(...c) - Math.min(...c) < 30 && (c[0] ?? 0) > 50
 

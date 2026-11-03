@@ -60,6 +60,8 @@ test('samme dag og mellom dager: dagen følger sliden, de andre beholder sin dag
 
 test('mobil: hold og dra med fingeren flytter sliden; kort trykk velger bare', async ({ page }, info) => {
   test.skip(info.project.name !== 'mobil', 'berøring testes på mobil (Chrome)')
+  // Loop følger fingeren med touchmove/touchend; Playwright WebKit kan ikke lage Touch-objekter og har ikke CDP
+  test.skip(info.project.use.browserName === 'webkit' || page.context().browser()?.browserType().name() === 'webkit', 'berøringshendelser kan ikke lages i Playwright WebKit; dekket i Android-emuleringen')
   await setup(page)
   const cdp = await page.context().newCDPSession(page)
   const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })

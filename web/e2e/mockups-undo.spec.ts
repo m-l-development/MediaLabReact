@@ -14,7 +14,7 @@ const redCentroid = (page: Page, b64: string | null) => page.evaluate(async (dat
   let W: number, H: number, d: Uint8ClampedArray
   if (data) {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height), g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height })), g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0); W = bmp.width; H = bmp.height; d = g.getImageData(0, 0, W, H).data
   } else {
     const c = document.querySelector('[class*="stageCanvas"]') as HTMLCanvasElement

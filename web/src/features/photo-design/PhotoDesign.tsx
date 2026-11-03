@@ -23,6 +23,7 @@ import { backupPhoto, importLegacyPhoto, restorePhoto } from './transfer'
 import { useLang, useT } from '../../shared/i18n/i18n'
 import { toolTitleKey } from '../../shared/i18n/messages'
 import s from './PhotoDesign.module.css'
+import { copyImage } from '../../shared/lib/clipboard'
 
 const M_ID = (src: string) => src.slice(2) as AssetId
 
@@ -277,6 +278,15 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
 
   async function onExport(kind: 'download' | 'copy' | 'media', to?: ToolId) {
     if (c.s.busy) return
+    // kopier: utklippstavlen skrives straks i trykket (Safari), bildet lages mens den venter (shared/lib/clipboard)
+    if (kind === 'copy') {
+      c.set({ busy: 'exp' })
+      const r = await copyImage(() => c.outBlob())
+      if (r === 'ok') c.flash('Bildet er kopiert. Lim inn med Ctrl+V.')
+      else if (r === 'denied') c.flash('Nettleseren tillot ikke kopiering.')
+      c.set({ busy: '' })
+      return
+    }
     if (kind === 'download' && c.s.exp.fmt === 'pdf') {
       c.ui({})
       c.set({ busy: 'exp' })
@@ -298,14 +308,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       const b = await c.outBlob()
       if (!b) return
       if (kind === 'download') download(b, c.fname())
-      else if (kind === 'copy') {
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ [b.type]: b })])
-          c.flash('Bildet er kopiert. Lim inn med Ctrl+V.')
-        } catch {
-          c.flash('Nettleseren tillot ikke kopiering.')
-        }
-      } else {
+      else {
         const a = await assets.register(b, { name: c.fname(), origin: { type: 'generated', tool: 'photo-design' } })
         if (to) void router.navigate({ name: 'tool', tool: to, query: { asset: a.id } })
         else c.flash('Bildet er lagret i Dine medier.')

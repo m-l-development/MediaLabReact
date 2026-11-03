@@ -549,6 +549,15 @@ button:disabled {
   text-transform: uppercase;
 }
 
+/* Smal skjerm: lange kategorinavn («KVELDSBIBELSKOLE») var bredere enn skjermen (iPhone, 393 px), så siden kunne rulles
+   sidelengs. Litt mindre skrift, og ordet brytes som siste utvei. PC er uendret. */
+@media (max-width: 480px) {
+  .catTitle {
+    font-size: clamp(20px, 7vw, 30px);
+    overflow-wrap: anywhere;
+  }
+}
+
 .catLead {
   max-width: 620px;
   margin: 0;

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { pinchOut } from './touch'
 import { png } from './png'
 
 /**
@@ -103,13 +104,7 @@ test.describe('mobil: Motion-tidslinjen', () => {
     const z0 = Number(await zoom.inputValue())
     const tl = page.locator('[data-row="video"]')
     const tb = (await tl.boundingBox())!
-    const cdp = await page.context().newCDPSession(page)
-    const y = tb.y + tb.height / 2
-    const cx = tb.x + tb.width / 2
-    const pts = (d: number) => [{ x: cx - d, y, id: 1 }, { x: cx + d, y, id: 2 }]
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(30) })
-    for (const d of [45, 60, 80, 100]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(d) })
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await pinchOut(page, { x: tb.x + tb.width / 2, y: tb.y + tb.height / 2 })
     await expect.poll(async () => Number(await zoom.inputValue())).toBeGreaterThan(z0)
   })
 })

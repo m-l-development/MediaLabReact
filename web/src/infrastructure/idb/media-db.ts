@@ -58,8 +58,9 @@ function fromStored(v: StoredBlob | undefined): Blob | undefined {
 }
 
 export function createAssetRepository(db: IDBDatabase, opts: { blobCloneable?: boolean } = {}): AssetRepository {
-  const blobCloneable = opts.blobCloneable ?? true
-  const store = (name: string, mode: IDBTransactionMode) => db.transaction(name, mode).objectStore(name)
+  // false når nettleseren har avvist en Blob (WebKit/Safari i privat modus): da lagres bytes + type resten av økten
+  let blobCloneable = opts.blobCloneable ?? true
+  const store =(name: string, mode: IDBTransactionMode) => db.transaction(name, mode).objectStore(name)
   return {
     async putAsset(asset) {
       await request(store(STORES.assets, 'readwrite').put(asset))
@@ -78,10 +79,20 @@ export function createAssetRepository(db: IDBDatabase, opts: { blobCloneable?: b
     },
     async putBlob(hash: ContentHash, blob) {
       // Lag verdien før transaksjonen åpnes (asynkron lesing ville lukket den).
-      const value = await toStored(blob, blobCloneable)
-      const tx = db.transaction(STORES.blobs, 'readwrite')
-      tx.objectStore(STORES.blobs).put(value, hash)
-      await transactionDone(tx)
+      const write = async (asBlob: boolean) => {
+        const value = await toStored(blob, asBlob)
+        const tx = db.transaction(STORES.blobs, 'readwrite')
+        tx.objectStore(STORES.blobs).put(value, hash)
+        await transactionDone(tx)
+      }
+      if (!blobCloneable) return write(false)
+      try {
+        await write(true)
+      } catch {
+        // WebKit (Safari i privat modus, Playwright WebKit) kan avvise Blob i IndexedDB; bytes + type virker overalt
+        blobCloneable = false
+        await write(false)
+      }
     },
     async getBlob(hash) {
       return fromStored(await request(store(STORES.blobs, 'readonly').get(hash) as IDBRequest<StoredBlob | undefined>))

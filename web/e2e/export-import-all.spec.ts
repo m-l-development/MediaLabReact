@@ -151,8 +151,13 @@ test('Loop Studio: bildeimport, HTML-spiller og MP4-eksport', async ({ page }) =
   const h = await download(page, page.getByRole('button', { name: 'Last ned HTML-spiller' }))
   expect(h.name).toMatch(/\.html$/)
   expect(h.size).toBeGreaterThan(5000)
-  const v = await download(page, page.getByRole('button', { name: '1080p', exact: true }), 240000)
-  expect(isMp4(v.head), v.name).toBe(true)
+  // MP4 krever WebCodecs (VideoEncoder); uten (f.eks. Playwright WebKit på Windows) sier Loop det i stedet for å eksportere
+  if (await page.evaluate(() => typeof (window as unknown as { VideoEncoder?: unknown }).VideoEncoder === 'undefined')) {
+    await expect(page.getByText('Krever Chrome, Edge eller Safari 17+.')).toBeVisible()
+  } else {
+    const v = await download(page, page.getByRole('button', { name: '1080p', exact: true }), 240000)
+    expect(isMp4(v.head), v.name).toBe(true)
+  }
   expect(errors).toEqual([])
 })
 
@@ -170,13 +175,16 @@ test('Mockups: designimport, egne mockup-bilder og nedlasting', async ({ page })
 
 test('Photo Design: «Kopier bilde» gir et PNG på utklippstavlen, «Bruk i …» åpner bildet i mottakeren', async ({ page, context }) => {
   const errors = await errorsOf(page)
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  // utklippstavlen kan bare leses i Chromium (Playwright WebKit gir ikke tillatelsen); «Bruk i …» testes i begge
+  const chromium = context.browser()?.browserType().name() === 'chromium'
+  if (chromium) await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.goto('/app/photo-design')
   await press(page, page.locator('[data-tpl="photo"]'))
   await press(page, page.getByRole('button', { name: 'Eksporter', exact: true }).first())
   await press(page, page.getByRole('button', { name: 'Kopier bilde' }))
-  await expect(page.getByText('Bildet er kopiert.', { exact: false })).toBeVisible()
-  const clip = await page.evaluate(async () => {
+  // Playwright WebKit avviser all skriving til utklippstavlen (NotAllowedError); der kreves en forståelig beskjed
+  await expect(page.getByText(chromium ? /Bildet er kopiert./ : /Bildet er kopiert.|tillot ikke kopiering/).first()).toBeVisible()
+  const clip = !chromium ? 999 : await page.evaluate(async () => {
     const it = (await navigator.clipboard.read())[0]
     if (!it?.types.includes('image/png')) return 0
     const b = await it.getType('image/png')

@@ -85,7 +85,7 @@ test('logo på mockup: SVG som vektor, flytt, skaler, zoom og eksport', async ({
   await (await dl).saveAs(file)
   const r = await page.evaluate(async ({ data, p }) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const W = bmp.width, H = bmp.height

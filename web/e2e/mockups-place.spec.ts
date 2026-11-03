@@ -16,7 +16,7 @@ const centroids = (page: Page, b64: string | null) => page.evaluate(async (data)
   let W: number, H: number, d: Uint8ClampedArray
   if (data) {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height), g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height })), g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0); W = bmp.width; H = bmp.height; d = g.getImageData(0, 0, W, H).data
   } else {
     const c = document.querySelector('[class*="stageCanvas"]') as HTMLCanvasElement
@@ -229,7 +229,7 @@ test('presis redigering: Shift + hjørne/side (perspektiv), hjelpelinjer, magnet
   expect(Math.abs(ex.red.y - pre.red.y)).toBeLessThan(0.01)
   const marks = await page.evaluate(async (data) => {
     const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height), g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height })), g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(0, 0, bmp.width, bmp.height).data
     let n = 0
