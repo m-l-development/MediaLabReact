@@ -85,7 +85,7 @@ test('Loop Studio: justering gjelder bare sliden den er gjort på', async ({ pag
   // neste slide: eget bilde, ingen justering
   const slides: Locator = page.locator('[data-loop-card]')
   const cnt = await slides.count()
-  test.skip(cnt < 2, 'fant ikke slidelisten')
+  expect(cnt, 'slidelisten har minst to slides').toBeGreaterThanOrEqual(2)
   await slides.nth(1).click()
   await addImg()
   await expect(box.locator('[data-adv-key="exp"]')).toHaveValue('0')

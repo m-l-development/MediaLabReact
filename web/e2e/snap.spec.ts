@@ -6,7 +6,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
  * Laget dras slik at venstre kant havner ~3 skjermpunkter fra lerretets kant: med snapping fester det seg til kanten,
  * uten blir det liggende der det slippes.
  */
-test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'mobil har ikke lagverktøy med peker'))
+test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'snapping med musedrag og Alt testes på PC; fingerdrag på mobil: mobile-workflows.spec.ts'))
 
 async function moveAway(page: Page, sel: Locator) {
   const b = (await sel.boundingBox())!

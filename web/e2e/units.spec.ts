@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
+import { dock } from './dock'
 
-/** Enhetsvalget (PLT-19): klikkbar enhet ved tallfeltene, husket per felt i `medialab.units` som i dagens app. */
-test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'Mobil har enkel visning uten tallfelt med enhet (som i dag)'))
+/** Enhetsvalget (PLT-19): klikkbar enhet ved tallfeltene, husket per felt i `medialab.units` som i dagens app. PC og mobil (på mobil ligger feltene i panelene over ikonlinjen). */
 
 const unitButtons = (page: Page) => page.locator('button[title^="Trykk for å bytte enhet"]:not([disabled])').filter({ visible: true })
 
@@ -10,8 +10,10 @@ async function newThumbText(page: Page) {
   await page.getByRole('button', { name: /Ungdomsmøte/ }).click()
   await page.getByRole('button', { name: /Ny mal/ }).click()
   await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="blank"]').click()
-  await page.getByRole('button', { name: 'Tekst', exact: true }).click()
+  await dock(page, 'add')
+  await page.getByRole('button', { name: 'Tekst', exact: true }).first().click()
   await expect(page.locator('[data-ts-sel]')).toBeVisible()
+  await dock(page, 'edit')
 }
 
 test('Thumbnail Studio: enheten byttes ved klikk, tallet regnes om, og valget huskes', async ({ page }) => {
@@ -36,6 +38,7 @@ test('Loop Studio: enheten for tittelstørrelse byttes (% ↔ ×) og huskes ette
   await page.goto('/app/loop-studio')
   await page.getByRole('link', { name: /Ukeprogram/ }).click()
   await expect(page.locator('[data-loop-canvas]')).toBeVisible()
+  if (test.info().project.name === 'mobil') await page.getByRole('button', { name: 'Rediger', exact: true }).click()
   await page.getByRole('button', { name: 'Stil', exact: true }).first().click()
   const btn = unitButtons(page).first()
   await expect(btn).toBeVisible()
@@ -51,6 +54,7 @@ test('Loop Studio: enheten for tittelstørrelse byttes (% ↔ ×) og huskes ette
   const chosen = (await btn.textContent())?.trim()
   await page.reload()
   await expect(page.locator('[data-loop-canvas]')).toBeVisible()
+  if (test.info().project.name === 'mobil') await page.getByRole('button', { name: 'Rediger', exact: true }).click()
   await page.getByRole('button', { name: 'Stil', exact: true }).first().click()
   await expect(unitButtons(page).first()).toHaveText(chosen ?? '')
 })
