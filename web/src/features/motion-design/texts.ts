@@ -196,6 +196,8 @@ export const EN: Readonly<Record<string, string>> = {
   '1080p · 60 fps': '1080p · 60 fps',
   '240–4096 piksler': '240–4096 pixels',
   '4K · 30 fps': '4K · 30 fps',
+  '4K · 60 fps': '4K · 60 fps',
+  '4K · 60 fps støttes ikke i denne nettleseren, så videoen er eksportert i 4K · 30 fps. {rest}': '4K · 60 fps is not supported in this browser, so the video was exported in 4K · 30 fps. {rest}',
   'Alle kanaler': 'All channels',
   'Analyserer lyd …': 'Analyzing audio …',
   'Angre': 'Undo',
