@@ -1,7 +1,7 @@
 import type { ToolId } from '../../domain/tool'
 import { createStore, type Store } from '../../shared/lib/store'
 import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
-import { exportMp4 } from './engine/export'
+import { canEncode, exportMp4 } from './engine/export'
 import {
   clamp, colorClip, create, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
   contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
@@ -33,7 +33,7 @@ export interface Menu { x: number; y: number; items: (MenuItem | 'sep')[] }
 export interface Xform { type: Kind; id: string; mode: 'move' | 'crop' }
 /** Eksportinnstillinger i Avansert: oppløsning, bildefrekvens, kvalitet, lyd, undertekster i bildet og område (sekunder). */
 export interface ExpAdv { res: '720' | '1080' | '4k'; fps: 24 | 25 | 30 | 60; quality: 'low' | 'mid' | 'high'; audio: boolean; subs: boolean; range: 'all' | 'custom'; from: number; to: number }
-export interface ExpState { q: '1080-30' | '1080-60' | '4k-30'; busy: boolean; pct: number; phase: Msg | null; msg: Msg | null; err: boolean; adv?: ExpAdv }
+export interface ExpState { q: '1080-30' | '1080-60' | '4k-30' | '4k-60'; busy: boolean; pct: number; phase: Msg | null; msg: Msg | null; err: boolean; adv?: ExpAdv }
 export interface AiState { lang: 'norwegian' | 'english'; model: string; busy: boolean; msg: Msg | null; err: boolean }
 export interface Hit { kind: 'music' | 'clip' | 'ov' | 'stage'; t: number; lane?: number; idx?: number }
 export interface TransHit { kind: 'tin' | 'tout' | 'clip'; id: string; t: number }
@@ -3747,7 +3747,10 @@ export class MotionController {
     const e = this.s.exp
     const p = this.s.proj
     if (!e || e.busy || !p) return
-    const [q0, f0] = e.q.split('-') as ['1080' | '4k', string]
+    const [q0, f00] = e.q.split('-') as ['1080' | '4k', string]
+    // 4K · 60 fps bare når nettleseren kan kode det (WebCodecs); ellers 4K · 30 fps i stedet for et tungt sanntidsopptak
+    const fell = !this.s.adv && q0 === '4k' && f00 === '60' && !(await canEncode(exportSize(p, '4k').w, exportSize(p, '4k').h, 60))
+    const f0 = fell ? '30' : f00
     // Avansert: egne innstillinger (oppløsning, fps, kvalitet, lyd, undertekster, område); Standard: forhåndsvalget
     const A = this.s.adv ? e.adv : undefined
     const q = A ? A.res : q0
@@ -3780,7 +3783,8 @@ export class MotionController {
       this.d.download(res.blob, name)
       const v = { eta: fmtEta((performance.now() - t0) / 1000), mb: (res.blob.size / 1048576).toFixed(1) }
       if (A) Object.assign(v, { codec: `${res.video ?? ''}${res.audio ? ` + ${res.audio === 'aac' ? 'AAC' : 'Opus'}` : ''}`, len: fmtT(res.dur ?? 0), w: sz.w, h: sz.h, fps: f })
-      const msg: Msg = A ? { p: res.audio ? 'Ferdig på {eta} · {mb} MB · {codec} · {w}×{h} · {fps} fps · {len}' : 'Ferdig på {eta} · {mb} MB · {codec} · {w}×{h} · {fps} fps · {len} · uten lyd', v } : res.audio === 'opus' ? { p: 'Ferdig på {eta} · {mb} MB · Opus-lyd (bruk VLC hvis lyden mangler)', v } : res.audio ? { p: 'Ferdig på {eta} · {mb} MB', v } : { p: 'Ferdig på {eta} · {mb} MB · uten lyd', v }
+      const msg0: Msg = A ? { p: res.audio ? 'Ferdig på {eta} · {mb} MB · {codec} · {w}×{h} · {fps} fps · {len}' : 'Ferdig på {eta} · {mb} MB · {codec} · {w}×{h} · {fps} fps · {len} · uten lyd', v } : res.audio === 'opus' ? { p: 'Ferdig på {eta} · {mb} MB · Opus-lyd (bruk VLC hvis lyden mangler)', v } : res.audio ? { p: 'Ferdig på {eta} · {mb} MB', v } : { p: 'Ferdig på {eta} · {mb} MB · uten lyd', v }
+      const msg: Msg = fell ? { p: '4K · 60 fps støttes ikke i denne nettleseren, så videoen er eksportert i 4K · 30 fps. {rest}', v: { rest: this.d.t(msg0.p, msg0.v) } } : msg0
       this.set((s) => (s.exp ? { exp: { ...s.exp, busy: false, pct: 100, phase: null, msg, err: false }, lastExp: true } : { lastExp: true }))
     } catch (err) {
       const ab = err instanceof Error && err.message === 'abort'

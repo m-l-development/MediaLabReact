@@ -199,7 +199,7 @@ function CtxMenu({ c, S, tx }: { c: MotionController; S: MState; tx: Tx }) {
   )
 }
 
-const EXP: [ExpState['q'], Phrase, '1080' | '4k'][] =[['1080-30', '1080p · 30 fps', '1080'], ['1080-60', '1080p · 60 fps', '1080'], ['4k-30', '4K · 30 fps', '4k']]
+const EXP: [ExpState['q'], Phrase, '1080' | '4k'][] =[['1080-30', '1080p · 30 fps', '1080'], ['1080-60', '1080p · 60 fps', '1080'], ['4k-30', '4K · 30 fps', '4k'], ['4k-60', '4K · 60 fps', '4k']]
 
 export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void; onLogoCloud: () => void; folders: boolean ; sendTo?: SendTo }) {
   const T = totalDur(p)

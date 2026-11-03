@@ -180,6 +180,32 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
 }
 
 /** Eksporterer prosjektet til MP4, bilde for bilde. Kaster Error('abort') når brukeren avbryter. */
+/** H.264-profiler å prøve: 4K i over 30 fps krever nivå 5.2 (avc1.xx0034); 4K i 30 fps nivå 5.1; ellers 4.0/4.2. */
+function avcCands(W: number, H: number, fps: number): string[] {
+  const big = W * H > 2300000
+  if (big && fps > 30) return ['avc1.640034', 'avc1.4d0034']
+  return big ? ['avc1.640033', 'avc1.640034', 'avc1.4d0033'] : fps > 30 ? ['avc1.64002a', 'avc1.4d002a', 'avc1.640033'] : ['avc1.640028', 'avc1.4d0028', 'avc1.42e028', 'avc1.640033']
+}
+
+/**
+ * Om nettleseren kan kode video i denne størrelsen og bildefrekvensen med WebCodecs (H.264, ellers VP9 eller AV1).
+ * Brukes før 4K · 60 fps: uten støtte eksporteres 4K · 30 fps i stedet for et tungt sanntidsopptak.
+ */
+export async function canEncode(W: number, H: number, fps: number): Promise<boolean> {
+  if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') return false
+  const br = Math.round(W * H * fps * 0.13)
+  for (const codec of [...avcCands(W, H, fps), 'vp09.00.40.08', 'vp09.00.51.08', 'av01.0.12M.08', 'av01.0.08M.08']) {
+    try {
+      const avc = codec.startsWith('avc1') ? { avc: { format: 'avc' as const }, latencyMode: 'quality' as const } : {}
+      const r = await VideoEncoder.isConfigSupported({ codec, width: W, height: H, bitrate: br, bitrateMode: 'variable', framerate: fps, ...avc })
+      if (r.supported) return true
+    } catch {
+      // prøv neste
+    }
+  }
+  return false
+}
+
 export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult> {
   if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') return exportRealtime(p, o)
   const W = o.w
@@ -190,7 +216,7 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
   const nF = Math.max(1, Math.round(total * fps))
   const big = W * H > 2300000
   const Mx = await loadMuxer()
-  const cands = big ? ['avc1.640033', 'avc1.640034', 'avc1.4d0033'] : fps > 30 ? ['avc1.64002a', 'avc1.4d002a', 'avc1.640033'] : ['avc1.640028', 'avc1.4d0028', 'avc1.42e028', 'avc1.640033']
+  const cands = avcCands(W, H, fps)
   const br = Math.round(W * H * fps * (big ? 0.13 : 0.2) * QF[o.quality ?? 'mid'])
   let vcfg: VideoEncoderConfig | null = null
   let vcodec = 'avc'
@@ -204,7 +230,8 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
     }
   }
   // Uten H.264-koder (f.eks. Firefox på enkelte systemer): VP9 eller AV1 i samme MP4-beholder.
-  for (const [codec, name] of [['vp09.00.40.08', 'vp9'], ['av01.0.08M.08', 'av1']] as const) {
+  // VP9 nivå 5.1 og AV1 nivå 5.2 (12M) dekker 4K i 60 fps; de lavere nivåene prøves først som før
+  for (const [codec, name] of [['vp09.00.40.08', 'vp9'], ['av01.0.08M.08', 'av1'], ...(big && fps > 30 ? [['vp09.00.51.08', 'vp9'], ['av01.0.12M.08', 'av1']] as const : [])] as const) {
     if (vcfg) break
     try {
       const r = await VideoEncoder.isConfigSupported({ codec, width: W, height: H, bitrate: br, bitrateMode: 'variable', framerate: fps })
