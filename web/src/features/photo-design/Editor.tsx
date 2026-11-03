@@ -895,7 +895,7 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
       raf = requestAnimationFrame(measure)
     })
     ro.observe(el)
-    if (tips.current) ro.observe(tips.current)
+    if (tips.current && !S.narrow) ro.observe(tips.current)
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
