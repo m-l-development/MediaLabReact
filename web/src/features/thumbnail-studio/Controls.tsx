@@ -241,7 +241,8 @@ function ImageCtrl({ ctrl, c, tx, url }: { ctrl: Extract<Ctrl, { k: 'img' }>; c:
   const l = ctrl.layer
   const ai = S.ai
   const busy = !!ai && !!l && ai.id === l.id
-  const own = !!l?.src && l.src.startsWith('m:')
+  // TB-7EB53A: også bilder fra menighetens filer kan få bakgrunnen fjernet (hentes inn i Dine medier først)
+  const own = !!l?.src && c.canCutout(l.src)
   return (
     <div className={s.ctrl}>
       <span className={s.ctrlLabel}>{tx(ctrl.label)}</span>
@@ -270,6 +271,17 @@ function ImageCtrl({ ctrl, c, tx, url }: { ctrl: Extract<Ctrl, { k: 'img' }>; c:
       )}
       {l?.orig && !busy && <button type="button" className={s.btnSmall} data-ts-mask-open="" onClick={() => void c.openMaskEdit(l.id)}>{tx('Finjuster utklippet')}</button>}
       {l?.orig && !busy && <button type="button" className={s.linkBtn} onClick={() => c.setL(l.id, { src: l.orig, orig: null })}>{tx('Bruk originalbildet')}</button>}
+      {/* TB-FC418D: legg en bakgrunn bak motivet (f.eks. etter at bakgrunnen er fjernet), eller ta den bort igjen */}
+      {l?.src && !busy && (
+        <div className={s.aiBox} data-ts-fill="">
+          <span>{tx('Bakgrunn bak motivet')}</span>
+          <div>
+            <button type="button" className={l.fill ? s.btnSmall : s.btnOn} aria-pressed={!l.fill} onClick={() => c.setL(l.id, { fill: null })}>{tx('Ingen')}</button>
+            <button type="button" className={l.fill ? s.btnOn : s.btnSmall} aria-pressed={!!l.fill} onClick={() => c.setL(l.id, { fill: l.fill || '#ffffff' })}>{tx('Farge')}</button>
+            {l.fill && <input type="color" aria-label={tx('Farge')} value={l.fill} onChange={(e) => c.setL(l.id, { fill: e.target.value }, 'fill:' + l.id)} style={{ width: 40, height: 30, padding: 0, border: 0, background: 'none' }} />}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

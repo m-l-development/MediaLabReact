@@ -209,6 +209,15 @@ export interface Mix { video: number; ov: number; music: number; duck: boolean; 
 export interface TrackState { lock: boolean; hide: boolean }
 export type TrackKey = 'text' | 'ov' | 'video' | 'subs' | 'music'
 export type LaneKey = 'text' | 'ov' | 'music'
+/** Lagtypene på tidslinjen (TB-66E8B2). Bilde og Video over hovedvideoen ligger i overleggssporene (ov). */
+export type LayerType = 'text' | 'video' | 'image' | 'subs' | 'audio'
+export const LAYER_TYPES: readonly LayerType[] = ['text', 'video', 'image', 'subs', 'audio']
+/** Hvilket spor en lagtype hører til. */
+export const LAYER_ROW: Record<LayerType, TrackKey> = { text: 'text', video: 'ov', image: 'ov', subs: 'subs', audio: 'music' }
+export const LAYER_LABEL: Record<LayerType, string> = { text: 'Tekst', video: 'Video', image: 'Bilde', subs: 'Undertekst', audio: 'Lyd' }
+/** Egne lag: navn og type per spor og lag («ov:2»), se layerKey. */
+export interface LayerInfo { name: string; type: LayerType }
+export const layerKey = (k: TrackKey, lane: number) => `${k}:${lane}`
 
 export interface Project {
   id: string
@@ -236,6 +245,8 @@ export interface Project {
   logo: Logo
   /** Dempede lydspor (lag i `music`, A1 = 0). Dempet spor høres ikke i avspilling eller eksport; klippene beholdes. */
   muteA?: number[]
+  /** Egne navn og typer på lagene (TB-66E8B2), nøkkel «spor:lag». Mangler = standardnavn. */
+  layers?: Record<string, LayerInfo>
   /** Valgt oppløsning for prosjektet (eksport og fullskjermvisning). Mangler = 1080p. */
   res?: '720' | '1080' | '4k'
   /** Prosjektvarighet i sekunder (sekvensens definerte slutt; avspilling og eksport stopper der). Mangler = følger innholdet. */
@@ -522,10 +533,23 @@ export function normalize(input: unknown): Project {
     music: musicList,
     ...(typeof p.dur === 'number' && p.dur > 0 ? { dur: num(p.dur, 60, 0.5, 86400) } : {}),
     ...(p.res === '720' || p.res === '1080' || p.res === '4k' ? { res: p.res } : {}),
+    ...(cleanLayers(p.layers) ? { layers: cleanLayers(p.layers) as Record<string, LayerInfo> } : {}),
     ...(Array.isArray(p.muteA) && p.muteA.length ? { muteA: [...new Set(p.muteA.map((x) => Math.round(Number(x))).filter((x) => x >= 0 && x < 50))].sort((a, b) => a - b) } : {}),
     logo: { x: lg.x === null || lg.x === undefined ? null : num(lg.x, 0.5, 0, 1), y: lg.y === null || lg.y === undefined ? null : num(lg.y, 0.5, 0, 1), src: typeof lg.src === 'string' && /^(images\/[\w.-]+\.(png|jpe?g|webp|svg)|m-[\w-]+)$/.test(lg.src) ? lg.src : '', pos: oneOf(lg.pos, ['tl', 'tr', 'bl', 'br'] as const, 'tr'), size: num(lg.size, 0.12, 0.03, 0.6), opacity: num(lg.opacity, 0.9, 0, 1), on: !!lg.on },
   }
   return fixLanes(proj)
+}
+
+function cleanLayers(v: unknown): Record<string, LayerInfo> | null {
+  if (!isRec(v)) return null
+  const out: Record<string, LayerInfo> = {}
+  for (const [k, x] of Object.entries(v).slice(0, 200)) {
+    if (!/^(text|ov|music|video|subs):\d{1,2}$/.test(k) || !isRec(x)) continue
+    const name = typeof x.name === 'string' ? x.name.trim().slice(0, 40) : ''
+    const type = LAYER_TYPES.includes(x.type as LayerType) ? (x.type as LayerType) : null
+    if (name && type) out[k] = { name, type }
+  }
+  return Object.keys(out).length ? out : null
 }
 
 type LaneItem = { id: string; lane: number; start: number }

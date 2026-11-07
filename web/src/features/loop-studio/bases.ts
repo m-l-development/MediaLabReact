@@ -16,7 +16,12 @@ const SCOPE = 'loopstudio:bases'
 const MAX = 20
 export const BASE_TPLS = ['week', 'sunday', 'youth', 'blank']
 
-export interface BaseEntry { id: string; name: string; base: string; data: { programText: string; slides: Slide[]; cfg: Cfg }; savedAt: number }
+export interface BaseEntry { id: string; name: string; base: string; data: { programText: string; slides: Slide[]; cfg: Cfg }; savedAt: number; by?: string }
+/**
+ * Gjør et grunnoppsett klart for menigheten (TB-143BF7): egne bilder (img-) lastes opp til menighetens filer og byttes
+ * med «ch:»-referanser, så alle medlemmer ser dem. failed = bilder som ikke kunne lastes opp (de mangler for de andre).
+ */
+export type PrepareForChurch = (d: BaseEntry['data']) => Promise<{ data: BaseEntry['data']; failed: number }>
 export interface KV { get(k: string): string | null; set(k: string, v: string): boolean; remove(k: string): void }
 
 export const newBaseId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)

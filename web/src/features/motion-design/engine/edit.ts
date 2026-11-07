@@ -165,7 +165,7 @@ export function moveLane(p: Project, k: LaneK, id: string, dl: -1 | 1): EditResu
   if (to < 0) {
     // nytt spor øverst: de andre flyttes ett ned (rekkefølgen mellom dem er uendret)
     const next = arr.map((x) => (x.id === id ? { ...x, lane: 0 } : { ...x, lane: (x.lane || 0) + 1 }))
-    return { p: { ...p, [ARR[k]]: next, lanes: { ...p.lanes, [k]: n + 1 } } }
+    return { p: { ...shiftLayers(p, k, 0, 1), [ARR[k]]: next, lanes: { ...p.lanes, [k]: n + 1 } } }
   }
   if (to > 49) return { err: 'busy' }
   const s = it.start
@@ -175,10 +175,28 @@ export function moveLane(p: Project, k: LaneK, id: string, dl: -1 | 1): EditResu
     const at = dl < 0 ? to : to + 1
     if (at > 49) return { err: 'busy' }
     const next = arr.map((x) => (x.id === id ? { ...x, lane: at } : (x.lane || 0) >= at ? { ...x, lane: (x.lane || 0) + 1 } : x))
-    return { p: { ...p, [ARR[k]]: next, lanes: { ...p.lanes, [k]: Math.max(n + 1, at + 1) } } }
+    return { p: { ...shiftLayers(p, k, at, 1), [ARR[k]]: next, lanes: { ...p.lanes, [k]: Math.max(n + 1, at + 1) } } }
   }
   const next = arr.map((x) => (x.id === id ? { ...x, lane: to } : x))
   return { p: { ...p, [ARR[k]]: next, lanes: { ...p.lanes, [k]: Math.max(n, to + 1) } } }
+}
+
+/**
+ * Egne lagnavn følger laget når lag settes inn eller fjernes (TB-66E8B2): lag fra og med `from` flyttes `d` plasser
+ * (d = −1: laget `from` fjernes, de under flyttes opp; d = +1: nytt lag settes inn på `from`).
+ */
+export function shiftLayers(p: Project, k: 'text' | 'ov' | 'music', from: number, d: 1 | -1): Project {
+  if (!p.layers) return p
+  const out: NonNullable<Project['layers']> = {}
+  for (const [key, v] of Object.entries(p.layers)) {
+    const [kk, ls] = key.split(':')
+    const lane = Number(ls)
+    if (kk !== k || lane < from) { out[key] = v; continue }
+    if (d < 0 && lane === from) continue
+    out[`${k}:${lane + d}`] = v
+  }
+  const { layers: _l, ...rest } = p
+  return Object.keys(out).length ? { ...rest, layers: out } : rest
 }
 
 /** Navnet på sporet i Avansert: V1 = hovedsporet, V2 … = videospor over det (lag 0 øverst), A1 … = lydspor. */

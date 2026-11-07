@@ -51,3 +51,12 @@ describe('Kopier sak til Claude Code (ADM-12, som feedback-core.test.js)', () =>
     parts.forEach((p, i) => expect(p).toMatch(new RegExp('del ' + (i + 1) + ' av ' + parts.length)))
   })
 })
+
+describe('applikasjon for eldre saker (TB-53E3CF)', () => {
+  it('«ukjent» utledes av siden; kjente apper beholdes', async () => {
+    const { caseApp } = await import('./format-case')
+    expect(caseApp({ app: 'ukjent', app_name: 'ukjent', page: '/app/admin' })).toEqual({ id: 'connecthub-admin', name: 'ConnectHub Admin' })
+    expect(caseApp({ app: 'photo-design', app_name: 'Photo Design', page: '/app/admin' })).toEqual({ id: 'photo-design', name: 'Photo Design' })
+    expect(caseApp({ app: 'ukjent', app_name: 'ukjent', page: '/app/finnes-ikke' })).toEqual({ id: 'ukjent', name: 'ukjent' })
+  })
+})

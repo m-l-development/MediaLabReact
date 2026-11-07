@@ -24,6 +24,8 @@ describe('tilbakemeldinger: rensing og plassering (som feedback-core.test.js i d
     expect(appOf('/app/loop-studio')).toEqual({ id: 'loop-studio', name: 'Loop Studio' })
     expect(appOf('/app/loop-studio', '?mal=week&disk=d-1')).toEqual({ id: 'loop-editor', name: 'Loop Studio – editor' })
     expect(appOf('/app/medier').id).toBe('media-library')
+    // TB-53E3CF: admin var «ukjent»
+    expect(appOf('/app/admin')).toEqual({ id: 'connecthub-admin', name: 'ConnectHub Admin' })
     expect(appOf('/app/ikke-et-verktoy').id).toBe('ukjent')
     expect(cleanPath('/app/x/44ebdf65-ebc9-4f62-846f-dfd12e271d3e?token=abc')).toBe('/app/x/:id')
     expect(cleanView('?mal=week&disk=d-abc123')).toBe('?mal=…&disk=…')

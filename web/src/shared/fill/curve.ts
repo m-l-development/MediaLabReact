@@ -45,3 +45,27 @@ export function curveFn(pts: [number, number][] | null | undefined): ((x: number
     return (2 * t3 - 3 * t2 + 1) * Yv(k) + (t3 - 2 * t2 + t) * h * (m[k] ?? 0) + (-2 * t3 + 3 * t2) * Yv(k + 1) + (t3 - t2) * h * (m[k + 1] ?? 0)
   }
 }
+
+/**
+ * Pekerens plass i kurveflaten (0–1, y opp). Kurvene tegnes i viewBox «-3 -3 106 106» med rutenettet på 0–100: før ble
+ * hele SVG-en regnet som 0–1, så punktet havnet et annet sted enn pekeren (TB-D8AE3F). getScreenCTM tar også hensyn til
+ * sideforholdet; uten den brukes viewBox-en direkte.
+ */
+export function curvePoint(svg: SVGSVGElement, ev: { clientX: number; clientY: number }): [number, number] {
+  const c01 = (v: number) => Math.max(0, Math.min(1, v))
+  const m = typeof svg.getScreenCTM === 'function' ? svg.getScreenCTM() : null
+  if (m && typeof DOMPoint !== 'undefined') {
+    const q = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(m.inverse())
+    return [c01(q.x / 100), c01(1 - q.y / 100)]
+  }
+  const r = svg.getBoundingClientRect()
+  const u = ((ev.clientX - r.left) / (r.width || 1)) * 106 - 3
+  const v = ((ev.clientY - r.top) / (r.height || 1)) * 106 - 3
+  return [c01(u / 100), c01(1 - v / 100)]
+}
+
+/** Nytt punkt legges på kurven der brukeren trykker (samme x), så et klikk alene ikke endrer bildet; dra flytter det. */
+export function onCurve(pts: [number, number][], x: number): [number, number] {
+  const f = curveFn(pts)
+  return [x, Math.max(0, Math.min(1, f ? f(x) : x))]
+}

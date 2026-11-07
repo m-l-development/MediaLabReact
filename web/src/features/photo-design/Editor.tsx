@@ -463,8 +463,8 @@ function StylePanel({ c, S, tx }: EditorProps) {
         <>
           <label className={s.colorRow}><span>{tx('Vignettfarge')}</span><input type="color" value={v.color} onChange={(e) => c.setVig({ color: e.target.value }, 'vigc')} /></label>
           <ColorSpectrum value={v.color} onChange={(x) => c.setVig({ color: x }, 'vigc')} />
-          <Range label={tx('Styrke')} min={0} max={1} step={0.01} val={v.amt} show={`${Math.round(v.amt * 100)} %`} on={(x) => c.setVig({ amt: x }, 'viga')} />
-          <Range label={tx('Størrelse')} min={0} max={1} step={0.01} val={v.size} show={`${Math.round(v.size * 100)} %`} on={(x) => c.setVig({ size: x }, 'vigs')} />
+          <Range label={tx('Styrke')} min={0} max={1} step={0.01} val={v.amt} def={0.6} show={`${Math.round(v.amt * 100)} %`} on={(x) => c.setVig({ amt: x }, 'viga')} />
+          <Range label={tx('Størrelse')} min={0} max={1} step={0.01} val={v.size} def={0.55} show={`${Math.round(v.size * 100)} %`} on={(x) => c.setVig({ size: x }, 'vigs')} />
         </>
       )}
       <div className={s.hr} />
@@ -778,12 +778,22 @@ function FxThumb({ pr, k }: { pr: FX.Preset; k: string }) {
 let lagDrag: string | null = null
 
 function LayerList({ c, S, tx }: EditorProps) {
+  // «Velg flere»: trykk legger til/fjerner lag i valget (for berøring, der Shift-klikk ikke finnes) – TB-7204A6
+  const [pick, setPick] = useState(false)
   const d = S.doc
   if (!d) return null
   const ids = new Set(c.selIds())
   return (
     <div className={s.layers}>
       <div className={s.layersHead}><span className={s.eyebrowSm}>{tx('Lag')}</span><span className={s.dimSm}>{d.layers.length || ''}</span></div>
+      {d.layers.length > 0 && (
+        <div className={s.layersTools} data-pd-layer-tools="">
+          <button type="button" className={s.layerTool} aria-pressed={pick} data-pd-pick-many="" title={tx('Trykk på lagene for å velge flere (som Shift-klikk)')} onClick={() => setPick((v) => !v)}>{tx('Velg flere')}</button>
+          {d.layers.length > 1 && <button type="button" className={s.layerTool} data-pd-sel-all="" onClick={() => c.selAll()}>{tx('Velg alle')}</button>}
+          {ids.size > 0 && <button type="button" className={`${s.layerTool} ${s.layerToolDanger}`} data-pd-del-sel="" onClick={() => c.del()}>{ids.size > 1 ? tx('Slett valgte ({n})', { n: ids.size }) : tx('Slett valgt')}</button>}
+          <button type="button" className={`${s.layerTool} ${s.layerToolDanger}`} data-pd-del-all="" onClick={() => c.delAll()}>{tx('Slett alle')}</button>
+        </div>
+      )}
       <div className={s.layersList}>
         {!d.layers.length && <span className={s.note}>{tx('Ingen lag ennå. Legg til et bilde, en tekst eller en form.')}</span>}
         {d.layers.slice().reverse().map((q) => {
@@ -792,7 +802,7 @@ function LayerList({ c, S, tx }: EditorProps) {
           const grpC = q.grp ? `hsl(${[...q.grp].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7)},70%,60%)` : 'transparent'
           return (
             <div key={q.id} data-layer={q.id} className={[s.layerRow, ids.has(q.id) ? s.layerOn : '', q.hidden ? s.layerHidden : ''].join(' ')} title={tx('Dra for å endre rekkefølge')} draggable
-              onClick={(e) => c.clickLayer(q.id, e.shiftKey || e.ctrlKey || e.metaKey)}
+              onClick={(e) => c.clickLayer(q.id, pick || e.shiftKey || e.ctrlKey || e.metaKey)}
               onContextMenu={(e) => {
                 // samme lagmeny som på lerretet, for laget i raden (velges hvis det ikke er med i markeringen)
                 e.preventDefault()

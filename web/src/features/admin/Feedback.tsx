@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useServices } from '../../app/services'
 import { scrubText } from '../../shared/feedback/feedback-core'
-import { formatCase, formatCases, IMPORTANCE, KIND, SEVERITY, STATUS, type CaseEvent, type CaseMark, type FeedbackCase } from '../../shared/feedback/format-case'
+import { decodeLayout, type LayoutItem } from '../../shared/feedback/layout'
+import { caseApp, formatCase, formatCases, IMPORTANCE, KIND, SEVERITY, STATUS, type CaseEvent, type CaseMark, type FeedbackCase } from '../../shared/feedback/format-case'
 import { Head } from './common'
 import { useAdmin } from './context'
-import { copyText, fmt, go } from './lib'
+import { copyText, copyTextLater, fmt, go } from './lib'
 import { Cancelled, fill } from './members'
 import { Badge, Btn, Card, Dialog, Drawer, Empty, Field, List, Search, Select } from './ui'
 
@@ -40,14 +41,12 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
   const [showArchive, setShowArchive] = useState(false)
   const load = async () => setList(await FB.inbox.list(archived))
   useEffect(() => { void act(async () => setList(await FB.inbox.list(archived)))() }, [act, FB, archived])
-  /** Historikk for mange saker, åtte om gangen. */
+  /** Historikk for mange saker: høyst åtte kall samtidig, et nytt startes straks ett er ferdig (ikke åtte og åtte). */
   const eventsFor = async (ids: string[]) => {
     const out: Record<string, CaseEvent[]> = {}
-    for (let i = 0; i < ids.length; i += 8) {
-      const part = ids.slice(i, i + 8)
-      const res = await Promise.all(part.map((id) => FB.inbox.events(id).catch(() => [])))
-      part.forEach((id, j) => { out[id] = res[j] ?? [] })
-    }
+    let next = 0
+    const worker = async () => { while (next < ids.length) { const id = ids[next++] as string; out[id] = await FB.inbox.events(id).catch(() => []) } }
+    await Promise.all(Array.from({ length: Math.min(8, ids.length) }, worker))
     return out
   }
   const rows = (list ?? []).filter((c) => (f.kind === 'all' || c.kind === f.kind) && (f.app === 'all' || c.app === f.app) && (f.status === 'all' || c.status === f.status)
@@ -63,11 +62,16 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
     const text = formatCase(c, await FB.inbox.events(c.id).catch(() => []))
     copied(await copyText(text), 'Saken er kopiert og klar til å limes inn i Claude Code.', text)
   })()
+  /**
+   * Utklippstavlen skrives straks i trykket (copyTextLater), mens historikken hentes; ellers avviser Safari kopieringen.
+   * Er eksporten for stor, kopieres del 1 og alle delene vises.
+   */
   const copyMany = (cases: FeedbackCase[], scope: string) => act(async () => {
     if (!cases.length) { say(t('Ingen saker å kopiere.'), false); return }
-    const ps = formatCases(cases, await eventsFor(cases.map((c) => c.id)), { scope })
-    if (ps.length > 1) { setParts(ps); say(t('Sakene er for mange til å kopieres på én gang. Kopier dem del for del.'), false); return }
-    copied(await copyText(ps[0] ?? ''), cases.length === 1 ? 'Saken er kopiert og klar til å limes inn i Claude Code.' : 'Alle valgte saker er kopiert og klare til å limes inn i Claude Code.', ps[0] ?? '')
+    let ps: string[] = []
+    const { ok, text } = await copyTextLater(async () => { ps = formatCases(cases, await eventsFor(cases.map((c) => c.id)), { scope }); return ps[0] ?? '' })
+    if (ps.length > 1) { setParts(ps); say(t('Sakene er for mange til å kopieres på én gang. Del 1 er kopiert – kopier resten del for del.'), false); return }
+    copied(ok, cases.length === 1 ? 'Saken er kopiert og klar til å limes inn i Claude Code.' : 'Alle valgte saker er kopiert og klare til å limes inn i Claude Code.', text)
   })()
   /** «Slett valgte» = den etablerte fjerningen (arkivering): sakene forsvinner fra innboksen, men historikken beholdes og de kan gjenopprettes. */
   const removeMany = (cases: FeedbackCase[], listName: string) => act(async () => {
@@ -97,6 +101,13 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
   })()
   const cur = selected ? (list ?? []).find((c) => c.id === selected) : undefined
   const by = (k: FbList) => rows.filter((c) => listOf(c.status) === k)
+  // kopieringsvalgene: uløste (alt utenom Løst/Avvist), bare én status, eller arkivet – alltid innenfor filter og søk
+  const open = rows.filter((c) => !DONE.has(c.status))
+  const inWork = rows.filter((c) => c.status === 'in_progress')
+  const needInfo = rows.filter((c) => c.status === 'needs_info')
+  const arch = archived ? rows : by('archive')
+  const filtered = !!f.q || f.from !== '' || f.to !== '' || (['kind', 'app', 'status', 'env'] as const).some((k) => f[k] !== 'all')
+  const filterNote = filtered ? ' med gjeldende filter' : ''
   const listProps = { onCopy: copyMany, onCopyOne: copyOne, onRemove: removeMany, onStatus: changeStatus, loading: list === null }
 
   return (
@@ -114,10 +125,18 @@ export function FeedbackView({ selected }: { selected?: string | undefined }) {
         <label className="ch-row ch-muted" style={{ gap: 6 }}>{t('Til')}<input className="ch-input" type="date" value={f.to} onChange={(e) => set('to')(e.target.value)} style={{ width: 150 }} /></label>
       </div>
       <Card title="Kopier saker" sub={rows.length + ' ' + t('saker vises')}>
-        <div className="ch-row" data-fb-copybar="">
-          <Btn kind="primary" onClick={() => copyMany(rows, 'alle viste saker med gjeldende filter (' + rows.length + ')')} disabled={!rows.length}>{t('Kopier alle saker')}</Btn>
-        </div>
-        <p className="ch-muted">{t('«Kopier alle saker» tar med alle saker som vises med gjeldende filter og søk. Hver liste har egne knapper for å velge og kopiere eller slette valgte saker. Kopiering endrer ikke status eller notater. Hemmeligheter fjernes, og avsenderens navn og e-post tas ikke med.')}</p>
+        {archived || showArchive
+          ? <div className="ch-row" data-fb-copybar="">
+            <Btn kind="primary" data-fb-copy="archive" onClick={() => copyMany(arch, (archived ? 'fjernede saker' : 'arkiverte saker') + filterNote + ' (' + arch.length + ')')} disabled={!arch.length}>{t(archived ? 'Kopier alle fjernede saker' : 'Kopier alle arkiverte saker')} ({arch.length})</Btn>
+          </div>
+          : <div className="ch-row" data-fb-copybar="" style={{ flexWrap: 'wrap' }}>
+            <Btn kind="primary" data-fb-copy="open" onClick={() => copyMany(open, 'alle uløste saker' + filterNote + ' (' + open.length + ')')} disabled={!open.length}>{t('Kopier alle saker')} ({open.length})</Btn>
+            <Btn data-fb-copy="in_progress" onClick={() => copyMany(inWork, 'saker under behandling' + filterNote + ' (' + inWork.length + ')')} disabled={!inWork.length}>{t('Kopier alle saker under behandling')} ({inWork.length})</Btn>
+            <Btn data-fb-copy="needs_info" onClick={() => copyMany(needInfo, 'saker som trenger mer informasjon' + filterNote + ' (' + needInfo.length + ')')} disabled={!needInfo.length}>{t('Kopier alle saker som trenger ekstra informasjon')} ({needInfo.length})</Btn>
+          </div>}
+        <p className="ch-muted">{t(archived || showArchive
+          ? 'Kopierer sakene i denne visningen (følger filter og søk). Løste og avviste saker kan bare kopieres herfra.'
+          : '«Kopier alle saker» tar med alle uløste saker (ikke løste eller avviste) som vises med gjeldende filter og søk. Feil kommer først. Hver liste har egne knapper for å velge og kopiere eller slette valgte saker. Kopiering endrer ikke status eller notater. Hemmeligheter fjernes, og avsenderens navn og e-post tas ikke med.')}</p>
       </Card>
       {parts && (
         <Card title="Eksport i flere deler" sub={parts.length}>
@@ -182,7 +201,7 @@ function CaseList({ id, cases, loading, onCopy, onCopyOne, onRemove, onStatus, c
           <div key="r"><b>{c.ref}</b><div className="ch-muted">{fmt(c.created_at)}</div></div>,
           <div key="s"><Badge tone={c.kind === 'bug' ? 'bad' : ''}>{t(KIND[c.kind] ?? c.kind)}</Badge> <span>{scrubText(c.title || c.description).slice(0, 110)}</span>
             <div className="ch-muted">{t('Fra')} {c.submitter_name || t('ukjent')}{c.church_name ? ' · ' + c.church_name : ''}{c.marked ? ' · 📍 ' + t('markering') : ''}{c.context?.errors?.length ? ' · ⚠ ' + c.context.errors.length + ' ' + t('feilmeldinger') : ''}{c.note_count ? ' · ' + c.note_count + ' ' + t('notater') : ''}</div></div>,
-          <div key="a"><span>{c.app_name || c.app || '–'}</span><div className="ch-muted">{c.page}{c.view ? ' ' + c.view : ''} · {t(ENV_NAME[c.context?.env ?? ''] ?? '')}</div></div>,
+          <div key="a"><span>{caseApp(c).name || caseApp(c).id || '–'}</span><div className="ch-muted">{c.page}{c.view ? ' ' + c.view : ''} · {t(ENV_NAME[c.context?.env ?? ''] ?? '')}</div></div>,
           <div key="st" onClick={(e) => e.stopPropagation()}>
             <Badge tone={TONE[c.status]}>{t(STATUS[c.status] ?? c.status)}</Badge>
             {id !== 'removed' && <select className="ch-select" aria-label={t('Endre status for') + ' ' + c.ref} value={c.status} onChange={(e) => onStatus(c, e.target.value)} style={{ marginTop: 4, height: 30 }}>
@@ -240,7 +259,7 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
         </dl>
       </Card>
       <Card title="Applikasjon og markering (hentet automatisk)">
-        <dl className="ch-kv">{kv('Applikasjon', (c.app_name || '') + (c.app ? ' (' + c.app + ')' : ''))}{kv('Side', c.page)}{kv('Visning', c.view)}</dl>
+        <dl className="ch-kv">{kv('Applikasjon', (caseApp(c).name || '') + (caseApp(c).id ? ' (' + caseApp(c).id + ')' : ''))}{kv('Side', c.page)}{kv('Visning', c.view)}</dl>
         {m ? <MarkPreview m={m} /> : <p className="ch-muted">{t('Ingen markering.')}</p>}
       </Card>
       <Card title="Teknisk kontekst (hentet automatisk)">
@@ -289,19 +308,41 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
   )
 }
 
-/** Markeringen som en ramme i et skjermomriss med samme sideforhold som brukerens vindu. */
+/** Utseendet på hver type i omrisset: generelle flater, aldri innhold (se shared/feedback/layout). */
+const WIRE: Record<LayoutItem['k'], React.CSSProperties> = {
+  p: { background: 'rgba(127,127,127,.10)', border: '1px solid rgba(127,127,127,.35)', borderRadius: 6 },
+  n: { background: 'rgba(127,127,127,.16)', borderRight: '1px solid rgba(127,127,127,.4)', borderBottom: '1px solid rgba(127,127,127,.4)' },
+  r: { borderBottom: '1px solid rgba(127,127,127,.35)', background: 'repeating-linear-gradient(90deg, rgba(127,127,127,.18) 0 22%, transparent 22% 26%)', backgroundSize: '100% 40%', backgroundRepeat: 'no-repeat', backgroundPosition: '0 50%' },
+  b: { background: 'rgba(127,127,127,.22)', border: '1px solid rgba(127,127,127,.6)', borderRadius: 999, display: 'grid', placeItems: 'center' },
+  i: { background: 'rgba(255,255,255,.08)', border: '1px solid rgba(127,127,127,.7)', borderRadius: 4 },
+  h: { fontWeight: 800 },
+  l: { opacity: 0.85 },
+  m: { background: 'repeating-linear-gradient(45deg, rgba(127,127,127,.18) 0 6px, rgba(127,127,127,.08) 6px 12px)', border: '1px dashed rgba(127,127,127,.5)', borderRadius: 4 },
+  t: { background: 'rgba(127,127,127,.28)', borderRadius: 2, transform: 'scaleY(.45)' },
+}
+/**
+ * Markeringen i en forhåndsvisning av siden (TB-53E3CF): et trygt omriss av knapper, menyer, paneler og tekst slik siden så
+ * ut, med det markerte området i gul ramme. Bilder, video og brukerens tekst vises aldri – bare plass og type. Eldre saker
+ * uten omriss vises som før, med rammen i et tomt vindu.
+ */
 function MarkPreview({ m }: { m: CaseMark }) {
   const { t } = useAdmin()
   const [w, h] = (m.viewport || '16×9').split('×').map(Number), r = m.rect ?? {}, e = m.element ?? {}
+  const items = decodeLayout(m.layout)
   return (
     <div data-fb-mark="">
-      <div style={{ position: 'relative', width: '100%', maxWidth: 360, aspectRatio: (w || 16) + ' / ' + (h || 9), border: '1px solid var(--line)', borderRadius: 8, background: 'var(--panel)', overflow: 'hidden' }} aria-label={t('Markering i skjermbildet')}>
-        <div style={{ position: 'absolute', left: (r.x || 0) + '%', top: (r.y || 0) + '%', width: Math.max(r.w || 0, 1) + '%', height: Math.max(r.h || 0, 1) + '%', border: '2px solid #f5b301', background: 'rgba(245,179,1,.25)', borderRadius: 3 }} />
+      <div data-fb-preview={items.length ? 'layout' : 'frame'} style={{ position: 'relative', width: '100%', maxWidth: items.length ? 640 : 360, aspectRatio: (w || 16) + ' / ' + (h || 9), border: '1px solid var(--line)', borderRadius: 8, background: 'var(--panel)', overflow: 'hidden', fontSize: 9, lineHeight: 1.1, containerType: 'inline-size' }} aria-label={t('Markering i skjermbildet')}>
+        {items.map((it, i) => (
+          <div key={i} data-fb-wire={it.k} style={{ position: 'absolute', left: it.x / 10 + '%', top: it.y / 10 + '%', width: it.w / 10 + '%', height: it.h / 10 + '%', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', boxSizing: 'border-box', padding: it.k === 'b' ? '0 3px' : 0, ...WIRE[it.k] }}>
+            {it.label && it.k !== 't' ? <span style={{ fontSize: it.k === 'h' ? 'clamp(8px, 1.8cqw, 13px)' : 'clamp(7px, 1.3cqw, 11px)' }}>{it.label}</span> : null}
+          </div>
+        ))}
+        <div data-fb-hl="" style={{ position: 'absolute', left: (r.x || 0) + '%', top: (r.y || 0) + '%', width: Math.max(r.w || 0, 1) + '%', height: Math.max(r.h || 0, 1) + '%', border: '3px solid #f5b301', background: 'rgba(245,179,1,.18)', borderRadius: 4, boxShadow: items.length ? '0 0 0 9999px rgba(0,0,0,.28), 0 0 12px 2px rgba(245,179,1,.8)' : undefined }} />
       </div>
       <p className="ch-muted">{t(m.mode === 'area' ? 'Område' : 'Element')}{e.tag ? ' <' + e.tag + '>' : ''}{e.label ? ' «' + e.label + '»' : ''} · x {r.x} %, y {r.y} %, {r.w} × {r.h} % · {t('vindu')} {m.viewport}</p>
       {e.path && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{e.path}</p>}
       {e.attrs && Object.keys(e.attrs).length > 0 && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{Object.entries(e.attrs).map(([k, v]) => k + '="' + v + '"').join(' · ')}</p>}
-      <p className="ch-muted">{t('Skjermbilde er ikke støttet i denne versjonen; rammen viser plasseringen i brukerens vindu.')}</p>
+      <p className="ch-muted">{t(items.length ? 'Forhåndsvisningen viser bare sidens oppbygning (knapper, felt, paneler og tekstlinjer) – aldri bilder, filer eller brukerens innhold.' : 'Saken ble sendt før forhåndsvisningen av siden fantes; rammen viser plasseringen i brukerens vindu.')}</p>
     </div>
   )
 }

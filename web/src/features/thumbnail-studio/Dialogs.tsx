@@ -145,9 +145,12 @@ export function SaveDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx 
   const cat = c.cat()
   const list = c.tplsOf(S.catId)
   const full = list.length >= MAX_TPL
-  const btns: [Phrase, () => void, boolean, boolean][] = S.tplId
-    ? [['Lagre endringer', () => void c.doSave('over'), true, false], ['Lagre som ny', () => void c.doSave('new'), false, full]]
-    : [['Lagre som ny mal', () => void c.doSave('new'), true, full]]
+  // delt mal (TB-A43E52): oppdater den for menigheten, eller lagre privat som egen mal
+  const btns: [Phrase, () => void, boolean, boolean][] = S.sharedEdit
+    ? [['Oppdater for menigheten', () => { c.ui({ save: false }); void c.updateSharedTpl() }, true, false], ['Lagre som egen mal (privat)', () => void c.doSave('new'), false, full]]
+    : S.tplId
+      ? [['Lagre endringer', () => void c.doSave('over'), true, false], ['Lagre som ny', () => void c.doSave('new'), false, full]]
+      : [['Lagre som ny mal', () => void c.doSave('new'), true, full]]
   return (
     <Modal label={tx('Lagre mal')} onClose={() => c.ui({ save: false })} wide="sm">
       <span className={s.modalTitle}>{tx('Lagre mal')}</span>
@@ -155,6 +158,7 @@ export function SaveDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx 
         <span className={s.ctrlLabel}>{tx('Navn')}</span>
         <input className={s.input} value={S.tplName} placeholder={tx('Navn på malen')} onChange={(e) => c.setTplName(e.target.value)} />
       </label>
+      {S.sharedEdit && <span className={s.note} data-ts-shared-note="">{tx('Malen er delt med menigheten. «Oppdater for menigheten» gjør endringene synlige for alle medlemmer.')}</span>}
       <span className={s.note}>{S.tplId ? tx('Lagre endringene i denne malen, eller lagre som en ny mal. {n} av 5 maler brukt.', { n: list.length }) : tx('{n} av 5 maler brukt i {cat}.', { n: list.length, cat: cat?.name ?? '' })}</span>
       <div className={s.btns}>
         {btns.map(([label, on, primary, dis]) => <button key={label} type="button" className={primary ? s.pillPrimarySm : s.pillSm} disabled={dis} onClick={on}>{tx(label)}</button>)}

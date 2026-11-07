@@ -949,6 +949,32 @@ button:disabled {
   accent-color: #e9e7e2;
 }
 
+.rangeVal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rangeReset {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #9d998f;
+  font: 600 13px/1 Archivo, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.rangeReset:hover,
+.rangeReset:focus-visible {
+  color: #f3f1ec;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .range .rangeAccent {
   accent-color: #f5b82c;
 }
@@ -1082,6 +1108,35 @@ button:disabled {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 14px 6px;
+}
+
+.layersTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 14px 8px;
+}
+
+.layerTool {
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid #2b2b2b;
+  border-radius: 999px;
+  background: transparent;
+  color: #c9c5bc;
+  font: 600 11px/1 Archivo, system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.layerTool:hover,
+.layerTool[aria-pressed='true'] {
+  border-color: #e9e7e2;
+  color: #f3f1ec;
+}
+
+.layerToolDanger {
+  color: #ff8f7d;
 }
 
 .layersList {

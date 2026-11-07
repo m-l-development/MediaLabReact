@@ -1,10 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Me } from '../domain/account'
 import { ServiceError } from '../services/errors'
 import type { FeedbackInput } from '../services/feedback'
-import { FeedbackButton } from './Feedback'
+import { FeedbackButton, startMarking } from './Feedback'
 import { ServicesContext, type Services } from './services'
 
 const me = { id: 'u1', email: 'a@b.no', full_name: 'Test', first_name: null, last_name: null, phone: null, mfa: false, roles: [], churches: [{ id: 'c1', name: 'Menighet', logo_file_id: null }] } as unknown as Me
@@ -149,5 +149,31 @@ describe('Send tilbakemelding', () => {
     expect(conf).toHaveBeenCalledWith('Forkaste teksten du har skrevet?')
     expect(screen.getByRole('dialog')).toBeTruthy()
     vi.unstubAllGlobals()
+  })
+})
+
+/** TB-ED697B: liten, flyttbar instruksjon; markering i skjemaet; start fra kontomenyen og med Alt+Shift+M. */
+describe('Marker et område', () => {
+  const bar = () => document.querySelector('[data-chfb-tool][role="toolbar"]') as HTMLElement | null
+  it('Alt+Shift+M og kontomenyen åpner skjemaet rett i markering', () => {
+    render(<Host submit={vi.fn<Submit>()} />)
+    fireEvent.keyDown(document, { key: 'M', code: 'KeyM', altKey: true, shiftKey: true })
+    expect(bar()).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull() // skjemaet skjult under markeringen
+    fireEvent.click(within(bar() as HTMLElement).getByRole('button', { name: 'Avbryt' }))
+    expect(bar()).toBeNull()
+    act(() => startMarking())
+    expect(bar()).toBeTruthy()
+  })
+  it('«Marker i skjemaet» viser skjemaet under markeringen, og instruksjonen kan flyttes', () => {
+    open(vi.fn<Submit>())
+    kind('Rapporter en feil')
+    fireEvent.click(screen.getByRole('button', { name: 'Marker i skjemaet' }))
+    expect(bar()).toBeTruthy()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(within(bar() as HTMLElement).getByRole('button', { name: 'Skjul skjemaet' }).getAttribute('aria-pressed')).toBe('true')
+    const grip = (bar() as HTMLElement).querySelector('[data-chfb-grip]') as HTMLElement
+    fireEvent.keyDown(grip, { key: 'ArrowDown' })
+    expect((bar() as HTMLElement).style.transform).toBe('none')
   })
 })

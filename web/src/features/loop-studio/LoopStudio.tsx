@@ -5,7 +5,7 @@ import { hrefFor } from '../../app/router'
 import { useServices } from '../../app/services'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
-import { isChurchAdmin } from '../../domain/account'
+import { displayName, isChurchAdmin } from '../../domain/account'
 import type { AssetId, ChurchId } from '../../domain/ids'
 import { activeChurch, SharedSetup } from '../../services/shared-setup'
 import { useLang, useT } from '../../shared/i18n/i18n'
@@ -16,7 +16,8 @@ import { useTheme } from '../../shared/theme/theme'
 import { CloudPicker, type CloudArea, type CloudPick } from '../cloud-picker/CloudPicker'
 import { ContextMenu } from '../../shared/ui/ContextMenu'
 import { AssetPicker } from '../media-library/AssetPicker'
-import { centralBases, personalBases, type KV } from './bases'
+import { centralBases, personalBases, type KV, type PrepareForChurch } from './bases'
+import { forSharedDisk } from '../../services/loop-disk'
 import { LoopController, type LoopDeps } from './controller'
 import { EditorView } from './EditorView'
 import { HomeController } from './home-controller'
@@ -129,6 +130,22 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
       }
     : null
 
+  // felles grunnoppsett: egne bilder lastes opp til menighetens filer (én gang per bilde i økten), se bases.ts
+  const upCache = useRef(new Map<string, string | null>())
+  const prepare: PrepareForChurch | null = cloud
+    ? async (d) => {
+      let failed = 0
+      const data = await forSharedDisk(d as never, async (ref) => {
+        const b = await base.media.get(ref).catch(() => null)
+        const r = b ? await cloud.upload(new File([b], 'loop-bilde' + (/png/.test(b.type) ? '.png' : '.jpg'), { type: b.type }), 'bilder').catch(() => null) : null
+        if (!r) failed++
+        return r
+      }, upCache.current)
+      for (const [k, v] of upCache.current) if (v === null) upCache.current.delete(k)
+      return { data: data as unknown as typeof d, failed }
+    }
+    : null
+  const basesX = { ...bases, prepare, by: me ? displayName(me) : '' }
   const editing = ready && isEditor(query)
   // Lyst tema som i dagens app: nøytrale farger regnes om på Loop-siden og i dens egne stilark
   const rootRef = useRef<HTMLDivElement>(null)
@@ -152,7 +169,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
           goHub={() => router.navigate({ name: 'hub' })}
           editorHref={editorHref}
           openEditor={openEditor}
-          bases={bases}
+          bases={basesX}
           sharedDisk={sharedDisk}
         />
       )}
@@ -172,7 +189,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
             media: base.media,
             kv: base.kv,
             me,
-            bases,
+            bases: basesX,
             sharedDisk,
             shared: (scope, opts) => {
               if (!churchSettings.available()) return null
@@ -224,7 +241,7 @@ function Home(p: {
   goHub: () => void
   editorHref: (q: Record<string, string>) => string
   openEditor: (q: Record<string, string>) => void
-  bases: { personal: ReturnType<typeof personalBases>; central: ReturnType<typeof centralBases> | null }
+  bases: LoopDeps['bases']
   sharedDisk: LoopDeps['sharedDisk']
 }) {
   const [, tick] = useReducer((n: number) => n + 1, 0)
@@ -244,7 +261,7 @@ function Home(p: {
   useEffect(() => {
     c.themeChanged(p.light)
   }, [c, p.light])
-  const v = { ...c.vals(), bases: { personal: p.bases.personal, central: p.bases.central, editorHref: p.editorHref, open: p.openEditor, confirm: (m: string) => window.confirm(m) }, sharedDisk: p.sharedDisk }
+  const v = { ...c.vals(), bases: { personal: p.bases.personal, central: p.bases.central, prepare: p.bases.prepare ?? null, by: p.bases.by ?? '', editorHref: p.editorHref, open: p.openEditor, confirm: (m: string) => window.confirm(m) }, sharedDisk: p.sharedDisk }
   return <HomeView v={v} tx={p.tx} />
 }
 
@@ -322,12 +339,13 @@ function Banners({ c, tx }: { c: LoopController; tx: (s: unknown) => string }) {
         </div>
       )}
       {c.banner === 'base' && c.fromBase && (
-        <div data-ch-base-banner="1" role="status" style={{ ...bar, padding: '6px 8px 6px 14px', border: '1px solid #2b2b2b', background: '#121212', color: '#f3f1ec', font: '500 12.5px Archivo,system-ui,sans-serif' }}>
-          <span>{tx('Serie fra grunnoppsettet') + ' «' + c.fromBase.name + '» (' + tx(c.fromBase.kind === 'f' ? 'felles for menigheten' : 'personlig') + '). ' + tx('Endringer her endrer ikke grunnoppsettet.')}</span>
-          <button type="button" data-ch-base-update="1" onClick={() => void c.updateBase()} style={{ height: '28px', padding: '0 12px', border: '1px solid #f3f1ec', borderRadius: '999px', background: 'transparent', color: '#f3f1ec', font: 'inherit', cursor: 'pointer' }}>
+        <div data-ch-base-banner="1" role="status" title={tx('Serie fra grunnoppsettet') + ' «' + c.fromBase.name + '» (' + tx(c.fromBase.kind === 'f' ? 'felles for menigheten' : 'personlig') + '). ' + tx('Endringer her endrer ikke grunnoppsettet.')}
+          style={{ ...bar, top: '6px', gap: '6px', flexWrap: 'nowrap', maxWidth: 'min(calc(100% - 24px), 520px)', padding: '2px 2px 2px 10px', border: '1px solid #2b2b2b', background: 'rgba(18,18,18,.9)', color: '#d9d5cc', font: '500 11px/1.2 Archivo,system-ui,sans-serif', boxShadow: '0 4px 12px rgba(0,0,0,.35)' }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{tx('Fra grunnoppsettet') + ' «' + c.fromBase.name + '»'}</span>
+          <button type="button" data-ch-base-update="1" onClick={() => void c.updateBase()} style={{ flex: 'none', height: '22px', padding: '0 9px', border: '1px solid #6f6b63', borderRadius: '999px', background: 'transparent', color: '#f3f1ec', font: 'inherit', cursor: 'pointer' }}>
             {tx('Oppdater grunnoppsettet')}
           </button>
-          <button type="button" aria-label={tx('Lukk')} onClick={c.closeBanner} style={{ width: '28px', height: '28px', border: 0, borderRadius: '999px', background: 'transparent', color: '#9d998f', font: 'inherit', cursor: 'pointer' }}>✕</button>
+          <button type="button" aria-label={tx('Lukk')} onClick={c.closeBanner} style={{ flex: 'none', width: '22px', height: '22px', border: 0, borderRadius: '999px', background: 'transparent', color: '#9d998f', font: 'inherit', cursor: 'pointer' }}>✕</button>
         </div>
       )}
       {c.banner === 'legacy' && (

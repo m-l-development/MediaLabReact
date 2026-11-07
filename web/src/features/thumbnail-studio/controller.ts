@@ -1,7 +1,7 @@
 import { createStore, type Store } from '../../shared/lib/store'
 import { snapActive } from '../../shared/lib/snap'
 import type { SharedSetup } from '../../services/shared-setup'
-import { cleanCategory, DEFAULT_CATS, type Category, type Template } from './engine/backup'
+import { cleanCategory, cleanDoc, DEFAULT_CATS, type Category, type Template } from './engine/backup'
 import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
 import type { ImageCache } from './engine/images'
 import { base, BASE_KEYS, layout, type BaseKey } from './engine/layouts'
@@ -15,6 +15,37 @@ export interface Loc { cat?: string; tpl?: string; base?: string }
 const locKey = (l: Loc) => `${l.cat ?? ''}|${l.tpl ?? ''}|${l.base ?? ''}`
 export type Msg = { p: Phrase; v?: Vars; raw?: false } | { p: string; raw: true }
 export interface CropBox { cL: number; cT: number; cR: number; cB: number }
+
+/**
+ * Ny boks for et beskjært bildelag: utsnittet n legges der det vises nå (samme skala), så resultatet er nøyaktig det
+ * valgte området. Regnes i lagets egne koordinater (før rotasjon/speiling rundt midten) og flyttes så tilbake.
+ */
+export function cropPlacement(l: { x: number; y: number; w: number; h: number; rot?: number; flipX?: boolean; flipY?: boolean; fit?: string; zoom?: number; px?: number; py?: number; flip?: boolean; cL?: number; cT?: number; cR?: number; cB?: number }, nw: number, nh: number, n: CropBox) {
+  const o = { cL: l.cL || 0, cT: l.cT || 0, cR: l.cR || 0, cB: l.cB || 0 }
+  const iwO = nw * (1 - o.cL - o.cR)
+  const ihO = nh * (1 - o.cT - o.cB)
+  const sc = (l.fit === 'contain' ? Math.min(l.w / iwO, l.h / ihO) : Math.max(l.w / iwO, l.h / ihO)) * (l.zoom || 1)
+  const dw = iwO * sc
+  const dh = ihO * sc
+  const dx = (l.w - dw) * (l.px ?? 0.5)
+  const dy = (l.h - dh) * (l.py ?? 0.5)
+  const w = nw * (1 - n.cL - n.cR) * sc
+  const h = nh * (1 - n.cT - n.cB) * sc
+  // venstre kant av utsnittet i laget (speilet bilde: regnet fra høyre)
+  const lx = l.flip ? dx + dw - (nw * (1 - n.cR) - nw * o.cL) * sc : dx + (nw * n.cL - nw * o.cL) * sc
+  const ly = dy + (nh * n.cT - nh * o.cT) * sc
+  // midten av utsnittet i forhold til lagets midte, så speiling og rotasjon rundt midten
+  let ox = lx + w / 2 - l.w / 2
+  let oy = ly + h / 2 - l.h / 2
+  if (l.flipX) ox = -ox
+  if (l.flipY) oy = -oy
+  const a = ((l.rot || 0) * Math.PI) / 180
+  const cx = l.x + l.w / 2 + ox * Math.cos(a) - oy * Math.sin(a)
+  const cy = l.y + l.h / 2 + ox * Math.sin(a) + oy * Math.cos(a)
+  const W = Math.max(10, Math.round(w))
+  const H = Math.max(10, Math.round(h))
+  return { x: Math.round(cx - W / 2), y: Math.round(cy - H / 2), w: W, h: H, zoom: 1, px: 0.5, py: 0.5 }
+}
 export type PanelKey = 'add' | 'layers' | 'canvas' | 'props'
 export interface ColumnLayout { cols: PanelKey[][]; tabs: boolean[] }
 export type AddTarget = { mode: 'add'; logo?: boolean } | { mode: 'replace'; id: string } | { mode: 'bg' }
@@ -22,7 +53,22 @@ export type AddTarget = { mode: 'add'; logo?: boolean } | { mode: 'replace'; id:
 export type LayerPatch = { x?: number; y?: number; w?: number; h?: number } & Record<string, unknown>
 export type Picker = { kind: 'media' | 'cloud'; target: AddTarget } | null
 
+/** En mal som er delt med menigheten (TB-A43E52): alle medlemmer kan hente, redigere og oppdatere den. */
+export interface SharedTpl { id: string; catId: string; name: string; doc: Doc; thumb: string; by: string; updated: number }
+
+/** Send mal til et medlem (TB-09177E). */
+export interface Peer { id: string; name: string }
+export interface Incoming { id: string; name: string; from_name: string; created_at: string }
+
 export interface State {
+  /** Mottatte maler som venter på svar (✓ godta / ✕ avslå). */
+  inbox: Incoming[]
+  /** «Send»-dialogen: malen som sendes og medlemmene man kan sende til (null = henter). */
+  sendFor: { tpl: Template; peers: Peer[] | null; busy: boolean } | null
+  /** Menighetens delte maler (null = ikke hentet / ikke tilgjengelig). */
+  sharedTpls: SharedTpl[] | null
+  /** Malen fra menigheten som er åpnet i editoren («Oppdater for menigheten» lagrer tilbake). */
+  sharedEdit: { id: string; name: string } | null
   ready: boolean
   view: View
   cats: Category[]
@@ -110,10 +156,29 @@ export interface Deps {
     select(image: HTMLCanvasElement, x: number, y: number): Promise<Uint8ClampedArray | null>
   }
   cutout(src: string, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<string>
+  /** Henter et bilde fra en annen kilde (f.eks. menighetens filer, ch:) inn i Dine medier (m:), så AI-utklipp og finjustering virker. */
+  toLocal?(src: string): Promise<string | null>
   /** Menighetens felles kategorier (null uten ConnectHub). */
   shared: SharedSetup<{ cats: unknown[] }> | null
   /** Deler et lokalt bilde i Fellesmappe. → `ch:<id>`. */
   shareImage(src: string): Promise<string>
+  /** Send mal til et medlem i menigheten (TB-09177E); mangler uten ConnectHub. */
+  shares?: {
+    available(): boolean
+    peers(): Promise<Peer[]>
+    send(to: string, name: string, payload: Record<string, unknown>): Promise<unknown>
+    incoming(): Promise<Incoming[]>
+    respond(id: string, accept: boolean): Promise<{ name: string; payload?: Record<string, unknown> }>
+  }
+  /** Menighetens delte maler (church_settings «thumbstudio:tpls»); null uten menighet. */
+  sharedTpls?: {
+    available(): boolean
+    list(): Promise<SharedTpl[]>
+    /** fn(liste) → ny liste, lagret på nyeste versjon (prøver igjen ved samtidige endringer). */
+    mutate(fn: (l: SharedTpl[]) => SharedTpl[]): Promise<SharedTpl[]>
+    /** Navnet til den som deler (vises på kortet). */
+    by(): string
+  }
   storage: { get(k: string): string | null; set(k: string, v: string): void }
   confirm(p: Phrase, v?: Vars): boolean
   prompt(p: Phrase, def: string): string | null
@@ -242,6 +307,7 @@ export class ThumbController {
       }
     })()
     this.state = createStore<State>({
+      sharedTpls: null, sharedEdit: null, inbox: [], sendFor: null,
       ready: false, view: 'home', cats: [], tpls: [], catId: null, editCats: false, doc: null, tplId: null, tplName: '', dirty: false,
       baseEdit: false, layoutId: 'main', sel: null, multi: [], barSel: null, hist: [], fut: [], gx: [], gy: [], msg: null, ai: null, maskEdit: null,
       exp: false, expRes: '1080', expFmt: 'png', expT: false, expBusy: false, expSize: null, save: false, logoOpen: false, shapeOpen: false,
@@ -299,6 +365,7 @@ export class ThumbController {
     }
     if (!this.alive) return
     this.set({ ready: true, cats: cats ?? clone(DEFAULT_CATS.filter((x) => this.baseKeys().includes(x.base))), tpls })
+    void this.loadInbox()
     this.restore(loc)
     void this.initShared()
   }
@@ -406,6 +473,190 @@ export class ThumbController {
   }
 
   /** Lokale bilder i grunnoppsettene lastes opp til Fellesmappe og erstattes med referanser. */
+  /** Et dokument klart for menigheten: lokale bilder lastes opp én gang (refMap) og byttes med «ch:»-referanser. */
+  private async churchDoc(doc: Doc): Promise<Doc> {
+    const conv = async (v: string): Promise<string> => {
+      if (!v.startsWith('m:') && !v.startsWith('db:')) return v
+      const have = this.refMap.get(v)
+      if (have) return have
+      const ref = await this.d.shareImage(v)
+      this.refMap.set(v, ref)
+      return ref
+    }
+    const d = clone(doc)
+    for (const l of d.layers) if (l.type === 'image' && l.src && !l.src.startsWith('ch:') && !l.src.startsWith('asset:')) { l.src = await conv(l.src); l.orig = null }
+    if (d.bg.src && !d.bg.src.startsWith('ch:')) d.bg = { ...d.bg, src: await conv(d.bg.src), orig: null }
+    return this.sharedDoc(d) ?? d
+  }
+
+  // ---------- send mal til et medlem (TB-09177E) ----------
+
+  sharesOn(): boolean {
+    return !!this.d.shares?.available()
+  }
+
+  async loadInbox(): Promise<void> {
+    const S = this.d.shares
+    if (!S?.available()) return
+    try {
+      const l = await S.incoming()
+      if (this.alive) this.set({ inbox: l })
+    } catch {
+      // ikke tilgjengelig (f.eks. uten menighet) – ingenting vises
+    }
+  }
+
+  async openSend(t: Template): Promise<void> {
+    const S = this.d.shares
+    if (!S?.available()) return
+    this.set({ sendFor: { tpl: t, peers: null, busy: false } })
+    try {
+      const peers = await S.peers()
+      if (this.alive && this.s.sendFor?.tpl.id === t.id) this.set({ sendFor: { tpl: t, peers, busy: false } })
+    } catch {
+      if (this.alive) this.set({ sendFor: null })
+      this.flash('Klarte ikke å hente medlemmene. Prøv igjen.')
+    }
+  }
+
+  closeSend(): void {
+    if (!this.s.sendFor?.busy) this.set({ sendFor: null })
+  }
+
+  /** Sender en kopi av malen; bildene ligger i menighetens filer, så mottakeren ser dem. */
+  async sendTo(peer: Peer): Promise<void> {
+    const S = this.d.shares
+    const sf = this.s.sendFor
+    if (!S?.available() || !sf || sf.busy) return
+    this.set({ sendFor: { ...sf, busy: true } })
+    try {
+      const doc = await this.churchDoc(sf.tpl.doc)
+      const thumb = await this.d.renderer.snapshot(doc, 240, false).catch(() => '')
+      await S.send(peer.id, sf.tpl.name, { doc, thumb, catId: sf.tpl.catId })
+      if (this.alive) this.set({ sendFor: null })
+      this.flash('Malen er sendt til {name}. Vedkommende får et varsel og kan godta eller avslå.', { name: peer.name })
+    } catch {
+      if (this.alive) this.set({ sendFor: { ...sf, busy: false } })
+      this.flash('Malen kunne ikke sendes. Prøv igjen.')
+    }
+  }
+
+  /** ✓ godta: malen legges blant dine maler (i samme kategori hvis den finnes). ✕ avslå: avsenderen får beskjed. */
+  async respondShare(it: Incoming, accept: boolean): Promise<void> {
+    const S = this.d.shares
+    if (!S?.available()) return
+    const cat0 = this.s.cats[0]?.id ?? null
+    if (accept && cat0 && this.tplsOf(this.s.catId ?? cat0).length >= MAX_TPL && this.s.cats.every((k) => this.tplsOf(k.id).length >= MAX_TPL)) {
+      this.flash('Alle kategoriene har 5 maler. Slett en mal før du godtar.')
+      return
+    }
+    try {
+      const r = await S.respond(it.id, accept)
+      if (this.alive) this.set({ inbox: this.s.inbox.filter((x) => x.id !== it.id) })
+      if (!accept) {
+        this.flash('Malen er avslått.')
+        return
+      }
+      const p = r.payload ?? {}
+      const doc = cleanDoc(p.doc, () => null)
+      if (!doc) throw new Error('doc')
+      const want = typeof p.catId === 'string' ? p.catId : ''
+      const ok = (id: string) => this.s.cats.some((k) => k.id === id) && this.tplsOf(id).length < MAX_TPL
+      const catId = ok(want) ? want : this.s.cats.find((k) => ok(k.id))?.id
+      if (!catId) throw new Error('full')
+      const t: Template = { id: 'new-' + uid(), catId, name: String(r.name || it.name).slice(0, 60), doc, thumb: typeof p.thumb === 'string' ? p.thumb : '', updated: this.now() }
+      await this.persistTpls([...this.s.tpls, t])
+      this.flash('Malen «{name}» er lagt til blant dine maler.', { name: t.name })
+    } catch {
+      this.flash('Klarte ikke å hente malen. Prøv igjen.')
+      void this.loadInbox()
+    }
+  }
+
+  // ---------- maler delt med menigheten (TB-A43E52) ----------
+
+  sharedTplsOn(): boolean {
+    return !!this.d.sharedTpls?.available()
+  }
+
+  async loadSharedTpls(): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available()) return
+    try {
+      const l = await S.list()
+      if (this.alive) this.set({ sharedTpls: l })
+    } catch {
+      // vises ikke; prøves igjen neste gang kategorien åpnes
+    }
+  }
+
+  /** «Del med menigheten»: kopi av malen (bildene i menighetens filer). Den personlige malen beholdes. */
+  async publishTpl(t: Template): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available()) return
+    try {
+      const doc = await this.churchDoc(t.doc)
+      const thumb = await this.d.renderer.snapshot(doc, 240, false).catch(() => '')
+      const e: SharedTpl = { id: 's' + uid(), catId: t.catId, name: t.name, doc, thumb, by: S.by(), updated: this.now() }
+      const l = await S.mutate((list) => {
+        if (list.length >= 40) throw new Error('full')
+        return [...list, e]
+      })
+      if (this.alive) this.set({ sharedTpls: l })
+      this.flash('Malen er delt med menigheten. Alle medlemmer kan hente og redigere den.')
+    } catch (x) {
+      this.flash((x as Error)?.message === 'full' ? 'Menigheten har 40 delte maler, som er maks. Slett en først.' : 'Malen kunne ikke deles. Prøv igjen.')
+    }
+  }
+
+  /** Åpne en delt mal: endringer lagres for menigheten med «Oppdater for menigheten», eller privat som egen mal. */
+  openSharedTpl(e: SharedTpl): void {
+    this.enterEdit(clone(e.doc), null, e.name)
+    this.set({ sharedEdit: { id: e.id, name: e.name } })
+  }
+
+  async updateSharedTpl(): Promise<void> {
+    const S = this.d.sharedTpls
+    const se = this.s.sharedEdit
+    const cur = this.s.doc
+    if (!S?.available() || !se || !cur) return
+    try {
+      const doc = await this.churchDoc(cur)
+      const thumb = await this.d.renderer.snapshot(doc, 240, false).catch(() => '')
+      const name = String(this.s.tplName || '').trim().slice(0, 60) || se.name
+      const l = await S.mutate((list) => {
+        if (!list.some((x) => x.id === se.id)) throw new Error('missing')
+        return list.map((x) => (x.id === se.id ? { ...x, name, doc, thumb, by: S.by() || x.by, updated: this.now() } : x))
+      })
+      if (this.alive) this.set({ sharedTpls: l, sharedEdit: { id: se.id, name }, dirty: false })
+      this.flash('Malen er oppdatert for menigheten.')
+    } catch (x) {
+      this.flash((x as Error)?.message === 'missing' ? 'Malen finnes ikke lenger hos menigheten (den kan være slettet). Lagre den som egen mal.' : 'Malen kunne ikke oppdateres. Prøv igjen.')
+    }
+  }
+
+  /** «Hent som egen mal»: kopi blant dine personlige maler i kategorien. */
+  fetchSharedTpl(e: SharedTpl): void {
+    if (this.tplsOf(e.catId).length >= MAX_TPL) {
+      this.flash('Maks 5 maler per kategori. Slett en mal for å lage en ny.')
+      return
+    }
+    const n: Template = { id: 'new-' + uid(), catId: e.catId, name: e.name, doc: clone(e.doc), thumb: e.thumb, updated: this.now() }
+    void this.persistTpls([...this.s.tpls, n])
+    this.flash('Malen er hentet som din egen mal.')
+  }
+
+  async delSharedTpl(e: SharedTpl): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available() || !this.d.confirm('Slette den delte malen «{name}» for hele menigheten?', { name: e.name })) return
+    try {
+      const l = await S.mutate((list) => list.filter((x) => x.id !== e.id))
+      if (this.alive) this.set({ sharedTpls: l })
+    } catch {
+      this.flash('Malen kunne ikke slettes. Prøv igjen.')
+    }
+  }
+
   private async uploadLocalRefs(cats: Category[]): Promise<Category[]> {
     let changed = false
     const conv = async (v: string): Promise<string> => {
@@ -518,11 +769,14 @@ export class ThumbController {
   openCat(id: string): void {
     this.set({ view: 'cat', catId: id, editCats: false })
     this.location()
+    void this.loadSharedTpls()
+    void this.loadInbox()
   }
 
   goHome(): void {
     this.set({ view: 'home' })
     this.location()
+    void this.loadInbox()
   }
 
   layoutsOf(c: Category | null): { id: string; name: string; doc: Doc | null }[] {
@@ -646,6 +900,7 @@ export class ThumbController {
 
   openTpl(t: Template): void {
     this.enterEdit(clone(t.doc), t.id, t.name)
+    this.set({ sharedEdit: null })
   }
 
   newFromBase(): void {
@@ -773,8 +1028,9 @@ export class ThumbController {
     if (this.s.dirty && this.s.autoSave && this.autoOk() && !this.autoBusy) await this.autoRun()
     if (!this.alive) return
     if (this.s.dirty && !this.d.confirm('Du har endringer som ikke er lagret. Gå tilbake likevel?')) return
-    this.set({ view: 'cat', baseEdit: false, doc: null, hist: [], fut: [], sel: null, dirty: false, exp: false, save: false })
+    this.set({ view: 'cat', baseEdit: false, doc: null, hist: [], fut: [], sel: null, dirty: false, exp: false, save: false, sharedEdit: null })
     this.location()
+    void this.loadSharedTpls()
   }
 
   dupTpl(t: Template): void {
@@ -1644,14 +1900,17 @@ export class ThumbController {
   async runAI(id: string, kind: 'person' | 'object'): Promise<void> {
     if (this.s.ai) return
     const l = this.layer(id)
-    if (!l || l.type !== 'image' || !l.src || !l.src.startsWith('m:')) return
+    if (!l || l.type !== 'image' || !l.src || !this.canCutout(l.src)) return
     this.set({ ai: { id, phase: 'model', pct: 0 } })
     try {
-      const src = await this.d.cutout(l.src, kind, (phase, pct) => this.alive && this.set({ ai: { id, phase, pct } }))
+      // bilder fra menighetens filer o.l. hentes først inn i Dine medier (TB-7EB53A: valget manglet for slike bilder)
+      const from = l.src.startsWith('m:') ? l.src : await this.d.toLocal?.(l.src)
+      if (!from) throw new Error('src')
+      const src = await this.d.cutout(from, kind, (phase, pct) => this.alive && this.set({ ai: { id, phase, pct } }))
       await this.d.images.load(src)
       if (!this.alive) return
       const cur = this.layer(id)
-      this.setL(id, { src, orig: (cur?.type === 'image' && cur.orig) || l.src })
+      this.setL(id, { src, orig: (cur?.type === 'image' && cur.orig?.startsWith('m:') && cur.orig) || from })
       this.set({ ai: null })
       this.flash('Bakgrunnen er fjernet. Under «Beskjær» kan du kutte bildet.')
     } catch {
@@ -1659,6 +1918,11 @@ export class ThumbController {
       this.set({ ai: null })
       this.flash(typeof navigator !== 'undefined' && navigator.onLine === false ? 'Du er frakoblet. Første gang må AI-modellen lastes ned.' : 'Klarte ikke å fjerne bakgrunnen. Prøv et annet bilde eller en nyere nettleser.')
     }
+  }
+
+  /** Kan bakgrunnen fjernes? Egne bilder (m:) alltid; andre bilder når de kan hentes inn i Dine medier. */
+  canCutout(src: string | null | undefined): boolean {
+    return !!src && (src.startsWith('m:') || (!!this.d.toLocal && src.startsWith('ch:')))
   }
 
   // ---------- finjuster utklippet ----------
@@ -1743,24 +2007,21 @@ export class ThumbController {
     this.flash('Tomme kanter er fjernet.')
   }
 
-  /** Beskjærer; et «Vis hele»-bilde uten rotasjon beholder plassen sin i bildet (boksen krymper rundt utsnittet). */
+  /**
+   * Beskjærer slik at resultatet viser nøyaktig utsnittet som ble valgt (TB-F7323D). Før ble bare utsnittet byttet: med
+   * «Fyll» (cover) ble et utsnitt med et annet sideforhold enn boksen skalert til å fylle boksen, og kantene ble kuttet
+   * bort på nytt – derfor forsvant deler av personen. Nå legges boksen rundt utsnittet der det står i bildet, med samme
+   * skala (som «Vis hele» gjorde før), også med rotasjon og speiling. zoom/px/py nullstilles, så hele utsnittet vises.
+   */
   applyCropTo(id: string, nIn: Partial<CropBox>): void {
     const l = this.layer(id)
     if (!l || l.type !== 'image') return
     const en = this.d.images.get(l.src)
     const n = { cL: nIn.cL || 0, cT: nIn.cT || 0, cR: nIn.cR || 0, cB: nIn.cB || 0 }
     let patch: LayerPatch = n
-    if (en && l.fit === 'contain' && !l.rot) {
-      const nw = en.img.naturalWidth
-      const nh = en.img.naturalHeight
-      const o = { cL: l.cL || 0, cT: l.cT || 0, cR: l.cR || 0, cB: l.cB || 0 }
-      const iwO = nw * (1 - o.cL - o.cR)
-      const ihO = nh * (1 - o.cT - o.cB)
-      const sc = Math.min(l.w / iwO, l.h / ihO) * (l.zoom || 1)
-      const fx = l.x + (l.w - iwO * sc) * l.px - nw * o.cL * sc
-      const fy = l.y + (l.h - ihO * sc) * l.py - nh * o.cT * sc
-      patch = { ...n, x: Math.round(fx + nw * n.cL * sc), y: Math.round(fy + nh * n.cT * sc), w: Math.max(10, Math.round(nw * (1 - n.cL - n.cR) * sc)), h: Math.max(10, Math.round(nh * (1 - n.cT - n.cB) * sc)), zoom: 1 }
-    }
+    const nw = en?.img.naturalWidth ?? 0
+    const nh = en?.img.naturalHeight ?? 0
+    if (nw && nh) patch = { ...n, ...cropPlacement(l, nw, nh, n) }
     this.setL(id, patch, `crop:${id}:${this.now()}`)
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { cdAfter, cdBefore, cdStart, fmtTC, moveLane, spanOf, splitOv, splitSub, trackName, trimAt } from './edit'
-import { create, FORMATS, layout, mediaClip, music, overlay, text, type Media, type Project } from './model'
+import { cdAfter, cdBefore, cdStart, fmtTC, moveLane, shiftLayers, spanOf, splitOv, splitSub, trackName, trimAt } from './edit'
+import { create, FORMATS, layout, mediaClip, music, normalize, overlay, text, type Media, type Project } from './model'
 
 const wide = FORMATS[3] ?? { k: 'wide', name: '', ratio: '', w: 1920, h: 1080 }
 const vid: Media = { id: 'm-v', name: 'v.mp4', kind: 'video', dur: 10, w: 1920, h: 1080, thumb: '' }
@@ -91,5 +91,18 @@ describe('nedtelling ved deling og trim (TB-EB63E9)', () => {
     expect([l.start, l.dur, l.cdFrom]).toEqual([120, 1080, 1080])
     const r = ok(trimAt(p, 'text', 'c', 600, 'r')).texts[0]!
     expect([r.start, r.dur, r.cdFrom]).toEqual([0, 600, 1200])
+  })
+})
+
+/** TB-66E8B2: egne lag har navn og type, og navnene følger laget når lag settes inn eller fjernes. */
+describe('egne lag', () => {
+  it('lagres og renses ved normalisering', () => {
+    const p = normalize({ ...create(wide, ''), layers: { 'ov:1': { name: ' Logoer ', type: 'image' }, 'text:0': { name: 'Titler', type: 'text' }, 'x:1': { name: 'a', type: 'text' }, 'ov:2': { name: 'b', type: 'nei' } } })
+    expect(p?.layers).toEqual({ 'ov:1': { name: 'Logoer', type: 'image' }, 'text:0': { name: 'Titler', type: 'text' } })
+  })
+  it('navnene flyttes når et lag fjernes eller settes inn', () => {
+    const p = { ...create(wide, ''), layers: { 'ov:0': { name: 'A', type: 'video' as const }, 'ov:1': { name: 'B', type: 'image' as const }, 'text:1': { name: 'T', type: 'text' as const } } }
+    expect(shiftLayers(p, 'ov', 0, -1).layers).toEqual({ 'ov:0': { name: 'B', type: 'image' }, 'text:1': { name: 'T', type: 'text' } })
+    expect(shiftLayers(p, 'ov', 1, 1).layers).toEqual({ 'ov:0': { name: 'A', type: 'video' }, 'ov:2': { name: 'B', type: 'image' }, 'text:1': { name: 'T', type: 'text' } })
   })
 })

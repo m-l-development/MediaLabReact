@@ -41,7 +41,8 @@ export function appOf(pathname: string, search = '', base = '/app/'): { id: stri
   const p = String(pathname || '/')
   const rest = p.startsWith(base) ? p.slice(base.length) : p.replace(/^\//, '')
   const seg = (rest.split('/')[0] ?? '').toLowerCase()
-  let id = !seg ? 'media-lab' : seg === 'medier' ? 'media-library' : /^[a-z0-9-]{1,60}$/.test(seg) && APPS[seg] ? seg : 'ukjent'
+  // /app/admin har den etablerte ID-en «connecthub-admin» (TB-53E3CF: admin ble «ukjent», fordi bare verktøyene var kjent)
+  let id = !seg ? 'media-lab' : seg === 'medier' ? 'media-library' : seg === 'admin' ? 'connecthub-admin' : /^[a-z0-9-]{1,60}$/.test(seg) && APPS[seg] ? seg : 'ukjent'
   if (id === 'loop-studio' && /[?&](mal|disk|grunn|demo)=/.test(search)) id = 'loop-editor'
   return { id, name: APPS[id] ?? id }
 }

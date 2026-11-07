@@ -4,7 +4,8 @@ import { LANEH, linkColor, tlEnd, type Kind, type MotionController, type MState 
 import { TlTools } from './Advanced'
 import { fmtTC, trackName } from './engine/edit'
 import type { Keys } from './engine/kf'
-import { fmtD, fmtT, layout, ovDur, totalDur, type Project, type TrackKey } from './engine/model'
+import { useState } from 'react'
+import { fmtD, fmtT, LAYER_LABEL, LAYER_TYPES, layerKey, layout, ovDur, totalDur, type LayerType, type Project, type TrackKey } from './engine/model'
 import type { Phrase, Tx } from './texts'
 import s from './MotionDesign.module.css'
 
@@ -38,6 +39,40 @@ function Block({ c, kind, id, cls, sel, link, style, children }: BlockProps) {
   )
 }
 
+/**
+ * «+ Nytt lag» (TB-66E8B2): eget lag med navn og type (Tekst, Video, Bilde, Undertekst eller Lyd). Laget havner i sporet
+ * for typen; Undertekst har ett spor, som får navnet.
+ */
+function NewLayer({ c, tx }: { c: MotionController; tx: Tx }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [type, setType] = useState<LayerType>('text')
+  const add = () => {
+    c.addLayer(name, type)
+    setOpen(false)
+    setName('')
+  }
+  return (
+    <span className={s.newLayer}>
+      <button type="button" className={`${s.barBtn} ${s.small}`} style={{ height: 30 }} aria-expanded={open} data-md-newlayer="" onClick={() => setOpen((v) => !v)}>{tx('+ Nytt lag')}</button>
+      {open && (
+        <form className={s.newLayerPop} data-md-newlayer-form="" onSubmit={(e) => { e.preventDefault(); add() }} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }}>
+          <label>{tx('Navn')}<input autoFocus maxLength={40} value={name} placeholder={tx(LAYER_LABEL[type])} data-md-newlayer-name="" onChange={(e) => setName(e.target.value)} /></label>
+          <label>{tx('Type')}
+            <select value={type} data-md-newlayer-type="" onChange={(e) => setType(e.target.value as LayerType)}>
+              {LAYER_TYPES.map((k) => <option key={k} value={k}>{tx(LAYER_LABEL[k])}</option>)}
+            </select>
+          </label>
+          <div>
+            <button type="submit" className={`${s.barBtn} ${s.small}`}>{tx('Legg til')}</button>
+            <button type="button" className={s.linkBtn} onClick={() => setOpen(false)}>{tx('Avbryt')}</button>
+          </div>
+        </form>
+      )}
+    </span>
+  )
+}
+
 /** Demp lydsporet (Avansert): klippene beholdes, men høres ikke i avspilling eller eksport. */
 function MuteBtn({ c, p, tx, lane }: { c: MotionController; p: Project; tx: Tx; lane: number }) {
   const on = !!p.muteA?.includes(lane)
@@ -60,6 +95,23 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
     <i key={t} className={s.kfDot} style={{ left: t * Z }} data-md-kfdot="" title={tx('Keyframe – klikk for å redigere')} onPointerDown={(e) => { e.stopPropagation(); c.pickKey(type, id, start + t) }} onContextMenu={(e) => c.kfDotMenu(e, type, id, start + t, t)} />
   )) : null)
   const laneName = (k: TrackKey, lane: number) => (k === 'video' ? 'V1 · Hoved' : k === 'ov' ? trackName(p, 'ov', lane) : k === 'music' ? trackName(p, 'music', lane) : k === 'text' ? trackName(p, 'text', lane) : 'UT')
+  // lagtypen (TB-66E8B2): eget navn, ellers typen; overleggslag er «Bilde» eller «Video» etter innholdet
+  const typeOf = (k: TrackKey, lane: number): LayerType => {
+    const own = p.layers?.[layerKey(k, lane)]?.type
+    if (own) return own
+    if (k === 'text') return 'text'
+    if (k === 'music') return 'audio'
+    if (k === 'subs') return 'subs'
+    if (k === 'video') return 'video'
+    const kinds = new Set(p.ov.filter((o) => (o.lane || 0) === lane).map((o) => p.media.find((m) => m.id === o.media)?.kind))
+    return kinds.size === 1 && kinds.has('video') ? 'video' : 'image'
+  }
+  const label = (k: TrackKey, lane: number) => p.layers?.[layerKey(k, lane)]?.name ?? tx(LAYER_LABEL[typeOf(k, lane)])
+  const shown = (k: TrackKey, lane: number) => (adv ? laneName(k, lane) + ' · ' : '') + label(k, lane) + (!adv && lane > 0 && !p.layers?.[layerKey(k, lane)] ? ' ' + (lane + 1) : '')
+  const rename = (k: TrackKey, lane: number) => {
+    const v = window.prompt(tx('Navn på laget (tomt = standardnavnet):'), p.layers?.[layerKey(k, lane)]?.name ?? '')
+    if (v !== null) c.renameLayer(k, lane, v, typeOf(k, lane))
+  }
   const selId = S.sel?.id
   const mIds = new Set(S.multi.map((m) => m.id))
   const isSel = (id: string) => selId === id || mIds.has(id)
@@ -78,7 +130,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
   const media = (id: string) => p.media.find((m) => m.id === id)
   const cd = S.clipDrag
   const hit = S.medDrag?.hit
-  const rows: [TrackKey, Phrase, number, number][] = [['text', 'Tekst', nText * 26 + 8, nText], ['ov', 'Overlegg', nOv * 40 + 8, nOv], ['video', 'Video', 60, 0], ['subs', 'Undertekst', 34, 0], ['music', 'Musikk', nMus * 30 + 8, nMus]]
+  const rows: [TrackKey, Phrase, number, number][] = [['text', 'Tekst', nText * 26 + 8, nText], ['ov', 'Bilde', nOv * 40 + 8, nOv], ['video', 'Video', 60, 0], ['subs', 'Undertekst', 34, 0], ['music', 'Lyd', nMus * 30 + 8, nMus]]
   const wave = (mediaId: string, inn: number, len: number, sp: number, rev: boolean) => {
     const u = c.waves[mediaId]
     return u ? { backgroundImage: css(u), backgroundSize: `${(len * Z) / sp}px 100%`, backgroundPosition: `${(-inn * Z) / sp}px 0`, transform: rev ? 'scaleX(-1)' : 'none' } : undefined
@@ -89,6 +141,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
         <button type="button" className={s.zBtn} title={tx('Zoom ut')} aria-label={tx('Zoom ut')} onClick={() => c.zoomBy(1 / 1.5)}>−</button>
         <button type="button" className={s.zBtn} title={tx('Zoom inn')} aria-label={tx('Zoom inn')} onClick={() => c.zoomBy(1.5)}>+</button>
         {!adv && <button type="button" className={`${s.barBtn} ${s.small}`} style={{ height: 30 }} onClick={() => c.fitZoom()}>{tx('Vis alt')}</button>}
+        <NewLayer c={c} tx={tx} />
         {adv && <TlTools c={c} S={S} p={p} tx={tx} />}
         {adv && <span className={s.tc} data-md-tc="" title={`${tx('Spillehodet (tt:mm:ss:bilde, 30 bilder per sekund)')}\n${tx('Dra for å flytte, kantene for å trimme. Q/W trimmer til spillehodet, S deler, Alt+↑/↓ bytter spor.')}`}>{fmtTC(S.t)}</span>}
         <span className={s.flex} />
@@ -103,7 +156,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
             return (
               <div key={k} className={s.headRow} style={{ height: h, paddingTop: nl ? 4 : 0, opacity: q.hide ? 0.5 : 1 }} data-track={k}>
                 <div className={s.headLine} style={{ height: lh }}>
-                  <span className={s.headName} data-md-lane={adv ? laneName(k, 0) : undefined}>{adv ? laneName(k, 0) : tx(name)}</span>
+                  <span className={s.headName} data-md-lane={adv ? laneName(k, 0) : undefined} data-md-layer={label(k, 0)} title={tx('Dobbeltklikk for å gi laget et navn')} onDoubleClick={() => rename(k, 0)}>{shown(k, 0) || tx(name)}</span>
                   {nl > 0 && <button type="button" className={s.ico} title={tx('Legg til lag')} aria-label={tx('Legg til lag')} onClick={() => c.addLane(k as keyof typeof LANEH)}>+</button>}
                   {adv && k === 'music' && <MuteBtn c={c} p={p} tx={tx} lane={0} />}
                   <button type="button" className={`${s.ico} ${q.hide ? s.icoHid : ''}`} title={tx(q.hide ? 'Vis spor' : 'Skjul spor')} aria-label={tx(q.hide ? 'Vis spor' : 'Skjul spor')} aria-pressed={q.hide} onClick={() => c.toggleTrack(k, 'hide')}>
@@ -116,7 +169,7 @@ export function Timeline({ c, S, p, tx, maxH, fixH }: { c: MotionController; S: 
                 </div>
                 {Array.from({ length: Math.max(0, nl - 1) }, (_, i) => (
                   <div key={i} className={s.lane} style={{ height: LANEH[k as keyof typeof LANEH] }}>
-                    <span className={s.flex} data-md-lane={adv ? laneName(k, i + 1) : undefined}>{adv ? laneName(k, i + 1) : `${tx('Lag')} ${i + 2}`}</span>
+                    <span className={s.flex} data-md-lane={adv ? laneName(k, i + 1) : undefined} data-md-layer={label(k, i + 1)} title={tx('Dobbeltklikk for å gi laget et navn')} onDoubleClick={() => rename(k, i + 1)}>{shown(k, i + 1)}</span>
                     {adv && k === 'music' && <MuteBtn c={c} p={p} tx={tx} lane={i + 1} />}
                     <button type="button" className={`${s.ico} ${s.icoDel}`} title={tx('Fjern lag')} aria-label={tx('Fjern lag')} onClick={() => c.delLane(k as keyof typeof LANEH, i + 1)}>×</button>
                   </div>

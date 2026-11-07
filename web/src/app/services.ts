@@ -8,6 +8,7 @@ import { createCommunityService, type CommunityService } from '../services/commu
 import { createFilesService, type FilesService } from '../services/files'
 import { createChurchSettings, type ChurchSettingsService } from '../services/shared-setup'
 import { createFeedbackService, type FeedbackService } from '../services/feedback'
+import { createSharesService, type SharesService } from '../services/shares'
 import { createAccountService, type AccountService } from '../services/account'
 import { createRequestInbox, createRequestService, type RequestInbox, type RequestService } from '../services/requests'
 import { createAdminService, type AdminService } from '../services/admin'
@@ -31,6 +32,8 @@ export interface Services {
   loopDisk: LoopDiskService
   /** Tilbakemeldinger (PLT-21). */
   feedback: FeedbackService
+  /** Send en mal til et annet medlem i menigheten (TB-09177E). Valgfri, så testoppsett uten den virker som før. */
+  shares?: SharesService
   /** Kontomenyen: varsler, e-postvarsler, passord, eksport og sletting (AUTH-05, AUTH-08). */
   account: AccountService
   /** Forespørsel om konto før innlogging (AUTH-07). */
@@ -56,7 +59,7 @@ export function createServices(router: Router): Services {
     dev: import.meta.env.DEV,
     present: (me) => presentTestRole(me),
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), loopDisk: createLoopDiskService(data), feedback: createFeedbackService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), mail: createMailService(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), loopDisk: createLoopDiskService(data), feedback: createFeedbackService(data), shares: createSharesService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), mail: createMailService(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)
