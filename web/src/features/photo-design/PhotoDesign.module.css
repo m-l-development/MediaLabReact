@@ -1122,8 +1122,8 @@ button:disabled {
   padding: 0 9px;
   border: 1px solid #2b2b2b;
   border-radius: 999px;
-  background: transparent;
-  color: #c9c5bc;
+  background: #121212;
+  color: #f3f1ec;
   font: 600 11px/1 Archivo, system-ui, sans-serif;
   cursor: pointer;
   white-space: nowrap;
