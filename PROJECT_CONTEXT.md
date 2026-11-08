@@ -29,14 +29,14 @@ Media Lab = verktøy for menigheter (Loop Studio, Thumbnail Studio, Photo Design
 - Forhåndsvisning i innboksen: skjemaet holdes utenfor omrisset, plassbudsjett mot 4000-grensen, ryddig miniatyr (etiketter bare når de får plass, rammen øverst med elementnavn), omtrentlig side for saker uten omriss i stedet for tom ramme (`LayoutPreview.tsx`, `layout.ts`, `app/Feedback.tsx`, `admin/Feedback.tsx`, `admin/texts.ts`).
 - Tester: `e2e/feedback-verify.spec.ts` (ny), `e2e/feedback-preview.spec.ts` (utvidet).
 **Gjenstår:**
-- Ikke verifisert (trenger ekte ConnectHub; dev-DB utilgjengelig): TB-143BF7, TB-B4A133, TB-A43E52 (Loop-delen). Se «Teste Loop-sakene» under.
-- Migreringen `item_shares` er ikke kjørt på dev (dev-DB utilgjengelig).
+- TB-143BF7, TB-B4A133, TB-A43E52 (Loop): verifisert mot connecthub-dev 2026-11-08 (`run-dev.mjs --only=par`, 7/7 grønne; ny test i `loop-sharing-dev.spec.ts`).
+- Migreringen `item_shares` er ikke kjørt på dev: API og data virker, men Supabase avviser CLI-rollene (PAM authentication failed for cli_login_postgres / supabase_read_only_user), så DDL er blokkert. Produksjon har den allerede (20261108100000 registrert, tabellen finnes).
 
 ## Teste Loop-sakene (når dev-DB svarer)
 - Krav: `connecthub-dev` (`uatpdmhnwwjgzlxaucsx`) tilgjengelig, Supabase-CLI innlogget, `web/.env.local` mot dev. Aldri prod.
 - Kjør: `cd web && node e2e-dev/run-dev.mjs --only=par` (to syntetiske kontoer i «CH-test Menighet A»: Admin A og Bruker B; oppsettet kopieres og legges tilbake).
 - Dekket av eksisterende spesifikasjoner: felles grunnoppsett A→B og oppdatering (`loop-sharing-dev.spec.ts`), lasting/lagring av serie fra felles grunnoppsett (`loop-base-load-dev.spec.ts`).
-- Ikke dekket, må kontrolleres (utvid `loop-sharing-dev.spec.ts` eller kontroller manuelt):
+- Dekket av testen «personlig grunnoppsett, Del med menigheten og egne bilder» i `loop-sharing-dev.spec.ts`:
   - TB-143BF7: A lagrer felles grunnoppsett med eget bilde (`img-`) → bildet lastes opp til menighetens filer (`ch:`-referanse i `loopstudio:bases`) → B ser bildet.
   - TB-B4A133: «felles for menigheten» er standardvalget når brukeren har menighet; personlig grunnoppsett ses bare av eieren.
   - TB-A43E52 (Loop): «Del med menigheten» på et personlig grunnoppsett → kopi med ny ID i felles liste, det personlige beholdes, bilder synlige for B.
