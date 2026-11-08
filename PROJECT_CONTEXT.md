@@ -23,8 +23,8 @@ Media Lab = verktøy for menigheter (Loop Studio, Thumbnail Studio, Photo Design
 
 ## Status
 **Ferdig (i produksjon via PR #35, b43d1de):** miniatyr av siden (TB-53E3CF), global markering, delte maler i Photo Design.
-**Grønn, venter på godkjenning for merge:** PR #36 (6a1d642, TB-7D30CC scrolling i skjemaet under markering).
-**Pushet til `connecthub` (8e8c0f3 + e973977; CI og Release grønne for begge, Release verify hoppet over som vanlig; PR #36 åpen, ikke merget):**
+**I produksjon via PR #36 (merge de4eeba, 2026-11-08; Release verify grønn, version.json = de4eeba):**
+- TB-7D30CC: skjemaet kan scrolles under markering.
 - TB-1591A7: grunnoppsett-banneret i Loop flyttes ned på mobil (`loop-studio/Page.module.css`, `LoopStudio.tsx`).
 - Forhåndsvisning i innboksen: skjemaet holdes utenfor omrisset, plassbudsjett mot 4000-grensen, ryddig miniatyr (etiketter bare når de får plass, rammen øverst med elementnavn), omtrentlig side for saker uten omriss i stedet for tom ramme (`LayoutPreview.tsx`, `layout.ts`, `app/Feedback.tsx`, `admin/Feedback.tsx`, `admin/texts.ts`).
 - Tester: `e2e/feedback-verify.spec.ts` (ny), `e2e/feedback-preview.spec.ts` (utvidet).
@@ -55,5 +55,5 @@ Media Lab = verktøy for menigheter (Loop Studio, Thumbnail Studio, Photo Design
 - Miniatyren er alltid et forenklet omriss, aldri skjermbilde eller brukerinnhold.
 
 ## Siste commit / neste steg
-- Gren `connecthub`; PR #36 til `main` inneholder 6a1d642, 8e8c0f3, e973977 og denne statusoppdateringen. Alle CI-sjekker grønne for e973977.
-- Neste: merge PR #36 bare etter brukerens godkjenning; deretter verifisere TB-143BF7, TB-B4A133, TB-A43E52 i ekte ConnectHub.
+- `main` og `connecthub` = de4eeba (merge av PR #36), pluss denne statuscommiten på `connecthub`.
+- Neste: kjør `item_shares` på dev når Supabase godtar CLI-innlogging igjen (`npx supabase@latest db push --project-ref uatpdmhnwwjgzlxaucsx --dry-run`, så uten --dry-run). Ikke tilbakestill databasepassordet uten godkjenning.
