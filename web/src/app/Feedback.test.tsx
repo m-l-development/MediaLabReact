@@ -152,10 +152,10 @@ describe('Send tilbakemelding', () => {
   })
 })
 
-/** TB-ED697B: liten, flyttbar instruksjon; markering i skjemaet; start fra kontomenyen og med Alt+Shift+M. */
+/** TB-ED697B: global markering med Alt+Shift+M over det som er åpent; liten, flyttbar instruksjon; markering i skjemaet. */
 describe('Marker et område', () => {
   const bar = () => document.querySelector('[data-chfb-tool][role="toolbar"]') as HTMLElement | null
-  it('Alt+Shift+M og kontomenyen åpner skjemaet rett i markering', () => {
+  it('Alt+Shift+M starter markeringen uten å åpne skjemaet (kan også startes programmatisk)', () => {
     render(<Host submit={vi.fn<Submit>()} />)
     fireEvent.keyDown(document, { key: 'M', code: 'KeyM', altKey: true, shiftKey: true })
     expect(bar()).toBeTruthy()
@@ -165,11 +165,14 @@ describe('Marker et område', () => {
     act(() => startMarking())
     expect(bar()).toBeTruthy()
   })
-  it('«Marker i skjemaet» viser skjemaet under markeringen, og instruksjonen kan flyttes', () => {
+  it('ingen egen knapp for å markere i skjemaet; «Vis skjemaet» i instruksjonen, som kan flyttes', () => {
     open(vi.fn<Submit>())
     kind('Rapporter en feil')
-    fireEvent.click(screen.getByRole('button', { name: 'Marker i skjemaet' }))
+    expect(screen.queryByRole('button', { name: 'Marker i skjemaet' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Marker et område på skjermen' }))
     expect(bar()).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(within(bar() as HTMLElement).getByRole('button', { name: 'Vis skjemaet' }))
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(within(bar() as HTMLElement).getByRole('button', { name: 'Skjul skjemaet' }).getAttribute('aria-pressed')).toBe('true')
     const grip = (bar() as HTMLElement).querySelector('[data-chfb-grip]') as HTMLElement

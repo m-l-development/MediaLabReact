@@ -27,7 +27,17 @@ export type Picker = { kind: 'media' | 'cloud'; target: PickerTarget; start?: 'f
 /** Import eller ZIP-eksport i en bildeserie: fremdrift og bildene som feilet. */
 export interface BatchJob { kind: 'import' | 'export'; done: number; total: number; failed: string[]; end: boolean }
 
+/**
+ * En mal delt med menigheten (TB-A43E52). Bilder og masker ligger i menighetens filer («ch:»-referanser), så listen i
+ * felles oppsett (church_settings «photodesign:tpls») bare har referanser og en liten miniatyr.
+ */
+export interface SharedPd { id: string; name: string; cat: string; w: number; h: number; thumb: string; doc: PdDoc; masks: Record<string, string>; by: string; updated: number }
+
 export interface PState {
+  /** Menighetens delte maler (null = ikke hentet / ikke tilgjengelig). */
+  sharedTpls: SharedPd[] | null
+  /** Prosjektet er åpnet fra en delt mal: «Oppdater delt mal» lagrer endringene tilbake for menigheten. */
+  sharedFrom: { id: string; name: string } | null
   /** Høyreklikkmenyen (lerretet eller lagpanelet): posisjon og laget den gjelder (null = tom flate). */
   ctx: { x: number; y: number; id: string | null } | null
   ready: boolean
@@ -47,7 +57,7 @@ export interface PState {
   zoom: number
   exp: { fmt: 'png' | 'jpg' | 'pdf'; scale: 1 | 2; t: boolean }
   expOpen: boolean
-  busy: '' | 'load' | 'model' | 'run' | 'exp'
+  busy: '' | 'load' | 'model' | 'run' | 'exp' | 'share'
   pct: number
   toast: Msg | null
   saved: Saved
@@ -105,6 +115,17 @@ export interface PDeps {
   openMedia(src: string): Promise<Blob | null>
   /** Legger et bilde i Dine medier. → `m:<id>`. */
   putImage(blob: Blob, name: string): Promise<string>
+  /** Menighetens delte maler (TB-A43E52); mangler uten ConnectHub. */
+  sharedTpls?: {
+    available(): boolean
+    list(): Promise<SharedPd[]>
+    mutate(fn: (l: SharedPd[]) => SharedPd[]): Promise<SharedPd[]>
+    /** Laster opp et bilde til menighetens Fellesmappe → «ch:<id>». */
+    upload(blob: Blob, name: string): Promise<string>
+    /** Henter et bilde fra menighetens filer. */
+    blob(ref: string): Promise<Blob | null>
+    by(): string
+  }
   /** AI-utklipp: maske (hvit + alfa) i størrelsen til `src`. null = ingen tydelig motiv. */
   cutout(src: HTMLCanvasElement, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<HTMLCanvasElement | null>
   /** «Velg objekt» i den felles maskeredigeringen (SlimSAM). */
@@ -172,6 +193,7 @@ export class PhotoController {
     const cats = parse<unknown>(st.get('photodesign.cats'), null)
     const tc = st.get('photodesign.tplcat')
     this.state = createStore<PState>({
+      sharedTpls: null, sharedFrom: null,
       ready: false, view: 'home', entries: [], fmt: 'sq', cw: '1200', ch: '800', doc: null, projectId: null, sel: null, multi: [], tool: 'move', tab: 'layer',
       brush: { size: 80, mode: 'erase', hard: 0.6 }, fit: 0.5, zoom: 1, exp: { fmt: 'png', scale: 1, t: false }, expOpen: false, busy: '', pct: 0, toast: null,
       saved: null, autosave: st.get('photodesign.autosave') === '1', guides: null, ltab: 'lag', fillOpen: true, linkCol: false,
@@ -217,6 +239,7 @@ export class PhotoController {
     } catch {
       if (this.alive) this.set({ ready: true })
     }
+    void this.loadSharedTpls()
   }
 
   fmtWH(): [number, number] {
@@ -322,6 +345,8 @@ export class PhotoController {
   }
 
   openDoc(doc: PdDoc, projectId: string | null, isNew: boolean): void {
+    // et annet prosjekt enn det som ble åpnet fra en delt mal (useSharedTpl setter den igjen etterpå)
+    if (this.s.sharedFrom) this.set({ sharedFrom: null })
     this.past = []
     this.future = []
     this.hk = null
@@ -498,6 +523,144 @@ export class PhotoController {
       else delete n.cat
       return n
     })
+  }
+
+  // ---------- maler delt med menigheten (TB-A43E52) ----------
+
+  sharedOn(): boolean {
+    return !!this.d.sharedTpls?.available()
+  }
+
+  async loadSharedTpls(): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available()) return
+    try {
+      const l = await S.list()
+      if (this.alive) this.set({ sharedTpls: l })
+    } catch {
+      // vises ikke; prøves igjen neste gang
+    }
+  }
+
+  /** Egne bilder (m:) og masker (data-URL) lastes opp én gang per økt og byttes med «ch:»-referanser. */
+  private upCache = new Map<string, string>()
+  private async forChurch(doc: PdDoc, masks: Record<string, string>): Promise<{ doc: PdDoc; masks: Record<string, string> }> {
+    const S = this.d.sharedTpls
+    if (!S) throw new Error('shared')
+    const up = async (key: string, make: () => Promise<Blob | null>, name: string) => {
+      const have = this.upCache.get(key)
+      if (have) return have
+      const b = await make()
+      if (!b) return null
+      const ref = await S.upload(b, name)
+      this.upCache.set(key, ref)
+      return ref
+    }
+    const d: PdDoc = structuredClone(doc)
+    for (const L of [...d.layers, ...(d.back?.layers ?? [])]) {
+      if (L.type !== 'image' || !L.src || L.src.startsWith('ch:')) continue
+      const src = L.src
+      L.src = (await up(src, () => this.d.openMedia(src), 'Delt mal.png')) ?? null
+    }
+    const mo: Record<string, string> = {}
+    for (const [k, v] of Object.entries(masks)) {
+      const ref = v.startsWith('ch:') ? v : await up('mask:' + v.length + ':' + v.slice(-64), async () => (await fetch(v)).blob(), 'Maske.png')
+      if (ref) mo[k] = ref
+    }
+    return { doc: d, masks: mo }
+  }
+
+  /** «Del med menigheten»: kopi av en egen mal. Din mal forblir privat. */
+  async publishTpl(p: PdEntry): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available()) return
+    this.set({ busy: 'share' })
+    try {
+      const st = await this.d.repo.open(p.id)
+      const { doc, masks } = await this.forChurch(st.doc, st.masks)
+      const e: SharedPd = { id: uid('s'), name: p.name, cat: p.cat ?? '', w: st.doc.w, h: st.doc.h, thumb: st.thumb.length < 60000 ? st.thumb : '', doc, masks, by: S.by(), updated: this.now() }
+      const l = await S.mutate((list) => {
+        if (list.length >= 40) throw new Error('full')
+        return [...list, e]
+      })
+      if (this.alive) this.set({ sharedTpls: l })
+      this.flash('Malen er delt med menigheten. Alle medlemmer kan bruke og oppdatere den.')
+    } catch (x) {
+      this.flash((x as Error)?.message === 'full' ? 'Menigheten har 40 delte maler, som er maks. Slett en først.' : 'Malen kunne ikke deles. Prøv igjen.')
+    }
+    if (this.alive) this.set({ busy: '' })
+  }
+
+  /** Bruk en delt mal: åpnes som et nytt, eget prosjekt (bildene hentes inn i Dine medier). */
+  async useSharedTpl(e: SharedPd): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available()) return
+    this.set({ busy: 'load' })
+    try {
+      const d: PdDoc = structuredClone(e.doc)
+      const local = new Map<string, string>()
+      for (const L of [...d.layers, ...(d.back?.layers ?? [])]) {
+        if (L.type !== 'image' || !L.src?.startsWith('ch:')) continue
+        const ref = L.src
+        if (!local.has(ref)) {
+          const b = await S.blob(ref).catch(() => null)
+          local.set(ref, b ? await this.d.putImage(b, 'Delt mal.png') : '')
+        }
+        L.src = local.get(ref) || null
+      }
+      const masks: Record<string, string> = {}
+      for (const [k, ref] of Object.entries(e.masks ?? {})) {
+        const b = await S.blob(ref).catch(() => null)
+        if (b) masks[k] = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(b) })
+      }
+      this.M.media.clear()
+      this.M.masks.clear()
+      this.savedMasks.clear()
+      await this.loadMedia(d, masks)
+      if (!this.alive) return
+      this.set({ busy: '' })
+      this.openDoc({ ...d, id: uid('p'), updated: this.now() }, null, false)
+      this.set({ sharedFrom: { id: e.id, name: e.name } })
+      this.queueSave()
+    } catch {
+      if (this.alive) {
+        this.set({ busy: '' })
+        this.flash('Malen kunne ikke åpnes.')
+      }
+    }
+  }
+
+  /** «Oppdater delt mal»: endringene i prosjektet blir den delte malen, synlig for alle medlemmer. */
+  async updateSharedTpl(): Promise<void> {
+    const S = this.d.sharedTpls
+    const sf = this.s.sharedFrom
+    const cur = this.s.doc
+    if (!S?.available() || !sf || !cur) return
+    this.set({ busy: 'share' })
+    try {
+      const { doc, masks } = await this.forChurch(cur, await this.masksOf(cur))
+      const thumb = this.thumbOf(cur)
+      const l = await S.mutate((list) => {
+        if (!list.some((x) => x.id === sf.id)) throw new Error('missing')
+        return list.map((x) => (x.id === sf.id ? { ...x, doc, masks, w: cur.w, h: cur.h, thumb: thumb.length < 60000 ? thumb : x.thumb, by: S.by() || x.by, updated: this.now() } : x))
+      })
+      if (this.alive) this.set({ sharedTpls: l })
+      this.flash('Malen er oppdatert for menigheten.')
+    } catch (x) {
+      this.flash((x as Error)?.message === 'missing' ? 'Malen finnes ikke lenger hos menigheten (den kan være slettet).' : 'Malen kunne ikke oppdateres. Prøv igjen.')
+    }
+    if (this.alive) this.set({ busy: '' })
+  }
+
+  async delSharedTpl(e: SharedPd): Promise<void> {
+    const S = this.d.sharedTpls
+    if (!S?.available() || !this.d.confirm('Slette den delte malen «{name}» for hele menigheten?', { name: e.name })) return
+    try {
+      const l = await S.mutate((list) => list.filter((x) => x.id !== e.id))
+      if (this.alive) this.set({ sharedTpls: l })
+    } catch {
+      this.flash('Malen kunne ikke slettes. Prøv igjen.')
+    }
   }
 
   async saveTpl(): Promise<void> {

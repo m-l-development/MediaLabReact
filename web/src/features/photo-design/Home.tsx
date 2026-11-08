@@ -170,10 +170,26 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
               <button type="button" className={s.projThumb} style={{ backgroundImage: p.thumb ? `url("${p.thumb}")` : 'none' }} aria-label={p.name} onClick={() => void c.open(p.id)} />
               <div className={s.projText}><span>{p.name}</span><span>{p.w} × {p.h}</span></div>
               <button type="button" className={s.projDel} title={tx('Slett mal')} aria-label={tx('Slett mal')} onClick={() => void c.delProject(p)}>×</button>
+              {c.sharedOn() && <button type="button" className={s.chip} data-pd-publish="" disabled={S.busy === 'share'} title={tx('Del en kopi med menigheten. Din mal forblir privat.')} onClick={() => void c.publishTpl(p)}>{tx('Del med menigheten')}</button>}
             </div>
           ))}
         </div>
       </section>
+      {c.sharedOn() && (
+        <section className={s.section} data-pd-shared-tpls="">
+          <span className={s.eyebrow}>{tx('Menighetens maler · delt av medlemmene')}</span>
+          {!(S.sharedTpls ?? []).length && <span className={s.note}>{tx(S.sharedTpls ? 'Ingen delte maler ennå. Trykk «Del med menigheten» på en av dine maler.' : 'Laster …')}</span>}
+          <div className={s.tplGrid}>
+            {(S.sharedTpls ?? []).map((e) => (
+              <div key={e.id} className={s.projCard} data-pd-shared-tpl={e.name}>
+                <button type="button" className={s.projThumb} style={{ backgroundImage: e.thumb ? `url("${e.thumb}")` : 'none' }} aria-label={tx('Bruk «{name}»', { name: e.name })} onClick={() => void c.useSharedTpl(e)} />
+                <div className={s.projText}><span>{e.name}</span><span>{e.w} × {e.h}{e.by ? ' · ' + tx('delt av {name}', { name: e.by }) : ''}</span></div>
+                <button type="button" className={s.projDel} title={tx('Slett for menigheten')} aria-label={tx('Slett for menigheten')} onClick={() => void c.delSharedTpl(e)}>×</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {projects.length > 0 && (
         <section className={s.section} data-pd-projects="">
           {/* kategorier for prosjektene (TB-8E2793): filter, nye prosjekter havner i valgt kategori, flytt fra kortet */}

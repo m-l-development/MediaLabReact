@@ -489,6 +489,7 @@ function StylePanel({ c, S, tx }: EditorProps) {
         <button type="button" title={tx('Ny kategori')} aria-label={tx('Ny kategori')} onClick={() => c.newCat()}>+</button>
       </div>
       <button type="button" className={s.primary} onClick={() => void c.saveTpl()}>{tx('Lagre som mal')}</button>
+      {S.sharedFrom && <button type="button" className={s.primary} data-pd-update-shared="" disabled={S.busy === 'share'} title={tx('Endringene blir synlige for alle medlemmer')} onClick={() => void c.updateSharedTpl()}>{tx('Oppdater delt mal «{name}»', { name: S.sharedFrom.name })}</button>}
       <span className={s.note}>{tx('Maks 5 maler per kategori. Malene finner du på startsiden.')}</span>
     </div>
   )

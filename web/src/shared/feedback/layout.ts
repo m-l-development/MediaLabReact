@@ -82,6 +82,8 @@ export function pageLayout(skip: (el: Element) => boolean = () => false, root: E
     if (cs.visibility === 'hidden' || cs.display === 'none' || (cs.opacity !== '' && Number(cs.opacity) < 0.05)) continue
     const k = kindOf(el, cs, r, W, H)
     if (!k) continue
+    // dekorasjon (f.eks. den bevegelige bakgrunnen) hører ikke til sidens innhold
+    if ((k === 'm' || k === 'p') && (el.closest('[aria-hidden="true"]') || cs.pointerEvents === 'none')) continue
     const x0 = Math.max(0, r.left), y0 = Math.max(0, r.top), x1 = Math.min(W, r.right), y1 = Math.min(H, r.bottom)
     const it: LayoutItem = { k, x: Math.round((x0 / W) * 1000), y: Math.round((y0 / H) * 1000), w: Math.max(1, Math.round(((x1 - x0) / W) * 1000)), h: Math.max(1, Math.round(((y1 - y0) / H) * 1000)) }
     if ((k === 'b' || k === 'h' || k === 'l') && !el.closest(PRIVATE)) {

@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendTargets } from '../../app/send-targets'
 import { useServices } from '../../app/services'
-import { legacyDefaults } from '../../services/shared-setup'
+import { activeChurch, legacyDefaults } from '../../services/shared-setup'
+import { ServiceError } from '../../services/errors'
+import { displayName } from '../../domain/account'
+import { fitUpload } from '../../shared/media/upload-fit'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
@@ -13,7 +16,7 @@ import { pastedImage } from '../../shared/lib/paste'
 import { useStore } from '../../shared/lib/store'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
-import { PhotoController, type Pt } from './controller'
+import { PhotoController, type Pt, type SharedPd } from './controller'
 import { Editor } from './Editor'
 import { PhotoCutout } from './engine/cutout'
 import { Home } from './Home'
@@ -44,7 +47,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   const tx = useTx()
   const lang = useLang()
   const tApp = useT()
-  const { router, auth } = useServices()
+  const { router, auth, files, churchSettings } = useServices()
   // «Bruk i …» (SHR-02): resultatet lagres i Dine medier og åpnes i det andre verktøyet
   const sendTo = sendTargets('photo-design', 'image').map((tool) => ({ id: tool.id, label: tApp('share.useIn', { tool: tApp(toolTitleKey(tool.id)) }) }))
   const { assets, projects, userId } = useWorkspace()
@@ -61,6 +64,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
     const cutout = new PhotoCutout()
     const say = (p: Phrase, v?: Vars) => tr(langRef.current, p, v)
     const st = auth.state.get()
+    const me = () => { const a = auth.state.get(); return a.status === 'ready' ? a.me : null }
     const c = new PhotoController({
       legacyDefaults: legacyDefaults(st.status === 'ready' ? st.me : null),
       repo,
@@ -68,6 +72,41 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       async putImage(blob, name) {
         const a = await assets.register(blob, { name })
         return `m:${a.id}`
+      },
+      // menighetens delte maler (TB-A43E52): felles oppsett «photodesign:tpls», bilder i menighetens Fellesmappe
+      sharedTpls: {
+        available: () => !!activeChurch(me())?.id && churchSettings.available() && files.available(),
+        async list() {
+          const ch = activeChurch(me())?.id
+          if (!ch) return []
+          const r = await churchSettings.get(ch, 'photodesign:tpls')
+          const l = (r?.data as { tpls?: unknown } | null)?.tpls
+          return Array.isArray(l) ? (l as SharedPd[]).filter((x) => x && typeof x.id === 'string' && x.doc) : []
+        },
+        async mutate(fn) {
+          const ch = activeChurch(me())?.id
+          if (!ch) throw new Error('church')
+          for (let i = 0; i < 4; i++) {
+            const r = await churchSettings.get(ch, 'photodesign:tpls')
+            const l = (r?.data as { tpls?: unknown } | null)?.tpls
+            const next = fn(Array.isArray(l) ? (l as SharedPd[]) : [])
+            try {
+              await churchSettings.save(ch, 'photodesign:tpls', { tpls: next }, r ? r.version : 0)
+              return next
+            } catch (e) {
+              if (!(e instanceof ServiceError) || e.code !== 'settings_conflict') throw e
+            }
+          }
+          throw new Error('conflict')
+        },
+        async upload(blob, name) {
+          const ch = activeChurch(me())?.id
+          if (!ch) throw new Error('church')
+          const f = await files.upload(await fitUpload(blob, name), { churchId: ch, folder: 'bilder' })
+          return 'ch:' + f.id
+        },
+        blob: (ref) => (ref.startsWith('ch:') ? files.blob(ref.slice(3)) : Promise.resolve(null)),
+        by: () => { const m = me(); return m ? displayName(m) : '' },
       },
       cutout: (src, kind, onProgress) => cutout.run(src, kind, onProgress),
       selectObject: (image, x, y) => cutout.select(image, x, y),
