@@ -196,6 +196,7 @@
   outline: 2px solid #9b1c3c;
   outline-offset: 1px;
 }
+/* touch-action: none beholdes (dra = område); scrolling under markering håndteres i Picker (onWheel og sveip i skjemaet) */
 .pick {
   position: fixed;
   inset: 0;

@@ -170,7 +170,10 @@ describe('Marker et område', () => {
     kind('Rapporter en feil')
     expect(screen.queryByRole('button', { name: 'Marker i skjemaet' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Marker et område på skjermen' }))
+    // TB-7D30CC: på PC forblir skjemaet synlig (og kan scrolles) under markeringen; det kan skjules og vises igjen
     expect(bar()).toBeTruthy()
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    fireEvent.click(within(bar() as HTMLElement).getByRole('button', { name: 'Skjul skjemaet' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     fireEvent.click(within(bar() as HTMLElement).getByRole('button', { name: 'Vis skjemaet' }))
     expect(screen.getByRole('dialog')).toBeTruthy()

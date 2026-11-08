@@ -49,10 +49,11 @@ test('miniatyren viser siden, og markeringen står på riktig sted uten brukerin
 })
 
 /**
- * TB-ED697B: global markering. Alt+Shift+M legger markeringen over det som er åpent (her en meny som lukkes ved klikk
- * utenfor, som kontomenyen), elementet under pekeren fremheves, og et klikk åpner skjemaet med markeringen.
+ * Global markering (TB-ED697B) i den ekte kontomenyen: Alt+Shift+M legger markeringen over menyen uten å lukke den, elementet
+ * under pekeren fremheves, både element og område kan velges, og menyen virker som før etterpå.
  */
-test('Alt+Shift+M markerer et element i en åpen meny, og markeringen følger med i skjemaet', async ({ page }) => {
+test('Alt+Shift+M markerer elementer i den åpne kontomenyen, og menyen virker som før etterpå', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobil'
   await page.goto('/app/photo-design')
   await page.locator('main button').first().waitFor()
   await page.evaluate(async () => {
@@ -60,31 +61,111 @@ test('Alt+Shift+M markerer et element i en åpen meny, og markeringen følger me
     const host = document.createElement('div')
     document.body.appendChild(host)
     M.mountFeedback(host)
-    // en meny som kontomenyen: lukkes ved pointerdown utenfor seg selv
-    const menu = document.createElement('div')
-    menu.id = 'test-menu'
-    menu.style.cssText = 'position:fixed;right:20px;bottom:80px;z-index:2147480000;padding:12px;background:#222'
-    menu.innerHTML = '<button id="menu-item" style="width:180px;height:40px">Konto og sikkerhet</button>'
-    document.body.appendChild(menu)
-    document.addEventListener('pointerdown', (e) => { if (!menu.contains(e.target as Node) && !(e.target as Element).closest('[data-chfb-tool]')) menu.remove() })
   })
+  await page.locator('[data-ch-account]').last().click()
+  const item = page.getByRole('button', { name: 'Konto og sikkerhet' })
+  await expect(item).toBeVisible()
   await page.keyboard.press('Alt+Shift+KeyM')
   const bar = page.locator('[data-chfb-tool][role="toolbar"]')
   await expect(bar).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Send tilbakemelding' })).toHaveCount(0) // skjemaet åpnes ikke først
-  const item = page.locator('#menu-item')
+  await expect(page.getByRole('dialog', { name: 'Send tilbakemelding' })).toHaveCount(0)
   const b = (await item.boundingBox())!
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
-  // fremheving av elementet under pekeren, på samme plass som elementet
-  const box = page.locator('[data-chfb-tool]:not([role]):not([role="application"])').last()
-  await expect.poll(async () => { const r = await box.boundingBox(); return r ? Math.abs(r.x - b.x) + Math.abs(r.width - b.width) : 999 }).toBeLessThan(3)
-  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2)
-  await expect(item).toBeVisible() // menyen er fortsatt åpen
+  if (!mobile) {
+    // fremheving av elementet under pekeren
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
+    const box = page.locator('[data-chfb-tool]:not([role])')
+    await expect.poll(async () => { const r = await box.boundingBox(); return r ? Math.abs(r.x - b.x) + Math.abs(r.width - b.width) : 999 }).toBeLessThan(3)
+    // et område kan også velges (dra over menyen), og velges så på nytt
+    await page.mouse.move(b.x + 2, b.y - 30)
+    await page.mouse.down()
+    await page.mouse.move(b.x + b.width - 2, b.y + b.height, { steps: 5 })
+    await page.mouse.up()
+    await expect(bar).toContainText('Er markeringen riktig?')
+    await expect(item).toBeVisible() // menyen er fortsatt åpen
+    await bar.getByRole('button', { name: 'Velg på nytt' }).click()
+    await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2)
+  } else await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2)
+  await expect(item).toBeVisible()
   await bar.getByRole('button', { name: 'Bekreft markering' }).click()
   const dlg = page.getByRole('dialog', { name: 'Send tilbakemelding' })
-  await expect(dlg).toBeVisible()
   await dlg.getByRole('radio', { name: 'Rapporter en feil' }).click()
-  await expect(dlg.locator('[data-chfb-marked]')).toContainText('«Konto og sikkerhet»')
-  // vanlig bruk etterpå: ingen markeringsflate igjen som blokkerer
-  await expect(page.locator('[data-chfb-tool]')).toHaveCount(0)
+  await expect(dlg.locator('[data-chfb-marked]')).toContainText('<button> «Konto og sikkerhet')
+  await expect(page.locator('[data-chfb-tool]')).toHaveCount(0) // ingen markeringsflate igjen
+  // menyen virker som før: åpne den og gå til «Konto og sikkerhet»
+  page.once('dialog', (d) => void d.accept()) // «forkaste det du har skrevet?»
+  await dlg.getByRole('button', { name: 'Lukk' }).first().click()
+  await expect(dlg).toHaveCount(0)
+  await page.locator('[data-ch-account]').last().click()
+  await page.getByRole('button', { name: 'Konto og sikkerhet' }).click()
+  await expect(page.locator('[data-ch-pwchange]')).toBeVisible()
+})
+
+/**
+ * TB-7D30CC: under markering må skjemaet kunne scrolles (musehjul på PC, sveip på mobil). Før fanget markeringsflaten over
+ * hele vinduet all scrolling, så felt under det synlige området var utilgjengelige. Utfylte verdier skal bevares, markeringen
+ * skal virke, og tilbakemeldingen skal kunne sendes.
+ */
+test('skjemaet kan scrolles under markering, verdiene bevares og tilbakemeldingen sendes med markeringen', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobil'
+  if (!mobile) await page.setViewportSize({ width: 1460, height: 600 }) // lavt vindu, så skjemaet må scrolles
+  await page.goto('/app/photo-design')
+  await page.locator('main button').first().waitFor()
+  await page.evaluate(async () => {
+    const M = await import('/app/src/shared/feedback/LayoutPreview.mount.tsx' as string)
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    M.mountFeedback(host)
+  })
+  await page.getByRole('button', { name: 'Send tilbakemelding' }).last().click()
+  const dlg = page.getByRole('dialog', { name: 'Send tilbakemelding' })
+  await dlg.getByRole('radio', { name: 'Rapporter en feil' }).click()
+  await dlg.getByLabel(/Hva fungerer ikke som forventet/).fill('Knappen eksporterer ikke')
+  await dlg.getByRole('button', { name: 'Marker et område på skjermen' }).click()
+  const bar = page.locator('[data-chfb-tool][role="toolbar"]')
+  await expect(bar).toBeVisible()
+  if (mobile) await bar.getByRole('button', { name: 'Vis skjemaet' }).click() // mobil: skjemaet dekker skjermen og er skjult først
+  await expect(dlg).toBeVisible()
+  const panel = (await dlg.boundingBox())!
+  const top0 = await dlg.evaluate((el) => el.scrollTop)
+  expect(await dlg.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+  // scroll i skjemaet mens markeringen er aktiv: opp hvis det står nederst (knappen ligger nederst), ellers ned – og tilbake
+  const scrollBy = async (dir: 1 | -1) => {
+    if (mobile) {
+      const { fingerDrag } = await import('./touch')
+      await fingerDrag(page, { x: panel.x + panel.width / 2, y: panel.y + panel.height * (dir > 0 ? 0.8 : 0.3) }, 0, -dir * panel.height * 0.45, { steps: 8 })
+    } else {
+      await page.mouse.move(panel.x + panel.width / 2, panel.y + panel.height / 2)
+      await page.mouse.wheel(0, dir * 600)
+    }
+  }
+  const dir = top0 > 100 ? -1 : 1
+  await scrollBy(dir)
+  await expect.poll(() => dlg.evaluate((el) => el.scrollTop)).not.toBeCloseTo(top0, -2)
+  const top1 = await dlg.evaluate((el) => el.scrollTop)
+  expect(Math.sign(top1 - top0)).toBe(dir)
+  await scrollBy(dir === 1 ? -1 : 1)
+  await expect.poll(async () => Math.sign((await dlg.evaluate((el) => el.scrollTop)) - top1)).toBe(-dir)
+  await expect(bar).toBeVisible() // markeringen er fortsatt aktiv
+  // marker et element i appen (mobil: skjul skjemaet først, det dekker hele skjermen)
+  if (mobile) await bar.getByRole('button', { name: 'Skjul skjemaet' }).click()
+  // et element i appen som ikke ligger under instruksjonen eller skjemaet
+  const t = await page.evaluate((px) => {
+    const r = [...document.querySelectorAll('main button')].map((b) => b.getBoundingClientRect()).find((q) => q.top > 140 && q.bottom < innerHeight - 20 && q.right < px && q.width > 20)
+    return r ? { x: r.left, y: r.top, width: r.width, height: r.height } : null
+  }, mobile ? 10000 : panel.x)
+  if (!t) throw new Error('fant ikke et element å markere')
+  if (mobile) await page.touchscreen.tap(t.x + t.width / 2, t.y + t.height / 2)
+  else await page.mouse.click(t.x + t.width / 2, t.y + t.height / 2)
+  await bar.getByRole('button', { name: 'Bekreft markering' }).click()
+  await expect(dlg).toBeVisible()
+  await expect(dlg.locator('[data-chfb-marked]')).toBeVisible()
+  // verdien er bevart, skjemaet kan fortsatt scrolles, og innsendingen tar med markeringen
+  await expect(dlg.getByLabel(/Hva fungerer ikke som forventet/)).toHaveValue('Knappen eksporterer ikke')
+  await dlg.getByLabel(/Hva gjorde du, og hva skjedde/).fill('Trykket på Eksporter, ingenting skjedde')
+  await dlg.getByRole('button', { name: 'Send inn' }).click()
+  await expect(dlg.locator('[data-chfb-ref]')).toHaveText('TB-TEST01')
+  const sent = await page.evaluate(() => (window as unknown as { __fbSent: { description: string; marked: { mode: string; rect: object; layout: unknown[] } } }).__fbSent)
+  expect(JSON.stringify(sent)).toContain('Knappen eksporterer ikke')
+  expect(sent.marked.mode).toBe('element')
+  expect(sent.marked.layout.length).toBeGreaterThan(0)
 })
