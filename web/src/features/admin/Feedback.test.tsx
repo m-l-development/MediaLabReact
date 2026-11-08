@@ -196,3 +196,52 @@ describe('Tilbakemeldinger: lister, arkiv og handlinger per liste', () => {
     expect(refsIn('Arkiv')).toEqual(['TB-DN0002'])
   })
 })
+
+/** TB-946F91 / TB-7AA909: egne kopieringsvalg – uløste, under behandling, trenger info og arkivet. Feil først i eksporten. */
+describe('Tilbakemeldinger: kopieringsvalg', () => {
+  const base = (id: string, ref: string, status: string, kind = 'bug') => ({ id, ref, kind, title: null, description: 'Tekst ' + ref, app: 'loop-studio', app_name: 'Loop Studio', page: '/app/loop-studio', view: '', status, created_at: '2026-10-10T10:00:00Z', submitter_name: 'Ola', church_name: null, context: { env: 'preview' }, marked: null })
+  const db = [base('f0', 'TB-FE0001', 'new', 'feature'), base('n1', 'TB-NY0001', 'new'), base('w1', 'TB-WK0001', 'in_progress', 'feature'), base('w2', 'TB-WK0002', 'needs_info'), base('d1', 'TB-DN0001', 'resolved'), base('d2', 'TB-DN0002', 'rejected', 'feature')]
+  const copyKit = () => {
+    const writeText = vi.fn(async (_t: string) => undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    vi.stubGlobal('isSecureContext', true)
+    setupAdmin(DEV, { hash: '#/tilbakemeldinger', rpc: (fn) => (fn === 'feedback_list' ? db.map((c) => ({ ...c })) : fn === 'feedback_events_for' ? [] : undefined) })
+    return writeText
+  }
+  const refs = (s: string) => s.match(/^## Sak (TB-\w+)/gm)?.map((x) => x.slice(7)) ?? []
+  const btn = (name: RegExp) => screen.getByRole('button', { name })
+
+  it('«Kopier alle saker» tar alle uløste (ikke løste/avviste), feil først', async () => {
+    const writeText = copyKit()
+    await screen.findByText('TB-NY0001')
+    fireEvent.click(btn(/^Kopier alle saker \(4\)$/))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    const text = writeText.mock.calls[0]?.[0] ?? ''
+    expect(refs(text)).toEqual(['TB-NY0001', 'TB-WK0002', 'TB-FE0001', 'TB-WK0001'])
+    expect(text).not.toContain('TB-DN0001')
+    expect(text).toContain('## Saker (prioritert: feil først)')
+  })
+  it('egne knapper for «under behandling» og «trenger ekstra informasjon»', async () => {
+    const writeText = copyKit()
+    await screen.findByText('TB-NY0001')
+    fireEvent.click(btn(/Kopier alle saker under behandling \(1\)/))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(refs(writeText.mock.calls[0]?.[0] ?? '')).toEqual(['TB-WK0001'])
+    fireEvent.click(btn(/Kopier alle saker som trenger ekstra informasjon \(1\)/))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+    expect(refs(writeText.mock.calls[1]?.[0] ?? '')).toEqual(['TB-WK0002'])
+  })
+  it('løste saker kopieres bare fra Arkiv; filteret følges', async () => {
+    const writeText = copyKit()
+    await screen.findByText('TB-NY0001')
+    expect(screen.queryByRole('button', { name: /Kopier alle arkiverte saker/ })).toBe(null)
+    fireEvent.change(screen.getByLabelText('Kategori'), { target: { value: 'bug' } })
+    expect(btn(/^Kopier alle saker \(2\)$/)).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Kategori'), { target: { value: 'all' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Åpne arkiv' }))
+    expect(screen.queryByRole('button', { name: /^Kopier alle saker \(/ })).toBe(null)
+    fireEvent.click(btn(/Kopier alle arkiverte saker \(2\)/))
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(refs(writeText.mock.calls[0]?.[0] ?? '')).toEqual(['TB-DN0001', 'TB-DN0002'])
+  })
+})

@@ -9,6 +9,7 @@ import { NumField } from '../../shared/ui/NumField'
 import { BgColor } from '../../shared/ui/BgColor'
 import { CurveGradient } from '../../shared/fill/CurveGradient'
 import { curveFn } from './engine/render'
+import { curvePoint, onCurve } from '../../shared/fill/curve'
 import { DEV, type Dev, type Histogram } from './engine/develop'
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
@@ -175,7 +176,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
   const P = (o: Partial<PdLayer> | ((q: PdLayer) => Partial<PdLayer>), k?: string) => c.patchL(L.id, o, k)
   const rg = (label: Phrase, k: string, min: number, max: number, step: number, fmt: (v: number) => string, def: number, key?: string) => {
     const v = Number((L as unknown as Record<string, unknown>)[k] ?? def)
-    return <Range key={k} label={tx(label)} min={min} max={max} step={step} val={v} show={fmt(v)} on={(x) => P({ [k]: x } as Partial<PdLayer>, key ?? k)} reset={() => P({ [k]: def } as Partial<PdLayer>)} />
+    return <Range key={k} label={tx(label)} min={min} max={max} step={step} val={v} show={fmt(v)} on={(x) => P({ [k]: x } as Partial<PdLayer>, key ?? k)} def={def} reset={() => P({ [k]: def } as Partial<PdLayer>)} />
   }
   const pc = (v: number) => `${Math.round(v * 100)} %`
   const px = (v: number) => `${Math.round(v)} px`
@@ -191,7 +192,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
     rg('Gjennomsiktighet', 'op', 0, 1, 0.01, pc, 1), rg('Rotasjon', 'rot', -180, 180, 1, deg, 0),
     // zoom i utsnittet: 10–1000 %, logaritmisk glider (100 % midt på), tallet skrives i prosent
     ...(has ? [<Range key="cz" label={tx('Zoom i utsnittet')} min={-1} max={1} step={0.005} val={Math.log10(Math.max(0.1, (L as ImageLayer).cz || 1))} show={`${Math.round(((L as ImageLayer).cz || 1) * 100)} %`}
-      on={(x) => P({ cz: Math.round(10 ** x * 1000) / 1000 } as Partial<PdLayer>, 'cz')} reset={() => P({ cz: 1 } as Partial<PdLayer>)}
+      on={(x) => P({ cz: Math.round(10 ** x * 1000) / 1000 } as Partial<PdLayer>, 'cz')} def={0} reset={() => P({ cz: 1 } as Partial<PdLayer>)}
       field={{ value: (L as ImageLayer).cz || 1, min: 0.1, max: 10, step: 0.01, scale: 100, on: (v) => P({ cz: v } as Partial<PdLayer>, 'cz') }} />] : []),
   ]
   return (
@@ -276,9 +277,9 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               {L.bar && (
                 <>
                   <label className={s.colorRow}><span>{tx('Understrekfarge')}</span><input type="color" value={hex(L.barColor || L.color)} onChange={(e) => c.setCol(L, 'barColor', e.target.value, 'tbarc')} /></label>
-                  <Range label={tx('Tykkelse')} min={1} max={Math.max(20, Math.round(L.size * 0.5))} step={1} val={L.barH ?? Math.round(L.size * 0.07)} show={`${Math.round(L.barH ?? L.size * 0.07)} px`} on={(x) => P({ barH: x }, 'barH')} reset={() => P({ barH: Math.round(L.size * 0.07) })} />
-                  <Range label={tx('Bredde')} min={0.1} max={2} step={0.01} val={L.barW ?? 1} show={pc(L.barW ?? 1)} on={(x) => P({ barW: x }, 'barW')} reset={() => P({ barW: 1 })} />
-                  <Range label={tx('Avstand')} min={0} max={4} step={0.05} val={L.barGap ?? 1} show={(L.barGap ?? 1).toFixed(2)} on={(x) => P({ barGap: x }, 'barGap')} reset={() => P({ barGap: 1 })} />
+                  <Range label={tx('Tykkelse')} min={1} max={Math.max(20, Math.round(L.size * 0.5))} step={1} val={L.barH ?? Math.round(L.size * 0.07)} show={`${Math.round(L.barH ?? L.size * 0.07)} px`} on={(x) => P({ barH: x }, 'barH')} def={Math.round(L.size * 0.07)} reset={() => P({ barH: Math.round(L.size * 0.07) })} />
+                  <Range label={tx('Bredde')} min={0.1} max={2} step={0.01} val={L.barW ?? 1} show={pc(L.barW ?? 1)} on={(x) => P({ barW: x }, 'barW')} def={1} reset={() => P({ barW: 1 })} />
+                  <Range label={tx('Avstand')} min={0} max={4} step={0.05} val={L.barGap ?? 1} show={(L.barGap ?? 1).toFixed(2)} on={(x) => P({ barGap: x }, 'barGap')} def={1} reset={() => P({ barGap: 1 })} />
                 </>
               )}
             </>
@@ -346,8 +347,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           <div className={s.seg}>
             {([['erase', 'Fjern'], ['restore', 'Gjenopprett']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={S.brush.mode === k} onClick={() => c.ui({ brush: { ...S.brush, mode: k } })}>{tx(l)}</button>)}
           </div>
-          <Range label={tx('Størrelse')} min={4} max={Math.round(Math.max(d.w, d.h) / 4)} step={1} val={S.brush.size} show={`${Math.round(S.brush.size)} px`} on={(v) => c.ui({ brush: { ...S.brush, size: v } })} />
-          <Range label={tx('Hardhet')} min={0} max={0.95} step={0.01} val={S.brush.hard} show={`${Math.round(S.brush.hard * 100)} %`} on={(v) => c.ui({ brush: { ...S.brush, hard: v } })} />
+          <Range label={tx('Størrelse')} min={4} max={Math.round(Math.max(d.w, d.h) / 4)} step={1} val={S.brush.size} def={80} show={`${Math.round(S.brush.size)} px`} on={(v) => c.ui({ brush: { ...S.brush, size: v } })} />
+          <Range label={tx('Hardhet')} min={0} max={0.95} step={0.01} val={S.brush.hard} def={0.6} show={`${Math.round(S.brush.hard * 100)} %`} on={(v) => c.ui({ brush: { ...S.brush, hard: v } })} />
           <span className={s.dimSm}>{tx('Hold Alt for å bytte mellom fjern og gjenopprett.')}</span>
           {/* den felles maskeredigeringen (samme som Isolate Subject og Thumbnail Studio) */}
           <button type="button" className={s.smallBtnBlue} data-pd-mask-open="" disabled={!has} title={tx('Pensel, former, «Velg objekt» og kantfølging med Behold og Fjern')} onClick={() => c.openMaskEdit()}>{tx('Finjuster masken …')}</button>
@@ -407,7 +408,7 @@ function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { ty
       </div>
       {DEVL.map(([k, l, mn, mx]) => {
         const v = Number(dev[k] ?? 0)
-        return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${v > 0 && mn < 0 ? '+' : ''}${Math.round(v)}`} on={(x) => c.setDev(L.id, k, x, `dev${k}`)} reset={() => c.setDev(L.id, k, 0)} />
+        return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${v > 0 && mn < 0 ? '+' : ''}${Math.round(v)}`} on={(x) => c.setDev(L.id, k, x, `dev${k}`)} def={0} reset={() => c.setDev(L.id, k, 0)} />
       })}
     </div>
   )
@@ -448,7 +449,8 @@ function CurveEditor({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { t
   const down = (e: RPE<SVGSVGElement>) => {
     e.preventDefault()
     const r = e.currentTarget.getBoundingClientRect()
-    const Pp = (ev: { clientX: number; clientY: number }): [number, number] => [Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)), Math.max(0, Math.min(1, 1 - (ev.clientY - r.top) / r.height))]
+    const svg = e.currentTarget
+    const Pp = (ev: { clientX: number; clientY: number }): [number, number] => curvePoint(svg, ev)
     const pts: [number, number][] = curve.map((q) => [q[0], q[1]])
     const p = Pp(e)
     const near = 14 / r.width // ~14 px treffsone
@@ -460,9 +462,10 @@ function CurveEditor({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { t
       return
     }
     if (i < 0) {
-      pts.push(p)
+      const np = onCurve(pts, p[0])
+      pts.push(np)
       pts.sort((x, y) => x[0] - y[0])
-      i = pts.indexOf(p)
+      i = pts.indexOf(np)
     }
     setSel(i)
     show(pts[i]!)
@@ -559,7 +562,7 @@ function ColorTab({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type
       </div>
       {ADJL.filter(([k]) => adv || BASIC.has(k)).map(([k, l, mn, mx]) => {
         const v = Number(adj[k] ?? 0)
-        return <Range key={k} label={tx(l)} min={mn ?? -100} max={mx ?? 100} step={1} val={v} show={`${v > 0 && (mn == null || mn < 0) ? '+' : ''}${Math.round(v)}`} on={(x) => c.setAdj(L.id, k, x, `adj${k}`)} reset={() => c.setAdj(L.id, k, 0)} />
+        return <Range key={k} label={tx(l)} min={mn ?? -100} max={mx ?? 100} step={1} val={v} show={`${v > 0 && (mn == null || mn < 0) ? '+' : ''}${Math.round(v)}`} on={(x) => c.setAdj(L.id, k, x, `adj${k}`)} def={0} reset={() => c.setAdj(L.id, k, 0)} />
       })}
       {!adv && <span className={s.dimSm}>{tx('Flere verktøy (kurver, høylys og skygger, framkalling) finnes i Avansert modus.')}</span>}
       {adv && <CurveEditor c={c} L={L} tx={tx} />}
@@ -623,7 +626,7 @@ function FxEdit({ c, S, tx }: { c: PhotoController; S: PState; tx: Tx }) {
         </label>
       ))}
       {K.p.filter((dd): dd is Extract<FX.ParamDef, { t: 'r' }> => dd.t === 'r').map((dd) => (
-        <Range key={dd.k} label={tx(dd.l as Phrase)} min={dd.min} max={dd.max} step={dd.step} val={Number(P[dd.k])} show={fmt(dd, Number(P[dd.k]))} accent on={(x) => set(dd.k, x, `fx${dd.k}`)} reset={() => set(dd.k, dd.def)} />
+        <Range key={dd.k} label={tx(dd.l as Phrase)} min={dd.min} max={dd.max} step={dd.step} val={Number(P[dd.k])} show={fmt(dd, Number(P[dd.k]))} accent on={(x) => set(dd.k, x, `fx${dd.k}`)} def={dd.def} reset={() => set(dd.k, dd.def)} />
       ))}
       <div className={s.row2}>
         <button type="button" className={s.smallBtn} onClick={() => c.patchL(L.id, { seed: ((Math.random() * 1e5) | 0) + 1 })}>{tx('Ny variant')}</button>

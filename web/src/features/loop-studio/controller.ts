@@ -8,7 +8,7 @@ import { wheelAction } from '../../shared/lib/workspace-nav'
 import type { SharedSetup } from '../../services/shared-setup'
 import { ServiceError } from '../../services/errors'
 import { forSharedDisk, type LoopDiskData, type LoopDiskService } from '../../services/loop-disk'
-import { entryOf, type BaseEntry, type CentralBases, type KV, type PersonalBases } from './bases'
+import { entryOf, type BaseEntry, type CentralBases, type KV, type PersonalBases, type PrepareForChurch } from './bases'
 import { __ukeloopAudioCtl, __ukeloopRendererFactory } from './engine/player.js'
 import type { AudioCtl, AudioSyncOpts } from './engine/player'
 import { buildPlayerHTML } from './engine/player-html'
@@ -151,7 +151,7 @@ export interface LoopDeps {
   media: LoopMediaStore
   kv: KV
   me: Me | null
-  bases: { personal: PersonalBases; central: CentralBases | null }
+  bases: { personal: PersonalBases; central: CentralBases | null; prepare?: PrepareForChurch | null; by?: string }
   /** Menighetens delte disk (TB-BB67CB): alle medlemmer leser og lagrer, bare Admin sletter. null uten menighet. */
   sharedDisk: { svc: LoopDiskService; churchId: () => string | null; isAdmin: () => boolean } | null
   /** Menighetens grunnoppsett for en mal (null uten innlogging/menighet). */
@@ -904,7 +904,8 @@ export class LoopController {
   }
   /** «Lagre som grunnoppsett»: nytt grunnoppsett (personlig eller felles); demoen og andre serier endres ikke. */
   openBaseDialog = () => {
-    this.baseDialog = { open: true, name: this.t('Mitt grunnoppsett'), level: 'p', msg: '', busy: false, openHref: this.baseDialog.openHref }
+    // felles for menigheten er standard når det er mulig (TB-B4A133): personlige grunnoppsett ser bare den som lagret dem
+    this.baseDialog = { open: true, name: this.t('Mitt grunnoppsett'), level: this.canChurchBase() ? 'f' : 'p', msg: '', busy: false, openHref: this.baseDialog.openHref }
     this.forceUpdate()
   }
   setBaseDialog(p: Partial<LoopController['baseDialog']>) {
@@ -923,12 +924,18 @@ export class LoopController {
     if (B.busy) return
     this.baseDialog = { ...B, busy: true, msg: 'Lagrer …' }
     this.forceUpdate()
-    const S = this.state, e = entryOf({ name: B.name, base: S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg })
+    const S = this.state
+    let e = entryOf({ name: B.name, base: S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg }), failed = 0
     try {
-      if (B.level === 'f' && this.deps.bases.central) await this.deps.bases.central.add(e)
-      else this.deps.bases.personal.add(e)
+      if (B.level === 'f' && this.deps.bases.central) {
+        // egne bilder lastes opp til menighetens filer, ellers forsvant de for de andre (TB-143BF7)
+        const p = await this.deps.bases.prepare?.(e.data)
+        if (p) { e = { ...e, data: p.data }; failed = p.failed }
+        e = { ...e, ...(this.deps.bases.by ? { by: this.deps.bases.by } : {}) }
+        await this.deps.bases.central.add(e)
+      } else this.deps.bases.personal.add(e)
       this.baseDialog = { ...this.baseDialog, open: false, busy: false, msg: '', openHref: e.base + '|' + B.level + '-' + e.id }
-      this.deps.toast(this.t(B.level === 'f' ? 'Grunnoppsettet er lagret og er felles for menigheten. Du finner det på Loop Studio-siden.' : 'Grunnoppsettet er lagret (personlig). Du finner det på Loop Studio-siden.'))
+      this.deps.toast(this.t(B.level === 'f' ? 'Grunnoppsettet er lagret og er felles for menigheten. Du finner det på Loop Studio-siden.' : 'Grunnoppsettet er lagret (personlig). Du finner det på Loop Studio-siden.') + (failed ? ' ' + failed + ' ' + this.t('bilder kunne ikke lastes opp og vises ikke for de andre.') : ''))
     } catch (x) {
       const code = (x as { code?: string } | null)?.code
       this.baseDialog = { ...this.baseDialog, busy: false, msg: code === 'full' ? 'Du har nådd grensen på 20 grunnoppsett. Slett et på Loop Studio-siden først.' : code === 'forbidden' ? 'Du har ikke tilgang til å lagre et felles grunnoppsett.' : 'Grunnoppsettet kunne ikke lagres. Prøv igjen.' }
@@ -940,11 +947,15 @@ export class LoopController {
     const g = this.fromBase
     if (!g || !this.state.ready) return
     if (!this.deps.confirm(this.t('Oppdatere grunnoppsettet') + ' «' + g.name + '» ' + this.t('med denne serien?') + (g.kind === 'f' ? '\n\n' + this.t('Det gjelder for hele menigheten.') : ''))) return
-    const S = this.state, d = entryOf({ name: g.name, base: S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg }).data
+    const S = this.state
+    let d = entryOf({ name: g.name, base: S.tpl, programText: S.programText, slides: S.slides, cfg: S.cfg }).data, failed = 0
     try {
-      if (g.kind === 'f' && this.deps.bases.central) await this.deps.bases.central.update(g.id, d)
-      else this.deps.bases.personal.update(g.id, d)
-      this.deps.toast(this.t('Grunnoppsettet er oppdatert.'))
+      if (g.kind === 'f' && this.deps.bases.central) {
+        const p = await this.deps.bases.prepare?.(d)
+        if (p) { d = p.data; failed = p.failed }
+        await this.deps.bases.central.update(g.id, d)
+      } else this.deps.bases.personal.update(g.id, d)
+      this.deps.toast(this.t('Grunnoppsettet er oppdatert.') + (failed ? ' ' + failed + ' ' + this.t('bilder kunne ikke lastes opp og vises ikke for de andre.') : ''))
     } catch (x) {
       const code = (x as { code?: string } | null)?.code
       this.deps.toast(this.t(code === 'missing' ? 'Grunnoppsettet finnes ikke lenger (det kan være slettet). Lagre serien som et nytt grunnoppsett.' : 'Grunnoppsettet kunne ikke oppdateres. Prøv igjen.'))
@@ -2140,10 +2151,15 @@ export class LoopController {
     this.setState({ saveMsg: 'Lagrer …' })
     try {
       const cloud = this.deps.cloud
+      let failed = 0
       const data = await forSharedDisk({ programText: S.programText || '', slides: S.slides as unknown[], cfg: S.cfg as Record<string, unknown> }, async (ref) => {
         const b = cloud ? await this.deps.media.get(ref).catch(() => null) : null
-        return b && cloud ? cloud.upload(await this.fitUpload(b, name + (/png/.test(b.type) ? '.png' : '.jpg')), 'bilder') : null
+        const r = b && cloud ? await cloud.upload(await this.fitUpload(b, name + (/png/.test(b.type) ? '.png' : '.jpg')), 'bilder').catch(() => null) : null
+        if (!r) failed++
+        return r
       }, this.sharedCache)
+      // et bilde som ikke kunne lastes opp før, prøves igjen neste gang
+      for (const [k, v] of this.sharedCache) if (v === null) this.sharedCache.delete(k)
       const r = await sd.svc.save(church, { id: cur?.id ?? null, name, base: S.tpl || 'blank', data, version: cur?.version ?? null })
       this.sharedEntry = { id: r.id, version: r.version, name }
       this.customName = name
@@ -2156,6 +2172,7 @@ export class LoopController {
       clearTimeout(this.smT)
       this.smT = setTimeout(() => { if (this.alive) this.setState({ saveMsg: '' }) }, 3500)
       this.setState({ saveOpen: false, saveMsg: 'Lagret på menighetens disk som «' + name + '»' })
+      if (failed) this.deps.toast(failed + ' ' + this.t('bilder kunne ikke lastes opp og vises ikke for de andre.'))
     } catch (e) {
       const code = e instanceof ServiceError ? e.code : ''
       this.setState({ saveMsg: code === 'settings_conflict' ? 'Loopen er endret av en annen i menigheten. Åpne den på nytt fra Loop Studio for å se endringene. Dine endringer er ikke lagret der.'

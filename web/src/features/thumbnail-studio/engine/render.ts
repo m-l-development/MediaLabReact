@@ -365,6 +365,10 @@ export class Renderer {
       g.save()
       shapePath(g, l.shape, l.w, l.h, l.radius)
       g.clip()
+      if (l.fill) {
+        g.fillStyle = l.fill
+        g.fillRect(0, 0, l.w, l.h)
+      }
       g.filter = imgFilter(l)
       drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
       g.filter = 'none'
@@ -378,6 +382,11 @@ export class Renderer {
     } else {
       g.save()
       shadow(g, l, s)
+      if (l.fill) {
+        g.fillStyle = l.fill
+        g.fillRect(0, 0, l.w, l.h)
+        g.shadowColor = 'transparent'
+      }
       g.filter = imgFilter(l)
       drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
       g.restore()

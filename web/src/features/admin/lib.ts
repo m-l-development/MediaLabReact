@@ -129,3 +129,23 @@ export async function copyText(text: string): Promise<boolean> {
     return false
   }
 }
+
+/**
+ * Kopierer tekst som må hentes først (f.eks. historikk for mange saker). Utklippstavlen skrives straks i trykket med et
+ * løfte om teksten, ellers avviser Safari kopieringen etter ventetiden. Uten støtte: vent på teksten og bruk copyText.
+ */
+export async function copyTextLater(make: () => Promise<string>): Promise<{ ok: boolean; text: string }> {
+  let text = ''
+  const p = make().then((t) => { text = t; return t })
+  p.catch(() => undefined)
+  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write && window.isSecureContext) {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': p.then((t) => new Blob([t], { type: 'text/plain' })) })])
+      return { ok: true, text }
+    } catch {
+      // reserven under
+    }
+  }
+  text = await p
+  return { ok: await copyText(text), text }
+}

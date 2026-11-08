@@ -98,6 +98,8 @@ export interface ImageLayer extends LayerBase {
   /** Avanserte bildejusteringer (Avansert modus): lys, farge, effekter og RGB-kurver med Photo-motoren. Mangler = ingen. */
   adj?: AdvAdj | null
   tint: string | null
+  /** Farge bak bildet i formen (f.eks. bak et utklipp, TB-FC418D); mangler/null = ingen. */
+  fill?: string | null
 }
 
 export interface ShapeLayer extends LayerBase {

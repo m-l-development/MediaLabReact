@@ -94,6 +94,7 @@ export function cleanDoc(doc: unknown, local: LocalMap): Doc | null {
       }
       const adj = cleanAdj(l.adj)
       if (adj) n.adj = adj
+      if (typeof l.fill === 'string' && /^#[0-9a-f]{6}$/i.test(l.fill)) n.fill = l.fill
     }
     return n
   })

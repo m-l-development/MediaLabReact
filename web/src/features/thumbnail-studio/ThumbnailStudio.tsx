@@ -16,7 +16,9 @@ import { useStore } from '../../shared/lib/store'
 import { fitUpload } from '../../shared/media/upload-fit'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import { AssetPicker } from '../media-library/AssetPicker'
-import { ThumbController, type AddTarget } from './controller'
+import { ThumbController, type AddTarget, type SharedTpl } from './controller'
+import { displayName } from '../../domain/account'
+import { ServiceError } from '../../services/errors'
 import { ContextMenu, CropDialog, ExportDialog, LayoutDialog, MaskDialog, NewDialog, SaveDialog } from './Dialogs'
 import { Editor } from './Editor'
 import { backup, restore } from './engine/backup'
@@ -24,7 +26,7 @@ import { Cutout } from './engine/cutout'
 import { ImageCache } from './engine/images'
 import { Renderer } from './engine/render'
 import { importLegacyThumb } from './legacy'
-import { CategoryView, Home } from './Pages'
+import { CategoryView, Home, SendDialog } from './Pages'
 import { ThumbRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
 import s from './ThumbnailStudio.module.css'
@@ -91,6 +93,13 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
         const a = await assets.register(file, { name })
         return `m:${a.id}`
       },
+      async toLocal(src) {
+        if (src.startsWith('m:')) return src
+        const blob = src.startsWith('ch:') ? await files.blob(src.slice(3)).catch(() => null) : null
+        if (!blob) return null
+        const a = await assets.register(blob, { name: 'bilde' + (blob.type === 'image/png' ? '.png' : '.jpg') })
+        return `m:${a.id}`
+      },
       async cutout(src, kind, onProgress) {
         const id = M_ID(src)
         const [a, blob] = await Promise.all([assets.get(id), assets.open(id)])
@@ -122,6 +131,48 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
         const blob = await assets.open(M_ID(src))
         const f = await files.upload(await fitUpload(blob, `Grunnoppsett${blob.type === 'image/png' ? '.png' : '.jpg'}`), { churchId: church.id, folder: 'bilder' })
         return `ch:${f.id}`
+      },
+      // send mal til et medlem (TB-09177E): samme menighet som grunnoppsettene
+      shares: {
+            available: () => !!shared?.church && !!services.shares?.available(),
+            peers: async () => (shared?.church && services.shares ? services.shares.peers(shared.church.id) : []),
+            send: async (to, name, payload) => {
+              if (!shared?.church || !services.shares) throw new Error('church')
+              return services.shares.send(shared.church.id, to, name, payload)
+            },
+            incoming: async () => (services.shares ? services.shares.incoming() : []),
+            respond: async (id, accept) => {
+              if (!services.shares) throw new Error('shares')
+              return services.shares.respond(id, accept)
+            },
+      },
+      // menighetens delte maler (TB-A43E52): samme felles oppsett som grunnoppsettene, egen nøkkel
+      sharedTpls: {
+        available: () => !!shared?.church && churchSettings.available(),
+        async list() {
+          const ch = shared?.church
+          if (!ch) return []
+          const r = await churchSettings.get(ch.id, 'thumbstudio:tpls')
+          const l = (r?.data as { tpls?: unknown } | null)?.tpls
+          return Array.isArray(l) ? (l as SharedTpl[]).filter((x) => x && typeof x.id === 'string' && x.doc) : []
+        },
+        async mutate(fn) {
+          const ch = shared?.church
+          if (!ch) throw new Error('church')
+          for (let i = 0; i < 4; i++) {
+            const r = await churchSettings.get(ch.id, 'thumbstudio:tpls')
+            const l = (r?.data as { tpls?: unknown } | null)?.tpls
+            const next = fn(Array.isArray(l) ? (l as SharedTpl[]) : [])
+            try {
+              await churchSettings.save(ch.id, 'thumbstudio:tpls', { tpls: next }, r ? r.version : 0)
+              return next
+            } catch (e) {
+              if (!(e instanceof ServiceError) || e.code !== 'settings_conflict') throw e
+            }
+          }
+          throw new Error('conflict')
+        },
+        by: () => (me ? displayName(me) : ''),
       },
       storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v) },
       confirm: (p, v) => window.confirm(say(p, v)),
@@ -402,6 +453,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       {S.exp && <ExportDialog c={c} S={S} tx={tx} onDownload={() => void doExport()} onCopy={() => void copyExport()} onSaveMedia={(to) => void saveExportToMedia(to)} sendTo={sendTo} />}
       {S.save && <SaveDialog c={c} S={S} tx={tx} />}
       {S.cropId && <CropDialog c={c} S={S} tx={tx} images={images} />}
+      {S.sendFor && <SendDialog c={c} S={S} tx={tx} />}
       {S.maskEdit && <MaskDialog c={c} S={S} tx={tx} />}
       {S.lcOpen && <LayoutDialog c={c} S={S} tx={tx} />}
       {S.ctx && <ContextMenu c={c} S={S} tx={tx} />}

@@ -115,6 +115,7 @@ export function NumField({ value, min, max, step = 1, onCommit, label, show, uni
     <button type="button" className={`${styles.btn} ${className ?? ''}`} disabled={disabled} data-num-field=""
       aria-label={`${label}: ${display.trim()}`} title={disabled ? undefined : t('num.hint')}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); open() }}
+      onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); open() }}
       onKeyDown={(e) => {
         if (e.key === 'F2') { e.preventDefault(); open() }
         else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.stopPropagation(); nudge(e, value) }

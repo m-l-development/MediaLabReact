@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { Me } from '../domain/account'
 import { ServiceError } from '../services/errors'
 import { elementInfo, technical } from '../shared/feedback/context'
+import { pageLayout } from '../shared/feedback/layout'
 import { appOf, cleanPath, cleanView, KINDS, scrubDeep, scrubText, type FeedbackKind } from '../shared/feedback/feedback-core'
 import { buildFeedback, FIELDS, LEVELS } from '../shared/feedback/form'
 import { useT, type Translate } from '../shared/i18n/i18n'
@@ -24,17 +25,32 @@ interface Marked {
   viewport: string
   scroll: { x: number; y: number }
   element: ReturnType<typeof elementInfo>
+  /** trygt omriss av siden (shared/feedback/layout), vises i innboksen med markeringen */
+  layout?: string[]
 }
+
+/** Starter markeringen fra kontomenyen eller med hurtigtasten (Alt+Shift+M): åpner skjemaet og går rett til markering. */
+export const START_MARK = 'chfb:mark'
+export const startMarking = () => window.dispatchEvent(new Event(START_MARK))
+/** Alt+Shift+M (e.code, så tasten virker også der Alt gir et spesialtegn, f.eks. på Mac). */
+export const isMarkKey = (e: KeyboardEvent) => e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyM'
 interface Form { kind: FeedbackKind | null; vals: Record<string, string>; marked: Marked | null }
 const EMPTY: Form = { kind: null, vals: {}, marked: null }
 
-/** Markering av element (trykk) eller område (dra), over hele siden. */
-function Picker({ t, done }: { t: Translate; done: (m: Marked | null) => void }) {
+/**
+ * Markering av element (trykk) eller område (dra), over hele siden. Skjemaet kan vises under markeringen (formOn), så
+ * også felt og knapper i selve skjemaet kan markeres. Instruksjonen er liten og kan flyttes med håndtaket.
+ */
+function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked | null) => void; formOn: boolean; setFormOn: (v: boolean) => void }) {
   const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
   const [sel, setSel] = useState<{ mode: 'area' | 'element'; r: { x: number; y: number; w: number; h: number }; node: Element | null } | null>(null)
   const start = useRef<{ x: number; y: number } | null>(null)
   const drag = useRef(false)
-  const under = (x: number, y: number) => document.elementsFromPoint(x, y).find((n) => !n.closest('[data-chfb]') && n !== document.documentElement && n !== document.body) ?? null
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  const move = useRef<{ dx: number; dy: number } | null>(null)
+  // markeringsverktøyet selv (og skjermen bak skjemaet) er aldri en del av det som markeres; selve skjemaet kan markeres
+  const tool = (n: Element) => !!n.closest('[data-chfb-tool],[data-chfb-backdrop]')
+  const under = (x: number, y: number) => document.elementsFromPoint(x, y).find((n) => !tool(n) && n !== document.documentElement && n !== document.body) ?? null
   const rectOf = (n: Element) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height } }
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null) } }
@@ -44,13 +60,16 @@ function Picker({ t, done }: { t: Translate; done: (m: Marked | null) => void })
   const confirm = () => {
     if (!sel) return
     const W = innerWidth, H = innerHeight, p = (v: number) => Math.round(v * 1000) / 10
-    done({ mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node) })
+    let layout: string[] = []
+    try { layout = pageLayout(tool) } catch { /* omrisset er valgfritt */ }
+    done({ mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node), layout })
   }
   return createPortal(
     <>
       <div
         className={styles.pick}
         data-chfb=""
+        data-chfb-tool=""
         role="application"
         aria-label={t('fb.mark')}
         onPointerDown={(e) => { e.preventDefault(); start.current = { x: e.clientX, y: e.clientY }; drag.current = false; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ingenting */ } }}
@@ -79,11 +98,40 @@ function Picker({ t, done }: { t: Translate; done: (m: Marked | null) => void })
           drag.current = false
         }}
       />
-      {box && <div className={styles.box} data-chfb="" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />}
-      <div className={styles.bar} data-chfb="" role="toolbar">
-        <span>{t(sel ? 'fb.markRight' : 'fb.markHint')}</span>
-        <button type="button" disabled={!sel} onClick={confirm}>{t('fb.markConfirm')}</button>
-        <button type="button" className={styles.barLight} onClick={() => { setSel(null); setBox(null) }}>{t('fb.markAgain')}</button>
+      {box && <div className={styles.box} data-chfb="" data-chfb-tool="" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />}
+      <div className={styles.bar} data-chfb="" data-chfb-tool="" role="toolbar" aria-label={t('fb.mark')} style={pos ? { left: pos.x, top: pos.y, transform: 'none' } : undefined}>
+        <span
+          className={styles.grip}
+          data-chfb-grip=""
+          role="button"
+          tabIndex={0}
+          title={t('fb.markMove')}
+          aria-label={t('fb.markMove')}
+          onPointerDown={(e) => {
+            e.preventDefault()
+            const r = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect()
+            move.current = { dx: e.clientX - r.left, dy: e.clientY - r.top }
+            try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ingenting */ }
+          }}
+          onPointerMove={(e) => {
+            const m = move.current
+            if (!m) return
+            const el = e.currentTarget.parentElement as HTMLElement
+            setPos({ x: Math.min(Math.max(0, e.clientX - m.dx), innerWidth - el.offsetWidth), y: Math.min(Math.max(0, e.clientY - m.dy), innerHeight - el.offsetHeight) })
+          }}
+          onPointerUp={() => { move.current = null }}
+          onKeyDown={(e) => {
+            const d = ({ ArrowLeft: [-20, 0], ArrowRight: [20, 0], ArrowUp: [0, -20], ArrowDown: [0, 20] } as Record<string, [number, number]>)[e.key]
+            if (!d) return
+            e.preventDefault()
+            const r = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect()
+            setPos({ x: Math.max(0, r.left + d[0]), y: Math.max(0, r.top + d[1]) })
+          }}
+        >⠿</span>
+        <span className={styles.barText}>{t(sel ? 'fb.markRight' : 'fb.markHint')}</span>
+        {sel && <button type="button" onClick={confirm}>{t('fb.markConfirm')}</button>}
+        {sel && <button type="button" className={styles.barLight} onClick={() => { setSel(null); setBox(null) }}>{t('fb.markAgain')}</button>}
+        <button type="button" className={styles.barLight} aria-pressed={formOn} data-chfb-formtoggle="" onClick={() => setFormOn(!formOn)}>{t(formOn ? 'fb.markHideForm' : 'fb.markShowForm')}</button>
         <button type="button" className={styles.barLight} onClick={() => done(null)}>{t('fb.cancel')}</button>
       </div>
     </>,
@@ -105,6 +153,9 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
   const [error, setError] = useState<MessageKey | null>(null)
   const [showTech, setShowTech] = useState(false)
   const [picking, setPicking] = useState(false)
+  // skjemaet vises under markeringen, så felt og knapper i skjemaet også kan markeres
+  const [formOn, setFormOn] = useState(false)
+  const startPick = (withForm = false) => { setFormOn(withForm); setPicking(true) }
   const [bad, setBad] = useState<Record<string, boolean>>({})
   const btn = useRef<HTMLButtonElement>(null)
   const typed = () => Object.values(f.vals).join('').trim().length + (f.marked ? 1 : 0)
@@ -125,6 +176,14 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
     document.addEventListener('keydown', key, true)
     return () => document.removeEventListener('keydown', key, true)
   })
+  // fra kontomenyen eller hurtigtasten Alt+Shift+M: åpne skjemaet og start markeringen
+  useEffect(() => {
+    const go = () => { onOpen(true); setFormOn(false); setPicking(true) }
+    const key = (e: KeyboardEvent) => { if (isMarkKey(e)) { e.preventDefault(); go() } }
+    window.addEventListener(START_MARK, go)
+    document.addEventListener('keydown', key)
+    return () => { window.removeEventListener(START_MARK, go); document.removeEventListener('keydown', key) }
+  }, [onOpen])
   const here = () => { const a = appOf(location.pathname, location.search); return { app: a.id, appName: a.name, page: cleanPath(location.pathname), view: cleanView(location.search, location.hash) } }
   const submit = async () => {
     if (sending || !f.kind) return
@@ -163,9 +222,9 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
           <path d="M12 8v4M12 15h.01" />
         </svg>
       </button>
-      {open && !picking && createPortal(
+      {open && (!picking || formOn) && createPortal(
         <>
-          <div className={styles.backdrop} data-chfb="" aria-hidden="true" onPointerDown={(e) => { (e.currentTarget as HTMLElement).dataset.down = e.target === e.currentTarget ? '1' : '' }} onClick={(e) => { if (e.target === e.currentTarget && (e.currentTarget as HTMLElement).dataset.down === '1') close() }} />
+          <div className={styles.backdrop} data-chfb="" data-chfb-backdrop="" aria-hidden="true" onPointerDown={(e) => { (e.currentTarget as HTMLElement).dataset.down = e.target === e.currentTarget ? '1' : '' }} onClick={(e) => { if (e.target === e.currentTarget && (e.currentTarget as HTMLElement).dataset.down === '1') close() }} />
           <div className={styles.panel} data-chfb="" role="dialog" aria-modal="true" aria-labelledby="chfb-title">
             <div className={styles.head}>
               <h2 id="chfb-title">{t('fb.send')}</h2>
@@ -223,11 +282,14 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
                       {f.marked ? (
                         <>
                           <div className={styles.mark} data-chfb-marked="">{t('fb.marked')}: {markText(t, f.marked)}</div>
-                          <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => setPicking(true)}>{t('fb.markAgainShort')}</button>
+                          <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => startPick()}>{t('fb.markAgainShort')}</button>
                           <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => setF((x) => ({ ...x, marked: null }))}>{t('fb.markRemove')}</button>
                         </>
                       ) : (
-                        <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pick="" onClick={() => setPicking(true)}>{t('fb.mark')}</button>
+                        <>
+                          <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pick="" title={t('fb.markKey')} onClick={() => startPick()}>{t('fb.mark')}</button>
+                          <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pickform="" onClick={() => startPick(true)}>{t('fb.markInForm')}</button>
+                        </>
                       )}
                     </div>
                     <p className={styles.note}>
@@ -249,7 +311,7 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
         </>,
         document.body,
       )}
-      {open && picking && <Picker t={t} done={(m) => { setPicking(false); if (m) setF((x) => ({ ...x, marked: m })) }} />}
+      {open && picking && <Picker t={t} formOn={formOn} setFormOn={setFormOn} done={(m) => { setPicking(false); setFormOn(false); if (m) setF((x) => ({ ...x, marked: m })) }} />}
     </>
   )
 }

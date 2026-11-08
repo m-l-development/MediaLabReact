@@ -899,6 +899,27 @@ export class PhotoController {
     this.set({ sel: null, multi: [], tool: 'move' })
   }
 
+  /** «Slett alle» (TB-7204A6): alle lag som ikke er låst, etter bekreftelse. Kan angres. */
+  delAll(): void {
+    const d = this.s.doc
+    if (!d?.layers.length) return
+    const free = d.layers.filter((L) => !L.locked)
+    if (!free.length) {
+      this.flash('Låste lag slettes ikke. Lås dem opp først.')
+      return
+    }
+    if (!this.d.confirm('Slette alle {n} lag? Du kan angre med Ctrl+Z.', { n: free.length })) return
+    this.setDoc((dd) => ({ ...dd, layers: dd.layers.filter((L) => L.locked) }))
+    this.set({ sel: null, multi: [], tool: 'move' })
+    if (free.length < d.layers.length) this.flash('Låste lag slettes ikke. Lås dem opp først.')
+  }
+
+  /** Velg alle lag (for f.eks. «Slett valgte» på mobil, der Shift-klikk ikke finnes). */
+  selAll(): void {
+    const d = this.s.doc
+    if (d?.layers.length) this.setSel(d.layers.map((L) => L.id))
+  }
+
   delLayer(id: string): void {
     if (this.s.doc?.layers.find((x) => x.id === id)?.locked) {
       this.flash('Låste lag slettes ikke. Lås dem opp først.')

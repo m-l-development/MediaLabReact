@@ -1,4 +1,4 @@
-import { scrubText } from './feedback-core'
+import { appOf, scrubText } from './feedback-core'
 
 /**
  * «Kopier sak» / «Kopier alle saker» i Tilbakemeldinger (ADM-12): strukturert Markdown til Claude Code, portert fra
@@ -15,7 +15,7 @@ const NA = 'Ikke tilgjengelig'
 
 type Kind = 'bug' | 'improvement' | 'feature' | 'other'
 export interface CaseError { time?: string; kind?: string; code?: string; message?: string; source?: string; line?: number }
-export interface CaseMark { mode?: string; rect?: { x?: number; y?: number; w?: number; h?: number }; viewport?: string; element?: { tag?: string; role?: string; label?: string; path?: string; attrs?: Record<string, string> } | null }
+export interface CaseMark { mode?: string; rect?: { x?: number; y?: number; w?: number; h?: number }; viewport?: string; element?: { tag?: string; role?: string; label?: string; path?: string; attrs?: Record<string, string> } | null; layout?: unknown }
 export interface FeedbackCase {
   id: string
   ref: string
@@ -65,6 +65,18 @@ const CLOSE: Record<Kind, string> = {
   other: 'Vurder tilbakemeldingen og beskriv hva som eventuelt bør gjøres. Gjør bare endringer i utviklingsgrenen (connecthub), legg til tester ved behov, og ikke publiser til produksjon uten uttrykkelig godkjenning.',
 }
 
+/**
+ * Applikasjonen for en sak. Eldre saker fra admin ble lagret som «ukjent» (TB-53E3CF); da utledes den av siden (stien),
+ * som alltid ble lagret riktig. Saken i databasen endres ikke.
+ */
+export function caseApp(c: Pick<FeedbackCase, 'app' | 'app_name' | 'page'>): { id: string | null; name: string | null } {
+  if ((!c.app || c.app === 'ukjent') && c.page) {
+    const a = appOf(c.page)
+    if (a.id !== 'ukjent') return { id: a.id, name: a.name }
+  }
+  return { id: c.app ?? null, name: c.app_name ?? null }
+}
+
 /** Den nye appens mappe for hver applikasjon (web/src/features). */
 const FEATURE: Record<string, string> = {
   'media-lab': 'hub', 'connecthub-admin': 'admin', 'loop-editor': 'loop-studio', 'studio-editor': 'loop-studio', 'media-library': 'media-library', login: 'auth',
@@ -91,6 +103,7 @@ const errorLines = (errs: CaseError[] | undefined) => (Array.isArray(errs) && er
 /** Én sak som Markdown. events = historikk (status og notater) – bare for Moderator/Developer. */
 export function formatCase(c: FeedbackCase, events: CaseEvent[] = [], { standalone = true } = {}): string {
   const a = c.answers ?? {}, x = c.context ?? {}, kind: Kind = c.kind in KIND ? (c.kind as Kind) : 'other'
+  const ap = caseApp(c)
   const L: string[] = []
   if (standalone) L.push(`# Tilbakemelding ${c.ref} – oppgave for Claude Code`, '')
   else L.push(`## Sak ${c.ref} – ${KIND[kind]}`, '')
@@ -105,8 +118,8 @@ export function formatCase(c: FeedbackCase, events: CaseEvent[] = [], { standalo
   if (a.severity) L.push(`- Hvor mye det hindrer arbeidet (brukerens vurdering): ${SEVERITY[a.severity] ?? a.severity}`)
   if (a.importance) L.push(`- Viktighet for brukeren: ${IMPORTANCE[a.importance] ?? a.importance}`)
   L.push('')
-  L.push(H('3. Applikasjon og plassering (hentet automatisk)'), `- Applikasjon: ${val(c.app_name)} (\`${val(c.app)}\`)`, `- Side: \`${val(c.page)}\``,
-    `- Visning: ${c.view ? '`' + c.view + '`' : NA}`, `- Kode (prosjektstruktur): ${codeHint(c.app)}`, ...markedLines(c.marked), '- Skjermbilde: ikke støttet i denne versjonen', '')
+  L.push(H('3. Applikasjon og plassering (hentet automatisk)'), `- Applikasjon: ${val(ap.name)} (\`${val(ap.id)}\`)`, `- Side: \`${val(c.page)}\``,
+    `- Visning: ${c.view ? '`' + c.view + '`' : NA}`, `- Kode (prosjektstruktur): ${codeHint(ap.id)}`, ...markedLines(c.marked), '- Skjermbilde: ikke støttet i denne versjonen', '')
   L.push(H('4. Teknisk kontekst (hentet automatisk)'), `- Miljø: ${(x.env && ENV[x.env]) || val(x.env)}`, `- Versjon/bygg: ${val(x.build)}`, `- Git-commit: ${val(x.commit)}${x.branch ? ' (gren ' + x.branch + ')' : ''}`,
     `- Nettleser: ${val(x.browser)} · Operativsystem: ${val(x.os)} · Enhet: ${val(x.device)}`, `- Skjerm: ${val(x.screen)} · Vindu: ${val(x.viewport)} · Pikseltetthet: ${val(x.dpr)}`,
     `- Språk: ${val(x.lang)} · Tidssone: ${val(x.tz)}`, `- Innsendt: ${fmtTime(c.created_at)}`, `- Avsender: rolle ${val(c.role)}, intern bruker-ID ${val(c.submitter_id)}` + (c.church_id ? `, menighet-ID ${c.church_id}` : ''),
@@ -125,10 +138,25 @@ export function formatCase(c: FeedbackCase, events: CaseEvent[] = [], { standalo
   return L.join('\n')
 }
 
-/** Flere saker i én tekst. Store eksporter deles i deler (hver sak hel) under maxChars. */
+const KIND_RANK: Record<string, number> = { bug: 0, improvement: 1, feature: 2, other: 3 }
+const LEVEL_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }
+/**
+ * Rekkefølgen i en samlet eksport: feil først (mest alvorlige først), så forbedringer, ønsker og annet; ellers eldste
+ * først. Sorteringen er stabil, så like saker beholder rekkefølgen fra listen.
+ */
+export function prioritize(cases: FeedbackCase[]): FeedbackCase[] {
+  const lvl = (c: FeedbackCase) => LEVEL_RANK[c.answers?.severity ?? c.answers?.importance ?? ''] ?? 4
+  return cases.map((c, i) => ({ c, i })).sort((a, b) => (KIND_RANK[a.c.kind] ?? 3) - (KIND_RANK[b.c.kind] ?? 3) || lvl(a.c) - lvl(b.c)
+    || a.c.created_at.localeCompare(b.c.created_at) || a.i - b.i).map((x) => x.c)
+}
+
+/** Flere saker i én tekst, prioritert (se prioritize) med en innholdsliste øverst. Store eksporter deles i deler (hver sak hel) under maxChars. */
 export function formatCases(cases: FeedbackCase[], eventsById: Record<string, CaseEvent[]> = {}, { scope = 'alle viste saker', now = new Date(), maxChars = 150000 } = {}): string[] {
+  cases = prioritize(cases)
+  const index = cases.map((c, i) => `${i + 1}. ${c.ref} – ${KIND[c.kind] ?? KIND.other} – ${STATUS[c.status] ?? c.status}${c.app_name ? ' – ' + c.app_name : ''}: ${scrubText(c.title || c.description).replace(/\s+/g, ' ').slice(0, 90)}`)
   const head = (n: number) => ['# Samlet oversikt over tilbakemeldinger i ConnectHub – for Claude Code', '',
     `- Eksportert: ${fmtTime(now)}`, `- Utvalg: ${scope}`, `- Antall saker: ${n}`, '',
+    '## Saker (prioritert: feil først)', ...index, '',
     '## Instruksjon til Claude Code',
     'Gå gjennom sakene én for én. Hver sak har eget referansenummer (TB-…) og er skilt med en linje. Ikke bland opplysninger mellom sakene. Opplysninger under «oppgitt av brukeren» er brukerens egne, «hentet automatisk» er teknisk kontekst, og «internt» er vurderinger fra Moderator/Developer. Prioriter feil foran forbedringer. For hver sak: undersøk relevant kode, beskriv sannsynlig årsak eller løsning, og foreslå eller implementer endringer bare i utviklingsgrenen (connecthub). Ikke fjern eksisterende funksjonalitet, legg til tester, og ikke publiser til produksjon uten uttrykkelig godkjenning. Rapporter per referansenummer.', ''].join('\n')
   const blocks = cases.map((c) => formatCase(c, eventsById[c.id] ?? [], { standalone: false }))

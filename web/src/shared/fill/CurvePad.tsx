@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useT } from '../i18n/i18n'
 import type { MessageKey } from '../i18n/messages'
-import { curveFn } from './curve'
+import { curveFn, curvePoint, onCurve } from './curve'
 import type { CurvePts, FillCurves } from './fill'
 import s from './CurveGradient.module.css'
 
@@ -34,7 +34,8 @@ export function CurvePad({ curves: cv, onChange, label }: { curves: FillCurves; 
     if (e.button !== 0) return
     e.preventDefault()
     const r = e.currentTarget.getBoundingClientRect()
-    const P = (ev: { clientX: number; clientY: number }): [number, number] => [Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)), Math.max(0, Math.min(1, 1 - (ev.clientY - r.top) / r.height))]
+    const svg = e.currentTarget
+    const P = (ev: { clientX: number; clientY: number }): [number, number] => curvePoint(svg, ev)
     const l: CurvePts = pts.map((q) => [q[0], q[1]])
     const p = P(e)
     const near = (e.pointerType === 'touch' ? 22 : 14) / r.width
@@ -46,9 +47,10 @@ export function CurvePad({ curves: cv, onChange, label }: { curves: FillCurves; 
       return
     }
     if (i < 0) {
-      l.push(p)
+      const np = onCurve(l, p[0])
+      l.push(np)
       l.sort((a, b) => a[0] - b[0])
-      i = l.indexOf(p)
+      i = l.indexOf(np)
     }
     setSel(i)
     set(l.map((q) => [q[0], q[1]]))

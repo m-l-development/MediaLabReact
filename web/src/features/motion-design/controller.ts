@@ -5,9 +5,10 @@ import { canEncode, exportMp4 } from './engine/export'
 import {
   clamp, colorClip, create, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
   contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
+  LAYER_LABEL, LAYER_ROW, layerKey, type LayerType,
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
-import { cdAfter, cdBefore, cdStart, moveLane, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
+import { cdAfter, cdBefore, cdStart, moveLane, shiftLayers, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
 import { newEffect, type Effect, type FxKind } from './engine/fx'
 import { keyAt, scaleKeys, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
 import { pack, unpack } from './engine/packfile'
@@ -2819,6 +2820,46 @@ export class MotionController {
     this.setProj((q) => ({ ...q, lanes: { ...q.lanes, [k]: Math.min(50, (q.lanes[k] || 1) + 1) } }))
   }
 
+  /**
+   * Eget lag (TB-66E8B2): navn og type. Tekst, Bilde, Video og Lyd får et nytt lag nederst i sitt spor; Undertekst har
+   * ett spor, som får navnet. Tomt navn = standardnavnet.
+   */
+  addLayer(name: string, type: LayerType): void {
+    const p = this.s.proj
+    if (!p) return
+    const nm = name.trim().slice(0, 40) || this.d.t(LAYER_LABEL[type])
+    const row = LAYER_ROW[type]
+    if (row === 'subs' || row === 'video') {
+      this.setProj((q) => ({ ...q, layers: { ...(q.layers ?? {}), [layerKey(row, 0)]: { name: nm, type } } }))
+      this.flash('Sporet har fått navnet «{name}».', { name: nm })
+      return
+    }
+    const K = KEYS[row]
+    const n = Math.max(p.lanes[row] || 1, ...(p[K] as { lane: number }[]).map((x) => (x.lane || 0) + 1))
+    if (n >= 50) {
+      this.flash('Sporet har allerede 50 lag.')
+      return
+    }
+    // finnes det et tomt lag uten eget navn nederst, brukes det; ellers kommer et nytt lag nederst
+    const empty = n - 1 >= 0 && !(p[K] as { lane: number }[]).some((x) => (x.lane || 0) === n - 1) && !p.layers?.[layerKey(row, n - 1)]
+    const lane = empty ? n - 1 : n
+    this.setProj((q) => ({ ...q, lanes: { ...q.lanes, [row]: Math.max(q.lanes[row] || 1, lane + 1) }, layers: { ...(q.layers ?? {}), [layerKey(row, lane)]: { name: nm, type } } }))
+    this.flash('Laget «{name}» er lagt til.', { name: nm })
+  }
+
+  /** Gi et lag nytt navn (tomt = standardnavnet). Typen beholdes. */
+  renameLayer(k: TrackKey, lane: number, name: string, type: LayerType): void {
+    const key = layerKey(k, lane)
+    this.setProj((q) => {
+      const ls = { ...(q.layers ?? {}) }
+      const nm = name.trim().slice(0, 40)
+      if (nm) ls[key] = { name: nm, type: ls[key]?.type ?? type }
+      else delete ls[key]
+      const { layers: _l, ...rest } = q
+      return Object.keys(ls).length ? { ...rest, layers: ls } : rest
+    })
+  }
+
   clearLane0(tk: TrackKey, nl: number): void {
     if (nl > 1 && isLane(tk)) {
       this.delLane(tk, 0)
@@ -2840,7 +2881,7 @@ export class MotionController {
     const K = KEYS[k]
     const n = (p[K] as { lane: number }[]).filter((x) => (x.lane || 0) === i).length
     this.setProj((q) => ({
-      ...q,
+      ...shiftLayers(q, k, i, -1),
       [K]: (q[K] as (Item & { lane: number })[]).filter((x) => (x.lane || 0) !== i).map((x) => ((x.lane || 0) > i ? { ...x, lane: x.lane - 1 } : x)),
       lanes: { ...q.lanes, [k]: Math.max(1, (q.lanes[k] || 1) - 1) },
     }))

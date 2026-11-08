@@ -3,7 +3,7 @@
    «Ny serie fra dette» lager et eget prosjekt fra grunnoppsettet (grunnoppsettet endres ikke). Sletting krever bekreftelse;
    et felles grunnoppsett slettes for hele menigheten. */
 import { useEffect, useState, type CSSProperties } from 'react'
-import type { BaseEntry } from './bases'
+import { newBaseId, type BaseEntry } from './bases'
 import type { HomeVals } from './home-controller'
 
 const NAMES: Record<string, string> = { week: 'Ukeprogram', sunday: 'Søndagsmøte', youth: 'Ungdomsmøte', blank: 'Tom mal' }
@@ -42,6 +42,24 @@ export function LoopBases({ v, tx }: { v: HomeVals; tx: (s: unknown) => string }
       setS((y) => ({ ...y, err: 'Grunnoppsettet kunne ikke slettes. Prøv igjen.' }))
     }
   }
+  /**
+   * «Del med menigheten» (TB-A43E52/TB-B4A133): et personlig grunnoppsett legges til i menighetens felles liste (kopi med
+   * ny ID; det personlige beholdes). Egne bilder lastes opp til menighetens filer, så de andre ser dem.
+   */
+  const [sharing, setSharing] = useState('')
+  const share = async (e: BaseEntry) => {
+    if (!B.central || sharing) return
+    setSharing(e.id)
+    try {
+      const p = B.prepare ? await B.prepare(e.data) : { data: e.data, failed: 0 }
+      await B.central.add({ ...e, id: newBaseId(), data: p.data, savedAt: Date.now(), ...(B.by ? { by: B.by } : {}) })
+      setS((x) => ({ ...x, err: p.failed ? String(p.failed) + ' ' + tx('bilder kunne ikke lastes opp og vises ikke for de andre.') : '' }))
+      load()
+    } catch {
+      setS((y) => ({ ...y, err: 'Grunnoppsettet kunne ikke deles. Prøv igjen.' }))
+    }
+    setSharing('')
+  }
   const all: ['f' | 'p', BaseEntry][] = [...s.church.map((e) => ['f', e] as ['f', BaseEntry]), ...s.mine.map((e) => ['p', e] as ['p', BaseEntry])]
   return (
     <section data-ch-loop-bases="1" style={{ width: '100%', maxWidth: '860px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -58,10 +76,10 @@ export function LoopBases({ v, tx }: { v: HomeVals; tx: (s: unknown) => string }
             return (
               <div key={k + e.id} data-ch-loop-base={e.name} style={card}>
                 <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: k === 'f' ? '#8fe3cf' : 'var(--ml-label, #9d998f)' }}>
-                  {tx(k === 'f' ? 'Felles for menigheten' : 'Personlig')} · {tx(NAMES[e.base] ?? 'Egen')}
+                  {tx(k === 'f' ? 'Felles for menigheten' : 'Personlig – bare for deg')} · {tx(NAMES[e.base] ?? 'Egen')}
                 </span>
                 <b style={{ fontSize: '17px' }}>{e.name}</b>
-                <span style={{ fontSize: '12.5px', color: 'var(--ml-muted, #b3afa6)' }}>{e.data.slides.length} slides</span>
+                <span style={{ fontSize: '12.5px', color: 'var(--ml-muted, #b3afa6)' }}>{e.data.slides.length} slides{k === 'f' && e.by ? ' · ' + tx('lagret av') + ' ' + e.by : ''}</span>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                   <a
                     href={B.editorHref(q)}
@@ -75,6 +93,9 @@ export function LoopBases({ v, tx }: { v: HomeVals; tx: (s: unknown) => string }
                   >
                     {tx('Ny serie fra dette')}
                   </a>
+                  {k === 'p' && B.central?.available() && (
+                    <button type="button" data-ch-loop-base-share="1" disabled={!!sharing} onClick={() => void share(e)} style={pill}>{tx(sharing === e.id ? 'Deler …' : 'Del med menigheten')}</button>
+                  )}
                   <button type="button" onClick={() => void del(e, k)} style={{ ...pill, border: '0', color: '#ff8f7d' }}>{tx('Slett')}</button>
                 </div>
               </div>

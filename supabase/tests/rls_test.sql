@@ -920,6 +920,42 @@ select ch_test.err('Tilbakemelding: Moderator uten MFA får ikke innboksen', $q$
 set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-1","aal":"aal1"}';
 select ch_test.err('Tilbakemelding: Developer uten MFA får ikke innboksen', $q$select * from public.feedback_list()$q$, '42501');
 
+-- ---------- Send mal til et medlem (TB-09177E, item_shares) ----------
+set local role anon;
+select ch_test.err('Sende mal: ikke innlogget får ikke medlemslisten', $q$select * from public.church_peers('aaaaaaaa-0000-4000-8000-00000000000a')$q$, '42501');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-8","aal":"aal1"}';
+select ch_test.atleast('Sende mal: medlemslisten har de andre aktive medlemmene', $q$select 1 from public.church_peers('aaaaaaaa-0000-4000-8000-00000000000a') where id = '00000000-0000-4000-8000-000000000003'$q$, 1);
+select ch_test.cnt('Sende mal: medlemslisten har ikke deg selv, deaktiverte eller andre menigheter', $q$select 1 from public.church_peers('aaaaaaaa-0000-4000-8000-00000000000a') where id in ('00000000-0000-4000-8000-000000000008', '00000000-0000-4000-8000-000000000007', '00000000-0000-4000-8000-000000000005')$q$, 0);
+select ch_test.cnt('Sende mal: medlemslisten viser aldri e-post', $q$select 1 from public.church_peers('aaaaaaaa-0000-4000-8000-00000000000a') where name like '%@%'$q$, 0);
+select ch_test.err('Sende mal: ikke medlemsliste for en annen menighet', $q$select * from public.church_peers('bbbbbbbb-0000-4000-8000-00000000000b')$q$, '42501');
+select ch_test.ok('Sende mal: User sender en mal til et medlem', $q$select public.send_item_share('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000003', 'thumbnail-studio', 'template', 'RLS-test mal', '{"doc":{"layers":[]}}')$q$);
+select ch_test.err('Sende mal: ikke til et medlem i en annen menighet', $q$select public.send_item_share('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000005', 'thumbnail-studio', 'template', 'x', '{}')$q$, '42501');
+select ch_test.err('Sende mal: ikke til en deaktivert bruker', $q$select public.send_item_share('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000007', 'thumbnail-studio', 'template', 'x', '{}')$q$, '42501');
+select ch_test.err('Sende mal: ikke til seg selv', $q$select public.send_item_share('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000008', 'thumbnail-studio', 'template', 'x', '{}')$q$, '22023');
+select ch_test.err('Sende mal: ikke fra en menighet man ikke er medlem av', $q$select public.send_item_share('bbbbbbbb-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-000000000009', 'thumbnail-studio', 'template', 'x', '{}')$q$, '42501');
+select ch_test.err('Sende mal: bilder fra en annen menighet avvises', $q$select public.send_item_share('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000003', 'thumbnail-studio', 'template', 'x', jsonb_build_object('src', 'ch:' || (select id from ch_test.all_files where file_name = 'b-delt.png' limit 1)))$q$, null);
+select ch_test.err('Sende mal: ukjent type avvises', $q$select public.send_item_share('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000003', 'loop-studio', 'template', 'x', '{}')$q$, '22023');
+select ch_test.err('Sende mal: tabellen kan ikke leses direkte', $q$select id from public.item_shares$q$, '42501');
+select ch_test.err('Sende mal: tabellen kan ikke skrives direkte', $q$insert into public.item_shares (church_id, from_user, to_user, app, kind, name) values ('aaaaaaaa-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000008', '00000000-0000-4000-8000-000000000003', 'thumbnail-studio', 'template', 'x')$q$, '42501');
+select ch_test.cnt('Sende mal: avsenderen ser den ikke som mottatt', $q$select jsonb_array_elements(public.my_item_shares('thumbnail-studio'))$q$, 0);
+set local role postgres;
+create temp table tshare as select id from public.item_shares where name = 'RLS-test mal';
+grant select on tshare to authenticated;
+select ch_test.cnt('Sende mal: mottakeren har fått et varsel', $q$select 1 from public.notifications where user_id = '00000000-0000-4000-8000-000000000003' and title = 'Du har mottatt en mal'$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-4","aal":"aal1"}';
+select ch_test.cnt('Sende mal: andre ser ikke malen', $q$select jsonb_array_elements(public.my_item_shares('thumbnail-studio'))$q$, 0);
+select ch_test.err('Sende mal: andre kan ikke svare', $q$select public.respond_item_share((select id from tshare), true)$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-3","aal":"aal1"}';
+select ch_test.cnt('Sende mal: mottakeren ser malen med avsenderens navn', $q$select 1 from jsonb_array_elements(public.my_item_shares('thumbnail-studio')) e where e ->> 'name' = 'RLS-test mal' and e ->> 'from_name' <> '' and e -> 'payload' is null$q$, 1);
+select ch_test.cnt('Sende mal: godta gir innholdet', $q$select 1 where public.respond_item_share((select id from tshare), true) #> '{payload,doc}' is not null$q$, 1);
+select ch_test.err('Sende mal: kan ikke besvares to ganger', $q$select public.respond_item_share((select id from tshare), false)$q$, '22023');
+select ch_test.cnt('Sende mal: besvart mal er borte fra listen', $q$select jsonb_array_elements(public.my_item_shares('thumbnail-studio'))$q$, 0);
+set local role postgres;
+select ch_test.cnt('Sende mal: status godtatt, innholdet tømt, avsenderen varslet og loggført', $q$select 1 from public.item_shares where id = (select id from tshare) and status = 'accepted' and payload = '{}'::jsonb and responded_at is not null and exists (select 1 from public.notifications where user_id = '00000000-0000-4000-8000-000000000008' and title = 'Malen ble godtatt') and exists (select 1 from public.audit_logs where action = 'share.accept')$q$, 1);
+set local role authenticated;
+
 -- Lagret innhold (som eier)
 set local role postgres;
 select ch_test.cnt('Tilbakemelding: lagret med referanse, rolle og menighet (bare når medlem)', $q$select 1 from public.feedback where description = 'RLS-test feil: eksport stopper' and ref ~ '^TB-[0-9A-F]{6}$' and role = 'user' and church_id = 'aaaaaaaa-0000-4000-8000-00000000000a' and status = 'new' and created_by = '00000000-0000-4000-8000-000000000008'$q$, 1);
