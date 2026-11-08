@@ -106,3 +106,12 @@
 .page[data-ml-mode='light'] [data-ml-star] {
   opacity: 0 !important;
 }
+
+/* TB-1591A7: grunnoppsett-banneret ligger øverst på PC; på smale skjermer dekket det toppfeltet (tilbake, tittel,
+   Eksporter), så der legges det rett over knappene nederst */
+@media (max-width: 760px) {
+  .baseBanner {
+    top: auto !important;
+    bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+  }
+}

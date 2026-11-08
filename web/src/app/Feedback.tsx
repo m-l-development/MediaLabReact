@@ -53,8 +53,32 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
   const move = useRef<{ dx: number; dy: number } | null>(null)
   // markeringsverktøyet selv (og skjermen bak skjemaet) er aldri en del av det som markeres; selve skjemaet kan markeres
   const tool = (n: Element) => !!n.closest('[data-chfb-tool],[data-chfb-backdrop]')
-  const under = (x: number, y: number) => document.elementsFromPoint(x, y).find((n) => !tool(n) && n !== document.documentElement && n !== document.body) ?? null
+  // elementet under pekeren, i alle lag (portaler, menyer, dialoger): elementsFromPoint ser forbi markeringsflaten. Fremheving
+  // og valg bruker samme element som registreres (nærmeste knapp, lenke, bryter eller felt; ellers det innerste elementet).
+  const under = (x: number, y: number) => {
+    const n = document.elementsFromPoint(x, y).find((e) => !tool(e) && e !== document.documentElement && e !== document.body) ?? null
+    return n?.closest('button,a[href],summary,label,input,select,textarea,[role=button],[role=tab],[role=link],[role=menuitem],[role=switch],[role=checkbox],[role=radio],[role=option]') ?? n
+  }
   const rectOf = (n: Element) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height } }
+  /**
+   * TB-7D30CC: markeringsflaten ligger over hele vinduet (også over skjemaet), så musehjul og fingre traff den i stedet for
+   * skjemaet – og flaten scroller ikke. Scrolling sendes derfor videre til den nærmeste scrollbare beholderen under pekeren
+   * (skjemaet, et panel eller siden). Markeringen virker som før.
+   */
+  const scroller = (n: Element | null): Element | null => {
+    for (let e = n; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      const cs = getComputedStyle(e)
+      if ((/(auto|scroll|overlay)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 1) || (/(auto|scroll|overlay)/.test(cs.overflowX) && e.scrollWidth > e.clientWidth + 1)) return e
+    }
+    return document.scrollingElement
+  }
+  /** Etter scrolling flyttes rammen med elementet (valgt element) eller viser det som nå er under pekeren. */
+  const follow = (x: number, y: number) => {
+    if (sel?.mode === 'element' && sel.node?.isConnected) { const r = rectOf(sel.node); setSel({ ...sel, r }); setBox(r) } else if (!sel) { const n = under(x, y); if (n) setBox(rectOf(n)) }
+  }
+  // berøring som startet i skjemaet: loddrett sveip scroller skjemaet, et trykk markerer som før
+  const tscroll = useRef<{ el: Element; y: number; x0: number; y0: number; on: boolean } | null>(null)
+  const inForm = (n: Element | null) => !!n?.closest('[data-chfb][role="dialog"]')
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null) } }
     document.addEventListener('keydown', key, true)
@@ -63,9 +87,14 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
   const confirm = () => {
     if (!sel) return
     const W = innerWidth, H = innerHeight, p = (v: number) => Math.round(v * 1000) / 10
+    const base = { mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node) }
+    // skjemaet og knappene for tilbakemelding hører ikke til siden i omrisset, med mindre det er skjemaet som markeres
+    const own = inForm(sel.node ?? under(sel.r.x + sel.r.w / 2, sel.r.y + sel.r.h / 2)) ? tool : (n: Element) => tool(n) || !!n.closest('[data-chfb]')
+    // markeringen har en grense i databasen (submit_feedback: 4000 byte); omrisset får plassen som er igjen
+    const budget = Math.min(3000, 3700 - Math.ceil(new TextEncoder().encode(JSON.stringify(base)).length * 1.15))
     let layout: string[] = []
-    try { layout = pageLayout(tool) } catch { /* omrisset er valgfritt */ }
-    done({ mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node), layout })
+    try { layout = pageLayout(own, document.body, budget) } catch { /* omrisset er valgfritt */ }
+    done({ ...base, layout })
   }
   return createPortal(
     <>
@@ -75,8 +104,33 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
         data-chfb-tool=""
         role="application"
         aria-label={t('fb.mark')}
-        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); start.current = { x: e.clientX, y: e.clientY }; drag.current = false; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ingenting */ } }}
+        onWheel={(e) => {
+          const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1
+          const sc = scroller(under(e.clientX, e.clientY))
+          if (!sc) return
+          sc.scrollBy({ left: e.deltaX * k, top: e.deltaY * k })
+          requestAnimationFrame(() => follow(e.clientX, e.clientY))
+        }}
+        onPointerDown={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          start.current = { x: e.clientX, y: e.clientY }
+          drag.current = false
+          const n = e.pointerType === 'mouse' ? null : under(e.clientX, e.clientY)
+          const sc = n && inForm(n) ? scroller(n) : null
+          tscroll.current = sc ? { el: sc, y: e.clientY, x0: e.clientX, y0: e.clientY, on: false } : null
+          try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ingenting */ }
+        }}
         onPointerMove={(e) => {
+          const ts = tscroll.current
+          if (ts && start.current) {
+            if (!ts.on && Math.abs(e.clientY - ts.y0) > 8 && Math.abs(e.clientY - ts.y0) > Math.abs(e.clientX - ts.x0)) ts.on = true
+            if (ts.on) {
+              ts.el.scrollTop -= e.clientY - ts.y
+              ts.y = e.clientY
+              return
+            }
+          }
           const s = start.current
           if (s) {
             const dx = e.clientX - s.x, dy = e.clientY - s.y
@@ -89,6 +143,14 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
         onPointerUp={(e) => {
           const s = start.current
           if (!s) return
+          if (tscroll.current?.on) {
+            tscroll.current = null
+            start.current = null
+            drag.current = false
+            follow(e.clientX, e.clientY)
+            return
+          }
+          tscroll.current = null
           if (drag.current) {
             const r = { x: Math.min(s.x, e.clientX), y: Math.min(s.y, e.clientY), w: Math.abs(e.clientX - s.x), h: Math.abs(e.clientY - s.y) }
             setSel({ mode: 'area', r, node: under(r.x + r.w / 2, r.y + r.h / 2) })
@@ -286,11 +348,11 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
                       {f.marked ? (
                         <>
                           <div className={styles.mark} data-chfb-marked="">{t('fb.marked')}: {markText(t, f.marked)}</div>
-                          <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => startPick()}>{t('fb.markAgainShort')}</button>
+                          <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => startPick(innerWidth > 600)}>{t('fb.markAgainShort')}</button>
                           <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => setF((x) => ({ ...x, marked: null }))}>{t('fb.markRemove')}</button>
                         </>
                       ) : (
-                        <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pick="" title={t('fb.markKey')} onClick={() => startPick()}>{t('fb.mark')}</button>
+                        <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pick="" title={t('fb.markKey')} onClick={() => startPick(innerWidth > 600)}>{t('fb.mark')}</button>
                       )}
                     </div>
                     <p className={styles.note}>

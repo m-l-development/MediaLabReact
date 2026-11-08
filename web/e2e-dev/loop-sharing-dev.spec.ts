@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { appears, EMAIL, EMAIL2, expectHub, injectBackend, PASSWORD, PASSWORD2, rest, rpc, signInAs } from './helpers'
+import { api, appears, EMAIL, EMAIL2, expectHub, injectBackend, PASSWORD, PASSWORD2, rest, rpc, signInAs } from './helpers'
 
 /**
  * TB-596FE4 og TB-BB67CB – Loop Studio delt i menigheten, med Admin (A) og Bruker (B) i «CH-test Menighet A» samtidig
@@ -134,5 +134,102 @@ test('Loop Studio delt i menigheten: grunnoppsett, malsoppsett og isolering', as
     const report = rows.join('\n')
     console.log(`\n${report}\n`)
     await info.attach('loop-deling', { body: report, contentType: 'text/markdown' })
+  }
+})
+
+/**
+ * TB-B4A133, TB-A43E52 (Loop) og TB-143BF7 med Admin (A) og Bruker (B) i «CH-test Menighet A»:
+ * 1. «Felles for menigheten» er forhåndsvalgt når brukeren har menighet; et personlig grunnoppsett ses bare av A.
+ * 2. A har et eget bilde (img-) på en slide og velger «Del med menigheten» på det personlige grunnoppsettet → en felles kopi
+ *    med ny ID, det personlige blir liggende, og bildet er lastet opp til menighetens filer (ch:-referanse, ingen img-).
+ * 3. B ser kopien og kan hente bildet. Oppsettet legges tilbake og testbildet slettes etterpå.
+ */
+test('Loop Studio: personlig grunnoppsett, «Del med menigheten» og egne bilder', async ({ page, browser }, info) => {
+  test.skip(info.project.name === 'mobil', 'kjøres én gang')
+  test.setTimeout(400_000)
+  const { png } = await import('../e2e/png')
+  const rows = ['| Kontroll | Resultat |', '|---|---|']
+  const ctxB = await browser.newContext({ baseURL: info.project.use.baseURL })
+  const b = await ctxB.newPage()
+  await injectBackend(b)
+  for (const p of [page, b]) p.on('dialog', (d) => void d.accept())
+  await signInAs(page, EMAIL, PASSWORD)
+  await expectHub(page)
+  await signInAs(b, EMAIL2, PASSWORD2)
+  await expectHub(b)
+  const church = await churchId(page, 'CH-test Menighet A')
+  const snap = await get(page, church, 'loopstudio:bases')
+  const name = `E2E-personlig-${Date.now()}`
+  const made: string[] = []
+  try {
+    // A: demo, eget bilde på første slide
+    await page.goto('/app/loop-studio')
+    await page.locator('[data-ch-demo-link]').click()
+    await expect(page.locator('[data-loop-canvas]')).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-loop-card]').first().click()
+    await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: 'eget.png', mimeType: 'image/png', buffer: png(320, 180, (x) => [x % 255, 90, 200, 255]) })
+    await page.getByRole('button', { name: 'Bruk hele bildet' }).click()
+    // 1. standardvalget er felles; lagres personlig
+    await page.locator('[data-ch-demo-save]').click()
+    const dlg = page.locator('[data-ch-base-dialog]')
+    await expect(dlg.locator('[data-ch-base-level="f"]')).toBeChecked()
+    rows.push('| «Felles for menigheten» er forhåndsvalgt (TB-B4A133) | ja |')
+    await dlg.locator('[data-ch-base-name]').fill(name)
+    await dlg.locator('[data-ch-base-level="p"]').check()
+    await dlg.getByRole('button', { name: 'Lagre', exact: true }).click()
+    await expect(page.getByText(/Grunnoppsettet er lagret \(personlig\)/)).toBeVisible({ timeout: 20_000 })
+    expect(JSON.stringify((await get(page, church, 'loopstudio:bases'))?.data ?? {})).not.toContain(name)
+    await b.goto('/app/loop-studio')
+    await expect(b.locator('[data-ch-loop-bases]')).toBeVisible({ timeout: 20_000 })
+    await expect(b.locator(`[data-ch-loop-base="${name}"]`)).toHaveCount(0)
+    rows.push('| Personlig grunnoppsett ses ikke av B og ligger ikke i menighetens oppsett | ja |')
+    // 2. Del med menigheten
+    await page.goto('/app/loop-studio')
+    const mine = page.locator(`[data-ch-loop-base="${name}"]`)
+    await expect(mine).toHaveCount(1, { timeout: 20_000 })
+    expect(JSON.stringify(await page.evaluate(() => ({ ...localStorage })))).toContain('img-')
+    await mine.locator('[data-ch-loop-base-share]').click()
+    await expect(page.locator(`[data-ch-loop-base="${name}"]`)).toHaveCount(2, { timeout: 30_000 })
+    const row = await get(page, church, 'loopstudio:bases')
+    const list = ((row?.data as { bases?: { id: string; name: string; data: unknown }[] } | undefined)?.bases ?? [])
+    const shared = list.find((e) => e && e.name === name)
+    const sj = JSON.stringify(shared ?? {})
+    for (const m of sj.matchAll(/ch:([0-9a-f-]{36})/g)) if (!made.includes(m[1] as string)) made.push(m[1] as string)
+    rows.push(`| «Del med menigheten»: felles kopi i databasen, ch:-bilde, ingen img- (TB-A43E52/TB-143BF7) | ${shared && made.length && !sj.includes('img-') ? 'ja' : '**NEI**'} |`)
+    expect(shared).toBeTruthy()
+    expect(made.length).toBeGreaterThan(0)
+    expect(sj).not.toContain('img-')
+    await expect(page.locator(`[data-ch-loop-base="${name}"]`).filter({ hasText: 'Felles for menigheten' })).toHaveCount(1)
+    await expect(page.locator(`[data-ch-loop-base="${name}"] [data-ch-loop-base-share]`)).toHaveCount(1) // det personlige er beholdt
+    rows.push('| Det personlige grunnoppsettet er beholdt | ja |')
+    // 3. B ser kopien og kan hente bildet
+    await b.goto('/app/loop-studio')
+    await expect(b.locator(`[data-ch-loop-base="${name}"]`)).toHaveCount(1, { timeout: 20_000 })
+    const u = await api(b, 'file.urls', { ids: made })
+    const url = (u.body?.urls as Record<string, string> | undefined)?.[made[0] as string]
+    const img = url ? await b.evaluate(async (x) => { const r = await fetch(x); return r.ok ? (await r.blob()).type : 'status ' + r.status }, url) : 'ingen adresse'
+    rows.push(`| B ser det delte grunnoppsettet og kan hente bildet | ${img.startsWith('image/') ? 'ja' : '**NEI** (' + img + ')'} |`)
+    expect(img).toMatch(/^image\//)
+    await b.locator(`[data-ch-loop-base="${name}"] [data-ch-loop-base-open]`).click()
+    await expect(b.locator('[data-loop-canvas]')).toBeVisible({ timeout: 30_000 })
+    await expect(b.getByText(/bilder kunne ikke|mangler/i)).toHaveCount(0)
+    rows.push('| B lager serie fra det uten feil | ja |')
+  } finally {
+    await b.goto('/app/').catch(() => undefined)
+    await page.goto('/app/').catch(() => undefined)
+    const cur = await get(page, church, 'loopstudio:bases').catch(() => null)
+    if (snap && cur) {
+      const r = await rpc(page, 'church_settings_save', { p_church: church, p_scope: 'loopstudio:bases', p_data: snap.data, p_version: cur.version })
+      const back = await get(page, church, 'loopstudio:bases')
+      rows.push(`| loopstudio:bases lagt tilbake | ${r.status}; innhold som før: ${JSON.stringify(back?.data) === JSON.stringify(snap.data) ? 'ja' : '**NEI**'} |`)
+    }
+    for (const id of made) {
+      const d = await api(page, 'file.delete', { id }).catch(() => null)
+      rows.push(`| testbildet slettet | ${d?.status ?? '–'} |`)
+    }
+    await ctxB.close()
+    const report = rows.join('\n')
+    console.log(`\n${report}\n`)
+    await info.attach('loop-personlig-deling', { body: report, contentType: 'text/markdown' })
   }
 })

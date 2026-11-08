@@ -735,7 +735,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Skillelinje': 'Divider',
   'Skjerm': 'Screen',
   'Skjermbilde er ikke støttet i denne versjonen; rammen viser plasseringen i brukerens vindu.': 'Screenshots are not supported in this version; the frame shows the position in the user\'s window.',
-  'Saken ble sendt før forhåndsvisningen av siden fantes; rammen viser plasseringen i brukerens vindu.': 'The case was sent before the page preview existed; the frame shows the position in the user’s window.',
+  'Saken ble sendt før sidens oppbygning ble lagret. Miniatyren er omtrentlig (ut fra vindusstørrelsen og det markerte elementet); den gule rammen står der brukeren markerte.': 'The case was sent before the page structure was stored. The miniature is approximate (based on the window size and the marked element); the yellow frame is where the user marked.',
   'Skjult – menigheten er ikke med i gruppen': 'Hidden – the church is not in the group',
   'Skriv **fet** eller *kursiv*. Flettefelt:': 'Write **bold** or *italic*. Merge fields:',
   'Skriv en begrunnelse for avvisningen.': 'Write a reason for the rejection.',
