@@ -339,10 +339,10 @@ function Banners({ c, tx }: { c: LoopController; tx: (s: unknown) => string }) {
         </div>
       )}
       {c.banner === 'base' && c.fromBase && (
-        <div data-ch-base-banner="1" role="status" title={tx('Serie fra grunnoppsettet') + ' «' + c.fromBase.name + '» (' + tx(c.fromBase.kind === 'f' ? 'felles for menigheten' : 'personlig') + '). ' + tx('Endringer her endrer ikke grunnoppsettet.')}
+        <div data-ch-base-banner="1" className={L.baseBanner} role="status" title={tx('Serie fra grunnoppsettet') + ' «' + c.fromBase.name + '» (' + tx(c.fromBase.kind === 'f' ? 'felles for menigheten' : 'personlig') + '). ' + tx('Endringer her endrer ikke grunnoppsettet.')}
           style={{ ...bar, top: '6px', gap: '6px', flexWrap: 'nowrap', maxWidth: 'min(calc(100% - 24px), 520px)', padding: '2px 2px 2px 10px', border: '1px solid #2b2b2b', background: 'rgba(18,18,18,.9)', color: '#d9d5cc', font: '500 11px/1.2 Archivo,system-ui,sans-serif', boxShadow: '0 4px 12px rgba(0,0,0,.35)' }}>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{tx('Fra grunnoppsettet') + ' «' + c.fromBase.name + '»'}</span>
-          <button type="button" data-ch-base-update="1" onClick={() => void c.updateBase()} style={{ flex: 'none', height: '22px', padding: '0 9px', border: '1px solid #6f6b63', borderRadius: '999px', background: 'transparent', color: '#f3f1ec', font: 'inherit', cursor: 'pointer' }}>
+          <button type="button" data-ch-base-update="1" onClick={() => void c.updateBase()} style={{ flex: 'none', height: '22px', padding: '0 9px', border: '1px solid #6f6b63', borderRadius: '999px', background: 'transparent', color: '#f3f1ec', font: 'inherit', whiteSpace: 'nowrap', cursor: 'pointer' }}>
             {tx('Oppdater grunnoppsettet')}
           </button>
           <button type="button" aria-label={tx('Lukk')} onClick={c.closeBanner} style={{ flex: 'none', width: '22px', height: '22px', border: 0, borderRadius: '999px', background: 'transparent', color: '#9d998f', font: 'inherit', cursor: 'pointer' }}>✕</button>

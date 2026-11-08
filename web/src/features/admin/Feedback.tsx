@@ -309,18 +309,18 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
   )
 }
 
-/** Markeringen i en miniatyr av siden (shared/feedback/LayoutPreview); eldre saker uten omriss viser bare rammen. */
+/** Markeringen i en miniatyr av siden (shared/feedback/LayoutPreview); eldre saker uten omriss får en omtrentlig side. */
 function MarkPreview({ m }: { m: CaseMark }) {
   const { t } = useAdmin()
   const r = m.rect ?? {}, e = m.element ?? {}
   const items = decodeLayout(m.layout)
   return (
     <div data-fb-mark="">
-      <LayoutPreview layout={m.layout} rect={r} viewport={m.viewport} label={t('Markering i skjermbildet')} />
+      <LayoutPreview layout={m.layout} rect={r} viewport={m.viewport} label={t('Markering i skjermbildet')} element={e} />
       <p className="ch-muted">{t(m.mode === 'area' ? 'Område' : 'Element')}{e.tag ? ' <' + e.tag + '>' : ''}{e.label ? ' «' + e.label + '»' : ''} · x {r.x} %, y {r.y} %, {r.w} × {r.h} % · {t('vindu')} {m.viewport}</p>
       {e.path && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{e.path}</p>}
       {e.attrs && Object.keys(e.attrs).length > 0 && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{Object.entries(e.attrs).map(([k, v]) => k + '="' + v + '"').join(' · ')}</p>}
-      <p className="ch-muted">{t(items.length ? 'Forhåndsvisningen viser bare sidens oppbygning (knapper, felt, paneler og tekstlinjer) – aldri bilder, filer eller brukerens innhold.' : 'Saken ble sendt før forhåndsvisningen av siden fantes; rammen viser plasseringen i brukerens vindu.')}</p>
+      <p className="ch-muted">{t(items.length ? 'Forhåndsvisningen viser bare sidens oppbygning (knapper, felt, paneler og tekstlinjer) – aldri bilder, filer eller brukerens innhold.' : 'Saken ble sendt før sidens oppbygning ble lagret. Miniatyren er omtrentlig (ut fra vindusstørrelsen og det markerte elementet); den gule rammen står der brukeren markerte.')}</p>
     </div>
   )
 }

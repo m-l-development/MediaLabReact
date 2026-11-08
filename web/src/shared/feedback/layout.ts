@@ -42,7 +42,8 @@ export function decodeLayout(rows: unknown): LayoutItem[] {
   return out
 }
 
-const bytes = (s: string[]) => new TextEncoder().encode(JSON.stringify(s)).length
+// + ett tegn per rad: databasen lagrer jsonb med mellomrom etter komma
+const bytes = (s: string[]) => new TextEncoder().encode(JSON.stringify(s)).length + s.length
 
 function kindOf(el: Element, cs: CSSStyleDeclaration, r: DOMRect, W: number, H: number): LayoutKind | null {
   const tag = el.tagName.toLowerCase()
@@ -69,7 +70,7 @@ function kindOf(el: Element, cs: CSSStyleDeclaration, r: DOMRect, W: number, H: 
  * Omrisset av det som vises i vinduet nå. skip = elementer som ikke er en del av siden (markeringsverktøyet).
  * Elementer som ligger bak andre (f.eks. under et åpent skjema) tas med i den rekkefølgen de står i siden.
  */
-export function pageLayout(skip: (el: Element) => boolean = () => false, root: Element = document.body): string[] {
+export function pageLayout(skip: (el: Element) => boolean = () => false, root: Element = document.body, budget = BUDGET): string[] {
   const W = innerWidth, H = innerHeight
   if (!W || !H) return []
   const items: { it: LayoutItem; rank: number }[] = []
@@ -98,7 +99,7 @@ export function pageLayout(skip: (el: Element) => boolean = () => false, root: E
   let rows: string[] = []
   for (const o of order) {
     const next = encodeLayout([o.it])
-    if (bytes(rows.concat(next)) > BUDGET) break
+    if (bytes(rows.concat(next)) > budget) break
     rows = rows.concat(next)
     keep.add(o.i)
   }

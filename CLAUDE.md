@@ -2,6 +2,8 @@
 
 Brukeren skriver norsk. Svar kort og direkte på norsk.
 
+**Ved oppstart:** les alltid `PROJECT_CONTEXT.md` (status, struktur, regler) før annet arbeid, og oppdater den ved viktige endringer og før økten avsluttes.
+
 GitHub: `m-l-development/MediaLabReact` (tidligere `zoefredrikstad-maker/MediaLabReact`, offentlig repo). `main` = produksjon (Vercel Production). `connecthub` = ConnectHub-utvikling (Vercel Preview → Supabase `connecthub-dev`).
 
 ## ConnectHub (videreutvikling av Media Lab) – faste regler

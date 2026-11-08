@@ -8,11 +8,11 @@ import { ServicesContext, type Services } from '../../app/services'
 import type { Me } from '../../domain/account'
 import { createRoot } from 'react-dom/client'
 import { pageLayout } from './layout'
-import { LayoutPreview, type PreviewRect } from './LayoutPreview'
+import { LayoutPreview, type PreviewElement, type PreviewRect } from './LayoutPreview'
 
 export { pageLayout }
-export function mount(el: HTMLElement, layout: string[], rect: PreviewRect, viewport: string): void {
-  flushSync(() => createRoot(el).render(<LayoutPreview layout={layout} rect={rect} viewport={viewport} label="test" />))
+export function mount(el: HTMLElement, layout: string[] | undefined, rect: PreviewRect, viewport: string, element?: PreviewElement): void {
+  flushSync(() => createRoot(el).render(<LayoutPreview layout={layout} rect={rect} viewport={viewport} label="test" element={element} />))
 }
 
 /** Den ekte tilbakemeldingsknappen med falske tjenester (ingen innlogging lokalt); innsendingen fanges i window.__fbSent. */

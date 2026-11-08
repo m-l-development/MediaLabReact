@@ -87,9 +87,14 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
   const confirm = () => {
     if (!sel) return
     const W = innerWidth, H = innerHeight, p = (v: number) => Math.round(v * 1000) / 10
+    const base = { mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node) }
+    // skjemaet og knappene for tilbakemelding hører ikke til siden i omrisset, med mindre det er skjemaet som markeres
+    const own = inForm(sel.node ?? under(sel.r.x + sel.r.w / 2, sel.r.y + sel.r.h / 2)) ? tool : (n: Element) => tool(n) || !!n.closest('[data-chfb]')
+    // markeringen har en grense i databasen (submit_feedback: 4000 byte); omrisset får plassen som er igjen
+    const budget = Math.min(3000, 3700 - Math.ceil(new TextEncoder().encode(JSON.stringify(base)).length * 1.15))
     let layout: string[] = []
-    try { layout = pageLayout(tool) } catch { /* omrisset er valgfritt */ }
-    done({ mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node), layout })
+    try { layout = pageLayout(own, document.body, budget) } catch { /* omrisset er valgfritt */ }
+    done({ ...base, layout })
   }
   return createPortal(
     <>

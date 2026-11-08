@@ -168,4 +168,53 @@ test('skjemaet kan scrolles under markering, verdiene bevares og tilbakemeldinge
   expect(JSON.stringify(sent)).toContain('Knappen eksporterer ikke')
   expect(sent.marked.mode).toBe('element')
   expect(sent.marked.layout.length).toBeGreaterThan(0)
+  // skjemaet (åpent ved siden av på PC) er ikke med i omrisset, og markeringen holder seg under grensen i databasen
+  expect(sent.marked.layout.join(' / ')).not.toMatch(/Send inn|Avbryt|Marker/)
+  expect(new TextEncoder().encode(JSON.stringify(sent.marked)).length + sent.marked.layout.length).toBeLessThanOrEqual(4000)
+})
+
+/**
+ * Miniatyren skal være lesbar på alle sider: etiketter får plass (ellers vises bare formen), den gule rammen ligger øverst med
+ * elementets navn helt innenfor miniatyren, og saker uten lagret omriss får en omtrentlig side i stedet for en tom ramme.
+ */
+test('miniatyren er ryddig og lesbar på ulike sider, også saker uten omriss', async ({ page }, info) => {
+  const check = (withLayout: boolean) => page.evaluate(async (withLayout) => {
+    const M = await import('/app/src/shared/feedback/LayoutPreview.mount.tsx' as string)
+    document.querySelector('[data-test-host]')?.remove()
+    const target = [...document.querySelectorAll('main button')].find((b) => { const q = b.getBoundingClientRect(); return q.width > 20 && q.height > 10 && q.top > 60 && q.bottom < innerHeight }) as HTMLElement
+    const tr = target.getBoundingClientRect(), W = innerWidth, H = innerHeight, p = (v: number) => Math.round(v * 1000) / 10
+    const rect = { x: p(tr.left / W), y: p(tr.top / H), w: p(tr.width / W), h: p(tr.height / H) }
+    const host = document.createElement('div')
+    host.dataset.testHost = ''
+    host.style.cssText = 'position:fixed;left:0;top:0;width:min(480px,100vw);z-index:99999;background:#000'
+    document.body.appendChild(host)
+    M.mount(host, withLayout ? M.pageLayout() : undefined, rect, W + '×' + H, { tag: 'button', role: 'button', label: (target.getAttribute('aria-label') || target.innerText).trim() })
+    const box = host.querySelector('[data-fb-preview]') as HTMLElement, b = box.getBoundingClientRect()
+    const hl = (box.querySelector('[data-fb-hl]') as HTMLElement).getBoundingClientRect()
+    const tag = (box.querySelector('[data-fb-hl-tag]') as HTMLElement).getBoundingClientRect()
+    const within = (q: DOMRect, o: DOMRect) => q.left >= o.left - 0.5 && q.top >= o.top - 0.5 && q.right <= o.right + 0.5 && q.bottom <= o.bottom + 0.5
+    // etiketter: minst tre tegn synlige og innenfor sin boks
+    const bad = [...box.querySelectorAll('[data-fb-label]')].filter((l) => {
+      const q = l.getBoundingClientRect(), par = (l.parentElement as HTMLElement).getBoundingClientRect()
+      return q.width < parseFloat(getComputedStyle(l).fontSize) * 1.2 || q.right > par.right + 0.5 || q.bottom > par.bottom + 1
+    }).map((l) => l.textContent)
+    const top = document.elementFromPoint(hl.left + hl.width / 2, hl.top + hl.height / 2)
+    return { mode: box.dataset.fbPreview, wires: box.querySelectorAll('[data-fb-wire]').length, labels: box.querySelectorAll('[data-fb-label]').length, bad,
+      hlOnTop: !!top?.closest('[data-fb-hl]'), tagInside: within(tag, b), fitsHost: b.width <= host.getBoundingClientRect().width + 0.5, ratio: Math.abs(b.width / b.height - W / H) }
+  }, withLayout)
+  const shot = async (name: string) => { if (process.env.ML_SHOT) await page.locator('[data-fb-preview]').screenshot({ path: `${process.env.ML_SHOT}-${name}-${info.project.name}.png` }) }
+  for (const path of ['photo-design', 'loop-studio', 'thumbnail-studio', 'motion-design']) {
+    await page.goto('/app/' + path)
+    await page.locator('main button').first().waitFor()
+    const r = await check(true)
+    await shot(path)
+    expect(r, path).toMatchObject({ mode: 'layout', bad: [], hlOnTop: true, tagInside: true, fitsHost: true })
+    expect(r.wires, path).toBeGreaterThan(5)
+    expect(r.ratio, path).toBeLessThan(0.03)
+  }
+  // sak uten omriss: omtrentlig side med det markerte elementet tegnet i rammen, ikke en tom ramme
+  const r = await check(false)
+  await shot('uten-omriss')
+  expect(r).toMatchObject({ mode: 'fallback', bad: [], hlOnTop: true, tagInside: true, fitsHost: true })
+  expect(r.wires).toBeGreaterThan(5)
 })
