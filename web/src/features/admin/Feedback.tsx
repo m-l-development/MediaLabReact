@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useServices } from '../../app/services'
 import { scrubText } from '../../shared/feedback/feedback-core'
-import { decodeLayout, type LayoutItem } from '../../shared/feedback/layout'
+import { decodeLayout } from '../../shared/feedback/layout'
+import { LayoutPreview } from '../../shared/feedback/LayoutPreview'
 import { caseApp, formatCase, formatCases, IMPORTANCE, KIND, SEVERITY, STATUS, type CaseEvent, type CaseMark, type FeedbackCase } from '../../shared/feedback/format-case'
 import { Head } from './common'
 import { useAdmin } from './context'
@@ -308,37 +309,14 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
   )
 }
 
-/** Utseendet på hver type i omrisset: generelle flater, aldri innhold (se shared/feedback/layout). */
-const WIRE: Record<LayoutItem['k'], React.CSSProperties> = {
-  p: { background: 'rgba(127,127,127,.10)', border: '1px solid rgba(127,127,127,.35)', borderRadius: 6 },
-  n: { background: 'rgba(127,127,127,.16)', borderRight: '1px solid rgba(127,127,127,.4)', borderBottom: '1px solid rgba(127,127,127,.4)' },
-  r: { borderBottom: '1px solid rgba(127,127,127,.35)', background: 'repeating-linear-gradient(90deg, rgba(127,127,127,.18) 0 22%, transparent 22% 26%)', backgroundSize: '100% 40%', backgroundRepeat: 'no-repeat', backgroundPosition: '0 50%' },
-  b: { background: 'rgba(127,127,127,.22)', border: '1px solid rgba(127,127,127,.6)', borderRadius: 999, display: 'grid', placeItems: 'center' },
-  i: { background: 'rgba(255,255,255,.08)', border: '1px solid rgba(127,127,127,.7)', borderRadius: 4 },
-  h: { fontWeight: 800 },
-  l: { opacity: 0.85 },
-  m: { background: 'repeating-linear-gradient(45deg, rgba(127,127,127,.18) 0 6px, rgba(127,127,127,.08) 6px 12px)', border: '1px dashed rgba(127,127,127,.5)', borderRadius: 4 },
-  t: { background: 'rgba(127,127,127,.28)', borderRadius: 2, transform: 'scaleY(.45)' },
-}
-/**
- * Markeringen i en forhåndsvisning av siden (TB-53E3CF): et trygt omriss av knapper, menyer, paneler og tekst slik siden så
- * ut, med det markerte området i gul ramme. Bilder, video og brukerens tekst vises aldri – bare plass og type. Eldre saker
- * uten omriss vises som før, med rammen i et tomt vindu.
- */
+/** Markeringen i en miniatyr av siden (shared/feedback/LayoutPreview); eldre saker uten omriss viser bare rammen. */
 function MarkPreview({ m }: { m: CaseMark }) {
   const { t } = useAdmin()
-  const [w, h] = (m.viewport || '16×9').split('×').map(Number), r = m.rect ?? {}, e = m.element ?? {}
+  const r = m.rect ?? {}, e = m.element ?? {}
   const items = decodeLayout(m.layout)
   return (
     <div data-fb-mark="">
-      <div data-fb-preview={items.length ? 'layout' : 'frame'} style={{ position: 'relative', width: '100%', maxWidth: items.length ? 640 : 360, aspectRatio: (w || 16) + ' / ' + (h || 9), border: '1px solid var(--line)', borderRadius: 8, background: 'var(--panel)', overflow: 'hidden', fontSize: 9, lineHeight: 1.1, containerType: 'inline-size' }} aria-label={t('Markering i skjermbildet')}>
-        {items.map((it, i) => (
-          <div key={i} data-fb-wire={it.k} style={{ position: 'absolute', left: it.x / 10 + '%', top: it.y / 10 + '%', width: it.w / 10 + '%', height: it.h / 10 + '%', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', boxSizing: 'border-box', padding: it.k === 'b' ? '0 3px' : 0, ...WIRE[it.k] }}>
-            {it.label && it.k !== 't' ? <span style={{ fontSize: it.k === 'h' ? 'clamp(8px, 1.8cqw, 13px)' : 'clamp(7px, 1.3cqw, 11px)' }}>{it.label}</span> : null}
-          </div>
-        ))}
-        <div data-fb-hl="" style={{ position: 'absolute', left: (r.x || 0) + '%', top: (r.y || 0) + '%', width: Math.max(r.w || 0, 1) + '%', height: Math.max(r.h || 0, 1) + '%', border: '3px solid #f5b301', background: 'rgba(245,179,1,.18)', borderRadius: 4, boxShadow: items.length ? '0 0 0 9999px rgba(0,0,0,.28), 0 0 12px 2px rgba(245,179,1,.8)' : undefined }} />
-      </div>
+      <LayoutPreview layout={m.layout} rect={r} viewport={m.viewport} label={t('Markering i skjermbildet')} />
       <p className="ch-muted">{t(m.mode === 'area' ? 'Område' : 'Element')}{e.tag ? ' <' + e.tag + '>' : ''}{e.label ? ' «' + e.label + '»' : ''} · x {r.x} %, y {r.y} %, {r.w} × {r.h} % · {t('vindu')} {m.viewport}</p>
       {e.path && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{e.path}</p>}
       {e.attrs && Object.keys(e.attrs).length > 0 && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{Object.entries(e.attrs).map(([k, v]) => k + '="' + v + '"').join(' · ')}</p>}

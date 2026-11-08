@@ -29,7 +29,10 @@ interface Marked {
   layout?: string[]
 }
 
-/** Starter markeringen fra kontomenyen eller med hurtigtasten (Alt+Shift+M): åpner skjemaet og går rett til markering. */
+/**
+ * Global markering (TB-ED697B): Alt+Shift+M starter markeringen over det som vises akkurat nå – også en åpen kontomeny,
+ * innstillinger eller admin – uten å åpne skjemaet først. Etter valget åpnes skjemaet med markeringen. Ingen egne knapper.
+ */
 export const START_MARK = 'chfb:mark'
 export const startMarking = () => window.dispatchEvent(new Event(START_MARK))
 /** Alt+Shift+M (e.code, så tasten virker også der Alt gir et spesialtegn, f.eks. på Mac). */
@@ -72,7 +75,7 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
         data-chfb-tool=""
         role="application"
         aria-label={t('fb.mark')}
-        onPointerDown={(e) => { e.preventDefault(); start.current = { x: e.clientX, y: e.clientY }; drag.current = false; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ingenting */ } }}
+        onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); start.current = { x: e.clientX, y: e.clientY }; drag.current = false; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ingenting */ } }}
         onPointerMove={(e) => {
           const s = start.current
           if (s) {
@@ -176,14 +179,15 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
     document.addEventListener('keydown', key, true)
     return () => document.removeEventListener('keydown', key, true)
   })
-  // fra kontomenyen eller hurtigtasten Alt+Shift+M: åpne skjemaet og start markeringen
+  // Alt+Shift+M (overalt): markeringen legger seg over det som er åpent; skjemaet åpnes først når noe er valgt.
+  // Fanges før verktøyenes egne hurtigtaster (capture), og gjør ingenting når markeringen ikke er aktiv.
   useEffect(() => {
-    const go = () => { onOpen(true); setFormOn(false); setPicking(true) }
-    const key = (e: KeyboardEvent) => { if (isMarkKey(e)) { e.preventDefault(); go() } }
+    const go = () => { setFormOn(false); setPicking(true) }
+    const key = (e: KeyboardEvent) => { if (isMarkKey(e) && !e.repeat) { e.preventDefault(); e.stopPropagation(); go() } }
     window.addEventListener(START_MARK, go)
-    document.addEventListener('keydown', key)
-    return () => { window.removeEventListener(START_MARK, go); document.removeEventListener('keydown', key) }
-  }, [onOpen])
+    window.addEventListener('keydown', key, true)
+    return () => { window.removeEventListener(START_MARK, go); window.removeEventListener('keydown', key, true) }
+  }, [])
   const here = () => { const a = appOf(location.pathname, location.search); return { app: a.id, appName: a.name, page: cleanPath(location.pathname), view: cleanView(location.search, location.hash) } }
   const submit = async () => {
     if (sending || !f.kind) return
@@ -286,10 +290,7 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
                           <button type="button" className={`${styles.btn} ${styles.light}`} onClick={() => setF((x) => ({ ...x, marked: null }))}>{t('fb.markRemove')}</button>
                         </>
                       ) : (
-                        <>
-                          <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pick="" title={t('fb.markKey')} onClick={() => startPick()}>{t('fb.mark')}</button>
-                          <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pickform="" onClick={() => startPick(true)}>{t('fb.markInForm')}</button>
-                        </>
+                        <button type="button" className={`${styles.btn} ${styles.light}`} data-chfb-pick="" title={t('fb.markKey')} onClick={() => startPick()}>{t('fb.mark')}</button>
                       )}
                     </div>
                     <p className={styles.note}>
@@ -311,7 +312,7 @@ export function FeedbackButton({ me, open, onOpen, fabClass }: { me: Me; open: b
         </>,
         document.body,
       )}
-      {open && picking && <Picker t={t} formOn={formOn} setFormOn={setFormOn} done={(m) => { setPicking(false); setFormOn(false); if (m) setF((x) => ({ ...x, marked: m })) }} />}
+      {picking && <Picker t={t} formOn={formOn} setFormOn={setFormOn} done={(m) => { setPicking(false); setFormOn(false); if (m) { setF((x) => ({ ...x, marked: m })); onOpen(true) } }} />}
     </>
   )
 }

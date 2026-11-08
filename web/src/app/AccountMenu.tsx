@@ -7,7 +7,6 @@ import { ServiceError } from '../services/errors'
 import { useLang, useT } from '../shared/i18n/i18n'
 import { Icon } from '../shared/ui/Icon'
 import type { MessageKey } from '../shared/i18n/messages'
-import { startMarking } from './Feedback'
 import { WipeLocalData } from './LocalData'
 import { useServices } from './services'
 import { TestRoleBox } from './TestRole'
@@ -67,6 +66,8 @@ export function AccountMenu({ me, realMe, testRole, testAllowed, onSignOut, open
   useEffect(() => {
     if (!open) return
     const close = (e: PointerEvent | KeyboardEvent) => {
+      // markeringsverktøyet for tilbakemelding (Alt+Shift+M) lukker ikke menyen, så den kan markeres
+      if (!(e instanceof KeyboardEvent) && (e.target as Element | null)?.closest?.('[data-chfb-tool]')) return
       if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current?.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('pointerdown', close)
@@ -102,8 +103,6 @@ export function AccountMenu({ me, realMe, testRole, testAllowed, onSignOut, open
         <span className={s.info}>{roles}{churches ? ' · ' + churches : ''}</span>
         {testAllowed && <TestRoleBox realMe={realMe} testRole={testRole} />}
         <Nav label={t('acc.notifications')} extra={unread ? <span className={s.count}>{unread > 9 ? '9+' : unread}</span> : null} onClick={() => { setView('notifications'); void refresh() }} />
-        {/* områdevalg for tilbakemelding rett fra brukerknappen (også Alt+Shift+M) */}
-        <Nav label={t('acc.markArea')} extra={<span className={s.info}>Alt+Shift+M</span>} onClick={() => { setOpen(false); setTimeout(startMarking, 0) }} />
         {staff && <EmailPrefsBlock realMe={realMe} />}
         {onSignOut && <button type="button" className={s.btn} data-ch-logout="" onClick={() => void onSignOut()}>{t('auth.signOut')}</button>}
         <Nav label={t('acc.security')} onClick={() => setView('account')} />
