@@ -150,7 +150,7 @@ export function CategoryView({ c, tx }: { c: ThumbController; tx: Tx }) {
         <li><span>3</span>{tx('Lagre malen, og last ned i 1080p eller 4K.')}</li>
       </ol>
       <div className={s.tplGrid}>
-        <button type="button" className={s.newTpl} onClick={() => c.newFromBase()}>
+        <button type="button" className={s.newTpl} data-ts-new="" onClick={() => c.newFromBase()}>
           <span className={s.plus}>+</span>
           <span className={s.newTplLabel}>{tx('Ny mal')}</span>
           <span className={s.dimSm}>{tx(full ? 'Full (5 av 5). Slett en mal først.' : 'Velg grunnoppsett, standard eller blank')}</span>

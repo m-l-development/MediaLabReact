@@ -15,7 +15,7 @@ const NA = 'Ikke tilgjengelig'
 
 type Kind = 'bug' | 'improvement' | 'feature' | 'other'
 export interface CaseError { time?: string; kind?: string; code?: string; message?: string; source?: string; line?: number }
-export interface CaseMark { mode?: string; rect?: { x?: number; y?: number; w?: number; h?: number }; viewport?: string; element?: { tag?: string; role?: string; label?: string; path?: string; attrs?: Record<string, string> } | null; layout?: unknown }
+export interface CaseMark { ui?: string; scroll?: { x?: number; y?: number }; mode?: string; rect?: { x?: number; y?: number; w?: number; h?: number }; viewport?: string; element?: { tag?: string; role?: string; label?: string; path?: string; attrs?: Record<string, string> } | null; layout?: unknown }
 export interface FeedbackCase {
   id: string
   ref: string

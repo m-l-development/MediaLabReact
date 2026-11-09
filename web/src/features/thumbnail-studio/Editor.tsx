@@ -575,7 +575,7 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
               const l = c.layer(S.sel)
               void c.addFile(f, l?.type === 'image' ? { mode: 'replace', id: l.id } : { mode: 'add' })
             }}>
-            <canvas ref={canvas} width={W} height={H} className={s.canvas} aria-label={tx('Lerret')} />
+            <canvas ref={canvas} width={W} height={H} className={s.canvas} aria-label={tx('Lerret')} data-ts-canvas="" />
             {dropHint && <div className={s.dropHint} data-ts-drop={dropHint} aria-live="polite">{tx(dropHint === 'replace' ? 'Slipp for å bytte bildet i det valgte laget' : 'Slipp for å legge til bildet')}</div>}
             <div ref={overlay} className={s.overlay} data-ts-overlay="1" onPointerDown={onDown} style={nav.panning || nav.space ? { cursor: 'inherit' } : undefined}
               onDoubleClick={() => {

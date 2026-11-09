@@ -71,7 +71,7 @@ export function Home({ c, S, tx, folders, onOpenFile, onGrantWaiting }: { c: Mot
         <h1 className={s.title} data-ml-title="">Motion design</h1>
         <p className={s.lead}>{tx('Lag promovideoer og innhold til Instagram og Facebook med klipp, tekst, musikk og overganger.')}</p>
         <div className={s.homeBtns}>
-          <button type="button" className={s.pillLight} onClick={() => c.newProject()}>{tx('Nytt prosjekt')}</button>
+          <button type="button" className={s.pillLight} data-md-new="" onClick={() => c.newProject()}>{tx('Nytt prosjekt')}</button>
           <button type="button" className={s.pillGhost} onClick={onOpenFile}>{tx('Åpne prosjektfil')}</button>
           {folders && <button type="button" className={s.pillGhost} title={tx('Åpne et prosjekt fra en mappe på PC-en (også fra en annen PC)')} onClick={() => void c.openFolder()}>{tx('Åpne prosjektmappe')}</button>}
         </div>

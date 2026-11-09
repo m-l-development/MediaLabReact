@@ -1,8 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useServices } from '../../app/services'
 import { scrubText } from '../../shared/feedback/feedback-core'
-import { decodeLayout } from '../../shared/feedback/layout'
-import { LayoutPreview } from '../../shared/feedback/LayoutPreview'
+import { LivePreview } from '../../shared/feedback/LivePreview'
 import { caseApp, formatCase, formatCases, IMPORTANCE, KIND, SEVERITY, STATUS, type CaseEvent, type CaseMark, type FeedbackCase } from '../../shared/feedback/format-case'
 import { Head } from './common'
 import { useAdmin } from './context'
@@ -261,7 +260,7 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
       </Card>
       <Card title="Applikasjon og markering (hentet automatisk)">
         <dl className="ch-kv">{kv('Applikasjon', (caseApp(c).name || '') + (caseApp(c).id ? ' (' + caseApp(c).id + ')' : ''))}{kv('Side', c.page)}{kv('Visning', c.view)}</dl>
-        {m ? <MarkPreview m={m} app={caseApp(c).id} view={c.view ?? null} /> : <p className="ch-muted">{t('Ingen markering.')}</p>}
+        {m ? <MarkPreview m={m} app={caseApp(c).id} page={c.page ?? null} view={c.view ?? null} role={c.role ?? null} /> : <p className="ch-muted">{t('Ingen markering.')}</p>}
       </Card>
       <Card title="Teknisk kontekst (hentet automatisk)">
         <dl className="ch-kv">
@@ -310,10 +309,10 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
 }
 
 /**
- * Markeringen i en miniatyr av siden (shared/feedback/LayoutPreview). Eldre saker uten omriss får dagens oppbygning av samme
- * applikasjon og visning. «Forstørr» viser siden i nær full størrelse.
+ * Markeringen over den ekte siden (shared/feedback/LivePreview): appen i skrivebeskyttet modus uten brukerens data, i samme
+ * vindusstørrelse, visning og rolle som da saken ble sendt. «Forstørr» viser siden i nær full størrelse.
  */
-function MarkPreview({ m, app, view }: { m: CaseMark; app: string | null; view: string | null }) {
+function MarkPreview({ m, app, page, view, role }: { m: CaseMark; app: string | null; page: string | null; view: string | null; role: string | null }) {
   const { t } = useAdmin()
   const [big, setBig] = useState(false)
   useEffect(() => {
@@ -323,8 +322,7 @@ function MarkPreview({ m, app, view }: { m: CaseMark; app: string | null; view: 
     return () => document.removeEventListener('keydown', k)
   }, [big])
   const r = m.rect ?? {}, e = m.element ?? {}
-  const items = decodeLayout(m.layout)
-  const preview = (b: boolean) => <LayoutPreview layout={m.layout} rect={r} viewport={m.viewport} label={t('Markering i skjermbildet')} element={e} app={app} view={view} big={b} />
+  const preview = (b: boolean) => <LivePreview c={{ app, page, view, role, ui: m.ui, viewport: m.viewport, rect: r, scroll: m.scroll, element: e, layout: m.layout }} label={t('Markering i skjermbildet')} big={b} />
   return (
     <div data-fb-mark="">
       {preview(false)}
@@ -337,7 +335,7 @@ function MarkPreview({ m, app, view }: { m: CaseMark; app: string | null; view: 
       <p className="ch-muted">{t(m.mode === 'area' ? 'Område' : 'Element')}{e.tag ? ' <' + e.tag + '>' : ''}{e.label ? ' «' + e.label + '»' : ''} · x {r.x} %, y {r.y} %, {r.w} × {r.h} % · {t('vindu')} {m.viewport}</p>
       {e.path && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{e.path}</p>}
       {e.attrs && Object.keys(e.attrs).length > 0 && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{Object.entries(e.attrs).map(([k, v]) => k + '="' + v + '"').join(' · ')}</p>}
-      <p className="ch-muted">{t(items.length ? 'Forhåndsvisningen viser bare sidens oppbygning (knapper, felt, paneler og tekstlinjer) – aldri bilder, filer eller brukerens innhold.' : 'Saken ble sendt før sidens oppbygning ble lagret. Miniatyren viser dagens oppbygning av samme applikasjon og visning (ikke brukerens skjerm); den gule rammen står der brukeren markerte.')}</p>
+      <p className="ch-muted">{t('Forhåndsvisningen viser den ekte siden uten brukerens innhold (ingen data, filer eller bilder fra brukeren); den gule rammen står der brukeren markerte.')}</p>
     </div>
   )
 }

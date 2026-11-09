@@ -8,58 +8,17 @@ import { decodeLayout, safeLabel, type LayoutItem } from './layout'
  * video blir plassholdere, felt viser bare ledeteksten. Markeringen er en gul ramme på samme plass (prosent av vinduet) med
  * elementets navn ved siden av; resten av siden er fortsatt godt synlig.
  *
- * Saker uten omriss (sendt før omrisset ble lagret) får dagens oppbygning av samme applikasjon (feedback/templates.json,
- * tatt opp fra appen med e2e/feedback-templates.spec.ts), ellers en enkel side ut fra vindusstørrelsen. Det markerte
- * elementet tegnes i rammen – aldri bare en tom ramme.
+ * Dette er reserven: innboksen viser den ekte siden (LivePreview.tsx) og bruker miniatyren mens den lastes, eller når den
+ * ikke kan vises. Saker uten omriss får en enkel side ut fra vindusstørrelsen, med det markerte elementet tegnet i rammen.
  */
 export interface PreviewRect { x?: number; y?: number; w?: number; h?: number }
 export interface PreviewElement { tag?: string | null; role?: string | null; label?: string | null; path?: string | null }
-export type PreviewSource = 'layout' | 'template' | 'fallback'
+export type PreviewSource = 'layout' | 'fallback'
 
 const HL = '#f5b301'
 /** Høyeste høyde (px) i innboksen: høye vinduer (mobil) blir smalere i stedet for høyere. */
 const MAX_H = 420
 const MAX_W = 720
-
-/** Opptak av appene (d = PC, m = mobil; én eller flere visninger, v = adressen); lastes først når en sak uten omriss vises. */
-interface Variant { v?: string; rows: string[] }
-type Templates = Record<string, { d?: Variant[]; m?: Variant[] }>
-let templates: Promise<Templates> | null = null
-const loadTemplates = () => (templates ??= import('./templates.json').then((m) => m.default as Templates, (): Templates => ({})))
-
-/**
- * Visningen av appen som passer saken best: samme adresse (#/… eller ?…) teller mest; ellers den der det markerte elementet
- * finnes (samme etikett, samme type element på samme sted, eller i en sidemeny/topplinje når elementet lå i en).
- */
-export function pickVariant(list: Variant[], view: string | null | undefined, rect: PreviewRect, element: PreviewElement | null | undefined): string[] | null {
-  const vw = String(view || '').split('&')[0] ?? ''
-  const cx = ((rect.x || 0) + (rect.w || 0) / 2) * 10, cy = ((rect.y || 0) + (rect.h || 0) / 2) * 10
-  const k = markedKind(element), lab = (element?.label || '').trim().toLowerCase(), frame = /(^|[ >])(aside|nav|header)(?![a-z])/.test(element?.path || '')
-  let best: string[] | null = null, top = -Infinity
-  for (const it of list) {
-    let s = it.v ? (vw && (vw.startsWith(it.v) || it.v.startsWith(vw.split('/').slice(0, 2).join('/'))) ? 6 : -1) : vw ? 0 : 1
-    const items = decodeLayout(it.rows), at = items.filter((x) => x.k !== 'z' && cx >= x.x && cx <= x.x + x.w && cy >= x.y && cy <= x.y + x.h)
-    if (lab && items.some((x) => x.label?.toLowerCase() === lab)) s += 4
-    if (k && at.some((x) => x.k === k)) s += 2
-    if (frame && at.some((x) => x.k === 'n')) s += 2
-    if (s > top) { top = s; best = it.rows }
-  }
-  return best
-}
-
-/** Dagens oppbygning av applikasjonen, til saker uten omriss (null mens den lastes eller når den mangler). */
-export function useTemplate(app: string | null | undefined, narrow: boolean, skip: boolean, pick: (l: Variant[]) => string[] | null): string[] | null {
-  const [all, setAll] = useState<Templates | null>(null)
-  const need = !skip && !!app
-  useEffect(() => {
-    if (!need) return
-    let on = true
-    void loadTemplates().then((t) => { if (on) setAll(t) })
-    return () => { on = false }
-  }, [need])
-  const list = need && all && app ? all[app]?.[narrow ? 'm' : 'd'] ?? all[app]?.[narrow ? 'd' : 'm'] ?? [] : []
-  return list.length ? pick(list) : null
-}
 
 interface Sty { b?: string; c?: string; o?: string; r?: number; f?: number; w?: boolean }
 function sty(s: string | undefined): Sty {
@@ -119,14 +78,13 @@ function markedKind(e: PreviewElement | null | undefined): LayoutItem['k'] | nul
 const GREY = 'rgba(127,127,127,'
 const PHOTO = <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="m3 18 6-6 4 4 3-3 5 5" /></svg>
 
-export function LayoutPreview({ layout, rect, viewport, label, element, app, view, big }: { layout: unknown; rect: PreviewRect | null | undefined; viewport: string | null | undefined; label: string; element?: PreviewElement | null | undefined; app?: string | null | undefined; view?: string | null | undefined; big?: boolean | undefined }) {
+export function LayoutPreview({ layout, rect, viewport, label, element, big }: { layout: unknown; rect: PreviewRect | null | undefined; viewport: string | null | undefined; label: string; element?: PreviewElement | null | undefined; big?: boolean | undefined }) {
   const [vw, vh] = (viewport || '').split('×').map(Number)
   const W = vw || 1440, H = vh || 900, ar = W / H
   const r = { x: rect?.x || 0, y: rect?.y || 0, w: Math.max(rect?.w || 0, 1), h: Math.max(rect?.h || 0, 1) }
   const real = tidy(decodeLayout(layout))
-  const tpl = useTemplate(app, W <= 760, real.length > 0, (l) => pickVariant(l, view, r, element))
-  const source: PreviewSource = real.length ? 'layout' : tpl?.length ? 'template' : 'fallback'
-  const all = real.length ? real : tpl?.length ? tidy(decodeLayout(tpl)) : skeleton(W, H)
+  const source: PreviewSource = real.length ? 'layout' : 'fallback'
+  const all = real.length ? real : skeleton(W, H)
   const page = all.find((it) => it.k === 'z')
   const items = all.filter((it) => it.k !== 'z')
   if (!real.length) {
@@ -199,11 +157,18 @@ export function LayoutPreview({ layout, rect, viewport, label, element, app, vie
         }
         return <div key={i} data-fb-wire={it.k} style={box}>{body}</div>
       })}
-      <div data-fb-hl="" style={{ position: 'absolute', zIndex: 3, left: r.x + '%', top: r.y + '%', width: r.w + '%', height: r.h + '%', boxSizing: 'border-box', border: '2px solid ' + HL, background: 'rgba(245,179,1,.08)', borderRadius: 4, outline: '1px solid rgba(0,0,0,.6)', boxShadow: '0 0 0 9999px rgba(0,0,0,.12), 0 0 0 3px rgba(245,179,1,.35), 0 0 14px 3px rgba(245,179,1,.55)' }}>
-        {name ? (
-          <span data-fb-hl-tag="" style={{ position: 'absolute', ...(r.y > 12 ? { bottom: 'calc(100% + 4px)' } : r.y + r.h < 85 ? { top: 'calc(100% + 4px)' } : { top: 3 }), [r.x + r.w / 2 > 60 ? 'right' : 'left']: 0, maxWidth: '60cqw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: HL, color: '#1a1400', fontWeight: 700, fontSize: 'clamp(9px, 1.8cqw, 13px)', padding: '1px 6px', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,.4)' }}>{name}</span>
-        ) : null}
-      </div>
+      <Mark rect={r} name={name} />
+    </div>
+  )
+}
+
+/** Den gule markeringen med elementets navn (prosent av vinduet); brukes også over den ekte siden i LivePreview. */
+export function Mark({ rect: r, name }: { rect: { x: number; y: number; w: number; h: number }; name: string }) {
+  return (
+    <div data-fb-hl="" style={{ position: 'absolute', zIndex: 3, left: r.x + '%', top: r.y + '%', width: r.w + '%', height: r.h + '%', boxSizing: 'border-box', border: '2px solid ' + HL, background: 'rgba(245,179,1,.08)', borderRadius: 4, outline: '1px solid rgba(0,0,0,.6)', boxShadow: '0 0 0 9999px rgba(0,0,0,.12), 0 0 0 3px rgba(245,179,1,.35), 0 0 14px 3px rgba(245,179,1,.55)' }}>
+      {name ? (
+        <span data-fb-hl-tag="" style={{ position: 'absolute', ...(r.y > 12 ? { bottom: 'calc(100% + 4px)' } : r.y + r.h < 85 ? { top: 'calc(100% + 4px)' } : { top: 3 }), [r.x + r.w / 2 > 60 ? 'right' : 'left']: 0, maxWidth: '60cqw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: HL, color: '#1a1400', fontWeight: 700, fontSize: 'clamp(9px, 1.8cqw, 13px)', padding: '1px 6px', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,.4)' }}>{name}</span>
+      ) : null}
     </div>
   )
 }

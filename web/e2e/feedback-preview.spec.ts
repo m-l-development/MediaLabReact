@@ -219,41 +219,55 @@ test('miniatyren er ryddig og lesbar på ulike sider, også saker uten omriss', 
   expect(r.wires).toBeGreaterThan(5)
 })
 
+
 /**
- * Saker uten lagret omriss (eldre saker) får dagens oppbygning av riktig applikasjon og visning – også admin, som krever
- * innlogging. Formen er som de ekte sakene: Photo Design med markering i sidepanelet, admin på #/tilbakemeldinger og
- * forsiden på mobil. Den gule rammen står på samme sted, og navnet på elementet er helt innenfor miniatyren.
+ * Innboksen viser den ekte siden (LivePreview): appen i skrivebeskyttet modus i en ramme, i sakens vindusstørrelse, visning
+ * og rolle. Kontrollerer riktig app og visning (også admin, som krever innlogging, og en eldre sak uten lagret visning),
+ * markeringen på riktig sted, at rammen ikke kan endre noe (ingen skrivende nettverkskall, innboksens lagring urørt) og at
+ * ingen brukerdata vises.
  */
-test('saker uten omriss viser riktig applikasjon og visning, også admin', async ({ page }, info) => {
-  test.skip(info.project.name === 'mobil', 'saksdataene bestemmer PC/mobil')
-  await page.goto('/app/photo-design')
-  await page.locator('main button').first().waitFor()
+test('forhåndsvisningen viser den ekte siden i riktig app og visning, uten å kunne endre noe', async ({ page }, info) => {
+  test.setTimeout(180_000)
+  const writes: string[] = []
+  page.on('request', (r) => { const u = new URL(r.url()); if (/^(blob|data):/.test(u.protocol)) return; if (r.method() !== 'GET' || u.pathname.startsWith('/api/') || u.hostname !== 'localhost') writes.push(r.method() + ' ' + r.url()) })
+  await page.goto('/app/')
+  await page.locator('main').first().waitFor()
+  const before = await page.evaluate(() => JSON.stringify(Object.keys(localStorage).sort()))
   const cases = [
-    { name: 'photo-design', app: 'photo-design', view: '', viewport: '1278×1304', rect: { x: 73.5, y: 41.6, w: 20.4, h: 2 }, element: { tag: 'div', path: 'div > div > aside > div > div', label: 'Fargekurve-gradient' } },
-    { name: 'admin', app: 'connecthub-admin', view: '#/tilbakemeldinger', viewport: '1278×1304', rect: { x: 17.2, y: 4.3, w: 82.8, h: 30 }, element: { tag: 'main', path: 'div.ch-shell > main.ch-main' } },
-    { name: 'forside-mobil', app: 'media-lab', view: '', viewport: '390×844', rect: { x: 25.6, y: 41.5, w: 51.3, h: 17.8 }, element: { tag: 'a', role: 'link', path: 'div > main > div > a' } },
+    { name: 'photo-design-edit', c: { app: 'photo-design', page: '/app/photo-design', view: null, role: 'user', ui: 'edit', viewport: '1440×900', rect: { x: 76, y: 20, w: 22, h: 6 }, element: { tag: 'div', label: 'Fargekurve-gradient' } }, want: '[data-pd-view="edit"]' },
+    { name: 'admin-tilbakemeldinger', c: { app: 'connecthub-admin', page: '/app/admin', view: '#/tilbakemeldinger', role: 'developer', viewport: '1278×1304', rect: { x: 17, y: 4, w: 80, h: 20 }, element: { tag: 'main' } }, want: '.ch-shell' },
+    { name: 'loop-edit', c: { app: 'loop-studio', page: '/app/loop-studio', view: '?mal=…&demo=…', role: 'user', ui: 'edit', viewport: '1440×900', rect: { x: 30, y: 30, w: 30, h: 20 }, element: { tag: 'canvas' } }, want: '[data-loop-canvas]' },
+    // eldre sak uten lagret visning: elementet lå i redigeringen (lerretet), så redigeringsvisningen velges
+    { name: 'thumbnail-eldre', c: { app: 'thumbnail-studio', page: '/thumbnail-studio.dc.html', view: null, role: 'user', viewport: '1440×900', rect: { x: 40, y: 40, w: 4, h: 4 }, element: { tag: 'canvas', label: 'Lerret' } }, want: '[data-ts-canvas]' },
+    { name: 'forside-mobil', c: { app: 'media-lab', page: '/media-lab.dc.html', view: null, role: 'user', viewport: '390×844', rect: { x: 25, y: 41, w: 51, h: 18 }, element: { tag: 'a' } }, want: 'main' },
   ]
-  for (const c of cases) {
-    const r = await page.evaluate(async (c) => {
+  for (const k of cases) {
+    await page.evaluate(async (c) => {
       const M = await import('/app/src/shared/feedback/LayoutPreview.mount.tsx' as string)
       document.querySelector('[data-test-host]')?.remove()
       const host = document.createElement('div')
       host.dataset.testHost = ''
-      host.style.cssText = 'position:fixed;left:0;top:0;width:720px;z-index:99999;background:#000'
+      host.style.cssText = 'position:fixed;left:0;top:0;width:min(720px,100vw);z-index:99999;background:#000'
       document.body.appendChild(host)
-      M.mount(host, undefined, c.rect, c.viewport, c.element, c.app, c.view)
-      const box = host.querySelector('[data-fb-preview]') as HTMLElement
-      for (let i = 0; i < 50 && box.dataset.fbPreview !== 'template'; i++) await new Promise((res) => setTimeout(res, 50))
-      const b = box.getBoundingClientRect(), hl = (box.querySelector('[data-fb-hl]') as HTMLElement).getBoundingClientRect(), tag = (box.querySelector('[data-fb-hl-tag]') as HTMLElement).getBoundingClientRect()
-      return { mode: box.dataset.fbPreview, wires: box.querySelectorAll('[data-fb-wire]').length, kinds: [...new Set([...box.querySelectorAll('[data-fb-wire]')].map((w) => (w as HTMLElement).dataset.fbWire))],
-        hl: { x: ((hl.left - b.left) / b.width) * 100, y: ((hl.top - b.top) / b.height) * 100 }, tagInside: tag.left >= b.left - 0.5 && tag.right <= b.right + 0.5 && tag.top >= b.top - 0.5 && tag.bottom <= b.bottom + 0.5 }
-    }, c)
-    if (process.env.ML_SHOT) await page.locator('[data-test-host] [data-fb-preview]').screenshot({ path: `${process.env.ML_SHOT}-mal-${c.name}.png` })
-    expect(r.mode, c.name).toBe('template')
-    expect(r.wires, c.name).toBeGreaterThan(10)
-    expect(r.kinds, c.name).toEqual(expect.arrayContaining(['b']))
-    expect(Math.abs(r.hl.x - c.rect.x), c.name).toBeLessThan(0.5)
-    expect(Math.abs(r.hl.y - c.rect.y), c.name).toBeLessThan(0.5)
-    expect(r.tagInside, c.name).toBe(true)
+      M.mountLive(host, c)
+    }, k.c)
+    const box = page.locator('[data-test-host] [data-fb-live]')
+    await expect(box, k.name).toHaveAttribute('data-fb-live', 'ready', { timeout: 40_000 })
+    const r = await box.evaluate((el, want) => {
+      const f = el.querySelector('iframe') as HTMLIFrameElement, d = f.contentDocument as Document
+      const b = el.getBoundingClientRect(), hl = (el.querySelector('[data-fb-hl]') as HTMLElement).getBoundingClientRect(), fr = f.getBoundingClientRect()
+      return { view: !!d.querySelector(want), x: ((hl.left - b.left) / b.width) * 100, y: ((hl.top - b.top) / b.height) * 100, fill: Math.abs(fr.width - el.clientWidth) < 1,
+        text: (d.body.innerText || ''), clickable: getComputedStyle(f).pointerEvents, inert: f.inert, buttons: d.querySelectorAll('button').length }
+    }, k.want)
+    if (process.env.ML_SHOT) await box.screenshot({ path: `${process.env.ML_SHOT}-live-${k.name}-${info.project.name}.png` })
+    expect({ view: r.view, fill: r.fill, inert: r.inert }, k.name).toEqual({ view: true, fill: true, inert: true })
+    expect(r.buttons, k.name).toBeGreaterThan(3)
+    expect(Math.abs(r.x - k.c.rect.x), k.name).toBeLessThan(0.6)
+    expect(Math.abs(r.y - k.c.rect.y), k.name).toBeLessThan(0.6)
+    expect(r.clickable).toBe('none')
+    // ingen ekte personer eller e-postadresser (bare nøytrale plassholdere)
+    expect(r.text, k.name).not.toMatch(/@(?!eksempel\.invalid)[a-z0-9-]+\.[a-z]/i)
   }
+  expect(writes).toEqual([])
+  expect(await page.evaluate(() => JSON.stringify(Object.keys(localStorage).sort()))).toBe(before)
 })
