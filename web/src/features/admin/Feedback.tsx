@@ -322,16 +322,11 @@ function MarkPreview({ m, app, page, view, role }: { m: CaseMark; app: string | 
     return () => document.removeEventListener('keydown', k)
   }, [big])
   const r = m.rect ?? {}, e = m.element ?? {}
-  const preview = (b: boolean) => <LivePreview c={{ app, page, view, role, ui: m.ui, viewport: m.viewport, rect: r, scroll: m.scroll, element: e, layout: m.layout }} label={t('Markering i skjermbildet')} big={b} />
   return (
     <div data-fb-mark="">
-      {preview(false)}
+      {/* én ramme for både miniatyr og «Forstørr» (siden lastes ikke på nytt) */}
+      <LivePreview c={{ app, page, view, role, ui: m.ui, viewport: m.viewport, rect: r, scroll: m.scroll, element: e, layout: m.layout }} label={t('Markering i skjermbildet')} loading={t('Bygger forhåndsvisning…')} big={big} onClose={() => setBig(false)} />
       <Btn kind="ghost" onClick={() => setBig(true)} data-fb-zoom="">{t('Forstørr')}</Btn>
-      {big && (
-        <div className="ch-overlay center" role="dialog" aria-modal="true" aria-label={t('Markering i skjermbildet')} onClick={() => setBig(false)} data-fb-big="" style={{ padding: 12, cursor: 'zoom-out' }}>
-          {preview(true)}
-        </div>
-      )}
       <p className="ch-muted">{t(m.mode === 'area' ? 'Område' : 'Element')}{e.tag ? ' <' + e.tag + '>' : ''}{e.label ? ' «' + e.label + '»' : ''} · x {r.x} %, y {r.y} %, {r.w} × {r.h} % · {t('vindu')} {m.viewport}</p>
       {e.path && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{e.path}</p>}
       {e.attrs && Object.keys(e.attrs).length > 0 && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{Object.entries(e.attrs).map(([k, v]) => k + '="' + v + '"').join(' · ')}</p>}

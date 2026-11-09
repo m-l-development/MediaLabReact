@@ -16,9 +16,12 @@ export function mount(el: HTMLElement, layout: string[] | undefined, rect: Previ
   flushSync(() => createRoot(el).render(<LayoutPreview layout={layout} rect={rect} viewport={viewport} label="test" element={element} />))
 }
 
-/** Den ekte siden i innboksens forhåndsvisning (LivePreview) for en sak. */
-export function mountLive(el: HTMLElement, c: LiveCase): void {
-  flushSync(() => createRoot(el).render(<LivePreview c={c} label="test" />))
+/** Den ekte siden i innboksens forhåndsvisning (LivePreview) for en sak. → bytter mellom vanlig og «Forstørr». */
+export function mountLive(el: HTMLElement, c: LiveCase): (big: boolean) => void {
+  const root = createRoot(el)
+  const show = (big: boolean) => flushSync(() => root.render(<LivePreview c={c} label="test" big={big} onClose={() => show(false)} />))
+  show(false)
+  return show
 }
 
 

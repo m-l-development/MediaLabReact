@@ -7,7 +7,8 @@
  */
 export interface ViewDef { id: string; detect: string; url?: string; steps: string[] }
 
-const LOOP_EDIT: ViewDef = { id: 'edit', detect: '[data-loop-canvas]', url: '?mal=week&demo=1', steps: [] }
+// uten demo: editoren med en tom serie (som de andre appenes tomme tilstand), uten å lage demobilder først
+const LOOP_EDIT: ViewDef = { id: 'edit', detect: '[data-loop-canvas]', url: '?mal=week', steps: [] }
 export const VIEWS: Record<string, ViewDef[]> = {
   'photo-design': [{ id: 'edit', detect: '[data-pd-view="edit"]', steps: ['[data-tpl="photo"]'] }],
   'motion-design': [{ id: 'edit', detect: '[data-md-canvas]', steps: ['[data-md-new]', '[data-format="wide"]', '[data-tpl="blank"]'] }],

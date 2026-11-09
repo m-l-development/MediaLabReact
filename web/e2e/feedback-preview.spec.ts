@@ -239,6 +239,8 @@ test('forhåndsvisningen viser den ekte siden i riktig app og visning, uten å k
     { name: 'loop-edit', c: { app: 'loop-studio', page: '/app/loop-studio', view: '?mal=…&demo=…', role: 'user', ui: 'edit', viewport: '1440×900', rect: { x: 30, y: 30, w: 30, h: 20 }, element: { tag: 'canvas' } }, want: '[data-loop-canvas]' },
     // eldre sak uten lagret visning: elementet lå i redigeringen (lerretet), så redigeringsvisningen velges
     { name: 'thumbnail-eldre', c: { app: 'thumbnail-studio', page: '/thumbnail-studio.dc.html', view: null, role: 'user', viewport: '1440×900', rect: { x: 40, y: 40, w: 4, h: 4 }, element: { tag: 'canvas', label: 'Lerret' } }, want: '[data-ts-canvas]' },
+    // ny sak på startvisningen (ui = ''): bare én ramme, ingen prøving av redigeringen
+    { name: 'photo-design-start', c: { app: 'photo-design', page: '/app/photo-design', view: null, role: 'user', ui: '', viewport: '1440×900', rect: { x: 10, y: 10, w: 20, h: 10 }, element: { tag: 'h1' } }, want: '[data-tpl="photo"]', frames: 1 },
     { name: 'forside-mobil', c: { app: 'media-lab', page: '/media-lab.dc.html', view: null, role: 'user', viewport: '390×844', rect: { x: 25, y: 41, w: 51, h: 18 }, element: { tag: 'a' } }, want: 'main' },
   ]
   for (const k of cases) {
@@ -249,9 +251,12 @@ test('forhåndsvisningen viser den ekte siden i riktig app og visning, uten å k
       host.dataset.testHost = ''
       host.style.cssText = 'position:fixed;left:0;top:0;width:min(720px,100vw);z-index:99999;background:#000'
       document.body.appendChild(host)
-      M.mountLive(host, c)
+      ;(window as unknown as { show: unknown }).show = M.mountLive(host, c)
     }, k.c)
     const box = page.locator('[data-test-host] [data-fb-live]')
+    // tydelig lasteindikator mens siden bygges
+    if (k === cases[0]) await expect(page.locator('[data-test-host] [data-fb-live="loading"] [data-fb-loading]')).toBeVisible()
+    if ('frames' in k) expect(await page.locator('[data-test-host] iframe').count(), k.name).toBe(k.frames)
     await expect(box, k.name).toHaveAttribute('data-fb-live', 'ready', { timeout: 40_000 })
     const r = await box.evaluate((el, want) => {
       const f = el.querySelector('iframe') as HTMLIFrameElement, d = f.contentDocument as Document
@@ -268,6 +273,19 @@ test('forhåndsvisningen viser den ekte siden i riktig app og visning, uten å k
     // ingen ekte personer eller e-postadresser (bare nøytrale plassholdere)
     expect(r.text, k.name).not.toMatch(/@(?!eksempel\.invalid)[a-z0-9-]+\.[a-z]/i)
   }
+  // «Forstørr» bruker samme ramme: appen lastes ikke på nytt
+  const same = await page.evaluate(async () => {
+    const w = window as unknown as { show: (b: boolean) => void }
+    const f = document.querySelector('[data-test-host] iframe') as HTMLIFrameElement
+    ;(f.contentWindow as unknown as { mark: number }).mark = 1
+    w.show(true)
+    await new Promise((r) => setTimeout(r, 200))
+    const g = document.querySelector('[data-test-host] [data-fb-big] iframe') as HTMLIFrameElement | null
+    const r = { same: g === f && (f.contentWindow as unknown as { mark?: number }).mark === 1, ready: !!document.querySelector('[data-test-host] [data-fb-live="ready"]') }
+    w.show(false)
+    return r
+  })
+  expect(same).toEqual({ same: true, ready: true })
   expect(writes).toEqual([])
   expect(await page.evaluate(() => JSON.stringify(Object.keys(localStorage).sort()))).toBe(before)
 })
