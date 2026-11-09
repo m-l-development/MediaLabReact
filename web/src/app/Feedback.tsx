@@ -4,6 +4,7 @@ import type { Me } from '../domain/account'
 import { ServiceError } from '../services/errors'
 import { elementInfo, technical } from '../shared/feedback/context'
 import { pageLayout } from '../shared/feedback/layout'
+import { currentView, VIEWS } from '../shared/feedback/views'
 import { appOf, cleanPath, cleanView, KINDS, scrubDeep, scrubText, type FeedbackKind } from '../shared/feedback/feedback-core'
 import { buildFeedback, FIELDS, LEVELS } from '../shared/feedback/form'
 import { useT, type Translate } from '../shared/i18n/i18n'
@@ -87,11 +88,16 @@ function Picker({ t, done, formOn, setFormOn }: { t: Translate; done: (m: Marked
   const confirm = () => {
     if (!sel) return
     const W = innerWidth, H = innerHeight, p = (v: number) => Math.round(v * 1000) / 10
-    const base = { mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node) }
+    // visningen i appen (f.eks. «edit»), så innboksen kan vise den ekte siden i samme visning (shared/feedback/views.ts)
+    // '' = startvisningen (eldre saker uten feltet prøves i begge visningene)
+    const appId = appOf(location.pathname, location.search).id
+    const ui = VIEWS[appId] ? (currentView(appId) ?? '') : undefined
+    const base = { ...(ui !== undefined ? { ui } : {}), mode: sel.mode, rect: { x: p(sel.r.x / W), y: p(sel.r.y / H), w: p(sel.r.w / W), h: p(sel.r.h / H) }, px: { x: Math.round(sel.r.x), y: Math.round(sel.r.y), w: Math.round(sel.r.w), h: Math.round(sel.r.h) }, viewport: W + '×' + H, scroll: { x: Math.round(scrollX), y: Math.round(scrollY) }, element: elementInfo(sel.node) }
     // skjemaet og knappene for tilbakemelding hører ikke til siden i omrisset, med mindre det er skjemaet som markeres
     const own = inForm(sel.node ?? under(sel.r.x + sel.r.w / 2, sel.r.y + sel.r.h / 2)) ? tool : (n: Element) => tool(n) || !!n.closest('[data-chfb]')
-    // markeringen har en grense i databasen (submit_feedback: 4000 byte); omrisset får plassen som er igjen
-    const budget = Math.min(3000, 3700 - Math.ceil(new TextEncoder().encode(JSON.stringify(base)).length * 1.15))
+    // innboksen viser den ekte siden; omrisset er bare reserve (f.eks. åpne menyer), så det holdes lite. Markeringen har
+    // en grense i databasen (submit_feedback: 4000 byte); omrisset får aldri mer enn plassen som er igjen
+    const budget = Math.min(1500, 3700 - Math.ceil(new TextEncoder().encode(JSON.stringify(base)).length * 1.15))
     let layout: string[] = []
     try { layout = pageLayout(own, document.body, budget) } catch { /* omrisset er valgfritt */ }
     done({ ...base, layout })

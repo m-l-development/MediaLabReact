@@ -2,7 +2,7 @@ import styles from './Spinner.module.css'
 
 export function Spinner({ label }: { label: string }) {
   return (
-    <div className={styles.wrap} role="status" aria-live="polite">
+    <div className={styles.wrap} role="status" aria-live="polite" data-spinner="">
       <span className={styles.spinner} aria-hidden="true" />
       <span>{label}</span>
     </div>

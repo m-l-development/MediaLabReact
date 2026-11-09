@@ -8,6 +8,7 @@ import { Button } from '../shared/ui/Button'
 import { AppShell } from './AppShell'
 import { AuthGate } from './AuthGate'
 import { InstallPrompt } from './InstallPrompt'
+import { preview } from './preview'
 import { ErrorBoundary, type FallbackProps } from './ErrorBoundary'
 import { Link } from './Link'
 import { hrefFor } from './router'
@@ -38,7 +39,7 @@ export function App({ services }: { services: Services }) {
           </WorkspaceProvider>
         )}
       </AuthGate>
-      <InstallPrompt />
+      {!preview && <InstallPrompt />}
     </ServicesContext>
   )
 }
@@ -89,7 +90,7 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
           </section>
         )}
       </ErrorBoundary>
-      <UpdateNotice lifecycle={route.name === 'tool' ? lifecycle : null} />
+      {!preview && <UpdateNotice lifecycle={route.name === 'tool' ? lifecycle : null} />}
     </AppShell>
   )
 }

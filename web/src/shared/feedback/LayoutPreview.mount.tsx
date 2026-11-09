@@ -9,11 +9,21 @@ import type { Me } from '../../domain/account'
 import { createRoot } from 'react-dom/client'
 import { pageLayout } from './layout'
 import { LayoutPreview, type PreviewElement, type PreviewRect } from './LayoutPreview'
+import { LivePreview, type LiveCase } from './LivePreview'
 
 export { pageLayout }
 export function mount(el: HTMLElement, layout: string[] | undefined, rect: PreviewRect, viewport: string, element?: PreviewElement): void {
   flushSync(() => createRoot(el).render(<LayoutPreview layout={layout} rect={rect} viewport={viewport} label="test" element={element} />))
 }
+
+/** Den ekte siden i innboksens forhåndsvisning (LivePreview) for en sak. → bytter mellom vanlig og «Forstørr». */
+export function mountLive(el: HTMLElement, c: LiveCase): (big: boolean) => void {
+  const root = createRoot(el)
+  const show = (big: boolean) => flushSync(() => root.render(<LivePreview c={c} label="test" big={big} onClose={() => show(false)} />))
+  show(false)
+  return show
+}
+
 
 /** Den ekte tilbakemeldingsknappen med falske tjenester (ingen innlogging lokalt); innsendingen fanges i window.__fbSent. */
 export function mountFeedback(el: HTMLElement): void {

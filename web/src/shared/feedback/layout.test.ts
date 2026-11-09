@@ -29,7 +29,7 @@ describe('feedback layout', () => {
     place(document.getElementById('l') as HTMLElement, 10, 200, 100, 30)
     const rows = pageLayout()
     const all = rows.join('\n')
-    expect(rows.some((r) => r.startsWith('b ') && r.endsWith('|Kopier alle saker'))).toBe(true)
+    expect(rows.some((r) => r.startsWith('b ') && r.split('|')[1] === 'Kopier alle saker')).toBe(true)
     expect(rows.some((r) => r.startsWith('m '))).toBe(true)
     expect(rows.some((r) => r.startsWith('i '))).toBe(true)
     expect(all).not.toMatch(/Ola|hemmelig|Mitt prosjekt/)

@@ -1,35 +1,39 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { decodeLayout, safeLabel, type LayoutItem } from './layout'
 
 /**
  * Miniatyr av siden brukeren var på (TB-53E3CF): bygget med HTML/CSS fra det trygge omrisset (shared/feedback/layout), ikke
- * et skjermbilde. Topplinje og sidemeny vises som rammeflater, kort og paneler som bokser, tabellrader som rader, knapper
- * med sin korte etikett og tekst som nøytrale streker. Bilder, video og felt blir tomme flater. Markeringen er en gul ramme
- * på samme plass (prosent av vinduet) med elementets navn ved siden av, og resten av siden dempes.
+ * et skjermbilde. Knapper, felt, overskrifter, paneler, menyer, ikoner og tekst tegnes med appens egne farger, hjørner og
+ * skriftstørrelser i riktig skala (omrisset har med utformingen), men uten brukerens innhold: tekst blir streker, bilder og
+ * video blir plassholdere, felt viser bare ledeteksten. Markeringen er en gul ramme på samme plass (prosent av vinduet) med
+ * elementets navn ved siden av; resten av siden er fortsatt godt synlig.
  *
- * Saker uten omriss (sendt før omrisset ble lagret) får en omtrentlig side ut fra vindusstørrelsen, med det markerte
- * elementet tegnet i rammen – aldri bare en tom ramme.
+ * Dette er reserven: innboksen viser den ekte siden (LivePreview.tsx) og bruker miniatyren mens den lastes, eller når den
+ * ikke kan vises. Saker uten omriss får en enkel side ut fra vindusstørrelsen, med det markerte elementet tegnet i rammen.
  */
-const WIRE: Record<LayoutItem['k'], CSSProperties> = {
-  n: { background: 'rgba(127,127,127,.18)', boxShadow: 'inset 0 0 0 1px rgba(127,127,127,.35)' },
-  p: { background: 'rgba(127,127,127,.10)', border: '1px solid rgba(127,127,127,.35)', borderRadius: 6 },
-  r: { borderBottom: '1px solid rgba(127,127,127,.35)', background: 'repeating-linear-gradient(90deg, rgba(127,127,127,.22) 0 22%, transparent 22% 26%)', backgroundSize: '100% 34%', backgroundRepeat: 'no-repeat', backgroundPosition: '0 50%' },
-  b: { background: 'rgba(127,127,127,.24)', border: '1px solid rgba(127,127,127,.6)', borderRadius: 999, display: 'grid', placeItems: 'center' },
-  i: { background: 'rgba(255,255,255,.07)', border: '1px solid rgba(127,127,127,.7)', borderRadius: 4 },
-  h: { fontWeight: 800, display: 'flex', alignItems: 'center' },
-  l: { opacity: 0.85, display: 'flex', alignItems: 'center' },
-  m: { background: 'repeating-linear-gradient(45deg, rgba(127,127,127,.2) 0 6px, rgba(127,127,127,.08) 6px 12px)', border: '1px dashed rgba(127,127,127,.5)', borderRadius: 4 },
-  t: { background: 'rgba(127,127,127,.3)', borderRadius: 2, transform: 'scaleY(.4)' },
-}
-/** Skriftstørrelse (px) for etiketter ved en gitt bredde på miniatyren. */
-const FONT = { h: (cw: number) => Math.min(13, Math.max(8, cw * 0.024)), x: (cw: number) => Math.min(11, Math.max(7, cw * 0.019)) }
-const HL = '#f5b301'
-
 export interface PreviewRect { x?: number; y?: number; w?: number; h?: number }
-export interface PreviewElement { tag?: string | null; role?: string | null; label?: string | null }
+export interface PreviewElement { tag?: string | null; role?: string | null; label?: string | null; path?: string | null }
+export type PreviewSource = 'layout' | 'fallback'
 
-/** Høyeste høyde (px): høye vinduer (mobil) blir smalere i stedet for høyere, så miniatyren holder seg kompakt. */
-const MAX_H = 340
+const HL = '#f5b301'
+/** Høyeste høyde (px) i innboksen: høye vinduer (mobil) blir smalere i stedet for høyere. */
+const MAX_H = 420
+const MAX_W = 720
+
+interface Sty { b?: string; c?: string; o?: string; r?: number; f?: number; w?: boolean }
+function sty(s: string | undefined): Sty {
+  const o: Sty = {}
+  for (const t of (s ?? '').split(' ')) {
+    const v = t.slice(1)
+    if (t[0] === 'b' && /^[0-9a-f]{3,4}$/.test(v)) o.b = '#' + v
+    else if (t[0] === 'c' && /^[0-9a-f]{3,4}$/.test(v)) o.c = '#' + v
+    else if (t[0] === 'o' && /^[0-9a-f]{3,4}$/.test(v)) o.o = '#' + v
+    else if (t[0] === 'r' && /^\d{1,2}$/.test(v)) o.r = Number(v)
+    else if (t[0] === 'f' && /^\d{1,3}$/.test(v)) o.f = Number(v)
+    else if (t === 'w') o.w = true
+  }
+  return o
+}
 
 /** Ryddig omriss: tekststreker inne i knapper, felt og overskrifter med etikett, og like flater oppå hverandre, tegnes ikke. */
 function tidy(items: LayoutItem[]): LayoutItem[] {
@@ -45,7 +49,7 @@ function tidy(items: LayoutItem[]): LayoutItem[] {
   return out
 }
 
-/** Omtrentlig side ut fra vindusstørrelsen (promille): topplinje, overskrift og innholdsflater, smal skjerm stablet. */
+/** Enkel side ut fra vindusstørrelsen (promille) når verken omriss eller opptak av appen finnes. */
 function skeleton(W: number, H: number): LayoutItem[] {
   const bar = Math.round((56 / H) * 1000), y = bar + Math.round((20 / H) * 1000)
   if (W <= 760) return [
@@ -60,7 +64,7 @@ function skeleton(W: number, H: number): LayoutItem[] {
   ]
 }
 
-/** Det markerte elementet som omrissfigur (for saker uten omriss), ut fra lagret tag og rolle. */
+/** Det markerte elementet som figur (for saker uten omriss), ut fra lagret tag og rolle. */
 function markedKind(e: PreviewElement | null | undefined): LayoutItem['k'] | null {
   const tag = (e?.tag || '').toLowerCase(), role = e?.role || ''
   if (/^(input|select|textarea)$/.test(tag)) return 'i'
@@ -71,39 +75,100 @@ function markedKind(e: PreviewElement | null | undefined): LayoutItem['k'] | nul
   return null
 }
 
-export function LayoutPreview({ layout, rect, viewport, label, element }: { layout: unknown; rect: PreviewRect | null | undefined; viewport: string | null | undefined; label: string; element?: PreviewElement | null | undefined }) {
+const GREY = 'rgba(127,127,127,'
+const PHOTO = <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="m3 18 6-6 4 4 3-3 5 5" /></svg>
+
+export function LayoutPreview({ layout, rect, viewport, label, element, big }: { layout: unknown; rect: PreviewRect | null | undefined; viewport: string | null | undefined; label: string; element?: PreviewElement | null | undefined; big?: boolean | undefined }) {
   const [vw, vh] = (viewport || '').split('×').map(Number)
   const W = vw || 1440, H = vh || 900, ar = W / H
   const r = { x: rect?.x || 0, y: rect?.y || 0, w: Math.max(rect?.w || 0, 1), h: Math.max(rect?.h || 0, 1) }
   const real = tidy(decodeLayout(layout))
-  const items = real.length ? real : skeleton(W, H)
+  const source: PreviewSource = real.length ? 'layout' : 'fallback'
+  const all = real.length ? real : skeleton(W, H)
+  const page = all.find((it) => it.k === 'z')
+  const items = all.filter((it) => it.k !== 'z')
   if (!real.length) {
     const k = markedKind(element), name = safeLabel(element?.label || '')
     if (k) items.push({ k, x: r.x * 10, y: r.y * 10, w: r.w * 10, h: r.h * 10, ...(name && k !== 'm' ? { label: name } : {}) })
   }
-  const cw = Math.min(480, Math.round(MAX_H * ar)), ch = cw / ar
+  const max = big ? W : Math.min(MAX_W, Math.round(MAX_H * ar))
+  // faktisk bredde (miniatyren krymper i smale vinduer), så etikettene bare vises når de får plass
+  const ref = useRef<HTMLDivElement>(null)
+  const [seen, setSeen] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => setSeen(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const cw = seen || max, scale = cw / W
+  // mål fra appen (px) i riktig skala: miniatyren er en beholder, så 100cqw = dens bredde
+  const px = (v: number) => `calc(${v} * 100cqw / ${W})`
+  const font = (f: number) => `max(6px, ${px(f)})`
   // etiketten vises bare når den får plass til minst tre tegn i boksen; ellers bare formen (ingen avklipte biter)
-  const fits = (it: LayoutItem) => {
-    const f = (it.k === 'h' ? FONT.h : FONT.x)(cw)
-    return (it.w / 1000) * cw - 6 >= f * 0.6 * Math.min(3, it.label?.length ?? 0) && (it.h / 1000) * ch >= f * 1.2 + 3
+  const fits = (it: LayoutItem, f: number) => {
+    const fp = Math.max(6, f * scale)
+    return (it.w / 1000) * cw - 4 >= fp * 0.6 * Math.min(3, it.label?.length ?? 0) && (it.h / 1000) * cw / ar >= fp * 1.1
   }
-  // store knapper (kort som kan trykkes) får avrundede hjørner i stedet for pilleform
-  const round = (it: LayoutItem) => (it.k === 'b' && (it.h / 1000) * ch > 22 ? { borderRadius: 6 } : null)
-  const pad = (k: string) => (k === 'b' || k === 'i' || k === 'p' || k === 'm' || k === 'r' ? 1 : 0)
+  const ps = sty(page?.s)
   const name = (element?.label || '').trim().slice(0, 40) || (element?.tag ? '<' + element.tag + '>' : '')
   return (
-    <div data-fb-preview={real.length ? 'layout' : 'fallback'} aria-label={label} role="img"
-      style={{ position: 'relative', width: '100%', maxWidth: cw, aspectRatio: W + ' / ' + H, border: '1px solid var(--line, #2b2b2b)', borderRadius: 8, background: 'var(--panel, #121212)', color: 'var(--text, #e9e7e2)', overflow: 'hidden', fontSize: 9, lineHeight: 1.1, containerType: 'inline-size' }}>
-      {items.map((it, i) => (
-        <div key={i} data-fb-wire={it.k} style={{ position: 'absolute', left: `calc(${it.x / 10}% + ${pad(it.k)}px)`, top: `calc(${it.y / 10}% + ${pad(it.k)}px)`, width: `calc(${it.w / 10}% - ${2 * pad(it.k)}px)`, height: `calc(${it.h / 10}% - ${2 * pad(it.k)}px)`, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', boxSizing: 'border-box', padding: it.k === 'b' ? '0 3px' : 0, opacity: real.length ? undefined : 0.6, ...WIRE[it.k], ...round(it) }}>
-          {it.label && it.k !== 't' && fits(it) ? <span data-fb-label="" style={{ fontSize: it.k === 'h' ? 'clamp(8px, 2.4cqw, 13px)' : 'clamp(7px, 1.9cqw, 11px)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{it.label}</span> : null}
-        </div>
-      ))}
-      <div data-fb-hl="" style={{ position: 'absolute', zIndex: 2, left: r.x + '%', top: r.y + '%', width: r.w + '%', height: r.h + '%', boxSizing: 'border-box', border: '2px solid ' + HL, background: 'rgba(245,179,1,.16)', borderRadius: 4, outline: '1px solid rgba(0,0,0,.55)', boxShadow: '0 0 0 9999px rgba(0,0,0,.32), 0 0 10px 2px rgba(245,179,1,.75)' }}>
-        {name ? (
-          <span data-fb-hl-tag="" style={{ position: 'absolute', ...(r.y > 12 ? { bottom: 'calc(100% + 3px)' } : r.y + r.h < 85 ? { top: 'calc(100% + 3px)' } : { top: 3 }), [r.x + r.w / 2 > 60 ? 'right' : 'left']: 0, maxWidth: '60cqw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: HL, color: '#1a1400', fontWeight: 700, fontSize: 'clamp(8px, 2.1cqw, 11px)', padding: '1px 5px', borderRadius: 3 }}>{name}</span>
-        ) : null}
-      </div>
+    <div ref={ref} data-fb-preview={source} aria-label={label} role="img"
+      style={{ position: 'relative', width: '100%', maxWidth: big ? `min(${W}px, 96vw, calc(86vh * ${ar}))` : max, aspectRatio: W + ' / ' + H, border: '1px solid var(--line, #2b2b2b)', borderRadius: 8, background: ps.b ?? 'var(--panel, #121212)', color: ps.c ?? 'var(--text, #e9e7e2)', overflow: 'hidden', lineHeight: 1.15, containerType: 'inline-size', fontFamily: 'system-ui, sans-serif' }}>
+      {items.map((it, i) => {
+        const s = sty(it.s)
+        const f = s.f ?? (it.k === 'h' ? 20 : it.k === 'b' ? 13 : 12)
+        const radius = s.r === undefined ? undefined : s.r >= 99 ? 999 : px(s.r)
+        const box: CSSProperties = { position: 'absolute', left: it.x / 10 + '%', top: it.y / 10 + '%', width: it.w / 10 + '%', height: it.h / 10 + '%', boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', borderRadius: radius, color: s.c }
+        const text = (t: string, extra?: CSSProperties) => fits(it, f) ? <span data-fb-label="" style={{ fontSize: font(f), overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', ...extra }}>{t}</span> : null
+        let body: ReactNode = null
+        switch (it.k) {
+          case 'n': Object.assign(box, { background: s.b ?? GREY + '.16)', borderBottom: s.o ? '1px solid ' + s.o : undefined, boxShadow: s.b || s.o ? undefined : 'inset 0 0 0 1px ' + GREY + '.3)' }); break
+          case 'p': Object.assign(box, { background: s.b ?? GREY + '.08)', border: '1px solid ' + (s.o ?? (s.b ? 'transparent' : GREY + '.3)')), borderRadius: radius ?? 6 }); break
+          case 'r': Object.assign(box, { borderBottom: '1px solid ' + (s.o ?? GREY + '.3)'), background: s.b }); body = <span style={{ position: 'absolute', left: '2%', right: '30%', top: '42%', height: '16%', background: GREY + '.25)', borderRadius: 2 }} />; break
+          case 'b':
+            Object.assign(box, { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 ' + px(8), background: s.b ?? (s.o ? undefined : GREY + '.22)'), border: s.o ? '1px solid ' + s.o : s.b ? undefined : '1px solid ' + GREY + '.55)', borderRadius: radius ?? 999, fontWeight: s.w ? 700 : 500 })
+            // ikonknapper (nesten kvadratiske) tegnes som ikon, også når de har en usynlig etikett
+            body = it.label && (it.w * W) / (it.h * H) > 1.6 ? text(it.label) : <span style={{ width: '42%', maxWidth: px(18), aspectRatio: '1', borderRadius: '30%', background: 'currentColor', opacity: 0.45 }} />
+            break
+          case 'i':
+            Object.assign(box, { display: 'flex', alignItems: 'center', padding: '0 ' + px(10), background: s.b ?? 'rgba(255,255,255,.05)', border: '1px solid ' + (s.o ?? GREY + '.6)'), borderRadius: radius ?? 4 })
+            body = it.label ? text(it.label, { opacity: 0.5 }) : null
+            break
+          case 'h': case 'l':
+            Object.assign(box, { display: 'flex', alignItems: 'center', fontWeight: it.k === 'h' || s.w ? 700 : 400, opacity: it.k === 'l' ? 0.85 : undefined })
+            body = it.label ? text(it.label) : <span style={{ width: '70%', height: '45%', background: 'currentColor', opacity: 0.3, borderRadius: 2 }} />
+            break
+          case 't': {
+            // tekst som streker: én per linje, i skriftens høyde
+            const lines = Math.max(1, Math.min(12, Math.round(((it.h / 1000) * H) / (f * 1.35))))
+            Object.assign(box, { backgroundImage: 'linear-gradient(to bottom, transparent 0 28%, currentColor 28% 70%, transparent 70%)', backgroundSize: '100% ' + (100 / lines).toFixed(3) + '%', backgroundRepeat: 'repeat-y', opacity: 0.3 })
+            break
+          }
+          case 'm':
+            Object.assign(box, { display: 'grid', placeItems: 'center', background: s.b ?? GREY + '.14)', border: '1px ' + (s.o ? 'solid ' + s.o : 'dashed ' + GREY + '.45)'), borderRadius: radius ?? 4, color: 'rgba(160,160,160,.7)' })
+            body = <span style={{ width: '22%', maxWidth: px(64), minWidth: 8, aspectRatio: '1' }}>{PHOTO}</span>
+            break
+          case 'g':
+            Object.assign(box, { display: 'grid', placeItems: 'center' })
+            body = <span style={{ width: '70%', height: '70%', borderRadius: '30%', background: 'currentColor', opacity: 0.5 }} />
+            break
+        }
+        return <div key={i} data-fb-wire={it.k} style={box}>{body}</div>
+      })}
+      <Mark rect={r} name={name} />
+    </div>
+  )
+}
+
+/** Den gule markeringen med elementets navn (prosent av vinduet); brukes også over den ekte siden i LivePreview. */
+export function Mark({ rect: r, name }: { rect: { x: number; y: number; w: number; h: number }; name: string }) {
+  return (
+    <div data-fb-hl="" style={{ position: 'absolute', zIndex: 3, left: r.x + '%', top: r.y + '%', width: r.w + '%', height: r.h + '%', boxSizing: 'border-box', border: '2px solid ' + HL, background: 'rgba(245,179,1,.08)', borderRadius: 4, outline: '1px solid rgba(0,0,0,.6)', boxShadow: '0 0 0 9999px rgba(0,0,0,.12), 0 0 0 3px rgba(245,179,1,.35), 0 0 14px 3px rgba(245,179,1,.55)' }}>
+      {name ? (
+        <span data-fb-hl-tag="" style={{ position: 'absolute', ...(r.y > 12 ? { bottom: 'calc(100% + 4px)' } : r.y + r.h < 85 ? { top: 'calc(100% + 4px)' } : { top: 3 }), [r.x + r.w / 2 > 60 ? 'right' : 'left']: 0, maxWidth: '60cqw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: HL, color: '#1a1400', fontWeight: 700, fontSize: 'clamp(9px, 1.8cqw, 13px)', padding: '1px 6px', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,.4)' }}>{name}</span>
+      ) : null}
     </div>
   )
 }
