@@ -28,6 +28,9 @@ Media Lab = verktøy for menigheter (Loop Studio, Thumbnail Studio, Photo Design
 - TB-1591A7: grunnoppsett-banneret i Loop flyttes ned på mobil (`loop-studio/Page.module.css`, `LoopStudio.tsx`).
 - Forhåndsvisning i innboksen: skjemaet holdes utenfor omrisset, plassbudsjett mot 4000-grensen, ryddig miniatyr (etiketter bare når de får plass, rammen øverst med elementnavn), omtrentlig side for saker uten omriss i stedet for tom ramme (`LayoutPreview.tsx`, `layout.ts`, `app/Feedback.tsx`, `admin/Feedback.tsx`, `admin/texts.ts`).
 - Tester: `e2e/feedback-verify.spec.ts` (ny), `e2e/feedback-preview.spec.ts` (utvidet).
+**Pushet til `connecthub` (ikke merget): realistisk forhåndsvisning i innboksen**
+- Omrisset tar med farger, kant, hjørner, skrift, ikoner og feltenes ledetekst (`layout.ts`, formatet `k x y w h|etikett|stil`); tegnes i riktig skala (`LayoutPreview.tsx`), «Forstørr» i admin.
+- Saker uten omriss: opptak av hver app og visning (`templates.json`, laget med `ML_GEN_TEMPLATES=1 npx playwright test e2e/feedback-templates.spec.ts --workers=1`; admin med falske data via `mountAdmin`). Visning velges etter sakens adresse og det markerte elementet. Lag malene på nytt når en app endres mye.
 **Gjenstår:**
 - TB-143BF7, TB-B4A133, TB-A43E52 (Loop): verifisert mot connecthub-dev 2026-11-08 (`run-dev.mjs --only=par`, 7/7 grønne; ny test i `loop-sharing-dev.spec.ts`).
 - Migreringen `item_shares` er ikke kjørt på dev: API og data virker, men Supabase avviser CLI-rollene (PAM authentication failed for cli_login_postgres / supabase_read_only_user), så DDL er blokkert. Produksjon har den allerede (20261108100000 registrert, tabellen finnes).

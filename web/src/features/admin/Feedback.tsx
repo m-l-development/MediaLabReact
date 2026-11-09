@@ -261,7 +261,7 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
       </Card>
       <Card title="Applikasjon og markering (hentet automatisk)">
         <dl className="ch-kv">{kv('Applikasjon', (caseApp(c).name || '') + (caseApp(c).id ? ' (' + caseApp(c).id + ')' : ''))}{kv('Side', c.page)}{kv('Visning', c.view)}</dl>
-        {m ? <MarkPreview m={m} /> : <p className="ch-muted">{t('Ingen markering.')}</p>}
+        {m ? <MarkPreview m={m} app={caseApp(c).id} view={c.view ?? null} /> : <p className="ch-muted">{t('Ingen markering.')}</p>}
       </Card>
       <Card title="Teknisk kontekst (hentet automatisk)">
         <dl className="ch-kv">
@@ -309,18 +309,35 @@ function CaseDrawer({ c, onClose, onCopy, reload }: { c: FeedbackCase; onClose: 
   )
 }
 
-/** Markeringen i en miniatyr av siden (shared/feedback/LayoutPreview); eldre saker uten omriss får en omtrentlig side. */
-function MarkPreview({ m }: { m: CaseMark }) {
+/**
+ * Markeringen i en miniatyr av siden (shared/feedback/LayoutPreview). Eldre saker uten omriss får dagens oppbygning av samme
+ * applikasjon og visning. «Forstørr» viser siden i nær full størrelse.
+ */
+function MarkPreview({ m, app, view }: { m: CaseMark; app: string | null; view: string | null }) {
   const { t } = useAdmin()
+  const [big, setBig] = useState(false)
+  useEffect(() => {
+    if (!big) return
+    const k = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setBig(false) }
+    document.addEventListener('keydown', k)
+    return () => document.removeEventListener('keydown', k)
+  }, [big])
   const r = m.rect ?? {}, e = m.element ?? {}
   const items = decodeLayout(m.layout)
+  const preview = (b: boolean) => <LayoutPreview layout={m.layout} rect={r} viewport={m.viewport} label={t('Markering i skjermbildet')} element={e} app={app} view={view} big={b} />
   return (
     <div data-fb-mark="">
-      <LayoutPreview layout={m.layout} rect={r} viewport={m.viewport} label={t('Markering i skjermbildet')} element={e} />
+      {preview(false)}
+      <Btn kind="ghost" onClick={() => setBig(true)} data-fb-zoom="">{t('Forstørr')}</Btn>
+      {big && (
+        <div className="ch-overlay center" role="dialog" aria-modal="true" aria-label={t('Markering i skjermbildet')} onClick={() => setBig(false)} data-fb-big="" style={{ padding: 12, cursor: 'zoom-out' }}>
+          {preview(true)}
+        </div>
+      )}
       <p className="ch-muted">{t(m.mode === 'area' ? 'Område' : 'Element')}{e.tag ? ' <' + e.tag + '>' : ''}{e.label ? ' «' + e.label + '»' : ''} · x {r.x} %, y {r.y} %, {r.w} × {r.h} % · {t('vindu')} {m.viewport}</p>
       {e.path && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{e.path}</p>}
       {e.attrs && Object.keys(e.attrs).length > 0 && <p className="ch-muted" style={{ wordBreak: 'break-all' }}>{Object.entries(e.attrs).map(([k, v]) => k + '="' + v + '"').join(' · ')}</p>}
-      <p className="ch-muted">{t(items.length ? 'Forhåndsvisningen viser bare sidens oppbygning (knapper, felt, paneler og tekstlinjer) – aldri bilder, filer eller brukerens innhold.' : 'Saken ble sendt før sidens oppbygning ble lagret. Miniatyren er omtrentlig (ut fra vindusstørrelsen og det markerte elementet); den gule rammen står der brukeren markerte.')}</p>
+      <p className="ch-muted">{t(items.length ? 'Forhåndsvisningen viser bare sidens oppbygning (knapper, felt, paneler og tekstlinjer) – aldri bilder, filer eller brukerens innhold.' : 'Saken ble sendt før sidens oppbygning ble lagret. Miniatyren viser dagens oppbygning av samme applikasjon og visning (ikke brukerens skjerm); den gule rammen står der brukeren markerte.')}</p>
     </div>
   )
 }

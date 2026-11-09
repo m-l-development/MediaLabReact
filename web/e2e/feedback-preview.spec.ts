@@ -218,3 +218,42 @@ test('miniatyren er ryddig og lesbar på ulike sider, også saker uten omriss', 
   expect(r).toMatchObject({ mode: 'fallback', bad: [], hlOnTop: true, tagInside: true, fitsHost: true })
   expect(r.wires).toBeGreaterThan(5)
 })
+
+/**
+ * Saker uten lagret omriss (eldre saker) får dagens oppbygning av riktig applikasjon og visning – også admin, som krever
+ * innlogging. Formen er som de ekte sakene: Photo Design med markering i sidepanelet, admin på #/tilbakemeldinger og
+ * forsiden på mobil. Den gule rammen står på samme sted, og navnet på elementet er helt innenfor miniatyren.
+ */
+test('saker uten omriss viser riktig applikasjon og visning, også admin', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobil', 'saksdataene bestemmer PC/mobil')
+  await page.goto('/app/photo-design')
+  await page.locator('main button').first().waitFor()
+  const cases = [
+    { name: 'photo-design', app: 'photo-design', view: '', viewport: '1278×1304', rect: { x: 73.5, y: 41.6, w: 20.4, h: 2 }, element: { tag: 'div', path: 'div > div > aside > div > div', label: 'Fargekurve-gradient' } },
+    { name: 'admin', app: 'connecthub-admin', view: '#/tilbakemeldinger', viewport: '1278×1304', rect: { x: 17.2, y: 4.3, w: 82.8, h: 30 }, element: { tag: 'main', path: 'div.ch-shell > main.ch-main' } },
+    { name: 'forside-mobil', app: 'media-lab', view: '', viewport: '390×844', rect: { x: 25.6, y: 41.5, w: 51.3, h: 17.8 }, element: { tag: 'a', role: 'link', path: 'div > main > div > a' } },
+  ]
+  for (const c of cases) {
+    const r = await page.evaluate(async (c) => {
+      const M = await import('/app/src/shared/feedback/LayoutPreview.mount.tsx' as string)
+      document.querySelector('[data-test-host]')?.remove()
+      const host = document.createElement('div')
+      host.dataset.testHost = ''
+      host.style.cssText = 'position:fixed;left:0;top:0;width:720px;z-index:99999;background:#000'
+      document.body.appendChild(host)
+      M.mount(host, undefined, c.rect, c.viewport, c.element, c.app, c.view)
+      const box = host.querySelector('[data-fb-preview]') as HTMLElement
+      for (let i = 0; i < 50 && box.dataset.fbPreview !== 'template'; i++) await new Promise((res) => setTimeout(res, 50))
+      const b = box.getBoundingClientRect(), hl = (box.querySelector('[data-fb-hl]') as HTMLElement).getBoundingClientRect(), tag = (box.querySelector('[data-fb-hl-tag]') as HTMLElement).getBoundingClientRect()
+      return { mode: box.dataset.fbPreview, wires: box.querySelectorAll('[data-fb-wire]').length, kinds: [...new Set([...box.querySelectorAll('[data-fb-wire]')].map((w) => (w as HTMLElement).dataset.fbWire))],
+        hl: { x: ((hl.left - b.left) / b.width) * 100, y: ((hl.top - b.top) / b.height) * 100 }, tagInside: tag.left >= b.left - 0.5 && tag.right <= b.right + 0.5 && tag.top >= b.top - 0.5 && tag.bottom <= b.bottom + 0.5 }
+    }, c)
+    if (process.env.ML_SHOT) await page.locator('[data-test-host] [data-fb-preview]').screenshot({ path: `${process.env.ML_SHOT}-mal-${c.name}.png` })
+    expect(r.mode, c.name).toBe('template')
+    expect(r.wires, c.name).toBeGreaterThan(10)
+    expect(r.kinds, c.name).toEqual(expect.arrayContaining(['b']))
+    expect(Math.abs(r.hl.x - c.rect.x), c.name).toBeLessThan(0.5)
+    expect(Math.abs(r.hl.y - c.rect.y), c.name).toBeLessThan(0.5)
+    expect(r.tagInside, c.name).toBe(true)
+  }
+})
