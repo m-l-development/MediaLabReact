@@ -11,7 +11,7 @@ import {
 import { autoTone, cleanDev, DEV, type Dev, type Histogram } from './engine/develop'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
-import { baseOf, cover, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
+import { baseOf, cover, docFonts, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
 
@@ -2310,6 +2310,7 @@ export class PhotoController {
 
   async outBlob(): Promise<Blob | null> {
     const d = this.s.doc
+    if (d) await docFonts(d) // eksporten tegner med fontene, ikke reservefonten
     if (!d) return null
     const x = this.s.exp
     const s = x.scale
@@ -2340,6 +2341,7 @@ export class PhotoController {
   async printPdf(): Promise<Blob | null> {
     const d = this.s.doc
     if (!d) return null
+    await docFonts(d) // PDF-en tegner med fontene, ikke reservefonten
     return printPDF(this.sidesOf(d), d, this.M, { bleed: !!d.bleed })
   }
 

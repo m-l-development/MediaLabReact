@@ -1,0 +1,1949 @@
+[
+ {
+  "spec": "@fontsource-variable/inter@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Inter",
+  "slug": "inter",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/inter-tight@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Inter Tight",
+  "slug": "inter-tight",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/roboto@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Roboto",
+  "slug": "roboto",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/open-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Open Sans",
+  "slug": "open-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/poppins@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Poppins",
+  "slug": "poppins",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/lato@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "700-italic.css",
+   "700.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Lato",
+  "slug": "lato",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/work-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Work Sans",
+  "slug": "work-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/dm-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "DM Sans",
+  "slug": "dm-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/manrope@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Manrope",
+  "slug": "manrope",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/hanken-grotesk@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Hanken Grotesk",
+  "slug": "hanken-grotesk",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/josefin-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Josefin Sans",
+  "slug": "josefin-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/archivo-narrow@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Archivo Narrow",
+  "slug": "archivo-narrow",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/raleway@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Raleway",
+  "slug": "raleway",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/overpass@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Overpass",
+  "slug": "overpass",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/barlow@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Barlow",
+  "slug": "barlow",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/public-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Public Sans",
+  "slug": "public-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/atkinson-hyperlegible@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Atkinson Hyperlegible",
+  "slug": "atkinson-hyperlegible",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/source-sans-3@5.3.1",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Source Sans 3",
+  "slug": "source-sans-3",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/roboto-condensed@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Roboto Condensed",
+  "slug": "roboto-condensed",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/bricolage-grotesque@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Bricolage Grotesque",
+  "slug": "bricolage-grotesque",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/syne@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Syne",
+  "slug": "syne",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/plus-jakarta-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Plus Jakarta Sans",
+  "slug": "plus-jakarta-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/figtree@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Figtree",
+  "slug": "figtree",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/outfit@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Outfit",
+  "slug": "outfit",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/sora@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Sora",
+  "slug": "sora",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/urbanist@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Urbanist",
+  "slug": "urbanist",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/lexend@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Lexend",
+  "slug": "lexend",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/onest@5.3.1",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Onest",
+  "slug": "onest",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/geist@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Geist",
+  "slug": "geist",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/schibsted-grotesk@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Schibsted Grotesk",
+  "slug": "schibsted-grotesk",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/familjen-grotesk@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Familjen Grotesk",
+  "slug": "familjen-grotesk",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/instrument-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Instrument Sans",
+  "slug": "instrument-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/gabarito@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Gabarito",
+  "slug": "gabarito",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/rethink-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Rethink Sans",
+  "slug": "rethink-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/funnel-display@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Funnel Display",
+  "slug": "funnel-display",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/red-hat-display@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Red Hat Display",
+  "slug": "red-hat-display",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/exo-2@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Exo 2",
+  "slug": "exo-2",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/kanit@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Kanit",
+  "slug": "kanit",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/archivo-black@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Archivo Black",
+  "slug": "archivo-black",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/league-gothic@5.3.0",
+  "css": [
+   "index.css"
+  ],
+  "family": "League Gothic",
+  "slug": "league-gothic",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/six-caps@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Six Caps",
+  "slug": "six-caps",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/big-shoulders-display@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Big Shoulders Display",
+  "slug": "big-shoulders-display",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/unbounded@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Unbounded",
+  "slug": "unbounded",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/lilita-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Lilita One",
+  "slug": "lilita-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bagel-fat-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bagel Fat One",
+  "slug": "bagel-fat-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/shrikhand@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Shrikhand",
+  "slug": "shrikhand",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bangers@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bangers",
+  "slug": "bangers",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/barlow-condensed@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Barlow Condensed",
+  "slug": "barlow-condensed",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/alfa-slab-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Alfa Slab One",
+  "slug": "alfa-slab-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/dela-gothic-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Dela Gothic One",
+  "slug": "dela-gothic-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/tilt-warp@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Tilt Warp",
+  "slug": "tilt-warp",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/climate-crisis@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Climate Crisis",
+  "slug": "climate-crisis",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/fjalla-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Fjalla One",
+  "slug": "fjalla-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/antonio@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Antonio",
+  "slug": "antonio",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/staatliches@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Staatliches",
+  "slug": "staatliches",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/ultra@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Ultra",
+  "slug": "ultra",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/nunito@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Nunito",
+  "slug": "nunito",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/comfortaa@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Comfortaa",
+  "slug": "comfortaa",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/quicksand@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Quicksand",
+  "slug": "quicksand",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/fredoka@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Fredoka",
+  "slug": "fredoka",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/cormorant-garamond@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Cormorant Garamond",
+  "slug": "cormorant-garamond",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/bodoni-moda@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Bodoni Moda",
+  "slug": "bodoni-moda",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/gloock@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Gloock",
+  "slug": "gloock",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/instrument-serif@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css"
+  ],
+  "family": "Instrument Serif",
+  "slug": "instrument-serif",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/fraunces@5.3.0",
+  "css": [
+   "full.css",
+   "full-italic.css"
+  ],
+  "family": "Fraunces",
+  "slug": "fraunces",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/young-serif@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Young Serif",
+  "slug": "young-serif",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/yeseva-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Yeseva One",
+  "slug": "yeseva-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rozha-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rozha One",
+  "slug": "rozha-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/merriweather@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Merriweather",
+  "slug": "merriweather",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/lora@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Lora",
+  "slug": "lora",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/libre-baskerville@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Libre Baskerville",
+  "slug": "libre-baskerville",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/crimson-pro@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Crimson Pro",
+  "slug": "crimson-pro",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/abril-fatface@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Abril Fatface",
+  "slug": "abril-fatface",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/cinzel@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Cinzel",
+  "slug": "cinzel",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/cinzel-decorative@5.3.0",
+  "css": [
+   "400.css",
+   "700.css",
+   "900.css"
+  ],
+  "family": "Cinzel Decorative",
+  "slug": "cinzel-decorative",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/tenor-sans@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Tenor Sans",
+  "slug": "tenor-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/marcellus@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Marcellus",
+  "slug": "marcellus",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/caveat@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Caveat",
+  "slug": "caveat",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/kaushan-script@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Kaushan Script",
+  "slug": "kaushan-script",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/permanent-marker@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Permanent Marker",
+  "slug": "permanent-marker",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/pinyon-script@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Pinyon Script",
+  "slug": "pinyon-script",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/mrs-saint-delafield@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Mrs Saint Delafield",
+  "slug": "mrs-saint-delafield",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/pacifico@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Pacifico",
+  "slug": "pacifico",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/dancing-script@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Dancing Script",
+  "slug": "dancing-script",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/great-vibes@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Great Vibes",
+  "slug": "great-vibes",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/satisfy@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Satisfy",
+  "slug": "satisfy",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/sacramento@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Sacramento",
+  "slug": "sacramento",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/unifrakturmaguntia@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "UnifrakturMaguntia",
+  "slug": "unifrakturmaguntia",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-dirt@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik Dirt",
+  "slug": "rubik-dirt",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/lobster@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Lobster",
+  "slug": "lobster",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bungee@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bungee",
+  "slug": "bungee",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/press-start-2p@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Press Start 2P",
+  "slug": "press-start-2p",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/creepster@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Creepster",
+  "slug": "creepster",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/saira-stencil-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Saira Stencil One",
+  "slug": "saira-stencil-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/stardos-stencil@5.3.0",
+  "css": [
+   "400.css",
+   "700.css"
+  ],
+  "family": "Stardos Stencil",
+  "slug": "stardos-stencil",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rye@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rye",
+  "slug": "rye",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/graduate@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Graduate",
+  "slug": "graduate",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/monoton@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Monoton",
+  "slug": "monoton",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/righteous@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Righteous",
+  "slug": "righteous",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/neonderthaw@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Neonderthaw",
+  "slug": "neonderthaw",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/train-one@5.3.1",
+  "css": [
+   "400.css"
+  ],
+  "family": "Train One",
+  "slug": "train-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rampart-one@5.3.1",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rampart One",
+  "slug": "rampart-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/faster-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Faster One",
+  "slug": "faster-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/codystar@5.3.0",
+  "css": [
+   "300.css",
+   "400.css"
+  ],
+  "family": "Codystar",
+  "slug": "codystar",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/zen-tokyo-zoo@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Zen Tokyo Zoo",
+  "slug": "zen-tokyo-zoo",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/kumar-one-outline@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Kumar One Outline",
+  "slug": "kumar-one-outline",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/londrina-outline@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Londrina Outline",
+  "slug": "londrina-outline",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/londrina-shadow@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Londrina Shadow",
+  "slug": "londrina-shadow",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/fascinate-inline@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Fascinate Inline",
+  "slug": "fascinate-inline",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/vast-shadow@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Vast Shadow",
+  "slug": "vast-shadow",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/monofett@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Monofett",
+  "slug": "monofett",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/ewert@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Ewert",
+  "slug": "ewert",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/moirai-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Moirai One",
+  "slug": "moirai-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/tilt-prism@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Tilt Prism",
+  "slug": "tilt-prism",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/tilt-neon@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Tilt Neon",
+  "slug": "tilt-neon",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-80s-fade@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik 80s Fade",
+  "slug": "rubik-80s-fade",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-vinyl@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik Vinyl",
+  "slug": "rubik-vinyl",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-marker-hatch@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik Marker Hatch",
+  "slug": "rubik-marker-hatch",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-maze@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik Maze",
+  "slug": "rubik-maze",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-glitch@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik Glitch",
+  "slug": "rubik-glitch",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/rubik-iso@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Rubik Iso",
+  "slug": "rubik-iso",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/tourney@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Tourney",
+  "slug": "tourney",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/foldit@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Foldit",
+  "slug": "foldit",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/workbench@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Workbench",
+  "slug": "workbench",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/sixtyfour@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Sixtyfour",
+  "slug": "sixtyfour",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/danfo@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Danfo",
+  "slug": "danfo",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bungee-hairline@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bungee Hairline",
+  "slug": "bungee-hairline",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bungee-inline@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bungee Inline",
+  "slug": "bungee-inline",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bungee-outline@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bungee Outline",
+  "slug": "bungee-outline",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bungee-shade@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bungee Shade",
+  "slug": "bungee-shade",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/nabla@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Nabla",
+  "slug": "nabla",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/honk@5.3.0",
+  "css": [
+   "full.css"
+  ],
+  "family": "Honk",
+  "slug": "honk",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bungee-spice@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bungee Spice",
+  "slug": "bungee-spice",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/orbitron@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Orbitron",
+  "slug": "orbitron",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/audiowide@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Audiowide",
+  "slug": "audiowide",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/michroma@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Michroma",
+  "slug": "michroma",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/russo-one@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Russo One",
+  "slug": "russo-one",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/teko@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Teko",
+  "slug": "teko",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/zen-dots@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Zen Dots",
+  "slug": "zen-dots",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/major-mono-display@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Major Mono Display",
+  "slug": "major-mono-display",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/syncopate@5.3.0",
+  "css": [
+   "400.css",
+   "700.css"
+  ],
+  "family": "Syncopate",
+  "slug": "syncopate",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/jetbrains-mono@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "JetBrains Mono",
+  "slug": "jetbrains-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/space-mono@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Space Mono",
+  "slug": "space-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/courier-prime@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Courier Prime",
+  "slug": "courier-prime",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/fira-code@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Fira Code",
+  "slug": "fira-code",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/ibm-plex-mono@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "IBM Plex Mono",
+  "slug": "ibm-plex-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/clarity-city@5.3.1",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Clarity City",
+  "slug": "clarity-city",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/national-park@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "National Park",
+  "slug": "national-park",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/amarna@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Amarna",
+  "slug": "amarna",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/murecho@5.3.1",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Murecho",
+  "slug": "murecho",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/zalando-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Zalando Sans",
+  "slug": "zalando-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/saira@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Saira",
+  "slug": "saira",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/vend-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Vend Sans",
+  "slug": "vend-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/kulim-park@5.3.0",
+  "css": [
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Kulim Park",
+  "slug": "kulim-park",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/host-grotesk@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Host Grotesk",
+  "slug": "host-grotesk",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/cal-sans@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Cal Sans",
+  "slug": "cal-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/mona-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Mona Sans",
+  "slug": "mona-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/hubot-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Hubot Sans",
+  "slug": "hubot-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/radio-canada@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Radio Canada",
+  "slug": "radio-canada",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/tasa-orbiter@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "TASA Orbiter",
+  "slug": "tasa-orbiter",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/hedvig-letters-sans@5.3.1",
+  "css": [
+   "400.css"
+  ],
+  "family": "Hedvig Letters Sans",
+  "slug": "hedvig-letters-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/petrona@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Petrona",
+  "slug": "petrona",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/zilla-slab@5.3.0",
+  "css": [
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Zilla Slab",
+  "slug": "zilla-slab",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/tasa-explorer@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "TASA Explorer",
+  "slug": "tasa-explorer",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/inclusive-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Inclusive Sans",
+  "slug": "inclusive-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/jost@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Jost",
+  "slug": "jost",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/playfair@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Playfair",
+  "slug": "playfair",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/labrada@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Labrada",
+  "slug": "labrada",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/baskervville@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Baskervville",
+  "slug": "baskervville",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/spectral@5.3.0",
+  "css": [
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css"
+  ],
+  "family": "Spectral",
+  "slug": "spectral",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/faustina@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Faustina",
+  "slug": "faustina",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/redaction@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Redaction",
+  "slug": "redaction",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/piazzolla@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Piazzolla",
+  "slug": "piazzolla",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/funnel-sans@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Funnel Sans",
+  "slug": "funnel-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/prociono@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Prociono",
+  "slug": "prociono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/sorts-mill-goudy@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css"
+  ],
+  "family": "Sorts Mill Goudy",
+  "slug": "sorts-mill-goudy",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/museomoderno@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "MuseoModerno",
+  "slug": "museomoderno",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/hedvig-letters-serif@5.3.1",
+  "css": [
+   "index.css"
+  ],
+  "family": "Hedvig Letters Serif",
+  "slug": "hedvig-letters-serif",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/besley@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Besley",
+  "slug": "besley",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/linden-hill@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css"
+  ],
+  "family": "Linden Hill",
+  "slug": "linden-hill",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/maname@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Maname",
+  "slug": "maname",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/libre-caslon-condensed@5.3.1",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Libre Caslon Condensed",
+  "slug": "libre-caslon-condensed",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/eb-garamond@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "EB Garamond",
+  "slug": "eb-garamond",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/geom@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Geom",
+  "slug": "geom",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/intel-one-mono@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Intel One Mono",
+  "slug": "intel-one-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/league-script@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "League Script",
+  "slug": "league-script",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/cutive-mono@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Cutive Mono",
+  "slug": "cutive-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/syne-tactile@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Syne Tactile",
+  "slug": "syne-tactile",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/texturina@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Texturina",
+  "slug": "texturina",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/caramel@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Caramel",
+  "slug": "caramel",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/sansita-swashed@5.3.0",
+  "css": [
+   "wght.css"
+  ],
+  "family": "Sansita Swashed",
+  "slug": "sansita-swashed",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/borel@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Borel",
+  "slug": "borel",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/geist-mono@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Geist Mono",
+  "slug": "geist-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/syne-mono@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Syne Mono",
+  "slug": "syne-mono",
+  "lazy": true
+ }
+]

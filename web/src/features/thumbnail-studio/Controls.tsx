@@ -4,6 +4,7 @@ import { useRef, useState, type KeyboardEvent } from 'react'
 import { useLang } from '../../shared/i18n/i18n'
 import { BgColor } from '../../shared/ui/BgColor'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
+import { FontPicker } from '../../shared/fonts/FontPicker'
 import { localStore } from '../../shared/lib/storage'
 import type { ThumbController } from './controller'
 import type { Ctrl, Unit } from './ctrl-defs'
@@ -58,6 +59,13 @@ export function Controls({ ctrls, c, tx, profileColors, imageUrl }: { ctrls: Ctr
             )
           case 'area':
             return <TextArea key={`${i}:${x.label}`} ctrl={x} c={c} tx={tx} />
+          case 'font':
+            return (
+              <div key={i} className={s.ctrl}>
+                <span className={s.ctrlLabel}>{tx(x.label)}</span>
+                <FontPicker value={x.val} onChange={x.set} label={tx(x.label)} top={x.top} />
+              </div>
+            )
           case 'select':
             return (
               <label key={i} className={s.ctrl}>

@@ -10,6 +10,7 @@ import { chk, css, interp, list, val } from './dc'
 import P from './LoopStudio.module.css'
 import { MoreButton } from '../../shared/ui/MoreButton'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
+import { FontPicker } from '../../shared/fonts/FontPicker'
 import { useT } from '../../shared/i18n/i18n'
 
 export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome: (e: { preventDefault(): void }) => void }; tx: (s: unknown) => string }) {
@@ -3221,26 +3222,13 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               {"\n\n          "}
               <div style={{"display":"flex","flexDirection":"column","gap":"14px","paddingTop":"16px","borderTop":"1px solid #262626"}}>
                 {"\n            "}
-                <label style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
-                  {"\n              "}
+                <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
                   <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>
                     {tx("Skrift")}
                   </span>
-                  {"\n              "}
-                  <select value={val(v.fontVal)} onChange={v.onFont} style={{"height":"38px","padding":"0 10px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"14px","outline":"none"}}>
-                    {"\n                "}
-                    {list(v.fontOpts).map(($it1, $i1) => {
-                      const v1 = { ...v, "f": $it1, $index: $i1 };
-                      return <React.Fragment key={$i1}>
-                        <option value={val(v1.f?.value)}>
-                          {tx(v1.f?.label)}
-                        </option>
-                      </React.Fragment>;
-                    })}
-                    {"\n              "}
-                  </select>
-                  {"\n            "}
-                </label>
+                  {/* det felles fontbiblioteket; Loops egne fonter (og Helvetica) øverst */}
+                  <FontPicker value={val(v.fontVal)} label={tx("Skrift")} top={v.fontTop} onChange={v.onFontName} />
+                </div>
                 {"\n            "}
                 <div style={{"display":"grid","gridTemplateColumns":"minmax(0,1fr) minmax(0,1fr)","gap":"12px"}}>
                   {"\n              "}

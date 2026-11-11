@@ -4,6 +4,7 @@
  * Mediefiler refereres med `m-<AssetId>` (felles mediebibliotek, «Dine medier»).
  */
 
+import { fontByName } from '../../../shared/fonts/catalog'
 import { cleanEffects, type Effect } from './fx'
 import { cleanKeys, type Keys } from './kf'
 
@@ -423,6 +424,11 @@ function num(v: unknown, d: number, lo?: number, hi?: number): number {
 }
 const str = (v: unknown, d: string, max = 4000): string => (typeof v === 'string' ? v.slice(0, max) : d)
 const col = (v: unknown, d: string): string => (typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v) ? v : d)
+/** Appens egne fonter som før, og fontene i det felles biblioteket (ellers Archivo, som før). */
+function fontOf(v: unknown): string {
+  return typeof v === 'string' && fontByName(v) ? (fontByName(v) as { name: string }).name : oneOf(v, FONTS, 'Archivo')
+}
+
 function oneOf<T extends string>(v: unknown, list: readonly T[], d: T): T {
   return (list as readonly unknown[]).includes(v) ? (v as T) : d
 }
@@ -509,7 +515,7 @@ export function normalize(input: unknown): Project {
   const texts: TextItem[] = recs(p.texts, 1000).map((x) => withLink({
     ...(x.valign === 'top' || x.valign === 'bottom' ? { valign: x.valign } : {}),
     ...(cleanKeys(x.kf) ? { kf: cleanKeys(x.kf) as Keys } : {}),
-    id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: oneOf(x.font, FONTS, 'Archivo'), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'),
+    id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: fontOf(x.font), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'),
   }, lnk(x.link)))
   const subs: Sub[] = recs(p.subs, 5000).map((x) => {
     const s = num(x.start, 0, 0, 86400)
@@ -529,7 +535,7 @@ export function normalize(input: unknown): Project {
     lanes: { text: Math.round(num(lz.text, 1, 1, 50)), ov: Math.round(num(lz.ov, 1, 1, 50)), music: Math.round(num(lz.music, 1, 1, 50)) },
     mix: { video: num(mx.video, 1, 0, 1), ov: num(mx.ov, 1, 0, 1), music: num(mx.music, 1, 0, 1), duck: !!mx.duck, duckAmt: num(mx.duckAmt, 0.6, 0.1, 0.95) },
     texts, subs,
-    subStyle: { mode: oneOf(ss.mode, ['line', 'words'] as const, 'line'), hl: col(ss.hl, '#f5b82c'), size: num(ss.size, 46, 12, 200), color: col(ss.color, '#ffffff'), bgOn: ss.bgOn !== false, bg: col(ss.bg, '#000000'), bgA: num(ss.bgA, 0.6, 0, 1), pos: oneOf(ss.pos, ['bottom', 'center', 'top'] as const, 'bottom'), font: oneOf(ss.font, FONTS, 'Archivo'), weight: num(ss.weight, 600, 100, 900), upper: !!ss.upper },
+    subStyle: { mode: oneOf(ss.mode, ['line', 'words'] as const, 'line'), hl: col(ss.hl, '#f5b82c'), size: num(ss.size, 46, 12, 200), color: col(ss.color, '#ffffff'), bgOn: ss.bgOn !== false, bg: col(ss.bg, '#000000'), bgA: num(ss.bgA, 0.6, 0, 1), pos: oneOf(ss.pos, ['bottom', 'center', 'top'] as const, 'bottom'), font: fontOf(ss.font), weight: num(ss.weight, 600, 100, 900), upper: !!ss.upper },
     music: musicList,
     ...(typeof p.dur === 'number' && p.dur > 0 ? { dur: num(p.dur, 60, 0.5, 86400) } : {}),
     ...(p.res === '720' || p.res === '1080' || p.res === '4k' ? { res: p.res } : {}),

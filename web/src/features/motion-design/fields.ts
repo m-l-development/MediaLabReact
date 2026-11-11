@@ -2,9 +2,11 @@
  * Feltene i egenskapspanelet (samme felt, rekkefølge og seksjoner som dagens app, logic.js clipFields/textFields …).
  * Feltene er data; Props.tsx tegner dem.
  */
+import { hasSnitt, weightsOf } from '../../shared/fonts/catalog'
+import { loadFont } from '../../shared/fonts/loader'
 import type { MotionController } from './controller'
 import {
-  ANIMS, BLENDS, fmtCount, fmtT, FONTS, LOOKS, mixOf, OVANIMS, ovDur, TRANS, type Clip, type Grade, type Media, type MediaClip,
+  ANIMS, BLENDS, fmtCount, fmtT, LOOKS, mixOf, OVANIMS, ovDur, TRANS, type Clip, type Grade, type Media, type MediaClip,
   type Music, type Overlay, type Placed, type Project, type Sub, type TextItem,
 } from './engine/model'
 import type { Phrase, Vars } from './texts'
@@ -18,7 +20,9 @@ export type Field =
   | { k: 'range'; label: Phrase; val: number; min: number; max: number; step: number; show: Show; on: (v: number) => void }
   | { k: 'color'; label: Phrase; val: string; on: (v: string) => void }
   | { k: 'select'; label: Phrase; val: string; opts: readonly Opt[]; raw?: boolean; on: (v: string) => void }
-  | { k: 'toggle'; label: Phrase; on: boolean; set: (v: boolean) => void }
+  | { k: 'toggle'; label: Phrase; on: boolean; set: (v: boolean) => void; disabled?: boolean }
+  /** Det felles fontbiblioteket (shared/fonts/FontPicker); appens egne fonter øverst. */
+  | { k: 'font'; label: Phrase; val: string; on: (v: string) => void }
   | { k: 'seg'; label: Phrase; val: string; opts: readonly Opt[]; on: (v: string) => void }
   | { k: 'acts'; label: Phrase; acts: { l: Phrase; raw?: boolean; danger?: boolean; click: () => void }[] }
   | { k: 'num'; label: Phrase; val: number; min: number; max: number; step: number; on: (v: number) => void }
@@ -36,7 +40,10 @@ const note = (label: Phrase, v?: Vars): Field => (v ? { k: 'note', label, v } : 
 const range = (label: Phrase, val: number, min: number, max: number, step: number, show: Show, on: (v: number) => void): Field => ({ k: 'range', label, val, min, max, step, show, on })
 const color = (label: Phrase, val: string, on: (v: string) => void): Field => ({ k: 'color', label, val, on })
 const select = (label: Phrase, val: string | number, opts: readonly Opt[], on: (v: string) => void, raw = false): Field => ({ k: 'select', label, val: String(val), opts, raw, on })
-const toggle = (label: Phrase, on: boolean, set: (v: boolean) => void): Field => ({ k: 'toggle', label, on: !!on, set })
+const toggle = (label: Phrase, on: boolean, set: (v: boolean) => void, disabled = false): Field => ({ k: 'toggle', label, on: !!on, set, ...(disabled ? { disabled } : {}) })
+const font = (label: Phrase, val: string, on: (v: string) => void): Field => ({ k: 'font', label, val, on })
+/** Vekten nærmest den teksten har, blant vektene fonten har (fonter utenfor biblioteket: uendret). */
+const nearWeight = (f: string, w: number): number => { const ws = weightsOf(f); return !ws || ws.includes(w) ? w : ws.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a)) }
 const seg = (label: Phrase, val: string, opts: readonly Opt[], on: (v: string) => void): Field => ({ k: 'seg', label, val, opts, on })
 const num = (label: Phrase, val: number, min: number, max: number, step: number, on: (v: number) => void): Field => ({ k: 'num', label, val, min, max, step, on })
 const area = (label: Phrase, val: string, on: (v: string) => void): Field => ({ k: 'area', label, val, on })
@@ -181,15 +188,21 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
       note('Viser {start} ved start og teller ned så lenge teksten vises ({len}). Endre Varighet under Tid for hvor lenge den vises.', { start: fmtCount(from, x.cdFmt), len: fmtT(x.dur) }))
     if (Math.abs(x.dur - from) > 0.05 && from >= 1) out.push({ k: 'acts', label: '', acts: [act('Vis hele nedtellingen', () => set({ dur: from }))] })
   } else out.push(area('Tekst', x.text, (v) => set({ text: v })))
-  out.push(select('Skrift', x.font, FONTS.map((f) => [f, f] as const), (v) => set({ font: v }), true),
-    select('Vekt', x.weight, [['300', 'Tynn'], ['400', 'Vanlig'], ['500', 'Medium'], ['600', 'Halvfet'], ['700', 'Fet'], ['800', 'Ekstra fet'], ['900', 'Svart']], (v) => set({ weight: Number(v) })),
+  out.push(font('Skrift', x.font, (v) => {
+    const w = nearWeight(v, x.weight)
+    set({ font: v, weight: w, ...(x.italic && !hasSnitt(v, 'i') ? { italic: false } : {}) })
+    void loadFont(v, w, x.italic && hasSnitt(v, 'i'))
+  }),
+    // bare vektene fonten har (fonter utenfor biblioteket: som før); vekten teksten har, vises alltid
+    select('Vekt', x.weight, ([['300', 'Tynn'], ['400', 'Vanlig'], ['500', 'Medium'], ['600', 'Halvfet'], ['700', 'Fet'], ['800', 'Ekstra fet'], ['900', 'Svart']] as const).filter(([v]) => Number(v) === x.weight || (weightsOf(x.font)?.includes(Number(v)) ?? true)), (v) => set({ weight: Number(v) })),
     range('Størrelse', x.size, 12, 400, 1, `${Math.round(x.size)} px`, (v) => set({ size: v })),
     color('Tekstfarge', x.color, (v) => set({ color: v })),
     seg('Justering', x.align, [['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']], (v) => set({ align: v as 'left' })),
     // loddrett justering bare i Avansert (Standard er uendret)
     ...(c.s.adv ? [seg('Loddrett justering', x.valign ?? 'middle', [['top', 'Topp'], ['middle', 'Midt'], ['bottom', 'Bunn']], (v) => set({ valign: v as 'top' | 'middle' | 'bottom' }))] : []),
     toggle('Store bokstaver', x.upper, (v) => set({ upper: v })),
-    toggle('Kursiv', x.italic, (v) => set({ italic: v })),
+    // kursiv bare med ekte kursiv i fonten (ingen kunstig skråstilling); står den på fra før, kan den slås av
+    toggle('Kursiv', x.italic, (v) => { set({ italic: v }); void loadFont(x.font, x.weight, v) }, !x.italic && !hasSnitt(x.font, 'i')),
     toggle('Skygge', x.shadow, (v) => set({ shadow: v })),
     range('Kontur', x.stroke || 0, 0, 6, 0.1, x.stroke ? x.stroke.toFixed(1) : OFF, (v) => set({ stroke: v })))
   if (x.stroke > 0) out.push(color('Konturfarge', x.strokeColor || '#000000', (v) => set({ strokeColor: v })))
@@ -292,7 +305,7 @@ export function subStyleFields(c: MotionController, p: Project): Field[] {
   const st = p.subStyle
   const set = (o: Partial<Project['subStyle']>) => c.patchSubStyle(o)
   const out: Field[] = [range('Størrelse', st.size, 16, 140, 1, `${Math.round(st.size)} px`, (v) => set({ size: v })),
-    select('Skrift', st.font, FONTS.map((f) => [f, f] as const), (v) => set({ font: v }), true),
+    font('Skrift', st.font, (v) => { set({ font: v }); void loadFont(v, st.weight) }),
     color('Tekstfarge', st.color, (v) => set({ color: v })),
     seg('Plassering', st.pos, [['top', 'Oppe'], ['center', 'Midt'], ['bottom', 'Nede']], (v) => set({ pos: v as 'top' })),
     toggle('Bakgrunn bak teksten', st.bgOn, (v) => set({ bgOn: v }))]

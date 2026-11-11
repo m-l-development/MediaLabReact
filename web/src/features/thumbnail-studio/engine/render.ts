@@ -1,4 +1,5 @@
 import { rgba } from './colors'
+import { loadFonts } from '../../../shared/fonts/loader'
 import { adjustImage } from '../../photo-design/engine/render'
 import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { ImageCache, LoadedImage } from './images'
@@ -513,16 +514,8 @@ export class Renderer {
 /** Laster fontene tekstlagene bruker (også æ, ø og å). */
 export function ensureFonts(doc: Doc): Promise<unknown> {
   if (typeof document === 'undefined' || !document.fonts?.load) return Promise.resolve()
-  const seen = new Set<string>()
-  const ps: Promise<unknown>[] = []
-  for (const l of doc.layers) {
-    if (l.type !== 'text') continue
-    const k = `${l.weight} 100px "${l.font}"`
-    if (seen.has(k)) continue
-    seen.add(k)
-    ps.push(document.fonts.load(k, 'ÆØÅ Hg').catch(() => undefined))
-  }
-  return Promise.all(ps)
+  // fonter fra biblioteket: stilarket hentes først (loadFonts), så tegning og eksport bruker riktig font
+  return loadFonts(doc.layers.flatMap((l) => (l.type === 'text' ? [{ font: l.font, weight: l.weight }] : [])))
 }
 
 /** Øverste synlige, ulåste lag under punktet (i 1920 × 1080-koordinater). */

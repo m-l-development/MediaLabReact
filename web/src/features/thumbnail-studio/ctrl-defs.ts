@@ -1,6 +1,6 @@
 import { gbox, type LayerPatch, type ThumbController } from './controller'
 import type { AdvAdj } from '../../shared/image/AdvAdjust'
-import { countImgs, FONTS, H, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
+import { countImgs, H, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
 import { fitSize } from './engine/render'
 import { bakeList } from './engine/text-list'
 import type { Phrase, Vars } from './texts'
@@ -8,6 +8,8 @@ import type { Phrase, Vars } from './texts'
 /** Beskrivelse av én kontroll i egenskapspanelet (samme rekkefølge og valg som dagens app). */
 export interface Unit { u: string; k: number; d?: number; t?: Phrase }
 export type Ctrl =
+  /** Det felles fontbiblioteket (shared/fonts/FontPicker); top = grunnoppsettets fonter øverst. */
+  | { k: 'font'; label: Phrase; val: string; top: readonly string[]; set: (v: string) => void }
   | { k: 'h'; label: Phrase }
   | { k: 'slider'; label: Phrase; val: number; min: number; max: number; step: number; set: (v: number) => void; units: Unit[]; key: string; lim: [number, number] }
   | { k: 'color'; label: Phrase; val: string; set: (v: string) => void }
@@ -115,10 +117,10 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
     const fs = fitSize(l)
     C.push(
       { k: 'area', label: 'Tekst', val: bakeList(String(l.text || ''), l.list), rows: 4, ph: 'Skriv tekst', set: (v) => set({ text: v, list: '' }), list: l },
-      { k: 'select', label: 'Font', val: l.font, set: (v) => {
+      { k: 'font', label: 'Font', val: l.font, top: pf, set: (v) => {
         const w2 = c.weights(v)
         set({ font: v, weight: w2.includes(l.weight) ? l.weight : (w2[Math.min(3, w2.length - 1)] ?? 400) })
-      }, opts: [...pf.map((f) => ({ v: f, label: f, suffix: ' (grunnoppsett)' as Phrase })), ...FONTS.filter((f) => !pf.includes(f[0])).map((f) => ({ v: f[0], label: f[0] }))] },
+      } },
       { k: 'select', label: 'Tykkelse', val: String(l.weight), set: (v) => set({ weight: +v }), opts: ws.map((w) => ({ v: String(w), label: String(w), ...(WEIGHT_NAMES[w] ? { phrase: WEIGHT_NAMES[w] } : {}) })) },
       SL(l.fit ? 'Maks størrelse' : 'Størrelse', l.size, 8, 1000, 1, (v) => set({ size: v }), 'px', { key: 'ts.textSize', lim: [4, 3000], units: [{ u: 'px', k: 1 }, { u: '%', k: 100 / H, d: 1, t: 'av bildehøyden' }, { u: 'pt', k: 0.75 }] }),
     )

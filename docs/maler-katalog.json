@@ -1,0 +1,4024 @@
+{
+ "photo": [
+  {
+   "id": "001",
+   "name": "Søndag – tre felt",
+   "cat": "Arrangement og plakater",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Sunday Church Service» – tre bildefelt over gyllent bånd, grunge-tittel",
+    "Bruk": "gudstjeneste, lovsangskveld, konsert, møte",
+    "Fonter": "Anton 400 · Montserrat 600/700/800",
+    "Farger": "Bakgrunn #E8E5DF · Tekst #1C1C1A · Støttefarge #D6A21E",
+    "Bildefelt": "3 felt (venstre/høyre 260×500, midt 390×610), midten høyest",
+    "Effekter": "papirkorn (grain-overlay) · grunge-maske på tittel (SVG-støy som mask-image) · bånd i støttefarge bak bildene"
+   }
+  },
+  {
+   "id": "002",
+   "name": "Konsert – fotostriper",
+   "cat": "Arrangement og plakater",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«The music of John Williams» – ramme, stor høyrestilt tittel, tre høye striper",
+    "Bruk": "konsert, korkonsert, foredrag, gjesteartist",
+    "Fonter": "Oswald 400/500/600/700 · Montserrat 300",
+    "Farger": "Bakgrunn #EFE9DC · Tekst #151515 · Støttefarge #151515",
+    "Bildefelt": "3 vertikale striper (gråtone anbefales)",
+    "Effekter": "ramme 90 px i støttefarge · bilder i svart-hvitt (filter: grayscale(1) contrast(1.1))"
+   }
+  },
+  {
+   "id": "003",
+   "name": "Første onsdag",
+   "cat": "Arrangement og plakater",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«First Wednesday» – rød kornflate, midtstripe, to små bilder, rotert sidetekst",
+    "Bruk": "månedlig samling, ungdomskveld, åpent hus",
+    "Fonter": "Inter Tight 400/500",
+    "Farger": "Bakgrunn #E6492D · Tekst #F3EDE4 · Støttefarge #12262B",
+    "Bildefelt": "1 høy midtstripe + 2 små overlappende",
+    "Effekter": "kraftig korn · loddrett tekst (writing-mode: vertical-rl, den nederste rotert 180°) · tittel over bildene"
+   }
+  },
+  {
+   "id": "004",
+   "name": "Vekkelsesmøte – glød",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Revival Meeting» – oransje glød, bred fet tittel, sperret tekst",
+    "Bruk": "møteuke, vekkelsesmøter, konsert, gjestetaler",
+    "Fonter": "Archivo (variabel bredde 115–125 %) 500/600/800/900",
+    "Farger": "Bakgrunn #151210 · Tekst #F4F1EC · Støttefarge #FF8A1F",
+    "Bildefelt": "1 valgfritt midtfelt (55 % opasitet, svart-hvitt)",
+    "Effekter": "to radiale glød-gradienter i støttefarge · text-shadow 0 0 50px på første tittellinje · logo-boks radius 26"
+   }
+  },
+  {
+   "id": "005",
+   "name": "Bønnenatt – bred tittel",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Vigília Monte» – dempet mørk flate, bred tittel over to linjer (BØNNE / NATT), avrundet ramme",
+    "Bruk": "bønnenatt, vigilie, ungdomsnatt, leir",
+    "Fonter": "Unbounded 500/600/700 · Syne 800 · Space Mono 400",
+    "Farger": "Bakgrunn #2A2826 · Tekst #B1ACA3 · Støttefarge #D06A2C",
+    "Bildefelt": "1 stort felt øverst (sepia/dempet)",
+    "Effekter": "papir-/kornstruktur · ramme 6 px radius 60 i støttefarge · ett ord delt over to linjer"
+   }
+  },
+  {
+   "id": "006",
+   "name": "Oppstart – rød tittel",
+   "cat": "Arrangement og plakater",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Induction» – stor rød tittel, lys flate, bilde nederst, info-pille",
+    "Bruk": "skolestart, oppstart, nye medlemmer, velkomstkveld",
+    "Fonter": "Inter Tight 700 · Inter 400/500 · Poppins 500/700",
+    "Farger": "Bakgrunn #F6F5F3 · Tekst #E3242B · Støttefarge #141414",
+    "Bildefelt": "1 bredt felt nedre del (svart-hvitt)",
+    "Effekter": "grunge-maske på tittel · info-bar radius 46 med hvit innfelt pille"
+   }
+  },
+  {
+   "id": "007",
+   "name": "Hold av datoen",
+   "cat": "Arrangement og plakater",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Save the Date» – gjentatt tittel topp/bunn helt ut mot kantene, krøllet papir, bølgelinjer",
+    "Bruk": "konferanse, leir, jubileum, «save the date»",
+    "Fonter": "Anton 400 · Unbounded 500/900 · Montserrat 500/600",
+    "Farger": "Bakgrunn #121212 · Tekst #E8DCC4 · Støttefarge #2F4A2F",
+    "Bildefelt": "ingen",
+    "Effekter": "krøllet-papir via lag med lineære gradienter klippet til tekst (background-clip:text) · bølgelinjer (repeating-radial-gradient) · tittel strekker seg helt ut mot kantene (innenfor malen)"
+   }
+  },
+  {
+   "id": "008",
+   "name": "Lederkveld – blå håndskrift",
+   "cat": "Arrangement og plakater",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Rede de Líderes» – blå på beige korn, håndtegnet ellipse, hjørnetekster, avrundede fotokort",
+    "Bruk": "lederkveld, seminar, ekstramøte, kunngjøring",
+    "Fonter": "Montserrat 400/600/700/800/900 (+ kursiv)",
+    "Farger": "Bakgrunn #E9DCC8 · Tekst #1D4FBF · Støttefarge #1D4FBF",
+    "Bildefelt": "2 avrundede (radius 44): høy stripe høyre, kvadrat venstre",
+    "Effekter": "kraftig korn · håndtegnet ellipse (border 50 % radius, rotert −3°) · tekst i alle fire hjørner"
+   }
+  },
+  {
+   "id": "009",
+   "name": "Konferanse – pensel diagonal",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«The Acts Conference» – penseltittel, diagonal gul flate, serif-dato høyrestilt",
+    "Bruk": "konferanse, sommerstevne, leir",
+    "Fonter": "Permanent Marker 400 · Playfair Display 400/700 · Montserrat 700",
+    "Farger": "Bakgrunn #1A1A1A · Tekst #FFFFFF · Støttefarge #E2B33C",
+    "Bildefelt": "1 øvre felt (svart-hvitt, 60 %)",
+    "Effekter": "diagonal klipp: clip-path polygon(0 30%,100% 0,100% 100%,0 100%) · tittel rotert −6°"
+   }
+  },
+  {
+   "id": "010",
+   "name": "Invitasjon – kvittering",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«You Are Invited» – kvittering fra skriver, strekkode, takket kant",
+    "Bruk": "ungdomskveld, serieavslutning, billett, invitasjon",
+    "Fonter": "Anton 400 · Space Mono 700 (+kursiv) · Courier Prime 400/700",
+    "Farger": "Bakgrunn #E1251B · Tekst #FFFFFF · Støttefarge #111111",
+    "Bildefelt": "ingen (indre tittelfelt kan byttes med bilde)",
+    "Effekter": "takket underkant: clip-path polygon (genereres i kode) · strekkode: repeating-linear-gradient · metallspalte: grå gradient + skygge"
+   }
+  },
+  {
+   "id": "011",
+   "name": "Parkveld – rust",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Reunión de Matrimonios» – rust kondensert topp og bunn, bilde mellom, skråstrek",
+    "Bruk": "parkveld, samlivskurs, middag, seminar",
+    "Fonter": "League Gothic 400 (strukket scaleY 1.1) · Montserrat 600/700/800 · Cormorant Garamond 400",
+    "Farger": "Bakgrunn #ECEAE6 · Tekst #A9431B · Støttefarge #2A2A2A",
+    "Bildefelt": "1 bredt felt mellom titlene",
+    "Effekter": "skråstrek: 3 px linje rotert 14° · pris i ellipse (border-radius 50 %)"
+   }
+  },
+  {
+   "id": "012",
+   "name": "Bønneuke – høy kondensert",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Semana de Oración» – svært høy kondensert type, bildebånd skjærer gjennom tittelen",
+    "Bruk": "bønneuke, faste, tema-uke, kurs",
+    "Fonter": "Six Caps 400 (scaleX 1.25) · Montserrat 400/500",
+    "Farger": "Bakgrunn #E3DCDA · Tekst #174A4A · Støttefarge #D78A3B",
+    "Bildefelt": "1 bånd med fjellform (clip-path) + tynn stripe",
+    "Effekter": "bildebånd ligger OVER nedre del av tittelen · fjell-silhuett: clip-path polygon"
+   }
+  },
+  {
+   "id": "013",
+   "name": "Søndag – buet form",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Domingo» lilla – buet/stablet sirkelform, script + kondensert tittel, markerte ord",
+    "Bruk": "søndagsgudstjeneste, prekenserie, livestream",
+    "Fonter": "Big Shoulders Display 500/600/700 · Pinyon Script 400 · Montserrat 300/400/700/800/900",
+    "Farger": "Bakgrunn #E4E4E6 · Tekst #F3EEE3 · Støttefarge #3B3466",
+    "Bildefelt": "ingen",
+    "Effekter": "form: rektangel + 2×5 sirkler langs sidene (eller én SVG-sti) · ord med bakgrunnsboks (highlight) · korn"
+   }
+  },
+  {
+   "id": "014",
+   "name": "Søndag ettermiddag – rød",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Domingo à Tarde» – loddrett gigantord, rød sirkel, mono-kursiv",
+    "Bruk": "kveldsmøte, etter leir, ungdom",
+    "Fonter": "Anton 400 · Space Mono 400/700 kursiv",
+    "Farger": "Bakgrunn #121212 · Tekst #E8302A · Støttefarge #F39A9A",
+    "Bildefelt": "ingen",
+    "Effekter": "loddrett tekst (writing-mode) med grunge-maske og mix-blend-mode: screen over sirkelen · papirkorn"
+   }
+  },
+  {
+   "id": "015",
+   "name": "Etter mørket – glød",
+   "cat": "Arrangement og plakater",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«After Dark» – glødende script + fet sans, hjørnemerker, uskarp natt-gradient",
+    "Bruk": "kveldstur, løpegruppe, samtalegruppe, ukentlig samling",
+    "Fonter": "Playfair Display 400 kursiv · Inter Tight 600/900 · Inter 400/500",
+    "Farger": "Bakgrunn #1B2428 · Tekst #D9F5C7 · Støttefarge #D9F5C7",
+    "Bildefelt": "ingen (bakgrunn = gradient; kan byttes med uskarpt bilde)",
+    "Effekter": "text-shadow / drop-shadow glød i støttefarge · bue med stjerne · hjørne- og kantmerker 6×30"
+   }
+  },
+  {
+   "id": "016",
+   "name": "Horisont – retreat",
+   "cat": "Arrangement og plakater",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Horizon» – didone-bokstaver i trapp, kursiv swash-bokstav, små tekstspalter",
+    "Bruk": "retreat, stillhetsdager, tur, temaplakat",
+    "Fonter": "Bodoni Moda 400 (+ kursiv) · Inter 500",
+    "Farger": "Bakgrunn #2F3A2C · Tekst #EFEFE9 · Støttefarge #DCD6C4",
+    "Bildefelt": "ingen (bakgrunn = landskapsgradient; kan byttes med fullflate-bilde)",
+    "Effekter": "tittel brutt i 4 rader (HO / R I / ZON) høyrestilt · pil-ikon via clip-path"
+   }
+  },
+  {
+   "id": "017",
+   "name": "Bue – stillhetskveld",
+   "cat": "Arrangement og plakater",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Cát Bụi» – kornet buevindu, loddrett tynn serif, punktmarkører",
+    "Bruk": "minnestund, stillhetskveld, kunstutstilling, vers",
+    "Fonter": "Cormorant Garamond 300/400 (+ kursiv)",
+    "Farger": "Bakgrunn #141414 · Tekst #D6D6D6 · Støttefarge #8A8A8A",
+    "Bildefelt": "1 i buen (valgfritt – standard er kornet gråtone-gradient)",
+    "Effekter": "bue: border-radius 690px 690px 0 0 · støy-tekstur i multiply · loddrett tittel (vertical-rl rotert 180°)"
+   }
+  },
+  {
+   "id": "018",
+   "name": "Frokostmøte – konturtall",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Bakul Penuh» – himmelgradient, stort konturtall, kondensert tittel, dato i farge",
+    "Bruk": "frokostmøte, mannsfrokost, morgenbønn, temamøte",
+    "Fonter": "Montserrat 400/700/900 · Bebas Neue 400",
+    "Farger": "Bakgrunn #A9CDE3 · Tekst #FFFFFF · Støttefarge #2E6FA8",
+    "Bildefelt": "1 runt felt bak konturtallet (valgfritt)",
+    "Effekter": "konturtall: color transparent + -webkit-text-stroke 6px · himmel = lineær + 2 radiale gradienter · korn"
+   }
+  },
+  {
+   "id": "019",
+   "name": "Bølgekolonne – pinsemøte",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Roh Kudus» – bølgeformet bildekolonne i duotone, stablet grå tittel, tider i farge",
+    "Bruk": "pinsemøte, møtekveld, direktesending",
+    "Fonter": "Montserrat 300–900 (+ kursiv) · Oswald 600/700",
+    "Farger": "Bakgrunn #E7E5E2 · Tekst #6E6B67 · Støttefarge #D4712C",
+    "Bildefelt": "1 høy kolonne med bølget kant",
+    "Effekter": "bølge: clip-path path(…) · duotone: støttefarge i multiply over gråtonebilde · tittel med hvit 4 px forskyvningsskygge"
+   }
+  },
+  {
+   "id": "020",
+   "name": "Bibeldagen – script over tittel",
+   "cat": "Arrangement og plakater",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Dia da Bíblia» – signatur-script over stor kondensert tittel, sperret dato",
+    "Bruk": "Bibeldagen, merkedag, tema-søndag",
+    "Fonter": "Bebas Neue 400 · Mrs Saint Delafield 400 · Montserrat 700",
+    "Farger": "Bakgrunn #1F1F1F · Tekst #F4F4F4 · Støttefarge #F0932B",
+    "Bildefelt": "ingen (bakgrunn = vignett-gradient; kan byttes med bilde av åpen bok)",
+    "Effekter": "script ligger over tittelen (z-index) i støttefarge · vignett · korn/riper"
+   }
+  },
+  {
+   "id": "021",
+   "name": "Hva skjer denne uka",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«What&#x27;s On This Week» – skyer i gråtone, gigantisk krem-tittel topp/bunn, pille-liste",
+    "Bruk": "ukeprogram, hva skjer, story-oversikt",
+    "Fonter": "Anton 400 · Montserrat 600/700 · Playfair Display 400",
+    "Farger": "Bakgrunn #F6EFDC · Tekst #F6EFDC · Støttefarge #1A1A1A",
+    "Bildefelt": "ingen (skyer = 5 radiale gradienter; kan byttes med skybilde i svart-hvitt)",
+    "Effekter": "avrundet bakgrunnskort radius 34 · piller radius 60 med 2 px kant · 2–6 rader, auto-høyde"
+   }
+  },
+  {
+   "id": "022",
+   "name": "Kommende arrangementer",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Upcoming Events» – uskarp fargesky, fet+tynn tittel, hvite rader med skillestrek",
+    "Bruk": "månedsoversikt, arrangementsliste, program",
+    "Fonter": "Inter 300/400/700/800",
+    "Farger": "Bakgrunn #9A8D84 · Tekst #F6F2EE · Støttefarge #2A2A2A",
+    "Bildefelt": "ingen (bakgrunn = uskarp mesh-gradient)",
+    "Effekter": "mesh: 4 radiale gradienter + blur(10px) · kraftig korn · rader 96 px høye, 2–8 rader"
+   }
+  },
+  {
+   "id": "023",
+   "name": "Arrangementskalender – kort",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Event Calendar» – overlappende kort med dato-blokk, rotert klokkeslett",
+    "Bruk": "månedskalender, arrangementer, kursdatoer",
+    "Fonter": "DM Serif Display 400 · Poppins 400/500/600 (+ kursiv)",
+    "Farger": "Bakgrunn #24423F · Tekst #FFFFFF · Støttefarge #D2601A",
+    "Bildefelt": "ingen",
+    "Effekter": "kort radius 44 overlapper −36 px med skygge · tone mørkner per rad (støttefarge → mørkere) · tid loddrett (vertical-rl)"
+   }
+  },
+  {
+   "id": "024",
+   "name": "Aktivitetsplan – fet + tynn",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Group Training Schedule» – fet+tynn tittel over bilde, lyse rader med dato/dag/tid",
+    "Bruk": "trimgruppe, aktivitetsplan, kursplan, vaktliste",
+    "Fonter": "Inter 300/400/500/700/800",
+    "Farger": "Bakgrunn #BDBAB3 · Tekst #F7F4EF · Støttefarge #2B2B2B",
+    "Bildefelt": "1 fullflate-bilde i bakgrunnen",
+    "Effekter": "mørk gradient-overlay for lesbarhet · rader 150 px, 3–6 stk"
+   }
+  },
+  {
+   "id": "025",
+   "name": "Program – loddrett tittel",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Schedule» – loddrett didone-tittel, bilde øverst, rader med strek",
+    "Bruk": "høstprogram, semesterplan, markedsdager",
+    "Fonter": "Bodoni Moda 400 · Inter 300/500",
+    "Farger": "Bakgrunn #ECE5DA · Tekst #4A3A2E · Støttefarge #4A3A2E",
+    "Bildefelt": "1 bredt felt øverst (valgfritt)",
+    "Effekter": "tittel vertical-rl rotert 180° · 2 px skillelinjer · 3–6 rader"
+   }
+  },
+  {
+   "id": "026",
+   "name": "Konferanseprogram – tabell",
+   "cat": "Program, ukeplan og kalender",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Conference» – sveitsisk rutenett, bilde, stor dato, tabell med 4 kolonner",
+    "Bruk": "konferanseprogram, seminardag, kursprogram",
+    "Fonter": "Inter Tight 500 · Inter 400/500",
+    "Farger": "Bakgrunn #DCDCD8 · Tekst #2B2B28 · Støttefarge #F28C1C",
+    "Bildefelt": "1 bredt felt (svart-hvitt)",
+    "Effekter": "tabell: CSS-grid 360/580/460/1fr · 3 px skillelinjer · rund billett-badge i støttefarge"
+   }
+  },
+  {
+   "id": "027",
+   "name": "Kommende konserter – diagonal",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Upcoming Concerts» – dato-blokker i trapp, script måned, bilde venstre",
+    "Bruk": "konsertserie, høstprogram, kulturkalender",
+    "Fonter": "Montserrat 600/700/800 · Mrs Saint Delafield 400",
+    "Farger": "Bakgrunn #0D0D0D · Tekst #FFFFFF · Støttefarge #D68C35",
+    "Bildefelt": "1 felt venstre med skrå kant (clip-path)",
+    "Effekter": "rader forskyves +8 px x per rad (diagonal) · dato-blokk 120×110 i støttefarge · 4–8 rader"
+   }
+  },
+  {
+   "id": "028",
+   "name": "Datofaner – rød",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "Malibu «Mesmerizing Night» – røde dato-faner som henger fra rammen, bilde til høyre",
+    "Bruk": "musikkuke, kafékvelder, festivaldager, turné",
+    "Fonter": "Oswald 400/600/700 · Mrs Saint Delafield 400 · Montserrat 500/600/800 · Playfair Display 500",
+    "Farger": "Bakgrunn #141212 · Tekst #FFFFFF · Støttefarge #E1171F",
+    "Bildefelt": "1 per rad (høyre, gråtone)",
+    "Effekter": "fane: border-radius 0 0 100px 100px, starter over rammens toppkant · rammer 3 px støttefarge · grunge-mørk bakgrunn"
+   }
+  },
+  {
+   "id": "029",
+   "name": "Tidslinje – to scener",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "Postrock Festival – nattgradient med horisont, to-kolonne tidslinje",
+    "Bruk": "festivalprogram, musikkdag, flere scener, konferansespor",
+    "Fonter": "League Gothic 400 · Inter 400/600/700",
+    "Farger": "Bakgrunn #0B0F1A · Tekst #FFFFFF · Støttefarge #F2A03D",
+    "Bildefelt": "ingen (silhuett = clip-path polygon)",
+    "Effekter": "stjerner: radiale prikker i background · midtlinje med punkt per post · venstre = scene 1, høyre = scene 2, alternerende"
+   }
+  },
+  {
+   "id": "030",
+   "name": "Månedsplakat – DESEMBER",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«JUNE» – stort månedsord, tallrekke 01–12 med aktiv måned, små tekster i hjørner",
+    "Bruk": "månedsplakat, månedens program, årshjul",
+    "Fonter": "Anton 400 (scaleX .82) · Inter 400/500",
+    "Farger": "Bakgrunn #EFEEEA · Tekst #151B33 · Støttefarge #22C9A0",
+    "Bildefelt": "ingen (lys-symbol i stedet for figur)",
+    "Effekter": "tallrekke: tidligere måneder 35 % opasitet, aktiv i støttefarge · lerretstekstur/korn"
+   }
+  },
+  {
+   "id": "031",
+   "name": "Dagens program – story",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Start the day» – prikker + linje topp, sirkeltekst, pille-etikett, gjennomsiktig stolpe",
+    "Bruk": "dagsprogram, leirprogram, story-serie",
+    "Fonter": "Poppins 400/500/600/700",
+    "Farger": "Bakgrunn #3E3A2F · Tekst #FFFFFF · Støttefarge #8C7D4E",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "sirkeltekst: SVG textPath · halvgjennomsiktig stolpe rgba(255,255,255,.12) · mørk gradient-overlay"
+   }
+  },
+  {
+   "id": "032",
+   "name": "Dagsprogram – ryggrad",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Our Menu» – midtstolpe med halvsirkel-utbuktninger vekselvis, nummerkretser",
+    "Bruk": "dagsprogram, seminardag, meny, prosess-steg",
+    "Fonter": "Archivo Black 400 · Poppins 400/500/600",
+    "Farger": "Bakgrunn #1F4A36 · Tekst #E7DCBD · Støttefarge #E7DCBD",
+    "Bildefelt": "ingen (nummersirkler kan byttes med runde bilder)",
+    "Effekter": "stolpe radius 120 øverst · utbuktninger radius 120 i bakgrunnsfarge · stort vannmerke-ord 8 % opasitet · grunge-korn"
+   }
+  },
+  {
+   "id": "033",
+   "name": "Ukeplan – lys pille",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«What&#x27;s On» lys variant – krem flate, konturpiller, tittel delt topp/bunn",
+    "Bruk": "ukeplan, faste aktiviteter, oppslagstavle",
+    "Fonter": "Anton 400 · Montserrat 700",
+    "Farger": "Bakgrunn #F3ECDC · Tekst #1E1E1E · Støttefarge #B8862B",
+    "Bildefelt": "ingen",
+    "Effekter": "piller: 3 px kant i tekstfarge, radius 70 · 4–7 rader · nedre tittelord i støttefarge"
+   }
+  },
+  {
+   "id": "034",
+   "name": "Vaktliste – skjerm",
+   "cat": "Program, ukeplan og kalender",
+   "format": "16:9 · 1920×1080",
+   "spec": {
+    "Referanse": "«Upcoming Events» som 16:9 skjermbilde",
+    "Bruk": "vaktliste, møteplan på skjerm, frivillige",
+    "Fonter": "Inter 300/400/600/700/800",
+    "Farger": "Bakgrunn #8D8A92 · Tekst #F6F2EE · Støttefarge #2A2A2A",
+    "Bildefelt": "ingen",
+    "Effekter": "mesh-gradient + blur(14px) · korn · 3–6 rader"
+   }
+  },
+  {
+   "id": "035",
+   "name": "Ukens møter – mørke kort",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Event Calendar» mørk variant – kort i blåtoner",
+    "Bruk": "ukeplan story, møteoversikt",
+    "Fonter": "DM Serif Display 400 · Poppins 400/500/600 (+ kursiv)",
+    "Farger": "Bakgrunn #131722 · Tekst #FFFFFF · Støttefarge #2E5AA8",
+    "Bildefelt": "ingen",
+    "Effekter": "kort overlapper −40 px · farge mørkner per rad (støttefarge → 50 % mørkere)"
+   }
+  },
+  {
+   "id": "036",
+   "name": "Seminarplan – skjerm",
+   "cat": "Program, ukeplan og kalender",
+   "format": "16:9 · 1920×1080",
+   "spec": {
+    "Referanse": "«Conference» sveitsisk tabell som 16:9 lysbilde",
+    "Bruk": "seminarplan, kursdag, program på skjerm",
+    "Fonter": "Inter Tight 500 · Inter 400/500",
+    "Farger": "Bakgrunn #DCDCD8 · Tekst #2B2B28 · Støttefarge #F28C1C",
+    "Bildefelt": "ingen",
+    "Effekter": "grid-tabell 200/620/300/1fr · rund badge i støttefarge"
+   }
+  },
+  {
+   "id": "037",
+   "name": "Månedskalender – rutenett",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«JUNE» – gigantisk måned over et 7-kolonners rutenett",
+    "Bruk": "månedskalender, oppslag, nettsidebanner",
+    "Fonter": "Anton 400 · Inter 500/600/700",
+    "Farger": "Bakgrunn #EFEEEA · Tekst #151B33 · Støttefarge #22A07C",
+    "Bildefelt": "ingen",
+    "Effekter": "CSS-grid 7 kolonner · uthevede dager i støttefarge · startdag og antall dager beregnes av appen"
+   }
+  },
+  {
+   "id": "038",
+   "name": "Åpningstider – uke",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«We&#x27;re Open!» – ekstra fet tittel over bilde, tider sentrert",
+    "Bruk": "åpningstider, kafé, kontor, bruktbutikk",
+    "Fonter": "Archivo Black 400 · Montserrat 400/600/800 · Inter 400",
+    "Farger": "Bakgrunn #2B2622 · Tekst #FFFFFF · Støttefarge #C9A36B",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "mørk gradient-overlay nederst · sperret overtittel (letter-spacing .6em)"
+   }
+  },
+  {
+   "id": "039",
+   "name": "Turnéplan – faner",
+   "cat": "Program, ukeplan og kalender",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "Malibu – dato-faner, forenklet uten bilder",
+    "Bruk": "turnéplan, besøksrunde, kursturné",
+    "Fonter": "Oswald 600/700 · Montserrat 400/600/800",
+    "Farger": "Bakgrunn #151313 · Tekst #FFFFFF · Støttefarge #C8161D",
+    "Bildefelt": "ingen",
+    "Effekter": "fane radius 0 0 85px 85px · rammer 3 px støttefarge · korn"
+   }
+  },
+  {
+   "id": "040",
+   "name": "Møteplan – sveitsisk",
+   "cat": "Program, ukeplan og kalender",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Good Things Take Time» – sveitsisk minimal, sperret småtekst, grønn prikk",
+    "Bruk": "møteplan, saksliste, styremøte, dagsorden",
+    "Fonter": "Anton 400 · Inter 400/700",
+    "Farger": "Bakgrunn #EFE9DF · Tekst #141414 · Støttefarge #4E6B48",
+    "Bildefelt": "ingen",
+    "Effekter": "sperret småtekst (.3em) · 4 px linjer · én sirkel i støttefarge som eneste farge"
+   }
+  },
+  {
+   "id": "041",
+   "name": "Festival – lineup serif",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Sundream Baja» – flared serif-tittel, lineup i synkende størrelse med to linjer",
+    "Bruk": "sommerfestival, leir, kulturhelg, lineup",
+    "Fonter": "Gloock 400 · Inter Tight 500/600 · Inter 500",
+    "Farger": "Bakgrunn #2C3A3C · Tekst #F0A876 · Støttefarge #F0A876",
+    "Bildefelt": "ingen (fjell = clip-path i mørk tone; kan byttes med landskapsbilde)",
+    "Effekter": "lineup-rader: 58 / 32 / 26 px – automatisk fordelt med space-between · korn"
+   }
+  },
+  {
+   "id": "042",
+   "name": "Festivalprogram – 16:9",
+   "cat": "Festival og konsert",
+   "format": "16:9 · 1920×1080",
+   "spec": {
+    "Referanse": "Postrock Festival – nettside-layout med meny, horisont og tidslinje",
+    "Bruk": "festival-nettside, skjerm i foajé, programbanner",
+    "Fonter": "League Gothic 400 · Inter 600/700",
+    "Farger": "Bakgrunn #0B0F1A · Tekst #FFFFFF · Støttefarge #F2A03D",
+    "Bildefelt": "ingen",
+    "Effekter": "meny-rad øverst · stjerner + horisont-silhuett · tidslinje (se mal 29)"
+   }
+  },
+  {
+   "id": "043",
+   "name": "Konsertserie – story",
+   "cat": "Festival og konsert",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Upcoming Concerts» – story-format",
+    "Bruk": "konsertserie, kulturkalender, kirkekonserter",
+    "Fonter": "Montserrat 600/700/800 · Mrs Saint Delafield 400",
+    "Farger": "Bakgrunn #0D0D0D · Tekst #FFFFFF · Støttefarge #D68C35",
+    "Bildefelt": "1 skrå stripe venstre",
+    "Effekter": "diagonal: +20 px per rad · dato-blokk i støttefarge"
+   }
+  },
+  {
+   "id": "044",
+   "name": "Lovsangskveld – grunge",
+   "cat": "Festival og konsert",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Sunday Church Service» – story-versjon",
+    "Bruk": "lovsangskveld, konsert, ungdomsmøte",
+    "Fonter": "Anton 400 · Montserrat 400/600/700/800",
+    "Farger": "Bakgrunn #E8E5DF · Tekst #1C1C1A · Støttefarge #D6A21E",
+    "Bildefelt": "3 felt med ulik høyde",
+    "Effekter": "grunge-maske på tittel · gyllent bånd bak bildene · korn"
+   }
+  },
+  {
+   "id": "045",
+   "name": "Ungdomsfestival – oransje",
+   "cat": "Festival og konsert",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«First Wednesday» – story-versjon",
+    "Bruk": "ungdomsfestival, leir, sommerstevne",
+    "Fonter": "Inter Tight 400/500",
+    "Farger": "Bakgrunn #E2512F · Tekst #F6EFE4 · Støttefarge #0F2328",
+    "Bildefelt": "1 høy stripe + 2 små",
+    "Effekter": "korn · loddrett sidetekst i to hjørner"
+   }
+  },
+  {
+   "id": "046",
+   "name": "Konsert – glød",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Revival Meeting» – 4:5 uten bilde, glassramme for tid",
+    "Bruk": "konsert, gospelkveld, bandkveld",
+    "Fonter": "Archivo (bredde 115–125 %) 500/600/800/900",
+    "Farger": "Bakgrunn #141110 · Tekst #F4F1EC · Støttefarge #FF7A1A",
+    "Bildefelt": "ingen",
+    "Effekter": "radiale glød-gradienter · text-shadow · ramme radius 30 med 30 % hvit kant"
+   }
+  },
+  {
+   "id": "047",
+   "name": "Sommerfest – himmel",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Bakul Penuh» – sol i stedet for bilde",
+    "Bruk": "sommerfest, familiedag, basar",
+    "Fonter": "Montserrat 400/700/900 · Bebas Neue 400",
+    "Farger": "Bakgrunn #A9CDE3 · Tekst #FFFFFF · Støttefarge #2E6FA8",
+    "Bildefelt": "ingen (sol = radial-gradient)",
+    "Effekter": "konturtall (text-stroke 6 px) · himmelgradient · korn"
+   }
+  },
+  {
+   "id": "048",
+   "name": "Festival – hold av datoen",
+   "cat": "Festival og konsert",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Save the Date» – story-versjon",
+    "Bruk": "festival, stevne, leir – tidlig varsel",
+    "Fonter": "Anton 400 · Unbounded 500/900 · Montserrat 500/600",
+    "Farger": "Bakgrunn #121212 · Tekst #E8DCC4 · Støttefarge #2F4A2F",
+    "Bildefelt": "ingen",
+    "Effekter": "krøllet tekst (background-clip:text) · bølgelinjer · korn"
+   }
+  },
+  {
+   "id": "049",
+   "name": "Lineup – mørk story",
+   "cat": "Festival og konsert",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Sundream» – mørk, sentrert lineup",
+    "Bruk": "festival-lineup, konsertrekke, kulturdager",
+    "Fonter": "Gloock 400 · Inter Tight 500/600 · Inter 500",
+    "Farger": "Bakgrunn #16191C · Tekst #E9D3B5 · Støttefarge #E9D3B5",
+    "Bildefelt": "ingen",
+    "Effekter": "lineup i 5 nivåer (80/80/52/38/30 px) · tynne linjer · korn"
+   }
+  },
+  {
+   "id": "050",
+   "name": "Festival – diagonal gul",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«The Acts» – 4:5-versjon",
+    "Bruk": "familiefestival, sommerfest, konferanse",
+    "Fonter": "Permanent Marker 400 · Playfair Display 400/700",
+    "Farger": "Bakgrunn #1A1A1A · Tekst #FFFFFF · Støttefarge #E2B33C",
+    "Bildefelt": "1 øvre felt (55 %)",
+    "Effekter": "diagonal clip-path · penselord rotert −5°"
+   }
+  },
+  {
+   "id": "051",
+   "name": "Konsert – loddrett rød",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Domingo à Tarde» – 4:5-versjon",
+    "Bruk": "konsert, kveldsarrangement, ungdom",
+    "Fonter": "Anton 400 · Space Mono 400/700 kursiv",
+    "Farger": "Bakgrunn #121212 · Tekst #E8302A · Støttefarge #F39A9A",
+    "Bildefelt": "ingen",
+    "Effekter": "loddrett ord med screen-blending over sirkel · grunge-maske · korn"
+   }
+  },
+  {
+   "id": "052",
+   "name": "Korkonsert – klassisk",
+   "cat": "Festival og konsert",
+   "format": "A3 plakat · 3508×4961",
+   "spec": {
+    "Referanse": "«The music of John Williams» – A3-versjon",
+    "Bruk": "korkonsert, klassisk konsert, foredrag",
+    "Fonter": "Oswald 400/500/600/700 · Montserrat 300",
+    "Farger": "Bakgrunn #EFE9DC · Tekst #151515 · Støttefarge #151515",
+    "Bildefelt": "3 vertikale striper",
+    "Effekter": "ramme 130 px · bilder i gråtone"
+   }
+  },
+  {
+   "id": "053",
+   "name": "Julekonsert – rust",
+   "cat": "Festival og konsert",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Reunión de Matrimonios» – A4 julevariant",
+    "Bruk": "julekonsert, adventskonsert, høytid",
+    "Fonter": "League Gothic 400 (scaleY 1.1) · Montserrat 600/700/800",
+    "Farger": "Bakgrunn #F1EDE6 · Tekst #A5311D · Støttefarge #1F3A2C",
+    "Bildefelt": "1 bredt felt mellom titlene",
+    "Effekter": "skråstrek rotert 14° · tittel delt rundt bildet"
+   }
+  },
+  {
+   "id": "054",
+   "name": "Festivaluke – kondensert",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Semana de Oración» – 4:5-versjon",
+    "Bruk": "kulturuke, festivaluke, temauke",
+    "Fonter": "Six Caps 400 (scaleX 1.3) · Montserrat 500",
+    "Farger": "Bakgrunn #E0DAD6 · Tekst #173F4A · Støttefarge #C97A35",
+    "Bildefelt": "1 bånd med silhuett",
+    "Effekter": "bildebånd over tittelens nedre del · korn"
+   }
+  },
+  {
+   "id": "055",
+   "name": "Nattkonsert – glød",
+   "cat": "Festival og konsert",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«After Dark» – story-versjon",
+    "Bruk": "nattkonsert, lysvandring, kveldsarrangement",
+    "Fonter": "Playfair Display 400 kursiv · Inter Tight 600/900 · Inter 400/500",
+    "Farger": "Bakgrunn #151D21 · Tekst #D9F5C7 · Støttefarge #D9F5C7",
+    "Bildefelt": "ingen",
+    "Effekter": "glød (text-shadow/drop-shadow) · hjørnemerker · korn"
+   }
+  },
+  {
+   "id": "056",
+   "name": "Konsert – bred tittel",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Vigília Monte» – 4:5-versjon",
+    "Bruk": "konsert, stille kveld, kunstarrangement",
+    "Fonter": "Unbounded 500/600/700 · Syne 800 · Space Mono 400",
+    "Farger": "Bakgrunn #2A2826 · Tekst #B1ACA3 · Støttefarge #D06A2C",
+    "Bildefelt": "1 felt øverst",
+    "Effekter": "ramme radius 60 · tittel brutt over to linjer · korn"
+   }
+  },
+  {
+   "id": "057",
+   "name": "Festivaldager – faner",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "Malibu – dato-faner med dag + dato",
+    "Bruk": "festhelg, jubileum, festivaldager",
+    "Fonter": "Oswald 600/700 · Montserrat 500/800",
+    "Farger": "Bakgrunn #141212 · Tekst #FFFFFF · Støttefarge #E1171F",
+    "Bildefelt": "1 smalt felt per rad (høyre)",
+    "Effekter": "fane radius 0 0 85px 85px · korn"
+   }
+  },
+  {
+   "id": "058",
+   "name": "Gospelkveld – buet form",
+   "cat": "Festival og konsert",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Domingo» lilla – 4:5 i vinrød",
+    "Bruk": "gospelkveld, konsert, temakveld",
+    "Fonter": "Big Shoulders Display 700 · Pinyon Script 400 · Montserrat 300/400/700/800",
+    "Farger": "Bakgrunn #ECE9E1 · Tekst #F5EFE2 · Støttefarge #7B2D26",
+    "Bildefelt": "ingen",
+    "Effekter": "buet form: rektangel + 2×4 sirkler · highlight-bokser · korn"
+   }
+  },
+  {
+   "id": "059",
+   "name": "Festivalprogram – to dager",
+   "cat": "Festival og konsert",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "Postrock Festival – A4 med to programkolonner",
+    "Bruk": "festivalprogram, todagers arrangement, konferanse",
+    "Fonter": "League Gothic 400 · Inter 400/600/700",
+    "Farger": "Bakgrunn #0B0F1A · Tekst #FFFFFF · Støttefarge #F2A03D",
+    "Bildefelt": "ingen",
+    "Effekter": "nattgradient + horisont · to kolonner med skillelinjer 25 % hvit"
+   }
+  },
+  {
+   "id": "060",
+   "name": "Festivalpass – billett",
+   "cat": "Festival og konsert",
+   "format": "Visittkort · 1004×650",
+   "spec": {
+    "Referanse": "«You Are Invited» – kvitteringsstil som billett",
+    "Bruk": "festivalpass, billett, adgangskort, navneskilt",
+    "Fonter": "Anton 400 · Space Mono 700 · Courier Prime 400/700",
+    "Farger": "Bakgrunn #E1251B · Tekst #FFFFFF · Støttefarge #111111",
+    "Bildefelt": "ingen",
+    "Effekter": "perforering: 4 px stiplet kant · strekkode (repeating-linear-gradient) · løpenummer kan genereres"
+   }
+  },
+  {
+   "id": "061",
+   "name": "Salme – kornet mørk",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Psalm 28:7» – kraftig korn over uskarp mørk flate, stor referanse, blokksats",
+    "Bruk": "bibelvers, dagens vers, story-serie",
+    "Fonter": "Inter Tight 600 · Inter 400",
+    "Farger": "Bakgrunn #161616 · Tekst #ECE9E2 · Støttefarge #ECE9E2",
+    "Bildefelt": "ingen (uskarp gradient; kan byttes med uskarpt gråtonebilde)",
+    "Effekter": "kraftig korn · justert blokktekst i versaler · venstrestilt nederst"
+   }
+  },
+  {
+   "id": "062",
+   "name": "Vers – lys kornet",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Psalm 28:7» – lys variant",
+    "Bruk": "bibelvers, oppmuntring, sosiale medier",
+    "Fonter": "Inter Tight 600 · Inter 400",
+    "Farger": "Bakgrunn #EBE7DF · Tekst #1E1E1E · Støttefarge #7A8A6E",
+    "Bildefelt": "ingen",
+    "Effekter": "korn · lys radial-gradient · prikk i støttefarge"
+   }
+  },
+  {
+   "id": "063",
+   "name": "Sitat – gode ting tar tid",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Good Things Take Time» – sveitsisk minimal, sperret småtekst, grønn prikk",
+    "Bruk": "sitat, motivasjon, plakat, nyttår",
+    "Fonter": "Anton 400 · Inter 400/700",
+    "Farger": "Bakgrunn #EFE9DF · Tekst #111111 · Støttefarge #4E6B48",
+    "Bildefelt": "ingen",
+    "Effekter": "sperret småtekst .3em · 2 px linjer · sirkel i støttefarge"
+   }
+  },
+  {
+   "id": "064",
+   "name": "Ett ord – HÅP",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«JUNE» – stort ord med ordrekke der aktivt ord er uthevet",
+    "Bruk": "ukens ord, tema, prekenserie",
+    "Fonter": "Anton 400 · Inter 400/500",
+    "Farger": "Bakgrunn #EFEEEA · Tekst #151B33 · Støttefarge #22C9A0",
+    "Bildefelt": "ingen",
+    "Effekter": "ordrekke: tidligere ord 35 % opasitet, aktivt i støttefarge · korn"
+   }
+  },
+  {
+   "id": "065",
+   "name": "Didone – vers story",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Horizon» – story-versjon: verset leses rad for rad (JEG / er / GUD)",
+    "Bruk": "bibelvers, kunstplakat, tema",
+    "Fonter": "Bodoni Moda 400 (+ kursiv) · Inter 500",
+    "Farger": "Bakgrunn #2C3628 · Tekst #F1F1EC · Støttefarge #D8D2C0",
+    "Bildefelt": "ingen (landskapsgradient)",
+    "Effekter": "trappetittel høyrestilt · én kursiv swash-bokstav · småspalter venstre"
+   }
+  },
+  {
+   "id": "066",
+   "name": "Bue – vers story",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Cát Bụi» – story-versjon",
+    "Bruk": "bibelvers, stillhet, andakt",
+    "Fonter": "Cormorant Garamond 300/400 (+ kursiv)",
+    "Farger": "Bakgrunn #131313 · Tekst #D6D6D6 · Støttefarge #8A8A8A",
+    "Bildefelt": "1 valgfritt i buen",
+    "Effekter": "buemaske · støytekstur i multiply · loddrett tittel"
+   }
+  },
+  {
+   "id": "067",
+   "name": "Script over ord – Nåde",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Dia da Bíblia» – 4:5-versjon",
+    "Bruk": "bibelvers, tema-ord, prekenserie",
+    "Fonter": "Bebas Neue 400 · Mrs Saint Delafield 400 · Montserrat 400",
+    "Farger": "Bakgrunn #1F1F1F · Tekst #F4F4F4 · Støttefarge #F0932B",
+    "Bildefelt": "ingen",
+    "Effekter": "script over tittel (z-index) · vignett · korn"
+   }
+  },
+  {
+   "id": "068",
+   "name": "Gjentatt ord – BE",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Save the Date» – kort ord gjentatt og kuttet",
+    "Bruk": "bønneoppfordring, tema-ord, plakat",
+    "Fonter": "Anton 400 · Montserrat 500/600",
+    "Farger": "Bakgrunn #121212 · Tekst #E8DCC4 · Støttefarge #3A2F4A",
+    "Bildefelt": "ingen",
+    "Effekter": "krøllet tekst · gjentakelse med 60 % opasitet · bølgelinjer · korn"
+   }
+  },
+  {
+   "id": "069",
+   "name": "Minimal overlegg – sitat",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Work from Cafe» – minimal overlay, blanding av fet sans og script",
+    "Bruk": "stillhetsstund, kafé, stemningsbilde",
+    "Fonter": "Poppins 400/700 · Pinyon Script 400",
+    "Farger": "Bakgrunn #2A2622 · Tekst #FFFFFF · Støttefarge #FFFFFF",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "35 % mørk overlay · ® og ikon som pynt · linje mellom sitat og dato"
+   }
+  },
+  {
+   "id": "070",
+   "name": "Loddrett ord – FRED",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Domingo à Tarde» – speilvendt (ord til høyre)",
+    "Bruk": "bibelvers, tema-ord, sosiale medier",
+    "Fonter": "Anton 400 · Space Mono 400/700 kursiv",
+    "Farger": "Bakgrunn #121212 · Tekst #E8302A · Støttefarge #F39A9A",
+    "Bildefelt": "ingen",
+    "Effekter": "loddrett ord (vertical-rl) med screen-blending · grunge · korn"
+   }
+  },
+  {
+   "id": "071",
+   "name": "Ord med bildebånd – TILLIT",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Semana de Oración» – ett ord, ett vers",
+    "Bruk": "bibelvers, tema-ord",
+    "Fonter": "Six Caps 400 (scaleX 1.25) · Montserrat 500",
+    "Farger": "Bakgrunn #E3DCDA · Tekst #174A4A · Støttefarge #D78A3B",
+    "Bildefelt": "1 silhuett-bånd",
+    "Effekter": "bildebånd over tittelens nederste del · korn"
+   }
+  },
+  {
+   "id": "072",
+   "name": "Håndskrift-markering – vers",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Rede de Líderes» – vers med ellipse og pil",
+    "Bruk": "bibelvers, oppmuntring, andakt",
+    "Fonter": "Montserrat 500/600/700/800 (+ kursiv) · Caveat 400",
+    "Farger": "Bakgrunn #E9DCC8 · Tekst #1D4FBF · Støttefarge #1D4FBF",
+    "Bildefelt": "ingen (kortet kan ta bilde)",
+    "Effekter": "håndtegnet ellipse rotert −3° · understrek 5 px · korn"
+   }
+  },
+  {
+   "id": "073",
+   "name": "Dagens ord – kvadrat",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«Good Things Take Time» – kvadratversjon",
+    "Bruk": "dagens ord, bibelvers, motivasjon",
+    "Fonter": "Anton 400 · Inter 400/700",
+    "Farger": "Bakgrunn #EFE9DF · Tekst #111111 · Støttefarge #C46B3B",
+    "Bildefelt": "ingen",
+    "Effekter": "sperret småtekst · tynne linjer · prikk i støttefarge"
+   }
+  },
+  {
+   "id": "074",
+   "name": "Glød – vers kvadrat",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«Revival Meeting» – kvadrat for vers",
+    "Bruk": "bibelvers, advent, jul",
+    "Fonter": "Archivo (bredde 110–125 %) 500/800/900",
+    "Farger": "Bakgrunn #120F0E · Tekst #F4F1EC · Støttefarge #FF8A1F",
+    "Bildefelt": "ingen",
+    "Effekter": "radial glød · text-shadow 50 px i støttefarge"
+   }
+  },
+  {
+   "id": "075",
+   "name": "Stablet grått ord",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«Roh Kudus» – stablet grå tittel uten bildekolonne",
+    "Bruk": "prekenserie, ukens tema, gudstjeneste",
+    "Fonter": "Montserrat 400–900 (+ kursiv) · Oswald 700",
+    "Farger": "Bakgrunn #E7E5E2 · Tekst #8B8884 · Støttefarge #D4712C",
+    "Bildefelt": "ingen",
+    "Effekter": "hvit 4 px forskyvningsskygge på tittel · pille-etikett i støttefarge"
+   }
+  },
+  {
+   "id": "076",
+   "name": "Konturtall – Salme 23",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Bakul Penuh» – stort konturtall som kapittelnummer",
+    "Bruk": "bibelvers, salmer, andakt",
+    "Fonter": "Montserrat 500/900 · Bebas Neue 400",
+    "Farger": "Bakgrunn #A9CDE3 · Tekst #FFFFFF · Støttefarge #2E6FA8",
+    "Bildefelt": "ingen",
+    "Effekter": "konturtall (text-stroke 6 px) · himmelgradient · korn"
+   }
+  },
+  {
+   "id": "077",
+   "name": "Loddrett serif – vers kvadrat",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«Schedule» – loddrett didone-ord + kursivt vers",
+    "Bruk": "takk, høsttakkefest, bibelvers",
+    "Fonter": "Bodoni Moda 400 (+ kursiv) · Inter 400/500",
+    "Farger": "Bakgrunn #ECE5DA · Tekst #4A3A2E · Støttefarge #4A3A2E",
+    "Bildefelt": "ingen",
+    "Effekter": "tittel vertical-rl rotert 180° · skillelinje 2 px"
+   }
+  },
+  {
+   "id": "078",
+   "name": "Hjørnemerker – sitat",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«After Dark» – kvadratisk vers",
+    "Bruk": "bibelvers, oppmuntring, kveldsandakt",
+    "Fonter": "Playfair Display 400 kursiv · Inter Tight 900 · Inter 400/500",
+    "Farger": "Bakgrunn #1B2428 · Tekst #D9F5C7 · Støttefarge #D9F5C7",
+    "Bildefelt": "ingen",
+    "Effekter": "glød (text-shadow) · hjørnemerker · korn"
+   }
+  },
+  {
+   "id": "079",
+   "name": "Rotert sidetekst – vers",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«First Wednesday» – kvadrat uten bilder, stripe i støttefarge",
+    "Bruk": "bibelvers, oppmuntring",
+    "Fonter": "Inter Tight 400/500",
+    "Farger": "Bakgrunn #E6492D · Tekst #F3EDE4 · Støttefarge #12262B",
+    "Bildefelt": "ingen (stripe kan ta bilde)",
+    "Effekter": "kraftig korn · loddrett sidetekst"
+   }
+  },
+  {
+   "id": "080",
+   "name": "Nyttår – 2027",
+   "cat": "Bibelvers, sitat og typografi",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«JUNE» – årstall som hovedord",
+    "Bruk": "nyttår, årsplan, jubileum",
+    "Fonter": "Anton 400 · Inter 400/500",
+    "Farger": "Bakgrunn #EFEEEA · Tekst #151B33 · Støttefarge #22C9A0",
+    "Bildefelt": "ingen",
+    "Effekter": "årsrekke: tidligere år 35 %, aktivt år i støttefarge · korn"
+   }
+  },
+  {
+   "id": "081",
+   "name": "Vi har åpent",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«We&#x27;re Open!» – ekstra fet tittel, sperret overtittel, tider",
+    "Bruk": "åpningstider, kafé, bruktbutikk, kontor",
+    "Fonter": "Archivo Black 400 · Montserrat 400/600/800 · Inter 400",
+    "Farger": "Bakgrunn #2B2622 · Tekst #FFFFFF · Støttefarge #C9A36B",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "mørk gradient nederst · ✦✦✦ som pynt"
+   }
+  },
+  {
+   "id": "082",
+   "name": "Meny – ryggrad",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Our Menu» – ryggrad med vekslende utbuktninger og runde bildefelt",
+    "Bruk": "meny, kirkekafé, basar, kakesalg",
+    "Fonter": "Archivo Black 400 · Poppins 400/500",
+    "Farger": "Bakgrunn #1F4A36 · Tekst #E7DCBD · Støttefarge #E7DCBD",
+    "Bildefelt": "4 runde (300×300)",
+    "Effekter": "utbuktninger radius 135 i bakgrunnsfarge · vannmerke-ord 8 % · korn"
+   }
+  },
+  {
+   "id": "083",
+   "name": "Kirkekafé – stemning",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Work from Cafe» – overlay på bilde",
+    "Bruk": "kirkekafé, fellesskap, stemningspost",
+    "Fonter": "Poppins 400/700 · Pinyon Script 400",
+    "Farger": "Bakgrunn #2A2622 · Tekst #FFFFFF · Støttefarge #FFFFFF",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "30 % mørk overlay · fet + script-blanding"
+   }
+  },
+  {
+   "id": "084",
+   "name": "Daglig story",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Start the day» – sirkeltekst, pille, stolpe",
+    "Bruk": "daglig story, andakt, serie",
+    "Fonter": "Poppins 400/500/600/700",
+    "Farger": "Bakgrunn #3E3A2F · Tekst #FFFFFF · Støttefarge #8C7D4E",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "SVG textPath sirkeltekst · halvgjennomsiktig stolpe · liten fargeblokk som aksent"
+   }
+  },
+  {
+   "id": "085",
+   "name": "Velkommen – nye medlemmer",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Induction» – blå variant",
+    "Bruk": "nye medlemmer, bli-kjent-kveld, innskriving",
+    "Fonter": "Inter Tight 700 · Inter 400/500 · Poppins 500/700",
+    "Farger": "Bakgrunn #F6F5F3 · Tekst #1F4FBF · Støttefarge #141414",
+    "Bildefelt": "1 bredt felt nederst",
+    "Effekter": "grunge-maske på tittel · info-bar med innfelt pille"
+   }
+  },
+  {
+   "id": "086",
+   "name": "Kvittering – takk for gaven",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«You Are Invited» – kvittering som innsamlingsstatus",
+    "Bruk": "innsamling, takk, status på gaver, dugnad",
+    "Fonter": "Anton 400 · Space Mono 700 · Courier Prime 400/700",
+    "Farger": "Bakgrunn #1F4A36 · Tekst #FFFFFF · Støttefarge #111111",
+    "Bildefelt": "ingen",
+    "Effekter": "takket kant (clip-path) · progresjonsbar = prosent · strekkode"
+   }
+  },
+  {
+   "id": "087",
+   "name": "Infoplakat – dugnad",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Conference» – sveitsisk infoplakat",
+    "Bruk": "dugnad, infoplakat, oppslag",
+    "Fonter": "Inter Tight 500 · Inter 400/500",
+    "Farger": "Bakgrunn #DCDCD8 · Tekst #2B2B28 · Støttefarge #F28C1C",
+    "Bildefelt": "1 bredt felt",
+    "Effekter": "grid 420/1fr · rund badge i støttefarge"
+   }
+  },
+  {
+   "id": "088",
+   "name": "Kursplan – kvadrat",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«Group Training Schedule» – kvadrat",
+    "Bruk": "kursplan, Alpha, samtalegrupper",
+    "Fonter": "Inter 300/500/600/700/800",
+    "Farger": "Bakgrunn #BDBAB3 · Tekst #F7F4EF · Støttefarge #2B2B2B",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "mørk overlay 25 % · rader 130 px"
+   }
+  },
+  {
+   "id": "089",
+   "name": "Kunngjøring – uskarp",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«Upcoming Events» – én hvit boks for melding",
+    "Bruk": "kunngjøring, endring, viktig beskjed",
+    "Fonter": "Inter 300/400/800",
+    "Farger": "Bakgrunn #9A8D84 · Tekst #F6F2EE · Støttefarge #2A2A2A",
+    "Bildefelt": "ingen",
+    "Effekter": "mesh + blur · korn"
+   }
+  },
+  {
+   "id": "090",
+   "name": "Velkommen – skjerm",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "16:9 · 1920×1080",
+   "spec": {
+    "Referanse": "«Good Things Take Time» – 16:9 lysbilde",
+    "Bruk": "velkomstskjerm, før gudstjeneste, info-skjerm",
+    "Fonter": "Anton 400 · Inter 400/700",
+    "Farger": "Bakgrunn #EFE9DF · Tekst #111111 · Støttefarge #4E6B48",
+    "Bildefelt": "ingen",
+    "Effekter": "sperret småtekst · tynne linjer · prikk i støttefarge"
+   }
+  },
+  {
+   "id": "091",
+   "name": "Taler – presentasjon",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "16:9 · 1920×1080",
+   "spec": {
+    "Referanse": "«The music of John Williams» – 16:9",
+    "Bruk": "presentasjon av taler, gjest, lysbilde",
+    "Fonter": "Oswald 400/600/700 · Montserrat 300",
+    "Farger": "Bakgrunn #EFE9DC · Tekst #151515 · Støttefarge #151515",
+    "Bildefelt": "3 vertikale striper",
+    "Effekter": "ramme 50 px · gråtonebilder"
+   }
+  },
+  {
+   "id": "092",
+   "name": "Nyhetsbrev – story",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Story 9:16 · 1080×1920",
+   "spec": {
+    "Referanse": "«Start the day» – nyhetsvariant",
+    "Bruk": "nyhet, ansettelse, nyhetsbrev",
+    "Fonter": "Poppins 400/500/600/700",
+    "Farger": "Bakgrunn #203A2E · Tekst #FFFFFF · Støttefarge #C7B37A",
+    "Bildefelt": "1 fullflate-bilde",
+    "Effekter": "mørk gradient · pille-etikett i støttefarge"
+   }
+  },
+  {
+   "id": "093",
+   "name": "Kafémeny – liste",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "A4 plakat · 2480×3508",
+   "spec": {
+    "Referanse": "«Our Menu» – A4 liste med prikkede ledelinjer",
+    "Bruk": "kafémeny, basar, prisliste",
+    "Fonter": "Archivo Black 400 · Poppins 400/500/600",
+    "Farger": "Bakgrunn #1F4A36 · Tekst #E7DCBD · Støttefarge #E7DCBD",
+    "Bildefelt": "ingen",
+    "Effekter": "prikket ledelinje (border-bottom dotted) · vannmerke-ord 7 % · korn"
+   }
+  },
+  {
+   "id": "094",
+   "name": "Visittkort – moderne",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Visittkort · 1004×650",
+   "spec": {
+    "Referanse": "«Event Calendar» – kortformen som visittkort",
+    "Bruk": "visittkort, navneskilt, signatur",
+    "Fonter": "DM Serif Display 400 · Poppins 400/500/600",
+    "Farger": "Bakgrunn #24423F · Tekst #FFFFFF · Støttefarge #D2601A",
+    "Bildefelt": "ingen (monogram-felt kan ta logo)",
+    "Effekter": "avrundede blokker radius 44 · loddrett navnestripe"
+   }
+  },
+  {
+   "id": "095",
+   "name": "Visittkort – blå håndskrift",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Visittkort · 1004×650",
+   "spec": {
+    "Referanse": "«Rede de Líderes» – visittkort",
+    "Bruk": "visittkort, kontaktkort",
+    "Fonter": "Montserrat 600/700/800 (+ kursiv)",
+    "Farger": "Bakgrunn #E9DCC8 · Tekst #1D4FBF · Støttefarge #1D4FBF",
+    "Bildefelt": "1 avrundet portrettfelt (radius 36)",
+    "Effekter": "håndtegnet ellipse · korn"
+   }
+  },
+  {
+   "id": "096",
+   "name": "Takk til frivillige – rulletekst",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Sundream» – lineup brukt som takkeliste",
+    "Bruk": "takk til frivillige, rulletekst, årsfest",
+    "Fonter": "Gloock 400 · Inter Tight 500/600 · Inter 500",
+    "Farger": "Bakgrunn #2C3A3C · Tekst #F0A876 · Støttefarge #F0A876",
+    "Bildefelt": "ingen",
+    "Effekter": "navnerader i fallende størrelse · korn"
+   }
+  },
+  {
+   "id": "097",
+   "name": "Endrede tider – kvadrat",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 1:1 · 1080×1080",
+   "spec": {
+    "Referanse": "«We&#x27;re Open!» – uten bilde, varselfarge",
+    "Bruk": "stengt, endrede tider, ferie",
+    "Fonter": "Archivo Black 400 · Montserrat 400/600/800 · Inter 400",
+    "Farger": "Bakgrunn #1A1A1A · Tekst #FFFFFF · Støttefarge #E1251B",
+    "Bildefelt": "ingen",
+    "Effekter": "andre linje i støttefarge · sperret overtittel"
+   }
+  },
+  {
+   "id": "098",
+   "name": "Priser – diagonal",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«Upcoming Concerts» – priser i stedet for datoer",
+    "Bruk": "prisliste, kafé, basar",
+    "Fonter": "Montserrat 400/800 · Mrs Saint Delafield 400",
+    "Farger": "Bakgrunn #0D0D0D · Tekst #FFFFFF · Støttefarge #D68C35",
+    "Bildefelt": "1 skrå stripe venstre",
+    "Effekter": "diagonal +14 px per rad · prisblokk i støttefarge"
+   }
+  },
+  {
+   "id": "099",
+   "name": "Jubileum – 50 ÅR",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "Instagram 4:5 · 1080×1350",
+   "spec": {
+    "Referanse": "«JUNE» – tallrekke med årstall",
+    "Bruk": "jubileum, bursdag, årsfest",
+    "Fonter": "Anton 400 · Inter 400/500",
+    "Farger": "Bakgrunn #EFEEEA · Tekst #151B33 · Støttefarge #E0A42E",
+    "Bildefelt": "ingen",
+    "Effekter": "tidslinje-rekke, aktivt år i støttefarge · korn"
+   }
+  },
+  {
+   "id": "100",
+   "name": "Vers på skjerm",
+   "cat": "Hverdag, kafé, info og sosiale medier",
+   "format": "16:9 · 1920×1080",
+   "spec": {
+    "Referanse": "«Psalm 28:7» – 16:9 lysbilde",
+    "Bruk": "lysbilde, vers på storskjerm, preken",
+    "Fonter": "Inter Tight 600 · Inter 400",
+    "Farger": "Bakgrunn #161616 · Tekst #ECE9E2 · Støttefarge #ECE9E2",
+    "Bildefelt": "ingen",
+    "Effekter": "kraftig korn · to-kolonne: referanse venstre, vers høyre"
+   }
+  }
+ ],
+ "thumbs": [
+  {
+   "id": "gen-01",
+   "code": "GEN-01",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Markert ord",
+   "desc": "Rutepapir, nøkkelord med gul pensel, person til høyre",
+   "spec": {
+    "Stil": "Moderne YouTube",
+    "Fonter": "Archivo 600 (72px) · Archivo 900, stretch 78 % (150px)",
+    "Farger": "#F1F0EC bakgrunn · #141414 tekst · #F5D90A markør",
+    "Bilde": "Person, utklipt (PNG), 520×660, bue-topp",
+    "Overlay": "Person: ingen",
+    "Ved behov": "F06 Svart-hvitt hvis klærne kolliderer med den gule markøren",
+    "Effekter": "Rutenett 64px, 6 % svart · markør rotert −2°, ujevne hjørner"
+   }
+  },
+  {
+   "id": "gen-02",
+   "code": "GEN-02",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Håndskrift",
+   "desc": "Stor tusjtekst over personen, pil som peker",
+   "spec": {
+    "Stil": "Leken / personlig",
+    "Fonter": "Permanent Marker 400 (170px)",
+    "Farger": "Radial #D24A2F → #8F2416 → #3C0C06 · tekst #FFFFFF",
+    "Bilde": "Person fotografert ovenfra, sentrert nederst",
+    "Overlay": "Foto: F03 Vignett (radial, rødt)",
+    "Ved behov": "F04 Fargelag #D24A2F, color 30 % for jevn farge · F01 Mørk bunn 40 % hvis tusjteksten drukner",
+    "Effekter": "Vignett via radial gradient · pil-glyf rotert 18°"
+   }
+  },
+  {
+   "id": "gen-03",
+   "code": "GEN-03",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Podkast-kort",
+   "desc": "To skrå portrettkort, episodenummer i pille",
+   "spec": {
+    "Stil": "Moderne / redaksjonell",
+    "Fonter": "Syne 800 (128px) · Syne 500 (30px) · JetBrains Mono 700 (22px)",
+    "Farger": "#E9E4DA bakgrunn · #1A1A1A tekst · kort #E3572B og #2E4A3F",
+    "Bilde": "2 portretter 300×400, radius 24, rotert −4° og 3°",
+    "Overlay": "Portretter: ingen",
+    "Ved behov": "F04 Fargelag i kortfargen (#E3572B / #2E4A3F), soft-light 25 %",
+    "Effekter": "Ingen – flatt og rent"
+   }
+  },
+  {
+   "id": "gen-04",
+   "code": "GEN-04",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Figur foran tittel",
+   "desc": "Gigantisk ord bak et utklipt motiv, skrivemaskintekst i hjørnene",
+   "spec": {
+    "Stil": "Redaksjonell / dokumentar",
+    "Fonter": "Anton 400 (520px) · Space Mono 400 (28px)",
+    "Farger": "#E8E5DF bakgrunn · #EF5A4C tekst",
+    "Bilde": "Utklipt figur/statue (PNG) lagt OVER tittelen",
+    "Overlay": "Figur: ingen · F10 Korn 25 % (multiply)",
+    "Ved behov": "F06 Svart-hvitt på figuren for avis-følelse",
+    "Effekter": "Korn, multiply 25 % · lagrekkefølge: bg → tittel → figur → hjørnetekst"
+   }
+  },
+  {
+   "id": "gen-05",
+   "code": "GEN-05",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Stort spørsmål",
+   "desc": "Serif-spørsmål og et spørsmålstegn i sirkel – uten bilde",
+   "spec": {
+    "Stil": "Minimal / klassisk-moderne",
+    "Fonter": "Instrument Serif 400 + kursiv (210px) · Hanken Grotesk 500 (32px) · JetBrains Mono 500 (22px)",
+    "Farger": "#F4F1EA bakgrunn · #1B1B1B tekst · #E8572A sirkel",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Ingen"
+   }
+  },
+  {
+   "id": "gen-06",
+   "code": "GEN-06",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Polaroid-vlogg",
+   "desc": "Rund, tykk tittel, polaroidbilde og klistremerke",
+   "spec": {
+    "Stil": "Leken / ungdom",
+    "Fonter": "Bagel Fat One 400 (128px, 40px) · Caveat 700 (64px)",
+    "Farger": "#FFD84A bakgrunn · #1D1D1B tekst · #FF5A36 merke",
+    "Bilde": "Liggende foto i hvit polaroidramme, rotert 4°",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F08 Varm film for polaroid-følelse",
+    "Effekter": "Skygge 0 20 40 rgba(0,0,0,.18) · merke rotert −8°"
+   }
+  },
+  {
+   "id": "gen-07",
+   "code": "GEN-07",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Vitnesbyrd",
+   "desc": "Kursivt sitat, portrett som toner ut mot venstre",
+   "spec": {
+    "Stil": "Klassisk / dempet",
+    "Fonter": "Playfair Display 400 kursiv (58px), 400 (220px «) · Hanken Grotesk 600–700 (22–24px)",
+    "Farger": "#121212 bakgrunn · #F2EDE4 sitat · #C9A46A gull",
+    "Bilde": "Portrett, høyre 680×720",
+    "Overlay": "Portrett: F02 Mørk side (fra venstre, #121212, 300 px)",
+    "Ved behov": "F06 Svart-hvitt · F03 Vignett 40 %",
+    "Effekter": "Fade: linear-gradient(90deg, #121212 → transparent) 300px"
+   }
+  },
+  {
+   "id": "gen-08",
+   "code": "GEN-08",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Kapittel",
+   "desc": "Boktittelside med romertall og dobbel ramme",
+   "spec": {
+    "Stil": "Klassisk",
+    "Fonter": "Cormorant Garamond 500 (250px tall, 26px) + kursiv (84px) · Hanken Grotesk 600 (20px)",
+    "Farger": "#F3EDE0 papir · #2B2A27 tekst/rammer · #9C2F22 rød",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Ramme 2px inset 36 + 1px inset 48 · rombe-ornament"
+   }
+  },
+  {
+   "id": "gen-09",
+   "code": "GEN-09",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Notatblokk",
+   "desc": "Undervisning: stort spørsmål, håndskrevne notater, gul ring",
+   "spec": {
+    "Stil": "Moderne / skisse",
+    "Fonter": "Archivo 900 stretch 88 % (170px) + 900 kursiv (44px) · Caveat 600 (46–48px)",
+    "Farger": "#EFE9DC papir · #111111 tekst · #F2C200 markør",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Rutenett 40px, 8 % svart · ellipse 6px gul, rotert −5°"
+   }
+  },
+  {
+   "id": "gen-10",
+   "code": "GEN-10",
+   "part": 1,
+   "cat": "Generell video",
+   "name": "Sveitsisk",
+   "desc": "Stram grotesk, linje øverst, lite bilde og rød firkant",
+   "spec": {
+    "Stil": "Minimal",
+    "Fonter": "Archivo 700 (150px, sporing −0.05em) · JetBrains Mono 500 (22px)",
+    "Farger": "#F5F4F0 bakgrunn · #111111 tekst · #E5322D aksent",
+    "Bilde": "Liggende foto 380×250, øverst til høyre",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F06 Svart-hvitt for strengere sveitsisk uttrykk",
+    "Effekter": "Ingen · strek 2px"
+   }
+  },
+  {
+   "id": "bib-01",
+   "code": "bib-01",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Klassisk vers",
+   "desc": "Kursivt vers i midten, gullstrek og tynn ramme",
+   "spec": {
+    "Stil": "Klassisk",
+    "Fonter": "Cormorant Garamond 500 kursiv (92px) · Hanken Grotesk 700 (26px, sporing .32em)",
+    "Farger": "Radial #25354A → #162231 · #F3ECDC vers · #D4A64A gull",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Ramme 1px gull 45 %, inset 44px"
+   }
+  },
+  {
+   "id": "bib-02",
+   "code": "bib-02",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Landskap og serif",
+   "desc": "Naturbilde, kraftig serif blandet med skrift",
+   "spec": {
+    "Stil": "Moderne-klassisk",
+    "Fonter": "Yeseva One 400 (150px) · Pinyon Script 400 (170px) · Archivo 700 stretch 110 % (38px)",
+    "Farger": "Tekst #F6F1C7 (kremgul)",
+    "Bilde": "Fullflate landskap (åser, eng, skumring)",
+    "Overlay": "Foto: F03 Vignett 25 % bak tekst · F10 Korn 40 %",
+    "Ved behov": "F01 Mørk bunn 40 % eller F09 Kald natt hvis himmelen er lys",
+    "Effekter": "Radial mørkning 25 % bak tekst · korn overlay 40 %"
+   }
+  },
+  {
+   "id": "bib-03",
+   "code": "bib-03",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Avisside",
+   "desc": "Strukket tittel over avisspalter, oransje stempel",
+   "spec": {
+    "Stil": "Vintage / avis",
+    "Fonter": "Anton 400 (380px, scaleY 1.28) · Anton (54–58px) · Space Mono 700 (26px)",
+    "Farger": "#E7E3D8 avispapir · #151515 sort · #D9762B stempel",
+    "Bilde": "Lite S/H-foto nede til venstre (valgfritt)",
+    "Overlay": "Foto: F06 Svart-hvitt · F13 Papir 30 %",
+    "Ved behov": "F12 Raster for trykk-følelse",
+    "Effekter": "6 spalter med linjestriper (8px/3px) · stempel rotert −14° · korn multiply 30 %"
+   }
+  },
+  {
+   "id": "bib-04",
+   "code": "bib-04",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Bok i Bibelen",
+   "desc": "Bilde i buet ramme, Bodoni-tittel og taler",
+   "spec": {
+    "Stil": "Klassisk / dramatisk",
+    "Fonter": "Bodoni Moda 800 (150px) · Big Shoulders Display 800 (40px) · Hanken Grotesk 300/800 (32px)",
+    "Farger": "#1C1A17 bakgrunn · #F2EDE2 tittel · #E9E3D6 ramme/pille",
+    "Bilde": "980×440 i bue (radius 220 220 0 0), varmt lys",
+    "Overlay": "Foto i bue: F08 Varm film · F10 Korn 45 %",
+    "Ved behov": "F01 Mørk bunn 30 % i buen hvis tittelen ligger over",
+    "Effekter": "Korn overlay 45 % · 2px lys ramme uten bunnkant"
+   }
+  },
+  {
+   "id": "bib-05",
+   "code": "bib-05",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Kollasj med ekko",
+   "desc": "Serif-tittel med kontur-ekko over bildeflate, verstekst i hjørnene",
+   "spec": {
+    "Stil": "Moderne kollasj",
+    "Fonter": "DM Serif Display 400 (250px) · Bebas Neue 400 (40px)",
+    "Farger": "#E6E1D6 papir · #EF6A2E tittel · #2F4F4A / #3F6B62 grønn",
+    "Bilde": "680×400 midt, tåke/fjell/fugler",
+    "Overlay": "Foto: ingen · F10 Korn 30 %",
+    "Ved behov": "F04 Fargelag grønn/grå, soft-light 30 % · F06 Svart-hvitt",
+    "Effekter": "Kontur-ekko: -webkit-text-stroke 2px #fff, forskjøvet +26/−24px · korn 30 %"
+   }
+  },
+  {
+   "id": "bib-06",
+   "code": "bib-06",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Revne fjell",
+   "desc": "Revet bildekant topp og bunn, smal og bred skrift blandet",
+   "spec": {
+    "Stil": "Moderne serie",
+    "Fonter": "Archivo 900 stretch 115 % (120px) og 70 % (210px) · Pinyon Script (én bokstav, 230px) · Hanken Grotesk 500 (20px)",
+    "Farger": "#ECE6D8 papir · #A87953 brun · #1F3D55 marine",
+    "Bilde": "Fjellfoto i to striper (topp + bunn, 180px)",
+    "Overlay": "Fjellstriper: ingen · F10 Korn 25 %",
+    "Ved behov": "F06 Svart-hvitt + F08 Varm film for samme tone i begge stripene",
+    "Effekter": "Revet kant via clip-path polygon · én skriftbokstav i ordet · korn 25 %"
+   }
+  },
+  {
+   "id": "bib-07",
+   "code": "bib-07",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Lerret og bølge",
+   "desc": "Sperret antikva på lin-tekstur, bølgeflate nederst",
+   "spec": {
+    "Stil": "Klassisk",
+    "Fonter": "Cormorant Garamond 500 (330px, sporing .22em) + 600 kursiv (66px) · Hanken Grotesk 600 (20px)",
+    "Farger": "#EBE7DF lin · #24474F petrol · #5F8F97 · #D0604A seil",
+    "Bilde": "Valgfri bølgeillustrasjon i nederste flate (250px)",
+    "Overlay": "Ingen foto (valgfri illustrasjon)",
+    "Ved behov": "—",
+    "Effekter": "Lin-tekstur: to repeating-linear-gradient 0°/90° · bølgekant via clip-path"
+   }
+  },
+  {
+   "id": "bib-08",
+   "code": "bib-08",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Leseplan",
+   "desc": "Stort dagnummer, dagens tekster og fremdriftslinje",
+   "spec": {
+    "Stil": "Moderne / data",
+    "Fonter": "Space Grotesk 700 (380px), 600 (92px), 500 (40px) · JetBrains Mono 400–500 (22–26px)",
+    "Farger": "#0F3B2E bakgrunn · #D8F08A lime · #F3F1E8 tekst · #B9CDB8 dempet",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Fremdriftslinje 14px, fyll = dag/365 (dynamisk)"
+   }
+  },
+  {
+   "id": "bib-09",
+   "code": "bib-09",
+   "part": 1,
+   "cat": "Bibelvideo",
+   "name": "Blått vindu",
+   "desc": "Kursiv tittel, blå flate bak S/H-landskap",
+   "spec": {
+    "Stil": "Moderne redaksjonell",
+    "Fonter": "Playfair Display 400 kursiv (168px) · Hanken Grotesk 600 (18px, sporing .14em)",
+    "Farger": "#ECEAE4 bakgrunn · #111111 tekst · #2F4BE0 blå",
+    "Bilde": "Fjell-silhuett i S/H, utklipt topp (PNG), nederst 280px",
+    "Overlay": "Fjell: F06 Svart-hvitt",
+    "Ved behov": "Kontrast 1.2 hvis fjellet blir grått i grått",
+    "Effekter": "Bildet i gråtoner (filter: grayscale(1)) foran blå firkant"
+   }
+  },
+  {
+   "id": "live-01",
+   "code": "live-01",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Søndag direkte",
+   "desc": "Rød live-pille, stor smal tittel, kirkerom til høyre",
+   "spec": {
+    "Stil": "Klassisk sending",
+    "Fonter": "Anton 400 (200px) · Hanken Grotesk 800 (28px), 500 (34px) · JetBrains Mono (22px)",
+    "Farger": "#0D0D0D bakgrunn · #FFFFFF tittel · #E3262B live · #D0D0D0 info",
+    "Bilde": "Kirkerom/scene, høyre 720×720",
+    "Overlay": "Foto: F02 Mørk side (fra venstre, 420 px)",
+    "Ved behov": "F01 Mørk bunn 40 % · F08 Varm film",
+    "Effekter": "Fade 420px fra venstre · pille radius 999"
+   }
+  },
+  {
+   "id": "live-02",
+   "code": "live-02",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Lys og rolig",
+   "desc": "Serif-tittel, tema og taler, bilde i høyre felt",
+   "spec": {
+    "Stil": "Minimal / klassisk",
+    "Fonter": "Instrument Serif 400 + kursiv (132px) · Hanken Grotesk 500 (32px) · JetBrains Mono 500 (24px)",
+    "Farger": "#F3F0E9 bakgrunn · #1C1C1C tekst · #6D685F dempet · #E3262B prikk",
+    "Bilde": "Taler/kirkerom, høyre 500×720",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F04 Fargelag i bakgrunnsfargen, soft-light 25 % · F07 Uskarp 3 px hvis rommet er urolig",
+    "Effekter": "Ingen"
+   }
+  },
+  {
+   "id": "live-03",
+   "code": "live-03",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Lovsangskveld",
+   "desc": "S/H-foto, gul retro-serif, info i ovale ringer",
+   "spec": {
+    "Stil": "Retro / konsert",
+    "Fonter": "Rozha One 400 (200px) · Pinyon Script (80px) · Hanken Grotesk 700 (22–26px)",
+    "Farger": "Tekst #F4EE3A · foto i gråtoner",
+    "Bilde": "Fullflate lovsangsfoto, filter: grayscale(1) contrast(1.1)",
+    "Overlay": "Foto: F06 Svart-hvitt + mørkning 25 % · F10 Korn 45 %",
+    "Ved behov": "F01 Mørk bunn 50 % · F11 Lysglød fra topp",
+    "Effekter": "Mørkning 25 % · ovale ringer (border 3px, radius 50 %) · korn 45 %"
+   }
+  },
+  {
+   "id": "live-04",
+   "code": "live-04",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Nattverd",
+   "desc": "Mykt foto, grotesk + skrift i samme linje",
+   "spec": {
+    "Stil": "Moderne-varm",
+    "Fonter": "Hanken Grotesk 600 (130px), 500 (40px) · Pinyon Script (150px) · Playfair Display kursiv (46px)",
+    "Farger": "Tekst #FBF6EA · overlegg rgba(40,28,18,.15→.5)",
+    "Bilde": "Fullflate, brød/beger i mykt dagslys",
+    "Overlay": "Foto: vertikal mørkning (F01 Mørk bunn)",
+    "Ved behov": "F08 Varm film · F03 Vignett 40 %",
+    "Effekter": "Vertikal mørkning for lesbarhet"
+   }
+  },
+  {
+   "id": "live-05",
+   "code": "live-05",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Dåp",
+   "desc": "Vannfoto, neon-lime Playfair, kors i hjørnene",
+   "spec": {
+    "Stil": "Moderne / frisk",
+    "Fonter": "Playfair Display 400 kursiv (300px) + regular (170px) · Hanken Grotesk 300–600",
+    "Farger": "Tekst #E8FF3A · foto turkis (#2FA3A8 → #08333B)",
+    "Bilde": "Fullflate vannoverflate / hånd i vann",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F04 Fargelag turkis, color 30 % · F03 Vignett 30 % hvis hjørneteksten drukner",
+    "Effekter": "Speilet hjørnetekst (topp-venstre / bunn-høyre)"
+   }
+  },
+  {
+   "id": "live-06",
+   "code": "live-06",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Høytid – jul",
+   "desc": "Granngrønn og gull, dobbel ramme, uten bilde",
+   "spec": {
+    "Stil": "Klassisk høytid",
+    "Fonter": "Cormorant Garamond 500 kursiv (150px) · Hanken Grotesk 600 (28px, sporing .5em)",
+    "Farger": "Radial #1D4A37 → #0B2219 · #F4EAD2 tittel · #D9B36A gull",
+    "Bilde": "Ingen (kan byttes til mørkt julefoto)",
+    "Overlay": "Ingen foto",
+    "Ved behov": "Ved bytte til foto: F09 Kald natt + F03 Vignett 60 % + F10 Korn 30 %",
+    "Effekter": "Dobbel ramme 2px + 1px · rombe-ornament"
+   }
+  },
+  {
+   "id": "live-07",
+   "code": "live-07",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Høytid – påske",
+   "desc": "Fraktur-tittel på lime, collage med vers og foto",
+   "spec": {
+    "Stil": "Moderne kollasj med gotisk skrift",
+    "Fonter": "UnifrakturMaguntia 400 (200px) · Playfair Display 400/kursiv (22–34px) · Hanken Grotesk 500–700",
+    "Farger": "#DCD8D1 papir · #111111 tekst · #D8F24A lime · #9A8574 vers",
+    "Bilde": "2 små S/H-utsnitt (trær, grav)",
+    "Overlay": "Utsnitt: F06 Svart-hvitt + F08 Varm film · F13 Papir 30 %",
+    "Ved behov": "—",
+    "Effekter": "Lime blokk bak første ord · korn multiply 30 %"
+   }
+  },
+  {
+   "id": "live-08",
+   "code": "live-08",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Klokkeslett",
+   "desc": "Gigantisk tidspunkt på oransje, taler i bue foran tallene",
+   "spec": {
+    "Stil": "Moderne / energisk",
+    "Fonter": "Big Shoulders Display 900 (620px), 800 (40–52px) · Hanken Grotesk 700–800 (28–34px) · JetBrains Mono 500 (22px)",
+    "Farger": "#FF6A2B bakgrunn · #111111 tall/bokser · #FFFFFF · #FF3B30 live-prikk",
+    "Bilde": "Taler utklipt i bue 420×660, 10px oransje kant, lagt OVER tallene",
+    "Overlay": "Taler: ingen · F10 Korn 35 %",
+    "Ved behov": "F06 Svart-hvitt hvis klærne kolliderer med oransje",
+    "Effekter": "Tallene blør ut til venstre · live-prikk med glød (box-shadow 0 0 0 6px) · loddrett tekst høyre · korn 35 %"
+   }
+  },
+  {
+   "id": "live-09",
+   "code": "live-09",
+   "part": 1,
+   "cat": "Direktesending",
+   "name": "Bildestripe",
+   "desc": "Tre bilder øverst, tittel og info under – konfirmasjon, bryllup, jubileum",
+   "spec": {
+    "Stil": "Moderne / lys",
+    "Fonter": "Syne 800 (104px, 64px) · Hanken Grotesk 500 (34px)",
+    "Farger": "#F7F5F0 bakgrunn · #1B1B1B tekst · #3A6DF0 aksent",
+    "Bilde": "3 bilder i grid 1 : 1.4 : 1, høyde 300, radius 12, gap 16",
+    "Overlay": "3 foto: ingen",
+    "Ved behov": "Samme filter på alle tre (F08 Varm film eller F06) så de ser ut som én serie",
+    "Effekter": "Ingen"
+   }
+  },
+  {
+   "id": "pro-01",
+   "code": "pro-01",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Ungdomskveld",
+   "desc": "Varm, ufokusert publikumsfoto og rund, tykk tittel",
+   "spec": {
+    "Stil": "Leken / energisk",
+    "Fonter": "Lilita One 400 (220px) · Hanken Grotesk 700–800 (26–36px)",
+    "Farger": "Tekst #F3E9D9 · skilletegn #2A0B02 · foto oransje",
+    "Bilde": "Publikum med hender opp, filter: blur(6px) + oransje tone",
+    "Overlay": "Foto: F07 Uskarp 6 px + F04 Fargelag oransje, color + F03 Vignett · F10 Korn 40 %",
+    "Ved behov": "Mer F07 (10 px) hvis ansikter skal skjules",
+    "Effekter": "Radial mørkning bak tekst · tittel rotert −2° · korn 40 %"
+   }
+  },
+  {
+   "id": "pro-02",
+   "code": "pro-02",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Konferanse med talere",
+   "desc": "Talere på rad, bred tittel og sperret årstall",
+   "spec": {
+    "Stil": "Moderne konferanse",
+    "Fonter": "Archivo stretch 125 %: 800 (112px, nowrap), 600 (26px), 300 (52px) · Hanken Grotesk 700 (18px)",
+    "Farger": "Radial #284A74 → #0B1220 → #05070C · #F1E6CF tekst · #C8BFAE navn",
+    "Bilde": "4 talere utklipt (PNG), midtre to løftet 16px",
+    "Overlay": "Talere: ingen · F01 Mørk bunn (fade til #05070C)",
+    "Ved behov": "F06 Svart-hvitt på alle talere for lik stil",
+    "Effekter": "Fade fra transparent → #05070C under bildene"
+   }
+  },
+  {
+   "id": "pro-03",
+   "code": "pro-03",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Fjell og gradient",
+   "desc": "Tynn Bodoni med fargeovergang, fjellform og talere",
+   "spec": {
+    "Stil": "Moderne-elegant",
+    "Fonter": "Bodoni Moda 400 (290px) · Hanken Grotesk 300–600 (22–34px)",
+    "Farger": "Bg #0F5560 → #14303A → #1A1D24 · tittel gradient #8FD3CF → #F08A5D",
+    "Bilde": "Fjellfoto beskåret til trekant (clip-path) + 2–4 utklipte talere",
+    "Overlay": "Fjell: F01 Mørk bunn · talere: ingen",
+    "Ved behov": "F04 Fargelag i tittelfargen, soft-light 30 % på fjellet",
+    "Effekter": "Tekst-gradient: background-clip:text · fade nederst"
+   }
+  },
+  {
+   "id": "pro-04",
+   "code": "pro-04",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Sol og sirkel",
+   "desc": "Leir, sommer, barn og familie – rundt bilde i en sol",
+   "spec": {
+    "Stil": "Leken / familie",
+    "Fonter": "Unbounded 900 (150px, 110px kontur), 700 (28px)",
+    "Farger": "#FFE9C7 bakgrunn · #10316B marine · #FF6B3D sol",
+    "Bilde": "Sirkel 440px inni sol-sirkel 600px",
+    "Overlay": "Foto i sirkel: ingen",
+    "Ved behov": "F08 Varm film så bildet matcher solfargen",
+    "Effekter": "Kontur-årstall: -webkit-text-stroke 3px"
+   }
+  },
+  {
+   "id": "pro-05",
+   "code": "pro-05",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Kurs",
+   "desc": "Tett grotesk, tydelig info, S/H-portrett på beige",
+   "spec": {
+    "Stil": "Minimal / informativ",
+    "Fonter": "Archivo 800 (170px, sporing −0.045em) · Hanken Grotesk 400–600 (24–46px)",
+    "Farger": "#C9B9A3 bakgrunn · #0D0D0D tekst",
+    "Bilde": "Taler utklipt, filter: grayscale(1) contrast(1.15)",
+    "Overlay": "Taler: F06 Svart-hvitt (contrast 1.15)",
+    "Ved behov": "—",
+    "Effekter": "Logo-plass 64×64 øverst til høyre"
+   }
+  },
+  {
+   "id": "pro-06",
+   "code": "pro-06",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Ukentlig samling",
+   "desc": "Myk, tykk tittel over scenefoto, speilet info topp og bunn",
+   "spec": {
+    "Stil": "Moderne / energisk",
+    "Fonter": "Bagel Fat One 400 (200px) · Hanken Grotesk 500 (24px)",
+    "Farger": "Tekst #F6E7CF · foto med rød/oransje skjerm",
+    "Bilde": "Fullflate scenefoto",
+    "Overlay": "Foto: F01 Mørk bunn 20→45 % · F10 Korn 40 %",
+    "Ved behov": "F07 Uskarp 4 px · F09 Kald natt hvis scenelyset er for sterkt",
+    "Effekter": "Mørkning 20→45 % · tittel rotert −3° · infogrid gjentas topp/bunn · korn 40 %"
+   }
+  },
+  {
+   "id": "pro-07",
+   "code": "pro-07",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Uskarp fargesky",
+   "desc": "Ingen bilde – myk gradient-blob med rasterprikker",
+   "spec": {
+    "Stil": "Moderne / abstrakt",
+    "Fonter": "Archivo 700 kursiv (190px) · Archivo 600 (34px)",
+    "Farger": "#FDF4E6 bakgrunn · blob #E8342B / #FFB020 / #FF7A1F · tittel #FFF1DE · info #8A1E0A",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F12 Raster overlay",
+    "Ved behov": "—",
+    "Effekter": "3 radial-gradients + filter: blur(36px) · prikkraster 7px, overlay"
+   }
+  },
+  {
+   "id": "pro-08",
+   "code": "pro-08",
+   "part": 1,
+   "cat": "Promo",
+   "name": "Revet papir",
+   "desc": "Foto topp og bunn med hvit revet kant, mørkt midtfelt",
+   "spec": {
+    "Stil": "Moderne / urban",
+    "Fonter": "Archivo 900 stretch 125 %, 600 stretch 62 %, 200 stretch 62 % kontur (150px) · Archivo 800 (30px) · Mrs Saint Delafield (70px)",
+    "Farger": "Midtfelt radial #1D3A66 → #0B1220 · papirkant #F2F2F2 · tekst #FFFFFF",
+    "Bilde": "Samme eller to publikumsfoto, topp + bunn 232px",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F06 Svart-hvitt eller F04 Fargelag i malens farge på begge stripene",
+    "Effekter": "Revet kant: hvit polygon bak fotopolygon, 18px forskjøvet"
+   }
+  },
+  {
+   "id": "trl-01",
+   "code": "trl-01",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Spotlys og silhuett",
+   "desc": "Tynn høy tittel, silhuett foran, signatur-skrift",
+   "spec": {
+    "Stil": "Filmisk",
+    "Fonter": "Big Shoulders Display 300 (260px) · Mrs Saint Delafield (96px) · Hanken Grotesk 500 (20px, sporing .4em)",
+    "Farger": "Radial #A85A16 → #3A1C08 → #0B0806 · tittel #E8873A · info #B9824F",
+    "Bilde": "Utklipt silhuett (PNG) lagt over tittelen",
+    "Overlay": "Silhuett: ingen · F11 Lysglød (spotlys) · F10 Korn 50 %",
+    "Ved behov": "F06 Svart-hvitt på silhuetten",
+    "Effekter": "Spotlys = radial ellipse · korn 50 %"
+   }
+  },
+  {
+   "id": "trl-02",
+   "code": "trl-02",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Lysstråle",
+   "desc": "Rød stråle ovenfra, stor kursiv Bodoni",
+   "spec": {
+    "Stil": "Filmisk / høytid",
+    "Fonter": "Bodoni Moda 400 kursiv (320px) · Hanken Grotesk 300 (32–40px, sporing .6em)",
+    "Farger": "#070303 bakgrunn · stråle rgba(200,24,24,.75) · tittel #F4F6FF",
+    "Bilde": "Tornekrone utklipt, midt bak tittelen",
+    "Overlay": "Objekt: ingen · F11 Lysglød fra topp",
+    "Ved behov": "F04 Fargelag rødt, multiply 40 % på objektet",
+    "Effekter": "Stråle: radial ellipse 30 % × 90 % fra toppen"
+   }
+  },
+  {
+   "id": "trl-03",
+   "code": "trl-03",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Scene på gulv",
+   "desc": "Olivengrønn studio, varm serif, utklipt scene foran tittel",
+   "spec": {
+    "Stil": "Moderne-klassisk / drama",
+    "Fonter": "Gloock 400 (200px) · Hanken Grotesk 700 (28px)",
+    "Farger": "Radial #A3B07A → #5F6C40 · tittel #F0A53A · overtittel #5A2F0E",
+    "Bilde": "Utklipt scene (personer, bord) 480×330",
+    "Overlay": "Scene: ingen · F10 Korn 50 %",
+    "Ved behov": "F08 Varm film svak så scenen matcher bakgrunnen",
+    "Effekter": "Kastskygge: ellipse blur(10px) · korn 50 %"
+   }
+  },
+  {
+   "id": "trl-04",
+   "code": "trl-04",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Strømmende bånd",
+   "desc": "Mørk silkegradient, fargebånd som farger tittelen, spredte ord",
+   "spec": {
+    "Stil": "Moderne / abstrakt",
+    "Fonter": "Anton 400 (290px, nowrap) · Hanken Grotesk 400 (32px)",
+    "Farger": "Bg #13201F + uskarpe flekker #2C4440 / #7D7378 / #B0541F · tittel #EFE6E3 · bånd #E07A3A → #62B8EC · ord #D9692A",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 75 %",
+    "Ved behov": "—",
+    "Effekter": "4 store sirkler med blur(90–140px) som silke · bånd (linear-gradient, rotert −14°) under tittel + kopi OVER tittel med mix-blend multiply · tungt korn (overlay 75 % + soft-light 50 %)"
+   }
+  },
+  {
+   "id": "trl-05",
+   "code": "trl-05",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Kinoformat",
+   "desc": "Sorte filmstriper, sperret antikva og rulletekst",
+   "spec": {
+    "Stil": "Klassisk film",
+    "Fonter": "Cormorant Garamond 300 (72px, sporing .22em) · Hanken Grotesk 600 (22px) · Bebas Neue (18px, 30px)",
+    "Farger": "Striper #000000 · tekst #FFFFFF · rulletekst #8A8A8A",
+    "Bilde": "Fullflate landskap / stillbilde fra filmen",
+    "Overlay": "Foto: svarte striper topp/bunn",
+    "Ved behov": "F08 Varm film eller F09 Kald natt (filmgradering) · F03 Vignett 40 %",
+    "Effekter": "Svarte striper 90px topp og bunn (2.39:1-følelse)"
+   }
+  },
+  {
+   "id": "trl-06",
+   "code": "trl-06",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Duotone grunge",
+   "desc": "Gult duotonefoto på grått, kontur + massiv tittel, etikett",
+   "spec": {
+    "Stil": "Sporty / grunge",
+    "Fonter": "Archivo 900 (150px kontur, 250px) · Archivo 700 (30px) · Kaushan Script (64px)",
+    "Farger": "Bg #55554F → #2A2A28 · duotone #F6DC3C · tekst #ECEBE6 · etikett #D9D9D4/#333",
+    "Bilde": "Løper i bevegelse, grayscale + gul fargelag (mix-blend multiply/hard-light)",
+    "Overlay": "Foto: F05 Duotone grå/gul · F10 Korn 70 %",
+    "Ved behov": "Riper/støv-PNG over (soft-light)",
+    "Effekter": "Korn 70 % · gjerne riper/støv-PNG over"
+   }
+  },
+  {
+   "id": "trl-07",
+   "code": "trl-07",
+   "part": 1,
+   "cat": "Trailer",
+   "name": "Dokumentar",
+   "desc": "Kjølig landskap, undertekst-sitat og tidskode",
+   "spec": {
+    "Stil": "Dokumentar / nordisk",
+    "Fonter": "Instrument Serif 400 (240px) · Space Mono 400/700 (20–26px) · Hanken Grotesk 500 (36px)",
+    "Farger": "Tekst #F2EFE8 · undertekst #FFFFFF · overlegg rgba(15,18,22,.7)",
+    "Bilde": "Fullflate kjølig landskap",
+    "Overlay": "Foto: F02 Mørk side (fra venstre) · F09 Kald natt",
+    "Ved behov": "F01 Mørk bunn 40 %",
+    "Effekter": "Mørkning fra venstre · tekstskygge 0 2 8 på undertekst"
+   }
+  },
+  {
+   "id": "tsr-01",
+   "code": "tsr-01",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "Snart",
+   "desc": "Sort, bred konturtekst og dato – helt uten bilde",
+   "spec": {
+    "Stil": "Minimal",
+    "Fonter": "Archivo 900 stretch 125 % kontur (230px) · Instrument Serif kursiv (60px) · JetBrains Mono 500 (30px)",
+    "Farger": "#0A0A0A bakgrunn · #F2F2F2 kontur · #D8D8D8 / #8A8A8A",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "-webkit-text-stroke 2px · tynn linje gjennom midten · korn 35 %"
+   }
+  },
+  {
+   "id": "tsr-02",
+   "code": "tsr-02",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "Nedtelling",
+   "desc": "Ett enormt tall, prikker som viser fremdrift",
+   "spec": {
+    "Stil": "Moderne / sporty",
+    "Fonter": "Big Shoulders Display 900 (700px), 800 (160px) · Hanken Grotesk 500 (36px)",
+    "Farger": "#14171C bakgrunn · #D4FF3F lime · #FFFFFF · #A9ADB8",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Prikker: fylt = gjenstående dag (dynamisk)"
+   }
+  },
+  {
+   "id": "tsr-03",
+   "code": "tsr-03",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "Lysstripe",
+   "desc": "Uskarp fargestripe, mørk boks bak serif-tittel",
+   "spec": {
+    "Stil": "Moderne / stemningsfull",
+    "Fonter": "Playfair Display 700 (130px) + 600 kursiv (120px) · Hanken Grotesk 600 (18px)",
+    "Farger": "#1A1716 bakgrunn · stripe #F7B38A → #E8452F → #C22A4D → #1F5E6A · #ECE5DF / #F2B8A0",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 45 %",
+    "Ved behov": "—",
+    "Effekter": "Stripe: linear-gradient + filter: blur(40px) · korn 45 %"
+   }
+  },
+  {
+   "id": "tsr-04",
+   "code": "tsr-04",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "Skjult ord",
+   "desc": "Nøkkelordet er uskarpt – avsløres senere",
+   "spec": {
+    "Stil": "Minimal / nysgjerrig",
+    "Fonter": "Archivo 900 (250px) · Hanken Grotesk 500 (72px), 800 (30px) · JetBrains Mono 500 (22px)",
+    "Farger": "#EFECE6 bakgrunn · #1A1A1A tekst · #FF4D2E merke",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "filter: blur(18px) på nøkkelordet · merke rotert −4°"
+   }
+  },
+  {
+   "id": "tsr-05",
+   "code": "tsr-05",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "Tittel med ekko",
+   "desc": "Bred tittel med konturkopi under, utklipt objekt",
+   "spec": {
+    "Stil": "Moderne / varm",
+    "Fonter": "Archivo 900 stretch 125 % (120px fylt + kontur) · Archivo 700 stretch 110 % (26px)",
+    "Farger": "#D7B07C sand · #FFF7EA tekst",
+    "Bilde": "Utklipt objekt (trone, krone, lykt …) + valgfritt lite element (due, sky)",
+    "Overlay": "Objekt: ingen · F10 Korn 50 %",
+    "Ved behov": "—",
+    "Effekter": "Ekko: samme tekst 70px lavere, kun stroke 2px · myk kastskygge · korn 50 %"
+   }
+  },
+  {
+   "id": "tsr-06",
+   "code": "tsr-06",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "To sirkler",
+   "desc": "Fotosirkel og gul sirkel overlapper, tittel i snittet",
+   "spec": {
+    "Stil": "Klassisk-illustrativ",
+    "Fonter": "Hanken Grotesk 700 (130px), 600 (20px) · Kaushan Script (60px)",
+    "Farger": "#F1EEE8 bakgrunn · #E3B62E gul · #4A4640 · tittel #FFFFFF",
+    "Bilde": "S/H-foto i sirkel 560px (øverst)",
+    "Overlay": "Foto i sirkel: F06 Svart-hvitt · gul sirkel multiply over",
+    "Ved behov": "—",
+    "Effekter": "Gul sirkel mix-blend-mode: multiply over fotosirkelen"
+   }
+  },
+  {
+   "id": "tsr-07",
+   "code": "tsr-07",
+   "part": 1,
+   "cat": "Teaser",
+   "name": "Bilde i bokstaver",
+   "desc": "Foto vises gjennom tykke bokstaver, håndskrift over",
+   "spec": {
+    "Stil": "Moderne plakat",
+    "Fonter": "Archivo 900 stretch 112 % (440px) og 62 % (70px) · Caveat 700 (240px)",
+    "Farger": "#ECEBE7 bakgrunn · #E8743A håndskrift · #2C3A2E",
+    "Bilde": "Foto (mennesker, natur) klippet inn i bokstavene",
+    "Overlay": "Foto i bokstaver: ingen · F10 Korn 25 % (multiply)",
+    "Ved behov": "F06 Svart-hvitt + kontrast 1.2 hvis bokstavene blir utydelige",
+    "Effekter": "background-clip: text + color: transparent · korn multiply 25 %"
+   }
+  },
+  {
+   "id": "gen-11",
+   "code": "GEN-11",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Kantlys",
+   "desc": "Mørkt portrett med oransje kantlys, tung smal tittel",
+   "spec": {
+    "Stil": "Moderne YouTube",
+    "Fonter": "Archivo 900 stretch 72 % (120px), 700 (72px) · JetBrains Mono 500 (24px)",
+    "Farger": "Bg radial #3A1A0C → #0D0D0F · #FFFFFF tittel · #8D8D93 · #D0652C aksent",
+    "Bilde": "Person utklipt høyre, 460px bred, kantlys fra høyre",
+    "Overlay": "Person: kantlys (linear-gradient mørk → #D0652C) · F10 Korn 35 %",
+    "Ved behov": "F06 Svart-hvitt før kantlyset for renere effekt",
+    "Effekter": "Kantlys: linear-gradient(90deg, mørk 55 % → #D0652C) på personen · strek rotert −2° · korn 35 %"
+   }
+  },
+  {
+   "id": "gen-12",
+   "code": "GEN-12",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Fiskeøye",
+   "desc": "Person sett ovenfra, tusjtekst med ring og pil",
+   "spec": {
+    "Stil": "Leken / personlig",
+    "Fonter": "Permanent Marker 400 (180px, 54px)",
+    "Farger": "Bg radial #3A7BEA → #173B8F → #0B1D4D · #FFFFFF tekst · #FFE14A ring",
+    "Bilde": "Person fotografert rett ovenfra (vidvinkel)",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F03 Vignett 40 % · F04 Fargelag i ringfargen, soft-light 20 %",
+    "Effekter": "Ujevn ring: border 7px, border-radius 50% 45% 55% 48%, rotert −6°"
+   }
+  },
+  {
+   "id": "gen-13",
+   "code": "GEN-13",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Filmfoto og oransje",
+   "desc": "Varmt filmfoto, stor oransje overskrift, navn i oval og symbolrad",
+   "spec": {
+    "Stil": "Moderne / redaksjonell",
+    "Fonter": "Archivo 800 stretch 85 % (118px), 600 (26px), 500 stretch 90 % (28px)",
+    "Farger": "Tekst #FF4B1F · himmel #7EA3C0 → #D9C7A6 · åser #B4733A → #5E3015",
+    "Bilde": "Fullflate filmfoto, person som ser opp mot himmelen",
+    "Overlay": "Foto: F08 Varm film · F10 Korn 50 %",
+    "Ved behov": "F01 Mørk bunn 30 % hvis himmelen er lys bak teksten",
+    "Effekter": "Strekkode av 5 streker · globus = sirkel + ellipse · korn 50 %"
+   }
+  },
+  {
+   "id": "gen-14",
+   "code": "GEN-14",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Elektrisk blå",
+   "desc": "Gigantisk ord bak person på knallblå, skrivemaskintekst i hjørnene",
+   "spec": {
+    "Stil": "Moderne redaksjonell",
+    "Fonter": "Anton 400 (490px) · Space Mono 400 (26px)",
+    "Farger": "#2233E0 bakgrunn · #FFFFFF tekst · person #0B0B30",
+    "Bilde": "Person utklipt, midt, foran tittel",
+    "Overlay": "Person: ingen · F10 Korn 30 %",
+    "Ved behov": "F04 Fargelag #0B0B30, multiply 30 % så personen passer mot blått",
+    "Effekter": "Lag: bg → tittel → person → hjørnetekst · korn 30 %"
+   }
+  },
+  {
+   "id": "gen-15",
+   "code": "GEN-15",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Studieark",
+   "desc": "Rutepapir, tung orddeling, gul ring, notater og tusjstrek",
+   "spec": {
+    "Stil": "Moderne / skisse",
+    "Fonter": "Archivo 900 (150px), 900 kursiv (40–44px) · Space Mono 400 (20–22px) · Permanent Marker (320px dekor)",
+    "Farger": "#EEE8DA papir · #111111 · #F2C200 markør",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 25 % (multiply)",
+    "Ved behov": "—",
+    "Effekter": "Rutenett 44px · ellipse 6px gul · korn multiply 25 %"
+   }
+  },
+  {
+   "id": "gen-16",
+   "code": "GEN-16",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Frostet glass",
+   "desc": "Uskarpe fargeflekker bak et glasskort, spørsmål som svever",
+   "spec": {
+    "Stil": "Moderne UI",
+    "Fonter": "Bricolage Grotesque 800 (120px), 600 (28px), 400 (36px)",
+    "Farger": "Bg #0F0F1A · flekker #7B4DFF / #1FC7B6 / #FF5EA8 · glass rgba(255,255,255,.12)",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · glasskort med backdrop-filter blur(20px)",
+    "Ved behov": "Ved foto bak: F07 Uskarp 20 px",
+    "Effekter": "Flekker blur(80px) · kort backdrop-filter blur(20px), kant 1.5px hvit 35 %"
+   }
+  },
+  {
+   "id": "gen-17",
+   "code": "GEN-17",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Delt duotone",
+   "desc": "To personer i hver sin farge, tittel over skillet",
+   "spec": {
+    "Stil": "Moderne / debatt",
+    "Fonter": "Bricolage Grotesque 800 stretch 75 % (190px), 700 (26px) · JetBrains Mono 500 (22px)",
+    "Farger": "#FF4F8B venstre · #2D5BFF høyre · #FFFFFF · #111111",
+    "Bilde": "2 portretter utklipt, duotone i hver sin farge",
+    "Overlay": "Portretter: F05 Duotone, én farge per person",
+    "Ved behov": "—",
+    "Effekter": "Duotone: grayscale + farget lag med mix-blend multiply"
+   }
+  },
+  {
+   "id": "gen-18",
+   "code": "GEN-18",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Kamerasøker",
+   "desc": "Solnedgang, opptaksramme med REC og tittel på gule striper",
+   "spec": {
+    "Stil": "Leken / vlogg",
+    "Fonter": "Archivo 900 stretch 90 % (92px) · Space Mono 700 (28px)",
+    "Farger": "Himmel #F4A259 → #E76F51 → #5A3A5C · #FFE14A striper · #111111 · #FF3B30 REC",
+    "Bilde": "Fullflate reisefoto",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F01 Mørk bunn 30 % · F08 Varm film",
+    "Effekter": "4 hjørnevinkler (border 6px) · batteri-ikon · tekst med gul bakgrunn per linje"
+   }
+  },
+  {
+   "id": "gen-19",
+   "code": "GEN-19",
+   "part": 2,
+   "cat": "Generell video",
+   "name": "Magasinforside",
+   "desc": "Stort logohode, person foran, forsidetekster og strekkode",
+   "spec": {
+    "Stil": "Redaksjonell",
+    "Fonter": "Bodoni Moda 900 (200px) · Archivo 800 stretch 75 % (48px), 400 (24px) · JetBrains Mono (20px)",
+    "Farger": "#EFE8DC papir · #C8321F logo · #111111 tekst",
+    "Bilde": "Portrett utklipt, overlapper logohodet",
+    "Overlay": "Portrett: ingen",
+    "Ved behov": "F04 Fargelag i logofargen, soft-light 15 %",
+    "Effekter": "Lag: logo → person → forsidetekster · strekkode via repeating-linear-gradient"
+   }
+  },
+  {
+   "id": "bib-10",
+   "code": "bib-10",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Mørk avisvegg",
+   "desc": "Hvit strukket tittel over mørke avisspalter, oransje stempel",
+   "spec": {
+    "Stil": "Vintage / dramatisk",
+    "Fonter": "Anton 400 (400px, scaleY 1.12, padding-top 110px), (46px)",
+    "Farger": "#121212 bakgrunn · #FFFFFF tittel · #FF6A2B stempel",
+    "Bilde": "Ingen (valgfritt S/H-utsnitt)",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "Ved utsnitt: F06 Svart-hvitt",
+    "Effekter": "6 spalter med linjestriper hvit 12 % · korn 35 %"
+   }
+  },
+  {
+   "id": "bib-11",
+   "code": "bib-11",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Swash-bokstaver",
+   "desc": "Grotesk og kursive swash-bokstaver i samme ord, to personer ved bord",
+   "spec": {
+    "Stil": "Moderne-klassisk",
+    "Fonter": "Archivo 800 (230px) · Playfair Display 400 kursiv (260px) · Archivo 600 (22px)",
+    "Farger": "Bg radial #F3F1EE → #D9D5CF · #8A4F2C tekst",
+    "Bilde": "Liten scene: to personer ved bord, utklipt",
+    "Overlay": "Scene: ingen · F10 Korn 35 %",
+    "Ved behov": "F08 Varm film svak",
+    "Effekter": "Swash: enkeltbokstaver i Playfair kursiv · myk skygge under bord · korn 35 %"
+   }
+  },
+  {
+   "id": "bib-12",
+   "code": "bib-12",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Stillhet ved sjøen",
+   "desc": "Skumringshav, kremfarget flared serif blandet med skrift",
+   "spec": {
+    "Stil": "Moderne-klassisk",
+    "Fonter": "Yeseva One 400 (150px) · Pinyon Script (170px) · Archivo 700 stretch 110 % (34px)",
+    "Farger": "Himmel #B8A8C8 → #F2C894 · hav #2D3E5C → #1A2438 · tekst #FFF3D6",
+    "Bilde": "Fullflate havfoto i skumring",
+    "Overlay": "Foto: F11 Lysglød (sol) · F10 Korn 45 %",
+    "Ved behov": "F01 Mørk bunn 40 % · F08 Varm film",
+    "Effekter": "Sol: sirkel med blur + glød · korn 45 %"
+   }
+  },
+  {
+   "id": "bib-13",
+   "code": "bib-13",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Fjellag",
+   "desc": "Lag på lag med fjell i tåke, stor kursiv Bodoni",
+   "spec": {
+    "Stil": "Klassisk / filmisk",
+    "Fonter": "Bodoni Moda 400 kursiv (280px) · Hanken Grotesk 600 (20–24px)",
+    "Farger": "Bg #0E1A2B → #6D7F94 · fjell #4A5D75 / #2B3B52 / #141F30 · tekst #F4EFE6",
+    "Bilde": "Valgfritt fjellfoto (eller CSS-lag som her)",
+    "Overlay": "Ingen foto (CSS-fjell) · tåke-gradient",
+    "Ved behov": "Ved fjellfoto: F09 Kald natt + hvit tåke-gradient",
+    "Effekter": "3 fjell-lag med clip-path · tåke = hvit gradient med blur"
+   }
+  },
+  {
+   "id": "bib-14",
+   "code": "bib-14",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Markert vers",
+   "desc": "Bibeltekst som bakgrunn, ett vers markert med lime tusj",
+   "spec": {
+    "Stil": "Moderne / studie",
+    "Fonter": "Cormorant Garamond 500 (52px) · Caveat 700 (64px) · JetBrains Mono 600 (20px)",
+    "Farger": "#F6F3EC papir · #2B2A27 tekst (55 % for resten) · #D7F542 markør · #E0452B notat",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Markør: linear-gradient(transparent 15 %, #D7F542 15–85 %) · tekst beskåret utenfor kant"
+   }
+  },
+  {
+   "id": "bib-15",
+   "code": "bib-15",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Bokstavgitter",
+   "desc": "Hver bokstav i sin farge-celle, info i sort fot",
+   "spec": {
+    "Stil": "Moderne / typografisk",
+    "Fonter": "Big Shoulders Display 900 (520px), 800 (70px) · Hanken Grotesk 600 (24px)",
+    "Farger": "#FF5A1F og #F1EDE4 celler · #111111",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "4 like celler 320×520 · fargene veksler"
+   }
+  },
+  {
+   "id": "bib-16",
+   "code": "bib-16",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Buevindu",
+   "desc": "Fersken-gradient, ørkenbilde i buet vindu, stor serif",
+   "spec": {
+    "Stil": "Moderne / varm",
+    "Fonter": "Gloock 400 (300px) · Instrument Serif kursiv (44px) · Hanken Grotesk 700 (22px)",
+    "Farger": "Bg #F6D6C2 → #E9A99A · tittel #FFF4EA · tekst #3B1D14",
+    "Bilde": "Ørken/åker i buet ramme 400×560",
+    "Overlay": "Foto i bue: ingen · F13 Papir 30 %",
+    "Ved behov": "F08 Varm film",
+    "Effekter": "Bue: border-radius 200 200 0 0 · korn multiply 30 %"
+   }
+  },
+  {
+   "id": "bib-17",
+   "code": "bib-17",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Ord for ord",
+   "desc": "Verset stablet i ulike bredder og vekter, siste ord i farge",
+   "spec": {
+    "Stil": "Moderne / typografisk",
+    "Fonter": "Archivo 300/200/900 med stretch 62–125 % (90–200px) · Hanken Grotesk 600 (20px)",
+    "Farger": "#0D0D0D bakgrunn · #FFFFFF · #777777 · #FF6A2B",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Kontrast i bredde og vekt mellom ordene"
+   }
+  },
+  {
+   "id": "bib-18",
+   "code": "bib-18",
+   "part": 2,
+   "cat": "Bibelvideo",
+   "name": "Bibelquiz",
+   "desc": "Sitat i snakkeboble og tre svaralternativer",
+   "spec": {
+    "Stil": "Leken / ungdom",
+    "Fonter": "Bagel Fat One (150px) · Hanken Grotesk 700–800 (30–38px)",
+    "Farger": "#FFD43B bakgrunn · #1B1B1B · #FFFFFF",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Stort dekor-spørsmålstegn hvit 35 %"
+   }
+  },
+  {
+   "id": "live-10",
+   "code": "live-10",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Bønnenatt",
+   "desc": "S/H scene med publikum, lime retro-serif og ovale info-ringer",
+   "spec": {
+    "Stil": "Retro / konsert",
+    "Fonter": "Rozha One 400 (200px) · Pinyon Script (170px) · Hanken Grotesk 700 (24px)",
+    "Farger": "Tekst #D7FF3A · foto i gråtoner",
+    "Bilde": "Fullflate scenefoto, grayscale(1)",
+    "Overlay": "Foto: F06 Svart-hvitt + F11 Lysglød (lyskjegler) · F10 Korn 50 %",
+    "Ved behov": "F01 Mørk bunn 50 %",
+    "Effekter": "Lyskjegler + publikumssilhuett (her CSS) · korn 50 %"
+   }
+  },
+  {
+   "id": "live-11",
+   "code": "live-11",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Scenelys",
+   "desc": "Lovsangsteam under oransje scenelys, bred tittel med stjernegnist",
+   "spec": {
+    "Stil": "Moderne / konsert",
+    "Fonter": "Archivo 900 stretch 125 % (130px), 400 stretch 125 % (44px) · Hanken Grotesk 600–700 (18–26px)",
+    "Farger": "#0A0705 bakgrunn · lys #FF7A1A → #FFCF70 · #FFFFFF tekst",
+    "Bilde": "Scenefoto med 3–4 sangere + publikum",
+    "Overlay": "Foto: F11 Lysglød (stripe øverst)",
+    "Ved behov": "F01 Mørk bunn 60 % · F03 Vignett",
+    "Effekter": "Lysstripe øverst med blur · glød text-shadow · stjerne via clip-path"
+   }
+  },
+  {
+   "id": "live-12",
+   "code": "live-12",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "TV-grafikk",
+   "desc": "Kirkerom med TV-aktig navneplakat nederst og logo-merke",
+   "spec": {
+    "Stil": "Moderne sending",
+    "Fonter": "Hanken Grotesk 800 (26px, 46px), 500 (26px) · JetBrains Mono 500 (22px)",
+    "Farger": "Live #E3262B · plakat #FFFFFF / rgba(0,0,0,.75) · tekst #111111",
+    "Bilde": "Fullflate kirkerom (her CSS: vinduer + benker)",
+    "Overlay": "Foto: ingen (lower third har egne bokser)",
+    "Ved behov": "F07 Uskarp 4 px · F01 Mørk bunn 40 %",
+    "Effekter": "Lower third: 3 stablede bokser · logo-merke 80 % opasitet"
+   }
+  },
+  {
+   "id": "live-13",
+   "code": "live-13",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Dåp ved sjøen",
+   "desc": "Himmel, trelinje og innsjø, rosa kursiv tittel",
+   "spec": {
+    "Stil": "Moderne / frisk",
+    "Fonter": "Playfair Display 400 kursiv (260px) + 400 (120px) · Hanken Grotesk 500 (26px)",
+    "Farger": "Himmel #A9D6F5 · sjø #3AA0B8 → #0C5A73 · tekst #FF4F9A",
+    "Bilde": "Fullflate innsjø/strand",
+    "Overlay": "Foto: ingen",
+    "Ved behov": "F04 Fargelag i malens blå, color 30 % · F03 Vignett 30 %",
+    "Effekter": "Krusninger: repeating-linear-gradient · speilet hjørnetekst"
+   }
+  },
+  {
+   "id": "live-14",
+   "code": "live-14",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Kalenderblokk",
+   "desc": "Avrivningskalender med dato og serif-tittel ved siden",
+   "spec": {
+    "Stil": "Moderne / ren",
+    "Fonter": "Archivo 800 (300px) · Instrument Serif 400 (150px) · Hanken Grotesk 400–800 (26–44px)",
+    "Farger": "#ECE7DE bakgrunn · #FFFFFF blokk · #E3262B topp · #111111",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Skygge 0 30 60 rgba(0,0,0,.15) · ringhull = sirkler i bakgrunnsfarge"
+   }
+  },
+  {
+   "id": "live-15",
+   "code": "live-15",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Adventslys",
+   "desc": "Fire lys med to tent, varm glød og kursiv antikva",
+   "spec": {
+    "Stil": "Klassisk høytid",
+    "Fonter": "Cormorant Garamond 500 kursiv (140px) · Hanken Grotesk 500–600 (26–28px)",
+    "Farger": "Bg radial #3A1D0A → #0C0705 · lys #EFE3CC · flamme #FFF6C8 → #FFB43C · gull #D9B36A",
+    "Bilde": "Ingen (kan byttes til foto av adventslys)",
+    "Overlay": "Ingen foto · F11 Lysglød (flammer)",
+    "Ved behov": "Ved foto av lys: F03 Vignett 60 % + F08 Varm film",
+    "Effekter": "Flamme = radial ellipse · glød = stor radial med blur"
+   }
+  },
+  {
+   "id": "live-16",
+   "code": "live-16",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Neonskilt",
+   "desc": "Mursteinsvegg med rosa neon-skrift",
+   "spec": {
+    "Stil": "Leken / ungdom",
+    "Fonter": "Kaushan Script (260px) · Hanken Grotesk 800 (46px), 500 (28px)",
+    "Farger": "Murvegg #3A1F1A / #2A1512 · neon #FFF0F8 med glød #FF4FB4 / #FF1F8F · #FFC2E4",
+    "Bilde": "Ingen (eller foto av vegg)",
+    "Overlay": "Ingen foto · F03 Vignett",
+    "Ved behov": "Ved veggfoto: F09 Kald natt + F03 Vignett 60 %",
+    "Effekter": "Neon: text-shadow 0 0 10/30/60px rosa · vignett"
+   }
+  },
+  {
+   "id": "live-17",
+   "code": "live-17",
+   "part": 2,
+   "cat": "Direktesending",
+   "name": "Pinseild",
+   "desc": "Uskarpe flammer nedenfra, bred tittel og kursiv undertittel",
+   "spec": {
+    "Stil": "Moderne / abstrakt",
+    "Fonter": "Archivo 900 stretch 125 % (230px) · Instrument Serif kursiv (54px) · Hanken Grotesk 700 (22px)",
+    "Farger": "#1A0805 bakgrunn · flammer #FF3B1F / #FF8A1F / #FFD23F · tittel #FFF3E6",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 50 %",
+    "Ved behov": "—",
+    "Effekter": "5 flamme-ellipser med blur(50–70px) · glass-chip · korn 50 %"
+   }
+  },
+  {
+   "id": "pro-09",
+   "code": "pro-09",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Neonpublikum",
+   "desc": "Lilla/blå uskarpt publikum, tykk rund tittel, infolinje med skilletegn",
+   "spec": {
+    "Stil": "Energisk / ungdom",
+    "Fonter": "Lilita One (190px) · Hanken Grotesk 700–800 (22–34px)",
+    "Farger": "Bg #12093A · lys #6B3CFF / #1FB7FF / #FF4FB4 · tekst #F6F0FF",
+    "Bilde": "Publikumsfoto, gjerne uskarpt (blur 6px)",
+    "Overlay": "Foto: F07 Uskarp 6 px + fargeflekker (F04, screen) · F10 Korn 45 %",
+    "Ved behov": "F01 Mørk bunn 50 %",
+    "Effekter": "Fargeflekker blur(80px) · publikumssilhuett · korn 45 %"
+   }
+  },
+  {
+   "id": "pro-10",
+   "code": "pro-10",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Fem talere",
+   "desc": "Kosmisk mørk bakgrunn, fem talere på rad, bred gylden tittel",
+   "spec": {
+    "Stil": "Moderne konferanse",
+    "Fonter": "Archivo stretch 125 %: 800 (140px), 600 (24px), 300 (40px) · Hanken Grotesk 700 (18px)",
+    "Farger": "Bg radial #1D3550 → #06080D · tekst #F1E6CF · navn #C8BFAE",
+    "Bilde": "5 talere utklipt, midtre størst",
+    "Overlay": "Talere: ingen · F01 Mørk bunn (fade under)",
+    "Ved behov": "F06 Svart-hvitt på alle for lik stil",
+    "Effekter": "Glitrende prikker (små radial-gradients) · fade under talerne"
+   }
+  },
+  {
+   "id": "pro-11",
+   "code": "pro-11",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Billett",
+   "desc": "Konsertbillett med perforering og avrivningsdel",
+   "spec": {
+    "Stil": "Leken / retro",
+    "Fonter": "Archivo 900 stretch 125 % og 62 % (140px) · Space Mono 400 (22px) · Hanken Grotesk 600 (24px)",
+    "Farger": "#7A1420 bakgrunn · billett #F3E9D6 · #1A1A1A",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 40 %",
+    "Ved behov": "—",
+    "Effekter": "Perforering = stiplet linje + to halvsirkler i bakgrunnsfarge · rotert −3° · korn 40 %"
+   }
+  },
+  {
+   "id": "pro-12",
+   "code": "pro-12",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Plakatvegg",
+   "desc": "Plakater limt over hverandre med teip og klistremerke",
+   "spec": {
+    "Stil": "Urban / kollasj",
+    "Fonter": "Archivo 900 stretch 75 % (120px) · Hanken Grotesk 400–700 (24–30px) · Bagel Fat One (26px)",
+    "Farger": "Betong #B9B4AB · plakater #FF5A36 / #2D5BFF / #F4F0E6 · #FFE14A merke",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F13 Papir 40 %",
+    "Ved behov": "—",
+    "Effekter": "Rotasjoner −4° til 5° · teip = halvgjennomsiktige rektangler · korn multiply 40 %"
+   }
+  },
+  {
+   "id": "pro-13",
+   "code": "pro-13",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Middagsbord",
+   "desc": "Tallerkener sett ovenfra rundt en varm serif-tittel",
+   "spec": {
+    "Stil": "Varm / fellesskap",
+    "Fonter": "Young Serif 400 (120px) · Hanken Grotesk 500–700 (26–30px)",
+    "Farger": "#C4623F terrakotta · tallerken #F5EFE6 / #E6DCCD · tekst #FFF4E6",
+    "Bilde": "Valgfritt matfoto ovenfra",
+    "Overlay": "Ingen foto",
+    "Ved behov": "Ved matfoto: F08 Varm film + F01 Mørk bunn 30 %",
+    "Effekter": "Tallerkener = sirkler med kant 14px og skygge"
+   }
+  },
+  {
+   "id": "pro-14",
+   "code": "pro-14",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Fargeblokker",
+   "desc": "Tre fargestriper bak person, stor vennlig tittel til venstre",
+   "spec": {
+    "Stil": "Moderne / inviterende",
+    "Fonter": "Bricolage Grotesque 800 (120px), 700 (28px), 400 (32px)",
+    "Farger": "#F2EFE9 bakgrunn · #FF5A1F / #FFC93C / #2D5BFF · #111111",
+    "Bilde": "Person utklipt foran stripene",
+    "Overlay": "Person: ingen",
+    "Ved behov": "F04 Fargelag i bakgrunnsfargen, soft-light 20 % (så personen passer inn i paletten)",
+    "Effekter": "Ingen – flatt og rent"
+   }
+  },
+  {
+   "id": "pro-15",
+   "code": "pro-15",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Vi trenger deg",
+   "desc": "Knallgrønn, person som peker, rundt klistremerke",
+   "spec": {
+    "Stil": "Leken / rekruttering",
+    "Fonter": "Archivo 900 stretch 75 % (170px), 800 (28px) · JetBrains Mono 500 (22px)",
+    "Farger": "#1FBF6B bakgrunn · #FFFFFF tittel · #0D3D24 · #FFE14A merke",
+    "Bilde": "Person utklipt som peker mot kamera",
+    "Overlay": "Person: ingen",
+    "Ved behov": "F04 Fargelag i bakgrunnsfargen, soft-light 20 % (så personen passer inn i paletten)",
+    "Effekter": "Merke rotert −10°"
+   }
+  },
+  {
+   "id": "pro-16",
+   "code": "pro-16",
+   "part": 2,
+   "cat": "Promo",
+   "name": "Familiedag",
+   "desc": "Pastell former og ballonger, rund bred tittel",
+   "spec": {
+    "Stil": "Leken / familie",
+    "Fonter": "Unbounded 900 (140px), 600 (26px) · Hanken Grotesk 500 (28px)",
+    "Farger": "#FFF4E0 bakgrunn · #23305E tekst · #FF8FB1 / #6EC6FF / #FFB703",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Bue = sirkel med kantlinje, beskåret · ballonger med snor"
+   }
+  },
+  {
+   "id": "trl-08",
+   "code": "trl-08",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Studio-samtale",
+   "desc": "Ferskenstudio, swash-bokstav i tittelen, to personer ved bord",
+   "spec": {
+    "Stil": "Moderne-klassisk / drama",
+    "Fonter": "Archivo 800 stretch 110 % (170px) · Playfair Display kursiv (210px) · Hanken Grotesk 700 (24px)",
+    "Farger": "Bg radial #F4D9C4 → #E2B597 · tekst #6B2F17",
+    "Bilde": "Utklipt scene: to personer, bord og stoler",
+    "Overlay": "Scene: ingen · F10 Korn 45 %",
+    "Ved behov": "F08 Varm film svak",
+    "Effekter": "Kastskygge med blur · korn 45 %"
+   }
+  },
+  {
+   "id": "trl-09",
+   "code": "trl-09",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Planetkant",
+   "desc": "Stjernehimmel og glødende planethorisont, tynn sperret tittel",
+   "spec": {
+    "Stil": "Filmisk / dokumentar",
+    "Fonter": "Archivo 200 stretch 125 % (120px, sporing .3em) · Hanken Grotesk 500 (22px) · JetBrains Mono (20px)",
+    "Farger": "#04060F bakgrunn · planet #6FB3FF → #0A1A3A · tekst #FFFFFF / #9FB6D9",
+    "Bilde": "Ingen (eller romfoto)",
+    "Overlay": "Ingen foto · F11 Lysglød (planetkant)",
+    "Ved behov": "Ved romfoto: F09 Kald natt + F03 Vignett",
+    "Effekter": "Stjerner: gjentatte små radial-gradients · planet = stor sirkel med box-shadow-glød"
+   }
+  },
+  {
+   "id": "trl-10",
+   "code": "trl-10",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "VHS",
+   "desc": "Skanlinjer, RGB-forskyvning og VCR-tekst",
+   "spec": {
+    "Stil": "Retro / leken",
+    "Fonter": "Archivo 900 kursiv stretch 75 % (160px) · Space Mono 700 (38–44px)",
+    "Farger": "Bg #3A2A6B → #B04A6B → #F0A060 · RGB-skygger #FF2A6D / #22E0FF",
+    "Bilde": "Valgfritt hjemmevideo-stillbilde",
+    "Overlay": "Ingen foto · skanlinjer + F10 Korn 60 %",
+    "Ved behov": "Ved hjemmevideo-bilde: F08 Varm film + F07 Uskarp 1 px + metning 0.8",
+    "Effekter": "Skanlinjer 2px/4px · text-shadow −6px rød / 6px cyan · støybånd · korn 60 %"
+   }
+  },
+  {
+   "id": "trl-11",
+   "code": "trl-11",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Døråpning",
+   "desc": "Mørkt rom, lys dør med silhuett og lys som faller på gulvet",
+   "spec": {
+    "Stil": "Filmisk",
+    "Fonter": "Cormorant Garamond 300 (110px, sporing .3em) · Hanken Grotesk 500 (18px)",
+    "Farger": "#0B0A09 bakgrunn · lys #FFF6E0 → #F2C27A · tekst #F2E6D0 / #B9A27A",
+    "Bilde": "Silhuett i døråpning (eller CSS som her)",
+    "Overlay": "Ingen foto (CSS) · F11 Lysglød",
+    "Ved behov": "Ved silhuettfoto: F06 Svart-hvitt + F03 Vignett 70 %",
+    "Effekter": "Lysfall: trapes med clip-path og gradient · glød box-shadow 120px"
+   }
+  },
+  {
+   "id": "trl-12",
+   "code": "trl-12",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Filmrull",
+   "desc": "Filmstripe med perforering og fire bilderuter, gul tittel over",
+   "spec": {
+    "Stil": "Retro / bak kulissene",
+    "Fonter": "Archivo 900 stretch 62 % (160px) · Hanken Grotesk 600 (22px)",
+    "Farger": "#141414 bakgrunn · stripe #0A0A0A · hull #E8E4DC · tittel #FFD23F",
+    "Bilde": "4 stillbilder fra produksjonen",
+    "Overlay": "4 stillbilder: ingen",
+    "Ved behov": "Samme filter på alle fire (F08 Varm film eller F06)",
+    "Effekter": "Perforering: repeating-linear-gradient 24/48px · tittel med skygge"
+   }
+  },
+  {
+   "id": "trl-13",
+   "code": "trl-13",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Lystunnel",
+   "desc": "Samme ord gjentatt i synkende størrelse mot et lyst sentrum",
+   "spec": {
+    "Stil": "Moderne / høytid",
+    "Fonter": "Archivo 900 stretch 125 % (190–700px) · Instrument Serif kursiv (90px)",
+    "Farger": "#07080C bakgrunn · ekko #FFD27A (5–35 %) · tittel #FFFFFF",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F11 Lysglød i midten",
+    "Ved behov": "—",
+    "Effekter": "5 lag med samme ord, synkende størrelse og økende opasitet · varm radial i midten"
+   }
+  },
+  {
+   "id": "trl-14",
+   "code": "trl-14",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Regn på ruten",
+   "desc": "Uskarpe lys bak regnstriper, kursiv stille tittel",
+   "spec": {
+    "Stil": "Filmisk / stemningsfull",
+    "Fonter": "Instrument Serif kursiv (120px) · Hanken Grotesk 600 (22px)",
+    "Farger": "Bg #2D3A4A → #5A6B7C · bokeh #FFB45A / #5AE0D0 · tekst #F2F4F6",
+    "Bilde": "Valgfritt foto gjennom vindu",
+    "Overlay": "Ingen foto · bokeh + regn",
+    "Ved behov": "Ved vindusfoto: F07 Uskarp 6 px + F09 Kald natt",
+    "Effekter": "Bokeh = sirkler med blur(20px) · regn: repeating-linear-gradient 100°"
+   }
+  },
+  {
+   "id": "trl-15",
+   "code": "trl-15",
+   "part": 2,
+   "cat": "Trailer",
+   "name": "Rulletekst",
+   "desc": "Sort kinoplakat med Bodoni-tittel og høy, smal rulletekst",
+   "spec": {
+    "Stil": "Klassisk film",
+    "Fonter": "Bodoni Moda 700 (140px) · Bebas Neue (30px scaleY 1.6, 46px) · Hanken Grotesk 300 (26px)",
+    "Farger": "#000000 · tittel #F2EDE2 · rulletekst #9A958C · gull #C9A46A",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "Rulletekst strukket vertikalt (scaleY 1.6) · gullinje · korn 35 %"
+   }
+  },
+  {
+   "id": "tsr-08",
+   "code": "tsr-08",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Blå sky",
+   "desc": "Uskarp blå/lilla fargesky med prikkraster og hvit tittel",
+   "spec": {
+    "Stil": "Moderne / abstrakt",
+    "Fonter": "Archivo 700 kursiv (170px), 600 (32px)",
+    "Farger": "#EEF1FF bakgrunn · #3B5BFF / #8A5CFF / #29D3FF · tittel rgba(255,255,255,.9) · #2A2F8A",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F12 Raster overlay",
+    "Ved behov": "—",
+    "Effekter": "Radial-gradients + blur(36px) · prikkraster 7px overlay"
+   }
+  },
+  {
+   "id": "tsr-09",
+   "code": "tsr-09",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Sensurert",
+   "desc": "Ord skjult bak sorte streker – avsløres senere",
+   "spec": {
+    "Stil": "Minimal / nysgjerrig",
+    "Fonter": "Archivo 900 (150px) · JetBrains Mono 600 (22px)",
+    "Farger": "#F2EFE8 bakgrunn · #111111 · #E3262B",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Sorte streker med svak rotasjon · stempel rotert −8°"
+   }
+  },
+  {
+   "id": "tsr-10",
+   "code": "tsr-10",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Nøkkelhull",
+   "desc": "Mørk flate med et opplyst nøkkelhull som viser en scene",
+   "spec": {
+    "Stil": "Filmisk / mystisk",
+    "Fonter": "Instrument Serif kursiv (48px) · JetBrains Mono 500 (20–28px)",
+    "Farger": "#0D0B0A bakgrunn · scene #FFE2A8 → #C86A2A · tekst #E9DCC6 / #8A7C66",
+    "Bilde": "Foto inni nøkkelhullet (sirkel + trapes)",
+    "Overlay": "Foto i nøkkelhull: ingen · glød",
+    "Ved behov": "F08 Varm film · F03 Vignett 50 %",
+    "Effekter": "Glød box-shadow · nøkkelhull = sirkel 220px + trapes med clip-path"
+   }
+  },
+  {
+   "id": "tsr-11",
+   "code": "tsr-11",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Laster inn",
+   "desc": "Fremdriftslinje og terminal-tekst for ny podkast",
+   "spec": {
+    "Stil": "Moderne / teknisk",
+    "Fonter": "Bricolage Grotesque 800 (160px) · Space Mono 400/700 (30–60px) · Hanken Grotesk 500 (30px)",
+    "Farger": "#0E0F12 bakgrunn · #8AF0C4 · #FFFFFF · #AAAAAA",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Stripete fyll: repeating-linear-gradient 45° · fyll-bredde dynamisk"
+   }
+  },
+  {
+   "id": "tsr-12",
+   "code": "tsr-12",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Kryss av dagene",
+   "desc": "Kalender der dagene krysses ut fram til en rød ring",
+   "spec": {
+    "Stil": "Leken / nedtelling",
+    "Fonter": "Archivo 900 stretch 75 % (140px), 800 (40px) · Space Mono 700 (26px) · Hanken Grotesk 500 (30px)",
+    "Farger": "#F7F4EE bakgrunn · #111111 · #E3262B · celler #FFFFFF",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto",
+    "Ved behov": "—",
+    "Effekter": "Kryss = to roterte streker · ring rundt datoen"
+   }
+  },
+  {
+   "id": "tsr-13",
+   "code": "tsr-13",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Hvem er gjesten?",
+   "desc": "Rød flate, sort silhuett med stort spørsmålstegn",
+   "spec": {
+    "Stil": "Moderne / nysgjerrig",
+    "Fonter": "Archivo 900 stretch 75 % (100px), 900 (300px) · Instrument Serif kursiv (80px)",
+    "Farger": "#E8322B bakgrunn · #111111 silhuett · #FFFFFF",
+    "Bilde": "Silhuett (ekte person med sort fyll)",
+    "Overlay": "Silhuett: sort fyll (filter brightness(0))",
+    "Ved behov": "—",
+    "Effekter": "Spørsmålstegn over hodet"
+   }
+  },
+  {
+   "id": "tsr-14",
+   "code": "tsr-14",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Stempel",
+   "desc": "Kraftpapir med stort blått gummistempel",
+   "spec": {
+    "Stil": "Retro / taktil",
+    "Fonter": "Archivo 900 stretch 75 % (90px), 700 (32px) · Instrument Serif kursiv (40px) · JetBrains Mono (20px)",
+    "Farger": "Kraft #C9A473 · blekk #2B2A8A · tekst #3B2A17",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 50 % (multiply)",
+    "Ved behov": "—",
+    "Effekter": "Dobbel ring · rotert −12° · korn multiply 50 % gir blekkstruktur"
+   }
+  },
+  {
+   "id": "tsr-15",
+   "code": "tsr-15",
+   "part": 2,
+   "cat": "Teaser",
+   "name": "Soloppgang i tekst",
+   "desc": "Soloppgangs-gradient inni bokstavene på mørk bakgrunn",
+   "spec": {
+    "Stil": "Moderne / høytid",
+    "Fonter": "Archivo 900 stretch 125 % (262px, padding-top 100px så Å-ringen fylles) · Hanken Grotesk 600 (26px) · Instrument Serif kursiv (44px)",
+    "Farger": "#0A0A12 bakgrunn · gradient #1B1F4A → #7A3B8A → #FF7A3D → #FFD27A → #FFF2C8",
+    "Bilde": "Ingen (eller himmelfoto inni teksten)",
+    "Overlay": "Ingen foto",
+    "Ved behov": "Ved himmelfoto i teksten: F08 Varm film + kontrast 1.2",
+    "Effekter": "background-clip: text · tynn glødlinje som horisont"
+   }
+  },
+  {
+   "id": "gen-20",
+   "code": "GEN-20",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Mørk markør",
+   "desc": "Tavlesort rutenett, nøkkelord på limegrønn pensel, person til høyre",
+   "spec": {
+    "Stil": "Moderne YouTube",
+    "Fonter": "Archivo 600 (72px) · Archivo 900, stretch 70 % (168px) · JetBrains Mono 500 (24px)",
+    "Farger": "#121212 bakgrunn · #EDEDED tekst · #C6F432 markør · #9A9A9A undertekst",
+    "Bilde": "Utklipt person (PNG), midjebilde, høyre side 480×660, flukt med bunnen",
+    "Overlay": "Person: ingen · Hele: F10 Korn 25 %",
+    "Ved behov": "F06 Svart-hvitt hvis klærne kolliderer med limegrønt",
+    "Effekter": "Rutenett 64px, hvit 6 % · markør med ujevne hjørner, rotert −2° · korn 25 %",
+    "Roller": "Bakgrunn #121212 · Tekst #EDEDED · Støtte #C6F432"
+   }
+  },
+  {
+   "id": "gen-21",
+   "code": "GEN-21",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Lampelys",
+   "desc": "Varm lyskjegle i mørket, høy smal tittel med silhuett foran",
+   "spec": {
+    "Stil": "Filmatisk / stemning",
+    "Fonter": "Six Caps 400 (400px) · Hanken Grotesk 600 (24px, sporing .45em), 500 (40px)",
+    "Farger": "#0A0806 bakgrunn · #E5832F tittel · #F2C38E overtittel · #F6E7D4 undertittel",
+    "Bilde": "Fullflate foto: mørkt rom med varmt lampelys (f.eks. pult, lampe eller person i silhuett)",
+    "Overlay": "Foto: F08 Varm film + F03 Vignett 70 % · F10 Korn 40 %",
+    "Ved behov": "F01 Mørk bunn 40 % hvis rommet er lyst",
+    "Effekter": "Mørk gradient nederst bak undertittelen · korn 40 %",
+    "Roller": "Bakgrunn #0A0806 · Tekst #E5832F · Støtte #F2C38E"
+   }
+  },
+  {
+   "id": "gen-22",
+   "code": "GEN-22",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Kursplakat",
+   "desc": "Sandfarget flate, tung svart grotesk, S/H-person til høyre",
+   "spec": {
+    "Stil": "Moderne / minimal",
+    "Fonter": "Archivo 800 (132px, sporing −0.045em) · Hanken Grotesk 500 (40px), 700 (42px), 400 (24px)",
+    "Farger": "#C9B79C bakgrunn · #111111 tekst",
+    "Bilde": "Utklipt person i svart-hvitt (grayscale), høyre side, flukt med bunnen",
+    "Overlay": "Person: F06 Svart-hvitt · F10 Korn 25 % (multiply)",
+    "Ved behov": "—",
+    "Effekter": "filter: grayscale(1) på person · korn multiply 25 %",
+    "Roller": "Bakgrunn #C9B79C · Tekst #111111 · Støtte #111111"
+   }
+  },
+  {
+   "id": "gen-23",
+   "code": "GEN-23",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Stort tall",
+   "desc": "Gigantisk tall i bakgrunnen, liste-tittel og person i forgrunnen",
+   "spec": {
+    "Stil": "Moderne YouTube",
+    "Fonter": "Archivo 900 stretch 70 % (860px tall), stretch 80 % (96px) · Hanken Grotesk 500 (28px) · JetBrains Mono 700 (22px)",
+    "Farger": "#F2EEE6 bakgrunn · #FF5B2E tall · #111111 tekst",
+    "Bilde": "Utklipt person (PNG) foran tallet, midt",
+    "Overlay": "Person: ingen · F10 Korn 20 % (multiply)",
+    "Ved behov": "F04 Fargelag i bakgrunnsfargen, soft-light 20 % (så personen passer inn i paletten)",
+    "Effekter": "Lag: bg → tall → person → tekst · korn multiply 20 %",
+    "Roller": "Bakgrunn #F2EEE6 · Tekst #111111 · Støtte #FF5B2E"
+   }
+  },
+  {
+   "id": "gen-24",
+   "code": "GEN-24",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Fire hjørner",
+   "desc": "Fullflate vannfoto, stor kursiv + rett serif i lime, samme etikett i hjørnene",
+   "spec": {
+    "Stil": "Moderne-klassisk",
+    "Fonter": "Fraunces 300 kursiv (220px), 600 (210px) · Hanken Grotesk 500 (28px) · JetBrains Mono 500 (14px, sporing .32em)",
+    "Farger": "Foto-tone #0F6E73 · #E6FF3A all tekst",
+    "Bilde": "Fullflate tekstur-foto (vann, stoff, himmel)",
+    "Overlay": "Foto: F04 Fargelag #0F6E73, color 40 % · F10 Korn 35 %",
+    "Ved behov": "F03 Vignett 30 % hvis hjørneteksten drukner",
+    "Effekter": "Gjentatt etikett øverst venstre + nederst høyre, ✦ i de to andre hjørnene · korn 35 %",
+    "Roller": "Bakgrunn foto/#0F6E73 · Tekst #E6FF3A · Støtte #E6FF3A"
+   }
+  },
+  {
+   "id": "gen-25",
+   "code": "GEN-25",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Gul duotone",
+   "desc": "Grått grunge-papir, gult duotone-foto, kontur + slitt tittel og etikettbånd",
+   "spec": {
+    "Stil": "Grunge / energisk",
+    "Fonter": "Permanent Marker 400 (110px) · Archivo 900 stretch 125 % (150px kontur, 300px) · Archivo 800 (28px)",
+    "Farger": "#3B3B3B papir · #F6D31C duotone · #E9E7E1 tekst",
+    "Bilde": "Fullflate actionfoto (sport, bevegelse) gjort om til gul/grå duotone",
+    "Overlay": "Foto: F05 Duotone #3B3B3B / #F2CF1E · F10 Korn 55 %",
+    "Ved behov": "Riper/støv-PNG over (soft-light)",
+    "Effekter": "Duotone: grayscale + gult lag mix-blend multiply · kontur: -webkit-text-stroke 4px · korn 55 %",
+    "Roller": "Bakgrunn #3B3B3B · Tekst #E9E7E1 · Støtte #F6D31C"
+   }
+  },
+  {
+   "id": "gen-26",
+   "code": "GEN-26",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Lyst studio",
+   "desc": "Lys sømløs studiobakgrunn, stablet brun tittel med én kursiv bokstav, to stoler",
+   "spec": {
+    "Stil": "Moderne-klassisk / intervju",
+    "Fonter": "Archivo 700 stretch 90 % (200px, sporing −0.035em) · Hanken Grotesk 600 (18px, sporing .12em) · Archivo 800 (18px)",
+    "Farger": "#ECEAE6 studio · #9A5B33 tittel/bord · #3A2A1F",
+    "Bilde": "Fullflate studiofoto i lys sømløs bakgrunn: to personer ved et lite bord, helfigur, sentrert i nedre tredjedel",
+    "Overlay": "Foto: F08 Varm film svak (varme 30 %) · F10 Korn 20 % (multiply)",
+    "Ved behov": "F07 Uskarp 2 px på bakgrunnen hvis veggen er urolig bak tittelen",
+    "Effekter": "Tittelen på én linje over den tomme veggen i bildet · korn 20 %",
+    "Roller": "Bakgrunn #ECEAE6 · Tekst #9A5B33 · Støtte #3A2A1F"
+   }
+  },
+  {
+   "id": "gen-27",
+   "code": "GEN-27",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Halvt ansikt",
+   "desc": "Person beskåret i høyre kant, tittel i tre vekter på mørk grønn",
+   "spec": {
+    "Stil": "Moderne YouTube",
+    "Fonter": "Archivo 300 (74px), 900 stretch 85 % (150px) · Instrument Serif kursiv (48px)",
+    "Farger": "#13261F bakgrunn · #F3F1E8 tittel · #CFE3D6 · #E6B85C aksent",
+    "Bilde": "Portrett, beskåret slik at halve ansiktet går ut av høyre kant",
+    "Overlay": "Person: F04 Fargelag #13261F, multiply 30 % · F10 Korn 30 %",
+    "Ved behov": "F06 Svart-hvitt",
+    "Effekter": "Tre tekstvekter: lett → tung → kursiv serif · korn 30 %",
+    "Roller": "Bakgrunn #13261F · Tekst #F3F1E8 · Støtte #E6B85C"
+   }
+  },
+  {
+   "id": "gen-28",
+   "code": "GEN-28",
+   "part": 3,
+   "cat": "Generell video",
+   "name": "Klassisk foredrag",
+   "desc": "Vinrød flate, gull serif, ovalt portrett og ornamentlinje",
+   "spec": {
+    "Stil": "Klassisk",
+    "Fonter": "Cormorant Garamond 500 (128px), 500 kursiv (46px), 600 (22px, sporing .4em) · Hanken Grotesk 600 (22px)",
+    "Farger": "#4A1420 bakgrunn · #F4E9D6 tekst · #D6B16A gull",
+    "Bilde": "Portrett i oval 300×400 med gullkant 6px",
+    "Overlay": "Portrett: F08 Varm film + F03 Vignett 50 % · F10 Korn 25 %",
+    "Ved behov": "—",
+    "Effekter": "Tynn ramme inset 28px gull 50 % · rombe-ornament på linjen · korn 25 %",
+    "Roller": "Bakgrunn #4A1420 · Tekst #F4E9D6 · Støtte #D6B16A"
+   }
+  },
+  {
+   "id": "bib-19",
+   "code": "bib-19",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Offerets lys",
+   "desc": "Sort med rødt ovenlys, tynn kontrastrik kursiv serif, sperret tekst over og under",
+   "spec": {
+    "Stil": "Dramatisk / klassisk-moderne",
+    "Fonter": "Bodoni Moda 300 kursiv (230px) · Hanken Grotesk 500 (30–34px, sporing .7em)",
+    "Farger": "#070505 bakgrunn · rødt lys rgba(170,20,20,.75) · #F6F4EF tekst",
+    "Bilde": "Valgfritt: utklipt objekt (tornekrans, kors) bak tittelen, farget rødt",
+    "Overlay": "Objekt: F04 Fargelag #AA1414, multiply · F11 Lysglød rød fra topp · F10 Korn 30 %",
+    "Ved behov": "—",
+    "Effekter": "Ovenlys: radial ellipse fra topp · korn 30 %",
+    "Roller": "Bakgrunn #070505 · Tekst #F6F4EF · Støtte #AA1414"
+   }
+  },
+  {
+   "id": "bib-20",
+   "code": "bib-20",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Gotisk kollasj",
+   "desc": "Gråpapir, frakturskrift med lime markering, papirbiter med vers",
+   "spec": {
+    "Stil": "Kollasj / vintage-moderne",
+    "Fonter": "UnifrakturMaguntia 400 (150px) · Young Serif 400 (22–28px) + kursiv · JetBrains Mono 500 (22px) · Hanken Grotesk 800 (18px)",
+    "Farger": "#DAD7D1 papir · #111111 tekst · #D4F23A markering · #A08770 verstekst · #E8E2DA lapper",
+    "Bilde": "2 smale S/H-landskapsstriper (sepia)",
+    "Overlay": "Bildestriper: F06 Svart-hvitt + F08 Varm film · F13 Papir 40 %",
+    "Ved behov": "—",
+    "Effekter": "Lime blokk bak første ord · tynn bølgelinje (SVG path) · korn multiply 40 %",
+    "Roller": "Bakgrunn #DAD7D1 · Tekst #111111 · Støtte #D4F23A"
+   }
+  },
+  {
+   "id": "bib-21",
+   "code": "bib-21",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "To sirkler",
+   "desc": "Kartbakgrunn, to overlappende sirkler – foto og gul – med tittel i overlappet",
+   "spec": {
+    "Stil": "Illustrativ / klassisk",
+    "Fonter": "Josefin Sans 600 (92px) · Kaushan Script 400 (38px) · Hanken Grotesk 500 (22px kartnavn)",
+    "Farger": "#EDEBE6 kart · #E7B83A gul sirkel · #3A3226 overlapp · #FFFFFF tittel · #F2CD5C skrift",
+    "Bilde": "Foto i øvre sirkel: rekke med mennesker som går, svart-hvitt",
+    "Overlay": "Foto i sirkel: F06 Svart-hvitt · F13 Papir 25 %",
+    "Ved behov": "—",
+    "Effekter": "Overlapp: bunnsirkel med overflow:hidden + mørk kopi av toppsirkelen inni · kartlinjer via repeating-linear-gradient",
+    "Roller": "Bakgrunn #EDEBE6 · Tekst #FFFFFF · Støtte #E7B83A"
+   }
+  },
+  {
+   "id": "bib-22",
+   "code": "bib-22",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Kongen kommer",
+   "desc": "Kamelflate, bred krem tittel med konturekko, utklipt objekt og due",
+   "spec": {
+    "Stil": "Moderne kollasj",
+    "Fonter": "Archivo 900 stretch 125 % (200px fylt + kontur), 800 (24px)",
+    "Farger": "#D2A86E bakgrunn · #F6EFE2 tekst · objekt i gull/rødt",
+    "Bilde": "Utklipt objekt (PNG) med egen skygge – f.eks. trone eller krone. Valgfritt: utklipt due og skyer",
+    "Overlay": "Objekt: ingen (egen skygge) · F13 Papir 35 %",
+    "Ved behov": "F08 Varm film svak så objektet matcher kamelfargen",
+    "Effekter": "Ekko: samme tekst forskjøvet +10/+60px med -webkit-text-stroke 2px · objektet overlapper tittelen litt · korn multiply 35 %",
+    "Roller": "Bakgrunn #D2A86E · Tekst #F6EFE2 · Støtte #7A3B22"
+   }
+  },
+  {
+   "id": "bib-23",
+   "code": "bib-23",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Grønn eng",
+   "desc": "Diset grønt landskap, krem western-serif med kursivt småord og vershenvisning",
+   "spec": {
+    "Stil": "Klassisk-moderne / natur",
+    "Fonter": "Fraunces 900 med SOFT 100 og WONK 1 (150px), 700 (40px) · Pinyon Script 400 (170px)",
+    "Farger": "#F3EDC8 tekst · landskap #8D8C8A → #3C5A33 → #24391F",
+    "Bilde": "Fullflate landskapsfoto (eng, åser, dis)",
+    "Overlay": "Foto: F08 Varm film svak + F01 Mørk bunn 40 % · F10 Korn 45 %",
+    "Ved behov": "F01 Mørk bunn opptil 60 % hvis himmelen er lys",
+    "Effekter": "font-variation-settings for myk/uregelmessig serif · korn 45 % gir filmfølelse",
+    "Roller": "Bakgrunn foto/#3C4B34 · Tekst #F3EDC8 · Støtte #F3EDC8"
+   }
+  },
+  {
+   "id": "bib-24",
+   "code": "bib-24",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Pergament",
+   "desc": "Gammelt papir, rød initial, to spalter vers og tittel i midten",
+   "spec": {
+    "Stil": "Klassisk",
+    "Fonter": "Cormorant Garamond 600 (120px), 400 (30px), kursiv 500 (30px), 600 (22px, sporing .5em) · UnifrakturMaguntia (150px initial)",
+    "Farger": "#EFE3C8 → #D9C69C papir · #2C2116 tekst · #7A2B1C rødt",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "Dobbel ramme (2px + 1px) · stor initial · papir-vignett radial · korn multiply 35 %",
+    "Roller": "Bakgrunn #EFE3C8 · Tekst #2C2116 · Støtte #7A2B1C"
+   }
+  },
+  {
+   "id": "bib-25",
+   "code": "bib-25",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Høy og smal",
+   "desc": "Boknavn i full høyde langs venstre kant, kapittelliste til høyre",
+   "spec": {
+    "Stil": "Moderne / redaksjonell",
+    "Fonter": "Six Caps 400 (470px, transform scaleY(1.42)) · JetBrains Mono 600 (22px) · Hanken Grotesk 400 (32px) · Instrument Serif kursiv (44px)",
+    "Farger": "#F1EFEA bakgrunn · #1F3B2D tekst · #C25B2A aksent",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 20 %",
+    "Ved behov": "—",
+    "Effekter": "Tittel får gå ut over topp og bunn · loddrett skillestrek · korn 20 %",
+    "Roller": "Bakgrunn #F1EFEA · Tekst #1F3B2D · Støtte #C25B2A"
+   }
+  },
+  {
+   "id": "bib-26",
+   "code": "bib-26",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Håp-stabel",
+   "desc": "Grått papir, bilder inni store bokstaver, håndskrevet ord oppå",
+   "spec": {
+    "Stil": "Moderne plakat",
+    "Fonter": "Anton 400 (410px) · Caveat 700 (190px) · Bebas Neue 400 (36px)",
+    "Farger": "#E2E0DB papir · #E26A3B script/aksent · #2E4A3C",
+    "Bilde": "1–4 foto som fyller bokstavene (background-clip: text)",
+    "Overlay": "Foto i bokstaver: F06 Svart-hvitt eller F04 Fargelag grønn · F13 Papir 35 %",
+    "Ved behov": "Kontrast 1.2 hvis bokstavene blir utydelige",
+    "Effekter": "Foto i tekst: background-image + -webkit-background-clip:text + color:transparent · boksen starter over kanten (top −36px, padding-top 200px) så hele Å-ringen fylles · korn multiply 35 %",
+    "Roller": "Bakgrunn #E2E0DB · Tekst #2E4A3C · Støtte #E26A3B"
+   }
+  },
+  {
+   "id": "bib-27",
+   "code": "bib-27",
+   "part": 3,
+   "cat": "Bibelvideo",
+   "name": "Galater-lag",
+   "desc": "Papirkollasj med fjell og fugler, kontur-ekko bak oransje serif, sidetekster",
+   "spec": {
+    "Stil": "Kollasj / redaksjonell",
+    "Fonter": "Gloock 400 (210px fylt + kontur) · Bebas Neue 400 (30px)",
+    "Farger": "#DCD9D2 papir · #F05A1E tittel · #3D5C58 grønn · #3A3A3A tekst",
+    "Bilde": "Landskapsfoto (fjell, dis) med fugler – liggende rektangel 900×480 midt på",
+    "Overlay": "Foto: F04 Fargelag #3D5C58, soft-light 40 % · F13 Papir 40 %",
+    "Ved behov": "F06 Svart-hvitt",
+    "Effekter": "Kontur-ekko forskjøvet 34/−46px · flate grønne blokker i hjørnene · korn multiply 40 %",
+    "Roller": "Bakgrunn #DCD9D2 · Tekst #F05A1E · Støtte #3D5C58"
+   }
+  },
+  {
+   "id": "live-18",
+   "code": "live-18",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Søndag i scenelys",
+   "desc": "Publikum og lysrigg, bred tittel med glød, DIREKTE-pille og klokkeslett",
+   "spec": {
+    "Stil": "Moderne / konsert",
+    "Fonter": "Archivo 800 stretch 118 % (124px) · Hanken Grotesk 700 (26px, sporing .2em)",
+    "Farger": "#0C0A10 bakgrunn · lys rgba(255,140,60,.55) · #FFF7EC tekst · #FF3B30 prikk",
+    "Bilde": "Fullflate foto fra salen: publikum bakfra med løftede hender, lysrigg øverst",
+    "Overlay": "Foto: F08 Varm film + F01 Mørk bunn 85 % + F11 Lysglød oransje · F10 Korn 30 %",
+    "Ved behov": "F07 Uskarp 4 px hvis publikum er urolig bak tittelen",
+    "Effekter": "Mørk gradient nederst for lesbarhet · tekstglød text-shadow · korn 30 %",
+    "Roller": "Bakgrunn #0C0A10 · Tekst #FFF7EC · Støtte #FF3B30"
+   }
+  },
+  {
+   "id": "live-19",
+   "code": "live-19",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Ren dato",
+   "desc": "Hvitt, rød LIVE-prikk, stor dato og serif-tema",
+   "spec": {
+    "Stil": "Minimal / moderne",
+    "Fonter": "Archivo 900 stretch 75 % (250px) · Instrument Serif kursiv (92px) · Hanken Grotesk 700 (26px), 600 (30px) · JetBrains Mono 500 (26px)",
+    "Farger": "#FAFAF7 bakgrunn · #111111 tekst · #F2392B rødt · #888888",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 12 %",
+    "Ved behov": "—",
+    "Effekter": "Loddrett strek deler dato og tema · korn 12 %",
+    "Roller": "Bakgrunn #FAFAF7 · Tekst #111111 · Støtte #F2392B"
+   }
+  },
+  {
+   "id": "live-20",
+   "code": "live-20",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Varm sky",
+   "desc": "Uskarp varm fargeflekk, gjennomsiktig tittel, klokkeslett",
+   "spec": {
+    "Stil": "Moderne / myk",
+    "Fonter": "Archivo 800 kursiv stretch 90 % (180px), 600 (34px)",
+    "Farger": "#FBF1E2 bakgrunn · flekk #E3342F / #F6A21A / #F07A2A / #F5B44A · tittel hvit 75 % · #C2401F",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F12 Raster + F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "Organisk form (border-radius med 8 verdier) + blur(30px) · halvtone-mønster · korn 35 %",
+    "Roller": "Bakgrunn #FBF1E2 · Tekst #FFECDC · Støtte #C2401F"
+   }
+  },
+  {
+   "id": "live-21",
+   "code": "live-21",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Høymesse",
+   "desc": "Nattblått, gyllent buevindu, klassisk serif og klokkeslett",
+   "spec": {
+    "Stil": "Klassisk",
+    "Fonter": "Cormorant Garamond 500 (104px) · Hanken Grotesk 600 (24px, sporing .4em)",
+    "Farger": "#16213A bakgrunn · #CFA75A gull · vindu #F3D79A → #7A5A22 · #F4ECD8 tekst",
+    "Bilde": "Foto av kirkerom/alter i buet ramme 240×380",
+    "Overlay": "Foto i bue: F08 Varm film + F04 Fargelag #CFA75A, soft-light 40 %",
+    "Ved behov": "—",
+    "Effekter": "Buet bilderamme: border-radius 120px 120px 0 0 + gullkant 3px + glød · korn 25 %",
+    "Roller": "Bakgrunn #16213A · Tekst #F4ECD8 · Støtte #CFA75A"
+   }
+  },
+  {
+   "id": "live-22",
+   "code": "live-22",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Dåp og lime",
+   "desc": "Turkist vann, lime kursiv tittel, korsmerker i hjørnene",
+   "spec": {
+    "Stil": "Moderne-klassisk",
+    "Fonter": "Pinyon Script 400 (230px) · Playfair Display 500 (150px) · Hanken Grotesk 600 (28px) · JetBrains Mono 500 (14px)",
+    "Farger": "Vann #56C9C4 → #0B5A64 · #E5FF3D all tekst",
+    "Bilde": "Fullflate vannfoto (gjerne med hånd i vannet)",
+    "Overlay": "Foto: F04 Fargelag #14808A, color 30 % · F10 Korn 35 %",
+    "Ved behov": "F03 Vignett 30 %",
+    "Effekter": "Etiketter i to hjørner, kors i de to andre · korn 35 %",
+    "Roller": "Bakgrunn foto/#14808A · Tekst #E5FF3D · Støtte #E5FF3D"
+   }
+  },
+  {
+   "id": "live-23",
+   "code": "live-23",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Kveldsmøte",
+   "desc": "Dyp blå natt, stor måne, myk serif og tidspunkt",
+   "spec": {
+    "Stil": "Rolig / klassisk-moderne",
+    "Fonter": "Fraunces 300 kursiv SOFT 100 (150px) · Hanken Grotesk 500 (32px) · JetBrains Mono 700 (24px)",
+    "Farger": "#0E1730 → #2D3C6E natt · #F1D99A måne · #F6EED8 tittel · #B9C3E3",
+    "Bilde": "Fullflate kveldsfoto (himmel, kirke i mørket, levende lys)",
+    "Overlay": "Foto: F09 Kald natt + F02 Mørk side (venstre, 85 %) · F10 Korn 30 %",
+    "Ved behov": "—",
+    "Effekter": "Mørk gradient fra venstre for lesbarhet · korn 30 %",
+    "Roller": "Bakgrunn #0E1730 · Tekst #F6EED8 · Støtte #F1D99A"
+   }
+  },
+  {
+   "id": "live-24",
+   "code": "live-24",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Taler i fokus",
+   "desc": "Sandflate, S/H-taler til venstre, tema og sendetid til høyre",
+   "spec": {
+    "Stil": "Moderne / minimal",
+    "Fonter": "Archivo 800 (120px, sporing −0.045em) · Hanken Grotesk 700 (24px), 500 (38px), 400 (28px)",
+    "Farger": "#CDBEA6 bakgrunn · #111111 tekst · #D93A26 live-prikk",
+    "Bilde": "Utklipt taler i svart-hvitt, venstre side, flukt med bunnen",
+    "Overlay": "Taler: F06 Svart-hvitt · F10 Korn 25 % (multiply)",
+    "Ved behov": "—",
+    "Effekter": "grayscale(1) på person · korn multiply 25 %",
+    "Roller": "Bakgrunn #CDBEA6 · Tekst #111111 · Støtte #D93A26"
+   }
+  },
+  {
+   "id": "live-25",
+   "code": "live-25",
+   "part": 3,
+   "cat": "Direktesending",
+   "name": "Nyttårsbønn",
+   "desc": "Mørk grønn og gull, stjerner, klassisk tall og serif",
+   "spec": {
+    "Stil": "Klassisk / høytid",
+    "Fonter": "Playfair Display 500 (250px), 400 kursiv (84px) · Cormorant Garamond 600 (24px) · Hanken Grotesk 600 (24px)",
+    "Farger": "#0F2A22 bakgrunn · #D9B865 gull · #F4ECD8 tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 25 %",
+    "Ved behov": "—",
+    "Effekter": "Spredte ✦-stjerner i ulike størrelser · radial vignett · korn 25 %",
+    "Roller": "Bakgrunn #0F2A22 · Tekst #F4ECD8 · Støtte #D9B865"
+   }
+  },
+  {
+   "id": "pro-17",
+   "code": "pro-17",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Ungdomskveld varm",
+   "desc": "Uskarpt oransje publikum, tykk krem tittel i tre linjer, infobånd",
+   "spec": {
+    "Stil": "Energisk / ungdom",
+    "Fonter": "Lilita One 400 (200px, 60px) · Archivo 800 stretch 125 % (28px) · Hanken Grotesk 600 (34px), 400 (22px)",
+    "Farger": "Bg #A8401A → #3A1408 med lyse flekker #FFC59A / #FF7A2A · #F7EBDC tittel · #FFB37A",
+    "Bilde": "Uskarpt foto fra lovsang/publikum, varm tone",
+    "Overlay": "Foto: F07 Uskarp 8px + F04 Fargelag #E0601E, color 60 % + F01 Mørk bunn 80 % · F10 Korn 35 %",
+    "Ved behov": "Mer F07 (12 px) hvis ansikter skal skjules",
+    "Effekter": "Foto: blur(6–10px) + oransje fargelag (mix-blend color) · mørk gradient nederst · korn 35 %",
+    "Roller": "Bakgrunn #3A1408 · Tekst #F7EBDC · Støtte #FFB37A"
+   }
+  },
+  {
+   "id": "pro-18",
+   "code": "pro-18",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Fjellkonferanse",
+   "desc": "Turkis-mørk himmel, oransje fjell, serif-tittel i to farger og fire talere",
+   "spec": {
+    "Stil": "Moderne / filmatisk",
+    "Fonter": "Gloock 400 (200px, 34px) · Hanken Grotesk 500 (26px), 600 (20px)",
+    "Farger": "#1F6B6E → #121519 himmel · fjell #E07A4A → #7A2C1A · tittel #68C4BC / #E2563A · #D6E6E3 tekst",
+    "Bilde": "Fullflate fjellfoto i motlys (varm topp, kjølig himmel) + 4 talere utklipt til høyre",
+    "Overlay": "Foto: F01 Mørk bunn 100 % · Talere: ingen (valgfritt F04 oransje kantlys) · F10 Korn 30 %",
+    "Ved behov": "F06 Svart-hvitt på talerne for lik stil",
+    "Effekter": "Todelt tittel: linear-gradient med hard overgang 50 % + background-clip:text · mørk gradient nederst · korn 30 %",
+    "Roller": "Bakgrunn #121519 · Tekst #D6E6E3 · Støtte #E2563A"
+   }
+  },
+  {
+   "id": "pro-19",
+   "code": "pro-19",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Talerrad",
+   "desc": "Fem talere øverst, bred tittel, navnerad og datoer – mørk kosmisk bakgrunn",
+   "spec": {
+    "Stil": "Moderne konferanse",
+    "Fonter": "Archivo 800 stretch 125 % (130px), 700 (22px), 300 (40px) · Hanken Grotesk 700 (18–24px)",
+    "Farger": "#0A0D16 bakgrunn · tåker rgba(40,120,160,.35) / rgba(220,120,60,.3) · #EFE6D2 tekst",
+    "Bilde": "5 talere utklipt, midterste størst",
+    "Overlay": "Foto: F03 Vignett + F01 Mørk bunn · Talere: ingen · F10 Korn 30 %",
+    "Ved behov": "F06 Svart-hvitt på talerne for lik stil",
+    "Effekter": "Talere toner ned i bakgrunnen med gradient · navnerad med flex space-between · korn 30 %",
+    "Roller": "Bakgrunn #0A0D16 · Tekst #EFE6D2 · Støtte #DC783C"
+   }
+  },
+  {
+   "id": "pro-20",
+   "code": "pro-20",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Lovsangsplakat",
+   "desc": "Grått papir, foto inni store bokstaver, oransje skrift og infolinjer",
+   "spec": {
+    "Stil": "Plakat / moderne",
+    "Fonter": "Anton 400 (330px) · Caveat 700 (104px, rotert −3°) · Bebas Neue 400 (46/66px) · Hanken Grotesk 600 (22px)",
+    "Farger": "#DEDCD7 papir · #D7663A oransje · #2E3A33 tekst",
+    "Bilde": "3–4 foto av mennesker i lovsang inni bokstavene",
+    "Overlay": "Foto i bokstaver: F06 Svart-hvitt + F08 Varm film · F13 Papir 35 %",
+    "Ved behov": "Kontrast 1.2 hvis bokstavene blir utydelige",
+    "Effekter": "background-clip:text for foto i tekst · korn multiply 35 %",
+    "Roller": "Bakgrunn #DEDCD7 · Tekst #2E3A33 · Støtte #D7663A"
+   }
+  },
+  {
+   "id": "pro-21",
+   "code": "pro-21",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Julebasar",
+   "desc": "Kremfarget, håndtegnede stjerner, rund tykk tittel og håndskrift",
+   "spec": {
+    "Stil": "Klassisk / vennlig",
+    "Fonter": "Lilita One 400 (220px) · Caveat 400 (80px) · Hanken Grotesk 600 (40px), 500 (30px)",
+    "Farger": "#F6EEDC bakgrunn · #C8372D rød · #2F6B4F grønn · #2F2A24 tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 20 %",
+    "Ved behov": "—",
+    "Effekter": "Håndtegnede ★ rotert i hjørnene · myke fargeflekker · korn multiply 20 %",
+    "Roller": "Bakgrunn #F6EEDC · Tekst #C8372D · Støtte #2F6B4F"
+   }
+  },
+  {
+   "id": "pro-22",
+   "code": "pro-22",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Kvinnefrokost",
+   "desc": "Fersken og rosa, myke blomsterformer, kursiv serif",
+   "spec": {
+    "Stil": "Myk / klassisk-moderne",
+    "Fonter": "Fraunces 300 kursiv SOFT 100 WONK 1 (190px), 600 (150px) · Hanken Grotesk 600 (28px) · Instrument Serif kursiv (34px)",
+    "Farger": "#F7DDD0 bakgrunn · #F2B9A3 / #E99B83 former · #7A2E3A tekst · #9C4A52",
+    "Bilde": "Ingen (valgfritt: foto av bord med frokost i en sirkel)",
+    "Overlay": "Ingen foto · F10 Korn 20 %",
+    "Ved behov": "—",
+    "Effekter": "Store sirkler som går ut av kanten · blad-form med border-radius 50% 50% 50% 0 · korn 20 %",
+    "Roller": "Bakgrunn #F7DDD0 · Tekst #7A2E3A · Støtte #E99B83"
+   }
+  },
+  {
+   "id": "pro-23",
+   "code": "pro-23",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Sommerleir",
+   "desc": "Himmelblått, stor sol, bølger og rund tykk tittel",
+   "spec": {
+    "Stil": "Leken / familie",
+    "Fonter": "Bagel Fat One 400 (160px, 40px) · Hanken Grotesk 700 (30px)",
+    "Farger": "#5FB9EC → #A9DCF6 himmel · #FFD23F sol · #1E6FB8 / #0F4F8F bølger · #FF5A36 merke",
+    "Bilde": "Fullflate sommerfoto (barn som leker, strand, leir)",
+    "Overlay": "Foto: F02 Mørk side (venstre, farge #0F4F8F, 55 %) · F10 Korn 15 %",
+    "Ved behov": "F01 Mørk bunn 30 %",
+    "Effekter": "Blå gradient fra venstre bak teksten · hard skygge text-shadow 6px 6px · korn 15 %",
+    "Roller": "Bakgrunn #7CC7F0 · Tekst #FFFFFF · Støtte #FF5A36"
+   }
+  },
+  {
+   "id": "pro-24",
+   "code": "pro-24",
+   "part": 3,
+   "cat": "Promo",
+   "name": "Gospelkonsert",
+   "desc": "Lilla scenelys, retro kursiv skrift og billettinfo",
+   "spec": {
+    "Stil": "Retro / konsert",
+    "Fonter": "Shrikhand 400 (220px) · Archivo 900 stretch 125 % (70px) · Hanken Grotesk 600 (26–30px)",
+    "Farger": "#1B0E2E bakgrunn · #C03A8A / #6A3AC0 lys · #FFE4F2 tekst · #F6C1E3",
+    "Bilde": "Ingen (valgfritt: kor-foto toner inn nederst)",
+    "Overlay": "Ingen foto · F10 Korn 30 %",
+    "Ved behov": "—",
+    "Effekter": "Lyskjegle: conic-gradient + blur · hard skygge 0 8px 0 · korn 30 %",
+    "Roller": "Bakgrunn #1B0E2E · Tekst #FFE4F2 · Støtte #C03A8A"
+   }
+  },
+  {
+   "id": "trl-16",
+   "code": "trl-16",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Kortfilm-tittel",
+   "desc": "Sort, høy smal tittel med en person i helfigur foran, sperret overtittel",
+   "spec": {
+    "Stil": "Filmatisk",
+    "Fonter": "Six Caps 400 (440px) · Hanken Grotesk 600 (26px, sporing .5em) · JetBrains Mono 500 (18px)",
+    "Farger": "#050505 bakgrunn · #E9E6DF tittel · #D9B26A overtittel · #8A8A8A",
+    "Bilde": "Fullflate mørkt foto med én person i helfigur midt i bildet. Personen klippes ut og legges OVER tittelen",
+    "Overlay": "Foto: F06 Svart-hvitt + F03 Vignett + F11 Lysglød hvit midt · F10 Korn 45 %",
+    "Ved behov": "—",
+    "Effekter": "Lag: foto → tittel → utklipt person · korn 45 %",
+    "Roller": "Bakgrunn #050505 · Tekst #E9E6DF · Støtte #D9B26A"
+   }
+  },
+  {
+   "id": "trl-17",
+   "code": "trl-17",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Tre kapitler",
+   "desc": "Tre stående bildefelt med romertall og tittelbånd over",
+   "spec": {
+    "Stil": "Filmatisk / klassisk",
+    "Fonter": "Cormorant Garamond 600 (100px), 500 (60px) · JetBrains Mono 500 (22px)",
+    "Farger": "#0E0E0E bakgrunn · #F3EEE4 bånd/tall · #111111 tittel",
+    "Bilde": "3 stående foto (en per kapittel), gjerne fargegradert ulikt",
+    "Overlay": "3 foto: F04 Fargelag per panel (#3B4A55 / #5A4632 / #2F4A3A), multiply 40 % · F10 Korn 35 %",
+    "Ved behov": "Samme filter på alle tre hvis de skal se like ut",
+    "Effekter": "Lyst tittelbånd skjærer gjennom alle tre bildene · korn 35 %",
+    "Roller": "Bakgrunn #0E0E0E · Tekst #111111 · Støtte #F3EEE4"
+   }
+  },
+  {
+   "id": "trl-18",
+   "code": "trl-18",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Fart",
+   "desc": "Varme bevegelsesstriper, skrå tung tittel og fartsstreker",
+   "spec": {
+    "Stil": "Energisk / sport",
+    "Fonter": "Archivo 900 kursiv stretch 120 % (230px, skewX −8°) · Hanken Grotesk 600 (28px)",
+    "Farger": "#1A0A04 → #A33D12 → #F08A3C · #FFF1E2 tittel · #FFD2A8",
+    "Bilde": "Fullflate foto av person i bevegelse (løper, hopper), med bevegelsesuskarphet og varm fargetone",
+    "Overlay": "Foto: F07 Uskarp (bevegelse) + F04 Fargelag #F08A3C, color 60 % · F10 Korn 40 %",
+    "Ved behov": "—",
+    "Effekter": "Fartsstreker som tykke linjer · tittel skjevstilt skewX(−8°) · korn 40 %",
+    "Roller": "Bakgrunn #1A0A04 · Tekst #FFF1E2 · Støtte #F08A3C"
+   }
+  },
+  {
+   "id": "trl-19",
+   "code": "trl-19",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Blått rektangel",
+   "desc": "S/H fjellandskap, klar blå flate bak toppen, elegant kursiv serif",
+   "spec": {
+    "Stil": "Minimal / redaksjonell",
+    "Fonter": "Playfair Display 400 kursiv (132px) · Hanken Grotesk 600 (14–16px, sporing .2em)",
+    "Farger": "#E8E6E1 bakgrunn · #1E3BE0 blå flate · fjell S/H · #111111 tekst",
+    "Bilde": "Fjellfoto i svart-hvitt med himmelen klippet bort (PNG), nederst. Toppen skal stikke opp i den blå flaten",
+    "Overlay": "Fjell: F06 Svart-hvitt · F10 Korn 30 % (multiply)",
+    "Ved behov": "Kontrast 1.2",
+    "Effekter": "Blå flate ligger BAK fjellbildet · korn multiply 30 %",
+    "Roller": "Bakgrunn #E8E6E1 · Tekst #111111 · Støtte #1E3BE0"
+   }
+  },
+  {
+   "id": "trl-20",
+   "code": "trl-20",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Gyllen time",
+   "desc": "Skumringsgradient, liten figur på horisonten, sperret serif og rulletekstblokk",
+   "spec": {
+    "Stil": "Filmatisk / klassisk",
+    "Fonter": "DM Serif Display 400 (120px, sporing .35em) · Hanken Grotesk 500 (16px)",
+    "Farger": "Himmel #1D1A3A → #6B3A5A → #E98A5A → #F7C97A · bakke #3A2216 · #FFF3E2 tittel · #C9A98A",
+    "Bilde": "Landskap i motlys med liten figur",
+    "Overlay": "Foto: F08 Varm film · F10 Korn 40 %",
+    "Ved behov": "F03 Vignett 40 %",
+    "Effekter": "Hard horisontlinje i gradienten (70 % → 71 %) · rulletekstblokk nederst · korn 40 %",
+    "Roller": "Bakgrunn #2A1A2E · Tekst #FFF3E2 · Støtte #F7C97A"
+   }
+  },
+  {
+   "id": "trl-21",
+   "code": "trl-21",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Før og etter",
+   "desc": "Delt bilde – svart-hvitt mot farge – med tittel over skillet",
+   "spec": {
+    "Stil": "Moderne / dokumentar",
+    "Fonter": "Archivo 900 stretch 80 % (190px) · JetBrains Mono 500 (22px) · Instrument Serif kursiv (48px)",
+    "Farger": "Venstre S/H #7A7A7A → #2A2A2A · høyre #F0B46A → #5A1E10 · #FFFFFF",
+    "Bilde": "2 foto: før (grayscale) og etter (farge)",
+    "Overlay": "Venstre foto: F06 Svart-hvitt · Høyre foto: F08 Varm film · F10 Korn 30 %",
+    "Ved behov": "—",
+    "Effekter": "FØR høyrejustert mot midten (right 676px), ETTER venstrejustert fra midten (left 676px) – skillestreken i midten (x 640) er «skråstreken» · myk skygge under tittelen · hvit skillestrek 8px · korn 30 %",
+    "Roller": "Bakgrunn #111111 · Tekst #FFFFFF · Støtte #F0B46A"
+   }
+  },
+  {
+   "id": "trl-22",
+   "code": "trl-22",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Mosaikk",
+   "desc": "Rutenett av tolv små bilder med bred tittelstripe over",
+   "spec": {
+    "Stil": "Dokumentar / moderne",
+    "Fonter": "Bebas Neue 400 (170px) · Hanken Grotesk 600 (28px)",
+    "Farger": "#141414 bakgrunn · #F4D03F stripe · #FFFFFF tekst · bilder dempet 35 % sort",
+    "Bilde": "12 portretter eller hverdagsbilder, 304×224",
+    "Overlay": "12 foto: F06 Svart-hvitt + mørk dempning 35 % · F10 Korn 25 %",
+    "Ved behov": "—",
+    "Effekter": "Rutenett 4×3 med 8px mellomrom · mørk dempning over · korn 25 %",
+    "Roller": "Bakgrunn #141414 · Tekst #141414 · Støtte #F4D03F"
+   }
+  },
+  {
+   "id": "trl-23",
+   "code": "trl-23",
+   "part": 3,
+   "cat": "Trailer",
+   "name": "Stjernehimmel",
+   "desc": "Nattehimmel med melkevei, liten figur på åsen, luftig tittel",
+   "spec": {
+    "Stil": "Rolig / filmatisk",
+    "Fonter": "Archivo 200 stretch 125 % (150px, sporing .3em) · Instrument Serif kursiv (40px)",
+    "Farger": "#03040B → #1B2448 himmel · #EEF0FF tittel · #B8BEE6",
+    "Bilde": "Fullflate nattehimmel/melkevei-foto, gjerne med en liten figur på en ås",
+    "Overlay": "Foto: F09 Kald natt · F10 Korn 30 %",
+    "Ved behov": "F03 Vignett 40 %",
+    "Effekter": "Tynn, sperret tittel · korn 30 %",
+    "Roller": "Bakgrunn #05070F · Tekst #EEF0FF · Støtte #B8BEE6"
+   }
+  },
+  {
+   "id": "tsr-16",
+   "code": "tsr-16",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Skisseark",
+   "desc": "Rutepapir, stor svart tittel, håndskrevne notater og tusjstrøk",
+   "spec": {
+    "Stil": "Moderne / skisse",
+    "Fonter": "Archivo 800 (130px) · Kaushan Script 400 (46–60px) · Space Mono 400 (24–26px) · Permanent Marker (300px dekor)",
+    "Farger": "#EFE9DD papir · #111111 tekst · #F2C200 ring",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 25 %",
+    "Ved behov": "—",
+    "Effekter": "Rutenett 40px 8 % svart · gul ellipse rotert −6° · korn multiply 25 %",
+    "Roller": "Bakgrunn #EFE9DD · Tekst #111111 · Støtte #F2C200"
+   }
+  },
+  {
+   "id": "tsr-17",
+   "code": "tsr-17",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Kontur-rekke",
+   "desc": "Samme ord gjentatt i kontur, bare én linje fylt",
+   "spec": {
+    "Stil": "Moderne / typografisk",
+    "Fonter": "Archivo 900 stretch 125 % (150px) · JetBrains Mono 500 (22px)",
+    "Farger": "#101010 bakgrunn · kontur hvit 35 % · #FF4D2E fylt linje",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 25 %",
+    "Ved behov": "—",
+    "Effekter": "5 linjer med -webkit-text-stroke 2px, linje 3 fylt · korn 25 %",
+    "Roller": "Bakgrunn #101010 · Tekst #FFFFFF · Støtte #FF4D2E"
+   }
+  },
+  {
+   "id": "tsr-24",
+   "code": "tsr-24",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Kontur-rekke med tittel",
+   "desc": "Teaser-ord gjentatt i kontur, den fylte linjen er selve tittelen",
+   "spec": {
+    "Stil": "Moderne / typografisk",
+    "Fonter": "Archivo 900 stretch 125 % (150px, kontur) · Archivo 900 stretch 80 % (132px, tittel) · JetBrains Mono 500 (22px)",
+    "Farger": "#101010 bakgrunn · kontur hvit 30 % · #FF4D2E tittel",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 25 %",
+    "Ved behov": "—",
+    "Effekter": "4 linjer «SNART» med -webkit-text-stroke 2px; tittellinjen i midten er fylt og har mørk stripe bak, så konturene ikke går gjennom den · tittelen bruker smalere bredde (stretch 80 %) så lange ord får plass · korn 25 %",
+    "Roller": "Bakgrunn #101010 · Tekst #FFFFFF · Støtte #FF4D2E"
+   }
+  },
+  {
+   "id": "tsr-18",
+   "code": "tsr-18",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Ute av fokus",
+   "desc": "Tittelen er sløret, bare datoen er skarp",
+   "spec": {
+    "Stil": "Moderne / nysgjerrig",
+    "Fonter": "Archivo 900 stretch 90 % (200px, blur 14px) · JetBrains Mono 700 (40px)",
+    "Farger": "#F3E9DB bakgrunn · flekker #F6C58A / #E9887A · #3A2A2A tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "filter: blur(14px) på tittelen, skarp dato under · korn 35 %",
+    "Roller": "Bakgrunn #F3E9DB · Tekst #3A2A2A · Støtte #E9887A"
+   }
+  },
+  {
+   "id": "tsr-19",
+   "code": "tsr-19",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Gotisk dato",
+   "desc": "Stor dato i frakturskrift med lime markering på papir",
+   "spec": {
+    "Stil": "Vintage-moderne",
+    "Fonter": "UnifrakturMaguntia 400 (330px) · Young Serif kursiv (40px) · Hanken Grotesk 800 (18px)",
+    "Farger": "#E6E3DD papir · #111111 tekst · #D4F23A markering",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "Lime blokk bak tallene · bølgelinje SVG · korn multiply 35 %",
+    "Roller": "Bakgrunn #E6E3DD · Tekst #111111 · Støtte #D4F23A"
+   }
+  },
+  {
+   "id": "tsr-20",
+   "code": "tsr-20",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Svakt lys",
+   "desc": "Nesten helt mørkt, svak lyskjegle og liten tekst",
+   "spec": {
+    "Stil": "Minimal / stemning",
+    "Fonter": "Fraunces 300 kursiv (60px) · JetBrains Mono 500 (18px)",
+    "Farger": "#030303 bakgrunn · lys rgba(255,240,210,.22) · #EDE3CF tekst · #7C7568",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 40 %",
+    "Ved behov": "—",
+    "Effekter": "Lyskjegle: trapes med clip-path + blur(10px) · lysflekk på gulvet · korn 40 %",
+    "Roller": "Bakgrunn #030303 · Tekst #EDE3CF · Støtte #7C7568"
+   }
+  },
+  {
+   "id": "tsr-21",
+   "code": "tsr-21",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Halvt avduket",
+   "desc": "Tittelen dekkes delvis av en revet papirflate",
+   "spec": {
+    "Stil": "Moderne / taktil",
+    "Fonter": "Anton 400 (260px) · Space Mono 400 (38px) · Hanken Grotesk 600 (22px)",
+    "Farger": "#1E2A44 bakgrunn · #F4D35E tittel · #E9E2D2 papir",
+    "Bilde": "Ingen (papirflaten kan være foto av revet papir)",
+    "Overlay": "Ingen foto · F10 Korn 35 %",
+    "Ved behov": "—",
+    "Effekter": "Revet kant: clip-path polygon med takker · korn 35 %",
+    "Roller": "Bakgrunn #1E2A44 · Tekst #F4D35E · Støtte #E9E2D2"
+   }
+  },
+  {
+   "id": "tsr-22",
+   "code": "tsr-22",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Manglende brikke",
+   "desc": "Rutenett av fargede ruter der én er tom med spørsmålstegn",
+   "spec": {
+    "Stil": "Leken / moderne",
+    "Fonter": "Archivo 900 stretch 80 % (110px, 100px) · Hanken Grotesk 500 (30px)",
+    "Farger": "#F2EEE6 bakgrunn · ruter #E8572A / #2F6B4F / #F2C200 / #1E3BE0 · #111111",
+    "Bilde": "Ingen (rutene kan fylles med portretter)",
+    "Overlay": "Ingen foto · F10 Korn 15 %",
+    "Ved behov": "—",
+    "Effekter": "4×3 ruter 160px, radius 12 · tom rute med stiplet kant · korn 15 %",
+    "Roller": "Bakgrunn #F2EEE6 · Tekst #111111 · Støtte #E8572A"
+   }
+  },
+  {
+   "id": "tsr-23",
+   "code": "tsr-23",
+   "part": 3,
+   "cat": "Teaser",
+   "name": "Signatur",
+   "desc": "Kremfarget, stor håndskrevet signatur og små sperrede bokstaver",
+   "spec": {
+    "Stil": "Klassisk / elegant",
+    "Fonter": "Mrs Saint Delafield 400 (330px) · Hanken Grotesk 600 (22px, sporing .6em) · Cormorant Garamond kursiv (30px)",
+    "Farger": "#F4EEE2 bakgrunn · #1D1D1B tekst · #8A6B3F",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen foto · F10 Korn 20 %",
+    "Ved behov": "—",
+    "Effekter": "Tynn signaturlinje 1px · korn multiply 20 %",
+    "Roller": "Bakgrunn #F4EEE2 · Tekst #1D1D1B · Støtte #8A6B3F"
+   }
+  }
+ ]
+}

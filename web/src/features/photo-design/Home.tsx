@@ -5,7 +5,7 @@ import type { PhotoController, PState } from './controller'
 import { ColorBar } from './Colors'
 import { FORMATS, TEMPLATES, type Format, type PdDoc, type Scheme } from './engine/model'
 import { applyScheme, liveScheme, tplDoc } from './engine/palette'
-import { render } from './engine/render'
+import { docFonts, render } from './engine/render'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
 
@@ -70,7 +70,8 @@ function TplPreview({ k, w, h, scheme, own, tx }: { k: string; w: number; h: num
     }
     const saved = JSON.parse(key) as Scheme | null
     draw(saved)
-    void document.fonts?.ready.then(() => {
+    // fonter fra biblioteket lastes ved bruk: tegnes på nytt når malens fonter er klare
+    void Promise.all([document.fonts?.ready, docFonts(baseDoc(k, w, h))]).then(() => {
       baseDocs.clear() // tekstmålene med de riktige skriftene
       if (ver >= 0) draw(saved)
     })

@@ -19,7 +19,7 @@ import { PAL, type Interaction, type PhotoController, type PState, type Pt } fro
 import { isEdited } from './engine/batch'
 import { BLEED, dims, LOOKS, SHAPES, type PdDoc, type PdLayer } from './engine/model'
 import { applyScheme, liveScheme } from './engine/palette'
-import { hit, render, shapePath } from './engine/render'
+import { docFonts, hit, render, shapePath } from './engine/render'
 import { Props } from './Props'
 import { Range } from './Ui'
 import type { Phrase, Tx } from './texts'
@@ -941,7 +941,8 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
     }
     let raf = requestAnimationFrame(() => draw())
     let live = true
-    void document.fonts?.ready.then(() => {
+    // fonter fra biblioteket lastes ved bruk: tegnes på nytt når dokumentets fonter er klare
+    void Promise.all([document.fonts?.ready, docFonts(d)]).then(() => {
       if (!live) return
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => draw())

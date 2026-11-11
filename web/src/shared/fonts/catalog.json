@@ -1,0 +1,5518 @@
+[
+ {
+  "id": "inter",
+  "name": "Inter",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/inter.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "inter-tight",
+  "name": "Inter Tight",
+  "style": "sans",
+  "uses": [
+   "T",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/inter-tight.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "roboto",
+  "name": "Roboto",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/roboto.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "open-sans",
+  "name": "Open Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/open-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "montserrat",
+  "name": "Montserrat",
+  "style": "sans",
+  "uses": [
+   "T",
+   "L",
+   "S",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/montserrat.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "poppins",
+  "name": "Poppins",
+  "style": "sans",
+  "uses": [
+   "T",
+   "L",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/poppins.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "lato",
+  "name": "Lato",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   300,
+   400,
+   700,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/lato.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "work-sans",
+  "name": "Work Sans",
+  "style": "sans",
+  "uses": [
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/work-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "dm-sans",
+  "name": "DM Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/dm-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "manrope",
+  "name": "Manrope",
+  "style": "sans",
+  "uses": [
+   "B",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/manrope.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "hanken-grotesk",
+  "name": "Hanken Grotesk",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "Samme font som HK Grotesk fra Awwwards-listen",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/hanken-grotesk.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "josefin-sans",
+  "name": "Josefin Sans",
+  "style": "sans",
+  "uses": [
+   "L",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/josefin-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "archivo",
+  "name": "Archivo",
+  "style": "sans",
+  "uses": [
+   "T",
+   "S",
+   "B"
+  ],
+  "source": "google",
+  "note": "Malene bruker bredde-aksen wdth 62–125",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/archivo.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "archivo-narrow",
+  "name": "Archivo Narrow",
+  "style": "sans",
+  "uses": [
+   "S",
+   "U"
+  ],
+  "source": "google",
+  "note": "Fra Awwwards-listen",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/archivo-narrow.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "raleway",
+  "name": "Raleway",
+  "style": "sans",
+  "uses": [
+   "L",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/raleway.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "overpass",
+  "name": "Overpass",
+  "style": "sans",
+  "uses": [
+   "S",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/overpass.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "barlow",
+  "name": "Barlow",
+  "style": "sans",
+  "uses": [
+   "S",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/barlow.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "public-sans",
+  "name": "Public Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/public-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "atkinson-hyperlegible",
+  "name": "Atkinson Hyperlegible",
+  "style": "sans",
+  "uses": [
+   "B",
+   "S",
+   "U"
+  ],
+  "source": "google",
+  "note": "Laget for best mulig lesbarhet",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/atkinson-hyperlegible.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "source-sans-3",
+  "name": "Source Sans 3",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/source-sans-3.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "roboto-condensed",
+  "name": "Roboto Condensed",
+  "style": "sans",
+  "uses": [
+   "S",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/roboto-condensed.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "space-grotesk",
+  "name": "Space Grotesk",
+  "style": "mod",
+  "uses": [
+   "T",
+   "L",
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/space-grotesk.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bricolage-grotesque",
+  "name": "Bricolage Grotesque",
+  "style": "mod",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bricolage-grotesque.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "syne",
+  "name": "Syne",
+  "style": "mod",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/syne.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "plus-jakarta-sans",
+  "name": "Plus Jakarta Sans",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/plus-jakarta-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "figtree",
+  "name": "Figtree",
+  "style": "mod",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/figtree.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "outfit",
+  "name": "Outfit",
+  "style": "mod",
+  "uses": [
+   "L",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/outfit.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "sora",
+  "name": "Sora",
+  "style": "mod",
+  "uses": [
+   "L",
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/sora.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "urbanist",
+  "name": "Urbanist",
+  "style": "mod",
+  "uses": [
+   "L",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/urbanist.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "lexend",
+  "name": "Lexend",
+  "style": "mod",
+  "uses": [
+   "B",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/lexend.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "onest",
+  "name": "Onest",
+  "style": "mod",
+  "uses": [
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/onest.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "geist",
+  "name": "Geist",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "K"
+  ],
+  "source": "google",
+  "note": "Også på Awwwards-listen",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/geist.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "schibsted-grotesk",
+  "name": "Schibsted Grotesk",
+  "style": "mod",
+  "uses": [
+   "T",
+   "B"
+  ],
+  "source": "google",
+  "note": "Laget for Schibsted (VG, Aftenposten)",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/schibsted-grotesk.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "familjen-grotesk",
+  "name": "Familjen Grotesk",
+  "style": "mod",
+  "uses": [
+   "T",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/familjen-grotesk.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "instrument-sans",
+  "name": "Instrument Sans",
+  "style": "mod",
+  "uses": [
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/instrument-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "gabarito",
+  "name": "Gabarito",
+  "style": "mod",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/gabarito.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rethink-sans",
+  "name": "Rethink Sans",
+  "style": "mod",
+  "uses": [
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/rethink-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "funnel-display",
+  "name": "Funnel Display",
+  "style": "mod",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/funnel-display.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "red-hat-display",
+  "name": "Red Hat Display",
+  "style": "mod",
+  "uses": [
+   "L",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/red-hat-display.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "exo-2",
+  "name": "Exo 2",
+  "style": "tek",
+  "uses": [
+   "K",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/exo-2.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "kanit",
+  "name": "Kanit",
+  "style": "mod",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/kanit.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bebas-neue",
+  "name": "Bebas Neue",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bebas-neue.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "anton",
+  "name": "Anton",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/anton.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "oswald",
+  "name": "Oswald",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/oswald.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "archivo-black",
+  "name": "Archivo Black",
+  "style": "disp",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/archivo-black.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "league-gothic",
+  "name": "League Gothic",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/league-gothic.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "six-caps",
+  "name": "Six Caps",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/six-caps.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "big-shoulders-display",
+  "name": "Big Shoulders Display",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/big-shoulders-display.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "unbounded",
+  "name": "Unbounded",
+  "style": "disp",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/unbounded.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "lilita-one",
+  "name": "Lilita One",
+  "style": "disp",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/lilita-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bagel-fat-one",
+  "name": "Bagel Fat One",
+  "style": "disp",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bagel-fat-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "shrikhand",
+  "name": "Shrikhand",
+  "style": "disp",
+  "uses": [
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/shrikhand.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bangers",
+  "name": "Bangers",
+  "style": "disp",
+  "uses": [
+   "F",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bangers.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "barlow-condensed",
+  "name": "Barlow Condensed",
+  "style": "disp",
+  "uses": [
+   "S",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/barlow-condensed.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "league-spartan",
+  "name": "League Spartan",
+  "style": "disp",
+  "uses": [
+   "L",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/league-spartan.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "alfa-slab-one",
+  "name": "Alfa Slab One",
+  "style": "disp",
+  "uses": [
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/alfa-slab-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "dela-gothic-one",
+  "name": "Dela Gothic One",
+  "style": "disp",
+  "uses": [
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/dela-gothic-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tilt-warp",
+  "name": "Tilt Warp",
+  "style": "disp",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/tilt-warp.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "climate-crisis",
+  "name": "Climate Crisis",
+  "style": "disp",
+  "uses": [
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/climate-crisis.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "fjalla-one",
+  "name": "Fjalla One",
+  "style": "disp",
+  "uses": [
+   "S",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/fjalla-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "antonio",
+  "name": "Antonio",
+  "style": "disp",
+  "uses": [
+   "S",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/antonio.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "staatliches",
+  "name": "Staatliches",
+  "style": "disp",
+  "uses": [
+   "S",
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/staatliches.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "ultra",
+  "name": "Ultra",
+  "style": "disp",
+  "uses": [
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/ultra.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "nunito",
+  "name": "Nunito",
+  "style": "rund",
+  "uses": [
+   "B",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/nunito.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "comfortaa",
+  "name": "Comfortaa",
+  "style": "rund",
+  "uses": [
+   "L",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/comfortaa.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "quicksand",
+  "name": "Quicksand",
+  "style": "rund",
+  "uses": [
+   "L",
+   "F",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/quicksand.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "fredoka",
+  "name": "Fredoka",
+  "style": "rund",
+  "uses": [
+   "F",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/fredoka.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "playfair-display",
+  "name": "Playfair Display",
+  "style": "serif",
+  "uses": [
+   "E",
+   "V",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/playfair-display.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "dm-serif-display",
+  "name": "DM Serif Display",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/dm-serif-display.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "cormorant-garamond",
+  "name": "Cormorant Garamond",
+  "style": "serif",
+  "uses": [
+   "E",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/cormorant-garamond.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bodoni-moda",
+  "name": "Bodoni Moda",
+  "style": "serif",
+  "uses": [
+   "E",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/bodoni-moda.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "gloock",
+  "name": "Gloock",
+  "style": "serif",
+  "uses": [
+   "T",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/gloock.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "instrument-serif",
+  "name": "Instrument Serif",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": true,
+   "bi": false
+  },
+  "css": "/fonts/instrument-serif.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "fraunces",
+  "name": "Fraunces",
+  "style": "serif",
+  "uses": [
+   "T",
+   "V",
+   "R"
+  ],
+  "source": "google",
+  "note": "Akser SOFT og WONK brukes i malene",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/fraunces.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "young-serif",
+  "name": "Young Serif",
+  "style": "serif",
+  "uses": [
+   "V",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/young-serif.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "yeseva-one",
+  "name": "Yeseva One",
+  "style": "serif",
+  "uses": [
+   "E",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/yeseva-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rozha-one",
+  "name": "Rozha One",
+  "style": "serif",
+  "uses": [
+   "T",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rozha-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "merriweather",
+  "name": "Merriweather",
+  "style": "serif",
+  "uses": [
+   "B",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/merriweather.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "lora",
+  "name": "Lora",
+  "style": "serif",
+  "uses": [
+   "B",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/lora.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "libre-baskerville",
+  "name": "Libre Baskerville",
+  "style": "serif",
+  "uses": [
+   "B",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/libre-baskerville.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "crimson-pro",
+  "name": "Crimson Pro",
+  "style": "serif",
+  "uses": [
+   "B",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/crimson-pro.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "abril-fatface",
+  "name": "Abril Fatface",
+  "style": "serif",
+  "uses": [
+   "T",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/abril-fatface.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "cinzel",
+  "name": "Cinzel",
+  "style": "serif",
+  "uses": [
+   "E",
+   "L",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/cinzel.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "cinzel-decorative",
+  "name": "Cinzel Decorative",
+  "style": "serif",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   700,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/cinzel-decorative.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tenor-sans",
+  "name": "Tenor Sans",
+  "style": "sans",
+  "uses": [
+   "E",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/tenor-sans.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "marcellus",
+  "name": "Marcellus",
+  "style": "serif",
+  "uses": [
+   "E",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/marcellus.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "caveat",
+  "name": "Caveat",
+  "style": "script",
+  "uses": [
+   "F",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/caveat.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "kaushan-script",
+  "name": "Kaushan Script",
+  "style": "script",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/kaushan-script.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "permanent-marker",
+  "name": "Permanent Marker",
+  "style": "script",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/permanent-marker.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "pinyon-script",
+  "name": "Pinyon Script",
+  "style": "script",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/pinyon-script.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "mrs-saint-delafield",
+  "name": "Mrs Saint Delafield",
+  "style": "script",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/mrs-saint-delafield.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "pacifico",
+  "name": "Pacifico",
+  "style": "script",
+  "uses": [
+   "F",
+   "R",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/pacifico.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "dancing-script",
+  "name": "Dancing Script",
+  "style": "script",
+  "uses": [
+   "E",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/dancing-script.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "great-vibes",
+  "name": "Great Vibes",
+  "style": "script",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/great-vibes.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "satisfy",
+  "name": "Satisfy",
+  "style": "script",
+  "uses": [
+   "E",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/satisfy.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "sacramento",
+  "name": "Sacramento",
+  "style": "script",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/sacramento.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "unifrakturmaguntia",
+  "name": "UnifrakturMaguntia",
+  "style": "dek",
+  "uses": [
+   "R",
+   "V"
+  ],
+  "source": "google",
+  "note": "Gotisk frakturskrift",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/unifrakturmaguntia.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-dirt",
+  "name": "Rubik Dirt",
+  "style": "dek",
+  "uses": [
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-dirt.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "lobster",
+  "name": "Lobster",
+  "style": "dek",
+  "uses": [
+   "R",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/lobster.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bungee",
+  "name": "Bungee",
+  "style": "dek",
+  "uses": [
+   "S",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bungee.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "press-start-2p",
+  "name": "Press Start 2P",
+  "style": "dek",
+  "uses": [
+   "K",
+   "R"
+  ],
+  "source": "google",
+  "note": "Pikselfont",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/press-start-2p.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "creepster",
+  "name": "Creepster",
+  "style": "dek",
+  "uses": [
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/creepster.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "saira-stencil-one",
+  "name": "Saira Stencil One",
+  "style": "dek",
+  "uses": [
+   "S",
+   "K"
+  ],
+  "source": "google",
+  "note": "Sjablong",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/saira-stencil-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "stardos-stencil",
+  "name": "Stardos Stencil",
+  "style": "dek",
+  "uses": [
+   "S",
+   "R"
+  ],
+  "source": "google",
+  "note": "Sjablong",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/stardos-stencil.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rye",
+  "name": "Rye",
+  "style": "dek",
+  "uses": [
+   "R",
+   "S"
+  ],
+  "source": "google",
+  "note": "Western / gammelt skilt",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rye.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "graduate",
+  "name": "Graduate",
+  "style": "dek",
+  "uses": [
+   "R",
+   "S"
+  ],
+  "source": "google",
+  "note": "College-stil",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/graduate.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "monoton",
+  "name": "Monoton",
+  "style": "retro",
+  "uses": [
+   "R",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/monoton.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "righteous",
+  "name": "Righteous",
+  "style": "retro",
+  "uses": [
+   "L",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/righteous.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "neonderthaw",
+  "name": "Neonderthaw",
+  "style": "retro",
+  "uses": [
+   "R",
+   "E"
+  ],
+  "source": "google",
+  "note": "Neon-løkkeskrift",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/neonderthaw.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "train-one",
+  "name": "Train One",
+  "style": "retro",
+  "uses": [
+   "R"
+  ],
+  "source": "google",
+  "note": "Kan mangle ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/train-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rampart-one",
+  "name": "Rampart One",
+  "style": "retro",
+  "uses": [
+   "R",
+   "F"
+  ],
+  "source": "google",
+  "note": "Kan mangle ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rampart-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "faster-one",
+  "name": "Faster One",
+  "style": "retro",
+  "uses": [
+   "R",
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/faster-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "codystar",
+  "name": "Codystar",
+  "style": "retro",
+  "uses": [
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/codystar.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "zen-tokyo-zoo",
+  "name": "Zen Tokyo Zoo",
+  "style": "retro",
+  "uses": [
+   "R",
+   "F"
+  ],
+  "source": "google",
+  "note": "Kan mangle ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/zen-tokyo-zoo.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "kumar-one-outline",
+  "name": "Kumar One Outline",
+  "style": "retro",
+  "uses": [
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/kumar-one-outline.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "londrina-outline",
+  "name": "Londrina Outline",
+  "style": "retro",
+  "uses": [
+   "F",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/londrina-outline.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "londrina-shadow",
+  "name": "Londrina Shadow",
+  "style": "retro",
+  "uses": [
+   "F",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/londrina-shadow.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "fascinate-inline",
+  "name": "Fascinate Inline",
+  "style": "retro",
+  "uses": [
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/fascinate-inline.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "vast-shadow",
+  "name": "Vast Shadow",
+  "style": "retro",
+  "uses": [
+   "R",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/vast-shadow.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "monofett",
+  "name": "Monofett",
+  "style": "retro",
+  "uses": [
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/monofett.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "ewert",
+  "name": "Ewert",
+  "style": "retro",
+  "uses": [
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/ewert.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "moirai-one",
+  "name": "Moirai One",
+  "style": "eff",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/moirai-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tilt-prism",
+  "name": "Tilt Prism",
+  "style": "eff",
+  "uses": [
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/tilt-prism.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tilt-neon",
+  "name": "Tilt Neon",
+  "style": "eff",
+  "uses": [
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/tilt-neon.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-80s-fade",
+  "name": "Rubik 80s Fade",
+  "style": "eff",
+  "uses": [
+   "R",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-80s-fade.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-vinyl",
+  "name": "Rubik Vinyl",
+  "style": "eff",
+  "uses": [
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-vinyl.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-marker-hatch",
+  "name": "Rubik Marker Hatch",
+  "style": "eff",
+  "uses": [
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-marker-hatch.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-maze",
+  "name": "Rubik Maze",
+  "style": "eff",
+  "uses": [
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-maze.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-glitch",
+  "name": "Rubik Glitch",
+  "style": "eff",
+  "uses": [
+   "K",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-glitch.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "rubik-iso",
+  "name": "Rubik Iso",
+  "style": "eff",
+  "uses": [
+   "T",
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/rubik-iso.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tourney",
+  "name": "Tourney",
+  "style": "eff",
+  "uses": [
+   "T",
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/tourney.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "foldit",
+  "name": "Foldit",
+  "style": "eff",
+  "uses": [
+   "F",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/foldit.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "workbench",
+  "name": "Workbench",
+  "style": "eff",
+  "uses": [
+   "K",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/workbench.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "sixtyfour",
+  "name": "Sixtyfour",
+  "style": "eff",
+  "uses": [
+   "K",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/sixtyfour.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "danfo",
+  "name": "Danfo",
+  "style": "eff",
+  "uses": [
+   "T",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/danfo.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bungee-hairline",
+  "name": "Bungee Hairline",
+  "style": "eff",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bungee-hairline.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bungee-inline",
+  "name": "Bungee Inline",
+  "style": "eff",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bungee-inline.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bungee-outline",
+  "name": "Bungee Outline",
+  "style": "eff",
+  "uses": [
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bungee-outline.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bungee-shade",
+  "name": "Bungee Shade",
+  "style": "eff",
+  "uses": [
+   "T",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bungee-shade.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "nabla",
+  "name": "Nabla",
+  "style": "eff",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "Fargefont – fargen kan ikke endres",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/nabla.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "honk",
+  "name": "Honk",
+  "style": "eff",
+  "uses": [
+   "F",
+   "T"
+  ],
+  "source": "google",
+  "note": "Fargefont – fargen kan ikke endres",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/honk.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bungee-spice",
+  "name": "Bungee Spice",
+  "style": "eff",
+  "uses": [
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "Fargefont – fargen kan ikke endres",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bungee-spice.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "orbitron",
+  "name": "Orbitron",
+  "style": "tek",
+  "uses": [
+   "K",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/orbitron.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "audiowide",
+  "name": "Audiowide",
+  "style": "tek",
+  "uses": [
+   "K",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/audiowide.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "michroma",
+  "name": "Michroma",
+  "style": "tek",
+  "uses": [
+   "K",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/michroma.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "russo-one",
+  "name": "Russo One",
+  "style": "tek",
+  "uses": [
+   "K",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/russo-one.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "teko",
+  "name": "Teko",
+  "style": "tek",
+  "uses": [
+   "K",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/teko.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "zen-dots",
+  "name": "Zen Dots",
+  "style": "tek",
+  "uses": [
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/zen-dots.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "major-mono-display",
+  "name": "Major Mono Display",
+  "style": "tek",
+  "uses": [
+   "K",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/major-mono-display.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "syncopate",
+  "name": "Syncopate",
+  "style": "tek",
+  "uses": [
+   "K",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/syncopate.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "jetbrains-mono",
+  "name": "JetBrains Mono",
+  "style": "mono",
+  "uses": [
+   "K",
+   "U"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/jetbrains-mono.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "space-mono",
+  "name": "Space Mono",
+  "style": "mono",
+  "uses": [
+   "K",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/space-mono.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "courier-prime",
+  "name": "Courier Prime",
+  "style": "mono",
+  "uses": [
+   "R",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/courier-prime.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "fira-code",
+  "name": "Fira Code",
+  "style": "mono",
+  "uses": [
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/fira-code.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "ibm-plex-mono",
+  "name": "IBM Plex Mono",
+  "style": "mono",
+  "uses": [
+   "K",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/ibm-plex-mono.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "clarity-city",
+  "name": "Clarity City",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/clarity-city.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "national-park",
+  "name": "National Park",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L",
+   "S",
+   "F"
+  ],
+  "source": "google",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/national-park.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "amarna",
+  "name": "Amarna",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/amarna.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "murecho",
+  "name": "Murecho",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/murecho.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "zalando-sans",
+  "name": "Zalando Sans",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/zalando-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "saira",
+  "name": "Saira",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/saira.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "vend-sans",
+  "name": "Vend Sans",
+  "style": "rund",
+  "uses": [
+   "L",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/vend-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "kulim-park",
+  "name": "Kulim Park",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/kulim-park.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "host-grotesk",
+  "name": "Host Grotesk",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/host-grotesk.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "cal-sans",
+  "name": "Cal Sans",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/cal-sans.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "mona-sans",
+  "name": "Mona Sans",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/mona-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "hubot-sans",
+  "name": "Hubot Sans",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T",
+   "V"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/hubot-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "radio-canada",
+  "name": "Radio Canada",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/radio-canada.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tasa-orbiter",
+  "name": "TASA Orbiter",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/tasa-orbiter.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "hedvig-letters-sans",
+  "name": "Hedvig Letters Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/hedvig-letters-sans.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "petrona",
+  "name": "Petrona",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "F",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/petrona.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "zilla-slab",
+  "name": "Zilla Slab",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/zilla-slab.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "tasa-explorer",
+  "name": "TASA Explorer",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/tasa-explorer.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "inclusive-sans",
+  "name": "Inclusive Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/inclusive-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "jost",
+  "name": "Jost",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/jost.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "playfair",
+  "name": "Playfair",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "T"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/playfair.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "labrada",
+  "name": "Labrada",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/labrada.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "baskervville",
+  "name": "Baskervville",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/baskervville.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "spectral",
+  "name": "Spectral",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/spectral.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "faustina",
+  "name": "Faustina",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/faustina.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "redaction",
+  "name": "Redaction",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/redaction.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "piazzolla",
+  "name": "Piazzolla",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/piazzolla.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "funnel-sans",
+  "name": "Funnel Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/funnel-sans.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "prociono",
+  "name": "Prociono",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/prociono.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "sorts-mill-goudy",
+  "name": "Sorts Mill Goudy",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": true,
+   "bi": false
+  },
+  "css": "/fonts/sorts-mill-goudy.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "museomoderno",
+  "name": "MuseoModerno",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/museomoderno.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "hedvig-letters-serif",
+  "name": "Hedvig Letters Serif",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/hedvig-letters-serif.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "besley",
+  "name": "Besley",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "T",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/besley.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "linden-hill",
+  "name": "Linden Hill",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": true,
+   "bi": false
+  },
+  "css": "/fonts/linden-hill.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "maname",
+  "name": "Maname",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/maname.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "libre-caslon-condensed",
+  "name": "Libre Caslon Condensed",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "T"
+  ],
+  "source": "google",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/libre-caslon-condensed.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "eb-garamond",
+  "name": "EB Garamond",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/eb-garamond.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "geom",
+  "name": "Geom",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/geom.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "intel-one-mono",
+  "name": "Intel One Mono",
+  "style": "mono",
+  "uses": [
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/intel-one-mono.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "league-script",
+  "name": "League Script",
+  "style": "script",
+  "uses": [
+   "E",
+   "F"
+  ],
+  "source": "google",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/league-script.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "cutive-mono",
+  "name": "Cutive Mono",
+  "style": "mono",
+  "uses": [
+   "K",
+   "T",
+   "B",
+   "R"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/cutive-mono.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "syne-tactile",
+  "name": "Syne Tactile",
+  "style": "script",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/syne-tactile.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "texturina",
+  "name": "Texturina",
+  "style": "script",
+  "uses": [
+   "E"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/texturina.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "caramel",
+  "name": "Caramel",
+  "style": "retro",
+  "uses": [
+   "R",
+   "T"
+  ],
+  "source": "google",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/caramel.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "sansita-swashed",
+  "name": "Sansita Swashed",
+  "style": "script",
+  "uses": [
+   "E",
+   "T",
+   "F"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/sansita-swashed.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "borel",
+  "name": "Borel",
+  "style": "script",
+  "uses": [
+   "E",
+   "F",
+   "B"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/borel.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "geist-mono",
+  "name": "Geist Mono",
+  "style": "mono",
+  "uses": [
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/geist-mono.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "syne-mono",
+  "name": "Syne Mono",
+  "style": "mono",
+  "uses": [
+   "K"
+  ],
+  "source": "google",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/syne-mono.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ }
+]

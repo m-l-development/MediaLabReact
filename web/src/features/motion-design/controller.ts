@@ -1,4 +1,5 @@
 import type { ToolId } from '../../domain/tool'
+import { loadFonts } from '../../shared/fonts/loader'
 import { createStore, type Store } from '../../shared/lib/store'
 import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
 import { canEncode, exportMp4 } from './engine/export'
@@ -195,6 +196,11 @@ interface DragState {
 interface XfBox { cx: number; cy: number; w: number; h: number; rot: number; it: AnyRec; clip?: boolean; sw?: number; sh?: number; cr?: { l: number; t: number; r: number; b: number } }
 
 /** Motion design: tilstand og handlinger (samme oppførsel som media-lab/src/pages/motion-design/logic.js). */
+/** Laster fontene tekstene og undertekstene bruker (fonter fra biblioteket hentes ved bruk). */
+function projFonts(p: Project): Promise<unknown> {
+  return loadFonts([...p.texts.map((x) => ({ font: x.font, weight: x.weight, italic: x.italic })), { font: p.subStyle.font, weight: p.subStyle.weight }])
+}
+
 export class MotionController {
   readonly state: Store<MState>
   M: MediaEls = { vids: {}, imgs: {} }
@@ -455,6 +461,7 @@ export class MotionController {
     this.playing = false
     clearAudioCache()
     this.set({ view: 'edit', proj: p, projectId, sel: null, multi: [], t: 0, playing: false, tab: 'media', replaceFor: null, exp: null, saved: '', msg: null, folder: fst, xform: null, menu: null, rev: this.s.rev + 1 })
+    void projFonts(p) // fonter fra biblioteket lastes ved bruk; tegnesløyfen bruker dem når de er klare
     this.location()
     if (missing) this.flash(fst.folder && !fst.access ? '{n} filer ligger i prosjektmappen. Gi tilgang under «Prosjektmappe».' : '{n} filer mangler og vises tomme.', { n: missing })
     this.syncMediaEls()
@@ -3788,6 +3795,7 @@ export class MotionController {
     const e = this.s.exp
     const p = this.s.proj
     if (!e || e.busy || !p) return
+    await projFonts(p) // eksporten tegner med fontene, ikke reservefonten
     const [q0, f00] = e.q.split('-') as ['1080' | '4k', string]
     // 4K · 60 fps bare når nettleseren kan kode det (WebCodecs); ellers 4K · 30 fps i stedet for et tungt sanntidsopptak
     const fell = !this.s.adv && q0 === '4k' && f00 === '60' && !(await canEncode(exportSize(p, '4k').w, exportSize(p, '4k').h, 60))

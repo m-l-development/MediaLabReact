@@ -50,10 +50,10 @@ describe('App (lokal utvikling uten backend)', { timeout: 30000 }, () => {
       fireEvent.click(link)
     })
     expect(location.pathname).toBe('/app/loop-studio')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Loop Studio' }, { timeout: 20000 })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Loop Studio' }, { timeout: 45000 })).toBeTruthy()
     expect(screen.getByRole('link', { name: /Se demo/ }).getAttribute('href')).toBe('/app/loop-studio?mal=week&demo=1')
     for (const a of screen.getAllByRole('link', { name: /Media Lab/ })) expect(a.getAttribute('href')).toBe('/app/')
-  }, 30000) // Loop Studio-modulen tar ~9 s å transformere alene, mer under full parallell kjøring; ventingen over tillater 20 s
+  }, 60000) // Loop Studio-modulen (med fontbiblioteket) tar ~9 s å transformere alene og over 20 s under full parallell kjøring; ventingen over tillater 45 s
 
   it('direkte adresse til et verktøy som er bygget (Isolate Subject) og ett som ikke er det', async () => {
     setup('/app/isolate-subject')
