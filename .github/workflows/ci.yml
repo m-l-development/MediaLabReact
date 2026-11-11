@@ -90,6 +90,19 @@ jobs:
         working-directory: web
         run: npx playwright install --with-deps chromium
 
+      # Fontene og de andre selvdrevne filene (media-lab/build/vendor.js, låst med vendor-lock.json) bygges før testene.
+      # Ellers bygger utviklingsserveren dem ved første forespørsel mot /fonts, og med over 200 fontpakker blokkerer det
+      # serveren i flere minutter (de første testene får tidsavbrudd). Mellomlageret følger låsefilene.
+      - name: Selvdrevne filer (mellomlager)
+        uses: actions/cache@v4
+        with:
+          path: media-lab/node_modules/.ch-vendor
+          key: ch-vendor-${{ hashFiles('media-lab/build/vendor-lock.json', 'media-lab/build/vendor-fonts.json') }}
+
+      - name: Selvdrevne filer (bygg og kontroll mot låsen)
+        working-directory: media-lab
+        run: node build/vendor.js
+
       - name: Nettlesertester
         working-directory: web
         run: npx playwright test --reporter=github,line --retries=1 --workers=2
