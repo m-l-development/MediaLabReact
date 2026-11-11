@@ -11,6 +11,8 @@ export type CurvePts = [number, number][]
 export type CurveShape = 'linear' | 'mirror' | 'cross' | 'diamond' | 'square' | 'radial' | 'conic'
 export const CURVE_SHAPES: readonly CurveShape[] = ['linear', 'mirror', 'cross', 'diamond', 'square', 'radial', 'conic']
 export interface FillCurves { m?: CurvePts | null; r?: CurvePts | null; g?: CurvePts | null; b?: CurvePts | null }
+/** Et fargestopp i fargekurve-gradienten: farge, plass i fargerekken (0–1) og dekkevne (0–1, mangler = 1). */
+export interface ColorStop { c: string; p: number; a?: number }
 export type FillMode =
   | 'none' | 'solid' | 'linear' | 'mirror' | 'radial' | 'conic' | 'mesh' | 'stripes' | 'wave' | 'ellipse' | 'corner' | 'spot' | 'glow'
   | 'conicRep' | 'conicMirror' | 'rays' | 'conicCorner' | 'curves'
@@ -35,6 +37,15 @@ export interface Fill {
   cint?: number
   /** Slått av: fyllet beholdes med alle innstillinger, men tegnes ikke (bakgrunnsfargen vises, også i eksporten). */
   off?: boolean
+  /**
+   * Fargene i fargekurve-gradienten, valgt av brukeren (så mange som ønskes). Sammen med fordelingskurven (`dist`) er dette
+   * den ene modellen som fargeeditoren og kurven begge leser og endrer. Mangler = eldre gradient laget av RGB-kurvene.
+   */
+  cstops?: ColorStop[] | null
+  /** Fordelingskurven: x = plass på flaten langs retningen, y = plass i fargerekken (0–1). Mangler = rett linje (jevnt). */
+  dist?: CurvePts | null
+  /** Dekkevne for hele gradienten (1 = dekker helt, 0 = usynlig så bakgrunnsfargen vises). Mangler = 1. */
+  calpha?: number
 }
 
 /** Tegnes fyllet? (ikke «ingen» og ikke slått av) */
@@ -136,6 +147,70 @@ export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURV
   return rgb.map(([r, g, b], i) => ({ c: `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`, p: i / n }))
 }
 
+const rgbOf = (c: string): [number, number, number] => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(c || '')
+  const n = m?.[1] ? parseInt(m[1], 16) : 0xffffff
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+/** Fargestoppene sortert og gyldige (minst to; én farge gir en flate i den fargen). */
+export function colorStops(st: ColorStop[] | null | undefined): ColorStop[] {
+  const l: ColorStop[] = (Array.isArray(st) ? st : []).filter((q) => q && HEX.test(q.c)).map((q) => ({ c: q.c, p: clamp(Number(q.p) || 0, 0, 1), a: q.a == null ? 1 : clamp(Number(q.a), 0, 1) }))
+  l.sort((a, b) => a.p - b.p)
+  if (l.length === 1) l.push({ ...(l[0] as ColorStop), p: 1 })
+  return l
+}
+
+/** Fargen på plass u (0–1) i fargerekken: [r, g, b, a] (a 0–1), blandet jevnt mellom nabostoppene. */
+export function stopColor(st: ColorStop[], u: number): [number, number, number, number] {
+  const first = st[0]
+  if (!first) return [255, 255, 255, 1]
+  if (u <= first.p) return [...rgbOf(first.c), first.a ?? 1]
+  for (let i = 1; i < st.length; i++) {
+    const b = st[i] as ColorStop
+    if (u <= b.p) {
+      const a = st[i - 1] as ColorStop
+      const t = b.p - a.p < 1e-6 ? 1 : (u - a.p) / (b.p - a.p)
+      const A = rgbOf(a.c), B = rgbOf(b.c)
+      return [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + (B[2] - A[2]) * t, (a.a ?? 1) + ((b.a ?? 1) - (a.a ?? 1)) * t]
+    }
+  }
+  const last = st[st.length - 1] as ColorStop
+  return [...rgbOf(last.c), last.a ?? 1]
+}
+
+/** Hvor i fargerekken (0–1) plass t på flaten havner, etter fordelingskurven. */
+export function distAt(dist: CurvePts | null | undefined): (t: number) => number {
+  const fn = curveFn(dist)
+  return (t) => clamp(fn ? fn(t) : t, 0, 1)
+}
+
+/**
+ * Fargene langs fargekurve-gradienten (n + 1 jevne punkter, [r, g, b, a]): fargerekken lagt ut etter fordelingskurven,
+ * med fargestyrke (avstand fra gjennomsnittsfargen) og dekkevne. Det samme brukes på lerretet, i eksporten og i panelet.
+ * Eldre gradienter uten fargestopp: fargene fra RGB-kurvene som før.
+ */
+export function gradColors(f: Fill, n = 48): [number, number, number, number][] {
+  const al = f.calpha == null ? 1 : clamp(f.calpha, 0, 1)
+  if (!f.cstops?.length) return curveStops(f.curves, n, f.csat ?? CURVE_SAT, f.cint ?? 1).map((q) => [...rgbOf(q.c), al])
+  const st = colorStops(f.cstops)
+  const at = distAt(f.dist)
+  const out: [number, number, number, number][] = []
+  for (let i = 0; i <= n; i++) out.push(stopColor(st, at(i / n)))
+  const q = clamp(f.cint ?? 1, 0, 2)
+  if (q !== 1) {
+    const m = [0, 1, 2].map((c) => out.reduce((a, v) => a + (v[c] as number), 0) / out.length)
+    for (const v of out) for (let c = 0; c < 3; c++) v[c] = clamp((m[c] as number) + ((v[c] as number) - (m[c] as number)) * q, 0, 255)
+  }
+  for (const v of out) { v[0] = Math.round(v[0]); v[1] = Math.round(v[1]); v[2] = Math.round(v[2]); v[3] = Math.round(v[3] * al * 1000) / 1000 }
+  return out
+}
+
+/** Som gradColors, som CSS-farger med plass (til canvas-gradienter og forhåndsvisning). */
+export function gradStops(f: Fill, n = 48): FillStop[] {
+  return gradColors(f, n).map(([r, g, b, a], i) => ({ c: a >= 1 ? `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}` : `rgba(${r},${g},${b},${a})`, p: i / n }))
+}
+
 let shapeCache: { key: string; img: CanvasImageSource } | null = null
 
 /**
@@ -146,9 +221,9 @@ function drawCurveShape(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: n
   const k = Math.min(1, 640 / Math.max(W, H))
   const cw = Math.max(2, Math.round(W * k))
   const chh = Math.max(2, Math.round(H * k))
-  const key = JSON.stringify([bf.curves, bf.csat, bf.cint, bf.cshape, bf.angle, bf.x, bf.y, cw, chh, W, H])
+  const key = JSON.stringify([bf.curves, bf.csat, bf.cint, bf.cstops, bf.dist, bf.calpha, bf.cshape, bf.angle, bf.x, bf.y, cw, chh, W, H])
   if (shapeCache?.key !== key) {
-    const lut = curveStops(bf.curves, 255, bf.csat ?? CURVE_SAT, bf.cint ?? 1).map((q) => parseInt(q.c.slice(1), 16))
+    const lut = gradColors(bf, 255)
     const cv: OffscreenCanvas | HTMLCanvasElement = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(cw, chh) : Object.assign(document.createElement('canvas'), { width: cw, height: chh })
     const g = cv.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
     if (!g) return
@@ -178,11 +253,11 @@ function drawCurveShape(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: n
                 : sh === 'radial' ? Math.hypot(dx, dy) / R
                   : (((Math.atan2(dy, dx) - a0) / (2 * Math.PI)) % 1 + 1) % 1
         t = t < 0 ? 0 : t > 1 ? 1 : t
-        const c = lut[Math.round(t * 255)] ?? 0
-        px[i++] = (c >> 16) & 255
-        px[i++] = (c >> 8) & 255
-        px[i++] = c & 255
-        px[i++] = 255
+        const c = lut[Math.round(t * 255)] ?? [0, 0, 0, 1]
+        px[i++] = c[0]
+        px[i++] = c[1]
+        px[i++] = c[2]
+        px[i++] = Math.round(c[3] * 255)
       }
     }
     g.putImageData(im, 0, 0)
@@ -209,7 +284,7 @@ export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: 
     const cx = W * (bf.x == null ? 0.5 : bf.x)
     const cy = H * (bf.y == null ? 0.5 : bf.y)
     const g = ctx.createLinearGradient(cx - (dx * ln) / 2, cy - (dy * ln) / 2, cx + (dx * ln) / 2, cy + (dy * ln) / 2)
-    for (const q of curveStops(bf.curves, 48, bf.csat ?? CURVE_SAT, bf.cint ?? 1)) g.addColorStop(q.p, q.c)
+    for (const q of gradStops(bf, 48)) g.addColorStop(q.p, q.c)
     ctx.save()
     ctx.fillStyle = g
     ctx.fillRect(0, 0, W, H)
@@ -401,7 +476,7 @@ export function fillCss(f: Fill): string {
   const li = ss.map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')
   if (mode === 'none') return 'transparent'
   if (mode === 'solid') return first.c
-  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16, f.csat ?? CURVE_SAT, f.cint ?? 1).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
+  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${gradStops(f, 16).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
   if (mode === 'radial') return `radial-gradient(circle at 50% 50%, ${li})`
   if (mode === 'conicRep' || mode === 'conicMirror' || mode === 'rays' || mode === 'conicCorner') {
     const n = mode === 'conicCorner' ? 1 : Math.max(1, Math.round(f.repeat || (mode === 'rays' ? 8 : 3)))

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useT } from '../i18n/i18n'
 import type { MessageKey } from '../i18n/messages'
 import { curveFn, curvePoint, onCurve } from './curve'
@@ -12,13 +12,14 @@ const LINE: CurvePts = [[0, 0], [1, 1]]
 /**
  * Kurverute med kanalene RGB, rød, grønn og blå: klikk legger til punkt, dra flytter, dobbeltklikk fjerner; piltaster
  * flytter valgt punkt. Brukes av fargekurve-gradienten og av RGB-kurvene i Avansert modus (Thumbnail, Loop).
+ * `channels: false`: bare én kurve (m), uten kanalvalg; `decor` tegnes bak kurven (0–100 i ruten, y ned).
  */
-export function CurvePad({ curves: cv, onChange, label }: { curves: FillCurves; onChange: (ch: CurveCh, pts: CurvePts | null) => void; label: string }) {
+export function CurvePad({ curves: cv, onChange, label, channels = true, decor, stroke }: { curves: FillCurves; onChange: (ch: CurveCh, pts: CurvePts | null) => void; label: string; channels?: boolean; decor?: ReactNode; stroke?: string }) {
   const t = useT()
   const [ch, setCh] = useState<CurveCh>('m')
   const [sel, setSel] = useState<number | null>(null)
   const pts = (cv[ch] ?? LINE) as CurvePts
-  const color = CHS.find((x) => x[0] === ch)?.[2] ?? '#e9e7e2'
+  const color = stroke ?? CHS.find((x) => x[0] === ch)?.[2] ?? '#e9e7e2'
   const set = (p: CurvePts | null) => onChange(ch, p)
   const pathOf = (k: CurveCh) => {
     const f = curveFn(cv[k] ?? null)
@@ -98,20 +99,21 @@ export function CurvePad({ curves: cv, onChange, label }: { curves: FillCurves; 
   }
   return (
     <>
-        <div className={s.seg} role="group" aria-label={t('cg.channel')}>
+        {channels && <div className={s.seg} role="group" aria-label={t('cg.channel')}>
           {CHS.map(([k, l, col]) => (
             <button key={k} type="button" aria-pressed={ch === k} data-cg-ch={k} onClick={() => { setCh(k); setSel(null) }}>
               <span aria-hidden="true" className={s.dot} style={{ background: k === 'm' ? 'linear-gradient(90deg,#ff5a5a,#2fbf5f,#4d8dff)' : col }} />{t(l)}
             </button>
           ))}
-        </div>
-        <svg viewBox="-3 -3 106 106" className={s.curve} onPointerDown={down} onKeyDown={key} tabIndex={0} role="img" aria-label={`${label}: ${t(CHS.find((x) => x[0] === ch)![1])}`} data-cg-svg="">
+        </div>}
+        <svg viewBox="-3 -3 106 106" className={s.curve} onPointerDown={down} onKeyDown={key} tabIndex={0} role="img" aria-label={channels ? `${label}: ${t(CHS.find((x) => x[0] === ch)![1])}` : label} data-cg-svg="">
           <rect x="0" y="0" width="100" height="100" className={s.bg} />
           <path d="M25 0V100M50 0V100M75 0V100M0 25H100M0 50H100M0 75H100" className={s.grid} />
-          {CHS.filter(([k]) => k !== ch && cv[k]?.length).map(([k, , col]) => <path key={k} d={pathOf(k)} fill="none" stroke={col} strokeWidth="1.1" opacity="0.8" />)}
+          {decor}
+          {channels && CHS.filter(([k]) => k !== ch && cv[k]?.length).map(([k, , col]) => <path key={k} d={pathOf(k)} fill="none" stroke={col} strokeWidth="1.1" opacity="0.8" />)}
           <path d={pathOf(ch)} fill="none" stroke={color} strokeWidth="2" />
           {pts.map((p, i) => (
-            <circle key={i} cx={(p[0] * 100).toFixed(2)} cy={((1 - p[1]) * 100).toFixed(2)} r={sel === i ? 3.4 : 2.8} className={sel === i ? s.ptOn : s.pt} style={{ stroke: ch === 'm' ? undefined : color }} />
+            <circle key={i} cx={(p[0] * 100).toFixed(2)} cy={((1 - p[1]) * 100).toFixed(2)} r={sel === i ? 3.4 : 2.8} className={sel === i ? s.ptOn : s.pt} style={{ stroke: ch === 'm' ? undefined : color }} data-cg-pt={i} />
           ))}
         </svg>
     </>
