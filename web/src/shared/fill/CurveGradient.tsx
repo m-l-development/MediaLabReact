@@ -1,5 +1,6 @@
 import { useT } from '../i18n/i18n'
 import type { MessageKey } from '../i18n/messages'
+import { NumField } from '../ui/NumField'
 import { CurvePad } from './CurvePad'
 import { CURVE_SAT, CURVE_SHAPES, curveStops, type CurveShape, type Fill, type FillCurves } from './fill'
 import s from './CurveGradient.module.css'
@@ -23,52 +24,94 @@ const PRESETS: [MessageKey, FillCurves, number][] = [
 ]
 const SHAPE_KEYS: Record<CurveShape, MessageKey> = { linear: 'cg.s.linear', mirror: 'cg.s.mirror', cross: 'cg.s.cross', diamond: 'cg.s.diamond', square: 'cg.s.square', radial: 'cg.s.radial', conic: 'cg.s.conic' }
 
+/** Standardverdiene en ny gradient får, og som «Tilbakestill» går tilbake til (kurvene og formen beholdes). */
+const DEFAULTS = { angle: 90, x: 0.5, y: 0.5, cint: 1, csat: CURVE_SAT } as const
+
 /**
  * Fargekurve-gradient for bakgrunnen: samme kurverute som RGB-kurvene for bilder, men kurvene lager fargene i bakgrunnen
- * fra den ene siden til den andre (x = posisjon langs retningen, y = kanalens verdi). Endringer gjør bakgrunnen til en
- * fargekurve-gradient (fyllmodus 'curves'); den lagres og eksporteres som andre fyll.
+ * fra den ene siden til den andre (x = posisjon langs retningen, y = kanalens verdi). Lagres og eksporteres som andre fyll.
+ *
+ * Opprettelse og redigering er skilt: en gradient lages bare med «Lag gradient» eller et forhåndsvalg. Kontrollene
+ * (retning, plassering, fargestyrke, metning, form, kurvene) endrer bare den som finnes, og sender bare feltet som endres
+ * (før sendte hver glider modus «curves», så å bevege en glider laget en ny gradient). Av/på beholder innstillingene
+ * (`off`: tegnes ikke, bakgrunnsfargen vises); «Fjern gradient» tar den bort helt. Glidere sender en nøkkel (`key`), så én
+ * dragning blir ett steg i Angre; knappene og tallfeltene er hvert sitt steg.
  */
-export function CurveGradient({ fill, onChange }: { fill: Fill | null; onChange: (patch: Partial<Fill>) => void }) {
+export function CurveGradient({ fill, onChange, onRemove }: { fill: Fill | null; onChange: (patch: Partial<Fill>, key?: string) => void; onRemove: () => void }) {
   const t = useT()
   const on = fill?.mode === 'curves'
+  const off = on && !!fill?.off
   const cv: FillCurves = (on && fill?.curves) || {}
-  const ang = on && fill?.angle != null ? fill.angle : 90
+  const ang = on && fill?.angle != null ? fill.angle : DEFAULTS.angle
   const sat = on && fill?.csat != null ? fill.csat : CURVE_SAT
+  const int = on && fill?.cint != null ? fill.cint : DEFAULTS.cint
+  const px = on && fill?.x != null ? fill.x : DEFAULTS.x
+  const py = on && fill?.y != null ? fill.y : DEFAULTS.y
   const shape: CurveShape = on && fill?.cshape && CURVE_SHAPES.includes(fill.cshape) ? fill.cshape : 'linear'
-  // felles for alle endringer: beholder retning, fargestyrke og form
-  const base = { mode: 'curves' as const, angle: ang, csat: sat, cshape: shape }
-  const strip = `linear-gradient(90deg, ${curveStops(cv, 24, sat).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
+  const strip = `linear-gradient(90deg, ${curveStops(cv, 24, sat, int).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
+  // en ny gradient: alle felt satt, så ingenting arves fra et tidligere fyll
+  const create = (curves: FillCurves, csat: number) => onChange({ mode: 'curves', ...DEFAULTS, csat, cshape: 'linear', curves, off: false })
+  const locked = !on || off
+  const pct = (v: number) => Math.round(v * 1000) / 10
   return (
-    <div className={s.box} role="group" aria-label={t('cg.title')} data-curve-gradient="">
+    <div className={s.box} role="group" aria-label={t('cg.title')} data-curve-gradient="" data-cg-state={!on ? 'none' : off ? 'off' : 'on'}>
       <div className={s.head}>
         <b>{t('cg.title')}</b>
-        <button type="button" className={s.reset} disabled={!on} onClick={() => { onChange({ ...base, csat: CURVE_SAT, cshape: 'linear', curves: {} }) }}>{t('bg.reset')}</button>
+        {on && (
+          <button type="button" className={s.switch} role="switch" aria-checked={!off} data-cg-toggle="" onClick={() => onChange({ off: !off })}>
+            <span aria-hidden="true" />{t('cg.on')}
+          </button>
+        )}
       </div>
+      {!on && <button type="button" className={s.create} data-cg-create="" onClick={() => create({}, CURVE_SAT)}>{t('cg.create')}</button>}
       <div className={s.presets} role="group" aria-label={t('cg.presets')}>
         {PRESETS.map(([k, pc, ps]) => (
-          <button key={k} type="button" className={s.preset} aria-label={`${t('cg.presets')}: ${t(k)}`} title={t(k)} onClick={() => { onChange({ ...base, csat: ps, curves: pc }) }}>
+          // forhåndsvalg: lager en gradient, eller bytter kurvene i den som finnes (retning og plassering beholdes)
+          <button key={k} type="button" className={s.preset} disabled={off} aria-label={`${t('cg.presets')}: ${t(k)}`} title={t(k)} onClick={() => (on ? onChange({ csat: ps, curves: pc }) : create(pc, ps))}>
             <span style={{ background: `linear-gradient(90deg, ${curveStops(pc, 8, ps).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})` }} />
             {t(k)}
           </button>
         ))}
       </div>
-      <CurvePad curves={cv} label={t('cg.title')} onChange={(k, p) => onChange({ ...base, curves: { ...cv, [k]: p } })} />
-      <div className={s.strip} style={{ background: strip }} aria-hidden="true" />
-      <label className={s.shape}>
-        <b>{t('cg.shape')}</b>
-        <select value={shape} aria-label={t('cg.shape')} data-cg-shape="" onChange={(e) => onChange({ ...base, cshape: e.target.value as CurveShape, curves: cv })}>
-          {CURVE_SHAPES.map((k) => <option key={k} value={k}>{t(SHAPE_KEYS[k])}</option>)}
-        </select>
-      </label>
-      <label className={s.range}>
-        <span><b>{t('cg.angle')}</b><span>{Math.round(ang)}°</span></span>
-        <input type="range" min={0} max={360} step={1} value={Math.round(ang)} aria-label={t('cg.angle')} onChange={(e) => onChange({ ...base, angle: Number(e.target.value), curves: cv })} />
-      </label>
-      <label className={s.range}>
-        <span><b>{t('cg.sat')}</b><span>{Math.round(sat * 100)} %</span></span>
-        <input type="range" min={0} max={300} step={5} value={Math.round(sat * 100)} aria-label={t('cg.sat')} onChange={(e) => onChange({ ...base, csat: Number(e.target.value) / 100, curves: cv })} />
-      </label>
-      <span className={s.note}>{t(on ? 'cg.noteOn' : 'cg.noteOff')}</span>
+      {on && (
+        <>
+          <fieldset className={s.edit} disabled={locked}>
+            <CurvePad curves={cv} label={t('cg.title')} onChange={(k, p) => onChange({ curves: { ...cv, [k]: p } }, 'cg:curve')} />
+            <div className={s.strip} style={{ background: strip }} aria-hidden="true" />
+            <label className={s.shape}>
+              <b>{t('cg.shape')}</b>
+              <select value={shape} aria-label={t('cg.shape')} data-cg-shape="" onChange={(e) => onChange({ cshape: e.target.value as CurveShape })}>
+                {CURVE_SHAPES.map((k) => <option key={k} value={k}>{t(SHAPE_KEYS[k])}</option>)}
+              </select>
+            </label>
+            <div className={s.range}>
+              <span><b>{t('cg.angle')}</b><NumField value={Math.round(ang)} min={0} max={360} unit="°" label={t('cg.angle')} disabled={locked} onCommit={(v) => onChange({ angle: v })} /></span>
+              <input type="range" min={0} max={360} step={1} value={Math.round(ang)} aria-label={t('cg.angle')} data-cg-angle="" onChange={(e) => onChange({ angle: Number(e.target.value) }, 'cg:angle')} />
+            </div>
+            <span className={s.sub}>{t('cg.pos')}</span>
+            {(['x', 'y'] as const).map((k) => (
+              <div key={k} className={s.range}>
+                <span><b>{t(k === 'x' ? 'cg.x' : 'cg.y')}</b><NumField value={pct(k === 'x' ? px : py)} min={-50} max={150} unit=" %" label={t(k === 'x' ? 'cg.x' : 'cg.y')} disabled={locked} onCommit={(v) => onChange({ [k]: v / 100 })} /></span>
+                <input type="range" min={-50} max={150} step={0.5} value={pct(k === 'x' ? px : py)} aria-label={t(k === 'x' ? 'cg.x' : 'cg.y')} data-cg-pos={k} onChange={(e) => onChange({ [k]: Number(e.target.value) / 100 }, 'cg:' + k)} />
+              </div>
+            ))}
+            <div className={s.range}>
+              <span><b>{t('cg.int')}</b><NumField value={Math.round(int * 100)} min={0} max={200} unit=" %" label={t('cg.int')} disabled={locked} onCommit={(v) => onChange({ cint: v / 100 })} /></span>
+              <input type="range" min={0} max={200} step={1} value={Math.round(int * 100)} aria-label={t('cg.int')} data-cg-int="" onChange={(e) => onChange({ cint: Number(e.target.value) / 100 }, 'cg:int')} />
+            </div>
+            <div className={s.range}>
+              <span><b>{t('cg.sat')}</b><NumField value={Math.round(sat * 100)} min={0} max={300} unit=" %" label={t('cg.sat')} disabled={locked} onCommit={(v) => onChange({ csat: v / 100 })} /></span>
+              <input type="range" min={0} max={300} step={5} value={Math.round(sat * 100)} aria-label={t('cg.sat')} data-cg-sat="" onChange={(e) => onChange({ csat: Number(e.target.value) / 100 }, 'cg:sat')} />
+            </div>
+          </fieldset>
+          <div className={s.actions}>
+            <button type="button" className={s.reset} disabled={locked} title={t('cg.resetTip')} data-cg-reset="" onClick={() => onChange({ ...DEFAULTS })}>{t('cg.reset')}</button>
+            <button type="button" className={s.reset} disabled={locked} onClick={() => onChange({ curves: {} })}>{t('cg.resetCurves')}</button>
+            <button type="button" className={`${s.reset} ${s.danger}`} data-cg-remove="" onClick={onRemove}>{t('cg.remove')}</button>
+          </div>
+        </>
+      )}
+      <span className={s.note}>{t(!on ? 'cg.noteOff' : off ? 'cg.offNote' : 'cg.noteOn')}</span>
     </div>
   )
 }

@@ -154,7 +154,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           onChange={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
         <Cmyk hv={hex(d.bg || '#ffffff')} set={(v) => c.setDoc((q) => ({ ...q, bg: v, fill: null }), 'bg')} />
         {/* bakgrunn laget av RGB-kurver (eget verktøy ved siden av fargen; bildekurvene er uendret) */}
-        <CurveGradient fill={d.fill ?? null} onChange={(p) => c.putFill(p)} />
+        <CurveGradient fill={d.fill ?? null} onChange={(p, k) => c.putFill(p, k ?? null)} onRemove={() => c.setDoc((q) => ({ ...q, fill: null }))} />
         <Toggle label={tx('Gjennomsiktig bakgrunn')} on={!d.bg} onClick={() => c.setDoc((q) => ({ ...q, bg: q.bg ? null : '#ffffff', fill: null }))} />
         <div className={s.printBox}>
           <span className={s.eyebrowSm}>{tx('Trykk')}</span>
