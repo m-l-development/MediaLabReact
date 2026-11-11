@@ -1882,13 +1882,14 @@ export class PhotoController {
     return d.bg2 ? { mode: 'linear', angle: d.bgAng == null ? 135 : d.bgAng, stops: [{ c, p: 0 }, { c: d.bg2, p: 1 }] } : { mode: 'solid', stops: [{ c, p: 0 }, { c: '#080808', p: 1 }] }
   }
 
-  putFill(p: Partial<Fill>): void {
+  /** Endrer bakgrunnsfyllet. `key`: endringer med samme nøkkel blir ett steg i Angre (glidere); null = eget steg. */
+  putFill(p: Partial<Fill>, key: string | null = 'fill'): void {
     this.setDoc((q) => {
       const cur = this.fillOf(q)
       const nf: Fill = { angle: 135, ...cur, mode: cur.mode, stops: fillStops(cur), ...p }
       const s0 = fillStops(nf)
       return { ...q, fill: nf, bg: nf.mode === 'none' ? null : ((s0.slice().sort((x, y) => x.p - y.p)[0])?.c ?? null), bg2: null }
-    }, 'fill')
+    }, key ?? undefined)
   }
 
   // ---------- effekter ----------

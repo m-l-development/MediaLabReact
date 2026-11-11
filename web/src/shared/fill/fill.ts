@@ -31,6 +31,15 @@ export interface Fill {
   csat?: number
   /** Form for fargekurve-gradienten (mangler = lineær). */
   cshape?: CurveShape
+  /** Styrke for fargekurve-gradienten: 0 = flat (gjennomsnittsfargen), 1 = som kurvene gir, 2 = dobbelt så sterk. Mangler = 1. */
+  cint?: number
+  /** Slått av: fyllet beholdes med alle innstillinger, men tegnes ikke (bakgrunnsfargen vises, også i eksporten). */
+  off?: boolean
+}
+
+/** Tegnes fyllet? (ikke «ingen» og ikke slått av) */
+export function fillOn(f: Fill | null | undefined): f is Fill {
+  return !!f && f.mode !== 'none' && !f.off
 }
 
 /** Standard metning for fargekurve-gradienten: litt sterkere enn kurvene alene, som ellers gir blasse blandingsfarger. */
@@ -94,7 +103,7 @@ function clip01(st: FillStop[]): FillStop[] {
  * Fargekurve-gradient: fargen ved posisjon t (0–1 langs retningen) er (R, G, B) = m(kanalkurven(t)). Uten kurver blir
  * den svart → hvit; hver kanal formes med sin kurve, og RGB-kurven virker på alle tre.
  */
-export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURVE_SAT): FillStop[] {
+export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURVE_SAT, int = 1): FillStop[] {
   const fm = curveFn(cv?.m)
   const fr = curveFn(cv?.r)
   const fg = curveFn(cv?.g)
@@ -104,7 +113,7 @@ export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURV
     return Math.round(clamp(fm ? fm(clamp(v, 0, 1)) : v, 0, 1) * 255)
   }
   const k = clamp(sat, 0, 3)
-  const out: FillStop[] = []
+  const rgb: [number, number, number][] = []
   for (let i = 0; i <= n; i++) {
     const t = i / n
     let r = ch(fr, t)
@@ -116,9 +125,15 @@ export function curveStops(cv: FillCurves | null | undefined, n = 48, sat = CURV
       g = Math.round(clamp(y + (g - y) * k, 0, 255))
       b = Math.round(clamp(y + (b - y) * k, 0, 255))
     }
-    out.push({ c: `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`, p: t })
+    rgb.push([r, g, b])
   }
-  return out
+  // styrke: hvor langt fargene går fra gjennomsnittsfargen (gjelder også gråtoner, der metningen ikke virker)
+  const q = clamp(int, 0, 2)
+  if (q !== 1) {
+    const m = [0, 1, 2].map((c) => rgb.reduce((a, v) => a + (v[c] as number), 0) / rgb.length)
+    for (const v of rgb) for (let c = 0; c < 3; c++) v[c] = Math.round(clamp((m[c] as number) + ((v[c] as number) - (m[c] as number)) * q, 0, 255))
+  }
+  return rgb.map(([r, g, b], i) => ({ c: `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`, p: i / n }))
 }
 
 let shapeCache: { key: string; img: CanvasImageSource } | null = null
@@ -131,9 +146,9 @@ function drawCurveShape(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: n
   const k = Math.min(1, 640 / Math.max(W, H))
   const cw = Math.max(2, Math.round(W * k))
   const chh = Math.max(2, Math.round(H * k))
-  const key = JSON.stringify([bf.curves, bf.csat, bf.cshape, bf.angle, bf.x, bf.y, cw, chh, W, H])
+  const key = JSON.stringify([bf.curves, bf.csat, bf.cint, bf.cshape, bf.angle, bf.x, bf.y, cw, chh, W, H])
   if (shapeCache?.key !== key) {
-    const lut = curveStops(bf.curves, 255, bf.csat ?? CURVE_SAT).map((q) => parseInt(q.c.slice(1), 16))
+    const lut = curveStops(bf.curves, 255, bf.csat ?? CURVE_SAT, bf.cint ?? 1).map((q) => parseInt(q.c.slice(1), 16))
     const cv: OffscreenCanvas | HTMLCanvasElement = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(cw, chh) : Object.assign(document.createElement('canvas'), { width: cw, height: chh })
     const g = cv.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
     if (!g) return
@@ -194,7 +209,7 @@ export function drawFill(ctx: CanvasRenderingContext2D, bf: Fill, W: number, H: 
     const cx = W * (bf.x == null ? 0.5 : bf.x)
     const cy = H * (bf.y == null ? 0.5 : bf.y)
     const g = ctx.createLinearGradient(cx - (dx * ln) / 2, cy - (dy * ln) / 2, cx + (dx * ln) / 2, cy + (dy * ln) / 2)
-    for (const q of curveStops(bf.curves, 48, bf.csat ?? CURVE_SAT)) g.addColorStop(q.p, q.c)
+    for (const q of curveStops(bf.curves, 48, bf.csat ?? CURVE_SAT, bf.cint ?? 1)) g.addColorStop(q.p, q.c)
     ctx.save()
     ctx.fillStyle = g
     ctx.fillRect(0, 0, W, H)
@@ -386,7 +401,7 @@ export function fillCss(f: Fill): string {
   const li = ss.map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')
   if (mode === 'none') return 'transparent'
   if (mode === 'solid') return first.c
-  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16, f.csat ?? CURVE_SAT).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
+  if (mode === 'curves') return `linear-gradient(${Math.round(f.angle == null ? 90 : f.angle)}deg, ${curveStops(f.curves, 16, f.csat ?? CURVE_SAT, f.cint ?? 1).map((q) => `${q.c} ${Math.round(q.p * 100)}%`).join(', ')})`
   if (mode === 'radial') return `radial-gradient(circle at 50% 50%, ${li})`
   if (mode === 'conicRep' || mode === 'conicMirror' || mode === 'rays' || mode === 'conicCorner') {
     const n = mode === 'conicCorner' ? 1 : Math.max(1, Math.round(f.repeat || (mode === 'rays' ? 8 : 3)))

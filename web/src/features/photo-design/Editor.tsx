@@ -1166,7 +1166,7 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
         {/* midtpunktet i bakgrunnsgradienten: dra for å flytte (samme posisjon som «Midtstill» nullstiller) */}
         {(() => {
           const f = c.fillOf(d)
-          if (S.tool === 'brush' || f.mode === 'none' || f.mode === 'solid') return null
+          if (S.tool === 'brush' || f.mode === 'none' || f.mode === 'solid' || f.off) return null
           const fx = f.x ?? 0.5
           const fy = f.y ?? 0.5
           // hjørnetypene: håndtaket sitter på hjørnepunktet (vinkelen), og posisjonen flytter det

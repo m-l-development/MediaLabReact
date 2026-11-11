@@ -1,4 +1,4 @@
-import { drawFill } from '../../../shared/fill/fill'
+import { drawFill, fillOn } from '../../../shared/fill/fill'
 import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
 import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
@@ -601,7 +601,8 @@ export function render(g: G, doc: PdDoc, scale: number, M: Media, oIn: RenderOpt
   g.save()
   g.setTransform(scale, 0, 0, scale, bl * scale - (o.ox || 0), bl * scale - (o.oy || 0))
   g.clearRect(-bl, -bl, doc.w + 2 * bl, doc.h + 2 * bl)
-  if (doc.fill?.mode && doc.fill.mode !== 'none' && !o.transparent) {
+  // et avslått fyll tegnes ikke: bakgrunnsfargen under vises (også i eksporten)
+  if (fillOn(doc.fill) && !o.transparent) {
     g.save()
     g.translate(-bl, -bl)
     drawFill(g, doc.fill, doc.w + 2 * bl, doc.h + 2 * bl)
