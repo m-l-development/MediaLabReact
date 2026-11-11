@@ -156,10 +156,21 @@ export function baseOf(E: MediaEntry, maxD: number): HTMLCanvasElement {
   const s = Math.min(1, maxD / Math.max(E.w, E.h))
   const k = 'b' + Math.round(E.w * s)
   const have = E.cache.get(k)
-  if (have) return have
+  if (have) {
+    // sist brukt bakerst (nøklene holdes i bruksrekkefølge)
+    E.cache.delete(k)
+    E.cache.set(k, have)
+    return have
+  }
   const c = mk(E.w * s, E.h * s)
   ctx(c).drawImage(E.img, 0, 0, c.width, c.height)
   E.cache.set(k, c)
+  // høyst tre størrelser per bilde (visning, miniatyr, eksport); før vokste bufferen med én kopi per zoomnivå, og
+  // eksportens kopi i full størrelse ble liggende resten av økten
+  for (const old of E.cache.keys()) {
+    if (E.cache.size <= 3) break
+    E.cache.delete(old)
+  }
   return c
 }
 

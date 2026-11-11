@@ -608,6 +608,8 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
             {S.busyImg && <div className={s.busy}>{tx('Leser bildet …')}</div>}
           </div>
         </div>
+      </div>
+      <div className={s.zoomReset}>
         <div className={s.zoomCtl}>
           <button type="button" disabled={S.zoom <= 1} title={tx('Zoom ut')} aria-label={tx('Zoom ut')} onClick={() => zoom(() => c.zoomOut())}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
@@ -617,8 +619,6 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
           </button>
         </div>
-      </div>
-      <div className={s.zoomReset}>
         <button type="button" className={s.btnSmall} disabled={S.zoom === 1} title={tx('Tilbake til standard zoom (100 %)')} onClick={() => c.setZoom(1)}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
           <span>{tx('Standard zoom')}</span>

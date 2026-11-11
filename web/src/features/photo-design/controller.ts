@@ -221,7 +221,22 @@ export class PhotoController {
     this.alive = false
     clearTimeout(this.svT)
     clearTimeout(this.tt)
-    for (const e of this.M.media.values()) URL.revokeObjectURL(e.url)
+    this.dropMedia()
+    this.past = []
+    this.future = []
+  }
+
+  /**
+   * Frigjør bildene til prosjektet som lukkes (blob-adressen holder ellers hele bildefilen i minnet resten av økten) og
+   * de nedskalerte kopiene. Kalles før et annet prosjekt åpnes (historikken nullstilles da også) og når editoren lukkes.
+   */
+  private dropMedia(): void {
+    for (const e of this.M.media.values()) {
+      URL.revokeObjectURL(e.url)
+      e.cache.clear()
+    }
+    this.M.media.clear()
+    this.M.masks.clear()
   }
 
   flash(p: Phrase, v?: Vars): void {
@@ -288,8 +303,7 @@ export class PhotoController {
     // nytt prosjekt havner i kategorien som er valgt under «Mine prosjekter»
     const pc = this.s.projCat
     if (pc && this.s.cats.includes(pc)) d.cat = pc
-    this.M.media.clear()
-    this.M.masks.clear()
+    this.dropMedia()
     this.openDoc(d, null, true)
   }
 
@@ -324,8 +338,7 @@ export class PhotoController {
     this.set({ busy: 'load' })
     try {
       const s = await this.d.repo.open(id)
-      this.M.media.clear()
-      this.M.masks.clear()
+      this.dropMedia()
       this.savedMasks.clear()
       await this.loadMedia(s.doc, s.masks)
       if (!this.alive) return
@@ -613,8 +626,7 @@ export class PhotoController {
         const b = await S.blob(ref).catch(() => null)
         if (b) masks[k] = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(b) })
       }
-      this.M.media.clear()
-      this.M.masks.clear()
+      this.dropMedia()
       this.savedMasks.clear()
       await this.loadMedia(d, masks)
       if (!this.alive) return
@@ -1958,8 +1970,7 @@ export class PhotoController {
 
   /** Ny, tom bildeserie (eget prosjekt). */
   createBatch(): void {
-    this.M.media.clear()
-    this.M.masks.clear()
+    this.dropMedia()
     this.openDoc(batchDoc(this.d.t('Bildeserie'), this.now()), null, true)
   }
 
@@ -2172,8 +2183,7 @@ export class PhotoController {
       this.setDoc(() => ({ ...d, batch: { items, active: items.findIndex((x) => x.id === act.id), sel: [] } }), false)
     } else {
       for (const e of this.M.media.values()) URL.revokeObjectURL(e.url)
-      this.M.media.clear()
-      this.M.masks.clear()
+      this.dropMedia()
       const next = Math.min(b.active - b.items.slice(0, b.active).filter((x) => sel.has(x.id)).length, items.length - 1)
       this.setDoc(() => ({ ...d, w: 1080, h: 1080, layers: [], batch: { items, active: Math.max(0, next), sel: [] } }), false)
       this.set({ sel: null })

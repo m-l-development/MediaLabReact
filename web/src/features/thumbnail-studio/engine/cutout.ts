@@ -1,13 +1,14 @@
 import { refineMask } from '../../isolate-subject/engine/mask'
 import { loadToCanvas, toBlob } from '../../isolate-subject/engine/raster'
-import { Segmenter, type ModelKey } from '../../isolate-subject/engine/segmenter'
+import { AiSegmenter } from '../../isolate-subject/engine/segment-client'
+import type { ModelKey } from '../../isolate-subject/engine/segmenter'
 
 /**
  * Valgfritt AI-utklipp i Thumbnail Studio (TS-08): Person = MODNet, Objekt = ormbg, lokalt i nettleseren.
  * Samme etterbehandling som Isolate Subject (refineMask uten innstramming og myking). → PNG med gjennomsiktig bakgrunn.
  */
 export class Cutout {
-  private seg = new Segmenter()
+  private seg = new AiSegmenter()
 
   async run(blob: Blob, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<Blob> {
     const src = await loadToCanvas(blob)

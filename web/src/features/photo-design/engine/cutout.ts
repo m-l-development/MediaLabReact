@@ -1,4 +1,5 @@
-import { Segmenter, type ModelKey } from '../../isolate-subject/engine/segmenter'
+import { AiSegmenter } from '../../isolate-subject/engine/segment-client'
+import type { ModelKey } from '../../isolate-subject/engine/segmenter'
 import { mk } from './render'
 
 /**
@@ -6,7 +7,7 @@ import { mk } from './render'
  * Gir en maske (hvit med alfa) i bildets størrelse, eller null når modellen ikke fant et tydelig motiv.
  */
 export class PhotoCutout {
-  private seg = new Segmenter()
+  private seg = new AiSegmenter()
 
   async run(src: HTMLCanvasElement, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<HTMLCanvasElement | null> {
     const key: ModelKey = kind === 'person' ? 'fast' : 'fine'
