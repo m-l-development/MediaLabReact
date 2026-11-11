@@ -3,6 +3,7 @@ import type { AdvAdj } from '../../shared/image/AdvAdjust'
 import { countImgs, H, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
 import { fitSize } from './engine/render'
 import { bakeList } from './engine/text-list'
+import { cleanFilters, FILTERS, filterDef, newFilter, type FilterId, type ImgFilter } from './engine/filters'
 import type { Phrase, Vars } from './texts'
 
 /** Beskrivelse av én kontroll i egenskapspanelet (samme rekkefølge og valg som dagens app). */
@@ -53,6 +54,45 @@ export function autoName(l: Layer, t: (p: Phrase, v?: Vars) => string): string {
     return t(a === 'logo-symbol' ? 'Livets Ord-symbol' : a === 'logo-kbs' ? 'Kveldsbibelskole-logo' : a === 'logo-wol' ? 'Word of Life-logo' : 'Bilde')
   }
   return t(l.type === 'shape' ? (l.kind === 'line' ? 'Strek' : 'Form') : 'Lys')
+}
+
+let fltSeq = 0
+/** Filterlisten for et bildelag: legg til, slå av/på, juster, flytt og fjern (engine/filters.ts). */
+export function filterCtrls(c: ThumbController, l: ImageLayer): Ctrl[] {
+  const fs = cleanFilters(l.filters) ?? []
+  // strukturendringer er egne angresteg; justering av samme verdi slås sammen
+  const put = (next: ImgFilter[], key = 'flt:' + l.id + ':' + ++fltSeq) => c.setL(l.id, { filters: next }, key)
+  const C: Ctrl[] = [HD('Filtre')]
+  if (!fs.length) C.push(NT('Ingen filtre på bildet. Filtrene legges over bildet, kan stables og kommer med i eksporten.'))
+  fs.forEach((f, i) => {
+    const d = filterDef(f.id)
+    if (!d) return
+    const upd = (k: string, v: number | string) => put(fs.map((x, j) => (j === i ? { ...x, p: { ...x.p, [k]: v } } : x)), `flt:${l.id}:${i}:${k}`)
+    const move = (to: number) => {
+      const n = fs.slice()
+      const [x] = n.splice(i, 1)
+      n.splice(to, 0, x as ImgFilter)
+      put(n)
+    }
+    C.push({ k: 'h', label: d.name as Phrase },
+      BT([
+        { label: f.on ? 'Slå av' : 'Slå på', kind: f.on ? 'p' : '', on: () => put(fs.map((x, j) => (j === i ? { ...x, on: !x.on } : x))) },
+        { label: 'Flytt opp', disabled: i === 0, on: () => move(i - 1) },
+        { label: 'Flytt ned', disabled: i === fs.length - 1, on: () => move(i + 1) },
+        { label: 'Fjern filteret', kind: 'd', on: () => put(fs.filter((_, j) => j !== i)) },
+      ]))
+    if (!f.on) return
+    for (const q of d.params) {
+      const v = f.p[q.k]
+      const key = `ts.flt.${q.t}`
+      if (q.t === 'pct') C.push(SL(q.label as Phrase, Math.round(Number(v) * 100), Math.round(q.min * 100), Math.round(q.max * 100), 1, (x) => upd(q.k, x / 100), '%', { key }))
+      else if (q.t === 'num') C.push(SL(q.label as Phrase, Number(v), q.min, q.max, q.step, (x) => upd(q.k, x), q.unit ?? '', { key }))
+      else if (q.t === 'color') C.push(CO(q.label as Phrase, String(v), (x) => upd(q.k, x)))
+      else C.push(SG(q.label as Phrase, String(v), q.opts.map(([o, t]) => [o, t as Phrase]), (x) => upd(q.k, x)))
+    }
+  })
+  C.push({ k: 'select', label: 'Legg til filter …', val: '', set: (v) => { if (filterDef(v)) put([...fs, newFilter(v as FilterId)]) }, opts: [{ v: '', label: '', phrase: 'Legg til filter …' }, ...FILTERS.map((f) => ({ v: f.id, label: f.name, phrase: f.name as Phrase }))] })
+  return C
 }
 
 function IM(c: ThumbController, l: ImageLayer, label: Phrase): Ctrl {
@@ -170,6 +210,8 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
       if (l.bri || l.con || l.sat) C.push(BT([{ label: 'Nullstill justeringene', on: () => set({ bri: 0, con: 0, sat: 0 }) }]))
       // Avansert modus: flere justeringer og RGB-kurver (i tillegg til de over, som er uendret)
       if (c.s.adv) C.push({ k: 'adv', val: l.adj ?? null, set: (p) => set({ adj: { ...(l.adj ?? {}), ...p } }) })
+      // bildefiltre F01–F13 (i begge modusene; et tillegg, kontrollene over er uendret)
+      C.push(...filterCtrls(c, l))
     }
     // malens bakgrunn rett ved bildet (samme verdi som under «Bakgrunn» i malpanelet)
     if (c.s.doc?.bg.type === 'color') C.push({ k: 'bg', label: 'Bakgrunn', val: c.s.doc.bg.color, def: '#000000', note: 'Fargen bak bildene i hele malen. Den kommer med i eksporten.', set: (v) => c.setBg({ color: v }) })

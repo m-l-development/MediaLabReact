@@ -3,7 +3,7 @@
 Levende oversikt for hele oppdraget (felles fontbibliotek, 151 Thumbnail-maler, 100 Photo Design-maler og
 editorfunksjonene de trenger). Oppdateres etter hver fase. Sjekklisten for malene står nederst.
 
-Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). Fase 2 (filtre F01–F13) neste.
+Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). Fase 3 (Thumbnail-maler) neste.
 
 ## 1. Originalmaterialet (fasiten)
 
@@ -78,6 +78,14 @@ oppsett, eksisterende snarveier, Isolate Subject, Mockups, mediebiblioteket, byg
 - Nytt valgfritt felt på bildelag: `filters: { id, on, …parametere }[]` (mangler = ingen, gamle prosjekter uendret).
 - Tegnes i rekkefølge i `engine/render.ts` (canvas), samme i forhåndsvisning og eksport; parametere og standardverdier
   nøyaktig fra materialet.
+
+#### Fase 2 – status
+- `web/src/features/thumbnail-studio/engine/filters.ts`: de 13 filtrene med parametere og standardverdier fra materialet (CSS i 1280 × 720; mål i piksler × 1,5 i 1920-dokumentet). Korn (F10, F13) er materialets SVG-støy (feTurbulence .85, 3 oktaver, 240 px-rute).
+- Tegning (`render.ts`, `drawPic`): uten filtre nøyaktig som før. Med filtre tegnes bildet i et eget lerret: pikselfiltre (svart-hvitt, duotone, uskarp, varm, kald) i rekkefølge, så overleggene, og til slutt klippes alt til bildets egen form/alfa. Originalbildet endres aldri; samme kode for lerret, forhåndsvisning og eksport.
+- Lagring: valgfritt felt `filters` på bildelag, kontrollert ved åpning (`cleanFilters` i `backup.ts`: ukjente filtre og verdier utenfor området forkastes). Eldre maler uten feltet er uendret.
+- Panel: «Filtre» under «Bildejusteringer» for bilder (ikke ensfargede logoer), i både Enkel og Avansert modus – et tillegg, ingen eksisterende kontroller er flyttet. Legg til, slå av/på, juster, flytt opp/ned, fjern; hvert steg kan angres.
+- Standardverdier som materialet ikke oppgir (nøytrale; malene i fase 3 setter sine egne): F04 farge #f5b800, F05 mørk #000000 / lys #ffffff, F10 styrke 35 %, F11 farge #ffffff / styrke 100 %, F13 papirfarge #f1ece2 og vignett 50 %.
+- Tester: `engine/filters.test.ts` (standardverdier, rydding, pikselfilter, lagring/åpning, engelske tekster), `e2e/thumbnail-filters.spec.ts` (PC: piksler på lerretet, av/på, rekkefølge, fjern, lagre/åpne, eksport; hvert av de 13 filtrene endrer bildet og fjerning gir originalen; mobil: filter i Rediger-skuffen).
 
 ### Fase 3 – Thumbnail: 151 maler
 - Malene **måles fra originalene** i en nettleser (posisjon, størrelse, font, snitt, størrelse, sperring, farge,

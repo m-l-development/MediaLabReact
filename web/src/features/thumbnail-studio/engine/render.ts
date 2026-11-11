@@ -5,6 +5,7 @@ import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { ImageCache, LoadedImage } from './images'
 import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
+import { activeFilters, blurScale, drawOverlays, loadGrain, pixelFilter, REF_W } from './filters'
 
 /**
  * Tegning av et dokument på et lerret (samme resultat som dagens app). `s` = skala fra 1920 × 1080,
@@ -370,9 +371,7 @@ export class Renderer {
         g.fillStyle = l.fill
         g.fillRect(0, 0, l.w, l.h)
       }
-      g.filter = imgFilter(l)
-      drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
-      g.filter = 'none'
+      drawPic(g, im, l, s)
       if (l.border > 0) {
         g.lineWidth = l.border * 2
         g.strokeStyle = l.borderColor
@@ -388,8 +387,7 @@ export class Renderer {
         g.fillRect(0, 0, l.w, l.h)
         g.shadowColor = 'transparent'
       }
-      g.filter = imgFilter(l)
-      drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
+      drawPic(g, im, l, s)
       g.restore()
     }
   }
@@ -515,7 +513,8 @@ export class Renderer {
 export function ensureFonts(doc: Doc): Promise<unknown> {
   if (typeof document === 'undefined' || !document.fonts?.load) return Promise.resolve()
   // fonter fra biblioteket: stilarket hentes først (loadFonts), så tegning og eksport bruker riktig font
-  return loadFonts(doc.layers.flatMap((l) => (l.type === 'text' ? [{ font: l.font, weight: l.weight }] : [])))
+  // og kornruten til filtrene (F10 Korn, F13 Papir), så eksporten får kornet med
+  return Promise.all([loadFonts(doc.layers.flatMap((l) => (l.type === 'text' ? [{ font: l.font, weight: l.weight }] : []))), loadGrain()])
 }
 
 /** Øverste synlige, ulåste lag under punktet (i 1920 × 1080-koordinater). */
@@ -537,6 +536,45 @@ export function hit(layers: readonly Layer[], p: { x: number; y: number }): Laye
 }
 
 /** Lysstyrke, kontrast og metning for et bildelag som canvas-filter («none» når alt er 0). */
+/**
+ * Selve bildet i bildelaget: uten filtre nøyaktig som før (bildejusteringene som canvas-filter). Med filtre (F01–F13,
+ * engine/filters.ts) tegnes bildet og filtrene i et eget lerret i lagets størrelse: bildefiltrene på bildet, lagene over
+ * i rekkefølge, og til slutt bildets egen gjennomsiktighet (et utklipp får ikke farge utenfor personen).
+ */
+function drawPic(g: G, im: CanvasImageSource & { width: number; height: number }, l: ImageLayer, s: number) {
+  const fs = activeFilters(l.filters)
+  if (!fs.length) {
+    g.filter = imgFilter(l)
+    drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
+    g.filter = 'none'
+    return
+  }
+  const k = W / REF_W
+  const cw = Math.max(1, Math.min(8192, Math.ceil(l.w * s))), ch = Math.max(1, Math.min(8192, Math.ceil(l.h * s)))
+  const comp = canvas(cw, ch), cg = ctx(comp)
+  const sx = cw / l.w, sy = ch / l.h
+  cg.setTransform(sx, 0, 0, sy, 0, 0)
+  const base = imgFilter(l)
+  cg.filter = [base === 'none' ? '' : base, pixelFilter(fs, k, s)].join(' ').trim() || 'none'
+  const bs = blurScale(fs)
+  if (bs !== 1) {
+    cg.translate(l.w / 2, l.h / 2)
+    cg.scale(bs, bs)
+    cg.translate(-l.w / 2, -l.h / 2)
+  }
+  drawFit(cg, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
+  cg.filter = 'none'
+  // bildets gjennomsiktighet før lagene over
+  const alpha = canvas(cw, ch)
+  ctx(alpha).drawImage(comp, 0, 0)
+  cg.setTransform(sx, 0, 0, sy, 0, 0)
+  drawOverlays(cg, fs, l.w, l.h, k)
+  cg.setTransform(1, 0, 0, 1, 0, 0)
+  cg.globalCompositeOperation = 'destination-in'
+  cg.drawImage(alpha, 0, 0)
+  g.drawImage(comp, 0, 0, l.w, l.h)
+}
+
 export function imgFilter(l: { bri?: number; con?: number; sat?: number }): string {
   const f = (v: number | undefined) => 1 + Math.max(-100, Math.min(100, v || 0)) / 100
   return l.bri || l.con || l.sat ? `brightness(${f(l.bri)}) contrast(${f(l.con)}) saturate(${f(l.sat)})` : 'none'
