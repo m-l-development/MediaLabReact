@@ -214,3 +214,17 @@ describe('merk i bildet', () => {
     expect(kept).toBeNull()
   })
 })
+
+describe('AI-modellen bare der minnet holder', () => {
+  it('ikke i Safari eller på iPhone/iPad (siden lastes på nytt), og ikke under 4 GB', async () => {
+    const { aiCapable } = await import('./fill')
+    const mac = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)'
+    expect(aiCapable({ userAgent: mac + ' Version/26.0 Safari/605.1.15' })).toBe(false)
+    expect(aiCapable({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/140.0 Mobile Safari/604.1' })).toBe(false)
+    expect(aiCapable({ userAgent: mac + ' Version/26.0 Safari/605.1.15', maxTouchPoints: 5 })).toBe(false)
+    const chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0 Safari/537.36'
+    expect(aiCapable({ userAgent: chrome, deviceMemory: 8 })).toBe(true)
+    expect(aiCapable({ userAgent: chrome, deviceMemory: 2 })).toBe(false)
+    expect(aiCapable({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0' })).toBe(true)
+  })
+})

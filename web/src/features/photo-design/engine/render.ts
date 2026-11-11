@@ -605,6 +605,11 @@ export function render(g: G, doc: PdDoc, scale: number, M: Media, oIn: RenderOpt
   if (fillOn(doc.fill) && !o.transparent) {
     g.save()
     g.translate(-bl, -bl)
+    // fargekurve-gradient med transparens: bakgrunnsfargen under skinner gjennom (samme i visning og eksport)
+    if (doc.fill.mode === 'curves' && doc.bg) {
+      g.fillStyle = doc.bg
+      g.fillRect(0, 0, doc.w + 2 * bl, doc.h + 2 * bl)
+    }
     drawFill(g, doc.fill, doc.w + 2 * bl, doc.h + 2 * bl)
     g.restore()
   } else if (doc.bg && !o.transparent) {

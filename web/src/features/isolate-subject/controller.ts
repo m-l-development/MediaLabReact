@@ -513,13 +513,14 @@ export class IsolateController {
     this.set({ busy: 'fill', pct: 0, error: null })
     try {
       const res = await this.filler.fill(rgbaOf(e.before), W, H, e.mask, { grow: s.edge, seed: ++this.seed, ai: true }, (phase, pct) => {
-        if (tok === this.token && this.alive) this.set({ busy: phase === 'model' ? 'model' : 'fill', pct })
+        // etter nedlastingen startes modellen: vis at bildet behandles (ikke «100 %» som står stille)
+        if (tok === this.token && this.alive) this.set(phase === 'model' && pct < 100 ? { busy: 'model', pct } : { busy: 'fill', pct: phase === 'run' ? pct : 0 })
       })
       if (tok !== this.token || !this.alive || this.effect !== e) return
       putRgba(out, res.rgba)
       this.src = out
       this.segmenter.forgetImage()
-      this.redraw({ busy: null, pct: 0, ready: true, marks: [], error: null, note: res.method === 'patch' ? 'isolate.fill.patchNote' : null, pending: 'fill' })
+      this.redraw({ busy: null, pct: 0, ready: true, marks: [], error: null, note: res.why === 'device' ? 'isolate.fill.deviceNote' : res.why === 'failed' ? 'isolate.fill.patchNote' : null, pending: 'fill' })
     } catch {
       if (tok === this.token && this.alive) this.set({ busy: null, pct: 0, error: 'isolate.fill.failed' })
     }
