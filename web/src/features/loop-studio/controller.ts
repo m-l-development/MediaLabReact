@@ -201,6 +201,13 @@ export class LoopController {
   t0 = performance.now()
   qrCache: Record<string, { rows: string[]; img: string }> = {}
   loading: Record<string, number> = {}
+  /** Blob-adresser Loop selv har laget for bilder (frigjøres når editoren lukkes; delte adresser fra Fellesmappen røres ikke). */
+  private own = new Set<string>()
+  private blobUrl(b: Blob): string {
+    const u = URL.createObjectURL(b)
+    this.own.add(u)
+    return u
+  }
   past: { slides: Slide[]; cfg: Cfg; programText: string }[] = []
   future: { slides: Slide[]; cfg: Cfg; programText: string }[] = []
 
@@ -493,6 +500,23 @@ export class LoopController {
     if (this.recObj) this.stopRec(true)
     this.saveNow()
     this.shared?.stop()
+    this.release()
+  }
+
+  /**
+   * Frigjør bildene og bakgrunnsvideoen når editoren lukkes: før ble blob-adressene aldri frigjort, så hver åpning av
+   * Loop la alle bildene i minnet på nytt resten av økten. Lastes på nytt ved neste åpning (loading/urls nullstilles).
+   */
+  private release() {
+    for (const u of this.own) URL.revokeObjectURL(u)
+    this.own.clear()
+    this.media.images = {}
+    this.loading = {}
+    const v = this.media.video
+    if (v) {
+      try { v.pause(); if (v.src.startsWith('blob:')) URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.load() } catch { /* ingenting */ }
+    }
+    this.setState({ urls: {} })
   }
 
   /* ---------- filer og farger ---------- */
@@ -893,7 +917,7 @@ export class LoopController {
     for (let i = 0; i < 5; i++) {
       const b = await this.makeDemoBg(i)
       if (!b) continue
-      const id = 'gen:' + i, u = URL.createObjectURL(b), im = new Image()
+      const id = 'gen:' + i, u = this.blobUrl(b), im = new Image()
       im.src = u
       this.media.images[id] = im
       urls[id] = u
@@ -1082,7 +1106,7 @@ export class LoopController {
     if (!this.deps.cloud) return
     const r = await this.deps.cloud.pick({ start, title: this.t('Velg bilde fra Fellesmappe') })
     if (!r || !this.alive) return
-    const url = URL.createObjectURL(r.blob), im = new Image()
+    const url = this.blobUrl(r.blob), im = new Image()
     im.src = url
     this.media.images[r.ref] = im
     this.setState((s) => ({ urls: { ...s.urls, [r.ref]: url } }), () => apply(r.ref))
@@ -1157,7 +1181,7 @@ export class LoopController {
       this.deps.alert(this.t('Kunne ikke lagre bildet i nettleseren. Det kan være for lite lagringsplass.'))
       return null
     }
-    const url = URL.createObjectURL(f), im = new Image()
+    const url = this.blobUrl(f), im = new Image()
     im.src = url
     this.media.images[id] = im
     this.setState((s) => ({ urls: { ...s.urls, [id]: url } }))
@@ -1426,11 +1450,11 @@ export class LoopController {
     if (id.startsWith('img-')) {
       const b = await this.deps.media.get(id).catch(() => null)
       if (!b) return
-      url = URL.createObjectURL(b)
+      url = this.blobUrl(b)
     } else if (/^gen:\d$/.test(id)) {
       const b = await this.makeDemoBg(Number(id.slice(4)))
       if (!b) { delete this.loading[id]; return }
-      url = URL.createObjectURL(b)
+      url = this.blobUrl(b)
     } else if (id.startsWith('ch:')) {
       const u = this.deps.cloud ? await this.deps.cloud.url(id).catch(() => null) : null
       if (!u) { delete this.loading[id]; return }

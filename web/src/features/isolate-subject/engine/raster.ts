@@ -9,7 +9,8 @@ export const MAX_BYTES = 40 * 1024 * 1024
 export const ACCEPT = /^image\/(png|jpe?g|webp|gif|bmp|avif)$/i
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {
-  const c = document.createElement('canvas')
+  // i AI-tråden (segment.worker.ts) finnes ikke document; OffscreenCanvas har det samme 2D-API-et
+  const c = typeof document === 'undefined' ? (new OffscreenCanvas(1, 1) as unknown as HTMLCanvasElement) : document.createElement('canvas')
   c.width = Math.max(1, w)
   c.height = Math.max(1, h)
   return c
@@ -76,6 +77,7 @@ export function maskCanvas(mask: Mask, W: number, H: number, into?: HTMLCanvasEl
 }
 
 export function toBlob(c: HTMLCanvasElement, type = 'image/png'): Promise<Blob> {
+  if ('convertToBlob' in c) return (c as unknown as OffscreenCanvas).convertToBlob({ type })
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('Bildet kunne ikke lagres'))), type))
 }
 

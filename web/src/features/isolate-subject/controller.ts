@@ -6,7 +6,8 @@ import { defaultGrow } from './engine/inpaint'
 import { pendingMask, applyKeyMask, hitMark, type Mark } from './engine/marks'
 import { colorKey, cropBox, hasContent, maxMask, refineMask, subtractMask, type Mask } from './engine/mask'
 import { ACCEPT, cloneCanvas, crop, keyBox, loadToCanvas, makeCanvas, maskCanvas, MAX_BYTES, putRgba, rgbaOf, toBlob } from './engine/raster'
-import { Segmenter, StallError, type Phase } from './engine/segmenter'
+import { AiSegmenter } from './engine/segment-client'
+import { StallError, type Phase } from './engine/segmenter'
 
 export type Kind = 'person' | 'object' | 'logo' | 'text'
 export type Mode = Kind | 'point' | null
@@ -107,7 +108,7 @@ export class IsolateController {
   private alive = true
   private refined: { alpha: Mask; tight: number; soft: number; result: ReturnType<typeof refineMask> } | null = null
   private out: HTMLCanvasElement | null = null
-  private segmenter = new Segmenter()
+  private segmenter = new AiSegmenter()
 
   private set(patch: Partial<UiState>) {
     this.state.set((s) => ({ ...s, ...patch }))
@@ -792,10 +793,24 @@ export class IsolateController {
     this.set({ ...initial(), frame: this.state.get().frame + 1 })
   }
 
+  /**
+   * Verktøyet lukkes: AI-trådene avsluttes, og bildene, maskene og historikken slippes. React kan holde på kontrolleren
+   * en stund etter lukking (forrige effekt i App), og da skal den ikke holde på store lerreter (målt: flere hundre MB).
+   */
   dispose(): void {
     this.alive = false
     this.token++
     this.segmenter.dispose()
     this.filler.dispose()
+    this.orig = null
+    this.src = null
+    this.base = null
+    this.pend = null
+    this.alpha = null
+    this.out = null
+    this.refined = null
+    this.history = []
+    this.future = []
+    this.effect = null
   }
 }

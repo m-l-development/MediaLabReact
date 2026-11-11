@@ -1463,11 +1463,8 @@ button:disabled {
   pointer-events: none;
 }
 
+/* zoom ligger i raden under lerretet, ikke over bildet (dekket hjørnet av bildet) */
 .zoomCtl {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 3;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -1503,7 +1500,9 @@ button:disabled {
 
 .zoomReset {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .tips {
