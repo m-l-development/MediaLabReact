@@ -174,6 +174,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
             <div className={styles.row}>
               <Button size="small" variant="ghost" disabled={!!s.busy} onClick={() => ctl.recrop()} title={t('isolate.recrop.title')}>{t('isolate.recrop')}</Button>
               <Button size="small" variant="ghost" disabled={!s.historySize || !!s.busy} onClick={() => ctl.undo()} title={t('isolate.undo.title')}>{t('isolate.undo')}</Button>
+              <Button size="small" variant="ghost" disabled={!s.redoSize || !!s.busy} onClick={() => ctl.redo()} title={t('isolate.redo.title')} data-redo="">{t('isolate.redo')}</Button>
               <Button size="small" variant="ghost" disabled={!ctl.canRestore()} onClick={() => ctl.restore()} title={t('isolate.restore.title')}>{t('isolate.restore')}</Button>
             </div>
             {s.ready && !s.editing && (
@@ -214,13 +215,39 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
                 </div>
                 <p className={styles.help}>{t('isolate.mark.help')}</p>
                 <p className={styles.sub}>{t('isolate.mark.after')}</p>
-                <div className={styles.segmented} role="group">
+                {/* tre separate valg: fyll (AI, standard), uskarp (eget verktøy) og gjennomsiktig */}
+                <div className={styles.segmented} role="group" data-fill-mode="">
                   <button type="button" aria-pressed={s.fillMode === 'fill'} onClick={() => ctl.setOption({ fillMode: 'fill' })}>{t('isolate.fill.fill')}</button>
+                  <button type="button" aria-pressed={s.fillMode === 'blur'} onClick={() => ctl.setOption({ fillMode: 'blur' })}>{t('isolate.fill.blur')}</button>
                   <button type="button" aria-pressed={s.fillMode === 'clear'} onClick={() => ctl.setOption({ fillMode: 'clear' })}>{t('isolate.fill.clear')}</button>
                 </div>
+                <p className={styles.help}>{t(`isolate.fill.help.${s.fillMode}`)}</p>
                 <div className={styles.row}>
                   <Button size="small" variant="ghost" disabled={!s.marks.length || !!s.busy} onClick={() => ctl.clearMarks()}>{t('isolate.mark.clear')}</Button>
-                  <Button size="small" variant="primary" disabled={!ctl.canApply()} onClick={() => void ctl.apply()}>{t('isolate.mark.remove')}</Button>
+                  <Button size="small" variant="primary" disabled={!ctl.canApply()} onClick={() => void ctl.apply()} data-mark-apply="">{t(s.fillMode === 'blur' ? 'isolate.fill.blurApply' : 'isolate.mark.remove')}</Button>
+                </div>
+              </div>
+            )}
+            {s.pending && (
+              <div className={styles.markBox} data-effect={s.pending}>
+                <p className={styles.help}>{t(`isolate.fill.result.${s.pending}`)}</p>
+                <div className={styles.sliders}>
+                  {s.pending === 'blur' && (
+                    <div className={styles.sliderRow}>
+                      <span className={styles.sliderHead}><span>{t('isolate.fill.strength')}</span><NumField value={s.blur} min={1} max={100} step={1} label={t('isolate.fill.strength')} onCommit={(v) => ctl.adjustEffect({ blur: v })} /></span>
+                      <input type="range" min={1} max={100} step={1} value={s.blur} aria-label={t('isolate.fill.strength')} data-blur-strength="" onChange={(e) => ctl.adjustEffect({ blur: Number(e.target.value) })} />
+                    </div>
+                  )}
+                  <div className={styles.sliderRow}>
+                    <span className={styles.sliderHead}><span>{t('isolate.fill.edge')}</span><NumField value={s.edge} min={0} max={40} step={1} label={t('isolate.fill.edge')} onCommit={(v) => ctl.adjustEffect({ edge: v }, s.pending === 'blur')} /></span>
+                    {/* fyll lages på nytt først når brukeren slipper (AI tar tid), uskarp straks */}
+                    <input type="range" min={0} max={40} step={1} value={s.edge} aria-label={t('isolate.fill.edge')} disabled={!!s.busy} onChange={(e) => ctl.adjustEffect({ edge: Number(e.target.value) }, s.pending === 'blur')} />
+                  </div>
+                </div>
+                <div className={styles.row}>
+                  <Button size="small" variant="ghost" disabled={!!s.busy} onClick={() => ctl.cancelEffect()} data-effect-cancel="">{t('isolate.fill.cancel')}</Button>
+                  {s.pending === 'fill' && <Button size="small" variant="ghost" disabled={!!s.busy} onClick={() => ctl.adjustEffect({})} data-effect-retry="">{t('isolate.fill.retry')}</Button>}
+                  <Button size="small" variant="primary" disabled={!!s.busy} onClick={() => ctl.acceptEffect()} data-effect-apply="">{t('isolate.fill.apply')}</Button>
                 </div>
               </div>
             )}
@@ -459,8 +486,10 @@ function WorkStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: stri
       {s.busy && (
         <div className={styles.busy} role="status">
           <span>{busyLabel}</span>
-          {s.busy === 'model' && <div className={styles.bar}><div style={{ width: `${s.pct}%` }} /></div>}
-          <small>{s.busy === 'model' ? t('isolate.busy.modelNote') : t('isolate.busy.note')}</small>
+          {(s.busy === 'model' || (s.busy === 'fill' && s.pct > 0)) && <div className={styles.bar}><div style={{ width: `${s.pct}%` }} /></div>}
+          {/* AI-utfyllingen gir ingen fremdrift underveis: en stripe som går viser at bildet behandles */}
+          {s.busy === 'fill' && !s.pct && <div className={`${styles.bar} ${styles.barRun}`}><div /></div>}
+          <small>{s.busy === 'model' ? t('isolate.busy.modelNote') : s.busy === 'fill' ? t('isolate.busy.fillNote') : t('isolate.busy.note')}</small>
         </div>
       )}
     </div>
