@@ -1,6 +1,8 @@
 import type { MessageKey } from '../../shared/i18n/messages'
 import { createStore, type Store } from '../../shared/lib/store'
-import { inpaint } from './engine/inpaint'
+import { blurArea } from './engine/blur'
+import { FillRunner } from './engine/fill'
+import { defaultGrow } from './engine/inpaint'
 import { pendingMask, applyKeyMask, hitMark, type Mark } from './engine/marks'
 import { colorKey, cropBox, hasContent, maxMask, refineMask, subtractMask, type Mask } from './engine/mask'
 import { ACCEPT, cloneCanvas, crop, keyBox, loadToCanvas, makeCanvas, maskCanvas, MAX_BYTES, putRgba, rgbaOf, toBlob } from './engine/raster'
@@ -19,7 +21,16 @@ export interface UiState {
   soft: number
   tight: number
   cropToSubject: boolean
-  fillMode: 'fill' | 'clear'
+  /** Hva «Fjern» gjør med det merkede: fyll med omgivelsene (AI), gjør uskarpt, eller gjennomsiktig. */
+  fillMode: 'fill' | 'blur' | 'clear'
+  /** Styrken på uskarpheten (1–100). */
+  blur: number
+  /** Hvor mange piksler det merkede utvides (kanter og skygger rundt objektet). */
+  edge: number
+  /** Resultatet av «Fyll med omgivelser» eller «Gjør uskarp» vises, og kan justeres, brukes eller avbrytes. */
+  pending: 'fill' | 'blur' | null
+  /** Antall steg «Gjør om» kan ta. */
+  redoSize: number
   bgType: 'none' | 'color'
   bg: string
   cmp: number
@@ -55,7 +66,7 @@ export const COLORS: readonly { hex: string; label: MessageKey }[] = [
 const FULL: CropRect = { x: 0, y: 0, w: 1, h: 1 }
 
 const initial = (): UiState => ({
-  phase: 'empty', mode: null, busy: null, pct: 0, soft: 0, tight: 0, cropToSubject: false, fillMode: 'fill', bgType: 'none',
+  phase: 'empty', mode: null, busy: null, pct: 0, soft: 0, tight: 0, cropToSubject: false, fillMode: 'fill', blur: 50, edge: 4, pending: null, redoSize: 0, bgType: 'none',
   bg: '#ffffff', cmp: 0, error: null, note: null, name: '', dims: '', ready: false, marks: [], markKeep: false,
   historySize: 0, done: false, adv: false, crop: FULL, aspect: 'free', frame: 0, editing: false,
 })
@@ -87,6 +98,11 @@ export class IsolateController {
   private alpha: Mask | null = null
   private pend: Mask | null = null
   private history: Snapshot[] = []
+  private future: Snapshot[] = []
+  /** Bildet før «Fyll med omgivelser»/«Gjør uskarp» og det merkede (så resultatet kan justeres og lages på nytt). */
+  private effect: { before: HTMLCanvasElement; mask: Mask } | null = null
+  private filler = new FillRunner()
+  private seed = 0
   private token = 0
   private alive = true
   private refined: { alpha: Mask; tight: number; soft: number; result: ReturnType<typeof refineMask> } | null = null
@@ -132,6 +148,8 @@ export class IsolateController {
     this.out = null
     this.refined = null
     this.history = []
+    this.future = []
+    this.effect = null
     this.segmenter.forgetImage()
     const clean = name.replace(/\.[^.]+$/, '').replace(/[^\wæøåÆØÅ .-]+/g, '').trim().slice(0, 60) || 'bilde'
     this.set({ ...initial(), phase: 'crop', name: clean, dims: `${canvas.width} × ${canvas.height}`, frame: this.state.get().frame + 1 })
@@ -209,8 +227,10 @@ export class IsolateController {
     this.out = null
     this.refined = null
     this.history = []
+    this.future = []
+    this.effect = null
     this.segmenter.forgetImage()
-    this.redraw({ phase: 'work', mode: null, marks: [], busy: null, error: null, note: null, dims: `${src.width} × ${src.height}`, cmp: 0, ready: false, done: false, historySize: 0, editing: false })
+    this.redraw({ phase: 'work', mode: null, marks: [], busy: null, error: null, note: null, dims: `${src.width} × ${src.height}`, cmp: 0, ready: false, done: false, historySize: 0, redoSize: 0, editing: false, pending: null, edge: defaultGrow(src.width, src.height) })
   }
 
   cropOk(): void {
@@ -239,30 +259,58 @@ export class IsolateController {
     this.pend = null
     this.alpha = null
     this.history = []
+    this.future = []
+    this.effect = null
     this.redraw({ phase: 'crop', mode: null, marks: [], ready: false, historySize: 0, error: null, note: null, editing: false })
   }
 
   // ---------- Historikk ----------
 
-  private snap() {
-    if (!this.src) return
+  private current(): Snapshot | null {
+    if (!this.src) return null
     const s = this.state.get()
-    this.history = [...this.history, { src: this.src, alpha: this.alpha, pend: this.pend, marks: s.marks, mode: s.mode, ready: s.ready, note: s.note, markKeep: s.markKeep }].slice(-20)
-    this.set({ historySize: this.history.length })
+    return { src: this.src, alpha: this.alpha, pend: this.pend, marks: s.marks, mode: s.mode, ready: s.ready, note: s.note, markKeep: s.markKeep }
   }
 
-  undo(): void {
-    const h = this.history[this.history.length - 1]
-    if (this.state.get().busy || !h) return
-    this.history = this.history.slice(0, -1)
+  /** Lagrer tilstanden før en endring. En ny endring tømmer «Gjør om» og avslutter en åpen forhåndsvisning (den brukes). */
+  private snap() {
+    const c = this.current()
+    if (!c) return
+    this.history = [...this.history, c].slice(-20)
+    this.future = []
+    this.effect = null
+    this.set({ historySize: this.history.length, redoSize: 0, pending: null })
+  }
+
+  private back(h: Snapshot) {
     this.token++
+    this.effect = null
     if (h.src !== this.src) {
       this.src = h.src
       this.segmenter.forgetImage()
     }
     this.alpha = h.alpha
     this.pend = h.pend
-    this.redraw({ historySize: this.history.length, marks: h.marks, mode: h.mode, ready: h.ready, note: h.note, markKeep: h.markKeep, error: null, cmp: 0, editing: false })
+    this.redraw({ historySize: this.history.length, redoSize: this.future.length, marks: h.marks, mode: h.mode, ready: h.ready, note: h.note, markKeep: h.markKeep, error: null, cmp: 0, editing: false, pending: null })
+  }
+
+  undo(): void {
+    const h = this.history[this.history.length - 1]
+    const c = this.current()
+    if (this.state.get().busy || !h || !c) return
+    this.history = this.history.slice(0, -1)
+    this.future = [...this.future, c].slice(-20)
+    this.back(h)
+  }
+
+  /** «Gjør om»: tar tilbake det siste «Angre» tok bort. */
+  redo(): void {
+    const h = this.future[this.future.length - 1]
+    const c = this.current()
+    if (this.state.get().busy || !h || !c) return
+    this.future = this.future.slice(0, -1)
+    this.history = [...this.history, c].slice(-20)
+    this.back(h)
   }
 
   canRestore(): boolean {
@@ -424,19 +472,12 @@ export class IsolateController {
         this.set({ busy: null, error: 'isolate.error.nothingFound' })
         return
       }
-      if (this.state.get().fillMode === 'fill') {
-        this.set({ busy: 'fill' })
-        await new Promise((res) => setTimeout(res, 40))
-        if (tok !== this.token || !this.alive) return
-        const filled = cloneCanvas(src)
-        const rgba = rgbaOf(filled)
-        if (inpaint(rgba, filled.width, filled.height, r)) {
-          putRgba(filled, rgba)
-          this.src = filled
-          this.segmenter.forgetImage()
-        }
+      const fm = this.state.get().fillMode
+      if (fm !== 'clear') {
+        // originalen ligger i historikken (Angre/Avbryt) og i `effect` (justering, nytt forsøk)
+        this.effect = { before: src, mask: r }
         this.pend = null
-        this.redraw({ busy: null, ready: true, marks: [], error: null, note: null })
+        await this.renderEffect(fm, tok)
         return
       }
       this.alpha = subtractMask(this.alpha, r)
@@ -445,6 +486,65 @@ export class IsolateController {
     } catch (e) {
       if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.notFound', e) })
     }
+  }
+
+  // ---------- Fyll med omgivelser / gjør uskarp ----------
+
+  /**
+   * Lager resultatet fra bildet før endringen (aldri fra et tidligere resultat): «Fyll med omgivelser» med AI i egen
+   * tråd (engine/fill.ts), «Gjør uskarp» direkte. Resultatet er et nytt lerret; originalen endres aldri.
+   */
+  private async renderEffect(kind: 'fill' | 'blur', tok: number): Promise<void> {
+    const e = this.effect
+    if (!e) return
+    const s = this.state.get()
+    const W = e.before.width
+    const H = e.before.height
+    const out = cloneCanvas(e.before)
+    if (kind === 'blur') {
+      const rgba = rgbaOf(out)
+      blurArea(rgba, W, H, e.mask, s.blur, s.edge)
+      putRgba(out, rgba)
+      this.src = out
+      this.segmenter.forgetImage()
+      this.redraw({ busy: null, pct: 0, ready: true, marks: [], error: null, note: null, pending: 'blur' })
+      return
+    }
+    this.set({ busy: 'fill', pct: 0, error: null })
+    try {
+      const res = await this.filler.fill(rgbaOf(e.before), W, H, e.mask, { grow: s.edge, seed: ++this.seed, ai: true }, (phase, pct) => {
+        if (tok === this.token && this.alive) this.set({ busy: phase === 'model' ? 'model' : 'fill', pct })
+      })
+      if (tok !== this.token || !this.alive || this.effect !== e) return
+      putRgba(out, res.rgba)
+      this.src = out
+      this.segmenter.forgetImage()
+      this.redraw({ busy: null, pct: 0, ready: true, marks: [], error: null, note: res.method === 'patch' ? 'isolate.fill.patchNote' : null, pending: 'fill' })
+    } catch {
+      if (tok === this.token && this.alive) this.set({ busy: null, pct: 0, error: 'isolate.fill.failed' })
+    }
+  }
+
+  /** Justerer resultatet som vises (styrke, kant) og lager det på nytt fra originalen (`rerun: false` = bare verdien). */
+  adjustEffect(patch: Partial<Pick<UiState, 'blur' | 'edge'>>, rerun = true): void {
+    const s = this.state.get()
+    this.set(patch)
+    if (!this.effect || !s.pending || s.busy || !rerun) return
+    void this.renderEffect(s.pending, ++this.token)
+  }
+
+  /** «Bruk»: beholder resultatet (originalen ligger fortsatt i historikken, så Angre virker). */
+  acceptEffect(): void {
+    this.effect = null
+    this.set({ pending: null })
+  }
+
+  /** «Avbryt»: tilbake til bildet og markeringene før endringen. */
+  cancelEffect(): void {
+    if (!this.state.get().pending || this.state.get().busy) return
+    this.undo()
+    this.future = this.future.slice(0, -1)
+    this.set({ redoSize: this.future.length })
   }
 
   // ---------- Finjuster masken (felles maskeredigering) ----------
@@ -668,6 +768,8 @@ export class IsolateController {
   againSame(): void {
     this.token++
     this.history = []
+    this.future = []
+    this.effect = null
     this.pend = null
     this.alpha = null
     this.out = null
@@ -683,6 +785,8 @@ export class IsolateController {
     this.alpha = null
     this.out = null
     this.history = []
+    this.future = []
+    this.effect = null
     this.segmenter.forgetImage()
     this.set({ ...initial(), frame: this.state.get().frame + 1 })
   }
@@ -691,5 +795,6 @@ export class IsolateController {
     this.alive = false
     this.token++
     this.segmenter.dispose()
+    this.filler.dispose()
   }
 }

@@ -291,6 +291,27 @@
   transition: width 0.2s ease;
 }
 
+/* ukjent varighet (AI-utfyllingen): en stripe som går fram og tilbake */
+.barRun div {
+  width: 35%;
+  animation: barRun 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes barRun {
+  from {
+    transform: translateX(-10%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barRun div {
+    animation-duration: 4s;
+  }
+}
+
 .compare {
   display: flex;
   align-items: center;

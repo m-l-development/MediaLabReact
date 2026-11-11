@@ -22,7 +22,14 @@ export interface TransformersLib {
   SamModel: { from_pretrained(id: string, opts: { progress_callback?: ProgressCallback }): Promise<SamModelLike> }
   AutoProcessor: { from_pretrained(id: string, opts: { progress_callback?: ProgressCallback }): Promise<SamProcessorLike> }
   RawImage: { read(url: string): Promise<unknown>; fromTensor(t: unknown): RawImageLike }
+  /** Generisk ONNX-modell (f.eks. LaMa): innganger og utganger etter navn. */
+  AutoModel: { from_pretrained(id: string, opts: { config: { model_type: string }; subfolder: string; model_file_name: string; dtype: string; device: string; progress_callback?: ProgressCallback }): Promise<OnnxModelLike> }
   Tensor: new (type: string, data: Float32Array | BigInt64Array, dims: number[]) => unknown
+}
+
+export interface OnnxModelLike {
+  (feeds: Record<string, unknown>): Promise<Record<string, { data: ArrayLike<number> }>>
+  dispose?(): Promise<void>
 }
 
 export interface SamInputs {

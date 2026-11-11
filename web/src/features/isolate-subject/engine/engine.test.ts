@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { blurArea } from './blur'
 import { inpaint } from './inpaint'
+import { lamaCrop, lamaFill, SIZE } from './lama'
 import { keyRegion } from './keybox'
 import { hitMark, pendingMask, type Mark } from './marks'
 import { colorKey, cropBox, hasContent, isDegenerate, maxMask, refineMask, subtractMask } from './mask'
@@ -86,7 +88,7 @@ describe('fyll med omgivelser', () => {
     const rgba = image(W, H, [10, 120, 200], { color: [250, 0, 0], x0: 30, y0: 30, x1: 50, y1: 50 })
     const remove = new Uint8ClampedArray(W * H)
     for (let y = 30; y < 50; y++) for (let x = 30; x < 50; x++) remove[y * W + x] = 255
-    expect(inpaint(rgba, W, H, remove, () => 0.5)).toBe(true)
+    expect(inpaint(rgba, W, H, remove, { seed: 3 })).toBe(true)
     const p = (40 * W + 40) * 4
     expect([rgba[p], rgba[p + 1], rgba[p + 2]]).toEqual([10, 120, 200])
     const far = (2 * W + 2) * 4
@@ -95,6 +97,83 @@ describe('fyll med omgivelser', () => {
 
   it('gjør ingenting med tom maske', () => {
     expect(inpaint(new Uint8ClampedArray(16), 2, 2, new Uint8ClampedArray(4))).toBe(false)
+  })
+
+  it('bygger opp mønsteret bak (striper fortsetter), ikke en uskarp flekk', () => {
+    // loddrette striper, 4 px svart / 4 px hvit, med et hull midt i
+    const W = 96, H = 96
+    const rgba = new Uint8ClampedArray(W * H * 4)
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = (x >> 2) % 2 ? 255 : 0; rgba.set([v, v, v, 255], (y * W + x) * 4) }
+    const remove = new Uint8ClampedArray(W * H)
+    for (let y = 40; y < 56; y++) for (let x = 30; x < 66; x++) remove[y * W + x] = 255
+    expect(inpaint(rgba, W, H, remove, { seed: 5, grow: 0 })).toBe(true)
+    // kontrasten i hullet er som i stripene rundt (ikke grått), og hver kolonne følger stripen over
+    let right = 0, n = 0, mid = 0
+    for (let y = 42; y < 54; y++) for (let x = 32; x < 64; x++) {
+      const v = rgba[(y * W + x) * 4] as number, want = (x >> 2) % 2 ? 255 : 0
+      if (Math.abs(v - want) < 60) right++
+      if (v > 70 && v < 185) mid++
+      n++
+    }
+    expect(right / n).toBeGreaterThan(0.85)
+    expect(mid / n).toBeLessThan(0.1)
+  })
+})
+
+describe('fyll med omgivelser med AI (LaMa rundt modellen)', () => {
+  it('sender et 512×512-utsnitt med masken, og setter svaret inn bare i området (med fargejustering)', async () => {
+    const W = 300, H = 200
+    const rgba = image(W, H, [40, 60, 80], { color: [250, 250, 0], x0: 100, y0: 80, x1: 160, y1: 110 })
+    const before = new Uint8ClampedArray(rgba)
+    const remove = new Uint8ClampedArray(W * H)
+    for (let y = 80; y < 110; y++) for (let x = 100; x < 160; x++) remove[y * W + x] = 255
+    let seen = 0
+    // «modellen» svarer med bakgrunnsfargen litt forskjøvet (+10): fargejusteringen skal ta den bort
+    const ok = await lamaFill(rgba, W, H, remove, async (image, mask) => {
+      expect(image.length).toBe(3 * SIZE * SIZE)
+      seen = mask.reduce((a, v) => a + v, 0)
+      const out = new Float32Array(3 * SIZE * SIZE)
+      for (let i = 0; i < SIZE * SIZE; i++) { out[i] = 50; out[SIZE * SIZE + i] = 70; out[2 * SIZE * SIZE + i] = 90 }
+      return out
+    }, 2)
+    expect(ok).toBe(true)
+    expect(seen).toBeGreaterThan(0)
+    const px = (x: number, y: number) => [...rgba.slice((y * W + x) * 4, (y * W + x) * 4 + 3)]
+    expect(px(130, 95)).toEqual([40, 60, 80])
+    // utenfor området og overgangen: urørt
+    expect([...rgba.slice(0, 4)]).toEqual([...before.slice(0, 4)])
+    expect(px(100 - 8, 95)).toEqual([40, 60, 80])
+    expect(px(160 + 8, 95)).toEqual([40, 60, 80])
+  })
+
+  it('utsnittet har margin rundt området og ligger innenfor bildet', () => {
+    const c = lamaCrop({ x0: 10, y0: 10, x1: 60, y1: 30 }, 400, 300, 3)
+    expect(c.x).toBe(0)
+    expect(c.y).toBe(0)
+    expect(c.w).toBeGreaterThanOrEqual(256)
+    const big = lamaCrop({ x0: 0, y0: 0, x1: 999, y1: 50 }, 1000, 400, 3)
+    expect(big.w).toBe(1000)
+    expect(big.h).toBe(400)
+  })
+})
+
+describe('gjør uskarp (eget verktøy)', () => {
+  const W = 80, H = 80
+  const stripes = () => { const d = new Uint8ClampedArray(W * H * 4); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = x % 2 ? 255 : 0; d.set([v, v, v, 255], (y * W + x) * 4) } return d }
+  const area = () => { const m = new Uint8ClampedArray(W * H); for (let y = 30; y < 50; y++) for (let x = 30; x < 50; x++) m[y * W + x] = 255; return m }
+  const spread = (d: Uint8ClampedArray) => { let lo = 255, hi = 0; for (let x = 36; x < 44; x++) { const v = d[(40 * W + x) * 4] as number; lo = Math.min(lo, v); hi = Math.max(hi, v) } return hi - lo }
+  it('gjør bare det merkede uskarpt, sterkere med høyere styrke', () => {
+    const weak = stripes(), strong = stripes()
+    expect(blurArea(weak, W, H, area(), 5)).toBe(true)
+    expect(blurArea(strong, W, H, area(), 100)).toBe(true)
+    expect(spread(weak)).toBeLessThan(255)
+    expect(spread(strong)).toBeLessThan(spread(weak))
+    // langt utenfor: urørt
+    expect(strong[(5 * W + 5) * 4]).toBe(weak[(5 * W + 5) * 4])
+    expect([strong[(5 * W + 4) * 4], strong[(5 * W + 5) * 4]]).toEqual([0, 255])
+  })
+  it('gjør ingenting med tom maske', () => {
+    expect(blurArea(stripes(), W, H, new Uint8ClampedArray(W * H), 50)).toBe(false)
   })
 })
 
