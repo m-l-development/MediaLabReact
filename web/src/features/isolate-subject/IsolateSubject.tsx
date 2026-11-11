@@ -13,6 +13,7 @@ import { NumField } from '../../shared/ui/NumField'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { COLORS, IsolateController, type Aspect, type CropRect, type ImagePoint, type Kind } from './controller'
+import { aiCapable } from './engine/fill'
 import styles from './IsolateSubject.module.css'
 import { copyImage } from '../../shared/lib/clipboard'
 
@@ -221,7 +222,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
                   <button type="button" aria-pressed={s.fillMode === 'blur'} onClick={() => ctl.setOption({ fillMode: 'blur' })}>{t('isolate.fill.blur')}</button>
                   <button type="button" aria-pressed={s.fillMode === 'clear'} onClick={() => ctl.setOption({ fillMode: 'clear' })}>{t('isolate.fill.clear')}</button>
                 </div>
-                <p className={styles.help}>{t(`isolate.fill.help.${s.fillMode}`)}</p>
+                <p className={styles.help}>{t(s.fillMode === 'fill' && !aiCapable() ? 'isolate.fill.help.fillLite' : `isolate.fill.help.${s.fillMode}`)}</p>
                 <div className={styles.row}>
                   <Button size="small" variant="ghost" disabled={!s.marks.length || !!s.busy} onClick={() => ctl.clearMarks()}>{t('isolate.mark.clear')}</Button>
                   <Button size="small" variant="primary" disabled={!ctl.canApply()} onClick={() => void ctl.apply()} data-mark-apply="">{t(s.fillMode === 'blur' ? 'isolate.fill.blurApply' : 'isolate.mark.remove')}</Button>
