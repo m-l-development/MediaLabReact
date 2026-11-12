@@ -1,4 +1,5 @@
 import { isBaseKey, type BaseKey } from './layouts'
+import { cleanFilters } from './filters'
 import { ASSETS, emptyDoc, L, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
 import type { AdvAdj, AdvKey } from '../../../shared/image/AdvAdjust'
 
@@ -94,6 +95,9 @@ export function cleanDoc(doc: unknown, local: LocalMap): Doc | null {
       }
       const adj = cleanAdj(l.adj)
       if (adj) n.adj = adj
+      // bildefiltrene (F01–F13) etter kontroll; mangler = ingen filtre
+      const fl = cleanFilters(l.filters)
+      if (fl?.length) n.filters = fl
       if (typeof l.fill === 'string' && /^#[0-9a-f]{6}$/i.test(l.fill)) n.fill = l.fill
     }
     return n

@@ -9,6 +9,7 @@ import type { AdvAdj } from '../../../shared/image/AdvAdjust'
  * - `asset:<navn>`  gamle innebygde logoer (vises fortsatt i gamle maler, tilbys ikke lenger)
  * - `db:<nøkkel>`   bilde i dagens app (IndexedDB «thumbstudio»); gjøres om til `m:` ved import
  */
+import type { ImgFilter } from './filters'
 export const W = 1920
 export const H = 1080
 export const MAX_IMG = 5
@@ -100,6 +101,8 @@ export interface ImageLayer extends LayerBase {
   tint: string | null
   /** Farge bak bildet i formen (f.eks. bak et utklipp, TB-FC418D); mangler/null = ingen. */
   fill?: string | null
+  /** Bildefiltre F01–F13 i rekkefølge (engine/filters.ts); mangler = ingen, så eldre prosjekter tegnes som før. */
+  filters?: ImgFilter[] | null
 }
 
 export interface ShapeLayer extends LayerBase {
