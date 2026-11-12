@@ -9,6 +9,7 @@ import { type CropBox, type PanelKey, type State, type ThumbController } from '.
 import { COMBOS } from './engine/colors'
 import type { ImageCache } from './engine/images'
 import { MAX_TPL } from './engine/model'
+import { LIB_CATS } from './engine/templates'
 import type { Phrase, Tx } from './texts'
 import s from './ThumbnailStudio.module.css'
 
@@ -77,6 +78,30 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
       </div>
       <div className={s.layoutGrid}>{top}</div>
       <div className={s.layoutGrid}>{items.slice(top.length)}</div>
+      {/* ferdige maler fra designsamlingen (fase 3) – et tillegg under oppsettene */}
+      <div className={s.ctrlHead} data-lib-head>{tx('Ferdige maler')}</div>
+      <span className={s.note}>{tx('Ferdige maler fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger.')}</span>
+      <div className={s.seg} role="group" aria-label={tx('Ferdige maler')} data-lib-cats>
+        {LIB_CATS.map((k) => <button key={k} type="button" aria-pressed={S.libCat === k} onClick={() => c.setLibCat(k)}>{tx(k)}</button>)}
+      </div>
+      <div className={s.layoutGrid} data-lib-grid>
+        {S.lib == null && <span className={s.note}>{tx('Laster …')}</span>}
+        {c.libList().map((t) => {
+          const img = S.previews['lib:' + t.code]
+          return (
+            <button key={t.code} type="button" className={s.layoutCard} data-lib={t.code} onClick={() => c.pickLib(cat, t)}>
+              <span className={s.layoutThumb}>
+                {img && <img src={img} alt="" />}
+                {img == null && <span>{tx('Lager skisse …')}</span>}
+              </span>
+              <span className={s.layoutText}>
+                <b>{t.name}</b>
+                <span>{t.code} · {t.desc}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
       <div className={s.modalFoot}>
         <button type="button" className={s.pillSm} onClick={() => c.closeNew()}>{tx('Avbryt')}</button>
       </div>

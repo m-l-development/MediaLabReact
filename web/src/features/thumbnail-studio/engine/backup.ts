@@ -1,5 +1,6 @@
 import { isBaseKey, type BaseKey } from './layouts'
 import { cleanFilters } from './filters'
+import { cleanPaint } from './paint'
 import { ASSETS, emptyDoc, L, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
 import type { AdvAdj, AdvKey } from '../../../shared/image/AdvAdjust'
 
@@ -76,11 +77,12 @@ export function cleanDoc(doc: unknown, local: LocalMap): Doc | null {
   if (!['color', 'gradient', 'image'].includes(d.bg.type)) d.bg.type = 'color'
   d.bg.src = cleanSrc(d.bg.src, local)
   d.bg.orig = null
-  const layers = (doc.layers as unknown[]).filter((l): l is Record<string, unknown> => isRec(l) && LAYER_TYPES.includes(l.type as LayerType)).slice(0, 60)
+  const layers = (doc.layers as unknown[]).filter((l): l is Record<string, unknown> => isRec(l) && LAYER_TYPES.includes(l.type as LayerType)).slice(0, 120)
   d.layers = layers.map((l) => {
     const n = cleanObj(L(l.type as LayerType), l) as Layer
     n.id = typeof l.id === 'string' && /^[a-z0-9]{1,40}$/i.test(l.id) ? l.id : uid()
     if (typeof l.link === 'string' && /^[a-z0-9]{1,40}$/i.test(l.link)) n.link = l.link
+    cleanExtra(n, l, local)
     if (n.type === 'text') {
       if (typeof l.barW === 'number' && Number.isFinite(l.barW)) n.barW = l.barW
       if (typeof l.barGap === 'number' && Number.isFinite(l.barGap)) n.barGap = l.barGap
@@ -103,6 +105,64 @@ export function cleanDoc(doc: unknown, local: LocalMap): Doc | null {
     return n
   })
   return d
+}
+
+const NUM = (v: unknown, lo: number, hi: number): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : null)
+const COLOR = /^(#[0-9a-f]{3,8}|rgba?\([\d.,\s/%]+\)|transparent|color\(srgb[\d.\s/%-]+\))$/i
+const BLEND = new Set(['multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'])
+const nums = (v: unknown, n: number[], lo: number, hi: number): number[] | null => (Array.isArray(v) && n.includes(v.length) && v.every((x) => typeof x === 'number' && Number.isFinite(x)) ? v.map((x: number) => Math.max(lo, Math.min(hi, x))) : null)
+
+/**
+ * Feltene fra malene i fase 3 (blandemodus, uskarphet, skygger, egne hjørner, polygon, maling, kursiv, bredde, kontur,
+ * stiplet/ensidig kant, fri form) etter kontroll. Mangler de, tegnes laget som før.
+ */
+function cleanExtra(n: Layer, l: Record<string, unknown>, local: LocalMap) {
+  if (typeof l.blend === 'string' && BLEND.has(l.blend)) n.blend = l.blend
+  const bl = NUM(l.blur, 0, 400)
+  if (bl) n.blur = bl
+  if (Array.isArray(l.shadows)) {
+    const sh = l.shadows.slice(0, 8).flatMap((x: unknown) => {
+      if (!isRec(x) || typeof x.c !== 'string' || !COLOR.test(x.c)) return []
+      const o = { x: NUM(x.x, -2000, 2000) ?? 0, y: NUM(x.y, -2000, 2000) ?? 0, b: NUM(x.b, 0, 1000) ?? 0, c: x.c }
+      const sp = NUM(x.s, -1000, 1000)
+      return [{ ...o, ...(sp ? { s: sp } : {}), ...(x.inset === true ? { inset: true } : {}) }]
+    })
+    if (sh.length) n.shadows = sh
+  }
+  if (n.type === 'text') {
+    if (l.italic === true) n.italic = true
+    const sy = NUM(l.sy, 0.1, 10)
+    if (sy && sy !== 1) n.sy = sy
+    const st = NUM(l.stretch, 25, 200)
+    if (st && st !== 100) n.stretch = st
+    const sw = NUM(l.stroke, 0, 200)
+    if (sw) n.stroke = sw
+    if (typeof l.strokeColor === 'string' && COLOR.test(l.strokeColor)) n.strokeColor = l.strokeColor
+    const p = cleanPaint(l.paint)
+    if (p?.length) n.paint = p
+    if ('fillSrc' in l) n.fillSrc = l.fillSrc == null ? null : cleanSrc(l.fillSrc, local)
+  }
+  if (n.type === 'image' || n.type === 'shape') {
+    const r = nums(l.radii, [8], 0, 20000)
+    if (r) n.radii = r
+    const pl = Array.isArray(l.poly) && l.poly.length % 2 === 0 ? nums(l.poly, Array.from({ length: 62 }, (_, i) => i + 6), -2, 3) : null
+    if (pl) n.poly = pl
+  }
+  if (n.type === 'shape') {
+    const p = cleanPaint(l.paint)
+    if (p?.length) n.paint = p
+    const d = nums(l.dash, [2, 4], 0, 2000)
+    if (d) n.dash = d
+    const sd = nums(l.sides, [4], 0, 2000)
+    if (sd) n.sides = sd
+    const pa = l.path
+    if (isRec(pa) && typeof pa.d === 'string' && pa.d.length < 20000 && /^[MmLlHhVvCcSsQqTtAaZz0-9.,\s+eE-]+$/.test(pa.d)) {
+      const vw = NUM(pa.vw, 0.001, 100000)
+      const vh = NUM(pa.vh, 0.001, 100000)
+      if (vw && vh) n.path = { d: pa.d, vw, vh, ...(pa.fillRule === 'evenodd' ? { fillRule: 'evenodd' as const } : {}) }
+    }
+    if (n.kind === 'path' && !n.path) n.kind = 'rect'
+  } 
 }
 
 const ADJ_RANGE: Record<AdvKey, [number, number]> = { exp: [-100, 100], bri: [-100, 100], con: [-100, 100], hi: [-100, 100], sh: [-100, 100], sat: [-100, 100], temp: [-100, 100], tint: [-100, 100], hue: [-180, 180], fade: [0, 100], blur: [0, 100], vig: [-100, 100], grain: [0, 100] }

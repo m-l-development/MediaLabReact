@@ -61,6 +61,71 @@ export function loadFonts(list: readonly { font: string; weight?: number | strin
   return Promise.all(ps)
 }
 
+// ---- bredde (font-stretch) på lerretet ----
+// Canvas kan bare velge bredde med nøkkelord (condensed = 75 % …), mens malene bruker eksakte prosenter (f.eks. Archivo
+// 78 %). Fonter med bredde-akse får derfor en egen familie per bredde: samme fontfiler, men med fast bredde i
+// @font-face (nettleseren setter da aksen til akkurat den verdien).
+const cssText = new Map<string, Promise<string>>()
+const stretched = new Map<string, Promise<boolean>>()
+
+/** Familienavnet for fonten i en gitt bredde (prosent). 100 % = fonten selv. */
+export function stretchFamily(name: string, pct: number | undefined): string {
+  const p = Math.round((pct ?? 100) * 10) / 10
+  return !p || p === 100 ? name : `${name} wdth${p}`
+}
+
+const stretchOk = new Set<string>()
+/** Er fonten lastet i denne bredden? Ellers tegnes den i vanlig bredde (aldri med en reservefont). */
+export function stretchReady(name: string, pct: number | undefined): boolean {
+  const fam = stretchFamily(name, pct)
+  return fam === name || stretchOk.has(fam)
+}
+
+/** Laster fonten i bredden `pct` (en egen familie, se `stretchFamily`). Gir false når fonten ikke har bredde-akse. */
+export function loadStretch(name: string, pct: number, weight: number | string = 400, italic = false): Promise<boolean> {
+  const fam = stretchFamily(name, pct)
+  if (fam === name) return loadFont(name, weight, italic)
+  const f = fontByName(name)
+  if (!f || typeof document === 'undefined' || typeof FontFace === 'undefined') return Promise.resolve(false)
+  let p = stretched.get(fam)
+  if (!p) {
+    let css = cssText.get(f.css)
+    if (!css) {
+      css = fetch(f.css).then((r) => (r.ok ? r.text() : '')).catch(() => '')
+      cssText.set(f.css, css)
+    }
+    p = css.then((text) => {
+      let n = 0
+      for (const b of text.match(/@font-face\s*{[^}]*}/g) ?? []) {
+        if (!/font-stretch\s*:\s*[\d.]+%\s+[\d.]+%/.test(b)) continue
+        // siste egenskap i blokken har ofte ikke semikolon
+        const src = /src\s*:\s*([^;}]+)/.exec(b)?.[1]
+        if (!src) continue
+        // relative adresser i stilarket gjelder fra stilarkets mappe
+        const abs = src.replace(/url\((['"]?)([^'")]+)\1\)/g, (_m, _q, u: string) => `url("${new URL(u, new URL(f.css, location.href)).href}")`)
+        const desc: FontFaceDescriptors = { stretch: `${pct}%` }
+        const st = /font-style\s*:\s*([^;}]+)/.exec(b)?.[1]?.trim()
+        const wt = /font-weight\s*:\s*([^;}]+)/.exec(b)?.[1]?.trim()
+        const ur = /unicode-range\s*:\s*([^;}]+)/.exec(b)?.[1]?.trim()
+        if (st) desc.style = st
+        if (wt) desc.weight = wt
+        if (ur) desc.unicodeRange = ur
+        document.fonts.add(new FontFace(fam, abs, desc))
+        n++
+      }
+      return n > 0
+    })
+    stretched.set(fam, p)
+  }
+  return p
+    .then((ok) => (ok ? document.fonts.load(`${italic ? 'italic ' : ''}${weight} 40px "${fam}"`, 'ÆØÅ æøå Hg').then((l) => l.length > 0) : false))
+    .then((ok) => {
+      if (ok) stretchOk.add(fam)
+      return ok
+    })
+    .catch(() => false)
+}
+
 /** Er stilarket for fonten lagt inn (til forhåndsvisning i velgeren uten å vente)? */
 export function fontRequested(name: string): boolean {
   const f = fontByName(name)

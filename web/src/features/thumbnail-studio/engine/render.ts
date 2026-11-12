@@ -1,9 +1,10 @@
 import { rgba } from './colors'
-import { loadFonts } from '../../../shared/fonts/loader'
+import { loadFonts, loadStretch, stretchFamily, stretchReady } from '../../../shared/fonts/loader'
+import { fillPaint } from './paint'
 import { adjustImage } from '../../photo-design/engine/render'
 import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { ImageCache, LoadedImage } from './images'
-import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
+import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type Shadow, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
 import { activeFilters, blurScale, drawOverlays, loadGrain, pixelFilter, REF_W } from './filters'
 
@@ -27,24 +28,127 @@ const ctx = (c: HTMLCanvasElement): G => {
   return g
 }
 
-function shapePath(g: G, kindIn: string, w: number, h: number, rIn: number) {
-  let kind = kindIn
-  let r = rIn
-  g.beginPath()
+/** Rektangel med egne hjørner (8 tall som CSS border-radius: rx, ry for øvre venstre, øvre høyre, nedre høyre, nedre venstre). */
+function cornersPath(p: Path2D, x: number, y: number, w: number, h: number, r: readonly number[]) {
+  const v = r.map((n) => Math.max(0, n || 0))
+  const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, k = 0, m = 0] = v
+  // CSS: for store hjørner skaleres alle ned likt
+  const sc = Math.min(1, w / (a + c || 1), w / (k + e || 1), h / (b + m || 1), h / (d + f || 1))
+  const [tlx, tly, trx, try_, brx, bry, blx, bly] = [a, b, c, d, e, f, k, m].map((n) => n * sc) as [number, number, number, number, number, number, number, number]
+  p.moveTo(x + tlx, y)
+  p.lineTo(x + w - trx, y)
+  p.ellipse(x + w - trx, y + try_, trx, try_, 0, -Math.PI / 2, 0)
+  p.lineTo(x + w, y + h - bry)
+  p.ellipse(x + w - brx, y + h - bry, brx, bry, 0, 0, Math.PI / 2)
+  p.lineTo(x + blx, y + h)
+  p.ellipse(x + blx, y + h - bly, blx, bly, 0, Math.PI / 2, Math.PI)
+  p.lineTo(x, y + tly)
+  p.ellipse(x + tlx, y + tly, tlx, tly, 0, Math.PI, Math.PI * 1.5)
+  p.closePath()
+}
+
+/** Omrisset til et bilde- eller formlag som sti: egne hjørner (`radii`) eller de faste formene som før. `inf` = utvidelse. */
+function outline(l: ImageLayer | ShapeLayer, inf = 0, into?: Path2D): Path2D {
+  const p = into ?? new Path2D()
+  const x = -inf
+  const y = -inf
+  const w = Math.max(0, l.w + 2 * inf)
+  const h = Math.max(0, l.h + 2 * inf)
+  if (l.radii?.length === 8) {
+    cornersPath(p, x, y, w, h, l.radii.map((n) => (n > 0 ? Math.max(0, n + inf) : 0)))
+    return p
+  }
+  let kind: string = l.type === 'image' ? l.shape : l.kind === 'path' ? 'rect' : l.kind
+  let r = l.radius + inf
   if (kind === 'line') {
-    kind = r > 0 ? 'rounded' : 'rect'
+    kind = l.radius > 0 ? 'rounded' : 'rect'
     r = h / 2
   }
-  if (kind === 'ellipse') g.ellipse(w / 2, h / 2, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2)
+  if (kind === 'ellipse') p.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
   else if (kind === 'rounded') {
     r = Math.max(0, Math.min(r, w / 2, h / 2))
-    g.moveTo(r, 0)
-    g.arcTo(w, 0, w, h, r)
-    g.arcTo(w, h, 0, h, r)
-    g.arcTo(0, h, 0, 0, r)
-    g.arcTo(0, 0, w, 0, r)
-    g.closePath()
-  } else g.rect(0, 0, w, h)
+    p.moveTo(x + r, y)
+    p.arcTo(x + w, y, x + w, y + h, r)
+    p.arcTo(x + w, y + h, x, y + h, r)
+    p.arcTo(x, y + h, x, y, r)
+    p.arcTo(x, y, x + w, y, r)
+    p.closePath()
+  } else p.rect(x, y, w, h)
+  return p
+}
+
+const paths = new Map<string, Path2D>()
+/** Fri form (SVG-sti) strukket over laget. */
+function pathOf(l: ShapeLayer): Path2D | null {
+  const p = l.path
+  if (l.kind !== 'path' || !p?.d || typeof Path2D === 'undefined') return null
+  let base = paths.get(p.d)
+  if (!base) {
+    if (paths.size > 200) paths.clear()
+    base = new Path2D(p.d)
+    paths.set(p.d, base)
+  }
+  const out = new Path2D()
+  out.addPath(base, new DOMMatrix().scale(l.w / (p.vw || 1), l.h / (p.vh || 1)))
+  return out
+}
+
+/** Klipper til lagets polygon (CSS clip-path: polygon), i andeler av laget. */
+function clipPoly(g: G, l: Layer) {
+  const p = 'poly' in l ? l.poly : null
+  if (!p || p.length < 6) return
+  g.beginPath()
+  for (let i = 0; i + 1 < p.length; i += 2) {
+    const x = (p[i] ?? 0) * l.w
+    const y = (p[i + 1] ?? 0) * l.h
+    if (i) g.lineTo(x, y)
+    else g.moveTo(x, y)
+  }
+  g.closePath()
+  g.clip()
+}
+
+const FAR = 30000
+/**
+ * Skygger som CSS (box-shadow/text-shadow): `draw` tegner formen; den flyttes langt ut av lerretet så bare skyggen
+ * (med forskyvning og uskarphet fra laget, rotert med laget) havner på plass. Listen er i CSS-rekkefølge (første øverst).
+ */
+function castShadows(g: G, list: readonly Shadow[] | null | undefined, inset: boolean, draw: (sh: Shadow) => void) {
+  if (!list?.length) return
+  const m = g.getTransform()
+  const sc = Math.hypot(m.a, m.b)
+  for (let i = list.length - 1; i >= 0; i--) {
+    const sh = list[i]
+    if (!sh || !!sh.inset !== inset) continue
+    g.save()
+    g.setTransform(new DOMMatrix().translate(-FAR, 0).multiply(m))
+    g.shadowColor = sh.c
+    g.shadowBlur = Math.max(0, sh.b) * sc
+    g.shadowOffsetX = m.a * sh.x + m.c * sh.y + FAR
+    g.shadowOffsetY = m.b * sh.x + m.d * sh.y
+    draw(sh)
+    g.restore()
+  }
+}
+
+/** Innvendige skygger (CSS inset): skyggen av en ramme rundt formen, klippet til formen. */
+function insetShadows(g: G, l: ImageLayer | ShapeLayer) {
+  if (!l.shadows?.some((x) => x.inset)) return
+  g.save()
+  g.clip(outline(l))
+  castShadows(g, l.shadows, true, (sh) => {
+    const p = new Path2D()
+    p.rect(-l.w * 4, -l.h * 4, l.w * 9, l.h * 9)
+    outline(l, -(sh.s ?? 0), p)
+    g.fillStyle = '#000'
+    g.fill(p, 'evenodd')
+  })
+  g.restore()
+}
+
+const sc = (g: G) => {
+  const m = g.getTransform()
+  return Math.hypot(m.a, m.b) || 1
 }
 
 function linGrad(g: G, c1: string, c2: string, ang: number, w: number, h: number): CanvasGradient {
@@ -125,8 +229,15 @@ export interface TextLayout {
   max: number
 }
 
+/** Canvas-fonten for et tekstlag (kursiv og bredde bare når laget har dem; ellers som før). */
+export function fontOf(l: TextLayer, size: number): string {
+  // bredden bare når den er lastet (ellers fonten i vanlig bredde, aldri en reservefont)
+  const fam = stretchReady(l.font, l.stretch) ? stretchFamily(l.font, l.stretch) : l.font
+  return `${l.italic ? 'italic ' : ''}${l.weight} ${size}px "${fam}"`
+}
+
 function tlayout(g: G, l: TextLayer, size: number): TextLayout {
-  g.font = `${l.weight} ${size}px "${l.font}"`
+  g.font = fontOf(l, size)
   let txt = String(l.text || '')
   if (l.upper) txt = txt.toLocaleUpperCase('nb-NO')
   const ls = (l.ls || 0) * size
@@ -206,34 +317,114 @@ function barRect(l: TextLayer, r: TextLayout, top: number) {
 
 const textTop = (l: TextLayer, r: TextLayout) => (l.valign === 'middle' ? (l.h - r.total) / 2 : l.valign === 'bottom' ? l.h - r.total : 0)
 
-function drawText(g: G, l: TextLayer, s: number) {
+/** Canvas letterSpacing (Chrome 99+, Safari 17+, Firefox 115+). */
+const HAS_LS = typeof CanvasRenderingContext2D !== 'undefined' && 'letterSpacing' in CanvasRenderingContext2D.prototype
+
+function drawText(g: G, l: TextLayer, s: number, img: HTMLImageElement | null = null) {
   if (!String(l.text || '').trim()) return
+  // loddrett skalert tekst: tegnes i et strukket rom med samme bredde
+  const sy = l.sy && l.sy > 0 && l.sy !== 1 ? l.sy : 1
+  if (sy !== 1) {
+    g.save()
+    g.scale(1, sy)
+    drawText(g, { ...l, h: l.h / sy, sy: 1 }, s, img)
+    g.restore()
+    return
+  }
   const r = tfit(g, l)
-  g.font = `${l.weight} ${r.size}px "${l.font}"`
+  g.font = fontOf(l, r.size)
   g.textBaseline = 'alphabetic'
   g.textAlign = 'left'
   const top = textTop(l, r)
-  shadow(g, l, s)
-  g.fillStyle = l.color
-  const put = (t: string, x0: number, y: number) => {
-    if (!r.ls) {
-      g.fillText(t, x0, y)
-      return
+  // hele teksten med én tegneoperasjon (fyll eller kontur) i en gitt kontekst
+  const each = (gg: G, op: 'fill' | 'stroke') => {
+    const put = (t: string, x0: number, y: number) => {
+      if (!r.ls) {
+        if (op === 'fill') gg.fillText(t, x0, y)
+        else gg.strokeText(t, x0, y)
+        return
+      }
+      // sperring med kerning som i CSS (canvas letterSpacing); eldre nettlesere: én bokstav om gangen som før
+      if (HAS_LS) {
+        gg.letterSpacing = `${r.ls}px`
+        if (op === 'fill') gg.fillText(t, x0, y)
+        else gg.strokeText(t, x0, y)
+        gg.letterSpacing = '0px'
+        return
+      }
+      let x = x0
+      for (const ch of Array.from(t)) {
+        if (op === 'fill') gg.fillText(ch, x, y)
+        else gg.strokeText(ch, x, y)
+        x += gg.measureText(ch).width + r.ls
+      }
     }
-    let x = x0
-    for (const ch of Array.from(t)) {
-      g.fillText(ch, x, y)
-      x += g.measureText(ch).width + r.ls
-    }
+    r.lines.forEach((line, i) => {
+      const sg = r.segs[i] ?? { x: 0, mk: '', mx: 0 }
+      const lw = r.widths[i] ?? 0
+      const x0 = l.align === 'center' ? (l.w - lw) / 2 : l.align === 'right' ? l.w - lw : 0
+      const y = top + r.cap + i * r.lh
+      if (sg.mk) put(sg.mk, x0 + sg.mx, y)
+      put(line, x0 + sg.x, y)
+    })
   }
-  r.lines.forEach((line, i) => {
-    const sg = r.segs[i] ?? { x: 0, mk: '', mx: 0 }
-    const lw = r.widths[i] ?? 0
-    const x0 = l.align === 'center' ? (l.w - lw) / 2 : l.align === 'right' ? l.w - lw : 0
-    const y = top + r.cap + i * r.lh
-    if (sg.mk) put(sg.mk, x0 + sg.mx, y)
-    put(line, x0 + sg.x, y)
+  // tekstskygger (CSS text-shadow), under teksten
+  castShadows(g, l.shadows, false, () => {
+    g.fillStyle = '#000'
+    each(g, 'fill')
+    if ((l.stroke ?? 0) > 0) {
+      g.strokeStyle = '#000'
+      g.lineWidth = l.stroke ?? 0
+      each(g, 'stroke')
+    }
   })
+  if (l.paint?.length || img) {
+    // gradient eller bilde i bokstavene (CSS background-clip: text): teksten som maske for malingen
+    const k = sc(g)
+    const M = r.size
+    const cw = Math.max(1, Math.min(8192, Math.ceil((l.w + 2 * M) * k)))
+    const chh = Math.max(1, Math.min(8192, Math.ceil((l.h + 2 * M) * k)))
+    const t = canvas(cw, chh)
+    const tg = ctx(t)
+    tg.setTransform(cw / (l.w + 2 * M), 0, 0, chh / (l.h + 2 * M), 0, 0)
+    tg.translate(M, M)
+    tg.font = g.font
+    tg.textBaseline = 'alphabetic'
+    tg.fillStyle = '#000'
+    each(tg, 'fill')
+    // malingslagene settes sammen først (vanlig stabling), så legges de inn i bokstavene
+    const pc = canvas(cw, chh)
+    const pg = ctx(pc)
+    pg.setTransform(cw / (l.w + 2 * M), 0, 0, chh / (l.h + 2 * M), 0, 0)
+    pg.translate(M, M)
+    pg.beginPath()
+    pg.rect(0, 0, l.w, l.h)
+    pg.clip()
+    // bildet dekker tekstboksen (som et bildelag med «Fyll formen»); uten bilde: malingen
+    if (img) drawFit(pg, img, l.w, l.h, 'cover', 1, 0.5, 0.5)
+    else fillPaint(pg, l.paint, l.w, l.h, k)
+    tg.setTransform(1, 0, 0, 1, 0, 0)
+    tg.globalCompositeOperation = 'source-in'
+    tg.drawImage(pc, 0, 0)
+    g.save()
+    shadow(g, l, s)
+    g.drawImage(t, -M, -M, l.w + 2 * M, l.h + 2 * M)
+    g.restore()
+  } else {
+    g.save()
+    shadow(g, l, s)
+    g.fillStyle = l.color
+    each(g, 'fill')
+    g.restore()
+  }
+  if ((l.stroke ?? 0) > 0) {
+    g.save()
+    g.strokeStyle = l.strokeColor || '#000000'
+    g.lineWidth = l.stroke ?? 0
+    g.lineJoin = 'round'
+    each(g, 'stroke')
+    g.restore()
+  }
   if (l.bar) {
     const bb = barRect(l, r, top)
     g.fillStyle = l.barColor
@@ -330,13 +521,13 @@ export class Renderer {
     const e: LoadedImage | null = this.images.get(l.src)
     if (!e) {
       if (!o.edit || (l.src && !this.images.failed(l.src) && l.src.startsWith('asset:'))) return
-      shapePath(g, l.shape, l.w, l.h, l.radius)
+      const ol = outline(l)
       g.fillStyle = 'rgba(255,255,255,0.07)'
-      g.fill()
+      g.fill(ol)
       g.setLineDash([18, 14])
       g.lineWidth = 4
       g.strokeStyle = 'rgba(255,255,255,0.35)'
-      g.stroke()
+      g.stroke(ol)
       g.setLineDash([])
       g.save()
       g.beginPath()
@@ -354,19 +545,21 @@ export class Renderer {
     }
     // avanserte justeringer (Avansert modus) tegnes med Photo-motoren; uten dem tegnes bildet nøyaktig som før
     const im = l.tint ? this.images.tinted(e, l.tint) : advActive(l.adj) ? (adjustImage(e.img, l.adj as AdvAdj) ?? e.img) : e.img
-    const clip = l.shape !== 'rect' || l.fit === 'cover' || l.zoom > 1 || l.border > 0
+    const clip = l.shape !== 'rect' || l.fit === 'cover' || l.zoom > 1 || l.border > 0 || l.radii?.length === 8
+    castShadows(g, l.shadows, false, (sh) => {
+      g.fillStyle = '#000'
+      g.fill(outline(l, sh.s ?? 0))
+    })
     if (clip) {
       if (l.shadow > 0) {
         g.save()
         shadow(g, l, s)
-        shapePath(g, l.shape, l.w, l.h, l.radius)
         g.fillStyle = '#000'
-        g.fill()
+        g.fill(outline(l))
         g.restore()
       }
       g.save()
-      shapePath(g, l.shape, l.w, l.h, l.radius)
-      g.clip()
+      g.clip(outline(l))
       if (l.fill) {
         g.fillStyle = l.fill
         g.fillRect(0, 0, l.w, l.h)
@@ -375,10 +568,10 @@ export class Renderer {
       if (l.border > 0) {
         g.lineWidth = l.border * 2
         g.strokeStyle = l.borderColor
-        shapePath(g, l.shape, l.w, l.h, l.radius)
-        g.stroke()
+        g.stroke(outline(l))
       }
       g.restore()
+      insetShadows(g, l)
     } else {
       g.save()
       shadow(g, l, s)
@@ -393,20 +586,64 @@ export class Renderer {
   }
 
   private drawShape(g: G, l: ShapeLayer, s: number) {
-    shapePath(g, l.kind, l.w, l.h, l.radius)
+    const p2 = pathOf(l)
+    const ol = p2 ?? outline(l)
+    const rule = l.path?.fillRule ?? 'nonzero'
+    // ytre skygger (CSS box-shadow)
+    castShadows(g, l.shadows, false, (sh) => {
+      g.fillStyle = '#000'
+      if (p2) g.fill(p2, rule)
+      else g.fill(outline(l, sh.s ?? 0))
+    })
     g.fillStyle = l.fill2 ? linGrad(g, l.fill, l.fill2, l.angle, l.w, l.h) : l.fill
     g.save()
     shadow(g, l, s)
-    g.fill()
+    g.fill(ol, rule)
     g.restore()
-    if (l.stroke > 0) {
+    if (l.paint?.length) {
       g.save()
-      shapePath(g, l.kind, l.w, l.h, l.radius)
-      g.clip()
+      g.clip(ol, rule)
+      fillPaint(g, l.paint, l.w, l.h, sc(g))
+      g.restore()
+    }
+    if (!p2) insetShadows(g, l)
+    if (p2) {
+      if (l.stroke > 0) {
+        g.save()
+        g.lineWidth = l.stroke
+        g.strokeStyle = l.strokeColor
+        g.setLineDash(l.dash ?? [])
+        g.stroke(p2)
+        g.restore()
+      }
+      return
+    }
+    const sd = l.sides?.length === 4 ? l.sides : null
+    if (sd) {
+      // kant bare på noen sider (CSS border-top/right/bottom/left), innenfor formen
+      g.save()
+      g.clip(ol)
+      g.strokeStyle = l.strokeColor
+      g.fillStyle = l.strokeColor
+      const [t = 0, rr = 0, bb = 0, ll = 0] = sd
+      const lines: [number, number, number, number, number][] = [[0, t / 2, l.w, t / 2, t], [l.w - rr / 2, 0, l.w - rr / 2, l.h, rr], [0, l.h - bb / 2, l.w, l.h - bb / 2, bb], [ll / 2, 0, ll / 2, l.h, ll]]
+      for (const [x1, y1, x2, y2, wd] of lines) {
+        if (!(wd > 0)) continue
+        g.beginPath()
+        g.setLineDash(l.dash?.length ? l.dash : [])
+        g.lineWidth = wd
+        g.moveTo(x1, y1)
+        g.lineTo(x2, y2)
+        g.stroke()
+      }
+      g.restore()
+    } else if (l.stroke > 0) {
+      g.save()
+      g.clip(ol)
       g.lineWidth = l.stroke * 2
       g.strokeStyle = l.strokeColor
-      shapePath(g, l.kind, l.w, l.h, l.radius)
-      g.stroke()
+      if (l.dash?.length) g.setLineDash(l.dash.map((n) => n))
+      g.stroke(ol)
       g.restore()
     }
   }
@@ -442,7 +679,10 @@ export class Renderer {
       g.rotate(((l.rot || 0) * Math.PI) / 180)
       if (l.flipX || l.flipY) g.scale(l.flipX ? -1 : 1, l.flipY ? -1 : 1)
       g.translate(-l.w / 2, -l.h / 2)
-      if (l.type === 'text') drawText(g, l, s)
+      if (l.blend && BLENDS.has(l.blend)) g.globalCompositeOperation = l.blend as GlobalCompositeOperation
+      clipPoly(g, l)
+      if ((l.blur ?? 0) > 0 && l.type !== 'image') g.filter = `blur(${((l.blur ?? 0) * s).toFixed(2)}px)`
+      if (l.type === 'text') drawText(g, l, s, l.fillSrc ? (this.images.get(l.fillSrc)?.img ?? null) : null)
       else if (l.type === 'image') this.drawImage(g, l, o, s)
       else if (l.type === 'shape') this.drawShape(g, l, s)
       else this.drawGlow(g, l)
@@ -509,12 +749,21 @@ export class Renderer {
   }
 }
 
+/** Blandemodusene et lag kan ha (CSS mix-blend-mode med samme navn i canvas). */
+export const BLENDS: ReadonlySet<string> = new Set(['multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity'])
+
 /** Laster fontene tekstlagene bruker (også æ, ø og å). */
 export function ensureFonts(doc: Doc): Promise<unknown> {
   if (typeof document === 'undefined' || !document.fonts?.load) return Promise.resolve()
   // fonter fra biblioteket: stilarket hentes først (loadFonts), så tegning og eksport bruker riktig font
   // og kornruten til filtrene (F10 Korn, F13 Papir), så eksporten får kornet med
-  return Promise.all([loadFonts(doc.layers.flatMap((l) => (l.type === 'text' ? [{ font: l.font, weight: l.weight }] : []))), loadGrain()])
+  const texts = doc.layers.filter((l): l is TextLayer => l.type === 'text')
+  return Promise.all([
+    loadFonts(texts.map((l) => ({ font: l.font, weight: l.weight, italic: !!l.italic }))),
+    // fonter i en annen bredde (Archivo 78 % …) lastes som egne familier
+    ...texts.filter((l) => l.stretch && l.stretch !== 100).map((l) => loadStretch(l.font, l.stretch ?? 100, l.weight, !!l.italic)),
+    loadGrain(),
+  ])
 }
 
 /** Øverste synlige, ulåste lag under punktet (i 1920 × 1080-koordinater). */
@@ -543,8 +792,10 @@ export function hit(layers: readonly Layer[], p: { x: number; y: number }): Laye
  */
 function drawPic(g: G, im: CanvasImageSource & { width: number; height: number }, l: ImageLayer, s: number) {
   const fs = activeFilters(l.filters)
+  const lb = (l.blur ?? 0) > 0 ? `blur(${((l.blur ?? 0) * s).toFixed(2)}px)` : ''
   if (!fs.length) {
-    g.filter = imgFilter(l)
+    const f0 = imgFilter(l)
+    g.filter = lb ? (f0 === 'none' ? lb : `${f0} ${lb}`) : f0
     drawFit(g, im, l.w, l.h, l.fit, l.zoom, l.px, l.py, l.flip, l)
     g.filter = 'none'
     return
@@ -572,7 +823,9 @@ function drawPic(g: G, im: CanvasImageSource & { width: number; height: number }
   cg.setTransform(1, 0, 0, 1, 0, 0)
   cg.globalCompositeOperation = 'destination-in'
   cg.drawImage(alpha, 0, 0)
+  if (lb) g.filter = lb
   g.drawImage(comp, 0, 0, l.w, l.h)
+  if (lb) g.filter = 'none'
 }
 
 export function imgFilter(l: { bri?: number; con?: number; sat?: number }): string {

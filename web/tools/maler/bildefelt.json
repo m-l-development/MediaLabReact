@@ -1,0 +1,15 @@
+{
+  "_om": "Bildefelt i malene der materialet viser bildet som en CSS-illustrasjon med hintet «↳ bytt til foto …» (del 2). Illustrasjonen beholdes som lag; bildefeltet legges over den (personer) eller over illustrasjonen og under teksten (hele flaten, full: true). Brukes av convert-thumbs.mjs.",
+  "GEN-11": { "fields": [{ "sel": ":scope > div:nth-child(1)", "role": "person" }] },
+  "tsr-13": { "fields": [{ "sel": ":scope > div:nth-child(1)", "role": "person" }] },
+  "trl-11": { "fields": [{ "sel": ":scope > div:nth-child(3)", "role": "person" }] },
+  "GEN-18": { "full": true },
+  "bib-12": { "full": true },
+  "bib-13": { "full": true },
+  "live-10": { "full": true },
+  "live-12": { "full": true },
+  "live-13": { "full": true },
+  "pro-09": { "full": true },
+  "trl-10": { "full": true },
+  "trl-14": { "full": true }
+}

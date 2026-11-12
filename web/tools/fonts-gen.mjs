@@ -82,7 +82,8 @@ for (const r of queue) {
     const files = fs.readdirSync(root).filter((f) => f.endsWith('.css'))
     if (m.pkg.startsWith('@fontsource-variable/')) {
       // alle akser når fonten har flere (bredde, optisk størrelse, SOFT/WONK …), ellers vekt
-      const base = files.includes('full.css') ? 'full' : files.includes('wght.css') ? 'wght' : files.includes('index.css') ? 'index' : null
+      // bredde-aksen (wdth.css har både vekt og bredde) når det ikke finnes en fil med alle aksene: malene bruker eksakte bredder
+      const base = files.includes('full.css') ? 'full' : files.includes('wdth.css') ? 'wdth' : files.includes('wght.css') ? 'wght' : files.includes('index.css') ? 'index' : null
       if (!base) { missing.push(r.name + ' (ingen CSS)'); continue }
       css = [base + '.css', ...(files.includes(base + '-italic.css') ? [base + '-italic.css'] : [])]
     } else {
