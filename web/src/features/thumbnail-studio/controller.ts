@@ -7,6 +7,7 @@ import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
 import type { ImageCache } from './engine/images'
 import { base, BASE_KEYS, layout, type BaseKey } from './engine/layouts'
 import { LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library'
+import { LIB_CATS, loadLibrary, type LibTemplate } from './engine/templates'
 import { clone, countImgs, FONTS, H, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
 import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
 import type { Phrase, Vars } from './texts'
@@ -49,7 +50,7 @@ export function cropPlacement(l: { x: number; y: number; w: number; h: number; r
 }
 export type PanelKey = 'add' | 'layers' | 'canvas' | 'props'
 export interface ColumnLayout { cols: PanelKey[][]; tabs: boolean[] }
-export type AddTarget = { mode: 'add'; logo?: boolean } | { mode: 'replace'; id: string } | { mode: 'bg' }
+export type AddTarget = { mode: 'add'; logo?: boolean } | { mode: 'replace'; id: string } | { mode: 'bg' } | { mode: 'textfill'; id: string }
 /** Felt som endres på ett lag (typen avgjøres av laget). */
 export type LayerPatch = { x?: number; y?: number; w?: number; h?: number } & Record<string, unknown>
 export type Picker = { kind: 'media' | 'cloud'; target: AddTarget } | null
@@ -114,6 +115,9 @@ export interface State {
   newOpen: boolean
   newMode: 'new' | 'apply'
   newPal: string
+  /** Ferdige maler i «Ny mal» (fase 3): valgt kategori og malene (null = ikke lastet ennå). */
+  libCat: string
+  lib: LibTemplate[] | null
   palOpen: boolean
   previews: Record<string, string>
   ctx: { x: number; y: number; p: { x: number; y: number }; on: boolean } | null
@@ -313,7 +317,7 @@ export class ThumbController {
       baseEdit: false, layoutId: 'main', sel: null, multi: [], barSel: null, hist: [], fut: [], gx: [], gy: [], msg: null, ai: null, maskEdit: null,
       exp: false, expRes: '1080', expFmt: 'png', expT: false, expBusy: false, expSize: null, save: false, logoOpen: false, shapeOpen: false,
       libOpen: false, busyImg: false, zoom: 1, cropId: null, cropBox: { cL: 0, cT: 0, cR: 0, cB: 0 }, narrow: false,
-      autoSave: st.get(AUTO_KEY) === '1', adv: st.get(ADV_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', palOpen: false, previews: {},
+      autoSave: st.get(AUTO_KEY) === '1', adv: st.get(ADV_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', libCat: LIB_CATS[0], lib: null, palOpen: false, previews: {},
       ctx: null, viewMenu: false, layoutMode: lm === 'custom' && !custom ? 'std' : (lm ?? 'std'), customLayout: custom, lcOpen: false,
       lcDraft: null, colTab: {}, addColor: null, dropOn: null, backupBusy: false, sharedReady: false, sharedExists: false, picker: null, tick: 0,
     })
@@ -459,7 +463,7 @@ export class ThumbController {
     if (!doc) return null
     const ok = (v: string | null | undefined) => (typeof v === 'string' && v.startsWith('ch:') ? v : null)
     const d = clone(doc)
-    d.layers = d.layers.filter((l) => !(l.type === 'image' && l.src?.startsWith('asset:'))).map((l) => (l.type === 'image' && (l.src || l.orig) ? { ...l, src: ok(l.src), orig: null } : l))
+    d.layers = d.layers.filter((l) => !(l.type === 'image' && l.src?.startsWith('asset:'))).map((l) => (l.type === 'image' && (l.src || l.orig) ? { ...l, src: ok(l.src), orig: null } : l.type === 'text' && l.fillSrc ? { ...l, fillSrc: ok(l.fillSrc) } : l))
     d.bg = { ...d.bg, src: ok(d.bg.src), orig: null }
     return d
   }
@@ -485,7 +489,10 @@ export class ThumbController {
       return ref
     }
     const d = clone(doc)
-    for (const l of d.layers) if (l.type === 'image' && l.src && !l.src.startsWith('ch:') && !l.src.startsWith('asset:')) { l.src = await conv(l.src); l.orig = null }
+    for (const l of d.layers) {
+      if (l.type === 'image' && l.src && !l.src.startsWith('ch:') && !l.src.startsWith('asset:')) { l.src = await conv(l.src); l.orig = null }
+      if (l.type === 'text' && l.fillSrc && !l.fillSrc.startsWith('ch:')) l.fillSrc = await conv(l.fillSrc)
+    }
     if (d.bg.src && !d.bg.src.startsWith('ch:')) d.bg = { ...d.bg, src: await conv(d.bg.src), orig: null }
     return this.sharedDoc(d) ?? d
   }
@@ -678,6 +685,13 @@ export class ThumbController {
           if (n !== l.src) {
             l.src = n
             l.orig = null
+            changed = true
+          }
+        }
+        if (l.type === 'text' && l.fillSrc && !l.fillSrc.startsWith('ch:')) {
+          const n = await conv(l.fillSrc)
+          if (n !== l.fillSrc) {
+            l.fillSrc = n
             changed = true
           }
         }
@@ -913,6 +927,7 @@ export class ThumbController {
     }
     this.set({ newOpen: true, newMode: 'new', newPal: 'default', palOpen: false })
     void this.genPrev(c)
+    void this.openLib()
   }
 
   openLayouts(): void {
@@ -920,6 +935,55 @@ export class ThumbController {
     if (!c || !this.s.doc) return
     this.set({ newOpen: true, newMode: 'apply', newPal: 'default', palOpen: false, logoOpen: false, shapeOpen: false })
     void this.genPrev(c)
+    void this.openLib()
+  }
+
+  // ---------- ferdige maler fra designsamlingen (fase 3) ----------
+
+  private async openLib() {
+    try {
+      const lib = this.s.lib ?? (await loadLibrary())
+      if (!this.alive) return
+      if (!this.s.lib) this.set({ lib })
+      await this.genLibPrev()
+    } catch {
+      this.flash('Klarte ikke å hente de ferdige malene. Prøv igjen.')
+    }
+  }
+
+  /** Malene i valgt kategori. */
+  libList(): LibTemplate[] {
+    return (this.s.lib ?? []).filter((t) => t.cat === this.s.libCat)
+  }
+
+  setLibCat(cat: string): void {
+    this.set({ libCat: cat })
+    void this.genLibPrev()
+  }
+
+  private async genLibPrev() {
+    const cat = this.s.libCat
+    for (const t of this.libList()) {
+      const key = 'lib:' + t.code
+      if (this.s.previews[key] != null) continue
+      let img = ''
+      try {
+        img = await this.d.renderer.snapshot(clone(t.doc), 480, true, (role) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde'))
+      } catch {
+        img = ''
+      }
+      if (!this.alive || !this.s.newOpen || this.s.libCat !== cat) return
+      this.set((s) => ({ previews: { ...s.previews, [key]: img } }))
+    }
+  }
+
+  /** Ny mal (eller nytt oppsett) fra en ferdig mal: en kopi med egne lag-ID-er. */
+  pickLib(c: Category, t: LibTemplate): void {
+    this.pickNew(c, { doc: () => {
+      const d = clone(t.doc)
+      for (const l of d.layers) l.id = uid()
+      return d
+    } })
   }
 
   closeNew(): void {
@@ -1410,7 +1474,7 @@ export class ThumbController {
       c = null
     }
     if (!c || !Array.isArray(c.layers)) c = this.clip
-    return c && Array.isArray(c.layers) ? (c.layers as Layer[]).filter((l) => l && ['text', 'image', 'shape', 'glow'].includes(l.type)).slice(0, 60) : []
+    return c && Array.isArray(c.layers) ? (c.layers as Layer[]).filter((l) => l && ['text', 'image', 'shape', 'glow'].includes(l.type)).slice(0, 120) : []
   }
 
   selIds(): string[] {
@@ -1857,6 +1921,7 @@ export class ThumbController {
       const h = Math.round(ih * k)
       this.addLayer(L('image', { src, x: Math.round(960 - w / 2), y: Math.round(540 - h / 2), w, h, fit: t.logo ? 'contain' : 'cover' }))
     } else if (t.mode === 'replace') this.setL(t.id, { src, orig: null })
+    else if (t.mode === 'textfill') this.setL(t.id, { fillSrc: src })
     else this.setBg({ src, orig: null, type: 'image' })
   }
 
@@ -1873,9 +1938,10 @@ export class ThumbController {
       return
     }
     const probe = clone(doc)
-    if (t.mode === 'replace') {
+    if (t.mode === 'replace' || t.mode === 'textfill') {
       const l = probe.layers.find((x) => x.id === t.id)
       if (l?.type === 'image') l.src = null
+      if (l?.type === 'text') l.fillSrc = null
     }
     if (t.mode === 'bg') probe.bg.src = null
     if (countImgs(probe) >= MAX_IMG) {

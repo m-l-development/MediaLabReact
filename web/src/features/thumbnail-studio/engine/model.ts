@@ -10,6 +10,7 @@ import type { AdvAdj } from '../../../shared/image/AdvAdjust'
  * - `db:<nøkkel>`   bilde i dagens app (IndexedDB «thumbstudio»); gjøres om til `m:` ved import
  */
 import type { ImgFilter } from './filters'
+import type { Paint } from './paint'
 export const W = 1920
 export const H = 1080
 export const MAX_IMG = 5
@@ -51,6 +52,25 @@ interface LayerBase {
   name: string
   /** Koblet til et annet lag (flytter seg sammen med det). */
   link?: string | null
+  /** Blandemodus (canvas globalCompositeOperation, f.eks. 'multiply', 'overlay'); mangler = vanlig. */
+  blend?: string | null
+  /** Uskarphet i dokumentpiksler; mangler = ingen. */
+  blur?: number
+  /** Skygger (CSS box-shadow/text-shadow) i dokumentpiksler; mangler = bare `shadow` som før. */
+  shadows?: Shadow[] | null
+}
+
+/** En skygge: forskyvning, uskarphet, spredning (former), farge, og om den er innvendig. */
+export interface Shadow { x: number; y: number; b: number; s?: number; c: string; inset?: boolean }
+
+/**
+ * Formen til et bilde- eller formlag utover de faste formene (fase 3): hjørner med egen radius (8 tall: øvre venstre
+ * rx, ry, øvre høyre, nedre høyre, nedre venstre – som CSS border-radius) og/eller en polygon (andeler 0–1, x, y, …,
+ * som CSS clip-path: polygon). Mangler = formen tegnes som før.
+ */
+export interface Outline {
+  radii?: number[] | null
+  poly?: number[] | null
 }
 
 export interface TextLayer extends LayerBase {
@@ -73,9 +93,25 @@ export interface TextLayer extends LayerBase {
   barH: number
   barW?: number
   barGap?: number
+  /** Kursiv (bare når fonten har ekte kursiv). */
+  italic?: boolean
+  /** Loddrett skalering av bokstavene (CSS scaleY); mangler = 1. */
+  sy?: number
+  /** Bredde i prosent (fonter med bredde-akse, f.eks. Archivo 62–125 %); mangler = 100. */
+  stretch?: number
+  /** Kontur rundt bokstavene (dokumentpiksler) og farge; fyllfargen kan da være gjennomsiktig. */
+  stroke?: number
+  strokeColor?: string
+  /** Gradient i bokstavene i stedet for fargen (CSS background-clip: text). */
+  paint?: Paint[] | null
+  /**
+   * Bilde i bokstavene («bilde i teksten»): bildet fyller teksten (dekker tekstboksen). `null` = plass for et bilde
+   * (vises med malingen/fargen til et bilde er valgt); mangler = vanlig tekst.
+   */
+  fillSrc?: string | null
 }
 
-export interface ImageLayer extends LayerBase {
+export interface ImageLayer extends LayerBase, Outline {
   type: 'image'
   src: string | null
   orig: string | null
@@ -105,15 +141,23 @@ export interface ImageLayer extends LayerBase {
   filters?: ImgFilter[] | null
 }
 
-export interface ShapeLayer extends LayerBase {
+export interface ShapeLayer extends LayerBase, Outline {
   type: 'shape'
-  kind: 'rect' | 'rounded' | 'ellipse' | 'line'
+  kind: 'rect' | 'rounded' | 'ellipse' | 'line' | 'path'
   radius: number
   fill: string
   fill2: string | null
   angle: number
   stroke: number
   strokeColor: string
+  /** Gradienter, mønstre og korn over fyllfargen (engine/paint.ts); mangler = bare fyllfargen. */
+  paint?: Paint[] | null
+  /** Stiplet kant (strek og mellomrom i dokumentpiksler). */
+  dash?: number[] | null
+  /** Kant bare på noen sider: tykkelse øverst, høyre, nederst, venstre (i stedet for `stroke`). */
+  sides?: number[] | null
+  /** Fri form (kind 'path'): SVG-sti i et eget koordinatsystem (vw × vh) som strekkes over laget. */
+  path?: { d: string; vw: number; vh: number; fillRule?: 'nonzero' | 'evenodd' } | null
 }
 
 export interface GlowLayer extends LayerBase {
@@ -200,7 +244,10 @@ export function emptyDoc(): Doc {
 /** Alle bildekilder i dokumentet (lag og bakgrunn). */
 export function srcsOf(doc: Doc): string[] {
   const s: string[] = []
-  for (const l of doc.layers) if (l.type === 'image' && l.src) s.push(l.src)
+  for (const l of doc.layers) {
+    if (l.type === 'image' && l.src) s.push(l.src)
+    if (l.type === 'text' && l.fillSrc) s.push(l.fillSrc)
+  }
   if (doc.bg.src) s.push(doc.bg.src)
   return s
 }
@@ -216,6 +263,7 @@ export function refsOf(doc: Pick<Doc, 'layers'> & { bg?: Partial<Background> }):
       add(l.src)
       add(l.orig)
     }
+    if (l.type === 'text') add(l.fillSrc)
   }
   add(doc.bg?.src)
   add(doc.bg?.orig)
@@ -226,7 +274,10 @@ export function refsOf(doc: Pick<Doc, 'layers'> & { bg?: Partial<Background> }):
 export function countImgs(doc: Doc): number {
   const own = (v: string | null | undefined) => !!v && (v.startsWith('db:') || v.startsWith('m:'))
   const s = new Set<string>()
-  for (const l of doc.layers) if (l.type === 'image' && own(l.src) && l.src) s.add(l.src)
+  for (const l of doc.layers) {
+    if (l.type === 'image' && own(l.src) && l.src) s.add(l.src)
+    if (l.type === 'text' && own(l.fillSrc) && l.fillSrc) s.add(l.fillSrc)
+  }
   if (doc.bg.type === 'image' && own(doc.bg.src) && doc.bg.src) s.add(doc.bg.src)
   return s.size
 }

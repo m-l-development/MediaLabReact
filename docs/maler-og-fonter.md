@@ -3,7 +3,7 @@
 Levende oversikt for hele oppdraget (felles fontbibliotek, 151 Thumbnail-maler, 100 Photo Design-maler og
 editorfunksjonene de trenger). Oppdateres etter hver fase. Sjekklisten for malene står nederst.
 
-Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). Fase 3 (Thumbnail-maler) neste.
+Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). **Fase 3 (151 Thumbnail-maler) implementert og testet 2026-11-12** (se Fase 3 – status). Fase 4 (Photo-funksjoner) neste.
 
 ## 1. Originalmaterialet (fasiten)
 
@@ -95,6 +95,15 @@ oppsett, eksisterende snarveier, Isolate Subject, Mockups, mediebiblioteket, byg
 - Visuell kontroll: originalen (HTML) og appens tegning sammenlignes piksel for piksel per mal, med terskel og rapport.
 - Malvelger: nye kategorier i «Ny mal» ved siden av dagens oppsett.
 
+#### Fase 3 – status
+- Originalene (de 1280 × 720 store flatene fra del 1–3) ligger i `web/tools/maler/thumbnail-originaler.html`. `convert-thumbs.mjs` måler dem i Chromium (med appens egne fonter) og skriver `src/features/thumbnail-studio/engine/templates/thumbs.json`; `compare-thumbs.mjs` tegner hver mal med appens motor og sammenligner piksel for piksel (bildefelt utenom). Resultat: **alle 151 under 2 % avvik, snitt 0,27 %**.
+- Malene er vanlige lag (tekst, form, bilde) – ingen flate bilder. «Ny mal» og «Bytt oppsett» har en ny del «Ferdige maler» med materialets seks kategorier (Generell video 28, Bibelvideo 27, Direktesending 25, Promo 24, Trailer 23, Teaser 24); malene lastes som egen fil først når dialogen åpnes. Eksisterende oppsett og fargevalg er uendret (fargevalget gjelder fortsatt oppsettene; malene har materialets farger).
+- Nye, generelle og valgfrie felt i motoren (eldre maler tegnes som før): maling (lineære, radiale, koniske og gjentatte gradienter, mønsterruter, filmkorn) på former og i tekst, egne hjørner (8 radier), polygon-klipp, fri form (SVG-sti), stiplet/ensidig kant, CSS-skygger (også innvendige), blandemodus og uskarphet per lag, tekst med kursiv, eksakt bredde (`font-stretch`, egne fontfamilier per bredde), loddrett skalering, kontur og bilde i teksten. Sperring tegnes nå med kerning (canvas `letterSpacing`), som i CSS.
+- Panel: Kursiv, Bredde og Kontur vises i Avansert modus og alltid der laget bruker dem; «Bilde i teksten» der malen har plass til det og for all tekst i Avansert modus.
+- Bildefelt: plassholderne i materialet (striper `--ph/--phd`, stiplede rammer med etikett) blir bildelag med feltets form; fargen under plassholderen blir en form under bildet. Etiketter («Legg til bilde …») og hint («↳ bytt til foto …») er instruksjoner og tas ikke med. Rolle «person» der spesifikasjonen sier utklipt. Bildefiltrene i spesifikasjonens «Overlay» (F01–F13) ligger på bildefeltene. 12 maler i del 2 viser bildet som illustrasjon: illustrasjonen beholdes og bildefeltet legges over (`tools/maler/bildefelt.json`).
+- Valg og avvik (dokumentert): kunstig kursiv i materialet (GEN-25 Permanent Marker, bib-20 og tsr-19 Young Serif – fontene har ingen kursiv) tegnes rett. Grensen på lag per mal er hevet fra 60 til 120 (tsr-12 har 73). Fontgeneratoren bruker nå filer med bredde-akse når fonten har den (13 fonter; Bricolage Grotesque 75 % i GEN-17). Åpent: grensen på 5 egne bilder per mal gjør at trl-22 (12 portretter) bare kan fylle 5 felt.
+- Tester: `engine/paint.test.ts`, `engine/templates/templates.test.ts` (151 maler, kategorier, lagring/åpning uendret, bildefelt etter spesifikasjonen, fonter og snitt), `e2e/thumbnail-library.spec.ts` (PC og mobil: velg mal, bytt bilde, lagre, åpne, eksporter; bilde i teksten).
+
 ### Fase 4 – Photo Design: manglende editorfunksjoner
 Generelle funksjoner (ikke knyttet til maler), valgfrie felt på lagene: korn (overlegg), slitt tekst (grunge-maske),
 loddrett tekst, klippemaske/polygon, glød (farget uskarp skygge), tekstur i tekst, sirkeltekst, strekkode, konturtekst,
@@ -119,157 +128,157 @@ Status: Ikke startet · Under arbeid · Implementert · Testet · Godkjent
 
 | Kode | Del | Kategori | Navn | Status |
 |---|---|---|---|---|
-| GEN-01 | 1 | Generell video | Markert ord | Ikke startet |
-| GEN-02 | 1 | Generell video | Håndskrift | Ikke startet |
-| GEN-03 | 1 | Generell video | Podkast-kort | Ikke startet |
-| GEN-04 | 1 | Generell video | Figur foran tittel | Ikke startet |
-| GEN-05 | 1 | Generell video | Stort spørsmål | Ikke startet |
-| GEN-06 | 1 | Generell video | Polaroid-vlogg | Ikke startet |
-| GEN-07 | 1 | Generell video | Vitnesbyrd | Ikke startet |
-| GEN-08 | 1 | Generell video | Kapittel | Ikke startet |
-| GEN-09 | 1 | Generell video | Notatblokk | Ikke startet |
-| GEN-10 | 1 | Generell video | Sveitsisk | Ikke startet |
-| bib-01 | 1 | Bibelvideo | Klassisk vers | Ikke startet |
-| bib-02 | 1 | Bibelvideo | Landskap og serif | Ikke startet |
-| bib-03 | 1 | Bibelvideo | Avisside | Ikke startet |
-| bib-04 | 1 | Bibelvideo | Bok i Bibelen | Ikke startet |
-| bib-05 | 1 | Bibelvideo | Kollasj med ekko | Ikke startet |
-| bib-06 | 1 | Bibelvideo | Revne fjell | Ikke startet |
-| bib-07 | 1 | Bibelvideo | Lerret og bølge | Ikke startet |
-| bib-08 | 1 | Bibelvideo | Leseplan | Ikke startet |
-| bib-09 | 1 | Bibelvideo | Blått vindu | Ikke startet |
-| live-01 | 1 | Direktesending | Søndag direkte | Ikke startet |
-| live-02 | 1 | Direktesending | Lys og rolig | Ikke startet |
-| live-03 | 1 | Direktesending | Lovsangskveld | Ikke startet |
-| live-04 | 1 | Direktesending | Nattverd | Ikke startet |
-| live-05 | 1 | Direktesending | Dåp | Ikke startet |
-| live-06 | 1 | Direktesending | Høytid – jul | Ikke startet |
-| live-07 | 1 | Direktesending | Høytid – påske | Ikke startet |
-| live-08 | 1 | Direktesending | Klokkeslett | Ikke startet |
-| live-09 | 1 | Direktesending | Bildestripe | Ikke startet |
-| pro-01 | 1 | Promo | Ungdomskveld | Ikke startet |
-| pro-02 | 1 | Promo | Konferanse med talere | Ikke startet |
-| pro-03 | 1 | Promo | Fjell og gradient | Ikke startet |
-| pro-04 | 1 | Promo | Sol og sirkel | Ikke startet |
-| pro-05 | 1 | Promo | Kurs | Ikke startet |
-| pro-06 | 1 | Promo | Ukentlig samling | Ikke startet |
-| pro-07 | 1 | Promo | Uskarp fargesky | Ikke startet |
-| pro-08 | 1 | Promo | Revet papir | Ikke startet |
-| trl-01 | 1 | Trailer | Spotlys og silhuett | Ikke startet |
-| trl-02 | 1 | Trailer | Lysstråle | Ikke startet |
-| trl-03 | 1 | Trailer | Scene på gulv | Ikke startet |
-| trl-04 | 1 | Trailer | Strømmende bånd | Ikke startet |
-| trl-05 | 1 | Trailer | Kinoformat | Ikke startet |
-| trl-06 | 1 | Trailer | Duotone grunge | Ikke startet |
-| trl-07 | 1 | Trailer | Dokumentar | Ikke startet |
-| tsr-01 | 1 | Teaser | Snart | Ikke startet |
-| tsr-02 | 1 | Teaser | Nedtelling | Ikke startet |
-| tsr-03 | 1 | Teaser | Lysstripe | Ikke startet |
-| tsr-04 | 1 | Teaser | Skjult ord | Ikke startet |
-| tsr-05 | 1 | Teaser | Tittel med ekko | Ikke startet |
-| tsr-06 | 1 | Teaser | To sirkler | Ikke startet |
-| tsr-07 | 1 | Teaser | Bilde i bokstaver | Ikke startet |
-| GEN-11 | 2 | Generell video | Kantlys | Ikke startet |
-| GEN-12 | 2 | Generell video | Fiskeøye | Ikke startet |
-| GEN-13 | 2 | Generell video | Filmfoto og oransje | Ikke startet |
-| GEN-14 | 2 | Generell video | Elektrisk blå | Ikke startet |
-| GEN-15 | 2 | Generell video | Studieark | Ikke startet |
-| GEN-16 | 2 | Generell video | Frostet glass | Ikke startet |
-| GEN-17 | 2 | Generell video | Delt duotone | Ikke startet |
-| GEN-18 | 2 | Generell video | Kamerasøker | Ikke startet |
-| GEN-19 | 2 | Generell video | Magasinforside | Ikke startet |
-| bib-10 | 2 | Bibelvideo | Mørk avisvegg | Ikke startet |
-| bib-11 | 2 | Bibelvideo | Swash-bokstaver | Ikke startet |
-| bib-12 | 2 | Bibelvideo | Stillhet ved sjøen | Ikke startet |
-| bib-13 | 2 | Bibelvideo | Fjellag | Ikke startet |
-| bib-14 | 2 | Bibelvideo | Markert vers | Ikke startet |
-| bib-15 | 2 | Bibelvideo | Bokstavgitter | Ikke startet |
-| bib-16 | 2 | Bibelvideo | Buevindu | Ikke startet |
-| bib-17 | 2 | Bibelvideo | Ord for ord | Ikke startet |
-| bib-18 | 2 | Bibelvideo | Bibelquiz | Ikke startet |
-| live-10 | 2 | Direktesending | Bønnenatt | Ikke startet |
-| live-11 | 2 | Direktesending | Scenelys | Ikke startet |
-| live-12 | 2 | Direktesending | TV-grafikk | Ikke startet |
-| live-13 | 2 | Direktesending | Dåp ved sjøen | Ikke startet |
-| live-14 | 2 | Direktesending | Kalenderblokk | Ikke startet |
-| live-15 | 2 | Direktesending | Adventslys | Ikke startet |
-| live-16 | 2 | Direktesending | Neonskilt | Ikke startet |
-| live-17 | 2 | Direktesending | Pinseild | Ikke startet |
-| pro-09 | 2 | Promo | Neonpublikum | Ikke startet |
-| pro-10 | 2 | Promo | Fem talere | Ikke startet |
-| pro-11 | 2 | Promo | Billett | Ikke startet |
-| pro-12 | 2 | Promo | Plakatvegg | Ikke startet |
-| pro-13 | 2 | Promo | Middagsbord | Ikke startet |
-| pro-14 | 2 | Promo | Fargeblokker | Ikke startet |
-| pro-15 | 2 | Promo | Vi trenger deg | Ikke startet |
-| pro-16 | 2 | Promo | Familiedag | Ikke startet |
-| trl-08 | 2 | Trailer | Studio-samtale | Ikke startet |
-| trl-09 | 2 | Trailer | Planetkant | Ikke startet |
-| trl-10 | 2 | Trailer | VHS | Ikke startet |
-| trl-11 | 2 | Trailer | Døråpning | Ikke startet |
-| trl-12 | 2 | Trailer | Filmrull | Ikke startet |
-| trl-13 | 2 | Trailer | Lystunnel | Ikke startet |
-| trl-14 | 2 | Trailer | Regn på ruten | Ikke startet |
-| trl-15 | 2 | Trailer | Rulletekst | Ikke startet |
-| tsr-08 | 2 | Teaser | Blå sky | Ikke startet |
-| tsr-09 | 2 | Teaser | Sensurert | Ikke startet |
-| tsr-10 | 2 | Teaser | Nøkkelhull | Ikke startet |
-| tsr-11 | 2 | Teaser | Laster inn | Ikke startet |
-| tsr-12 | 2 | Teaser | Kryss av dagene | Ikke startet |
-| tsr-13 | 2 | Teaser | Hvem er gjesten? | Ikke startet |
-| tsr-14 | 2 | Teaser | Stempel | Ikke startet |
-| tsr-15 | 2 | Teaser | Soloppgang i tekst | Ikke startet |
-| GEN-20 | 3 | Generell video | Mørk markør | Ikke startet |
-| GEN-21 | 3 | Generell video | Lampelys | Ikke startet |
-| GEN-22 | 3 | Generell video | Kursplakat | Ikke startet |
-| GEN-23 | 3 | Generell video | Stort tall | Ikke startet |
-| GEN-24 | 3 | Generell video | Fire hjørner | Ikke startet |
-| GEN-25 | 3 | Generell video | Gul duotone | Ikke startet |
-| GEN-26 | 3 | Generell video | Lyst studio | Ikke startet |
-| GEN-27 | 3 | Generell video | Halvt ansikt | Ikke startet |
-| GEN-28 | 3 | Generell video | Klassisk foredrag | Ikke startet |
-| bib-19 | 3 | Bibelvideo | Offerets lys | Ikke startet |
-| bib-20 | 3 | Bibelvideo | Gotisk kollasj | Ikke startet |
-| bib-21 | 3 | Bibelvideo | To sirkler | Ikke startet |
-| bib-22 | 3 | Bibelvideo | Kongen kommer | Ikke startet |
-| bib-23 | 3 | Bibelvideo | Grønn eng | Ikke startet |
-| bib-24 | 3 | Bibelvideo | Pergament | Ikke startet |
-| bib-25 | 3 | Bibelvideo | Høy og smal | Ikke startet |
-| bib-26 | 3 | Bibelvideo | Håp-stabel | Ikke startet |
-| bib-27 | 3 | Bibelvideo | Galater-lag | Ikke startet |
-| live-18 | 3 | Direktesending | Søndag i scenelys | Ikke startet |
-| live-19 | 3 | Direktesending | Ren dato | Ikke startet |
-| live-20 | 3 | Direktesending | Varm sky | Ikke startet |
-| live-21 | 3 | Direktesending | Høymesse | Ikke startet |
-| live-22 | 3 | Direktesending | Dåp og lime | Ikke startet |
-| live-23 | 3 | Direktesending | Kveldsmøte | Ikke startet |
-| live-24 | 3 | Direktesending | Taler i fokus | Ikke startet |
-| live-25 | 3 | Direktesending | Nyttårsbønn | Ikke startet |
-| pro-17 | 3 | Promo | Ungdomskveld varm | Ikke startet |
-| pro-18 | 3 | Promo | Fjellkonferanse | Ikke startet |
-| pro-19 | 3 | Promo | Talerrad | Ikke startet |
-| pro-20 | 3 | Promo | Lovsangsplakat | Ikke startet |
-| pro-21 | 3 | Promo | Julebasar | Ikke startet |
-| pro-22 | 3 | Promo | Kvinnefrokost | Ikke startet |
-| pro-23 | 3 | Promo | Sommerleir | Ikke startet |
-| pro-24 | 3 | Promo | Gospelkonsert | Ikke startet |
-| trl-16 | 3 | Trailer | Kortfilm-tittel | Ikke startet |
-| trl-17 | 3 | Trailer | Tre kapitler | Ikke startet |
-| trl-18 | 3 | Trailer | Fart | Ikke startet |
-| trl-19 | 3 | Trailer | Blått rektangel | Ikke startet |
-| trl-20 | 3 | Trailer | Gyllen time | Ikke startet |
-| trl-21 | 3 | Trailer | Før og etter | Ikke startet |
-| trl-22 | 3 | Trailer | Mosaikk | Ikke startet |
-| trl-23 | 3 | Trailer | Stjernehimmel | Ikke startet |
-| tsr-16 | 3 | Teaser | Skisseark | Ikke startet |
-| tsr-17 | 3 | Teaser | Kontur-rekke | Ikke startet |
-| tsr-24 | 3 | Teaser | Kontur-rekke med tittel | Ikke startet |
-| tsr-18 | 3 | Teaser | Ute av fokus | Ikke startet |
-| tsr-19 | 3 | Teaser | Gotisk dato | Ikke startet |
-| tsr-20 | 3 | Teaser | Svakt lys | Ikke startet |
-| tsr-21 | 3 | Teaser | Halvt avduket | Ikke startet |
-| tsr-22 | 3 | Teaser | Manglende brikke | Ikke startet |
-| tsr-23 | 3 | Teaser | Signatur | Ikke startet |
+| GEN-01 | 1 | Generell video | Markert ord | Testet |
+| GEN-02 | 1 | Generell video | Håndskrift | Testet |
+| GEN-03 | 1 | Generell video | Podkast-kort | Testet |
+| GEN-04 | 1 | Generell video | Figur foran tittel | Testet |
+| GEN-05 | 1 | Generell video | Stort spørsmål | Testet |
+| GEN-06 | 1 | Generell video | Polaroid-vlogg | Testet |
+| GEN-07 | 1 | Generell video | Vitnesbyrd | Testet |
+| GEN-08 | 1 | Generell video | Kapittel | Testet |
+| GEN-09 | 1 | Generell video | Notatblokk | Testet |
+| GEN-10 | 1 | Generell video | Sveitsisk | Testet |
+| bib-01 | 1 | Bibelvideo | Klassisk vers | Testet |
+| bib-02 | 1 | Bibelvideo | Landskap og serif | Testet |
+| bib-03 | 1 | Bibelvideo | Avisside | Testet |
+| bib-04 | 1 | Bibelvideo | Bok i Bibelen | Testet |
+| bib-05 | 1 | Bibelvideo | Kollasj med ekko | Testet |
+| bib-06 | 1 | Bibelvideo | Revne fjell | Testet |
+| bib-07 | 1 | Bibelvideo | Lerret og bølge | Testet |
+| bib-08 | 1 | Bibelvideo | Leseplan | Testet |
+| bib-09 | 1 | Bibelvideo | Blått vindu | Testet |
+| live-01 | 1 | Direktesending | Søndag direkte | Testet |
+| live-02 | 1 | Direktesending | Lys og rolig | Testet |
+| live-03 | 1 | Direktesending | Lovsangskveld | Testet |
+| live-04 | 1 | Direktesending | Nattverd | Testet |
+| live-05 | 1 | Direktesending | Dåp | Testet |
+| live-06 | 1 | Direktesending | Høytid – jul | Testet |
+| live-07 | 1 | Direktesending | Høytid – påske | Testet |
+| live-08 | 1 | Direktesending | Klokkeslett | Testet |
+| live-09 | 1 | Direktesending | Bildestripe | Testet |
+| pro-01 | 1 | Promo | Ungdomskveld | Testet |
+| pro-02 | 1 | Promo | Konferanse med talere | Testet |
+| pro-03 | 1 | Promo | Fjell og gradient | Testet |
+| pro-04 | 1 | Promo | Sol og sirkel | Testet |
+| pro-05 | 1 | Promo | Kurs | Testet |
+| pro-06 | 1 | Promo | Ukentlig samling | Testet |
+| pro-07 | 1 | Promo | Uskarp fargesky | Testet |
+| pro-08 | 1 | Promo | Revet papir | Testet |
+| trl-01 | 1 | Trailer | Spotlys og silhuett | Testet |
+| trl-02 | 1 | Trailer | Lysstråle | Testet |
+| trl-03 | 1 | Trailer | Scene på gulv | Testet |
+| trl-04 | 1 | Trailer | Strømmende bånd | Testet |
+| trl-05 | 1 | Trailer | Kinoformat | Testet |
+| trl-06 | 1 | Trailer | Duotone grunge | Testet |
+| trl-07 | 1 | Trailer | Dokumentar | Testet |
+| tsr-01 | 1 | Teaser | Snart | Testet |
+| tsr-02 | 1 | Teaser | Nedtelling | Testet |
+| tsr-03 | 1 | Teaser | Lysstripe | Testet |
+| tsr-04 | 1 | Teaser | Skjult ord | Testet |
+| tsr-05 | 1 | Teaser | Tittel med ekko | Testet |
+| tsr-06 | 1 | Teaser | To sirkler | Testet |
+| tsr-07 | 1 | Teaser | Bilde i bokstaver | Testet |
+| GEN-11 | 2 | Generell video | Kantlys | Testet |
+| GEN-12 | 2 | Generell video | Fiskeøye | Testet |
+| GEN-13 | 2 | Generell video | Filmfoto og oransje | Testet |
+| GEN-14 | 2 | Generell video | Elektrisk blå | Testet |
+| GEN-15 | 2 | Generell video | Studieark | Testet |
+| GEN-16 | 2 | Generell video | Frostet glass | Testet |
+| GEN-17 | 2 | Generell video | Delt duotone | Testet |
+| GEN-18 | 2 | Generell video | Kamerasøker | Testet |
+| GEN-19 | 2 | Generell video | Magasinforside | Testet |
+| bib-10 | 2 | Bibelvideo | Mørk avisvegg | Testet |
+| bib-11 | 2 | Bibelvideo | Swash-bokstaver | Testet |
+| bib-12 | 2 | Bibelvideo | Stillhet ved sjøen | Testet |
+| bib-13 | 2 | Bibelvideo | Fjellag | Testet |
+| bib-14 | 2 | Bibelvideo | Markert vers | Testet |
+| bib-15 | 2 | Bibelvideo | Bokstavgitter | Testet |
+| bib-16 | 2 | Bibelvideo | Buevindu | Testet |
+| bib-17 | 2 | Bibelvideo | Ord for ord | Testet |
+| bib-18 | 2 | Bibelvideo | Bibelquiz | Testet |
+| live-10 | 2 | Direktesending | Bønnenatt | Testet |
+| live-11 | 2 | Direktesending | Scenelys | Testet |
+| live-12 | 2 | Direktesending | TV-grafikk | Testet |
+| live-13 | 2 | Direktesending | Dåp ved sjøen | Testet |
+| live-14 | 2 | Direktesending | Kalenderblokk | Testet |
+| live-15 | 2 | Direktesending | Adventslys | Testet |
+| live-16 | 2 | Direktesending | Neonskilt | Testet |
+| live-17 | 2 | Direktesending | Pinseild | Testet |
+| pro-09 | 2 | Promo | Neonpublikum | Testet |
+| pro-10 | 2 | Promo | Fem talere | Testet |
+| pro-11 | 2 | Promo | Billett | Testet |
+| pro-12 | 2 | Promo | Plakatvegg | Testet |
+| pro-13 | 2 | Promo | Middagsbord | Testet |
+| pro-14 | 2 | Promo | Fargeblokker | Testet |
+| pro-15 | 2 | Promo | Vi trenger deg | Testet |
+| pro-16 | 2 | Promo | Familiedag | Testet |
+| trl-08 | 2 | Trailer | Studio-samtale | Testet |
+| trl-09 | 2 | Trailer | Planetkant | Testet |
+| trl-10 | 2 | Trailer | VHS | Testet |
+| trl-11 | 2 | Trailer | Døråpning | Testet |
+| trl-12 | 2 | Trailer | Filmrull | Testet |
+| trl-13 | 2 | Trailer | Lystunnel | Testet |
+| trl-14 | 2 | Trailer | Regn på ruten | Testet |
+| trl-15 | 2 | Trailer | Rulletekst | Testet |
+| tsr-08 | 2 | Teaser | Blå sky | Testet |
+| tsr-09 | 2 | Teaser | Sensurert | Testet |
+| tsr-10 | 2 | Teaser | Nøkkelhull | Testet |
+| tsr-11 | 2 | Teaser | Laster inn | Testet |
+| tsr-12 | 2 | Teaser | Kryss av dagene | Testet |
+| tsr-13 | 2 | Teaser | Hvem er gjesten? | Testet |
+| tsr-14 | 2 | Teaser | Stempel | Testet |
+| tsr-15 | 2 | Teaser | Soloppgang i tekst | Testet |
+| GEN-20 | 3 | Generell video | Mørk markør | Testet |
+| GEN-21 | 3 | Generell video | Lampelys | Testet |
+| GEN-22 | 3 | Generell video | Kursplakat | Testet |
+| GEN-23 | 3 | Generell video | Stort tall | Testet |
+| GEN-24 | 3 | Generell video | Fire hjørner | Testet |
+| GEN-25 | 3 | Generell video | Gul duotone | Testet |
+| GEN-26 | 3 | Generell video | Lyst studio | Testet |
+| GEN-27 | 3 | Generell video | Halvt ansikt | Testet |
+| GEN-28 | 3 | Generell video | Klassisk foredrag | Testet |
+| bib-19 | 3 | Bibelvideo | Offerets lys | Testet |
+| bib-20 | 3 | Bibelvideo | Gotisk kollasj | Testet |
+| bib-21 | 3 | Bibelvideo | To sirkler | Testet |
+| bib-22 | 3 | Bibelvideo | Kongen kommer | Testet |
+| bib-23 | 3 | Bibelvideo | Grønn eng | Testet |
+| bib-24 | 3 | Bibelvideo | Pergament | Testet |
+| bib-25 | 3 | Bibelvideo | Høy og smal | Testet |
+| bib-26 | 3 | Bibelvideo | Håp-stabel | Testet |
+| bib-27 | 3 | Bibelvideo | Galater-lag | Testet |
+| live-18 | 3 | Direktesending | Søndag i scenelys | Testet |
+| live-19 | 3 | Direktesending | Ren dato | Testet |
+| live-20 | 3 | Direktesending | Varm sky | Testet |
+| live-21 | 3 | Direktesending | Høymesse | Testet |
+| live-22 | 3 | Direktesending | Dåp og lime | Testet |
+| live-23 | 3 | Direktesending | Kveldsmøte | Testet |
+| live-24 | 3 | Direktesending | Taler i fokus | Testet |
+| live-25 | 3 | Direktesending | Nyttårsbønn | Testet |
+| pro-17 | 3 | Promo | Ungdomskveld varm | Testet |
+| pro-18 | 3 | Promo | Fjellkonferanse | Testet |
+| pro-19 | 3 | Promo | Talerrad | Testet |
+| pro-20 | 3 | Promo | Lovsangsplakat | Testet |
+| pro-21 | 3 | Promo | Julebasar | Testet |
+| pro-22 | 3 | Promo | Kvinnefrokost | Testet |
+| pro-23 | 3 | Promo | Sommerleir | Testet |
+| pro-24 | 3 | Promo | Gospelkonsert | Testet |
+| trl-16 | 3 | Trailer | Kortfilm-tittel | Testet |
+| trl-17 | 3 | Trailer | Tre kapitler | Testet |
+| trl-18 | 3 | Trailer | Fart | Testet |
+| trl-19 | 3 | Trailer | Blått rektangel | Testet |
+| trl-20 | 3 | Trailer | Gyllen time | Testet |
+| trl-21 | 3 | Trailer | Før og etter | Testet |
+| trl-22 | 3 | Trailer | Mosaikk | Testet |
+| trl-23 | 3 | Trailer | Stjernehimmel | Testet |
+| tsr-16 | 3 | Teaser | Skisseark | Testet |
+| tsr-17 | 3 | Teaser | Kontur-rekke | Testet |
+| tsr-24 | 3 | Teaser | Kontur-rekke med tittel | Testet |
+| tsr-18 | 3 | Teaser | Ute av fokus | Testet |
+| tsr-19 | 3 | Teaser | Gotisk dato | Testet |
+| tsr-20 | 3 | Teaser | Svakt lys | Testet |
+| tsr-21 | 3 | Teaser | Halvt avduket | Testet |
+| tsr-22 | 3 | Teaser | Manglende brikke | Testet |
+| tsr-23 | 3 | Teaser | Signatur | Testet |
 
 ### Photo Design (100)
 

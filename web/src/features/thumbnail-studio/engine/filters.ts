@@ -152,6 +152,9 @@ export function loadGrain(): Promise<void> {
   return grainReady
 }
 
+/** Kornruten (null til den er lastet med `loadGrain`). Brukes også av malingen (engine/paint.ts). */
+export const grainImage = (): HTMLImageElement | null => grain
+
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
 function grainFill(g: Ctx, w: number, h: number, k: number, blend: GlobalCompositeOperation, a: number) {

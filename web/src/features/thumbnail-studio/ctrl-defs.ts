@@ -3,6 +3,7 @@ import type { AdvAdj } from '../../shared/image/AdvAdjust'
 import { countImgs, H, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
 import { fitSize } from './engine/render'
 import { bakeList } from './engine/text-list'
+import { hasSnitt } from '../../shared/fonts/catalog'
 import { cleanFilters, FILTERS, filterDef, newFilter, type FilterId, type ImgFilter } from './engine/filters'
 import type { Phrase, Vars } from './texts'
 
@@ -159,7 +160,8 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
       { k: 'area', label: 'Tekst', val: bakeList(String(l.text || ''), l.list), rows: 4, ph: 'Skriv tekst', set: (v) => set({ text: v, list: '' }), list: l },
       { k: 'font', label: 'Font', val: l.font, top: pf, set: (v) => {
         const w2 = c.weights(v)
-        set({ font: v, weight: w2.includes(l.weight) ? l.weight : (w2[Math.min(3, w2.length - 1)] ?? 400) })
+        // kursiv bare når den nye fonten har ekte kursiv (aldri kunstig skråstilt)
+        set({ font: v, weight: w2.includes(l.weight) ? l.weight : (w2[Math.min(3, w2.length - 1)] ?? 400), ...(l.italic && !hasSnitt(v, 'i') ? { italic: false } : {}) })
       } },
       { k: 'select', label: 'Tykkelse', val: String(l.weight), set: (v) => set({ weight: +v }), opts: ws.map((w) => ({ v: String(w), label: String(w), ...(WEIGHT_NAMES[w] ? { phrase: WEIGHT_NAMES[w] } : {}) })) },
       SL(l.fit ? 'Maks størrelse' : 'Størrelse', l.size, 8, 1000, 1, (v) => set({ size: v }), 'px', { key: 'ts.textSize', lim: [4, 3000], units: [{ u: 'px', k: 1 }, { u: '%', k: 100 / H, d: 1, t: 'av bildehøyden' }, { u: 'pt', k: 0.75 }] }),
@@ -182,6 +184,25 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
       CK('Strek under', l.bar, (v) => set({ bar: v })),
     )
     if (l.bar) C.push(...barCtrls(l, set, c))
+    // malenes tekstegenskaper (fase 3): i Avansert modus, og alltid der laget allerede bruker dem
+    if (c.s.adv || l.italic) {
+      if (hasSnitt(l.font, 'i') || l.italic) C.push(CK('Kursiv', !!l.italic, (v) => set({ italic: v })))
+    }
+    if (c.s.adv || (l.stretch && l.stretch !== 100)) C.push(SL('Bredde', Math.round(l.stretch ?? 100), 50, 150, 1, (v) => set({ stretch: v }), '%'))
+    if (c.s.adv || (l.stroke ?? 0) > 0) {
+      C.push(SL('Kontur', l.stroke ?? 0, 0, 40, 1, (v) => set({ stroke: v }), 'px'))
+      if ((l.stroke ?? 0) > 0) C.push(CO('Konturfarge', l.strokeColor ?? '#000000', (v) => set({ strokeColor: v })))
+    }
+    // bilde i bokstavene: der malen har plass til det, og for all tekst i Avansert modus
+    if (c.s.adv || 'fillSrc' in l) {
+      C.push(HD('Bilde i teksten'))
+      if (!l.fillSrc) C.push(NT('Bildet fyller bokstavene og kommer med i eksporten.'))
+      C.push(BT([
+        { label: l.fillSrc ? 'Bytt bilde' : 'Velg bilde', on: () => c.openPicker('file', { mode: 'textfill', id: l.id }) },
+        { label: 'Fra Dine medier …', on: () => c.openPicker('media', { mode: 'textfill', id: l.id }) },
+        ...(l.fillSrc ? [{ label: 'Fjern bildet' as Phrase, kind: 'd' as const, on: () => set({ fillSrc: null }) }] : []),
+      ]))
+    }
   } else if (l.type === 'image') {
     C.push(IM(c, l, l.role === 'person' ? 'Person' : 'Bilde'))
     if (l.src) C.push(...cropCtrls(c, l))

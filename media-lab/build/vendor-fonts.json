@@ -22,8 +22,8 @@
  {
   "spec": "@fontsource-variable/roboto@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Roboto",
   "slug": "roboto",
@@ -32,8 +32,8 @@
  {
   "spec": "@fontsource-variable/open-sans@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Open Sans",
   "slug": "open-sans",
@@ -233,7 +233,7 @@
  {
   "spec": "@fontsource-variable/bricolage-grotesque@5.3.0",
   "css": [
-   "wght.css"
+   "wdth.css"
   ],
   "family": "Bricolage Grotesque",
   "slug": "bricolage-grotesque",
@@ -347,8 +347,8 @@
  {
   "spec": "@fontsource-variable/instrument-sans@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Instrument Sans",
   "slug": "instrument-sans",
@@ -440,7 +440,7 @@
  {
   "spec": "@fontsource-variable/league-gothic@5.3.0",
   "css": [
-   "index.css"
+   "wdth.css"
   ],
   "family": "League Gothic",
   "slug": "league-gothic",
@@ -638,7 +638,7 @@
  {
   "spec": "@fontsource-variable/fredoka@5.3.0",
   "css": [
-   "wght.css"
+   "wdth.css"
   ],
   "family": "Fredoka",
   "slug": "fredoka",
@@ -723,8 +723,8 @@
  {
   "spec": "@fontsource-variable/merriweather@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Merriweather",
   "slug": "merriweather",
@@ -1208,8 +1208,8 @@
  {
   "spec": "@fontsource-variable/tourney@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Tourney",
   "slug": "tourney",
@@ -1493,8 +1493,8 @@
  {
   "spec": "@fontsource-variable/zalando-sans@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Zalando Sans",
   "slug": "zalando-sans",
@@ -1503,8 +1503,8 @@
  {
   "spec": "@fontsource-variable/saira@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Saira",
   "slug": "saira",
@@ -1560,8 +1560,8 @@
  {
   "spec": "@fontsource-variable/mona-sans@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Mona Sans",
   "slug": "mona-sans",
@@ -1570,8 +1570,8 @@
  {
   "spec": "@fontsource-variable/hubot-sans@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Hubot Sans",
   "slug": "hubot-sans",
@@ -1580,8 +1580,8 @@
  {
   "spec": "@fontsource-variable/radio-canada@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Radio Canada",
   "slug": "radio-canada",
@@ -1665,8 +1665,8 @@
  {
   "spec": "@fontsource-variable/playfair@5.3.0",
   "css": [
-   "wght.css",
-   "wght-italic.css"
+   "wdth.css",
+   "wdth-italic.css"
   ],
   "family": "Playfair",
   "slug": "playfair",

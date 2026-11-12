@@ -598,6 +598,21 @@ export const EN = {
   'Prikkstørrelse': 'Dot size',
   'Avstand': 'Spacing',
   'Papirfarge': 'Paper colour',
+  'Kursiv': 'Italic',
+  'Kontur': 'Outline',
+  'Konturfarge': 'Outline colour',
+  'Bilde i teksten': 'Image in the text',
+  'Bildet fyller bokstavene og kommer med i eksporten.': 'The image fills the letters and is included in the export.',
+  'Ferdige maler': 'Ready-made templates',
+  'Alle': 'All',
+  'Generell video': 'General video',
+  'Bibelvideo': 'Bible video',
+  'Direktesending': 'Livestream',
+  'Promo': 'Promo',
+  'Trailer': 'Trailer',
+  'Teaser': 'Teaser',
+  'Klarte ikke å hente de ferdige malene. Prøv igjen.': 'Could not load the ready-made templates. Please try again.',
+  'Ferdige maler fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger.': 'Ready-made templates from the design collection. Everything is ordinary layers: change text, images and colours.',
 } as const satisfies Record<string, string>
 
 export type Phrase = keyof typeof EN
