@@ -1,5 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
+import { FontPicker } from '../../shared/fonts/FontPicker'
+import { weightsOf } from '../../shared/fonts/catalog'
 import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
@@ -260,11 +262,17 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               <div className={s.fontRow}>
                 <span>{tx('Skrift')}</span>
                 <span>{tx('Tykkelse')}</span>
-                <select value={L.font} aria-label={tx('Skrift')} onChange={(e) => P({ font: e.target.value })}>
-                  {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
+                {/* felles fontbibliotek; appens egne fonter øverst */}
+                <FontPicker value={L.font} label={tx('Skrift')} top={FONTS} onChange={(f) => {
+                  // ny font uten samme vekt: nærmeste vekt fonten har (ingen kunstig fet)
+                  const ws = weightsOf(f)
+                  P(ws && !ws.includes(L.weight) ? { font: f, weight: ws.reduce((a, b) => (Math.abs(b - L.weight) < Math.abs(a - L.weight) ? b : a)) } : { font: f })
+                }} />
                 <select value={String(L.weight)} aria-label={tx('Tykkelse')} onChange={(e) => P({ weight: +e.target.value })}>
-                  {([[400, 'Normal'], [500, 'Medium'], [600, 'Halvfet'], [700, 'Fet'], [800, 'Ekstra fet'], [900, 'Svart']] as const).map(([v, l]) => <option key={v} value={String(v)}>{tx(l)}</option>)}
+                  {/* bare vektene fonten har (fonter utenfor biblioteket: som før); vekten laget har, vises alltid */}
+                  {([[100, 'Tynn'], [200, 'Ekstra lett'], [300, 'Lett'], [400, 'Normal'], [500, 'Medium'], [600, 'Halvfet'], [700, 'Fet'], [800, 'Ekstra fet'], [900, 'Svart']] as const)
+                    .filter(([v]) => { const ws = weightsOf(L.font); return v === L.weight || (ws ? ws.includes(v) : v >= 400) })
+                    .map(([v, l]) => <option key={v} value={String(v)}>{tx(l)}</option>)}
                 </select>
               </div>
               <div className={s.seg}>

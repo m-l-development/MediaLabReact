@@ -1,4 +1,5 @@
 import { createStore, type Store } from '../../shared/lib/store'
+import { weightsOf } from '../../shared/fonts/catalog'
 import { snapActive } from '../../shared/lib/snap'
 import type { SharedSetup } from '../../services/shared-setup'
 import { cleanCategory, cleanDoc, DEFAULT_CATS, type Category, type Template } from './engine/backup'
@@ -1604,7 +1605,8 @@ export class ThumbController {
   }
 
   weights(font: string): readonly number[] {
-    return FONTS.find((f) => f[0] === font)?.[1] ?? [400, 700]
+    // appens egne fonter som før; fonter fra biblioteket: vektene fonten faktisk har (ingen kunstig fet)
+    return FONTS.find((f) => f[0] === font)?.[1] ?? weightsOf(font) ?? [400, 700]
   }
 
   // ---------- zoom ----------

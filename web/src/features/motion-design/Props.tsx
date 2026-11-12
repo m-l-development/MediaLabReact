@@ -1,5 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
+import { FontPicker } from '../../shared/fonts/FontPicker'
+import { FONTS } from './engine/model'
 import { useEffect, useRef, useState } from 'react'
 import type { MotionController } from './controller'
 import { clamp, type CurveCh, type Grade, type Pt } from './engine/model'
@@ -266,6 +268,13 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
           <input type="color" className={s.colorIn} value={f.val} onChange={(e) => f.on(e.target.value)} />
         </label>
       )
+    case 'font':
+      return (
+        <div className={s.lbl}>
+          <span className={s.b}>{tx(f.label)}</span>
+          <FontPicker value={f.val} label={tx(f.label)} top={FONTS} onChange={f.on} />
+        </div>
+      )
     case 'select':
       return (
         <label className={s.lbl}>
@@ -277,7 +286,7 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
       )
     case 'toggle':
       return (
-        <button type="button" className={s.toggle} role="switch" aria-checked={f.on} onClick={() => f.set(!f.on)}>
+        <button type="button" className={s.toggle} role="switch" aria-checked={f.on} disabled={f.disabled} onClick={() => f.set(!f.on)}>
           <span>{tx(f.label)}</span><span className={s.tTrack}><span className={s.tKnob} /></span>
         </button>
       )

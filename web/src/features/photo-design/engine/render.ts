@@ -1,4 +1,5 @@
 import { drawFill, fillOn } from '../../../shared/fill/fill'
+import { loadFonts } from '../../../shared/fonts/loader'
 import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
 import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
@@ -603,6 +604,11 @@ function drawVig(g: G, doc: PdDoc, bl: number) {
   g.fillStyle = rg
   g.fillRect(-bl, -bl, W + 2 * bl, H + 2 * bl)
   g.restore()
+}
+
+/** Laster fontene tekstlagene bruker (begge sider). Fonter fra biblioteket hentes ved bruk, så tegning og eksport venter på dem. */
+export function docFonts(d: PdDoc): Promise<unknown> {
+  return loadFonts([...d.layers, ...(d.back?.layers ?? [])].flatMap((l) => (l.type === 'text' ? [{ font: l.font, weight: l.weight }] : [])))
 }
 
 /** Tegner dokumentet i skala `scale` (bakgrunn, fyll, lag og vignett). */

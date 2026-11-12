@@ -26,6 +26,8 @@ export const FONTS = [
   { spec: '@fontsource/bebas-neue@5.3.0', css: ['400.css'], family: 'Bebas Neue', slug: 'bebas-neue' },
   { spec: '@fontsource/anton@5.3.0', css: ['400.css'], family: 'Anton', slug: 'anton' },
   { spec: '@fontsource/dm-serif-display@5.3.0', css: ['400.css'], family: 'DM Serif Display', slug: 'dm-serif-display' },
+  /* Det felles fontbiblioteket (web/tools/fonts-gen.mjs): lastes bare ved bruk (/fonts/<slug>.css), ikke i fonts.css. */
+  ...(fs.existsSync(new URL('./vendor-fonts.json', import.meta.url)) ? JSON.parse(fs.readFileSync(new URL('./vendor-fonts.json', import.meta.url), 'utf8')) : []),
 ];
 const SUBSET = /-(latin|latin-ext)-[a-z0-9-]+\.woff2$/;
 
@@ -39,6 +41,25 @@ function fetchPkg(spec, cache) {
   const out = execFileSync(win ? 'npm.cmd' : 'npm', ['pack', spec, '--silent', '--pack-destination', dir], { encoding: 'utf8', shell: win }).trim().split(/\r?\n/).pop();
   execFileSync('tar', ['-xzf', out], { cwd: dir });
   return path.join(dir, 'package');
+}
+
+/* Henter alle pakker som mangler i hurtigbufferen, mange i hver `npm pack` (én oppstart av npm per 40 pakker i stedet
+   for én per pakke: med fontbiblioteket tok en kald henting ellers ca. 10 min). Samme pakker og filer; låsen kontrollerer
+   resultatet som før. Tarball-navnet er gitt av pakken: @scope/navn@1.2.3 -> scope-navn-1.2.3.tgz. */
+function prefetch(specs, cache) {
+  const todo = specs.filter(s => !fs.existsSync(path.join(cache, s.replace(/[@/]/g, '_'), 'package', 'package.json')));
+  for (let i = 0; i < todo.length; i += 40) {
+    const chunk = todo.slice(i, i + 40), tmp = path.join(cache, '_batch');
+    fs.mkdirSync(tmp, { recursive: true });
+    execFileSync(win ? 'npm.cmd' : 'npm', ['pack', ...chunk, '--silent', '--pack-destination', tmp], { encoding: 'utf8', shell: win });
+    for (const spec of chunk) {
+      const at = spec.lastIndexOf('@'), tgz = spec.slice(0, at).replace(/^@/, '').replace('/', '-') + '-' + spec.slice(at + 1) + '.tgz';
+      const dir = path.join(cache, spec.replace(/[@/]/g, '_'));
+      fs.mkdirSync(dir, { recursive: true });
+      fs.renameSync(path.join(tmp, tgz), path.join(dir, tgz));
+      execFileSync('tar', ['-xzf', tgz], { cwd: dir });
+    }
+  }
 }
 
 /* Parser Fontsource-CSS: beholder latin/latin-ext, gir vanlig familienavn og peker på /fonts/<fil>. */
@@ -57,6 +78,7 @@ export function fontCss(css, family) {
 /* Lager alle filer i outDir (vendor/ og fonts/). Returnerer { relPath: Buffer }. */
 export function build(cache) {
   const files = {};
+  prefetch([...PACKAGES, ...FONTS].map(p => p.spec), cache);
   for (const p of PACKAGES) {
     const root = fetchPkg(p.spec, cache);
     for (const f of p.files) {
@@ -72,7 +94,7 @@ export function build(cache) {
       const r = fontCss(fs.readFileSync(path.join(root, c), 'utf8'), f.family); css += r.css;
       for (const w of r.files) files['fonts/' + w] = fs.readFileSync(path.join(root, 'files', w));
     }
-    files['fonts/' + f.slug + '.css'] = Buffer.from(css); all.push(css);
+    files['fonts/' + f.slug + '.css'] = Buffer.from(css); if (!f.lazy) all.push(css);
     files['fonts/LICENSE-' + f.slug + '.txt'] = fs.readFileSync(path.join(root, 'LICENSE'));
   }
   files['fonts/fonts.css'] = Buffer.from('/* Selvdrevne fonter (OFL-1.1, se LICENSE-*.txt). Generert av build/vendor.js. */\n' + all.join(''));

@@ -3,6 +3,8 @@
  * Kontrolleren holder tilstanden (`state`, oppdateres synkront som i dagens app) og gir visningen alle verdier og
  * handlinger via `view()`. Globale skript (UkeLoop, MLShare, MLCloud, CH) er byttet ut med tjenester i `deps`.
  */
+import { fontByName } from '../../shared/fonts/catalog'
+import { loadFont } from '../../shared/fonts/loader'
 import type { Me } from '../../domain/account'
 import { wheelAction } from '../../shared/lib/workspace-nav'
 import type { SharedSetup } from '../../services/shared-setup'
@@ -1936,7 +1938,8 @@ export class LoopController {
   }
   setFont(f: string) {
     this.setCfg('font', f)
-    if (f !== 'Helvetica') try { ['400', '500', '600', '700'].forEach((w) => void document.fonts.load(w + ' 40px "' + f + '"').catch(() => undefined)) } catch { /* ingenting */ }
+    // fonter fra biblioteket: stilarket hentes først (loadFont); Helvetica er systemfont
+    if (f !== 'Helvetica') ['400', '500', '600', '700'].forEach((w) => void loadFont(f, w))
   }
   syncAudio(loc: Loc | null, live: boolean, Rz: ReturnType<LoopController['resolved']>) {
     const S = this.state, actl = this.actl
@@ -3486,8 +3489,8 @@ export class LoopController {
       if (this.state.audioName && this.state.cfg.exportAudio !== false && this.audioRef) {
         try { const ab = await this.deps.media.get(this.audioRef); if (ab) audio = { src: await toDataURL(ab), ...this.audioOpts() } } catch { /* ingen lyd */ }
       }
-      const fam0 = this.state.cfg.font || 'Archivo', fam = /^[A-Za-z][A-Za-z ]{1,39}$/.test(fam0) ? fam0 : 'Archivo', { W, H } = this.dims()
-      const font = fam === 'Helvetica' ? '' : await embeddedFontCSS(fam === 'Archivo' ? FONT_CSS : '/fonts/' + fam.toLowerCase().replace(/ /g, '-') + '.css')
+      const fam0 = this.state.cfg.font || 'Archivo', fam = /^[A-Za-z][A-Za-z0-9 ]{1,39}$/.test(fam0) ? fam0 : 'Archivo', { W, H } = this.dims()
+      const font = fam === 'Helvetica' ? '' : await embeddedFontCSS(fam === 'Archivo' ? FONT_CSS : (fontByName(fam)?.css ?? '/fonts/' + fam.toLowerCase().replace(/ /g, '-') + '.css'))
       const html = buildPlayerHTML({ W, H, data, media: { images, video }, audio, title: this.state.cfg.header || 'Ukeprogram' }, font, this.deps.lang() === 'en' ? 'en' : 'no')
       this.download(new Blob([html], { type: 'text/html' }), this.fileName() + '.html')
     } finally {
@@ -4653,7 +4656,7 @@ export class LoopController {
       bpmMinus: () => { if (bt) setBpm(Math.round(bt.bpm) - 1) }, bpmPlus: () => { if (bt) setBpm(Math.round(bt.bpm) + 1) },
       bpmHalf: () => { if (bt) setBpm(bt.bpm / 2) }, bpmDouble: () => { if (bt) setBpm(bt.bpm * 2) }, bpmAuto: () => this.setCfg('bpm', null),
       beatNudge: c.beatNudge || 0, beatNudgeLabel: ((c.beatNudge ?? 0) > 0 ? '+' : '') + (c.beatNudge || 0) + ' ms', onBeatNudge: (e: InputEv) => this.setCfg('beatNudge', Number(e.target.value)),
-      fontOpts: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'].map((fo) => ({ value: fo, label: fo })), fontVal: c.font || 'Archivo', onFont: (e: InputEv) => this.setFont(e.target.value),
+      fontOpts: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'].map((fo) => ({ value: fo, label: fo })), fontVal: c.font || 'Archivo', onFont: (e: InputEv) => this.setFont(e.target.value), fontTop: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'], onFontName: (f: string) => this.setFont(f),
       titleScalePct: Math.round((c.titleScale || 1) * 100), onTitleScale: (e: InputEv) => this.setCfg('titleScale', Number(e.target.value) / 100),
       textScalePct: Math.round((c.textScale || 1) * 100), onTextScale: (e: InputEv) => this.setCfg('textScale', Number(e.target.value) / 100),
       titleSz: this.numF('loop.titleScale', c.titleScale || 1, this.SCALE_U, (v) => this.setCfg('titleScale', Math.round(v * 100) / 100), [0.5, 3]),

@@ -1,0 +1,4532 @@
+[
+ {
+  "name": "Inter",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Inter Tight",
+  "style": "sans",
+  "uses": "TB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Roboto",
+  "style": "sans",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Open Sans",
+  "style": "sans",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Montserrat",
+  "style": "sans",
+  "uses": "TLSB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Poppins",
+  "style": "sans",
+  "uses": "TLB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Lato",
+  "style": "sans",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Work Sans",
+  "style": "sans",
+  "uses": "B",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "DM Sans",
+  "style": "sans",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Manrope",
+  "style": "sans",
+  "uses": "BL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Hanken Grotesk",
+  "style": "sans",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "Samme font som HK Grotesk fra Awwwards-listen",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Josefin Sans",
+  "style": "sans",
+  "uses": "LE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Archivo",
+  "style": "sans",
+  "uses": "TSB",
+  "src": "g",
+  "lic": "ok",
+  "note": "Malene bruker bredde-aksen wdth 62–125",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Archivo Narrow",
+  "style": "sans",
+  "uses": "SU",
+  "src": "g",
+  "lic": "ok",
+  "note": "Fra Awwwards-listen",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Raleway",
+  "style": "sans",
+  "uses": "LB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Overpass",
+  "style": "sans",
+  "uses": "SB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Barlow",
+  "style": "sans",
+  "uses": "SB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Public Sans",
+  "style": "sans",
+  "uses": "BS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Atkinson Hyperlegible",
+  "style": "sans",
+  "uses": "BSU",
+  "src": "g",
+  "lic": "ok",
+  "note": "Laget for best mulig lesbarhet",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Source Sans 3",
+  "style": "sans",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Roboto Condensed",
+  "style": "sans",
+  "uses": "SU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Space Grotesk",
+  "style": "mod",
+  "uses": "TLK",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Bricolage Grotesque",
+  "style": "mod",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Syne",
+  "style": "mod",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Plus Jakarta Sans",
+  "style": "mod",
+  "uses": "BL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Figtree",
+  "style": "mod",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Outfit",
+  "style": "mod",
+  "uses": "LB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Sora",
+  "style": "mod",
+  "uses": "LK",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Urbanist",
+  "style": "mod",
+  "uses": "LB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Lexend",
+  "style": "mod",
+  "uses": "BU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Onest",
+  "style": "mod",
+  "uses": "B",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Geist",
+  "style": "mod",
+  "uses": "BLK",
+  "src": "g",
+  "lic": "ok",
+  "note": "Også på Awwwards-listen",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Schibsted Grotesk",
+  "style": "mod",
+  "uses": "TB",
+  "src": "g",
+  "lic": "ok",
+  "note": "Laget for Schibsted (VG, Aftenposten)",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Familjen Grotesk",
+  "style": "mod",
+  "uses": "TB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Instrument Sans",
+  "style": "mod",
+  "uses": "B",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Gabarito",
+  "style": "mod",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Rethink Sans",
+  "style": "mod",
+  "uses": "B",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Funnel Display",
+  "style": "mod",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Red Hat Display",
+  "style": "mod",
+  "uses": "LB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Exo 2",
+  "style": "tek",
+  "uses": "KL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Kanit",
+  "style": "mod",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Bebas Neue",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Anton",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Oswald",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Archivo Black",
+  "style": "disp",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "League Gothic",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Six Caps",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Big Shoulders Display",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Unbounded",
+  "style": "disp",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Lilita One",
+  "style": "disp",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bagel Fat One",
+  "style": "disp",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Shrikhand",
+  "style": "disp",
+  "uses": "TR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bangers",
+  "style": "disp",
+  "uses": "FT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Barlow Condensed",
+  "style": "disp",
+  "uses": "SU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "League Spartan",
+  "style": "disp",
+  "uses": "LT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Alfa Slab One",
+  "style": "disp",
+  "uses": "TR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Dela Gothic One",
+  "style": "disp",
+  "uses": "T",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Tilt Warp",
+  "style": "disp",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Climate Crisis",
+  "style": "disp",
+  "uses": "T",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Fjalla One",
+  "style": "disp",
+  "uses": "ST",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Antonio",
+  "style": "disp",
+  "uses": "ST",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Staatliches",
+  "style": "disp",
+  "uses": "STR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Ultra",
+  "style": "disp",
+  "uses": "TR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Nunito",
+  "style": "rund",
+  "uses": "BF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Comfortaa",
+  "style": "rund",
+  "uses": "LF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Quicksand",
+  "style": "rund",
+  "uses": "LFB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Fredoka",
+  "style": "rund",
+  "uses": "FL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Playfair Display",
+  "style": "serif",
+  "uses": "EVT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "DM Serif Display",
+  "style": "serif",
+  "uses": "VET",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1010"
+ },
+ {
+  "name": "Cormorant Garamond",
+  "style": "serif",
+  "uses": "EV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Bodoni Moda",
+  "style": "serif",
+  "uses": "EV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Gloock",
+  "style": "serif",
+  "uses": "TV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Instrument Serif",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1010"
+ },
+ {
+  "name": "Fraunces",
+  "style": "serif",
+  "uses": "TVR",
+  "src": "g",
+  "lic": "ok",
+  "note": "Akser SOFT og WONK brukes i malene",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Young Serif",
+  "style": "serif",
+  "uses": "VR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Yeseva One",
+  "style": "serif",
+  "uses": "EV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rozha One",
+  "style": "serif",
+  "uses": "TV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Merriweather",
+  "style": "serif",
+  "uses": "BV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Lora",
+  "style": "serif",
+  "uses": "BV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Libre Baskerville",
+  "style": "serif",
+  "uses": "BV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Crimson Pro",
+  "style": "serif",
+  "uses": "BV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Abril Fatface",
+  "style": "serif",
+  "uses": "TE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Cinzel",
+  "style": "serif",
+  "uses": "ELV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Cinzel Decorative",
+  "style": "serif",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Tenor Sans",
+  "style": "sans",
+  "uses": "EL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Marcellus",
+  "style": "serif",
+  "uses": "EV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Caveat",
+  "style": "script",
+  "uses": "FU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Kaushan Script",
+  "style": "script",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Permanent Marker",
+  "style": "script",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Pinyon Script",
+  "style": "script",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Mrs Saint Delafield",
+  "style": "script",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Pacifico",
+  "style": "script",
+  "uses": "FRL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Dancing Script",
+  "style": "script",
+  "uses": "EF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Great Vibes",
+  "style": "script",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Satisfy",
+  "style": "script",
+  "uses": "ER",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Sacramento",
+  "style": "script",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "UnifrakturMaguntia",
+  "style": "dek",
+  "uses": "RV",
+  "src": "g",
+  "lic": "ok",
+  "note": "Gotisk frakturskrift",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik Dirt",
+  "style": "dek",
+  "uses": "TR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Lobster",
+  "style": "dek",
+  "uses": "RF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bungee",
+  "style": "dek",
+  "uses": "ST",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Press Start 2P",
+  "style": "dek",
+  "uses": "KR",
+  "src": "g",
+  "lic": "ok",
+  "note": "Pikselfont",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Creepster",
+  "style": "dek",
+  "uses": "F",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Saira Stencil One",
+  "style": "dek",
+  "uses": "SK",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjablong",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Stardos Stencil",
+  "style": "dek",
+  "uses": "SR",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjablong",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Rye",
+  "style": "dek",
+  "uses": "RS",
+  "src": "g",
+  "lic": "ok",
+  "note": "Western / gammelt skilt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Graduate",
+  "style": "dek",
+  "uses": "RS",
+  "src": "g",
+  "lic": "ok",
+  "note": "College-stil",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Monoton",
+  "style": "retro",
+  "uses": "RT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Righteous",
+  "style": "retro",
+  "uses": "LR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Neonderthaw",
+  "style": "retro",
+  "uses": "RE",
+  "src": "g",
+  "lic": "ok",
+  "note": "Neon-løkkeskrift",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Train One",
+  "style": "retro",
+  "uses": "R",
+  "src": "g",
+  "lic": "ok",
+  "note": "Kan mangle ÆØÅ",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rampart One",
+  "style": "retro",
+  "uses": "RF",
+  "src": "g",
+  "lic": "ok",
+  "note": "Kan mangle ÆØÅ",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Faster One",
+  "style": "retro",
+  "uses": "RK",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Codystar",
+  "style": "retro",
+  "uses": "R",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Zen Tokyo Zoo",
+  "style": "retro",
+  "uses": "RF",
+  "src": "g",
+  "lic": "ok",
+  "note": "Kan mangle ÆØÅ",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Kumar One Outline",
+  "style": "retro",
+  "uses": "R",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Londrina Outline",
+  "style": "retro",
+  "uses": "FR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Londrina Shadow",
+  "style": "retro",
+  "uses": "FR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Fascinate Inline",
+  "style": "retro",
+  "uses": "R",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Vast Shadow",
+  "style": "retro",
+  "uses": "RS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Monofett",
+  "style": "retro",
+  "uses": "R",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Ewert",
+  "style": "retro",
+  "uses": "R",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Moirai One",
+  "style": "eff",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Tilt Prism",
+  "style": "eff",
+  "uses": "T",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Tilt Neon",
+  "style": "eff",
+  "uses": "TR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik 80s Fade",
+  "style": "eff",
+  "uses": "RT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik Vinyl",
+  "style": "eff",
+  "uses": "T",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik Marker Hatch",
+  "style": "eff",
+  "uses": "T",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik Maze",
+  "style": "eff",
+  "uses": "F",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik Glitch",
+  "style": "eff",
+  "uses": "KT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rubik Iso",
+  "style": "eff",
+  "uses": "TK",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Tourney",
+  "style": "eff",
+  "uses": "TK",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Foldit",
+  "style": "eff",
+  "uses": "FT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Workbench",
+  "style": "eff",
+  "uses": "KR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Sixtyfour",
+  "style": "eff",
+  "uses": "KR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Danfo",
+  "style": "eff",
+  "uses": "TL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bungee Hairline",
+  "style": "eff",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bungee Inline",
+  "style": "eff",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bungee Outline",
+  "style": "eff",
+  "uses": "T",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bungee Shade",
+  "style": "eff",
+  "uses": "TR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Nabla",
+  "style": "eff",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "Fargefont – fargen kan ikke endres",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Honk",
+  "style": "eff",
+  "uses": "FT",
+  "src": "g",
+  "lic": "ok",
+  "note": "Fargefont – fargen kan ikke endres",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bungee Spice",
+  "style": "eff",
+  "uses": "TF",
+  "src": "g",
+  "lic": "ok",
+  "note": "Fargefont – fargen kan ikke endres",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Orbitron",
+  "style": "tek",
+  "uses": "KL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Audiowide",
+  "style": "tek",
+  "uses": "KL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Michroma",
+  "style": "tek",
+  "uses": "KL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Russo One",
+  "style": "tek",
+  "uses": "KL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Teko",
+  "style": "tek",
+  "uses": "KT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "Zen Dots",
+  "style": "tek",
+  "uses": "K",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Major Mono Display",
+  "style": "tek",
+  "uses": "KT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Syncopate",
+  "style": "tek",
+  "uses": "KL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "JetBrains Mono",
+  "style": "mono",
+  "uses": "KU",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Space Mono",
+  "style": "mono",
+  "uses": "KT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Courier Prime",
+  "style": "mono",
+  "uses": "RB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Fira Code",
+  "style": "mono",
+  "uses": "K",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1100"
+ },
+ {
+  "name": "IBM Plex Mono",
+  "style": "mono",
+  "uses": "KB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "",
+  "sty": "1111"
+ },
+ {
+  "name": "Clarity City",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "clarity-city",
+  "sty": "1111"
+ },
+ {
+  "name": "Stack Sans",
+  "style": "sans",
+  "uses": "BULT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "stack-sans",
+  "sty": "1100"
+ },
+ {
+  "name": "National Park",
+  "style": "sans",
+  "uses": "BULSF",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "national-park",
+  "sty": "1100"
+ },
+ {
+  "name": "Alpha Lyrae",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "alpha-lyrae",
+  "sty": "1000"
+ },
+ {
+  "name": "Amarna",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "amarna",
+  "sty": "1111"
+ },
+ {
+  "name": "Murecho",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "murecho",
+  "sty": "1100"
+ },
+ {
+  "name": "Zalando Sans",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "zalando-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Gnomon",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "gnomon",
+  "sty": "1000"
+ },
+ {
+  "name": "Solitus",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "solitus",
+  "sty": "1000"
+ },
+ {
+  "name": "Uncut Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "uncut-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Liberation Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "liberation-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "DejaVu",
+  "style": "mono",
+  "uses": "KT",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "dl": "dejavu",
+  "sty": "1111"
+ },
+ {
+  "name": "Saira",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "saira",
+  "sty": "1111"
+ },
+ {
+  "name": "Vend Sans",
+  "style": "rund",
+  "uses": "LF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "vend-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Veritas",
+  "style": "sans",
+  "uses": "BULT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "veritas",
+  "sty": "1111"
+ },
+ {
+  "name": "Kulim Park",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "kulim-park",
+  "sty": "1111"
+ },
+ {
+  "name": "Alegreya Sans ht",
+  "style": "sans",
+  "uses": "BULF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "alegreya-sans-ht",
+  "sty": "1111"
+ },
+ {
+  "name": "Absans",
+  "style": "mod",
+  "uses": "BLTE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "absans",
+  "sty": "1000"
+ },
+ {
+  "name": "Amiamie",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "amiamie",
+  "sty": "1111"
+ },
+ {
+  "name": "Route 159",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "route-159",
+  "sty": "1111"
+ },
+ {
+  "name": "Venus+",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "venus",
+  "sty": "1100"
+ },
+ {
+  "name": "Haskoy",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "haskoy",
+  "sty": "1111"
+ },
+ {
+  "name": "Aileron",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "aileron",
+  "sty": "1111"
+ },
+ {
+  "name": "Metropolis",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "dl": "metropolis",
+  "sty": "1111"
+ },
+ {
+  "name": "Cooper Hewitt",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "cooper-hewitt",
+  "sty": "1111"
+ },
+ {
+  "name": "Violet Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "violet-sans",
+  "sty": "1000"
+ },
+ {
+  "name": "Host Grotesk",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "host-grotesk",
+  "sty": "1111"
+ },
+ {
+  "name": "On Top",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "on-top",
+  "sty": "1000"
+ },
+ {
+  "name": "Lil Grotesk",
+  "style": "mod",
+  "uses": "BLTF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "lil-grotesk",
+  "sty": "1100"
+ },
+ {
+  "name": "Nacelle",
+  "style": "mod",
+  "uses": "BLTE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "nacelle",
+  "sty": "1111"
+ },
+ {
+  "name": "Wave",
+  "style": "mod",
+  "uses": "BLTR",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "wave",
+  "sty": "1111"
+ },
+ {
+  "name": "Perun",
+  "style": "sans",
+  "uses": "BULK",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "perun",
+  "sty": "1111"
+ },
+ {
+  "name": "Cal Sans",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "cal-sans",
+  "sty": "1000"
+ },
+ {
+  "name": "Karrik",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "karrik",
+  "sty": "1010"
+ },
+ {
+  "name": "Bagnard Sans",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "bagnard-sans",
+  "sty": "1000"
+ },
+ {
+  "name": "Reglo",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "reglo",
+  "sty": "1000"
+ },
+ {
+  "name": "Authentic Sans",
+  "style": "sans",
+  "uses": "BULT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "authentic-sans",
+  "sty": "1000"
+ },
+ {
+  "name": "Junction",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "junction",
+  "sty": "1100"
+ },
+ {
+  "name": "Open Sauce",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "open-sauce",
+  "sty": "1111"
+ },
+ {
+  "name": "Opening Hours Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "opening-hours-sans",
+  "sty": "1000"
+ },
+ {
+  "name": "Superior",
+  "style": "sans",
+  "uses": "BULT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "superior",
+  "sty": "1100"
+ },
+ {
+  "name": "Mona Sans",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "mona-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Hubot Sans",
+  "style": "mod",
+  "uses": "BLTV",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "hubot-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Pretendard",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "pretendard",
+  "sty": "1100"
+ },
+ {
+  "name": "Piscolabis",
+  "style": "sans",
+  "uses": "BULT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "piscolabis",
+  "sty": "1000"
+ },
+ {
+  "name": "Ronzino",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "ronzino",
+  "sty": "1111"
+ },
+ {
+  "name": "Crow",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "crow",
+  "sty": "1100"
+ },
+ {
+  "name": "Tanklager",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "tanklager",
+  "sty": "1000"
+ },
+ {
+  "name": "Basalte",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "basalte",
+  "sty": "1000"
+ },
+ {
+  "name": "Aspekta",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "aspekta",
+  "sty": "1100"
+ },
+ {
+  "name": "Cotham",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "cotham",
+  "sty": "1000"
+ },
+ {
+  "name": "Radio Canada",
+  "style": "sans",
+  "uses": "BULT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "radio-canada",
+  "sty": "1111"
+ },
+ {
+  "name": "Abordage",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "abordage",
+  "sty": "1000"
+ },
+ {
+  "name": "Ostrich Sans",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "ostrich-sans",
+  "sty": "1110"
+ },
+ {
+  "name": "Giphurs",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "giphurs",
+  "sty": "1111"
+ },
+ {
+  "name": "TASA Orbiter",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "tasa-orbiter",
+  "sty": "1100"
+ },
+ {
+  "name": "Rag",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "rag",
+  "sty": "1111"
+ },
+ {
+  "name": "Hedvig Letters Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "hedvig-letters-sans",
+  "sty": "1000"
+ },
+ {
+  "name": "Petrona",
+  "style": "serif",
+  "uses": "VEFB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "petrona",
+  "sty": "1111"
+ },
+ {
+  "name": "Mattone",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "mattone",
+  "sty": "1100"
+ },
+ {
+  "name": "Zilla Slab",
+  "style": "serif",
+  "uses": "VET",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "zilla-slab",
+  "sty": "1111"
+ },
+ {
+  "name": "Liga Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "liga-sans",
+  "sty": "1100"
+ },
+ {
+  "name": "BDO Grotesk",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "bdo-grotesk",
+  "sty": "1100"
+ },
+ {
+  "name": "Paysage",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "paysage",
+  "sty": "1100"
+ },
+ {
+  "name": "TASA Explorer",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "tasa-explorer",
+  "sty": "1100"
+ },
+ {
+  "name": "Apfel Grotezk",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "apfel-grotezk",
+  "sty": "1100"
+ },
+ {
+  "name": "Inclusive Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "inclusive-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Rewir",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "rewir",
+  "sty": "1000"
+ },
+ {
+  "name": "Jost",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "jost",
+  "sty": "1111"
+ },
+ {
+  "name": "Overused Grotesk",
+  "style": "mod",
+  "uses": "BLT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "overused-grotesk",
+  "sty": "1111"
+ },
+ {
+  "name": "Playfair",
+  "style": "serif",
+  "uses": "VET",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "playfair",
+  "sty": "1111"
+ },
+ {
+  "name": "Paragon",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "paragon",
+  "sty": "1010"
+ },
+ {
+  "name": "Anvers",
+  "style": "serif",
+  "uses": "VEB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "anvers",
+  "sty": "1110"
+ },
+ {
+  "name": "Labrada",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "labrada",
+  "sty": "1111"
+ },
+ {
+  "name": "Baskervville",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "baskervville",
+  "sty": "1111"
+ },
+ {
+  "name": "Spectral",
+  "style": "serif",
+  "uses": "VEB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "spectral",
+  "sty": "1111"
+ },
+ {
+  "name": "Faustina",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "faustina",
+  "sty": "1111"
+ },
+ {
+  "name": "Libertinage",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "libertinage",
+  "sty": "1000"
+ },
+ {
+  "name": "Redaction",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "redaction",
+  "sty": "1110"
+ },
+ {
+  "name": "Rosette",
+  "style": "disp",
+  "uses": "TSL",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "rosette",
+  "sty": "1000"
+ },
+ {
+  "name": "Nouveau",
+  "style": "retro",
+  "uses": "RTE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "nouveau",
+  "sty": "1000"
+ },
+ {
+  "name": "Halibut",
+  "style": "serif",
+  "uses": "VET",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "halibut",
+  "sty": "1000"
+ },
+ {
+  "name": "Latitude & Équateur",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "latitude-equateur",
+  "sty": "1000"
+ },
+ {
+  "name": "Cakra",
+  "style": "dek",
+  "uses": "TFB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "cakra",
+  "sty": "1000"
+ },
+ {
+  "name": "Magiel",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "magiel",
+  "sty": "1100"
+ },
+ {
+  "name": "Fanwood",
+  "style": "serif",
+  "uses": "VEB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "fanwood",
+  "sty": "1010"
+ },
+ {
+  "name": "Piazzolla",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "piazzolla",
+  "sty": "1111"
+ },
+ {
+  "name": "Gulax",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "gulax",
+  "sty": "1000"
+ },
+ {
+  "name": "Funnel Sans",
+  "style": "sans",
+  "uses": "BUL",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "funnel-sans",
+  "sty": "1111"
+ },
+ {
+  "name": "Isenheim",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "isenheim",
+  "sty": "1000"
+ },
+ {
+  "name": "Prociono",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "prociono",
+  "sty": "1000"
+ },
+ {
+  "name": "Sorts Mill Goudy",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "sorts-mill-goudy",
+  "sty": "1010"
+ },
+ {
+  "name": "Avocado",
+  "style": "dek",
+  "uses": "TF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "avocado",
+  "sty": "1100"
+ },
+ {
+  "name": "MuseoModerno",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "museomoderno",
+  "sty": "1111"
+ },
+ {
+  "name": "Fudd",
+  "style": "disp",
+  "uses": "TSEB",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "fudd",
+  "sty": "1010"
+ },
+ {
+  "name": "Frick",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "frick",
+  "sty": "1000"
+ },
+ {
+  "name": "Olympic",
+  "style": "serif",
+  "uses": "VER",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "olympic",
+  "sty": "1000"
+ },
+ {
+  "name": "Sprat",
+  "style": "serif",
+  "uses": "VETL",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "sprat",
+  "sty": "1100"
+ },
+ {
+  "name": "Alegreya ht",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "alegreya-ht",
+  "sty": "1111"
+ },
+ {
+  "name": "Getai Grotesk",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "getai-grotesk",
+  "sty": "1100"
+ },
+ {
+  "name": "Hedvig Letters Serif",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "hedvig-letters-serif",
+  "sty": "1000"
+ },
+ {
+  "name": "Sinistre",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "sinistre",
+  "sty": "1100"
+ },
+ {
+  "name": "Lineal",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "lineal",
+  "sty": "1100"
+ },
+ {
+  "name": "Nyght Serif",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "nyght-serif",
+  "sty": "1111"
+ },
+ {
+  "name": "Remark",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "remark",
+  "sty": "1111"
+ },
+ {
+  "name": "Career",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "career",
+  "sty": "1000"
+ },
+ {
+  "name": "Andada ht",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "andada-ht",
+  "sty": "1111"
+ },
+ {
+  "name": "Compagnon",
+  "style": "script",
+  "uses": "E",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "compagnon",
+  "sty": "1110"
+ },
+ {
+  "name": "Director",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "director",
+  "sty": "1100"
+ },
+ {
+  "name": "Ortica",
+  "style": "serif",
+  "uses": "VER",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "ortica",
+  "sty": "1100"
+ },
+ {
+  "name": "Besley",
+  "style": "serif",
+  "uses": "VETB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "besley",
+  "sty": "1111"
+ },
+ {
+  "name": "Linden Hill",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "linden-hill",
+  "sty": "1010"
+ },
+ {
+  "name": "Medio",
+  "style": "serif",
+  "uses": "VET",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "dl": "medio",
+  "sty": "1000"
+ },
+ {
+  "name": "Zarathustra",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "zarathustra",
+  "sty": "1000"
+ },
+ {
+  "name": "Maname",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "maname",
+  "sty": "1000"
+ },
+ {
+  "name": "Libre Caslon Condensed",
+  "style": "serif",
+  "uses": "VET",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "libre-caslon-condensed",
+  "sty": "1111"
+ },
+ {
+  "name": "Aujournuit",
+  "style": "serif",
+  "uses": "VET",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "aujournuit",
+  "sty": "1000"
+ },
+ {
+  "name": "Soul",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "soul",
+  "sty": "1100"
+ },
+ {
+  "name": "Bagnard",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "bagnard",
+  "sty": "1000"
+ },
+ {
+  "name": "EB Garamond",
+  "style": "serif",
+  "uses": "VE",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "eb-garamond",
+  "sty": "1111"
+ },
+ {
+  "name": "Goudy Bookletter",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "goudy-bookletter",
+  "sty": "1000"
+ },
+ {
+  "name": "Tenderness",
+  "style": "serif",
+  "uses": "VET",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "tenderness",
+  "sty": "1000"
+ },
+ {
+  "name": "Meta Old French",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "meta-old-french",
+  "sty": "1000"
+ },
+ {
+  "name": "Picaflor",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "picaflor",
+  "sty": "1000"
+ },
+ {
+  "name": "Bitter ht",
+  "style": "serif",
+  "uses": "VEB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "bitter-ht",
+  "sty": "1111"
+ },
+ {
+  "name": "Geom",
+  "style": "disp",
+  "uses": "TS",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "geom",
+  "sty": "1111"
+ },
+ {
+  "name": "Bluu Next",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "bluu-next",
+  "sty": "1101"
+ },
+ {
+  "name": "Junicode",
+  "style": "serif",
+  "uses": "VEK",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "junicode",
+  "sty": "1111"
+ },
+ {
+  "name": "Cambo ht",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "cambo-ht",
+  "sty": "1000"
+ },
+ {
+  "name": "Basteleur",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "basteleur",
+  "sty": "1100"
+ },
+ {
+  "name": "Superior Serif",
+  "style": "serif",
+  "uses": "VEB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "superior-serif",
+  "sty": "1100"
+ },
+ {
+  "name": "Magyar Nemzet",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "magyar-nemzet",
+  "sty": "1100"
+ },
+ {
+  "name": "Drafting Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "drafting-mono",
+  "sty": "1111"
+ },
+ {
+  "name": "Nocturne",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "nocturne",
+  "sty": "1000"
+ },
+ {
+  "name": "AZADLIQ",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "azadliq",
+  "sty": "1100"
+ },
+ {
+  "name": "Excessive",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "excessive",
+  "sty": "1000"
+ },
+ {
+  "name": "Nightingale",
+  "style": "dek",
+  "uses": "TF",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "nightingale",
+  "sty": "1000"
+ },
+ {
+  "name": "Squatina",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "squatina",
+  "sty": "1000"
+ },
+ {
+  "name": "Özgür Gündem",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "ozgur-gundem",
+  "sty": "1100"
+ },
+ {
+  "name": "Departure Mono",
+  "style": "mono",
+  "uses": "KB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "departure-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Office Code Pro",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "office-code-pro",
+  "sty": "1111"
+ },
+ {
+  "name": "Pecita",
+  "style": "script",
+  "uses": "EF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "pecita",
+  "sty": "1000"
+ },
+ {
+  "name": "Basically A Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "basically-a-mono",
+  "sty": "1100"
+ },
+ {
+  "name": "Beverage",
+  "style": "script",
+  "uses": "E",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "beverage",
+  "sty": "1000"
+ },
+ {
+  "name": "Intel One Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "intel-one-mono",
+  "sty": "1111"
+ },
+ {
+  "name": "Lombard",
+  "style": "script",
+  "uses": "ESR",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "lombard",
+  "sty": "1000"
+ },
+ {
+  "name": "Bocalupo",
+  "style": "retro",
+  "uses": "RT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "bocalupo",
+  "sty": "1000"
+ },
+ {
+  "name": "League Script",
+  "style": "script",
+  "uses": "EF",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "league-script",
+  "sty": "1000"
+ },
+ {
+  "name": "Gotico Antiqua",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "gotico-antiqua",
+  "sty": "1000"
+ },
+ {
+  "name": "Bonbance",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "bonbance",
+  "sty": "1100"
+ },
+ {
+  "name": "Cutive Mono",
+  "style": "mono",
+  "uses": "KTBR",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "cutive-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Chaumont Script",
+  "style": "script",
+  "uses": "ER",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "chaumont-script",
+  "sty": "1000"
+ },
+ {
+  "name": "Tiny Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "tiny-mono",
+  "sty": "1100"
+ },
+ {
+  "name": "Nouvelle Grotesquerie",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "nouvelle-grotesquerie",
+  "sty": "1000"
+ },
+ {
+  "name": "Biondeggiare",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "biondeggiare",
+  "sty": "1000"
+ },
+ {
+  "name": "Cesare",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "cesare",
+  "sty": "1000"
+ },
+ {
+  "name": "Whois Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "whois-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Coconat",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "coconat",
+  "sty": "1100"
+ },
+ {
+  "name": "Ménil",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "menil",
+  "sty": "1000"
+ },
+ {
+  "name": "World Tour",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "world-tour",
+  "sty": "1000"
+ },
+ {
+  "name": "Américaine",
+  "style": "retro",
+  "uses": "RTSL",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "americaine",
+  "sty": "1000"
+ },
+ {
+  "name": "FA-1",
+  "style": "mono",
+  "uses": "KR",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "fa1",
+  "sty": "1000"
+ },
+ {
+  "name": "NÉPSZA BADSÁG",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "nepsza-badsag",
+  "sty": "1100"
+ },
+ {
+  "name": "Betwixt",
+  "style": "retro",
+  "uses": "RT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "betwixt",
+  "sty": "1000"
+ },
+ {
+  "name": "Antique Série",
+  "style": "retro",
+  "uses": "RT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "antique-serie",
+  "sty": "1000"
+ },
+ {
+  "name": "Syne Tactile",
+  "style": "script",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "syne-tactile",
+  "sty": "1000"
+ },
+ {
+  "name": "Apropal",
+  "style": "script",
+  "uses": "EV",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "apropal",
+  "sty": "1100"
+ },
+ {
+  "name": "Affigere",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "affigere",
+  "sty": "1000"
+ },
+ {
+  "name": "Grave Presse",
+  "style": "retro",
+  "uses": "RT",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "grave-presse",
+  "sty": "1100"
+ },
+ {
+  "name": "Mazius Display",
+  "style": "disp",
+  "uses": "TSF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "mazius-display",
+  "sty": "1111"
+ },
+ {
+  "name": "Seshat",
+  "style": "serif",
+  "uses": "VE",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt)",
+  "dl": "seshat",
+  "sty": "1000"
+ },
+ {
+  "name": "tuoi-tre",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "tuoi-tre",
+  "sty": "1100"
+ },
+ {
+  "name": "Penna",
+  "style": "script",
+  "uses": "EL",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "dl": "penna",
+  "sty": "1000"
+ },
+ {
+  "name": "Texturina",
+  "style": "script",
+  "uses": "E",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "texturina",
+  "sty": "1111"
+ },
+ {
+  "name": "Caramel",
+  "style": "retro",
+  "uses": "RT",
+  "src": "g",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "caramel",
+  "sty": "1000"
+ },
+ {
+  "name": "Sansita Swashed",
+  "style": "script",
+  "uses": "ETF",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "sansita-swashed",
+  "sty": "1100"
+ },
+ {
+  "name": "Borel",
+  "style": "script",
+  "uses": "EFB",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "borel",
+  "sty": "1000"
+ },
+ {
+  "name": "Canarina",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "canarina",
+  "sty": "1100"
+ },
+ {
+  "name": "Geist Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "geist-mono",
+  "sty": "1111"
+ },
+ {
+  "name": "Havana",
+  "style": "script",
+  "uses": "E",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "havana",
+  "sty": "1000"
+ },
+ {
+  "name": "Opening Hours Mono",
+  "style": "mono",
+  "uses": "KL",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "opening-hours-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Borges",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "borges",
+  "sty": "1000"
+ },
+ {
+  "name": "Jakob",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "jakob",
+  "sty": "1000"
+ },
+ {
+  "name": "Necto Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "necto-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Superior Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "superior-mono",
+  "sty": "1100"
+ },
+ {
+  "name": "Egyptienne Large",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "egyptienne-large",
+  "sty": "1000"
+ },
+ {
+  "name": "The Neue Black",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "the-neue-black",
+  "sty": "1100"
+ },
+ {
+  "name": "Eunomia",
+  "style": "mono",
+  "uses": "KT",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "dl": "eunomia",
+  "sty": "1100"
+ },
+ {
+  "name": "Praho",
+  "style": "retro",
+  "uses": "RT",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "praho",
+  "sty": "1100"
+ },
+ {
+  "name": "Ferrum",
+  "style": "disp",
+  "uses": "TSL",
+  "src": "o",
+  "lic": "ok",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "dl": "ferrum",
+  "sty": "1000"
+ },
+ {
+  "name": "Manosque",
+  "style": "disp",
+  "uses": "TSF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "manosque",
+  "sty": "1000"
+ },
+ {
+  "name": "Melete",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "melete",
+  "sty": "1100"
+ },
+ {
+  "name": "Chunk",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "chunk",
+  "sty": "1000"
+ },
+ {
+  "name": "Syne Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "g",
+  "lic": "ok",
+  "note": "",
+  "dl": "syne-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Thestral Neue",
+  "style": "disp",
+  "uses": "TS",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "thestral-neue",
+  "sty": "1100"
+ },
+ {
+  "name": "Ribes",
+  "style": "dek",
+  "uses": "TF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "ribes",
+  "sty": "1100"
+ },
+ {
+  "name": "Tagger",
+  "style": "script",
+  "uses": "E",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "tagger",
+  "sty": "1000"
+ },
+ {
+  "name": "Louise",
+  "style": "script",
+  "uses": "EF",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "louise",
+  "sty": "1000"
+ },
+ {
+  "name": "Lab Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "lab-mono",
+  "sty": "1000"
+ },
+ {
+  "name": "Bajaderka",
+  "style": "script",
+  "uses": "EFR",
+  "src": "o",
+  "lic": "ok",
+  "note": "Sjekk ÆØÅ",
+  "dl": "bajaderka",
+  "sty": "1000"
+ },
+ {
+  "name": "Server Mono",
+  "style": "mono",
+  "uses": "KB",
+  "src": "o",
+  "lic": "ok",
+  "note": "",
+  "dl": "server-mono",
+  "sty": "1010"
+ },
+ {
+  "name": "Satoshi",
+  "style": "mod",
+  "uses": "BLU",
+  "src": "x",
+  "lic": "fs",
+  "note": "Fontshare-lisens: kommersiell bruk ok, men fontfilene kan ikke deles videre",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Cabinet Grotesk",
+  "style": "mod",
+  "uses": "TLB",
+  "src": "x",
+  "lic": "fs",
+  "note": "Fontshare-lisens: kommersiell bruk ok, men fontfilene kan ikke deles videre",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Clash Display",
+  "style": "disp",
+  "uses": "TL",
+  "src": "x",
+  "lic": "fs",
+  "note": "Fontshare-lisens: kommersiell bruk ok, men fontfilene kan ikke deles videre",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Chillax",
+  "style": "rund",
+  "uses": "LBF",
+  "src": "x",
+  "lic": "fs",
+  "note": "Fontshare-lisens: kommersiell bruk ok, men fontfilene kan ikke deles videre",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Ranade",
+  "style": "mod",
+  "uses": "BL",
+  "src": "x",
+  "lic": "fs",
+  "note": "Fontshare-lisens: kommersiell bruk ok, men fontfilene kan ikke deles videre",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Dirtyline 36Daysoftype 2022",
+  "style": "dek",
+  "uses": "TL",
+  "src": "x",
+  "lic": "u",
+  "note": "Desktop- og weblisens, dekker ikke apper",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Black Sansa Thin",
+  "style": "retro",
+  "uses": "RT",
+  "src": "x",
+  "lic": "u",
+  "note": "Gratis kommersielt, men lisensen nevner ikke apper",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Heming",
+  "style": "mono",
+  "uses": "KB",
+  "src": "x",
+  "lic": "u",
+  "note": "Gratis kommersielt, men lisensen nevner ikke apper",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "PP Mori",
+  "style": "mod",
+  "uses": "BL",
+  "src": "x",
+  "lic": "p",
+  "note": "Prøveversjon, bare personlige prosjekter",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Pangram Sans Rounded",
+  "style": "rund",
+  "uses": "LB",
+  "src": "x",
+  "lic": "p",
+  "note": "Bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Avenue Mono",
+  "style": "mono",
+  "uses": "K",
+  "src": "x",
+  "lic": "p",
+  "note": "Prøvelisens",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Manuscribe",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "p",
+  "note": "Demo, bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Milky Walky",
+  "style": "dek",
+  "uses": "F",
+  "src": "x",
+  "lic": "p",
+  "note": "Bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Canobis",
+  "style": "retro",
+  "uses": "RF",
+  "src": "x",
+  "lic": "p",
+  "note": "Demo, bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Remboy",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "p",
+  "note": "Bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Gavency",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "p",
+  "note": "Demo, bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Cotta",
+  "style": "serif",
+  "uses": "EV",
+  "src": "x",
+  "lic": "p",
+  "note": "Bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Branch",
+  "style": "serif",
+  "uses": "EL",
+  "src": "x",
+  "lic": "p",
+  "note": "Bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rayken",
+  "style": "serif",
+  "uses": "E",
+  "src": "x",
+  "lic": "p",
+  "note": "Demo, bare personlig bruk",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Nimbus Sans L",
+  "style": "sans",
+  "uses": "BU",
+  "src": "x",
+  "lic": "a",
+  "note": "GPL v3 – kan kreve at appens kode også deles",
+  "dl": "nimbus-sans-l",
+  "sty": "1111"
+ },
+ {
+  "name": "TeX Gyre Heros",
+  "style": "sans",
+  "uses": "BU",
+  "src": "x",
+  "lic": "a",
+  "note": "LaTeX-lisens, ikke laget for apper",
+  "dl": "tex-gyre-heros",
+  "sty": "1111"
+ },
+ {
+  "name": "Vercetti",
+  "style": "mod",
+  "uses": "BL",
+  "src": "x",
+  "lic": "a",
+  "note": "Licence Amicale – uoffisiell lisens",
+  "dl": "vercetti",
+  "sty": "1000"
+ },
+ {
+  "name": "Williwaw",
+  "style": "serif",
+  "uses": "VE",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke bekreftet",
+  "dl": "williwaw",
+  "sty": "1000"
+ },
+ {
+  "name": "F1.8",
+  "style": "disp",
+  "uses": "TS",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke bekreftet",
+  "dl": "f18",
+  "sty": "1000"
+ },
+ {
+  "name": "Swansea",
+  "style": "serif",
+  "uses": "VE",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke bekreftet",
+  "dl": "swansea",
+  "sty": "1111"
+ },
+ {
+  "name": "Galgo Condensed",
+  "style": "disp",
+  "uses": "TS",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Aalto Display",
+  "style": "disp",
+  "uses": "TL",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Unique",
+  "style": "dek",
+  "uses": "TL",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Round 8",
+  "style": "rund",
+  "uses": "LF",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Nohemi",
+  "style": "mod",
+  "uses": "LBT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Humane",
+  "style": "disp",
+  "uses": "TS",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Saint Regus",
+  "style": "serif",
+  "uses": "TE",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Harmond",
+  "style": "serif",
+  "uses": "TE",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Wagon",
+  "style": "disp",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bigilla",
+  "style": "serif",
+  "uses": "TEV",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Mamen Chisa",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Mango Grotesque",
+  "style": "disp",
+  "uses": "TS",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Vegawanty",
+  "style": "dek",
+  "uses": "TE",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Bosch Display",
+  "style": "disp",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Neue Metana Next",
+  "style": "mod",
+  "uses": "LB",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Neue Metana",
+  "style": "mod",
+  "uses": "LB",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Flaviotte",
+  "style": "serif",
+  "uses": "ET",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "IF Durer",
+  "style": "serif",
+  "uses": "VR",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "HK Grotesk Wide",
+  "style": "mod",
+  "uses": "LT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "OffBit",
+  "style": "tek",
+  "uses": "KR",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Wriggle",
+  "style": "dek",
+  "uses": "FT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Moniqa",
+  "style": "serif",
+  "uses": "ET",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Projekt Blackbird",
+  "style": "mod",
+  "uses": "BL",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "DX Sitrus",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Magilio",
+  "style": "serif",
+  "uses": "EV",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Fornite Light",
+  "style": "serif",
+  "uses": "EV",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Resist Sans",
+  "style": "mod",
+  "uses": "BT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Comic Cat",
+  "style": "dek",
+  "uses": "F",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "São Torpes",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Goku",
+  "style": "dek",
+  "uses": "TF",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Migha",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Meshed Display",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Baunk",
+  "style": "disp",
+  "uses": "TF",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rockstar Display",
+  "style": "disp",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Glusp",
+  "style": "dek",
+  "uses": "TF",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Thunder",
+  "style": "disp",
+  "uses": "TS",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Calfine",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Mersad",
+  "style": "mod",
+  "uses": "BL",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Maghfirea",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Newake",
+  "style": "disp",
+  "uses": "TS",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Neutral Face",
+  "style": "mod",
+  "uses": "LB",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Triakis",
+  "style": "tek",
+  "uses": "KL",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Super Duper",
+  "style": "dek",
+  "uses": "FT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Harmony",
+  "style": "serif",
+  "uses": "EV",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Nighty",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Creme Espana",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Kenoky",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Coffekan",
+  "style": "script",
+  "uses": "EF",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Eskool",
+  "style": "dek",
+  "uses": "TF",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Wild Word",
+  "style": "disp",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Rebeqa",
+  "style": "serif",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Subjectivity",
+  "style": "mod",
+  "uses": "LT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Luthon Southard",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Sonder",
+  "style": "serif",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Fogtwo No5",
+  "style": "mod",
+  "uses": "L",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Kate",
+  "style": "serif",
+  "uses": "EV",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Karen",
+  "style": "dek",
+  "uses": "F",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Tropikal",
+  "style": "dek",
+  "uses": "FT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Archia",
+  "style": "mod",
+  "uses": "BL",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "SK Falcon",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Dx Rigraf",
+  "style": "serif",
+  "uses": "TE",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Disket Mono",
+  "style": "mono",
+  "uses": "KT",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "The Polite Type",
+  "style": "mod",
+  "uses": "B",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Elanor",
+  "style": "serif",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Intro Script",
+  "style": "script",
+  "uses": "E",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Kalmansk",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Casta",
+  "style": "serif",
+  "uses": "ET",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Scalter",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Shrimp",
+  "style": "mod",
+  "uses": "B",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Vinson",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "Nafta",
+  "style": "dek",
+  "uses": "T",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ },
+ {
+  "name": "SK-Modernist",
+  "style": "mod",
+  "uses": "LB",
+  "src": "x",
+  "lic": "q",
+  "note": "Lisensen er ikke oppgitt",
+  "dl": "",
+  "sty": "1000"
+ }
+]
