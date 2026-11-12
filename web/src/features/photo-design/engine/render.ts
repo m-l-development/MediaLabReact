@@ -1,8 +1,11 @@
 import { drawFill, fillOn } from '../../../shared/fill/fill'
-import { loadFonts } from '../../../shared/fonts/loader'
+import { loadFonts, loadStretch } from '../../../shared/fonts/loader'
+import { castShadows, cornersPath } from '../../../shared/render/outline'
+import { fillPaint } from '../../thumbnail-studio/engine/paint'
+import { grainImage, loadGrain } from '../../thumbnail-studio/engine/filters'
 import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
-import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, textBox, type Adj, type PdDoc, type PdLayer, type Side } from './model'
+import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, pdFont, textBox, type Adj, type PdDoc, type PdLayer, type ShapeLayer, type Side, type TextLayer } from './model'
 import { applyDev, cleanDev, histogram, type Dev, type Histogram } from './develop'
 
 type G = CanvasRenderingContext2D
@@ -465,6 +468,20 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
   if (L.rot) g.rotate((L.rot * Math.PI) / 180)
   g.globalAlpha = clamp(L.op == null ? 1 : L.op, 0, 1)
   g.globalCompositeOperation = L.blend || 'source-over'
+  // fase 4: uskarphet og klippemaske (polygon) per lag; mangler = som før
+  if ((L.blur ?? 0) > 0) g.filter = `blur(${((L.blur ?? 0) * o.scale).toFixed(2)}px)`
+  if (L.poly && L.poly.length >= 6) {
+    const p = L.poly
+    g.beginPath()
+    for (let i = 0; i + 1 < p.length; i += 2) {
+      const px = -dm.w / 2 + (p[i] ?? 0) * dm.w
+      const py = -dm.h / 2 + (p[i + 1] ?? 0) * dm.h
+      if (i) g.lineTo(px, py)
+      else g.moveTo(px, py)
+    }
+    g.closePath()
+    g.clip()
+  }
   if (L.type === 'image') {
     const E = L.src ? M.media.get(L.src) : undefined
     const w = dm.w
@@ -497,6 +514,16 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
         shapePath(g, cs === 'rounded' ? 'rect' : cs, w, h, cs === 'rounded' ? Math.min(Math.abs(w), Math.abs(h)) * 0.14 : 0)
         g.clip()
       }
+      if (L.radii?.length === 8 || L.shadows?.length) {
+        const rp = new Path2D()
+        if (L.radii?.length === 8) cornersPath(rp, -w / 2, -h / 2, w, h, L.radii)
+        else rp.rect(-w / 2, -h / 2, w, h)
+        castShadows(g, L.shadows, false, () => {
+          g.fillStyle = '#000'
+          g.fill(rp)
+        })
+        if (L.radii?.length === 8) g.clip(rp)
+      }
       g.scale(L.flipX ? -1 : 1, L.flipY ? -1 : 1)
       g.imageSmoothingQuality = 'high'
       if (L.tint) {
@@ -524,13 +551,41 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
       lg.addColorStop(1, L.fill2)
       fs = lg
     }
-    shapePath(g, L.kind, L.w, L.h, L.radius)
-    g.fillStyle = fs
-    g.fill(L.kind === 'ring' ? 'evenodd' : 'nonzero')
+    const rule: CanvasFillRule = L.kind === 'ring' || L.path?.fillRule === 'evenodd' ? 'evenodd' : 'nonzero'
+    // fase 4: fri form og egne hjørner som sti; ellers de faste formene som før
+    const custom = customPath(L)
+    castShadows(g, L.shadows, false, (sh) => {
+      g.fillStyle = '#000'
+      if (custom) g.fill(custom, rule)
+      else {
+        const sp = sh.s ?? 0
+        shapePath(g, L.kind, L.w + 2 * sp, L.h + 2 * sp, L.radius + sp)
+        g.fill(rule)
+      }
+    })
+    if (custom) {
+      g.fillStyle = fs
+      g.fill(custom, rule)
+    } else {
+      shapePath(g, L.kind, L.w, L.h, L.radius)
+      g.fillStyle = fs
+      g.fill(rule)
+    }
+    if (L.paint?.length) {
+      g.save()
+      if (custom) g.clip(custom, rule)
+      else g.clip(rule)
+      g.translate(-L.w / 2, -L.h / 2)
+      fillPaint(g, L.paint, L.w, L.h, devScale(g))
+      g.restore()
+    }
     if (L.strokeW > 0) {
       g.lineWidth = L.strokeW
       g.strokeStyle = L.strokeC
-      g.stroke()
+      if (L.dash?.length) g.setLineDash(L.dash)
+      if (custom) g.stroke(custom)
+      else g.stroke()
+      g.setLineDash([])
     }
   } else if (L.type === 'glow') {
     const gw = Math.max(1, Math.abs(dm.w) / 2)
@@ -545,47 +600,221 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
     g.beginPath()
     g.arc(0, 0, gw, 0, Math.PI * 2)
     g.fill()
-  } else {
-    const tsx = L.tsx || 1
-    const tsy = L.tsy || 1
-    const b0 = textBox(L)
-    const b = { w: b0.w / tsx, h: b0.h / tsy, lines: b0.lines }
-    g.scale(tsx, tsy)
-    const lh = L.size * (L.lh || 1.1)
-    const ax = L.align === 'left' ? -b.w / 2 : L.align === 'right' ? b.w / 2 : 0
-    g.font = `${L.weight || 400} ${L.size}px "${L.font}", Archivo, sans-serif`
+  } else drawPdText(g, L, M)
+  g.restore()
+}
+
+/** Tegneskalaen (lerretets piksler per dokumentpiksel) i nåværende transform. */
+function devScale(g: G): number {
+  const m = g.getTransform()
+  return Math.hypot(m.a, m.b) || 1
+}
+
+/** Fri form (SVG-sti strukket over formen) eller egne hjørner, sentrert som formene; null = en av de faste formene. */
+function customPath(L: ShapeLayer): Path2D | null {
+  if (L.kind === 'path' && L.path?.d) {
+    const p = new Path2D()
+    p.addPath(new Path2D(L.path.d), new DOMMatrix().translate(-L.w / 2, -L.h / 2).scale(L.w / (L.path.vw || 1), L.h / (L.path.vh || 1)))
+    return p
+  }
+  if (L.radii?.length === 8) {
+    const p = new Path2D()
+    cornersPath(p, -L.w / 2, -L.h / 2, L.w, L.h, L.radii)
+    return p
+  }
+  return null
+}
+
+let grungeTile: { k: number; c: HTMLCanvasElement } | null = null
+/** Slitt tekst: kornet fra materialet med terskel (hull der støyen er mørkest). `amt` = andel som slites bort. */
+function grungeMask(amt: number): HTMLCanvasElement | null {
+  const im = grainImage()
+  if (!im) return null
+  const k = Math.round(clamp(amt, 0, 1) * 20) / 20
+  if (grungeTile?.k === k) return grungeTile.c
+  const c = mk(240, 240)
+  const g = ctx(c)
+  g.drawImage(im, 0, 0, 240, 240)
+  const d = g.getImageData(0, 0, 240, 240)
+  const lum: number[] = []
+  for (let i = 0; i < d.data.length; i += 4) lum.push((d.data[i] ?? 0) * 0.3 + (d.data[i + 1] ?? 0) * 0.59 + (d.data[i + 2] ?? 0) * 0.11)
+  const t = [...lum].sort((a, b) => a - b)[Math.min(lum.length - 1, Math.floor(lum.length * k * 0.5))] ?? 0
+  for (let i = 0, j = 0; i < d.data.length; i += 4, j++) {
+    d.data[i] = 0
+    d.data[i + 1] = 0
+    d.data[i + 2] = 0
+    d.data[i + 3] = (lum[j] ?? 255) < t ? 255 : 0
+  }
+  g.putImageData(d, 0, 0)
+  grungeTile = { k, c }
+  return c
+}
+
+/**
+ * Tekstlaget. Uten de nye feltene (fase 4) nøyaktig som før. Med dem: grunnlinje (`bl`), kursiv og bredde (pdFont),
+ * bakgrunnsboks (`hl`), skygger og glød (`shadows`), sirkelbane (`arc`), gradient/tekstur (`paint`), bilde i teksten
+ * (`fillSrc`) og slitt tekst (`grunge`).
+ */
+function drawPdText(g: G, L: TextLayer, M: Media) {
+  const tsx = L.tsx || 1
+  const tsy = L.tsy || 1
+  const b0 = textBox(L)
+  const b = { w: b0.w / tsx, h: b0.h / tsy, lines: b0.lines }
+  g.scale(tsx, tsy)
+  const lh = L.size * (L.lh || 1.1)
+  const ax = L.align === 'left' ? -b.w / 2 : L.align === 'right' ? b.w / 2 : 0
+  const font = pdFont(L)
+  const setup = (gg: G) => {
+    gg.font = font
     try {
-      g.letterSpacing = `${L.ls || 0}px`
+      gg.letterSpacing = `${L.ls || 0}px`
     } catch {
       // eldre nettlesere
     }
-    g.textAlign = L.align || 'center'
-    g.textBaseline = 'middle'
-    g.lineJoin = 'round'
-    if (L.shadow > 0) {
-      g.shadowColor = 'rgba(0,0,0,0.55)'
-      g.shadowBlur = (L.shadow / 100) * L.size * 0.6
-      g.shadowOffsetY = (L.shadow / 100) * L.size * 0.08
-    }
-    b.lines.forEach((s, i) => {
-      const y = -b.h / 2 + lh * (i + 0.5)
+    gg.textAlign = L.align || 'center'
+    gg.textBaseline = L.bl != null ? 'alphabetic' : 'middle'
+    gg.lineJoin = 'round'
+  }
+  setup(g)
+  const yOf = (i: number) => (L.bl != null ? -b.h / 2 + L.bl + lh * i : -b.h / 2 + lh * (i + 0.5))
+  const arc = L.arc || 0
+  const each = (gg: G, op: 'fill' | 'stroke') => {
+    b.lines.forEach((line, i) => {
+      if (!arc) {
+        if (op === 'fill') gg.fillText(line, ax, yOf(i))
+        else gg.strokeText(line, ax, yOf(i))
+        return
+      }
+      // tekst på sirkelbane: hver bokstav langs buen, midtstilt
+      const R = Math.abs(arc)
+      const up = arc > 0
+      gg.save()
+      try {
+        gg.letterSpacing = '0px'
+      } catch {
+        // eldre nettlesere
+      }
+      gg.textAlign = 'center'
+      const chars = Array.from(line)
+      const ws = chars.map((ch) => gg.measureText(ch).width + (L.ls || 0))
+      const tw = ws.reduce((x, y) => x + y, 0)
+      let acc = -tw / 2
+      chars.forEach((ch, j) => {
+        const a = (acc + (ws[j] ?? 0) / 2) / R
+        acc += ws[j] ?? 0
+        gg.save()
+        gg.translate(R * Math.sin(a), yOf(i) + (up ? 1 : -1) * (R - R * Math.cos(a)))
+        gg.rotate(up ? a : -a)
+        if (op === 'fill') gg.fillText(ch, 0, 0)
+        else gg.strokeText(ch, 0, 0)
+        gg.restore()
+      })
+      gg.restore()
+    })
+  }
+  // bakgrunnsboks bak hver linje (highlight)
+  if (L.hl?.c) {
+    const hl = L.hl
+    g.save()
+    g.fillStyle = hl.c
+    b.lines.forEach((line, i) => {
+      const lw = g.measureText(line).width
+      const x0 = (L.align === 'left' ? ax : L.align === 'right' ? ax - lw : ax - lw / 2) - hl.px
+      const cy = L.bl != null ? yOf(i) - L.size * 0.35 : yOf(i)
+      g.beginPath()
+      g.roundRect(x0, cy - L.size / 2 - hl.py, lw + 2 * hl.px, L.size + 2 * hl.py, Math.max(0, hl.r))
+      g.fill()
+    })
+    g.restore()
+  }
+  // skygger og glød (farget, uskarp)
+  castShadows(g, L.shadows, false, () => {
+    g.fillStyle = '#000'
+    each(g, 'fill')
+  })
+  if (L.shadow > 0) {
+    g.shadowColor = 'rgba(0,0,0,0.55)'
+    g.shadowBlur = (L.shadow / 100) * L.size * 0.6
+    g.shadowOffsetY = (L.shadow / 100) * L.size * 0.08
+  }
+  const E = L.fillSrc ? M.media.get(L.fillSrc) : undefined
+  const special = !!(L.paint?.length || E || (L.grunge ?? 0) > 0 || arc)
+  if (!special) {
+    b.lines.forEach((line, i) => {
+      const y = yOf(i)
       if (L.strokeW > 0) {
         g.lineWidth = L.strokeW * 2
         g.strokeStyle = L.strokeC
-        g.strokeText(s, ax, y)
+        g.strokeText(line, ax, y)
       }
       g.fillStyle = L.color
-      g.fillText(s, ax, y)
+      g.fillText(line, ax, y)
     })
-    if (L.bar) {
-      const bw = b.w * clamp(L.barW == null ? 1 : +L.barW, 0.05, 3)
-      const bh = L.barH == null ? L.size * 0.07 : +L.barH
-      const bx = L.align === 'left' ? -b.w / 2 : L.align === 'right' ? b.w / 2 - bw : -bw / 2
-      g.fillStyle = L.barColor || L.color
-      g.fillRect(bx, b.h / 2 + L.size * 0.18 * (L.barGap == null ? 1 : +L.barGap), bw, bh)
+  } else {
+    // teksten tegnes i et eget lerret (kontur, så fyll med farge/maling/bilde, så slitasje) og legges på med skyggen
+    const k = devScale(g)
+    const Mg = L.size + (Math.abs(arc) > 0 ? b.w : 0)
+    const W = b.w + 2 * Mg
+    const H = b.h + 2 * Mg
+    const cw = Math.max(1, Math.min(8192, Math.ceil(W * k)))
+    const ch = Math.max(1, Math.min(8192, Math.ceil(H * k)))
+    const t = mk(cw, ch)
+    const tg = ctx(t)
+    const loc = (gg: G) => gg.setTransform(cw / W, 0, 0, ch / H, (cw / W) * (Mg + b.w / 2), (ch / H) * (Mg + b.h / 2))
+    loc(tg)
+    setup(tg)
+    if (L.strokeW > 0) {
+      tg.lineWidth = L.strokeW * 2
+      tg.strokeStyle = L.strokeC
+      each(tg, 'stroke')
     }
+    // fyllet: bokstavene som maske for farge, maling eller bilde
+    const fc = mk(cw, ch)
+    const fg = ctx(fc)
+    loc(fg)
+    setup(fg)
+    fg.fillStyle = L.paint?.length || E ? '#000' : L.color
+    each(fg, 'fill')
+    if (L.paint?.length || E) {
+      const pc = mk(cw, ch)
+      const pg = ctx(pc)
+      loc(pg)
+      pg.translate(-b.w / 2, -b.h / 2)
+      if (E) {
+        const r = cover(E.w, E.h, b.w, b.h, 1, 0.5, 0.5)
+        pg.drawImage(E.img, r.sx, r.sy, r.sw, r.sh, 0, 0, b.w, b.h)
+      } else {
+        pg.beginPath()
+        pg.rect(0, 0, b.w, b.h)
+        pg.clip()
+        fillPaint(pg, L.paint, b.w, b.h, k)
+      }
+      fg.setTransform(1, 0, 0, 1, 0, 0)
+      fg.globalCompositeOperation = 'source-in'
+      fg.drawImage(pc, 0, 0)
+    }
+    tg.setTransform(1, 0, 0, 1, 0, 0)
+    tg.drawImage(fc, 0, 0)
+    const gm = (L.grunge ?? 0) > 0 ? grungeMask(L.grunge ?? 0) : null
+    if (gm) {
+      const pat = tg.createPattern(gm, 'repeat')
+      if (pat) {
+        // kornet i samme størrelse i forhold til teksten som i materialet (240 px-rute ved 1280 px bredde)
+        pat.setTransform(new DOMMatrix().scale(Math.max(0.5, (L.size / 120) * k)))
+        tg.globalCompositeOperation = 'destination-out'
+        tg.fillStyle = pat
+        tg.fillRect(0, 0, cw, ch)
+      }
+    }
+    g.drawImage(t, -b.w / 2 - Mg, -b.h / 2 - Mg, W, H)
   }
-  g.restore()
+  if (L.bar) {
+    const bw = b.w * clamp(L.barW == null ? 1 : +L.barW, 0.05, 3)
+    const bh = L.barH == null ? L.size * 0.07 : +L.barH
+    const bx = L.align === 'left' ? -b.w / 2 : L.align === 'right' ? b.w / 2 - bw : -bw / 2
+    g.fillStyle = L.barColor || L.color
+    g.fillRect(bx, b.h / 2 + L.size * 0.18 * (L.barGap == null ? 1 : +L.barGap), bw, bh)
+  }
 }
 
 function drawVig(g: G, doc: PdDoc, bl: number) {
@@ -608,7 +837,12 @@ function drawVig(g: G, doc: PdDoc, bl: number) {
 
 /** Laster fontene tekstlagene bruker (begge sider). Fonter fra biblioteket hentes ved bruk, så tegning og eksport venter på dem. */
 export function docFonts(d: PdDoc): Promise<unknown> {
-  return loadFonts([...d.layers, ...(d.back?.layers ?? [])].flatMap((l) => (l.type === 'text' ? [{ font: l.font, weight: l.weight }] : [])))
+  const texts = [...d.layers, ...(d.back?.layers ?? [])].filter((l): l is TextLayer => l.type === 'text')
+  return Promise.all([
+    loadFonts(texts.map((l) => ({ font: l.font, weight: l.weight, italic: !!l.italic }))),
+    ...texts.filter((l) => l.stretch && l.stretch !== 100).map((l) => loadStretch(l.font, l.stretch ?? 100, l.weight, !!l.italic)),
+    loadGrain(),
+  ])
 }
 
 /** Tegner dokumentet i skala `scale` (bakgrunn, fyll, lag og vignett). */

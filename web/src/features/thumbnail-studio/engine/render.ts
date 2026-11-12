@@ -1,10 +1,11 @@
 import { rgba } from './colors'
 import { loadFonts, loadStretch, stretchFamily, stretchReady } from '../../../shared/fonts/loader'
 import { fillPaint } from './paint'
+import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { adjustImage } from '../../photo-design/engine/render'
 import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { ImageCache, LoadedImage } from './images'
-import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type Shadow, type ShapeLayer, type TextLayer, type Vignette } from './model'
+import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
 import { activeFilters, blurScale, drawOverlays, loadGrain, pixelFilter, REF_W } from './filters'
 
@@ -26,25 +27,6 @@ const ctx = (c: HTMLCanvasElement): G => {
   const g = c.getContext('2d')
   if (!g) throw new Error('Lerretet kan ikke tegnes (2D er ikke tilgjengelig).')
   return g
-}
-
-/** Rektangel med egne hjørner (8 tall som CSS border-radius: rx, ry for øvre venstre, øvre høyre, nedre høyre, nedre venstre). */
-function cornersPath(p: Path2D, x: number, y: number, w: number, h: number, r: readonly number[]) {
-  const v = r.map((n) => Math.max(0, n || 0))
-  const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, k = 0, m = 0] = v
-  // CSS: for store hjørner skaleres alle ned likt
-  const sc = Math.min(1, w / (a + c || 1), w / (k + e || 1), h / (b + m || 1), h / (d + f || 1))
-  const [tlx, tly, trx, try_, brx, bry, blx, bly] = [a, b, c, d, e, f, k, m].map((n) => n * sc) as [number, number, number, number, number, number, number, number]
-  p.moveTo(x + tlx, y)
-  p.lineTo(x + w - trx, y)
-  p.ellipse(x + w - trx, y + try_, trx, try_, 0, -Math.PI / 2, 0)
-  p.lineTo(x + w, y + h - bry)
-  p.ellipse(x + w - brx, y + h - bry, brx, bry, 0, 0, Math.PI / 2)
-  p.lineTo(x + blx, y + h)
-  p.ellipse(x + blx, y + h - bly, blx, bly, 0, Math.PI / 2, Math.PI)
-  p.lineTo(x, y + tly)
-  p.ellipse(x + tlx, y + tly, tlx, tly, 0, Math.PI, Math.PI * 1.5)
-  p.closePath()
 }
 
 /** Omrisset til et bilde- eller formlag som sti: egne hjørner (`radii`) eller de faste formene som før. `inf` = utvidelse. */
@@ -106,29 +88,6 @@ function clipPoly(g: G, l: Layer) {
   }
   g.closePath()
   g.clip()
-}
-
-const FAR = 30000
-/**
- * Skygger som CSS (box-shadow/text-shadow): `draw` tegner formen; den flyttes langt ut av lerretet så bare skyggen
- * (med forskyvning og uskarphet fra laget, rotert med laget) havner på plass. Listen er i CSS-rekkefølge (første øverst).
- */
-function castShadows(g: G, list: readonly Shadow[] | null | undefined, inset: boolean, draw: (sh: Shadow) => void) {
-  if (!list?.length) return
-  const m = g.getTransform()
-  const sc = Math.hypot(m.a, m.b)
-  for (let i = list.length - 1; i >= 0; i--) {
-    const sh = list[i]
-    if (!sh || !!sh.inset !== inset) continue
-    g.save()
-    g.setTransform(new DOMMatrix().translate(-FAR, 0).multiply(m))
-    g.shadowColor = sh.c
-    g.shadowBlur = Math.max(0, sh.b) * sc
-    g.shadowOffsetX = m.a * sh.x + m.c * sh.y + FAR
-    g.shadowOffsetY = m.b * sh.x + m.d * sh.y
-    draw(sh)
-    g.restore()
-  }
 }
 
 /** Innvendige skygger (CSS inset): skyggen av en ramme rundt formen, klippet til formen. */

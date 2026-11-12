@@ -1,3 +1,4 @@
+import { patternPaint } from './engine/patterns'
 import { createStore, type Store } from '../../shared/lib/store'
 import { snapActive } from '../../shared/lib/snap'
 import { fillStops, type Fill } from '../../shared/fill/fill'
@@ -309,6 +310,15 @@ export class PhotoController {
 
   private async loadMedia(doc: PdDoc, masks: Record<string, string>) {
     for (const L of [...doc.layers, ...(doc.back?.layers ?? [])]) {
+      // bilde i teksten (fase 4)
+      if (L.type === 'text' && L.fillSrc && !this.M.media.has(L.fillSrc)) {
+        try {
+          const b = await this.d.openMedia(L.fillSrc)
+          if (b) this.M.media.set(L.fillSrc, await loadImg(b))
+        } catch {
+          // mangler bildet, vises teksten med fargen
+        }
+      }
       if (L.type !== 'image') continue
       if (L.src && !this.M.media.has(L.src)) {
         try {
@@ -802,6 +812,13 @@ export class PhotoController {
     this.addLayer(shapeLayer({ kind: k, name: this.d.t(nm as Phrase), x: d.w / 2, y: d.h / 2, w: m * 0.4, h: kind === 'line' ? Math.max(4, m * 0.012) : m * 0.4 * ar, ...(rounded ? { radius: Math.round(m * 0.04) } : {}), ...(this.s.newCol ? { fill: this.s.newCol } : {}) }))
   }
 
+  /** Korn over hele bildet (fase 4; materialets .grain: overlegg, 55 %). Styrken er lagets gjennomsiktighet. */
+  addGrain(): void {
+    const d = this.s.doc
+    if (!d) return
+    this.addLayer(shapeLayer({ name: this.d.t('Korn'), kind: 'rect', x: d.w / 2, y: d.h / 2, w: d.w, h: d.h, fill: 'rgba(0,0,0,0)', pat: 'grain', paint: patternPaint('grain', '#ffffff', d.w, d.h), blend: 'overlay', op: 0.55 }))
+  }
+
   addGrad(): void {
     const d = this.s.doc
     if (!d) return
@@ -956,6 +973,11 @@ export class PhotoController {
     const doc = this.s.doc
     if (!doc) return
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
+    // bilde i teksten (fase 4): bildet fyller bokstavene i tekstlaget
+    if (rep?.type === 'text') {
+      this.patchL(rep.id, { fillSrc: key })
+      return
+    }
     const ph = targetSlot(doc, { replace: rep, at: !!at, hit: at ? hit(doc, at[0], at[1]) : null, sel: this.selL(), ...(opt.logo ? { logo: true } : {}) })
     const nm = String(name || this.d.t('Bilde')).replace(/\.[a-z0-9]+$/i, '').slice(0, 40)
     if (ph && ph.type === 'image') {

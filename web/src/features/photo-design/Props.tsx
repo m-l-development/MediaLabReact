@@ -1,7 +1,8 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { FontPicker } from '../../shared/fonts/FontPicker'
-import { weightsOf } from '../../shared/fonts/catalog'
+import { hasSnitt, weightsOf } from '../../shared/fonts/catalog'
+import { PATTERNS, patternPaint } from './engine/patterns'
 import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
@@ -312,6 +313,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
           )}
           {L.type === 'fx' && <FxEdit c={c} S={S} tx={tx} />}
           {layerRanges}
+          <Extras L={L} S={S} tx={tx} P={P} pickFile={pickFile} />
           {S.adv && <label className={s.colorRow}>
             <span>{tx('Blandingsmodus')}</span>
             <select value={L.blend || 'source-over'} onChange={(e) => P({ blend: e.target.value as GlobalCompositeOperation })}>
@@ -653,4 +655,78 @@ function FxEdit({ c, S, tx }: { c: PhotoController; S: PState; tx: Tx }) {
       <div className={s.hr} />
     </>
   )
+}
+
+/**
+ * Fase 4 – funksjonene malene trenger (Photo-guiden punkt 4 og 6): vises i Avansert modus, og alltid når laget bruker
+ * dem (så en mal kan justeres i Enkel modus). Et tillegg: de vanlige kontrollene over er uendret.
+ */
+function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (o: Partial<PdLayer>, key?: string) => void; pickFile: (replace?: string) => void }) {
+  const adv = S.adv
+  const px = (v: number) => `${Math.round(v)} px`
+  const shadowsOn = !!L.shadows?.length
+  const out: React.ReactNode[] = []
+  if (L.type === 'text') {
+    const sz = L.size
+    if ((adv && hasSnitt(L.font, 'i')) || L.italic) out.push(<Toggle key="it" label={tx('Kursiv')} on={!!L.italic} onClick={() => P({ italic: !L.italic })} />)
+    if (adv || (L.stretch && L.stretch !== 100)) out.push(<Range key="st" label={tx('Fontbredde')} min={50} max={150} step={1} val={L.stretch ?? 100} show={`${Math.round(L.stretch ?? 100)} %`} on={(x) => P({ stretch: x }, 'stretch')} def={100} reset={() => P({ stretch: 100 })} />)
+    if (adv || shadowsOn) {
+      out.push(<Toggle key="gl" label={tx('Glød')} on={shadowsOn} onClick={() => P({ shadows: shadowsOn ? null : [{ x: 0, y: 0, b: Math.round(sz * 0.4), c: L.color }] })} />)
+      const sh = L.shadows?.[0]
+      if (sh) {
+        out.push(<label key="glc" className={s.colorRow}><span>{tx('Glødfarge')}</span><input type="color" value={hex(sh.c)} onChange={(e) => P({ shadows: [{ ...sh, c: e.target.value }, ...(L.shadows ?? []).slice(1)] }, 'glc')} /></label>)
+        out.push(<Range key="glb" label={tx('Glødstyrke')} min={0} max={Math.max(40, Math.round(sz * 2))} step={1} val={sh.b} show={px(sh.b)} on={(x) => P({ shadows: [{ ...sh, b: x }, ...(L.shadows ?? []).slice(1)] }, 'glb')} def={Math.round(sz * 0.4)} reset={() => P({ shadows: [{ ...sh, b: Math.round(sz * 0.4) }] })} />)
+      }
+    }
+    if (adv || L.hl) {
+      out.push(<Toggle key="hl" label={tx('Bakgrunnsboks')} on={!!L.hl} onClick={() => P({ hl: L.hl ? null : { c: '#f5b82c', px: Math.round(sz * 0.25), py: Math.round(sz * 0.08), r: 0 } })} />)
+      if (L.hl) {
+        const hl = L.hl
+        out.push(<label key="hlc" className={s.colorRow}><span>{tx('Boksfarge')}</span><input type="color" value={hex(hl.c)} onChange={(e) => P({ hl: { ...hl, c: e.target.value } }, 'hlc')} /></label>)
+        out.push(<Range key="hlp" label={tx('Luft rundt teksten')} min={0} max={Math.max(20, Math.round(sz))} step={1} val={hl.px} show={px(hl.px)} on={(x) => P({ hl: { ...hl, px: x, py: Math.round(x / 3) } }, 'hlp')} def={Math.round(sz * 0.25)} reset={() => P({ hl: { ...hl, px: Math.round(sz * 0.25), py: Math.round(sz * 0.08) } })} />)
+        out.push(<Range key="hlr" label={tx('Hjørneradius')} min={0} max={Math.max(10, Math.round(sz / 2))} step={1} val={hl.r} show={px(hl.r)} on={(x) => P({ hl: { ...hl, r: x } }, 'hlr')} def={0} reset={() => P({ hl: { ...hl, r: 0 } })} />)
+      }
+    }
+    if (adv || (L.grunge ?? 0) > 0) out.push(<Range key="gr" label={tx('Slitt tekst')} min={0} max={1} step={0.01} val={L.grunge ?? 0} show={`${Math.round((L.grunge ?? 0) * 100)} %`} on={(x) => P({ grunge: x }, 'grunge')} def={0} reset={() => P({ grunge: 0 })} />)
+    if (adv || L.arc) out.push(<Range key="arc" label={tx('Tekst på sirkelbane')} min={-3000} max={3000} step={10} val={L.arc ?? 0} show={L.arc ? px(L.arc) : tx('Rett')} on={(x) => P({ arc: Math.abs(x) < 20 ? 0 : x }, 'arc')} def={0} reset={() => P({ arc: 0 })} />)
+    if (adv) {
+      out.push(
+        <div key="vt" className={s.row3}>
+          <span className={s.dimSm}>{tx('Loddrett tekst')}</span>
+          <button type="button" className={s.smallBtn} onClick={() => P({ rot: 90 })}>90°</button>
+          <button type="button" className={s.smallBtn} onClick={() => P({ rot: -90 })}>270°</button>
+        </div>,
+      )
+    }
+    if (adv || 'fillSrc' in L) {
+      out.push(
+        <div key="fi" className={s.row3} data-pd-textfill="">
+          <span className={s.dimSm}>{tx('Bilde i teksten')}</span>
+          <button type="button" className={s.smallBtn} onClick={() => pickFile(L.id)}>{tx(L.fillSrc ? 'Bytt bilde' : 'Velg bilde')}</button>
+          {L.fillSrc && <button type="button" className={s.smallBtn} onClick={() => P({ fillSrc: null })}>{tx('Fjern bildet')}</button>}
+        </div>,
+      )
+    }
+  }
+  if (L.type === 'shape') {
+    if (adv || L.pat) {
+      out.push(
+        <label key="pat" className={s.colorRow}>
+          <span>{tx('Mønster')}</span>
+          <select value={L.pat ?? 'none'} onChange={(e) => {
+            const k = e.target.value
+            P(k === 'none' ? { pat: null, paint: null } : { pat: k, paint: patternPaint(k, L.strokeC || '#ffffff', L.w, L.h, Math.max(8, Math.round(Math.min(L.w, L.h) / 12))) })
+          }}>
+            {PATTERNS.map(([k, l]) => <option key={k} value={k}>{tx(l as Phrase)}</option>)}
+          </select>
+        </label>,
+      )
+      if (L.pat) out.push(<span key="pn" className={s.dimSm}>{tx('Mønsteret tegnes i konturfargen.')}</span>)
+    }
+    if (adv || L.dash?.length) out.push(<Toggle key="da" label={tx('Stiplet kant')} on={!!L.dash?.length} onClick={() => P({ dash: L.dash?.length ? null : [Math.max(4, L.strokeW * 3), Math.max(3, L.strokeW * 2)] })} />)
+  }
+  if ((L.type === 'shape' || L.type === 'image') && (adv || shadowsOn)) {
+    out.push(<Toggle key="sh" label={tx('Slagskygge')} on={shadowsOn} onClick={() => P({ shadows: shadowsOn ? null : [{ x: 12, y: 16, b: 36, c: 'rgba(0,0,0,0.45)' }] })} />)
+  }
+  return out.length ? <div className={s.extras} data-pd-extras="">{out}</div> : null
 }
