@@ -158,7 +158,8 @@ test('stilpakke, logo, vignett, overlegg og egen farge', async ({ page }) => {
   // stilpakke «Promo»: overgang, skrift og fargepaneler
   await page.getByRole('button', { name: /Promo\s*Fargepaneler/ }).click()
   await page.getByRole('button', { name: 'Stil', exact: true }).click()
-  await expect(page.locator('select').filter({ has: page.locator('option[value="Oswald"]') })).toHaveValue('Oswald')
+  // skriften står i fontvelgeren (det felles fontbiblioteket, fase 1)
+  await expect(page.locator('[data-font-picker] > button').first()).toHaveAttribute('data-font-value', 'Oswald')
 
   // logo: grønn, nederst til høyre
   const ch = page.waitForEvent('filechooser')
