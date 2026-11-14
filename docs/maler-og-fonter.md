@@ -3,7 +3,7 @@
 Levende oversikt for hele oppdraget (felles fontbibliotek, 151 Thumbnail-maler, 100 Photo Design-maler og
 editorfunksjonene de trenger). Oppdateres etter hver fase. Sjekklisten for malene står nederst.
 
-Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). **Fase 3 (151 Thumbnail-maler) implementert og testet 2026-11-12** (se Fase 3 – status). **Fase 4 (Photo-funksjoner) implementert og testet 2026-11-12** (se Fase 4 – status). Fase 5 (100 Photo-maler) neste.
+Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). **Fase 3 (151 Thumbnail-maler) implementert og testet 2026-11-12** (se Fase 3 – status). **Fase 4 (Photo-funksjoner) implementert og testet 2026-11-12** (se Fase 4 – status). **Fase 5 (100 Photo-maler) implementert og testet 2026-11-14** (se Fase 5 – status). Alle faser er implementert; samlet regresjon er kjørt (se Fase 5 – status).
 
 ## 1. Originalmaterialet (fasiten)
 
@@ -120,6 +120,13 @@ blandingsmodus m.m. – endelig liste fra «Funksjoner»-linjene (se Photo-guide
 ### Fase 5 – Photo Design: 100 maler
 Samme metode som fase 3 (måling fra originalene, generator, visuell kontroll). `--bg/--tx/--ac` → malens
 fargeskjema (Bakgrunn/Tekst/Støttefarge), så fargevelgeren virker. `.ph` → bildelag.
+
+#### Fase 5 – status
+- Originalene (de 100 malene i ekte pikselstørrelse) ligger i `web/tools/maler/photo-originaler.html`. `convert-photos.mjs` måler dem med samme kode som Thumbnail-malene (`dom-to-layers.js`, nå også med loddrett tekst, slitt tekst og `.ph`-bildefelt) og gjør lagene om til Photo-lag i nettleseren (`photo-map.js`, tekst målt med Photo-motorens egen font og tekstboks). Med `--cmp` sammenlignes hver mal piksel for piksel: **alle 100 under 5 % avvik, 77 under 2 %, snitt 1,33 %** (restavvik: kantutjevning og slitasjemønster).
+- Startsiden har en ny del «Ferdige maler» med materialets fem kategorier (20 hver); malene lastes som egen fil. En mal blir et prosjekt i malens format; fargevalget på startsiden virker på malene som på de andre (fargene er heks, så fargevalget kan bytte dem).
+- Effekter fra materialet: korn (.grain → kornlag i overlegg 55 %, øverst), slitt tekst (.grunge → materialets egen maske), loddrett tekst (.vt/.vr → rotasjon), krøllet papir (.crumple → maling i teksten), bølger, strekkode og stjerner (maling), konturtekst, glød (skygger), klippemasker og buer.
+- Valg og avvik (dokumentert): bildefeltenes plassholderfarge tas ikke med (materialet: «grå plassholdere»); gråtonemaler får metning −100 på bildefeltet (materialet: «filter: grayscale(1)»); `text-align: justify` (062) tegnes venstrejustert; 017 og 066 har valgfritt bilde (designet bruker en gradient som standard).
+- Tester: `engine/templates/templates.test.ts` (100 maler, kategorier, format, prosjektformatet godtar dem uendret, bildefelt, fonter og kursiv), `e2e/photo-library.spec.ts` (PC og mobil: velg mal, legg inn bilde, lagre, eksporter i malens format).
 
 ## 4. Åpne punkter og risiko
 - **«Last ned selv»-fonter (ca. 150):** materialet har fontfiler for 12 familier. Resten må lastes ned fra kildene
@@ -292,103 +299,103 @@ Status: Ikke startet · Under arbeid · Implementert · Testet · Godkjent
 
 | Nr | Kategori | Navn | Format | Status |
 |---|---|---|---|---|
-| 001 | Arrangement og plakater | Søndag – tre felt | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 002 | Arrangement og plakater | Konsert – fotostriper | A4 plakat · 2480×3508 | Ikke startet |
-| 003 | Arrangement og plakater | Første onsdag | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 004 | Arrangement og plakater | Vekkelsesmøte – glød | Story 9:16 · 1080×1920 | Ikke startet |
-| 005 | Arrangement og plakater | Bønnenatt – bred tittel | Story 9:16 · 1080×1920 | Ikke startet |
-| 006 | Arrangement og plakater | Oppstart – rød tittel | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 007 | Arrangement og plakater | Hold av datoen | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 008 | Arrangement og plakater | Lederkveld – blå håndskrift | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 009 | Arrangement og plakater | Konferanse – pensel diagonal | Story 9:16 · 1080×1920 | Ikke startet |
-| 010 | Arrangement og plakater | Invitasjon – kvittering | Story 9:16 · 1080×1920 | Ikke startet |
-| 011 | Arrangement og plakater | Parkveld – rust | Story 9:16 · 1080×1920 | Ikke startet |
-| 012 | Arrangement og plakater | Bønneuke – høy kondensert | Story 9:16 · 1080×1920 | Ikke startet |
-| 013 | Arrangement og plakater | Søndag – buet form | Story 9:16 · 1080×1920 | Ikke startet |
-| 014 | Arrangement og plakater | Søndag ettermiddag – rød | Story 9:16 · 1080×1920 | Ikke startet |
-| 015 | Arrangement og plakater | Etter mørket – glød | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 016 | Arrangement og plakater | Horisont – retreat | A4 plakat · 2480×3508 | Ikke startet |
-| 017 | Arrangement og plakater | Bue – stillhetskveld | A4 plakat · 2480×3508 | Ikke startet |
-| 018 | Arrangement og plakater | Frokostmøte – konturtall | Story 9:16 · 1080×1920 | Ikke startet |
-| 019 | Arrangement og plakater | Bølgekolonne – pinsemøte | Story 9:16 · 1080×1920 | Ikke startet |
-| 020 | Arrangement og plakater | Bibeldagen – script over tittel | Story 9:16 · 1080×1920 | Ikke startet |
-| 021 | Program, ukeplan og kalender | Hva skjer denne uka | Story 9:16 · 1080×1920 | Ikke startet |
-| 022 | Program, ukeplan og kalender | Kommende arrangementer | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 023 | Program, ukeplan og kalender | Arrangementskalender – kort | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 024 | Program, ukeplan og kalender | Aktivitetsplan – fet + tynn | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 025 | Program, ukeplan og kalender | Program – loddrett tittel | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 026 | Program, ukeplan og kalender | Konferanseprogram – tabell | A4 plakat · 2480×3508 | Ikke startet |
-| 027 | Program, ukeplan og kalender | Kommende konserter – diagonal | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 028 | Program, ukeplan og kalender | Datofaner – rød | Story 9:16 · 1080×1920 | Ikke startet |
-| 029 | Program, ukeplan og kalender | Tidslinje – to scener | Story 9:16 · 1080×1920 | Ikke startet |
-| 030 | Program, ukeplan og kalender | Månedsplakat – DESEMBER | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 031 | Program, ukeplan og kalender | Dagens program – story | Story 9:16 · 1080×1920 | Ikke startet |
-| 032 | Program, ukeplan og kalender | Dagsprogram – ryggrad | Story 9:16 · 1080×1920 | Ikke startet |
-| 033 | Program, ukeplan og kalender | Ukeplan – lys pille | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 034 | Program, ukeplan og kalender | Vaktliste – skjerm | 16:9 · 1920×1080 | Ikke startet |
-| 035 | Program, ukeplan og kalender | Ukens møter – mørke kort | Story 9:16 · 1080×1920 | Ikke startet |
-| 036 | Program, ukeplan og kalender | Seminarplan – skjerm | 16:9 · 1920×1080 | Ikke startet |
-| 037 | Program, ukeplan og kalender | Månedskalender – rutenett | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 038 | Program, ukeplan og kalender | Åpningstider – uke | Story 9:16 · 1080×1920 | Ikke startet |
-| 039 | Program, ukeplan og kalender | Turnéplan – faner | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 040 | Program, ukeplan og kalender | Møteplan – sveitsisk | A4 plakat · 2480×3508 | Ikke startet |
-| 041 | Festival og konsert | Festival – lineup serif | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 042 | Festival og konsert | Festivalprogram – 16:9 | 16:9 · 1920×1080 | Ikke startet |
-| 043 | Festival og konsert | Konsertserie – story | Story 9:16 · 1080×1920 | Ikke startet |
-| 044 | Festival og konsert | Lovsangskveld – grunge | Story 9:16 · 1080×1920 | Ikke startet |
-| 045 | Festival og konsert | Ungdomsfestival – oransje | Story 9:16 · 1080×1920 | Ikke startet |
-| 046 | Festival og konsert | Konsert – glød | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 047 | Festival og konsert | Sommerfest – himmel | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 048 | Festival og konsert | Festival – hold av datoen | Story 9:16 · 1080×1920 | Ikke startet |
-| 049 | Festival og konsert | Lineup – mørk story | Story 9:16 · 1080×1920 | Ikke startet |
-| 050 | Festival og konsert | Festival – diagonal gul | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 051 | Festival og konsert | Konsert – loddrett rød | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 052 | Festival og konsert | Korkonsert – klassisk | A3 plakat · 3508×4961 | Ikke startet |
-| 053 | Festival og konsert | Julekonsert – rust | A4 plakat · 2480×3508 | Ikke startet |
-| 054 | Festival og konsert | Festivaluke – kondensert | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 055 | Festival og konsert | Nattkonsert – glød | Story 9:16 · 1080×1920 | Ikke startet |
-| 056 | Festival og konsert | Konsert – bred tittel | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 057 | Festival og konsert | Festivaldager – faner | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 058 | Festival og konsert | Gospelkveld – buet form | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 059 | Festival og konsert | Festivalprogram – to dager | A4 plakat · 2480×3508 | Ikke startet |
-| 060 | Festival og konsert | Festivalpass – billett | Visittkort · 1004×650 | Ikke startet |
-| 061 | Bibelvers, sitat og typografi | Salme – kornet mørk | Story 9:16 · 1080×1920 | Ikke startet |
-| 062 | Bibelvers, sitat og typografi | Vers – lys kornet | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 063 | Bibelvers, sitat og typografi | Sitat – gode ting tar tid | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 064 | Bibelvers, sitat og typografi | Ett ord – HÅP | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 065 | Bibelvers, sitat og typografi | Didone – vers story | Story 9:16 · 1080×1920 | Ikke startet |
-| 066 | Bibelvers, sitat og typografi | Bue – vers story | Story 9:16 · 1080×1920 | Ikke startet |
-| 067 | Bibelvers, sitat og typografi | Script over ord – Nåde | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 068 | Bibelvers, sitat og typografi | Gjentatt ord – BE | Story 9:16 · 1080×1920 | Ikke startet |
-| 069 | Bibelvers, sitat og typografi | Minimal overlegg – sitat | Story 9:16 · 1080×1920 | Ikke startet |
-| 070 | Bibelvers, sitat og typografi | Loddrett ord – FRED | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 071 | Bibelvers, sitat og typografi | Ord med bildebånd – TILLIT | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 072 | Bibelvers, sitat og typografi | Håndskrift-markering – vers | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 073 | Bibelvers, sitat og typografi | Dagens ord – kvadrat | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 074 | Bibelvers, sitat og typografi | Glød – vers kvadrat | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 075 | Bibelvers, sitat og typografi | Stablet grått ord | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 076 | Bibelvers, sitat og typografi | Konturtall – Salme 23 | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 077 | Bibelvers, sitat og typografi | Loddrett serif – vers kvadrat | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 078 | Bibelvers, sitat og typografi | Hjørnemerker – sitat | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 079 | Bibelvers, sitat og typografi | Rotert sidetekst – vers | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 080 | Bibelvers, sitat og typografi | Nyttår – 2027 | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 081 | Hverdag, kafé, info og sosiale medier | Vi har åpent | Story 9:16 · 1080×1920 | Ikke startet |
-| 082 | Hverdag, kafé, info og sosiale medier | Meny – ryggrad | Story 9:16 · 1080×1920 | Ikke startet |
-| 083 | Hverdag, kafé, info og sosiale medier | Kirkekafé – stemning | Story 9:16 · 1080×1920 | Ikke startet |
-| 084 | Hverdag, kafé, info og sosiale medier | Daglig story | Story 9:16 · 1080×1920 | Ikke startet |
-| 085 | Hverdag, kafé, info og sosiale medier | Velkommen – nye medlemmer | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 086 | Hverdag, kafé, info og sosiale medier | Kvittering – takk for gaven | Story 9:16 · 1080×1920 | Ikke startet |
-| 087 | Hverdag, kafé, info og sosiale medier | Infoplakat – dugnad | A4 plakat · 2480×3508 | Ikke startet |
-| 088 | Hverdag, kafé, info og sosiale medier | Kursplan – kvadrat | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 089 | Hverdag, kafé, info og sosiale medier | Kunngjøring – uskarp | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 090 | Hverdag, kafé, info og sosiale medier | Velkommen – skjerm | 16:9 · 1920×1080 | Ikke startet |
-| 091 | Hverdag, kafé, info og sosiale medier | Taler – presentasjon | 16:9 · 1920×1080 | Ikke startet |
-| 092 | Hverdag, kafé, info og sosiale medier | Nyhetsbrev – story | Story 9:16 · 1080×1920 | Ikke startet |
-| 093 | Hverdag, kafé, info og sosiale medier | Kafémeny – liste | A4 plakat · 2480×3508 | Ikke startet |
-| 094 | Hverdag, kafé, info og sosiale medier | Visittkort – moderne | Visittkort · 1004×650 | Ikke startet |
-| 095 | Hverdag, kafé, info og sosiale medier | Visittkort – blå håndskrift | Visittkort · 1004×650 | Ikke startet |
-| 096 | Hverdag, kafé, info og sosiale medier | Takk til frivillige – rulletekst | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 097 | Hverdag, kafé, info og sosiale medier | Endrede tider – kvadrat | Instagram 1:1 · 1080×1080 | Ikke startet |
-| 098 | Hverdag, kafé, info og sosiale medier | Priser – diagonal | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 099 | Hverdag, kafé, info og sosiale medier | Jubileum – 50 ÅR | Instagram 4:5 · 1080×1350 | Ikke startet |
-| 100 | Hverdag, kafé, info og sosiale medier | Vers på skjerm | 16:9 · 1920×1080 | Ikke startet |
+| 001 | Arrangement og plakater | Søndag – tre felt | Instagram 4:5 · 1080×1350 | Testet |
+| 002 | Arrangement og plakater | Konsert – fotostriper | A4 plakat · 2480×3508 | Testet |
+| 003 | Arrangement og plakater | Første onsdag | Instagram 4:5 · 1080×1350 | Testet |
+| 004 | Arrangement og plakater | Vekkelsesmøte – glød | Story 9:16 · 1080×1920 | Testet |
+| 005 | Arrangement og plakater | Bønnenatt – bred tittel | Story 9:16 · 1080×1920 | Testet |
+| 006 | Arrangement og plakater | Oppstart – rød tittel | Instagram 4:5 · 1080×1350 | Testet |
+| 007 | Arrangement og plakater | Hold av datoen | Instagram 4:5 · 1080×1350 | Testet |
+| 008 | Arrangement og plakater | Lederkveld – blå håndskrift | Instagram 4:5 · 1080×1350 | Testet |
+| 009 | Arrangement og plakater | Konferanse – pensel diagonal | Story 9:16 · 1080×1920 | Testet |
+| 010 | Arrangement og plakater | Invitasjon – kvittering | Story 9:16 · 1080×1920 | Testet |
+| 011 | Arrangement og plakater | Parkveld – rust | Story 9:16 · 1080×1920 | Testet |
+| 012 | Arrangement og plakater | Bønneuke – høy kondensert | Story 9:16 · 1080×1920 | Testet |
+| 013 | Arrangement og plakater | Søndag – buet form | Story 9:16 · 1080×1920 | Testet |
+| 014 | Arrangement og plakater | Søndag ettermiddag – rød | Story 9:16 · 1080×1920 | Testet |
+| 015 | Arrangement og plakater | Etter mørket – glød | Instagram 4:5 · 1080×1350 | Testet |
+| 016 | Arrangement og plakater | Horisont – retreat | A4 plakat · 2480×3508 | Testet |
+| 017 | Arrangement og plakater | Bue – stillhetskveld | A4 plakat · 2480×3508 | Testet |
+| 018 | Arrangement og plakater | Frokostmøte – konturtall | Story 9:16 · 1080×1920 | Testet |
+| 019 | Arrangement og plakater | Bølgekolonne – pinsemøte | Story 9:16 · 1080×1920 | Testet |
+| 020 | Arrangement og plakater | Bibeldagen – script over tittel | Story 9:16 · 1080×1920 | Testet |
+| 021 | Program, ukeplan og kalender | Hva skjer denne uka | Story 9:16 · 1080×1920 | Testet |
+| 022 | Program, ukeplan og kalender | Kommende arrangementer | Instagram 4:5 · 1080×1350 | Testet |
+| 023 | Program, ukeplan og kalender | Arrangementskalender – kort | Instagram 4:5 · 1080×1350 | Testet |
+| 024 | Program, ukeplan og kalender | Aktivitetsplan – fet + tynn | Instagram 4:5 · 1080×1350 | Testet |
+| 025 | Program, ukeplan og kalender | Program – loddrett tittel | Instagram 4:5 · 1080×1350 | Testet |
+| 026 | Program, ukeplan og kalender | Konferanseprogram – tabell | A4 plakat · 2480×3508 | Testet |
+| 027 | Program, ukeplan og kalender | Kommende konserter – diagonal | Instagram 4:5 · 1080×1350 | Testet |
+| 028 | Program, ukeplan og kalender | Datofaner – rød | Story 9:16 · 1080×1920 | Testet |
+| 029 | Program, ukeplan og kalender | Tidslinje – to scener | Story 9:16 · 1080×1920 | Testet |
+| 030 | Program, ukeplan og kalender | Månedsplakat – DESEMBER | Instagram 4:5 · 1080×1350 | Testet |
+| 031 | Program, ukeplan og kalender | Dagens program – story | Story 9:16 · 1080×1920 | Testet |
+| 032 | Program, ukeplan og kalender | Dagsprogram – ryggrad | Story 9:16 · 1080×1920 | Testet |
+| 033 | Program, ukeplan og kalender | Ukeplan – lys pille | Instagram 4:5 · 1080×1350 | Testet |
+| 034 | Program, ukeplan og kalender | Vaktliste – skjerm | 16:9 · 1920×1080 | Testet |
+| 035 | Program, ukeplan og kalender | Ukens møter – mørke kort | Story 9:16 · 1080×1920 | Testet |
+| 036 | Program, ukeplan og kalender | Seminarplan – skjerm | 16:9 · 1920×1080 | Testet |
+| 037 | Program, ukeplan og kalender | Månedskalender – rutenett | Instagram 4:5 · 1080×1350 | Testet |
+| 038 | Program, ukeplan og kalender | Åpningstider – uke | Story 9:16 · 1080×1920 | Testet |
+| 039 | Program, ukeplan og kalender | Turnéplan – faner | Instagram 4:5 · 1080×1350 | Testet |
+| 040 | Program, ukeplan og kalender | Møteplan – sveitsisk | A4 plakat · 2480×3508 | Testet |
+| 041 | Festival og konsert | Festival – lineup serif | Instagram 4:5 · 1080×1350 | Testet |
+| 042 | Festival og konsert | Festivalprogram – 16:9 | 16:9 · 1920×1080 | Testet |
+| 043 | Festival og konsert | Konsertserie – story | Story 9:16 · 1080×1920 | Testet |
+| 044 | Festival og konsert | Lovsangskveld – grunge | Story 9:16 · 1080×1920 | Testet |
+| 045 | Festival og konsert | Ungdomsfestival – oransje | Story 9:16 · 1080×1920 | Testet |
+| 046 | Festival og konsert | Konsert – glød | Instagram 4:5 · 1080×1350 | Testet |
+| 047 | Festival og konsert | Sommerfest – himmel | Instagram 4:5 · 1080×1350 | Testet |
+| 048 | Festival og konsert | Festival – hold av datoen | Story 9:16 · 1080×1920 | Testet |
+| 049 | Festival og konsert | Lineup – mørk story | Story 9:16 · 1080×1920 | Testet |
+| 050 | Festival og konsert | Festival – diagonal gul | Instagram 4:5 · 1080×1350 | Testet |
+| 051 | Festival og konsert | Konsert – loddrett rød | Instagram 4:5 · 1080×1350 | Testet |
+| 052 | Festival og konsert | Korkonsert – klassisk | A3 plakat · 3508×4961 | Testet |
+| 053 | Festival og konsert | Julekonsert – rust | A4 plakat · 2480×3508 | Testet |
+| 054 | Festival og konsert | Festivaluke – kondensert | Instagram 4:5 · 1080×1350 | Testet |
+| 055 | Festival og konsert | Nattkonsert – glød | Story 9:16 · 1080×1920 | Testet |
+| 056 | Festival og konsert | Konsert – bred tittel | Instagram 4:5 · 1080×1350 | Testet |
+| 057 | Festival og konsert | Festivaldager – faner | Instagram 4:5 · 1080×1350 | Testet |
+| 058 | Festival og konsert | Gospelkveld – buet form | Instagram 4:5 · 1080×1350 | Testet |
+| 059 | Festival og konsert | Festivalprogram – to dager | A4 plakat · 2480×3508 | Testet |
+| 060 | Festival og konsert | Festivalpass – billett | Visittkort · 1004×650 | Testet |
+| 061 | Bibelvers, sitat og typografi | Salme – kornet mørk | Story 9:16 · 1080×1920 | Testet |
+| 062 | Bibelvers, sitat og typografi | Vers – lys kornet | Instagram 4:5 · 1080×1350 | Testet |
+| 063 | Bibelvers, sitat og typografi | Sitat – gode ting tar tid | Instagram 4:5 · 1080×1350 | Testet |
+| 064 | Bibelvers, sitat og typografi | Ett ord – HÅP | Instagram 4:5 · 1080×1350 | Testet |
+| 065 | Bibelvers, sitat og typografi | Didone – vers story | Story 9:16 · 1080×1920 | Testet |
+| 066 | Bibelvers, sitat og typografi | Bue – vers story | Story 9:16 · 1080×1920 | Testet |
+| 067 | Bibelvers, sitat og typografi | Script over ord – Nåde | Instagram 4:5 · 1080×1350 | Testet |
+| 068 | Bibelvers, sitat og typografi | Gjentatt ord – BE | Story 9:16 · 1080×1920 | Testet |
+| 069 | Bibelvers, sitat og typografi | Minimal overlegg – sitat | Story 9:16 · 1080×1920 | Testet |
+| 070 | Bibelvers, sitat og typografi | Loddrett ord – FRED | Instagram 4:5 · 1080×1350 | Testet |
+| 071 | Bibelvers, sitat og typografi | Ord med bildebånd – TILLIT | Instagram 4:5 · 1080×1350 | Testet |
+| 072 | Bibelvers, sitat og typografi | Håndskrift-markering – vers | Instagram 4:5 · 1080×1350 | Testet |
+| 073 | Bibelvers, sitat og typografi | Dagens ord – kvadrat | Instagram 1:1 · 1080×1080 | Testet |
+| 074 | Bibelvers, sitat og typografi | Glød – vers kvadrat | Instagram 1:1 · 1080×1080 | Testet |
+| 075 | Bibelvers, sitat og typografi | Stablet grått ord | Instagram 1:1 · 1080×1080 | Testet |
+| 076 | Bibelvers, sitat og typografi | Konturtall – Salme 23 | Instagram 4:5 · 1080×1350 | Testet |
+| 077 | Bibelvers, sitat og typografi | Loddrett serif – vers kvadrat | Instagram 1:1 · 1080×1080 | Testet |
+| 078 | Bibelvers, sitat og typografi | Hjørnemerker – sitat | Instagram 1:1 · 1080×1080 | Testet |
+| 079 | Bibelvers, sitat og typografi | Rotert sidetekst – vers | Instagram 1:1 · 1080×1080 | Testet |
+| 080 | Bibelvers, sitat og typografi | Nyttår – 2027 | Instagram 4:5 · 1080×1350 | Testet |
+| 081 | Hverdag, kafé, info og sosiale medier | Vi har åpent | Story 9:16 · 1080×1920 | Testet |
+| 082 | Hverdag, kafé, info og sosiale medier | Meny – ryggrad | Story 9:16 · 1080×1920 | Testet |
+| 083 | Hverdag, kafé, info og sosiale medier | Kirkekafé – stemning | Story 9:16 · 1080×1920 | Testet |
+| 084 | Hverdag, kafé, info og sosiale medier | Daglig story | Story 9:16 · 1080×1920 | Testet |
+| 085 | Hverdag, kafé, info og sosiale medier | Velkommen – nye medlemmer | Instagram 4:5 · 1080×1350 | Testet |
+| 086 | Hverdag, kafé, info og sosiale medier | Kvittering – takk for gaven | Story 9:16 · 1080×1920 | Testet |
+| 087 | Hverdag, kafé, info og sosiale medier | Infoplakat – dugnad | A4 plakat · 2480×3508 | Testet |
+| 088 | Hverdag, kafé, info og sosiale medier | Kursplan – kvadrat | Instagram 1:1 · 1080×1080 | Testet |
+| 089 | Hverdag, kafé, info og sosiale medier | Kunngjøring – uskarp | Instagram 1:1 · 1080×1080 | Testet |
+| 090 | Hverdag, kafé, info og sosiale medier | Velkommen – skjerm | 16:9 · 1920×1080 | Testet |
+| 091 | Hverdag, kafé, info og sosiale medier | Taler – presentasjon | 16:9 · 1920×1080 | Testet |
+| 092 | Hverdag, kafé, info og sosiale medier | Nyhetsbrev – story | Story 9:16 · 1080×1920 | Testet |
+| 093 | Hverdag, kafé, info og sosiale medier | Kafémeny – liste | A4 plakat · 2480×3508 | Testet |
+| 094 | Hverdag, kafé, info og sosiale medier | Visittkort – moderne | Visittkort · 1004×650 | Testet |
+| 095 | Hverdag, kafé, info og sosiale medier | Visittkort – blå håndskrift | Visittkort · 1004×650 | Testet |
+| 096 | Hverdag, kafé, info og sosiale medier | Takk til frivillige – rulletekst | Instagram 4:5 · 1080×1350 | Testet |
+| 097 | Hverdag, kafé, info og sosiale medier | Endrede tider – kvadrat | Instagram 1:1 · 1080×1080 | Testet |
+| 098 | Hverdag, kafé, info og sosiale medier | Priser – diagonal | Instagram 4:5 · 1080×1350 | Testet |
+| 099 | Hverdag, kafé, info og sosiale medier | Jubileum – 50 ÅR | Instagram 4:5 · 1080×1350 | Testet |
+| 100 | Hverdag, kafé, info og sosiale medier | Vers på skjerm | 16:9 · 1920×1080 | Testet |

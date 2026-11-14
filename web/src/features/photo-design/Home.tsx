@@ -7,6 +7,7 @@ import { FORMATS, TEMPLATES, type Format, type PdDoc, type Scheme } from './engi
 import { applyScheme, liveScheme, tplDoc } from './engine/palette'
 import { docFonts, render } from './engine/render'
 import type { Phrase, Tx } from './texts'
+import { LIB_CATS, type LibPhoto } from './engine/templates'
 import s from './PhotoDesign.module.css'
 
 /**
@@ -86,8 +87,53 @@ function TplPreview({ k, w, h, scheme, own, tx }: { k: string; w: number; h: num
   return <canvas ref={ref} width={10} height={10} className={s.tplCanvas} />
 }
 
+/** Miniatyr av en ferdig mal fra designsamlingen, med fargevalget på startsiden. */
+function LibPreview({ t, scheme, tx }: { t: LibPhoto; scheme: Scheme | null; tx: Tx }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  const key = JSON.stringify(scheme)
+  useEffect(() => {
+    const c = ref.current
+    if (!c) return
+    let ver = 0
+    const draw = (sc: Scheme | null) => {
+      const v = ++ver
+      queueDraw(() => {
+        if (v !== ver) return
+        const d = sc ? applyScheme(t.doc, sc) : t.doc
+        const z = Math.min(160 / d.w, 160 / d.h)
+        const dpr = Math.min(2, window.devicePixelRatio || 1)
+        const W = Math.round(d.w * z * dpr), H = Math.round(d.h * z * dpr)
+        if (c.width !== W || c.height !== H) {
+          c.width = W
+          c.height = H
+          c.style.width = `${Math.round(d.w * z)}px`
+          c.style.height = `${Math.round(d.h * z)}px`
+        }
+        const g = c.getContext('2d')
+        if (g) render(g, d, z * dpr, { media: new Map(), masks: new Map() }, { phText: tx('Bilde') })
+      })
+    }
+    const saved = JSON.parse(key) as Scheme | null
+    draw(saved)
+    void Promise.all([document.fonts?.ready, docFonts(t.doc)]).then(() => {
+      if (ver >= 0) draw(saved)
+    })
+    const off = liveScheme.sub((scope, sc) => {
+      if (scope === 'home' && sc !== undefined) draw(sc)
+    })
+    return () => {
+      ver = -1e9
+      off()
+    }
+  }, [t, key, tx])
+  return <canvas ref={ref} />
+}
+
 export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoController; S: PState; tx: Tx; onBackup: () => void; onRestore: () => void; onBatch: () => void }) {
   const [w, h] = c.fmtWH()
+  useEffect(() => {
+    void c.loadLib()
+  }, [c])
   const fm: Format[] = [...FORMATS, { k: 'custom', l: 'Egendefinert', w: +S.cw || 1200, h: +S.ch || 800 }]
   const cat = c.catNow()
   const mine = S.entries.filter((p) => p.tpl && p.cat === cat)
@@ -151,6 +197,25 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
               </div>
             )
           })}
+        </div>
+      </section>
+      {/* ferdige maler fra designsamlingen (fase 5) – et tillegg; malene over er uendret */}
+      <section className={s.section} data-pd-lib="">
+        <span className={s.eyebrow}>{tx('Ferdige maler')}</span>
+        <span className={s.note}>{tx('Fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger. Fargene over gjelder også disse.')}</span>
+        <div className={s.chips} role="group" aria-label={tx('Ferdige maler')} data-pd-lib-cats="">
+          {LIB_CATS.map((k) => <button key={k} type="button" className={s.chip} aria-pressed={S.libCat === k} onClick={() => c.setLibCat(k)}>{tx(k)}</button>)}
+        </div>
+        {S.lib == null && <span className={s.note}>{tx('Laster …')}</span>}
+        <div className={s.tplGrid}>
+          {(S.lib ?? []).filter((t) => t.cat === S.libCat).map((t) => (
+            <div key={t.id} className={s.tplItem}>
+              <button type="button" className={s.tplCard} data-pd-lib-tpl={t.id} onClick={() => c.createLib(t)}>
+                <div className={s.tplBox}><LibPreview t={t} scheme={S.scheme} tx={tx} /></div>
+                <span className={s.tplName}>{t.id} {t.name}</span>
+              </button>
+            </div>
+          ))}
         </div>
       </section>
       <section className={s.section}>

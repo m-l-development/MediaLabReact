@@ -2,7 +2,7 @@ import { drawFill, fillOn } from '../../../shared/fill/fill'
 import { loadFonts, loadStretch } from '../../../shared/fonts/loader'
 import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { fillPaint } from '../../thumbnail-studio/engine/paint'
-import { grainImage, loadGrain } from '../../thumbnail-studio/engine/filters'
+import { loadGrain } from '../../thumbnail-studio/engine/filters'
 import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
 import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, pdFont, textBox, type Adj, type PdDoc, type PdLayer, type ShapeLayer, type Side, type TextLayer } from './model'
@@ -625,29 +625,34 @@ function customPath(L: ShapeLayer): Path2D | null {
   return null
 }
 
-let grungeTile: { k: number; c: HTMLCanvasElement } | null = null
-/** Slitt tekst: kornet fra materialet med terskel (hull der støyen er mørkest). `amt` = andel som slites bort. */
-function grungeMask(amt: number): HTMLCanvasElement | null {
-  const im = grainImage()
-  if (!im) return null
-  const k = Math.round(clamp(amt, 0, 1) * 20) / 20
-  if (grungeTile?.k === k) return grungeTile.c
-  const c = mk(240, 240)
-  const g = ctx(c)
-  g.drawImage(im, 0, 0, 240, 240)
-  const d = g.getImageData(0, 0, 240, 240)
-  const lum: number[] = []
-  for (let i = 0; i < d.data.length; i += 4) lum.push((d.data[i] ?? 0) * 0.3 + (d.data[i + 1] ?? 0) * 0.59 + (d.data[i + 2] ?? 0) * 0.11)
-  const t = [...lum].sort((a, b) => a - b)[Math.min(lum.length - 1, Math.floor(lum.length * k * 0.5))] ?? 0
-  for (let i = 0, j = 0; i < d.data.length; i += 4, j++) {
-    d.data[i] = 0
-    d.data[i + 1] = 0
-    d.data[i + 2] = 0
-    d.data[i + 3] = (lum[j] ?? 255) < t ? 255 : 0
-  }
-  g.putImageData(d, 0, 0)
-  grungeTile = { k, c }
-  return c
+// slitt tekst som i materialet (.grunge): støy (feTurbulence .55, 3 oktaver, 420 px) med alfa-terskel
+// (-15 · a + 10,6) brukt som maske i 520 px-ruter. Styrken flytter terskelen: 100 % = materialets maske, 0 = ingen hull.
+const grungeImgs = new Map<number, HTMLImageElement | null>()
+const grungeKey = (amt: number) => Math.round(clamp(amt, 0, 1) * 20) / 20
+function grungeSvg(k: number): string {
+  const off = (15 - 4.4 * k).toFixed(2)
+  return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -15 " + off + "'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"
+}
+/** Laster masken for styrken (tegning før den er klar viser teksten uten slitasje; eksporten venter, se docFonts). */
+export function loadGrunge(amt: number): Promise<void> {
+  const k = grungeKey(amt)
+  if (grungeImgs.has(k) || typeof Image === 'undefined') return Promise.resolve()
+  grungeImgs.set(k, null)
+  return new Promise<void>((res) => {
+    const im = new Image()
+    im.onload = () => {
+      grungeImgs.set(k, im)
+      res()
+    }
+    im.onerror = () => res()
+    im.src = grungeSvg(k)
+  })
+}
+function grungeMask(amt: number): HTMLImageElement | null {
+  const k = grungeKey(amt)
+  const im = grungeImgs.get(k)
+  if (im === undefined) void loadGrunge(amt)
+  return im ?? null
 }
 
 /**
@@ -799,9 +804,9 @@ function drawPdText(g: G, L: TextLayer, M: Media) {
     if (gm) {
       const pat = tg.createPattern(gm, 'repeat')
       if (pat) {
-        // kornet i samme størrelse i forhold til teksten som i materialet (240 px-rute ved 1280 px bredde)
-        pat.setTransform(new DOMMatrix().scale(Math.max(0.5, (L.size / 120) * k)))
-        tg.globalCompositeOperation = 'destination-out'
+        // masken i 520 px-ruter (dokumentpiksler), som mask-size i materialet; bare det masken dekker blir igjen
+        pat.setTransform(new DOMMatrix().scale((520 / 420) * k))
+        tg.globalCompositeOperation = 'destination-in'
         tg.fillStyle = pat
         tg.fillRect(0, 0, cw, ch)
       }
@@ -842,6 +847,7 @@ export function docFonts(d: PdDoc): Promise<unknown> {
     loadFonts(texts.map((l) => ({ font: l.font, weight: l.weight, italic: !!l.italic }))),
     ...texts.filter((l) => l.stretch && l.stretch !== 100).map((l) => loadStretch(l.font, l.stretch ?? 100, l.weight, !!l.italic)),
     loadGrain(),
+    ...texts.filter((l) => (l.grunge ?? 0) > 0).map((l) => loadGrunge(l.grunge ?? 0)),
   ])
 }
 

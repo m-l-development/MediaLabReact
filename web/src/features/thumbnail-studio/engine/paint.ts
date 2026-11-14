@@ -33,7 +33,13 @@ function alphaOf(c: string): number | null {
   return m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4])
 }
 const rgbOf = (c: string): string | null => {
-  const m = RGBA.exec(c.trim())
+  const t = c.trim()
+  const h = /^#([0-9a-f]{6})$/i.exec(t)
+  if (h?.[1]) {
+    const v = parseInt(h[1], 16)
+    return `${(v >> 16) & 255},${(v >> 8) & 255},${v & 255}`
+  }
+  const m = RGBA.exec(t)
   return m ? `${m[1]},${m[2]},${m[3]}` : null
 }
 
