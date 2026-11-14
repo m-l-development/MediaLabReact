@@ -217,3 +217,12 @@ li[aria-selected='true'] .row {
   color: #f0a35a;
   font-size: 11px;
 }
+
+/* valgt font uten Æ, Ø og Å */
+.noAeoaNote {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #f0a35a;
+}

@@ -67,6 +67,8 @@ export function FontPicker({ value, onChange, label, top = [], sample = SAMPLE, 
         <span>{value}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
+      {/* valgt font uten Æ, Ø og Å (også i eksisterende prosjekter): sagt tydelig, gjelder både visning og eksport */}
+      {fontByName(value)?.noAeoa && <span className={s.noAeoaNote} role="note" data-font-noaeoa-note="">{t('fp.noAeoaNote')}</span>}
       {open && (
         <div className={s.pop} role="dialog" aria-label={label}>
           <input ref={search} type="search" className={s.search} value={q} placeholder={t('fp.search')} aria-label={t('fp.search')} data-font-search=""

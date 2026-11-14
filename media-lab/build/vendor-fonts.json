@@ -1519,6 +1519,18 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/dejavu-sans@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "DejaVu Sans",
+  "slug": "dejavu-sans",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/saira@5.3.0",
   "css": [
    "wdth.css",
@@ -1554,6 +1566,28 @@
   ],
   "family": "Kulim Park",
   "slug": "kulim-park",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/alegreya-sans@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Alegreya Sans",
+  "slug": "alegreya-sans",
   "lazy": true
  },
  {
@@ -1884,6 +1918,16 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/fanwood-text@5.3.0",
+  "css": [
+   "400-italic.css",
+   "400.css"
+  ],
+  "family": "Fanwood Text",
+  "slug": "fanwood-text",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/piazzolla@5.3.0",
   "css": [
    "wght.css",
@@ -1933,12 +1977,32 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource-variable/alegreya@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Alegreya",
+  "slug": "alegreya",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/hedvig-letters-serif@5.3.1",
   "css": [
    "index.css"
   ],
   "family": "Hedvig Letters Serif",
   "slug": "hedvig-letters-serif",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/andada-pro@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Andada Pro",
+  "slug": "andada-pro",
   "lazy": true
  },
  {
@@ -2000,6 +2064,25 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/goudy-bookletter-1911@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Goudy Bookletter 1911",
+  "slug": "goudy-bookletter-1911",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource-variable/bitter@5.3.0",
+  "css": [
+   "wght.css",
+   "wght-italic.css"
+  ],
+  "family": "Bitter",
+  "slug": "bitter",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/geom@5.3.0",
   "css": [
    "wght.css",
@@ -2017,6 +2100,15 @@
   ],
   "family": "Bluu Next",
   "slug": "bluu-next",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/cambo@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Cambo",
+  "slug": "cambo",
   "lazy": true
  },
  {
@@ -2101,6 +2193,15 @@
   ],
   "family": "Geist Mono",
   "slug": "geist-mono",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/chunk-five@5.3.0",
+  "css": [
+   "800.css"
+  ],
+  "family": "ChunkFive",
+  "slug": "chunk-five",
   "lazy": true
  },
  {

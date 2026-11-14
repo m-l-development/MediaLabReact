@@ -11,6 +11,22 @@ test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'PC'))
 /** 12 tydelig ulike farger (én per felt). */
 const COLORS: [number, number, number][] = [[230, 30, 30], [30, 200, 40], [30, 60, 230], [240, 200, 20], [200, 30, 200], [20, 200, 210], [250, 130, 20], [120, 60, 20], [140, 140, 140], [255, 160, 200], [20, 90, 60], [120, 20, 160]]
 
+/** Gjennomsnittlig lyshet i øvre venstre hjørne av de 12 feltene (1920 × 1080-koordinater, skalert til bildet). */
+function measure(g: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, w: number): number[] {
+  const k = w / 1920
+  const out: number[] = []
+  for (let i = 0; i < 12; i++) {
+    const d = g.getImageData(Math.round((30 + (i % 4) * 468 + 24) * k), Math.round((30 + Math.floor(i / 4) * 348 + 24) * k), Math.max(4, Math.round(40 * k)), Math.max(4, Math.round(40 * k))).data
+    let s = 0
+    for (let j = 0; j < d.length; j += 4) s += (d[j] ?? 0) * 0.3 + (d[j + 1] ?? 0) * 0.59 + (d[j + 2] ?? 0) * 0.11
+    out.push(s / (d.length / 4))
+  }
+  return out
+}
+const MEASURE = measure.toString()
+const sampleCanvas = new Function(`const measure = ${MEASURE}; const c = document.querySelector('[data-ts-canvas]'); return measure(c.getContext('2d'), c.width)`) as () => number[]
+const samplePng = new Function('b64', `const measure = ${MEASURE}; return (async () => { const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob()); const c = new OffscreenCanvas(bmp.width, bmp.height); const g = c.getContext('2d'); g.drawImage(bmp, 0, 0); return measure(g, bmp.width) })()`) as (b64: string) => Promise<number[]>
+
 async function newFrom(page: Page, cat: string, code: string) {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/thumbnail-studio')
@@ -39,12 +55,28 @@ test('trl-22: alle 12 bildefeltene kan fylles, og alle er med i eksporten', asyn
   await expect(page.locator('[data-layer]').filter({ hasText: /^BILDE\s*Bilde/i })).toHaveCount(12)
   for (let i = 0; i < 12; i++) await fill(page, i)
   await expect(page.getByText('Maks 5 bilder per mal')).toHaveCount(0)
-  // lagres og åpnes igjen med alle bildene
+  // malen har F06 Svart-hvitt på feltene (materialet): bildene er 12 gråtoner i stigende lyshet, lagt inn fra øverst i
+  // laglisten (siste felt først). Hvert felt måles i øvre venstre hjørne; midtraden ligger under en lys flate i designet
+  // (bildene skinner svakt gjennom), så rekkefølgen sjekkes innen hver rad, og øverste rad er lysere enn nederste.
+  const check = (lum: number[], where: string) => {
+    const why = where + ' ' + JSON.stringify(lum.map((v) => Math.round(v * 10) / 10))
+    for (let i = 1; i < 12; i++) if (i % 4) expect(lum[i] ?? 0, why).toBeLessThan((lum[i - 1] ?? 0) - 0.4)
+    expect(Math.min(...lum.slice(0, 4)), why).toBeGreaterThan(Math.max(...lum.slice(8)))
+  }
+  // redigering og forhåndsvisning: lerretet i editoren
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(400)
+  check(await page.evaluate(sampleCanvas), 'lerret')
+  // lagres og åpnes igjen med alle bildene i samme felt
   await page.getByRole('button', { name: 'Lagre mal' }).click()
   await page.getByRole('dialog', { name: 'Lagre mal' }).getByRole('button', { name: 'Lagre som ny mal' }).click()
   await expect(page.getByText('Malen er lagret.')).toBeVisible()
   await page.reload()
   await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
+  await expect(page.locator('[data-layer]').filter({ hasText: /^BILDE\s*Bilde/i })).toHaveCount(12)
+  await expect.poll(async () => { try { check(await page.evaluate(sampleCanvas), 'etter omlasting'); return true } catch { return false } }, { timeout: 15_000 }).toBe(true)
+  check(await page.evaluate(sampleCanvas), 'etter omlasting')
+  // eksport 1080p
   await page.getByRole('button', { name: 'Eksporter', exact: true }).click()
   const exp = page.getByRole('dialog', { name: 'Eksporter' })
   await expect(exp.getByText(/Filstørrelse:/)).toBeVisible({ timeout: 30_000 })
@@ -52,26 +84,7 @@ test('trl-22: alle 12 bildefeltene kan fylles, og alle er med i eksporten', asyn
   await exp.getByRole('button', { name: /^Last ned/ }).click()
   const file = info.outputPath('trl22.png')
   await (await dl).saveAs(file)
-  // malen har F06 Svart-hvitt på feltene (materialet): bildene er 12 gråtoner i stigende lyshet, lagt inn fra øverst i
-  // laglisten (siste felt først); feltene i eksporten må ha nøyaktig den rekkefølgen – da står hvert bilde i sitt felt
-  const lum = await page.evaluate(async (b64) => {
-    const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
-    const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
-    g.drawImage(bmp, 0, 0)
-    const out: number[] = []
-    for (let i = 0; i < 12; i++) {
-      const d = g.getImageData(30 + (i % 4) * 468 + 24, 30 + Math.floor(i / 4) * 348 + 24, 40, 40).data
-      let s = 0
-      for (let j = 0; j < d.length; j += 4) s += (d[j] ?? 0) * 0.3 + (d[j + 1] ?? 0) * 0.59 + (d[j + 2] ?? 0) * 0.11
-      out.push(s / (d.length / 4))
-    }
-    return out
-  }, fs.readFileSync(file).toString('base64'))
-  // midtraden ligger under en lys flate i designet (bildene skinner svakt gjennom): synkende innen hver rad
-  const why = JSON.stringify(lum.map((v) => Math.round(v * 10) / 10))
-  for (let i = 1; i < 12; i++) if (i % 4) expect(lum[i] ?? 0, why).toBeLessThan((lum[i - 1] ?? 0) - 0.4)
-  expect(Math.min(...lum.slice(0, 4)), why).toBeGreaterThan(Math.max(...lum.slice(8)))
+  check(await page.evaluate(samplePng, fs.readFileSync(file).toString('base64')), 'eksport')
   expect(errors).toEqual([])
 })
 

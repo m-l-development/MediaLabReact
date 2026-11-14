@@ -4327,6 +4327,31 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "dejavu-sans",
+  "name": "DejaVu Sans",
+  "style": "mono",
+  "uses": [
+   "K",
+   "T"
+  ],
+  "source": "open",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/dejavu-sans.css",
+  "variable": false,
+  "license": "Bitstream-Vera"
+ },
+ {
   "id": "saira",
   "name": "Saira",
   "style": "sans",
@@ -4413,6 +4438,38 @@
    "bi": true
   },
   "css": "/fonts/kulim-park.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "alegreya-sans",
+  "name": "Alegreya Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L",
+   "F"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   100,
+   300,
+   400,
+   500,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/alegreya-sans.css",
   "variable": false,
   "license": "OFL-1.1"
  },
@@ -5184,6 +5241,31 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "fanwood-text",
+  "name": "Fanwood Text",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "B"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": true,
+   "bi": false
+  },
+  "css": "/fonts/fanwood-text.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
   "id": "piazzolla",
   "name": "Piazzolla",
   "style": "serif",
@@ -5326,6 +5408,35 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "alegreya",
+  "name": "Alegreya",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/alegreya.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
   "id": "hedvig-letters-serif",
   "name": "Hedvig Letters Serif",
   "style": "serif",
@@ -5346,6 +5457,34 @@
    "bi": false
   },
   "css": "/fonts/hedvig-letters-serif.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "andada-pro",
+  "name": "Andada Pro",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/andada-pro.css",
   "variable": true,
   "license": "OFL-1.1"
  },
@@ -5510,6 +5649,63 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "goudy-bookletter-1911",
+  "name": "Goudy Bookletter 1911",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "open",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/goudy-bookletter-1911.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bitter",
+  "name": "Bitter",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E",
+   "B"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/bitter.css",
+  "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
   "id": "geom",
   "name": "Geom",
   "style": "disp",
@@ -5560,6 +5756,30 @@
    "bi": true
   },
   "css": "/fonts/bluu-next.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "cambo",
+  "name": "Cambo",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/cambo.css",
   "variable": false,
   "license": "OFL-1.1"
  },
@@ -5803,6 +6023,30 @@
   },
   "css": "/fonts/geist-mono.css",
   "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "chunk-five",
+  "name": "ChunkFive",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   800
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/chunk-five.css",
+  "variable": false,
   "license": "OFL-1.1"
  },
  {

@@ -67,13 +67,37 @@ const missing = []
 // Google-fonter, og de åpne fontene utenfor Google («Last ned selv») som finnes som Fontsource-pakke med lisensfil og en
 // lisens som tillater å legge fonten ved appen. Uten slik pakke tas fonten ikke med (lisensen gjettes aldri).
 const queue = rows.filter((r) => r.lic === 'ok' && (r.src === 'g' || r.src === 'o'))
-const OPEN_LIC = new Set(['OFL-1.1', 'CC0-1.0', 'Unlicense', 'Apache-2.0', 'MIT'])
+const OPEN_LIC = new Set(['OFL-1.1', 'CC0-1.0', 'Unlicense', 'Apache-2.0', 'MIT', 'Bitstream-Vera'])
+// åpne fonter som Fontsource har under stiftelsens eget navn (samme skrift; «ht» = Huerta Tipográfica, som også gir dem
+// ut på Google Fonts): [pakke-id, familienavn]. Kontrollert mot Fontsource-listen 2026-11-14.
+const ALIAS = {
+  DejaVu: ['dejavu-sans', 'DejaVu Sans'], Fanwood: ['fanwood-text', 'Fanwood Text'],
+  'Alegreya ht': ['alegreya', 'Alegreya'], 'Alegreya Sans ht': ['alegreya-sans', 'Alegreya Sans'], 'Andada ht': ['andada-pro', 'Andada Pro'],
+  'Bitter ht': ['bitter', 'Bitter'], 'Cambo ht': ['cambo', 'Cambo'], 'Goudy Bookletter': ['goudy-bookletter-1911', 'Goudy Bookletter 1911'], Chunk: ['chunk-five', 'ChunkFive'],
+}
+// ikke med: Open Sauce (@fontsource/open-sauce-sans 5.3.0): fire av fontfilene, også Regular 400, avvises av Chrome
+// (OTS: invalid sfntVersion) – fonten kan ikke brukes før pakken er rettet. Målt 2026-11-14.
+
+const BROKEN = { 'Open Sauce': '@fontsource/open-sauce-sans 5.3.0 finnes, men fire fontfiler (også Regular 400) avvises av Chrome (OTS: invalid sfntVersion)' }
+
+/** Lisensen slik lisensfilen selv sier den (feltet i package.json kan være feil, f.eks. DejaVu). */
+function licenseOf(text) {
+  if (/SIL OPEN FONT LICENSE/i.test(text)) return 'OFL-1.1'
+  if (/Bitstream Vera/i.test(text) && /Permission is hereby granted/i.test(text)) return 'Bitstream-Vera'
+  if (/Apache License/i.test(text)) return 'Apache-2.0'
+  if (/unlicense\.org|free and unencumbered/i.test(text)) return 'Unlicense'
+  if (/CC0|Creative Commons Zero/i.test(text)) return 'CC0-1.0'
+  if (/MIT License|Permission is hereby granted, free of charge/i.test(text)) return 'MIT'
+  return null
+}
 const skipped = []
 // åpne fonter uten Æ, Ø og Å (målt i Chromium 2026-11-14: tegnene faller tilbake til reservefonten); vises i fontvelgeren
 const NO_AEOA = new Set(['Bagnard', 'Bagnard Sans', 'Ostrich Sans'])
 
 for (const r of queue) {
-  const s = r.src === 'o' && r.dl ? r.dl : slug(r.name)
+  const al = r.src === 'o' ? ALIAS[r.name] : null
+  if (al) r.name = al[1]
+  const s = al ? al[0] : r.src === 'o' && r.dl ? r.dl : slug(r.name)
   const have = HAVE.get(r.name)
   let spec, css, root
   if (have) {
@@ -82,13 +106,15 @@ for (const r of queue) {
     css = have.css
   } else {
     const m = (await meta('@fontsource-variable/' + s)) ?? (await meta('@fontsource/' + s))
-    if (!m) { (r.src === 'o' ? skipped : missing).push(r.name); continue }
+    if (!m) { (r.src === 'o' ? skipped : missing).push(r.src === 'o' ? r.name + (BROKEN[r.name] ? ' (' + BROKEN[r.name] + ')' : ' (ingen pakke med fontfiler og lisensfil i npm/Fontsource; materialet har ikke lisensfilen)') : r.name); continue }
     spec = m.pkg + '@' + m.version
     root = fetchPkg(spec)
     // lisensen fra pakken: kjent åpen lisens og lisensfil som følger fonten
     const pj = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
-    if (!OPEN_LIC.has(pj.license) || !fs.existsSync(path.join(root, 'LICENSE'))) { skipped.push(r.name + ' (lisens ' + pj.license + ')'); continue }
-    r.pkgLicense = pj.license
+    const lf = path.join(root, 'LICENSE')
+    const fileLic = fs.existsSync(lf) ? licenseOf(fs.readFileSync(lf, 'utf8')) : null
+    if (!fileLic || !OPEN_LIC.has(fileLic)) { skipped.push(r.name + ' (lisensfil: ' + (fileLic ?? 'mangler/ukjent') + ', pakke: ' + pj.license + ')'); continue }
+    r.pkgLicense = fileLic
     const files = fs.readdirSync(root).filter((f) => f.endsWith('.css'))
     if (m.pkg.startsWith('@fontsource-variable/')) {
       // alle akser når fonten har flere (bredde, optisk størrelse, SOFT/WONK …), ellers vekt
@@ -101,6 +127,10 @@ for (const r of queue) {
       if (!css.length) css = ['index.css']
     }
   }
+  // lisensen fra lisensfilen for alle fontene (fonten tas bare med når den er en kjent åpen lisens)
+  const licFile = path.join(root, 'LICENSE')
+  const license = fs.existsSync(licFile) ? licenseOf(fs.readFileSync(licFile, 'utf8')) : null
+  if (!license || !OPEN_LIC.has(license)) { (r.src === 'o' ? skipped : missing).push(r.name + ' (lisensfil: ' + (license ?? 'mangler/ukjent') + ')'); continue }
   const fs0 = css.flatMap((c) => faces(fs.readFileSync(path.join(root, c), 'utf8')))
   if (!fs0.length) { missing.push(r.name + ' (ingen latin-filer)'); continue }
   const has = (w, it) => fs0.some((f) => f.italic === it && f.lo <= w && f.hi >= w)
@@ -112,7 +142,7 @@ for (const r of queue) {
     // ekte snitt: Regular, Bold, Italic, Bold Italic (B/I-knappene i editoren)
     snitt: { r: has(400, false) || weights.length > 0, b: has(700, false), i: has(400, true), bi: has(700, true) },
     css: '/fonts/' + (have ? have.slug : s) + '.css', variable: spec.startsWith('@fontsource-variable/'),
-    license: r.pkgLicense ?? 'OFL-1.1',
+    license,
     ...(NO_AEOA.has(r.name) ? { noAeoa: true } : {}),
   })
   process.stdout.write('.')
