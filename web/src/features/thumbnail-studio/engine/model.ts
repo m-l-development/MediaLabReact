@@ -11,6 +11,7 @@ import type { AdvAdj } from '../../../shared/image/AdvAdjust'
  */
 import type { ImgFilter } from './filters'
 import type { Paint } from './paint'
+import type { QrSpec } from '../../../shared/qr/qr'
 export const W = 1920
 export const H = 1080
 export const MAX_IMG = 5
@@ -143,7 +144,7 @@ export interface ImageLayer extends LayerBase, Outline {
 
 export interface ShapeLayer extends LayerBase, Outline {
   type: 'shape'
-  kind: 'rect' | 'rounded' | 'ellipse' | 'line' | 'path'
+  kind: 'rect' | 'rounded' | 'ellipse' | 'line' | 'path' | 'qr'
   radius: number
   fill: string
   fill2: string | null
@@ -158,6 +159,8 @@ export interface ShapeLayer extends LayerBase, Outline {
   sides?: number[] | null
   /** Fri form (kind 'path'): SVG-sti i et eget koordinatsystem (vw × vh) som strekkes over laget. */
   path?: { d: string; vw: number; vh: number; fillRule?: 'nonzero' | 'evenodd' } | null
+  /** QR-kode (kind 'qr'): samme løsning som i Loop Studio (shared/qr). */
+  qr?: QrSpec | null
 }
 
 export interface GlowLayer extends LayerBase {

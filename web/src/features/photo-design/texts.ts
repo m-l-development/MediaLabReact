@@ -828,6 +828,8 @@ export const EN = {
   'Festival og konsert': 'Festival and concert',
   'Bibelvers, sitat og typografi': 'Bible verse, quote and typography',
   'Hverdag, kafé, info og sosiale medier': 'Everyday, café, info and social media',
+  'QR-kode': 'QR code',
+  'QR-kode til en nettside, e-post, telefon, SMS eller tekst': 'QR code for a website, email, phone, SMS or text',
 } as const satisfies Record<string, string>
 
 export type Phrase = keyof typeof EN

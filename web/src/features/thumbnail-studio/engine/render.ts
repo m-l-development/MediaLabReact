@@ -1,6 +1,7 @@
 import { rgba } from './colors'
 import { loadFonts, loadStretch, stretchFamily, stretchReady } from '../../../shared/fonts/loader'
 import { fillPaint } from './paint'
+import { drawQr } from '../../../shared/qr/qr'
 import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { adjustImage } from '../../photo-design/engine/render'
 import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
@@ -544,7 +545,12 @@ export class Renderer {
     }
   }
 
-  private drawShape(g: G, l: ShapeLayer, s: number) {
+  private drawShape(g: G, l: ShapeLayer, s: number, edit = false) {
+    // QR-kode: skarpe moduler i lagets størrelse (plassholder i redigering til innholdet er skrevet)
+    if (l.kind === 'qr') {
+      drawQr(g, l.qr, 0, 0, l.w, l.h, edit)
+      return
+    }
     const p2 = pathOf(l)
     const ol = p2 ?? outline(l)
     const rule = l.path?.fillRule ?? 'nonzero'
@@ -643,7 +649,7 @@ export class Renderer {
       if ((l.blur ?? 0) > 0 && l.type !== 'image') g.filter = `blur(${((l.blur ?? 0) * s).toFixed(2)}px)`
       if (l.type === 'text') drawText(g, l, s, l.fillSrc ? (this.images.get(l.fillSrc)?.img ?? null) : null)
       else if (l.type === 'image') this.drawImage(g, l, o, s)
-      else if (l.type === 'shape') this.drawShape(g, l, s)
+      else if (l.type === 'shape') this.drawShape(g, l, s, !!o.edit)
       else this.drawGlow(g, l)
       g.restore()
     }

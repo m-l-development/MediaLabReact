@@ -406,6 +406,7 @@ function AddPanel({ c, S, tx, pickFile }: EditorProps) {
       {group('Innhold', [
         ['Bilde', () => pickFile(), 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9.5h.01', undefined, 'Velg et bilde fra enheten'],
         ['Tekst', () => c.addText(), 'M5 6h14M12 6v13M9 19h6', undefined, 'Legg til en tekst du kan skrive i'],
+        ['QR-kode', () => c.addQr(), 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z', undefined, 'QR-kode til en nettside, e-post, telefon, SMS eller tekst'],
         ['Logo', () => c.ui({ logoOpen: !S.logoOpen }), 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z', S.logoOpen, 'Velg menighetens logo'],
       ])}
       {S.logoOpen && (

@@ -103,6 +103,7 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
             <button type="button" className={`${s.barBtn} ${s.small}`} onClick={onShared}>{tx('Fra Dine medier')}</button>
             <span className={s.hint}>{tx('Du kan også dra filer rett inn i vinduet. Filene blir i nettleseren og lastes aldri opp.')}</span>
             <button type="button" className={s.dashed} onClick={() => c.addColor()}>{tx('+ Fargeflate')}</button>
+            <button type="button" className={s.dashed} data-md-add-qr="" title={tx('QR-kode over videoen, til en nettside, e-post, telefon, SMS eller tekst')} onClick={() => void c.addQr()}>{tx('+ QR-kode')}</button>
             {vis.length > 0 && (
               <div className={s.medGrid}>
                 {vis.map((m) => <MediaTile key={m.id} c={c} m={m} p={p} replace={rep} tx={tx} />)}

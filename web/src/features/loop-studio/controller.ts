@@ -30,6 +30,7 @@ type TouchDownEv = { pointerType: string; clientX: number; clientY: number; curr
 type DragEv = { dataTransfer: DataTransfer | null; clientX: number; currentTarget: EventTarget | null; preventDefault(): void }
 import type { DiskEntry, LoopMediaStore, LoopRepo, WorkData } from './store'
 import { loadMuxer, loadQr, loadTesseract, type QrFactory } from './engine/vendor'
+import { buildQrUrl } from '../../shared/qr/qr'
 
 const R = __ukeloopRendererFactory()
 
@@ -4784,15 +4785,8 @@ export class LoopController {
     }
     const kind = q?.kind || (q?.url ? (/^mailto:/i.test(q.url) ? 'email' : /^tel:/i.test(q.url) ? 'tel' : /^sms/i.test(q.url) ? 'sms' : 'url') : 'url')
     const val = q ? (q.val != null ? q.val : String(q.url || '').replace(/^(mailto:|tel:|sms:)/i, '')) : ''
-    const build = (k: string, v0: string, x0: string) => {
-      const v = String(v0 || '').trim(), x = String(x0 || '').trim()
-      if (!v) return ''
-      if (k === 'email') return 'mailto:' + v.replace(/\s+/g, '') + (x ? '?subject=' + encodeURIComponent(x) : '')
-      if (k === 'tel') return 'tel:' + v.replace(/[^\d+]/g, '')
-      if (k === 'sms') return 'sms:' + v.replace(/[^\d+]/g, '') + (x ? '?body=' + encodeURIComponent(x) : '')
-      if (k === 'text') return v
-      return /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : 'https://' + v
-    }
+    // samme regler som QR-kodene i de andre verktøyene (shared/qr)
+    const build = buildQrUrl
     const setK = (k: string, v: string, x: string) => updQ({ kind: k, val: v, extra: x, url: build(k, v, x).slice(0, 600) })
     const ex = q ? q.extra || '' : ''
     const KK = K[kind] ?? K.url ?? ['', '', '', '', '']

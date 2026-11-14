@@ -173,6 +173,7 @@ function AddPanel({ c, S, tx, pickFile }: EditorProps) {
     { k: 'shape', label: 'Form', on: () => c.ui({ shapeOpen: !S.shapeOpen, logoOpen: false, libOpen: false }) },
     { k: 'line', label: 'Strek', on: () => c.addShape('line') },
     { k: 'glow', label: 'Lys', on: () => c.addGlow() },
+    { k: 'qr', label: 'QR-kode', on: () => c.addQr() },
     { k: 'logo', label: 'Logo', on: () => c.ui({ logoOpen: !S.logoOpen, shapeOpen: false, libOpen: false }) },
     { k: 'lib', label: 'Flere elementer', on: () => c.ui({ libOpen: !S.libOpen, logoOpen: false, shapeOpen: false }) },
   ]

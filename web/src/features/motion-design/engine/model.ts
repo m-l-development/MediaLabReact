@@ -7,6 +7,8 @@
 import { fontByName } from '../../../shared/fonts/catalog'
 import { cleanEffects, type Effect } from './fx'
 import { cleanKeys, type Keys } from './kf'
+import { cleanQr, type QrSpec } from '../../../shared/qr/qr'
+
 
 export type Pt = [number, number]
 export interface Curves { m?: Pt[]; r?: Pt[]; g?: Pt[]; b?: Pt[] }
@@ -83,6 +85,8 @@ export type Clip = ColorClip | MediaClip
 
 export interface Overlay extends Grade {
   id: string
+  /** QR-kode (samme løsning som i Loop Studio, shared/qr): bildet er koden, innstillingene ligger her. */
+  qr?: QrSpec | null
   link?: string
   /** Effekter (Avansert), i rekkefølge. Se engine/fx.ts. */
   effects?: Effect[]
@@ -497,7 +501,8 @@ export function normalize(input: unknown): Project {
   const ov: Overlay[] = recs(p.ov, 500).map((x) => {
     const oefx = cleanEffects(x.effects)
     const okf = cleanKeys(x.kf)
-    const r: Overlay = { id: sid(x.id, 'o'), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
+    const oqr = cleanQr(x.qr)
+    const r: Overlay = { id: sid(x.id, 'o'), ...(oqr ? { qr: oqr } : {}), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
       x: num(x.x, 0.5, -1, 2), y: num(x.y, 0.5, -1, 2), scale: num(x.scale, 0.4, 0.02, 4), rot: num(x.rot, 0, -3600, 3600), opacity: num(x.opacity, 1, 0, 1), fadeIn: num(x.fadeIn, 0, 0, 30), fadeOut: num(x.fadeOut, 0, 0, 30), anim: oneOf(x.anim, OAK, 'none'), blend: oneOf(x.blend, BK, 'source-over'),
       radius: num(x.radius, 0, 0, 1), border: num(x.border, 0, 0, 5), borderColor: col(x.borderColor, '#ffffff'), shadow: !!x.shadow, flipH: !!x.flipH, flipV: !!x.flipV, crop: crop(x.crop), ar: num(x.ar, 0.5625, 0.05, 20), keyOn: !!x.keyOn, keyColor: col(x.keyColor, '#00ff00'), keySim: num(x.keySim, 0.35, 0.01, 1), keySmooth: num(x.keySmooth, 0.1, 0.005, 1), keySpill: num(x.keySpill, 0.5, 0, 1), ...grade(x) }
     if (r.kind === 'video' && r.out <= r.in + 0.05) r.out = r.in + 0.1
