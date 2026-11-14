@@ -12,6 +12,7 @@ import {
 import { autoTone, cleanDev, DEV, type Dev, type Histogram } from './engine/develop'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
+import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
 import { baseOf, cover, docFonts, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
@@ -106,6 +107,9 @@ export interface PState {
   tver: number
   /** Farger og rekkefølge per mal (satt i editoren); beholdes når du bytter mellom maler. */
   tplSchemes: Record<string, Scheme | null>
+  /** Ferdige maler fra designsamlingen (fase 5): valgt kategori og malene (null = ikke lastet). */
+  libCat: string
+  lib: LibPhoto[] | null
 }
 
 export interface PDeps {
@@ -203,7 +207,7 @@ export class PhotoController {
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
       adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, ctx: null,
-      scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), bx: null, bfmt: 'jpg', tver: 0,
+      scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), libCat: LIB_CATS[0], lib: null, bx: null, bfmt: 'jpg', tver: 0,
     })
   }
 
@@ -365,6 +369,34 @@ export class PhotoController {
         this.flash('Prosjektet kunne ikke åpnes.')
       }
     }
+  }
+
+  /** Laster de ferdige malene (startsiden). */
+  async loadLib(): Promise<void> {
+    if (this.s.lib) return
+    try {
+      const lib = await loadLibrary()
+      this.set({ lib })
+    } catch {
+      this.flash('Klarte ikke å hente de ferdige malene. Prøv igjen.')
+    }
+  }
+
+  setLibCat(cat: string): void {
+    this.set({ libCat: cat })
+  }
+
+  /** Nytt prosjekt fra en ferdig mal: en kopi med egne ID-er, i malens format, med fargevalget på startsiden. */
+  createLib(t: LibPhoto): void {
+    const now = this.now()
+    const base = structuredClone(t.doc)
+    const d: PdDoc = { ...base, id: uid('p'), name: t.name, created: now, updated: now, layers: base.layers.map((L) => ({ ...L, id: uid(L.type[0]) })) }
+    const sc = this.s.scheme
+    const out = sc ? applyScheme(d, sc) : d
+    const pc = this.s.projCat
+    if (pc && this.s.cats.includes(pc)) out.cat = pc
+    this.dropMedia()
+    this.openDoc(out, null, true)
   }
 
   openDoc(doc: PdDoc, projectId: string | null, isNew: boolean): void {

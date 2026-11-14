@@ -820,6 +820,14 @@ export const EN = {
   'Strekkode': 'Barcode',
   'Stjernehimmel': 'Starry sky',
   'Korn over hele bildet (styrke: gjennomsiktighet)': 'Grain over the whole image (strength: opacity)',
+  'Klarte ikke å hente de ferdige malene. Prøv igjen.': 'Could not load the ready-made templates. Please try again.',
+  'Ferdige maler': 'Ready-made templates',
+  'Fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger. Fargene over gjelder også disse.': 'From the design collection. Everything is ordinary layers: change text, images and colours. The colours above apply to these too.',
+  'Arrangement og plakater': 'Events and posters',
+  'Program, ukeplan og kalender': 'Programme, weekly plan and calendar',
+  'Festival og konsert': 'Festival and concert',
+  'Bibelvers, sitat og typografi': 'Bible verse, quote and typography',
+  'Hverdag, kafé, info og sosiale medier': 'Everyday, café, info and social media',
 } as const satisfies Record<string, string>
 
 export type Phrase = keyof typeof EN

@@ -4,7 +4,8 @@
 // leses fra nettleserens beregnede stil og layout. Se docs/maler-og-fonter.md (fase 3).
 import { parseBackground, scalePaint, splitTop } from '../../src/features/thumbnail-studio/engine/paint.ts'
 
-const K = 1920 / 1280
+// skala fra materialet til dokumentet: Thumbnail 1280 → 1920 (1,5); Photo-malene er i ekte størrelse (opts.K = 1)
+let K = 1920 / 1280
 const r1 = (n) => Math.round(n * 10) / 10
 const r3 = (n) => Math.round(n * 1000) / 1000
 let seq = 0
@@ -128,6 +129,7 @@ const mctx = document.createElement('canvas').getContext('2d')
 
 /** Konverterer én mal. `fields` = egne bildefelt (velger i flaten + rolle) for maler der feltet er en illustrasjon. */
 export function convertOne(sec, opts = {}) {
+  K = opts.K ?? 1920 / 1280
   const stage = sec.firstElementChild
   const all = [stage, ...stage.querySelectorAll('*')]
   // 1) transformasjonene leses, så tas de bort (layouten er den samme, men målene blir utransformerte)
@@ -138,6 +140,27 @@ export function convertOne(sec, opts = {}) {
     tf.set(e, { transform: cs.transform, transformOrigin: cs.transformOrigin, inline: e.style.getPropertyValue('transform'), prio: e.style.getPropertyPriority('transform') })
   }
   for (const e of tf.keys()) e.style.setProperty('transform', 'none', 'important')
+  // loddrett tekst (writing-mode): måles vannrett, og får 90° rundt den opprinnelige boksens midtpunkt
+  const S0 = stage.getBoundingClientRect()
+  const vert = new Map()
+  for (const e of tf.keys()) {
+    const wm = getComputedStyle(e).writingMode
+    // bare elementet som setter loddrett skrift (barna arver den)
+    const pw = e.parentElement ? getComputedStyle(e.parentElement).writingMode : ''
+    if (wm && wm.startsWith('vertical') && !(pw && pw.startsWith('vertical'))) {
+      const r = e.getBoundingClientRect()
+      vert.set(e, { box: { x: r.left - S0.left, y: r.top - S0.top, w: r.width, h: r.height }, rot: wm === 'vertical-lr' ? -90 : 90 })
+    }
+  }
+  // vannrett med byttet bredde og høyde og samme midtpunkt; rotasjonen skjer rundt midtpunktet (se matOf)
+  const VP = ['writing-mode', 'width', 'height', 'left', 'top', 'right', 'bottom', 'box-sizing', 'margin']
+  for (const [e, v] of vert) {
+    v.saved = VP.map((p) => [p, e.style.getPropertyValue(p), e.style.getPropertyPriority(p)])
+    const nl = e.offsetLeft + (v.box.w - v.box.h) / 2
+    const nt = e.offsetTop + (v.box.h - v.box.w) / 2
+    const set = { 'writing-mode': 'horizontal-tb', 'box-sizing': 'border-box', width: v.box.h + 'px', height: v.box.w + 'px', left: nl + 'px', top: nt + 'px', right: 'auto', bottom: 'auto', margin: '0' }
+    for (const [p, val] of Object.entries(set)) e.style.setProperty(p, val, 'important')
+  }
   const S = stage.getBoundingClientRect()
   const boxOf = (e) => {
     const r = e.getBoundingClientRect()
@@ -149,7 +172,12 @@ export function convertOne(sec, opts = {}) {
     if (mats.has(e)) return mats.get(e)
     const parent = matOf(e.parentElement)
     const t = tf.get(e)
-    const m = t ? parent.multiply(ownMatrix(t, boxOf(e))) : parent
+    const v = vert.get(e)
+    let m = t ? parent.multiply(ownMatrix(t, v ? v.box : boxOf(e))) : parent
+    if (v) {
+      const b = boxOf(e)
+      m = m.multiply(new DOMMatrix().translate(v.box.x + v.box.w / 2, v.box.y + v.box.h / 2).rotate(v.rot).translate(-(b.x + b.w / 2), -(b.y + b.h / 2)))
+    }
     mats.set(e, m)
     return m
   }
@@ -190,7 +218,7 @@ export function convertOne(sec, opts = {}) {
   for (const e of [stage, ...stage.querySelectorAll('*')]) {
     if (isLabel(e) && ![...e.querySelectorAll('*')].some(isLabel)) skip.add(e)
     else if (/^\s*↳/.test(e.textContent || '') && e.children.length === 0) skip.add(e)
-    else if (hasStripes(getComputedStyle(e)) && !isClipText(getComputedStyle(e))) fieldEls.set(e, { role, label: '' })
+    else if ((hasStripes(getComputedStyle(e)) || (opts.fieldSel && e !== stage && e.matches(opts.fieldSel))) && !isClipText(getComputedStyle(e))) fieldEls.set(e, { role, label: '' })
   }
   // etiketter i en boks (del 3: stiplet ramme med «utklipt · person …»): boksen er feltet; rett på flaten = hele flaten
   const labels = [...skip].filter(isLabel)
@@ -326,6 +354,7 @@ export function convertOne(sec, opts = {}) {
       upper: tt === 'uppercase', fit: false, bar: false, barColor: '#ffffff', barH: 8, ...common(P),
     }
     if (italic) l.italic = true
+    if (chain(P).some((x) => { const mk = getComputedStyle(x).maskImage || getComputedStyle(x).webkitMaskImage; return mk && mk !== 'none' })) l.grunge = true
     if (stretch !== 100) l.stretch = stretch
     if (Math.abs(pl.ky / k - 1) > 0.005) l.sy = r3(pl.ky / k)
     const sw = parseFloat(cs.webkitTextStrokeWidth) || 0
@@ -341,6 +370,8 @@ export function convertOne(sec, opts = {}) {
       const ccs = getComputedStyle(clipEl)
       const eb = boxOf(clipEl)
       const p = paintOf(ccs, eb.w, eb.h, k).map((q) => shiftPaint(q, (eb.x - box.x) * K * k, (eb.y - box.y) * K * k))
+      // bakgrunnsfargen under gradientene fyller også bokstavene (nederste lag)
+      if (p.length && alpha(ccs.backgroundColor) > 0) p.push({ k: 'lin', x1: 0, y1: 0, x2: 1, y2: 0, st: [[0, ccs.backgroundColor], [1, ccs.backgroundColor]] })
       if (p.length) l.paint = p
       if (alpha(fillC) === 0 && !p.length) l.color = ccs.backgroundColor
       // plass for et foto i bokstavene (plassholderens striper i materialet)
@@ -401,7 +432,8 @@ export function convertOne(sec, opts = {}) {
     if (e !== stage) {
       if (field && !field.above) {
         // bildefeltet: plassholderens farge/gradient som form under (designet uten bilde), så bildelaget med feltets form
-        const under = shapeOf(e, cs, box, M, false)
+        // plassholderens egen farge tas ikke med når feltet bare er en plassholder (Photo: .ph)
+        const under = opts.noUnder ? null : shapeOf(e, cs, box, M, false)
         if (under && field.frame) {
           // plassholderens stiplede ramme er ikke design: bare en eventuell farge under bildet blir med
           delete under.dash
@@ -461,6 +493,12 @@ export function convertOne(sec, opts = {}) {
   if (fieldEls.has(stage)) layers.push({ z: -1e9, i: 0, l: { id: uid(), type: 'image', ...BASE(), x: 0, y: 0, w: 1920, h: 1080, src: null, orig: null, cT: 0, cB: 0, cL: 0, cR: 0, shape: 'rect', radius: 0, fit: 'cover', zoom: 1, px: 0.5, py: 0.5, flip: false, border: 0, borderColor: '#ffffff', tint: null, role: fieldEls.get(stage)?.role ?? role } })
   visit(stage)
   // tilbake som før
+  for (const [e, v] of vert) {
+    for (const [p, val, prio] of v.saved) {
+      if (val) e.style.setProperty(p, val, prio)
+      else e.style.removeProperty(p)
+    }
+  }
   for (const [e, t] of tf) {
     if (t.inline) e.style.setProperty('transform', t.inline, t.prio)
     else e.style.removeProperty('transform')
