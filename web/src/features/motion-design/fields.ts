@@ -171,8 +171,16 @@ export function clipFields(c: MotionController, p: Project, it: Clip, l: Placed 
 
 export function textFields(c: MotionController, x: TextItem): Field[] {
   const set = (o: Partial<TextItem>) => c.patch('text', x.id, o)
-  const out: Field[] = [toggle('Nedtelling', x.countdown, (v) => set({ countdown: v }))]
-  if (x.countdown) {
+  const out: Field[] = [toggle('Nedtelling', x.countdown, (v) => set(v ? { countdown: true } : { countdown: false, cdTo: undefined }))]
+  if (x.countdown) out.push(toggle('Tell mellom to tall', x.cdTo !== undefined, (v) => set(v ? { cdTo: 100, cdFrom: x.cdFrom ?? 0, cdDur: Math.min(2, x.dur), text: x.text.includes('{n}') ? x.text : '{n}' } : { cdTo: undefined })))
+  if (x.countdown && x.cdTo !== undefined) {
+    out.push(head('Tell fra og til'),
+      num('Fra', x.cdFrom ?? 0, -9999999, 9999999, 1, (v) => set({ cdFrom: Math.round(v) })),
+      num('Til', x.cdTo, -9999999, 9999999, 1, (v) => set({ cdTo: Math.round(v) })),
+      num('Telletid (s)', x.cdDur ?? x.dur * 0.8, 0.1, 3600, 0.1, (v) => set({ cdDur: v })),
+      area('Tekst', x.text, (v) => set({ text: v })),
+      note('«{n}» i teksten byttes med tallet, f.eks. «{n}/365».'))
+  } else if (x.countdown) {
     const from = Math.round(x.cdFrom ?? x.dur)
     const dd = Math.floor(from / 86400)
     const hh = Math.floor(from / 3600) % 24
@@ -224,6 +232,17 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
     select('Animasjon', x.anim, ANIMS, (v) => set({ anim: v })),
     num('Start (s)', x.start, 0, 86400, 0.1, (v) => set({ start: v })),
     num('Varighet (s)', x.dur, 0.2, 86400, 0.1, (v) => set({ dur: v })))
+  // innstillinger for animasjonene som trenger dem
+  if (x.anim === 'roll') out.push(area('Ruller fra (tall)', x.rollFrom ?? '', (v) => set({ rollFrom: /^[0-9 .,:/-]{1,24}$/.test(v.trim()) ? v.trim() : undefined })),
+    note('Sifrene ruller fra dette tallet til teksten (f.eks. 2026 → 2027). Tomt = hver siffer snurrer en runde.'))
+  if (x.anim === 'orbit') out.push(range('Banens radius', x.orbitR ?? 0.3, 0.05, 1, 0.005, pct(x.orbitR ?? 0.3), (v) => set({ orbitR: v })),
+    range('Fart', x.orbitV ?? 0.12, -1, 1, 0.01, `${(x.orbitV ?? 0.12).toFixed(2)} omdr./s`, (v) => set({ orbitV: v })))
+  if (x.anim === 'scroll') out.push(note('Teksten ruller fra under bildet til over bildet i løpet av varigheten. Lengre varighet = roligere fart.'))
+  // tekstmaske: bildet under synes gjennom bokstavene
+  out.push(head('Tekstmaske'),
+    seg('Maske', x.knock ?? 'none', [['none', 'Av'], ['solid', 'Farge rundt'], ['blur', 'Dugget glass']], (v) => set(v === 'none' ? { knock: undefined } : { knock: v as 'solid' | 'blur', knockColor: x.knockColor ?? (v === 'blur' ? '#dfe6ec' : '#000000') })))
+  if (x.knock) out.push(color(x.knock === 'blur' ? 'Glassfarge' : 'Farge rundt teksten', x.knockColor ?? '#000000', (v) => set({ knockColor: v })),
+    note('Videoen eller bildet under synes bare gjennom bokstavene. Bruk «Penselstrøk» som animasjon for å tørke bort duggen.'))
   return out
 }
 

@@ -1,3 +1,4 @@
+import { refTemplates } from './templates2'
 import { themeContent } from './theme'
 import type { Palette } from '../../../shared/templates/theme'
 /**
@@ -172,12 +173,12 @@ export interface TextItem {
   grad: boolean
   color2: string
   /** Tallrull: tallet teksten ruller fra (siffer for siffer, som en kilometerteller); mangler = fra 0. */
-  rollFrom?: string
+  rollFrom?: string | undefined
   /** Opptelling: teller fra cdFrom til cdTo (heltall) i løpet av cdDur sekunder; «{n}» i teksten byttes med tallet. */
-  cdTo?: number
+  cdTo?: number | undefined
   cdDur?: number
   /** Tekstmaske: videoen synes bare gjennom bokstavene; resten dekkes av en farge (solid) eller et uskarpt bilde (blur). */
-  knock?: 'solid' | 'blur'
+  knock?: 'solid' | 'blur' | undefined
   knockColor?: string
   /** Bane: radius (andel av bildebredden) og fart (omdreininger per sekund) for tekst som går i sirkel. */
   orbitR?: number
@@ -389,6 +390,9 @@ const ACC = '#f5b82c'
 interface TplContent { clips: Clip[]; texts: TextItem[]; subs?: Sub[]; subStyle?: SubStyle }
 export interface Template { k: string; name: string; desc: string; tt: number; make: () => TplContent }
 
+/** Maler etter referansevideoene og tre premiummaler (engine/templates2.ts). */
+const REF_TEMPLATES = refTemplates({ text, colorClip })
+
 export const TEMPLATES: readonly Template[] = [
   { k: 'meet', name: 'Møtepromo', desc: 'Dato, tid og sted over to scener', tt: 2.2, make: () => ({
     clips: [colorClip({ dur: 6, c1: '#0f1b3d', c2: '#23408a', ang: 120, spin: 6, trans: { type: 'none', dur: 0.6 } }), colorClip({ dur: 6, c1: '#23408a', c2: '#0f1b3d', ang: 300, spin: 6 })],
@@ -425,12 +429,14 @@ export const TEMPLATES: readonly Template[] = [
     clips: [colorClip({ dur: 8, c1: '#f5b82c', c2: '#ff8a00', ang: 135, trans: { type: 'none', dur: 0.6 } })],
     texts: [text({ start: 0.2, dur: 7.8, text: 'Viktig info', upper: true, font: 'Anton', weight: 400, size: 130, color: '#111111', y: 0.4, anim: 'pop' }),
       text({ start: 0.9, dur: 7.1, text: 'Skriv kunngjøringen her. Hold den kort og tydelig.', size: 48, weight: 500, color: '#111111', maxW: 0.72, y: 0.58 })] }) },
+  // maler etter referansevideoene og tre premiummaler (engine/templates2.ts)
+  ...REF_TEMPLATES,
   { k: 'blank', name: 'Tom', desc: 'Start med tom tidslinje', tt: 1, make: () => ({ clips: [], texts: [] }) },
 ]
 
 /** Kategoriene i malbiblioteket (det felles biblioteket i shared/templates). */
-export const TPL_CATS = ['Møter og arrangement', 'Tekst og budskap', 'Musikk og lovsang', 'Start'] as const
-export const TPL_CAT: Record<string, (typeof TPL_CATS)[number]> = { meet: 'Møter og arrangement', event: 'Møter og arrangement', count: 'Møter og arrangement', speaker: 'Møter og arrangement', quote: 'Tekst og budskap', announce: 'Tekst og budskap', worship: 'Musikk og lovsang', blank: 'Start' }
+export const TPL_CATS = ['Møter og arrangement', 'Tekst og budskap', 'Musikk og lovsang', 'Tittel og intro', 'Kinetisk typografi', 'Montasje og musikk', 'Rulletekst og avslutning', 'Premium', 'Start'] as const
+export const TPL_CAT: Record<string, string> = { ...Object.fromEntries(REF_TEMPLATES.map((t) => [t.k, t.cat])), meet: 'Møter og arrangement', event: 'Møter og arrangement', count: 'Møter og arrangement', speaker: 'Møter og arrangement', quote: 'Tekst og budskap', announce: 'Tekst og budskap', worship: 'Musikk og lovsang', blank: 'Start' }
 
 /** Nytt prosjekt fra en mal; med en palett (fargetema) får malen nye farger, ellers malens egne (Standard). */
 export function create(fmt: Pick<Format, 'k' | 'w' | 'h'>, tk: string, name?: string, pal?: Palette | null): Project {

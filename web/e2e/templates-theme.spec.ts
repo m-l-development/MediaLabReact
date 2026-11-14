@@ -104,8 +104,8 @@ test('Motion: malbibliotek med kategorier, felles fargevelger; tema gir nye farg
   await page.locator('[data-md-new]').click()
   await page.locator('[data-format]').first().click()
   const lib = page.locator('[data-tpl-lib]')
-  await expect(lib.locator('[data-tpl-cats] button')).toHaveCount(5) // Alle + 4 kategorier
-  await libraryWorks(lib, 'Sitat', 8)
+  await expect(lib.locator('[data-tpl-cats] button')).toHaveCount(10) // Alle + 9 kategorier
+  await libraryWorks(lib, 'Sitat', 20)
   await lib.locator('[data-tpl-cat="Tekst og budskap"]').click()
   await expect(lib.locator('[data-tpl-item]')).toHaveCount(2)
   await pickerOptions(page, lib)
