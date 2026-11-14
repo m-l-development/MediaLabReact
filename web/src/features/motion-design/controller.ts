@@ -1,3 +1,4 @@
+import { cleanTheme, paletteOfTheme, type ThemeValue } from '../../shared/templates/theme'
 import type { ToolId } from '../../domain/tool'
 import { loadFonts } from '../../shared/fonts/loader'
 import { createStore, type Store } from '../../shared/lib/store'
@@ -50,6 +51,8 @@ export interface MState {
   cw: string
   ch: string
   tplThumbs: Record<string, string>
+  /** Fargetema for malene (felles fargevelger; null = Standard, malens egne farger). Huskes mellom øktene. */
+  tplTheme: ThemeValue
   msg: Msg | null
   proj: Project | null
   projectId: string | null
@@ -203,6 +206,15 @@ function projFonts(p: Project): Promise<unknown> {
   return loadFonts([...p.texts.map((x) => ({ font: x.font, weight: x.weight, italic: x.italic })), { font: p.subStyle.font, weight: p.subStyle.weight }])
 }
 
+/** Lagret fargetema for malene (ugyldig → Standard). */
+function readTheme(v: string | null | undefined): ThemeValue {
+  try {
+    return cleanTheme(JSON.parse(v ?? 'null'))
+  } catch {
+    return null
+  }
+}
+
 export class MotionController {
   readonly state: Store<MState>
   M: MediaEls = { vids: {}, imgs: {} }
@@ -261,7 +273,7 @@ export class MotionController {
       // standard
     }
     this.state = createStore<MState>({
-      ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
+      ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, tplTheme: readTheme(st.get('motiondesign.tpltheme')), msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
       toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, full: false, narrow: false, vw: 1440, dragOver: false,
       clipDrag: null, packing: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
@@ -377,9 +389,12 @@ export class MotionController {
       // fortsett uten
     }
     const out: Record<string, string> = {}
+    const th = this.s.tplTheme
+    const pal = paletteOfTheme(th)
     for (const tp of TEMPLATES) {
       await new Promise((r) => setTimeout(r, 0))
-      const p = create(f, tp.k)
+      if (this.s.tplTheme !== th) return
+      const p = create(f, tp.k, undefined, pal)
       const s = 420 / Math.max(f.w, f.h)
       const c = document.createElement('canvas')
       c.width = Math.round(f.w * s)
@@ -394,13 +409,24 @@ export class MotionController {
         // malen vises uten bilde
       }
     }
-    if (this.alive && this.s.view === 'tpl' && this.s.fmt === f) this.set({ tplThumbs: out })
+    if (this.alive && this.s.view === 'tpl' && this.s.fmt === f && this.s.tplTheme === th) this.set({ tplThumbs: out })
+  }
+
+  /** Felles fargevelger over malene: nye skisser i temaet; valget huskes. */
+  setTplTheme(v: ThemeValue): void {
+    this.set({ tplTheme: v })
+    try {
+      this.d.storage.set('motiondesign.tpltheme', JSON.stringify(v))
+    } catch {
+      // bare for denne økten
+    }
+    void this.genThumbs()
   }
 
   async pickTpl(k: string): Promise<void> {
     const f = this.s.fmt
     if (!f) return
-    const p = create(f, k)
+    const p = create(f, k, undefined, paletteOfTheme(this.s.tplTheme))
     const id = await this.d.repo.save(null, p).catch(() => null)
     await this.openProject(p, id)
   }

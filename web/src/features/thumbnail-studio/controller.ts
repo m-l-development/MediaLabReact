@@ -4,6 +4,7 @@ import { snapActive } from '../../shared/lib/snap'
 import type { SharedSetup } from '../../services/shared-setup'
 import { cleanCategory, cleanDoc, DEFAULT_CATS, type Category, type Template } from './engine/backup'
 import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
+import { CUSTOM_START, type ThemeValue } from '../../shared/templates/theme'
 import type { ImageCache } from './engine/images'
 import { base, BASE_KEYS, layout, type BaseKey } from './engine/layouts'
 import { LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library'
@@ -116,6 +117,8 @@ export interface State {
   newOpen: boolean
   newMode: 'new' | 'apply'
   newPal: string
+  /** Egne farger (bakgrunn, tekst, aksent) når newPal = 'custom' (felles fargevelger, shared/templates). */
+  newCustom: [string, string, string] | null
   /** Ferdige maler i «Ny mal» (fase 3): valgt kategori og malene (null = ikke lastet ennå). */
   libCat: string
   lib: LibTemplate[] | null
@@ -318,7 +321,7 @@ export class ThumbController {
       baseEdit: false, layoutId: 'main', sel: null, multi: [], barSel: null, hist: [], fut: [], gx: [], gy: [], msg: null, ai: null, maskEdit: null,
       exp: false, expRes: '1080', expFmt: 'png', expT: false, expBusy: false, expSize: null, save: false, logoOpen: false, shapeOpen: false,
       libOpen: false, busyImg: false, zoom: 1, cropId: null, cropBox: { cL: 0, cT: 0, cR: 0, cB: 0 }, narrow: false,
-      autoSave: st.get(AUTO_KEY) === '1', adv: st.get(ADV_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', libCat: LIB_CATS[0], lib: null, palOpen: false, previews: {},
+      autoSave: st.get(AUTO_KEY) === '1', adv: st.get(ADV_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', newCustom: null, libCat: LIB_CATS[0], lib: null, palOpen: false, previews: {},
       ctx: null, viewMenu: false, layoutMode: lm === 'custom' && !custom ? 'std' : (lm ?? 'std'), customLayout: custom, lcOpen: false,
       lcDraft: null, colTab: {}, addColor: null, dropOn: null, backupBusy: false, sharedReady: false, sharedExists: false, picker: null, tick: 0,
     })
@@ -946,34 +949,60 @@ export class ThumbController {
       const lib = this.s.lib ?? (await loadLibrary())
       if (!this.alive) return
       if (!this.s.lib) this.set({ lib })
-      await this.genLibPrev()
     } catch {
       this.flash('Klarte ikke å hente de ferdige malene. Prøv igjen.')
     }
   }
 
-  /** Malene i valgt kategori. */
+  /** Alle ferdige maler (kategori, søk og sortering i det felles malbiblioteket). */
   libList(): LibTemplate[] {
-    return (this.s.lib ?? []).filter((t) => t.cat === this.s.libCat)
+    return this.s.lib ?? []
   }
 
   setLibCat(cat: string): void {
     this.set({ libCat: cat })
-    void this.genLibPrev()
   }
 
-  private async genLibPrev() {
-    const cat = this.s.libCat
-    for (const t of this.libList()) {
-      const key = 'lib:' + t.code
+  /** Valgt fargetema i «Ny mal» (null = Standard). */
+  theme(): ThemeValue {
+    const k = this.s.newPal || 'default'
+    return k === 'default' ? null : k === 'custom' ? { k: 'custom', c: this.s.newCustom ?? CUSTOM_START } : { k }
+  }
+
+  private themeKey(): string {
+    return JSON.stringify(this.theme())
+  }
+
+  setTheme(v: ThemeValue): void {
+    this.set((s) => ({ newPal: v?.k ?? 'default', newCustom: v?.k === 'custom' ? (v.c ?? s.newCustom) : s.newCustom, palOpen: false }))
+    const c = this.cat()
+    if (c) void this.genPrev(c)
+    if (this.libShown) void this.genLibPrev(this.libShown)
+  }
+
+  libPreviewOf(t: LibTemplate): string | undefined {
+    return this.s.previews['lib:' + t.code + '|' + this.themeKey()]
+  }
+
+  private libShown: LibTemplate[] | null = null
+  private libRun = 0
+  /** Skisser (i valgt fargetema) for malene som vises nå; en ny liste eller et nytt tema avbryter den forrige. */
+  async genLibPrev(list: LibTemplate[]): Promise<void> {
+    this.libShown = list
+    const run = ++this.libRun
+    const tk = this.themeKey()
+    const th = this.theme()
+    for (const t of list) {
+      const key = 'lib:' + t.code + '|' + tk
       if (this.s.previews[key] != null) continue
       let img = ''
       try {
-        img = await this.d.renderer.snapshot(clone(t.doc), 480, true, (role) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde'))
+        const d = clone(t.doc)
+        img = await this.d.renderer.snapshot(th ? recolor(d, th) : d, 480, true, (role) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde'))
       } catch {
         img = ''
       }
-      if (!this.alive || !this.s.newOpen || this.s.libCat !== cat) return
+      if (!this.alive || !this.s.newOpen || run !== this.libRun) return
       this.set((s) => ({ previews: { ...s.previews, [key]: img } }))
     }
   }
@@ -981,7 +1010,8 @@ export class ThumbController {
   /** Ny mal (eller nytt oppsett) fra en ferdig mal: en kopi med egne lag-ID-er. */
   pickLib(c: Category, t: LibTemplate): void {
     this.pickNew(c, { doc: () => {
-      const d = clone(t.doc)
+      const th = this.theme()
+      const d = th ? recolor(clone(t.doc), th) : clone(t.doc)
       for (const l of d.layers) l.id = uid()
       // flere bildefelt enn grensen på 5 (trl-22: 12 portretter): grensen blir antall felt i malen
       const n = d.layers.filter((l) => l.type === 'image').length + d.layers.filter((l) => l.type === 'text' && 'fillSrc' in l).length
@@ -996,7 +1026,7 @@ export class ThumbController {
 
   /** Valgene i «Ny mal» / «Bytt oppsett»: kategoriens grunnoppsett (standard først), blank og standardoppsettene. */
   newList(c: Category): { k: string; name: string; desc: string; translate: boolean; doc: () => Doc }[] {
-    const pal = this.s.newPal || 'default'
+    const th = this.theme()
     const def = this.defaultLayoutId(c)
     const ls = this.layoutsOf(c)
     const bases = [...ls.filter((l) => l.id === def), ...ls.filter((l) => l.id !== def)].map((l) => ({
@@ -1010,12 +1040,12 @@ export class ThumbController {
     const std = LAYOUT_LIST.map((o) => ({ k: o.k, name: o.name, desc: o.desc, translate: true, doc: lay(o.k) }))
     return [...bases, ...std].map((o) => ({ ...o, doc: () => {
       const d = o.doc()
-      return pal === 'default' || o.k === 'blank' ? d : recolor(d, pal)
+      return !th || o.k === 'blank' ? d : recolor(d, th)
     } }))
   }
 
   private pvKey(c: Category, k: string): string {
-    return (k.startsWith('base:') ? k + ':' + c.id : k + ':' + c.name) + '|' + (this.s.newPal || 'default')
+    return (k.startsWith('base:') ? k + ':' + c.id : k + ':' + c.name) + '|' + this.themeKey()
   }
 
   previewOf(c: Category, k: string): string | undefined {
@@ -1023,7 +1053,7 @@ export class ThumbController {
   }
 
   private async genPrev(c: Category) {
-    const pal = this.s.newPal || 'default'
+    const pal = this.themeKey()
     for (const o of this.newList(c)) {
       if (o.k === 'blank') continue
       const key = this.pvKey(c, o.k)
@@ -1034,15 +1064,13 @@ export class ThumbController {
       } catch {
         img = ''
       }
-      if (!this.alive || !this.s.newOpen || (this.s.newPal || 'default') !== pal) return
+      if (!this.alive || !this.s.newOpen || this.themeKey() !== pal) return
       this.set((s) => ({ previews: { ...s.previews, [key]: img } }))
     }
   }
 
   setPal(k: string): void {
-    const c = this.cat()
-    this.set({ newPal: k })
-    if (c) void this.genPrev(c)
+    this.setTheme(k === 'default' ? null : k === 'custom' ? { k: 'custom', c: this.s.newCustom ?? CUSTOM_START } : { k })
   }
 
   togglePal(): void {

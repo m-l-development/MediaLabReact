@@ -1,0 +1,94 @@
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useT } from '../i18n/i18n'
+import { ALL, filterTemplates, type TplItem } from './filter'
+import type { TplSort } from './theme'
+import s from './Templates.module.css'
+
+/**
+ * Felles malbibliotek (samme kort som «Ny mal» i Thumbnail Studio): faner «Alle maler» + kategoriene, søk og sortering.
+ * Appen tegner forhåndsvisningen (`preview`) og får vite hvilke maler som vises (`onShow`), så den bare lager skisser
+ * for dem. `head` = innhold i verktøylinjen (f.eks. fargevelgeren).
+ */
+export function TemplateLibrary<T extends TplItem>({ items, cats, catLabel, preview, onPick, onShow, aspect = '16 / 9', minW, loading, head, initialCat, attr }: {
+  items: readonly T[]
+  cats: readonly string[]
+  catLabel?: (c: string) => string
+  preview: (t: T) => ReactNode
+  onPick: (t: T) => void
+  onShow?: (list: T[]) => void
+  aspect?: string
+  minW?: number
+  loading?: boolean
+  head?: ReactNode
+  initialCat?: string
+  /** ekstra data-attributt med malens id på kortet (for appens egne tester og stiler) */
+  attr?: string
+}) {
+  const t = useT()
+  const [cat, setCat] = useState(initialCat && cats.includes(initialCat) ? initialCat : ALL)
+  const [q, setQ] = useState('')
+  const [sort, setSort] = useState<TplSort>('std')
+  const list = useMemo(() => filterTemplates(items, { cat, q, sort, cats }), [items, cat, q, sort, cats])
+  const key = list.map((x) => x.id).join('|')
+  useEffect(() => { onShow?.(list) }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  const n = (c: string) => items.filter((x) => x.cat === c).length
+  const style = { '--tpl-min': `${minW ?? 220}px`, '--tpl-min-m': `${Math.max(120, Math.round((minW ?? 220) * 0.62))}px` } as CSSProperties
+  return (
+    <div className={s.lib} data-tpl-lib="">
+      <div className={s.bar}>
+        <input type="search" className={s.search} placeholder={t('tpl.search')} aria-label={t('tpl.search')} value={q} data-tpl-search="" onChange={(e) => setQ(e.target.value)} />
+        <select className={s.sort} aria-label={t('tpl.sort')} value={sort} data-tpl-sort="" onChange={(e) => setSort(e.target.value as TplSort)}>
+          <option value="std">{t('tpl.sort.std')}</option>
+          <option value="name">{t('tpl.sort.name')}</option>
+          <option value="cat">{t('tpl.sort.cat')}</option>
+          <option value="new">{t('tpl.sort.new')}</option>
+        </select>
+        {head}
+      </div>
+      <div className={s.tabs} role="group" aria-label={t('tpl.cats')} data-tpl-cats="">
+        <button type="button" aria-pressed={cat === ALL} data-tpl-cat="*" onClick={() => setCat(ALL)}>{t('tpl.all')}<span>{items.length}</span></button>
+        {cats.map((c) => <button key={c} type="button" aria-pressed={cat === c} data-tpl-cat={c} onClick={() => setCat(c)}>{catLabel ? catLabel(c) : c}<span>{n(c)}</span></button>)}
+      </div>
+      {loading && <span className={s.note}>{t('tpl.loading')}</span>}
+      {!loading && !list.length && <span className={s.note} data-tpl-none="">{t('tpl.none')}</span>}
+      <div className={s.grid} style={style} data-tpl-grid="">
+        {list.map((x) => (
+          <button key={x.id} type="button" className={s.card} data-tpl-item={x.id} data-tpl-item-cat={x.cat} {...(attr ? { [attr]: x.id } : {})} onClick={() => onPick(x)}>
+            <span className={s.thumb} style={{ aspectRatio: aspect }}>{preview(x)}</span>
+            <span className={s.text}>
+              <b>{x.name}</b>
+              {x.desc && <span>{x.desc}</span>}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Felles popup for malbiblioteket (fullskjerm på mobil). Escape og klikk utenfor lukker. */
+export function TemplateModal({ title, lead, onClose, head, children }: { title: string; lead?: string; onClose: () => void; head?: ReactNode; children: ReactNode }) {
+  const t = useT()
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', key)
+    return () => document.removeEventListener('keydown', key)
+  }, [onClose])
+  return (
+    <div className={s.back} onClick={onClose} data-tpl-modal="">
+      <div className={s.modal} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <div className={s.head}>
+          <div>
+            <span className={s.title}>{title}</span>
+            {lead && <span className={s.lead}>{lead}</span>}
+          </div>
+          {head}
+        </div>
+        {children}
+        <div className={s.foot}>
+          <button type="button" data-tpl-close="" onClick={onClose}>{t('tpl.close')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}

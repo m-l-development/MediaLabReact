@@ -36,6 +36,20 @@ export interface HomeDeps {
   goHub(): void
 }
 
+/** Malkortene på startsiden (lagret per bruker; ugyldig → standard). Brukes også av det felles malbiblioteket. */
+export function readHomeData(kv: { get(k: string): string | null }): HomeData {
+  try {
+    const d = JSON.parse(kv.get(LS_KEY) || 'null') as { title?: unknown; cards?: unknown } | null
+    if (!d || typeof d !== 'object' || !Array.isArray(d.cards)) return DEFAULTS
+    const cards = (d.cards as Partial<Card>[])
+      .filter((c) => c && typeof c === 'object' && typeof c.id === 'string' && /^(week|sunday|youth|blank|c-[a-z0-9]{4,16})$/.test(c.id))
+      .map((c) => ({ id: String(c.id), base: BASES.includes(String(c.base)) ? String(c.base) : 'blank', cat: clip(c.cat, 40), title: clip(c.title, 60), desc: clip(c.desc, 300), btn: clip(c.btn, 30) }))
+    return { title: clip(d.title, 60) || DEFAULTS.title, cards }
+  } catch {
+    return DEFAULTS
+  }
+}
+
 export class HomeController {
   deps: HomeDeps
   state = { editing: false, data: DEFAULTS, diskOpen: false, disk: [] as DiskEntry[], canL: false, canR: false }
@@ -69,17 +83,9 @@ export class HomeController {
     return this.deps.repo.diskList().slice(0, 10)
   }
   load(): HomeData {
-    try {
-      const d = JSON.parse(this.deps.kv.get(LS_KEY) || 'null') as { title?: unknown; cards?: unknown } | null
-      if (!d || typeof d !== 'object' || !Array.isArray(d.cards)) return DEFAULTS
-      const cards = (d.cards as Partial<Card>[])
-        .filter((c) => c && typeof c === 'object' && typeof c.id === 'string' && /^(week|sunday|youth|blank|c-[a-z0-9]{4,16})$/.test(c.id))
-        .map((c) => ({ id: String(c.id), base: BASES.includes(String(c.base)) ? String(c.base) : 'blank', cat: clip(c.cat, 40), title: clip(c.title, 60), desc: clip(c.desc, 300), btn: clip(c.btn, 30) }))
-      return { title: clip(d.title, 60) || DEFAULTS.title, cards }
-    } catch {
-      return DEFAULTS
-    }
+    return readHomeData(this.deps.kv)
   }
+
   save(data: HomeData) {
     this.deps.kv.set(LS_KEY, JSON.stringify(data))
   }

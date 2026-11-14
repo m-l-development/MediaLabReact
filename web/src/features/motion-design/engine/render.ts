@@ -7,7 +7,7 @@ import {
   clamp, easeBack, easeInOut, easeOut, fmtCount, hidden, layout, ovDur,
   type Clip, type Crop, type Curves, type Grade, type Overlay, type Placed, type Project, type Pt, type Sub, type SubStyle, type TextItem,
 } from './model'
-import { fxAlpha, fxBlur, fxFilter, type Effect } from './fx'
+import { fxAlpha, fxBars, fxBlur, fxFilter, type Effect } from './fx'
 import { animAt } from './kf'
 
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
@@ -532,6 +532,16 @@ function paintClipRaw(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: 
     ctx.fillRect(0, 0, W, H)
   }
   postFx(ctx, W, H, c, t || 0)
+  // filmstriper (effekt): sorte felt øverst og nederst, over klippet og under tekst og overlegg
+  const bh = fxBars(c.effects, lt)
+  if (bh > 0.001) {
+    ctx.save()
+    ctx.filter = 'none'
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, W, H * bh)
+    ctx.fillRect(0, H * (1 - bh), W, H * bh + 1)
+    ctx.restore()
+  }
 }
 
 /* ---------- overganger ---------- */
@@ -881,7 +891,82 @@ function textFill(ctx: Ctx2D, x: TextItem, top: number, bh: number): string | Ca
   return g
 }
 
+const KN = new WeakSet<object>()
+
+/**
+ * Tekstmaske: bildet under synes bare gjennom bokstavene. Resten av bildet dekkes av en farge (solid) eller av et
+ * uskarpt, litt tonet bilde av seg selv (blur, «dugget glass»). Teksten tegnes med alle animasjonene som maske, så
+ * f.eks. penselstrøk avdekker vinduet gradvis. Forhåndsvisning og eksport bruker samme vei.
+ */
+function knockText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: number, rects: Rects | null, t: number): void {
+  const cv = ctx.canvas
+  const tf = ctx.getTransform()
+  const m = scratch('kn-m', cv.width, cv.height)
+  const g = ctx2d(m)
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.globalAlpha = 1
+  g.globalCompositeOperation = 'source-over'
+  g.clearRect(0, 0, cv.width, cv.height)
+  g.setTransform(tf)
+  KN.add(g)
+  drawText(g, W, H, { ...x, color: '#000000', grad: false, box: 'none', stroke: 0, shadow: false }, lt, U, rects, t)
+  KN.delete(g)
+  const cover = scratch('kn-c', cv.width, cv.height)
+  const c2 = ctx2d(cover)
+  c2.setTransform(1, 0, 0, 1, 0, 0)
+  c2.globalAlpha = 1
+  c2.globalCompositeOperation = 'source-over'
+  c2.clearRect(0, 0, cv.width, cv.height)
+  if (x.knock === 'blur') {
+    c2.drawImage(cv as CanvasImageSource, 0, 0)
+    softBlur(c2, cv.width, cv.height, Math.max(6, cv.width * 0.018))
+    c2.globalAlpha = 0.28
+    c2.fillStyle = x.knockColor || '#dfe6ec'
+    c2.fillRect(0, 0, cv.width, cv.height)
+    c2.globalAlpha = 1
+  } else {
+    c2.fillStyle = x.knockColor || '#000000'
+    c2.fillRect(0, 0, cv.width, cv.height)
+  }
+  c2.globalCompositeOperation = 'destination-out'
+  c2.drawImage(m, 0, 0)
+  c2.globalCompositeOperation = 'source-over'
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.globalAlpha = clamp(x.opacity, 0, 1)
+  ctx.drawImage(cover, 0, 0)
+  ctx.restore()
+}
+
+/** Penselstrøk: en sikksakk av runde strøk over tekstboksen som tegnes frem (k = 0…1), brukt som utsnitt. */
+function brushClip(ctx: Ctx2D, bx: number, by: number, bw: number, bh: number, k: number): void {
+  const rows = Math.max(2, Math.min(6, Math.round(bh / Math.max(1, bw) * 6) + 2))
+  const rh = bh / rows
+  const r = rh * 0.85
+  const total = rows * bw
+  let left = total * k
+  ctx.beginPath()
+  for (let i = 0; i < rows && left > 0; i++) {
+    const y = by + rh * (i + 0.5)
+    const len = Math.min(bw, left)
+    left -= len
+    const step = Math.max(2, r * 0.45)
+    for (let d = 0; d <= len; d += step) {
+      const xx = i % 2 ? bx + bw - d : bx + d
+      // litt ujevnt, som en pensel
+      const jy = Math.sin((d / bw) * 9 + i * 1.7) * rh * 0.18
+      ctx.moveTo(xx + r, y + jy)
+      ctx.arc(xx, y + jy, r, 0, Math.PI * 2)
+    }
+  }
+  ctx.clip()
+}
+
 function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: number, rects: Rects | null, t: number): void {
+  if (x.knock && !KN.has(ctx)) {
+    knockText(ctx, W, H, x, lt, U, rects, t)
+    return
+  }
   const dur = x.dur
   const an = x.anim
   const none = an === 'none'
@@ -890,7 +975,13 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   const kIn = none ? 1 : clamp(lt / inD, 0, 1)
   const kOut = outD ? clamp((dur - lt) / outD, 0, 1) : 1
   const e = easeOut(kIn)
-  let s = x.countdown ? fmtCount((x.cdFrom ?? dur) - lt, x.cdFmt) : x.text
+  let s = x.text
+  if (x.countdown && x.cdTo !== undefined) {
+    // opptelling (eller nedtelling) fra cdFrom til cdTo, myk start og slutt; «{n}» i teksten byttes med tallet
+    const from = x.cdFrom ?? 0
+    const n = Math.round(from + (x.cdTo - from) * easeInOut(clamp(lt / Math.max(0.1, x.cdDur ?? dur * 0.8), 0, 1)))
+    s = x.text.includes('{n}') ? x.text.split('{n}').join(String(n)) : String(n)
+  } else if (x.countdown) s = fmtCount((x.cdFrom ?? dur) - lt, x.cdFmt)
   if (x.upper) s = s.toLocaleUpperCase('nb')
   const px = x.size * U
   setFont(ctx, x, px)
@@ -944,6 +1035,14 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   } else if (an === 'spread') {
     a *= e
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${(((x.track || 0) + (1 - e) * 0.6) * px).toFixed(2)}px`
+  } else if (an === 'scroll') {
+    // rulletekst: fra under bildet til over bildet i løpet av hele varigheten (jevn fart)
+    const k = clamp(lt / Math.max(0.1, dur), 0, 1)
+    ctx.translate(0, H - top - k * (H + bh))
+  } else if (an === 'orbit') {
+    a *= e
+  } else if (an === 'brush') {
+    brushClip(ctx, left - pad * 2, top - pad * 2, bw + pad * 4, bh + pad * 4, easeInOut(clamp(lt / Math.max(0.3, Math.min(dur * 0.6, 1.8)), 0, 1)))
   } else if (an === 'wipe') {
     const wx = left - pad + (bw + pad * 2) * e
     ctx.beginPath()
@@ -989,10 +1088,61 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   let nTok = 0
   if (tok) for (const l of lines) nTok += an === 'words' ? l.split(' ').filter(Boolean).length : l.length
   let ti = 0
+  if (an === 'orbit') {
+    // bane: teksten står på en sirkel rundt (x, y) og går rundt; ett tegn om gangen langs sirkelen
+    const R = (x.orbitR ?? 0.3) * W
+    const str = lines.join(' ')
+    let ang = -Math.PI / 2 + lt * (x.orbitV ?? 0.12) * Math.PI * 2
+    for (const ch of str) {
+      const w = ctx.measureText(ch).width
+      const am = ang + w / 2 / R
+      ctx.save()
+      ctx.translate(ax + Math.cos(am) * R, ay + Math.sin(am) * R)
+      ctx.rotate(am + Math.PI / 2)
+      paint(ch, -w / 2, 0)
+      ctx.restore()
+      ang += w / R
+    }
+    ctx.restore()
+    return
+  }
   lines.forEach((l, i) => {
     const wi = ws[i] ?? 0
     const lx = x.align === 'left' ? left : x.align === 'right' ? left + bw - wi : left + (bw - wi) / 2
     const ly = top + lh * (i + 0.5) + px * 0.04
+    if (an === 'roll') {
+      // tallrull: hvert siffer ruller opp fra rollFrom (eller fra 0 en hel runde) til målet, fra høyre mot venstre
+      const from = x.rollFrom ?? ''
+      const n = l.length
+      const rd = Math.max(0.3, Math.min(1.6, dur * 0.5))
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(lx - px, ly - lh * 0.55, wi + px * 2, lh * 1.1)
+      ctx.clip()
+      let cur = lx
+      for (let j = 0; j < n; j++) {
+        const ch = l[j] ?? ''
+        const w = ctx.measureText(ch).width
+        const d = ch.charCodeAt(0) - 48
+        if (d >= 0 && d <= 9) {
+          const fc = from.length - n + j >= 0 ? from.charCodeAt(from.length - n + j) - 48 : -1
+          const f0 = fc >= 0 && fc <= 9 ? fc : 0
+          const steps = x.rollFrom !== undefined ? (d - f0 + 10) % 10 : 10 + d
+          const kk = clamp((lt - (n - 1 - j) * 0.12) / rd, 0, 1)
+          const pos = easeOut(kk) * steps
+          const b0 = Math.floor(pos)
+          const fr = pos - b0
+          for (const [k, off] of [[b0, -fr], [b0 + 1, 1 - fr]] as const) {
+            if (k > steps) continue
+            const dg = String((f0 + k) % 10)
+            paint(dg, cur + (w - ctx.measureText(dg).width) / 2, ly + off * lh)
+          }
+        } else paint(ch, cur, ly)
+        cur += w
+      }
+      ctx.restore()
+      return
+    }
     if (x.box === 'line' && l) {
       ctx.save()
       ctx.fillStyle = x.bg

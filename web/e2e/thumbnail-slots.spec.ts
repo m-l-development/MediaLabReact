@@ -33,8 +33,8 @@ async function newFrom(page: Page, cat: string, code: string) {
   await page.getByRole('button', { name: /Søndagsmøte/ }).click()
   await page.getByRole('button', { name: /Ny mal/ }).click()
   const dlg = page.getByRole('dialog', { name: 'Ny mal' })
-  await dlg.locator('[data-lib-cats] button', { hasText: cat }).click()
-  await dlg.locator(`[data-lib="${code}"]`).click()
+  await dlg.locator('[data-tpl-cats] button', { hasText: cat }).click()
+  await dlg.locator(`[data-tpl-item="${code}"]`).click()
   await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
 }
 

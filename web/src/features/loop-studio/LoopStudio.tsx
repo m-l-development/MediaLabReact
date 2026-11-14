@@ -1,5 +1,6 @@
 'use no memo'
 // Visningen leser fra kontrollerne (c.state …); kompilatorens mellomlagring ville gitt utdaterte verdier.
+import { LoopTemplates } from './LoopTemplates'
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { hrefFor } from '../../app/router'
 import { useServices } from '../../app/services'
@@ -157,6 +158,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
   return (
     <div data-loop-view={!ready ? 'loading' : editing ? 'edit' : 'home'} className={L.page} ref={rootRef}>
       {!ready && <div className={L.loading}>{tx('LASTER …')}</div>}
+      {ready && !editing && <LoopTemplates kv={base.kv} tx={tx} openEditor={openEditor} />}
       {ready && !editing && (
         <Home
           key="home"

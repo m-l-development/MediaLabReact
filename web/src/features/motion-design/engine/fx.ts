@@ -5,7 +5,7 @@
  * tegner med de samme funksjonene, så effektene blir like i begge.
  */
 
-export type FxKind = 'bri' | 'con' | 'sat' | 'hue' | 'bw' | 'sepia' | 'blur' | 'opacity' | 'fade'
+export type FxKind = 'bri' | 'con' | 'sat' | 'hue' | 'bw' | 'sepia' | 'blur' | 'opacity' | 'fade' | 'bars'
 
 export interface Effect {
   id: string
@@ -30,6 +30,8 @@ export const FX_DEFS: Record<FxKind, FxDef> = {
   blur: { l: 'Uskarphet', min: 0, max: 40, step: 0.5, def: 6, unit: 'px' },
   opacity: { l: 'Opasitet', min: 0, max: 1, step: 0.01, def: 0.6, unit: '%' },
   fade: { l: 'Fade inn', min: 0, max: 10, step: 0.1, def: 1, unit: 's', l2: 'Fade ut', def2: 1 },
+  // filmstriper (letterbox): sorte felt øverst og nederst; v = høyden på hvert felt, v2 = sekunder de bruker på å åpne seg
+  bars: { l: 'Filmstriper', min: 0, max: 0.45, step: 0.01, def: 0.12, unit: '%', l2: 'Åpner på (s)', def2: 0.8 },
 }
 export const FX_KINDS = Object.keys(FX_DEFS) as FxKind[]
 
@@ -104,4 +106,18 @@ export function fxAlpha(list: readonly Effect[] | undefined, lt: number, dur: nu
     }
   }
   return a
+}
+
+/** Filmstriper (letterbox): høyden på hvert felt (andel av bildet) ved tiden lt; åpner seg fra helt lukket over v2 sekunder. */
+export function fxBars(list: readonly Effect[] | undefined, lt: number, val: (e: Effect) => number = (e) => e.v): number {
+  let h = 0
+  for (const e of list ?? []) {
+    if (!e.on || e.kind !== 'bars') continue
+    const v = cl(val(e), 0, 0.5)
+    const o = Math.max(0, e.v2 ?? 0)
+    const k = o > 0 ? cl(lt / o, 0, 1) : 1
+    const ee = 1 - (1 - k) ** 3
+    h = Math.max(h, 0.5 + (v - 0.5) * ee)
+  }
+  return h
 }
