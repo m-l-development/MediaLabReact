@@ -96,6 +96,23 @@ test('Loop Studio: skriften fra biblioteket lastes og brukes', async ({ page }) 
   await loaded(page, '600 40px "Josefin Sans"')
 })
 
+test('åpne fonter utenfor Google (Fontsource med lisensfil): lastes, og fonter uten ÆØÅ er merket', async ({ page }) => {
+  desktopOnly()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/app/photo-design')
+  await page.locator('[data-tpl="blank"]').click()
+  await page.getByRole('button', { name: 'Tekst', exact: true }).click()
+  const panel = page.locator('[data-pd-text]').locator('xpath=ancestor::*[.//*[@data-font-picker]][1]')
+  await pickFont(panel, page, 'Uncut Sans')
+  await loaded(page, '400 40px "Uncut Sans"')
+  await expect(page.locator('link[data-font="uncut-sans"]')).toHaveCount(1)
+  // Bagnard mangler Æ, Ø og Å: merket i velgeren
+  await panel.locator('[data-font-picker] > button').first().click()
+  await page.locator('[data-font-search]').fill('Bagnard')
+  await expect(page.locator('[data-font-option="Bagnard"] [data-font-noaeoa]')).toBeVisible()
+  await expect(page.locator('[data-font-option="Uncut Sans"] [data-font-noaeoa]')).toHaveCount(0)
+})
+
 test('mobil: fontvelgeren i Rediger-skuffen i Photo Design', async ({ page }) => {
   test.skip(test.info().project.name !== 'mobil', 'mobil')
   await page.goto('/app/photo-design')

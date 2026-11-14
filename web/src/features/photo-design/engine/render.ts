@@ -689,6 +689,23 @@ function drawPdText(g: G, L: TextLayer, M: Media) {
   const arc = L.arc || 0
   const each = (gg: G, op: 'fill' | 'stroke') => {
     b.lines.forEach((line, i) => {
+      // blokkjustering: ordene fordeles over hele bredden (ikke siste linje, som i CSS)
+      const words = L.justify && !arc && i < b.lines.length - 1 ? line.trim().split(/\s+/) : null
+      if (words && words.length > 1) {
+        const tw = b.w - (L.strokeW || 0)
+        const ws = words.map((w) => gg.measureText(w).width)
+        const gap = (tw - ws.reduce((x, y) => x + y, 0)) / (words.length - 1)
+        gg.save()
+        gg.textAlign = 'left'
+        let x = -b.w / 2 + (L.strokeW || 0) / 2
+        words.forEach((w, j) => {
+          if (op === 'fill') gg.fillText(w, x, yOf(i))
+          else gg.strokeText(w, x, yOf(i))
+          x += (ws[j] ?? 0) + gap
+        })
+        gg.restore()
+        return
+      }
       if (!arc) {
         if (op === 'fill') gg.fillText(line, ax, yOf(i))
         else gg.strokeText(line, ax, yOf(i))
@@ -747,7 +764,7 @@ function drawPdText(g: G, L: TextLayer, M: Media) {
     g.shadowOffsetY = (L.shadow / 100) * L.size * 0.08
   }
   const E = L.fillSrc ? M.media.get(L.fillSrc) : undefined
-  const special = !!(L.paint?.length || E || (L.grunge ?? 0) > 0 || arc)
+  const special = !!(L.paint?.length || E || (L.grunge ?? 0) > 0 || arc || L.justify)
   if (!special) {
     b.lines.forEach((line, i) => {
       const y = yOf(i)

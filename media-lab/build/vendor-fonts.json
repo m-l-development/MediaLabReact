@@ -1501,6 +1501,24 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/uncut-sans@5.3.0",
+  "css": [
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Uncut Sans",
+  "slug": "uncut-sans",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/saira@5.3.0",
   "css": [
    "wdth.css",
@@ -1539,6 +1557,76 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/aileron@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css"
+  ],
+  "family": "Aileron",
+  "slug": "aileron",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/metropolis@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css",
+   "900-italic.css",
+   "900.css"
+  ],
+  "family": "Metropolis",
+  "slug": "metropolis",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/cooper-hewitt@5.3.0",
+  "css": [
+   "100-italic.css",
+   "100.css",
+   "200-italic.css",
+   "200.css",
+   "300-italic.css",
+   "300.css",
+   "400-italic.css",
+   "400.css",
+   "500-italic.css",
+   "500.css",
+   "600-italic.css",
+   "600.css",
+   "700-italic.css",
+   "700.css",
+   "800-italic.css",
+   "800.css"
+  ],
+  "family": "Cooper Hewitt",
+  "slug": "cooper-hewitt",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/host-grotesk@5.3.0",
   "css": [
    "wght.css",
@@ -1555,6 +1643,26 @@
   ],
   "family": "Cal Sans",
   "slug": "cal-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bagnard-sans@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bagnard Sans",
+  "slug": "bagnard-sans",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/junction@5.3.0",
+  "css": [
+   "300.css",
+   "400.css",
+   "700.css"
+  ],
+  "family": "Junction",
+  "slug": "junction",
   "lazy": true
  },
  {
@@ -1578,6 +1686,23 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/pretendard@5.3.0",
+  "css": [
+   "100.css",
+   "200.css",
+   "300.css",
+   "400.css",
+   "500.css",
+   "600.css",
+   "700.css",
+   "800.css",
+   "900.css"
+  ],
+  "family": "Pretendard",
+  "slug": "pretendard",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/radio-canada@5.3.0",
   "css": [
    "wdth.css",
@@ -1585,6 +1710,18 @@
   ],
   "family": "Radio Canada",
   "slug": "radio-canada",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/ostrich-sans@5.3.0",
+  "css": [
+   "300.css",
+   "400.css",
+   "700.css",
+   "900.css"
+  ],
+  "family": "Ostrich Sans",
+  "slug": "ostrich-sans",
   "lazy": true
  },
  {
@@ -1640,6 +1777,16 @@
   ],
   "family": "TASA Explorer",
   "slug": "tasa-explorer",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/apfel-grotezk@5.3.0",
+  "css": [
+   "400.css",
+   "700.css"
+  ],
+  "family": "Apfel Grotezk",
+  "slug": "apfel-grotezk",
   "lazy": true
  },
  {
@@ -1834,6 +1981,15 @@
   "lazy": true
  },
  {
+  "spec": "@fontsource/bagnard@5.3.0",
+  "css": [
+   "400.css"
+  ],
+  "family": "Bagnard",
+  "slug": "bagnard",
+  "lazy": true
+ },
+ {
   "spec": "@fontsource-variable/eb-garamond@5.3.0",
   "css": [
    "wght.css",
@@ -1851,6 +2007,16 @@
   ],
   "family": "Geom",
   "slug": "geom",
+  "lazy": true
+ },
+ {
+  "spec": "@fontsource/bluu-next@5.3.0",
+  "css": [
+   "700-italic.css",
+   "700.css"
+  ],
+  "family": "Bluu Next",
+  "slug": "bluu-next",
   "lazy": true
  },
  {

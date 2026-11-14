@@ -48,6 +48,10 @@ function mapText(l, opts) {
     lh: l.lh, ls: Math.round(ls * 100) / 100, upper: !!l.upper, strokeC: l.strokeColor ? normColor(l.strokeColor) : '#000000', strokeW: r1(sw), shadow: 0, ...base(l),
   })
   if (l.italic) t.italic = true
+  if (l.jw) {
+    t.justify = true
+    t.jw = l.jw
+  }
   if (l.stretch && l.stretch !== 100) t.stretch = l.stretch
   if (l.sy && l.sy !== 1) t.tsy = l.sy
   if (l.grunge) t.grunge = opts.grunge

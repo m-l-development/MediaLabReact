@@ -64,10 +64,16 @@ const rows = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'fontkatalog.jso
 const extra = []
 const catalog = []
 const missing = []
-const queue = rows.filter((r) => r.lic === 'ok' && r.src === 'g')
+// Google-fonter, og de åpne fontene utenfor Google («Last ned selv») som finnes som Fontsource-pakke med lisensfil og en
+// lisens som tillater å legge fonten ved appen. Uten slik pakke tas fonten ikke med (lisensen gjettes aldri).
+const queue = rows.filter((r) => r.lic === 'ok' && (r.src === 'g' || r.src === 'o'))
+const OPEN_LIC = new Set(['OFL-1.1', 'CC0-1.0', 'Unlicense', 'Apache-2.0', 'MIT'])
+const skipped = []
+// åpne fonter uten Æ, Ø og Å (målt i Chromium 2026-11-14: tegnene faller tilbake til reservefonten); vises i fontvelgeren
+const NO_AEOA = new Set(['Bagnard', 'Bagnard Sans', 'Ostrich Sans'])
 
 for (const r of queue) {
-  const s = slug(r.name)
+  const s = r.src === 'o' && r.dl ? r.dl : slug(r.name)
   const have = HAVE.get(r.name)
   let spec, css, root
   if (have) {
@@ -76,9 +82,13 @@ for (const r of queue) {
     css = have.css
   } else {
     const m = (await meta('@fontsource-variable/' + s)) ?? (await meta('@fontsource/' + s))
-    if (!m) { missing.push(r.name); continue }
+    if (!m) { (r.src === 'o' ? skipped : missing).push(r.name); continue }
     spec = m.pkg + '@' + m.version
     root = fetchPkg(spec)
+    // lisensen fra pakken: kjent åpen lisens og lisensfil som følger fonten
+    const pj = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+    if (!OPEN_LIC.has(pj.license) || !fs.existsSync(path.join(root, 'LICENSE'))) { skipped.push(r.name + ' (lisens ' + pj.license + ')'); continue }
+    r.pkgLicense = pj.license
     const files = fs.readdirSync(root).filter((f) => f.endsWith('.css'))
     if (m.pkg.startsWith('@fontsource-variable/')) {
       // alle akser når fonten har flere (bredde, optisk størrelse, SOFT/WONK …), ellers vekt
@@ -97,12 +107,13 @@ for (const r of queue) {
   const weights = [...new Set(fs0.filter((f) => !f.italic).flatMap((f) => [100, 200, 300, 400, 500, 600, 700, 800, 900].filter((w) => f.lo <= w && f.hi >= w)))].sort((a, b) => a - b)
   if (!have) extra.push({ spec, css, family: r.name, slug: s, lazy: true })
   catalog.push({
-    id: s, name: r.name, style: r.style, uses: r.uses.split(''), source: 'google', note: r.note,
+    id: s, name: r.name, style: r.style, uses: r.uses.split(''), source: r.src === 'o' ? 'open' : 'google', note: r.note,
     weights, italic: fs0.some((f) => f.italic),
     // ekte snitt: Regular, Bold, Italic, Bold Italic (B/I-knappene i editoren)
     snitt: { r: has(400, false) || weights.length > 0, b: has(700, false), i: has(400, true), bi: has(700, true) },
     css: '/fonts/' + (have ? have.slug : s) + '.css', variable: spec.startsWith('@fontsource-variable/'),
-    license: 'OFL-1.1',
+    license: r.pkgLicense ?? 'OFL-1.1',
+    ...(NO_AEOA.has(r.name) ? { noAeoa: true } : {}),
   })
   process.stdout.write('.')
 }
@@ -112,3 +123,5 @@ fs.mkdirSync(path.join(ROOT, 'web', 'src', 'shared', 'fonts'), { recursive: true
 fs.writeFileSync(path.join(ROOT, 'web', 'src', 'shared', 'fonts', 'catalog.json'), JSON.stringify(catalog, null, 1) + '\n')
 console.log(`\n${catalog.length} fonter i katalogen (${extra.length} nye i vendor.js). Mangler på Fontsource: ${missing.length}`)
 if (missing.length) console.log(missing.join(', '))
+console.log(`Åpne fonter uten pakke med lisensfil (ikke tatt med): ${skipped.length}`)
+fs.writeFileSync(path.join(ROOT, 'docs', 'fonter-ikke-med.json'), JSON.stringify(skipped, null, 1) + '\n')
