@@ -1,6 +1,7 @@
 import { createStore, type Store } from '../../shared/lib/store'
 import { weightsOf } from '../../shared/fonts/catalog'
 import { snapActive } from '../../shared/lib/snap'
+import { idle } from '../../shared/lib/idle'
 import type { SharedSetup } from '../../services/shared-setup'
 import { cleanCategory, cleanDoc, DEFAULT_CATS, type Category, type Template } from './engine/backup'
 import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
@@ -995,6 +996,9 @@ export class ThumbController {
     for (const t of list) {
       const key = 'lib:' + t.code + '|' + tk
       if (this.s.previews[key] != null) continue
+      // klikk i dialogen behandles først; lukket eller nytt valg: ikke start en ny skisse
+      await idle()
+      if (!this.alive || !this.s.newOpen || run !== this.libRun) return
       let img = ''
       try {
         const d = clone(t.doc)
@@ -1058,6 +1062,8 @@ export class ThumbController {
       if (o.k === 'blank') continue
       const key = this.pvKey(c, o.k)
       if (!o.k.startsWith('base:') && this.s.previews[key]) continue
+      await idle()
+      if (!this.alive || !this.s.newOpen || this.themeKey() !== pal) return
       let img = ''
       try {
         img = await this.d.renderer.snapshot(o.doc(), 480, true, (role) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde'))

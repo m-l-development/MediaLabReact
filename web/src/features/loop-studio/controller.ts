@@ -529,7 +529,7 @@ export class LoopController {
     this.loading = {}
     const v = this.media.video
     if (v) {
-      try { v.pause(); if (v.src.startsWith('blob:')) URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.load() } catch { /* ingenting */ }
+      try { v.pause(); if (v.src.startsWith('blob:')) URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.load(); if (!soundOwner || soundOwner.video !== v) v.remove() } catch { /* ingenting */ }
     }
     this.setState({ urls: {} })
   }
@@ -1367,7 +1367,10 @@ export class LoopController {
     }
     try {
       ;['400', '500', '600', '700'].forEach((w) => void document.fonts.load(w + ' 40px Archivo').catch(() => undefined))
-      document.fonts.addEventListener('loadingdone', () => { this.fontTick++ })
+      // fjernes når editoren lukkes (ellers holdt lytteren hele den gamle editoren i minnet etter hver åpning)
+      const tick = () => { this.fontTick++ }
+      document.fonts.addEventListener('loadingdone', tick)
+      this.listeners.push(() => document.fonts.removeEventListener('loadingdone', tick))
     } catch {
       // ingen fontlasting
     }

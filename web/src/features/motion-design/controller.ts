@@ -2,6 +2,7 @@ import { cleanTheme, paletteOfTheme, type ThemeValue } from '../../shared/templa
 import type { ToolId } from '../../domain/tool'
 import { loadFonts } from '../../shared/fonts/loader'
 import { createStore, type Store } from '../../shared/lib/store'
+import { idle } from '../../shared/lib/idle'
 import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
 import { canEncode, exportMp4 } from './engine/export'
 import {
@@ -392,8 +393,9 @@ export class MotionController {
     const th = this.s.tplTheme
     const pal = paletteOfTheme(th)
     for (const tp of TEMPLATES) {
-      await new Promise((r) => setTimeout(r, 0))
-      if (this.s.tplTheme !== th) return
+      // klikk behandles først; valgt mal (editoren åpnet) eller nytt tema: ikke lag flere skisser
+      await idle()
+      if (!this.alive || this.s.tplTheme !== th || this.s.view !== 'tpl' || this.s.fmt !== f) return
       const p = create(f, tp.k, undefined, pal)
       const s = 420 / Math.max(f.w, f.h)
       const c = document.createElement('canvas')
