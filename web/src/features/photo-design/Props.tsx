@@ -667,12 +667,21 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
   const adv = S.adv
   const px = (v: number) => `${Math.round(v)} px`
   const shadowsOn = !!L.shadows?.length
+  // en funksjon laget har brukt (f.eks. fra en mal) blir stående i Enkel modus også etter at den er slått av, så den kan
+  // slås på igjen (før forsvant bryteren); gjelder så lenge panelet er åpent
+  const [kept] = useState(() => new Map<string, Set<string>>())
+  const ks = kept.get(L.id) ?? new Set<string>()
+  kept.set(L.id, ks)
+  const keep = (k: string, on: boolean) => {
+    if (on) ks.add(k)
+    return ks.has(k)
+  }
   const out: React.ReactNode[] = []
   if (L.type === 'text') {
     const sz = L.size
-    if ((adv && hasSnitt(L.font, 'i')) || L.italic) out.push(<Toggle key="it" label={tx('Kursiv')} on={!!L.italic} onClick={() => P({ italic: !L.italic })} />)
-    if (adv || (L.stretch && L.stretch !== 100)) out.push(<Range key="st" label={tx('Fontbredde')} min={50} max={150} step={1} val={L.stretch ?? 100} show={`${Math.round(L.stretch ?? 100)} %`} on={(x) => P({ stretch: x }, 'stretch')} def={100} reset={() => P({ stretch: 100 })} />)
-    if (adv || shadowsOn) {
+    if ((adv && hasSnitt(L.font, 'i')) || keep('it', !!L.italic)) out.push(<Toggle key="it" label={tx('Kursiv')} on={!!L.italic} onClick={() => P({ italic: !L.italic })} />)
+    if (adv || keep('st', !!L.stretch && L.stretch !== 100)) out.push(<Range key="st" label={tx('Fontbredde')} min={50} max={150} step={1} val={L.stretch ?? 100} show={`${Math.round(L.stretch ?? 100)} %`} on={(x) => P({ stretch: x }, 'stretch')} def={100} reset={() => P({ stretch: 100 })} />)
+    if (adv || keep('gl', shadowsOn)) {
       out.push(<Toggle key="gl" label={tx('Glød')} on={shadowsOn} onClick={() => P({ shadows: shadowsOn ? null : [{ x: 0, y: 0, b: Math.round(sz * 0.4), c: L.color }] })} />)
       const sh = L.shadows?.[0]
       if (sh) {
@@ -680,7 +689,7 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
         out.push(<Range key="glb" label={tx('Glødstyrke')} min={0} max={Math.max(40, Math.round(sz * 2))} step={1} val={sh.b} show={px(sh.b)} on={(x) => P({ shadows: [{ ...sh, b: x }, ...(L.shadows ?? []).slice(1)] }, 'glb')} def={Math.round(sz * 0.4)} reset={() => P({ shadows: [{ ...sh, b: Math.round(sz * 0.4) }] })} />)
       }
     }
-    if (adv || L.hl) {
+    if (adv || keep('hl', !!L.hl)) {
       out.push(<Toggle key="hl" label={tx('Bakgrunnsboks')} on={!!L.hl} onClick={() => P({ hl: L.hl ? null : { c: '#f5b82c', px: Math.round(sz * 0.25), py: Math.round(sz * 0.08), r: 0 } })} />)
       if (L.hl) {
         const hl = L.hl
@@ -689,9 +698,9 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
         out.push(<Range key="hlr" label={tx('Hjørneradius')} min={0} max={Math.max(10, Math.round(sz / 2))} step={1} val={hl.r} show={px(hl.r)} on={(x) => P({ hl: { ...hl, r: x } }, 'hlr')} def={0} reset={() => P({ hl: { ...hl, r: 0 } })} />)
       }
     }
-    if (adv || L.justify) out.push(<Toggle key="ju" label={tx('Blokkjuster')} on={!!L.justify} onClick={() => P({ justify: !L.justify, align: 'left' })} />)
-    if (adv || (L.grunge ?? 0) > 0) out.push(<Range key="gr" label={tx('Slitt tekst')} min={0} max={1} step={0.01} val={L.grunge ?? 0} show={`${Math.round((L.grunge ?? 0) * 100)} %`} on={(x) => P({ grunge: x }, 'grunge')} def={0} reset={() => P({ grunge: 0 })} />)
-    if (adv || L.arc) out.push(<Range key="arc" label={tx('Tekst på sirkelbane')} min={-3000} max={3000} step={10} val={L.arc ?? 0} show={L.arc ? px(L.arc) : tx('Rett')} on={(x) => P({ arc: Math.abs(x) < 20 ? 0 : x }, 'arc')} def={0} reset={() => P({ arc: 0 })} />)
+    if (adv || L.justify || L.jw != null) out.push(<Toggle key="ju" label={tx('Blokkjuster')} on={!!L.justify} onClick={() => P({ justify: !L.justify, align: 'left' })} />)
+    if (adv || keep('gr', (L.grunge ?? 0) > 0)) out.push(<Range key="gr" label={tx('Slitt tekst')} min={0} max={1} step={0.01} val={L.grunge ?? 0} show={`${Math.round((L.grunge ?? 0) * 100)} %`} on={(x) => P({ grunge: x }, 'grunge')} def={0} reset={() => P({ grunge: 0 })} />)
+    if (adv || keep('arc', !!L.arc)) out.push(<Range key="arc" label={tx('Tekst på sirkelbane')} min={-3000} max={3000} step={10} val={L.arc ?? 0} show={L.arc ? px(L.arc) : tx('Rett')} on={(x) => P({ arc: Math.abs(x) < 20 ? 0 : x }, 'arc')} def={0} reset={() => P({ arc: 0 })} />)
     if (adv) {
       out.push(
         <div key="vt" className={s.row3}>
@@ -712,7 +721,7 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
     }
   }
   if (L.type === 'shape') {
-    if (adv || L.pat) {
+    if (adv || keep('pat', !!L.pat)) {
       out.push(
         <label key="pat" className={s.colorRow}>
           <span>{tx('Mønster')}</span>
@@ -726,9 +735,9 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
       )
       if (L.pat) out.push(<span key="pn" className={s.dimSm}>{tx('Mønsteret tegnes i konturfargen.')}</span>)
     }
-    if (adv || L.dash?.length) out.push(<Toggle key="da" label={tx('Stiplet kant')} on={!!L.dash?.length} onClick={() => P({ dash: L.dash?.length ? null : [Math.max(4, L.strokeW * 3), Math.max(3, L.strokeW * 2)] })} />)
+    if (adv || keep('da', !!L.dash?.length)) out.push(<Toggle key="da" label={tx('Stiplet kant')} on={!!L.dash?.length} onClick={() => P({ dash: L.dash?.length ? null : [Math.max(4, L.strokeW * 3), Math.max(3, L.strokeW * 2)] })} />)
   }
-  if ((L.type === 'shape' || L.type === 'image') && (adv || shadowsOn)) {
+  if ((L.type === 'shape' || L.type === 'image') && (adv || keep('sh', shadowsOn))) {
     out.push(<Toggle key="sh" label={tx('Slagskygge')} on={shadowsOn} onClick={() => P({ shadows: shadowsOn ? null : [{ x: 12, y: 16, b: 36, c: 'rgba(0,0,0,0.45)' }] })} />)
   }
   return out.length ? <div className={s.extras} data-pd-extras="">{out}</div> : null

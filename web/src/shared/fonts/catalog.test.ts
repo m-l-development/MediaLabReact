@@ -7,10 +7,12 @@ describe('det felles fontbiblioteket', () => {
     const blocked = new Set((rows as { name: string; lic: string; src: string }[]).filter((r) => r.lic !== 'ok' || r.src === 'x').map((r) => r.name))
     expect(FONT_CATALOG.length).toBeGreaterThan(190)
     expect(FONT_CATALOG.filter((f) => blocked.has(f.name))).toEqual([])
-    // lisensen er den fontpakken oppgir (OFL for de fleste; Apache-2.0 for fire Google-fonter; CC0/Unlicense for to åpne)
-    expect(FONT_CATALOG.filter((f) => !['OFL-1.1', 'Apache-2.0', 'CC0-1.0', 'Unlicense'].includes(f.license) || !f.css.startsWith('/fonts/') || !f.css.endsWith('.css'))).toEqual([])
+    // lisensen er den lisensfilen sier (OFL for de fleste; Apache-2.0, Bitstream Vera, CC0 og Unlicense for noen få)
+    expect(FONT_CATALOG.filter((f) => !['OFL-1.1', 'Apache-2.0', 'Bitstream-Vera', 'CC0-1.0', 'Unlicense'].includes(f.license) || !f.css.startsWith('/fonts/') || !f.css.endsWith('.css'))).toEqual([])
     expect(FONT_CATALOG.filter((f) => f.license === 'Apache-2.0').map((f) => f.name).sort()).toEqual(['Permanent Marker', 'Satisfy', 'Syncopate', 'Ultra'])
-    expect(FONT_CATALOG.filter((f) => f.source === 'open').map((f) => f.name).sort()).toEqual(['Aileron', 'Apfel Grotezk', 'Bagnard', 'Bagnard Sans', 'Bluu Next', 'Cooper Hewitt', 'Junction', 'Metropolis', 'Ostrich Sans', 'Pretendard', 'Uncut Sans'])
+    expect(FONT_CATALOG.filter((f) => f.source === 'open').map((f) => f.name).sort()).toEqual(['Aileron', 'Alegreya', 'Alegreya Sans', 'Andada Pro', 'Apfel Grotezk', 'Bagnard', 'Bagnard Sans', 'Bitter', 'Bluu Next', 'Cambo', 'ChunkFive', 'Cooper Hewitt', 'DejaVu Sans', 'Fanwood Text', 'Goudy Bookletter 1911', 'Junction', 'Metropolis', 'Ostrich Sans', 'Pretendard', 'Uncut Sans'])
+    expect(fontByName('DejaVu Sans')?.license).toBe('Bitstream-Vera')
+    expect(FONT_CATALOG.filter((f) => f.noAeoa).map((f) => f.name).sort()).toEqual(['Bagnard', 'Bagnard Sans', 'Ostrich Sans'])
   })
   it('har alle fontene malene og appene bruker', () => {
     for (const n of ['Archivo', 'Montserrat', 'Bebas Neue', 'Anton', 'Oswald', 'League Spartan', 'Playfair Display', 'DM Serif Display', 'Space Grotesk', 'Fraunces', 'Six Caps', 'Pinyon Script', 'Bricolage Grotesque', 'UnifrakturMaguntia', 'Rubik Dirt']) {
