@@ -830,6 +830,7 @@ export const EN = {
   'Hverdag, kafé, info og sosiale medier': 'Everyday, café, info and social media',
   'QR-kode': 'QR code',
   'QR-kode til en nettside, e-post, telefon, SMS eller tekst': 'QR code for a website, email, phone, SMS or text',
+  'Blokkjuster': 'Justify',
 } as const satisfies Record<string, string>
 
 export type Phrase = keyof typeof EN

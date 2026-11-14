@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import katalog from '../../../../../../docs/maler-katalog.json'
 import { fontByName } from '../../../../shared/fonts/catalog'
 import { cleanDoc } from '../backup'
-import { countImgs, refsOf, srcsOf, type Doc } from '../model'
+import { countImgs, emptyDoc, imgLimit, MAX_IMG, refsOf, srcsOf, type Doc } from '../model'
 import { LIB_CATS, loadLibrary } from '.'
 
 const cat = (katalog as { thumbs: { code: string; cat: string; name: string; spec: Record<string, string> }[] }).thumbs
@@ -48,6 +48,17 @@ describe('ferdige Thumbnail-maler fra designsamlingen (fase 3)', () => {
         if (l.italic) expect(!!f && (f.italic || f.snitt.i), `${t.code}: ${l.font} kursiv`).toBe(true)
       }
     }
+  })
+  it('grensen for egne bilder: 5, eller antall bildefelt i en ferdig mal med flere (trl-22: 12); lagres og kontrolleres', async () => {
+    expect(imgLimit(emptyDoc())).toBe(MAX_IMG)
+    expect(imgLimit({ slots: 3 })).toBe(MAX_IMG)
+    expect(imgLimit({ slots: 12 })).toBe(12)
+    expect(imgLimit({ slots: 999 })).toBe(24)
+    const t = (await loadLibrary()).find((x) => x.code === 'trl-22')
+    expect(t?.doc.layers.filter((l) => l.type === 'image')).toHaveLength(12)
+    const d = { ...emptyDoc(), slots: 12 }
+    expect(cleanDoc(JSON.parse(JSON.stringify(d)), () => null)?.slots).toBe(12)
+    expect(cleanDoc(JSON.parse(JSON.stringify({ ...emptyDoc(), slots: 2 })), () => null)?.slots).toBeUndefined()
   })
   it('bilde i teksten følger med i referansene (sikkerhetskopi, deling og bildegrensen)', () => {
     const d = { v: 1, bg: { type: 'color', color: '#000', c1: '#000', c2: '#000', angle: 0, radial: false, src: null, zoom: 1, px: 0.5, py: 0.5, blur: 0, dim: 0 }, vig: { on: false, amt: 0, size: 0, color: '#000', top: false }, layers: [{ id: 'a', type: 'text', text: 'HÅP', fillSrc: 'm:11111111-1111-1111-1111-111111111111' }] } as unknown as Doc

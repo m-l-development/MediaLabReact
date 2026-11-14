@@ -2,7 +2,7 @@ import { isBaseKey, type BaseKey } from './layouts'
 import { cleanFilters } from './filters'
 import { cleanPaint } from './paint'
 import { cleanQr } from '../../../shared/qr/qr'
-import { ASSETS, emptyDoc, L, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
+import { ASSETS, emptyDoc, L, MAX_IMG, MAX_SLOTS, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
 import type { AdvAdj, AdvKey } from '../../../shared/image/AdvAdjust'
 
 /** Kategori (felles for menigheten når ConnectHub er tilgjengelig): navn, standardoppsett og grunnoppsett. */
@@ -75,6 +75,7 @@ export function cleanDoc(doc: unknown, local: LocalMap): Doc | null {
   cleanObj(d.bg, doc.bg)
   cleanObj(d.vig, doc.vig)
   if (typeof doc.lay === 'string' && /^[a-z]{1,20}$/.test(doc.lay)) d.lay = doc.lay
+  if (typeof doc.slots === 'number' && Number.isFinite(doc.slots) && doc.slots > MAX_IMG) d.slots = Math.min(MAX_SLOTS, Math.floor(doc.slots))
   if (!['color', 'gradient', 'image'].includes(d.bg.type)) d.bg.type = 'color'
   d.bg.src = cleanSrc(d.bg.src, local)
   d.bg.orig = null

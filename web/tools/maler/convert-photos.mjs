@@ -59,7 +59,7 @@ await page.addScriptTag({ type: 'module', content: `
     const sec = document.querySelector('.tpl[data-id="' + num + '"]')
     const st = sec.firstElementChild
     const r = st.getBoundingClientRect()
-    const td = convertOne(sec, { K: 1, fieldSel: '.ph', noUnder: true, person: o.person, code: num })
+    const td = convertOne(sec, { K: 1, fieldSel: '.ph', noUnder: true, justify: true, person: o.person, code: num })
     const m = mapDoc(td, r.width, r.height, { grain: st.classList.contains('grain'), grunge: 1, gray: o.gray })
     return { w: Math.round(r.width), h: Math.round(r.height), ...m }
   }

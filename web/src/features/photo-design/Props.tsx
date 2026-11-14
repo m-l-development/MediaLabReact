@@ -689,6 +689,7 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
         out.push(<Range key="hlr" label={tx('Hjørneradius')} min={0} max={Math.max(10, Math.round(sz / 2))} step={1} val={hl.r} show={px(hl.r)} on={(x) => P({ hl: { ...hl, r: x } }, 'hlr')} def={0} reset={() => P({ hl: { ...hl, r: 0 } })} />)
       }
     }
+    if (adv || L.justify) out.push(<Toggle key="ju" label={tx('Blokkjuster')} on={!!L.justify} onClick={() => P({ justify: !L.justify, align: 'left' })} />)
     if (adv || (L.grunge ?? 0) > 0) out.push(<Range key="gr" label={tx('Slitt tekst')} min={0} max={1} step={0.01} val={L.grunge ?? 0} show={`${Math.round((L.grunge ?? 0) * 100)} %`} on={(x) => P({ grunge: x }, 'grunge')} def={0} reset={() => P({ grunge: 0 })} />)
     if (adv || L.arc) out.push(<Range key="arc" label={tx('Tekst på sirkelbane')} min={-3000} max={3000} step={10} val={L.arc ?? 0} show={L.arc ? px(L.arc) : tx('Rett')} on={(x) => P({ arc: Math.abs(x) < 20 ? 0 : x }, 'arc')} def={0} reset={() => P({ arc: 0 })} />)
     if (adv) {

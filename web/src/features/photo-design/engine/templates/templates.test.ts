@@ -40,6 +40,14 @@ describe('ferdige Photo Design-maler fra designsamlingen (fase 5)', () => {
       else expect(n, `${t.id}: ${spec}`).toBeGreaterThan(0)
     }
   })
+  it('blokkjustert tekst (062, 061, 100) har bredden fra originalen', async () => {
+    for (const id of ['061', '062', '100']) {
+      const t = (await loadLibrary()).find((x) => x.id === id)
+      const j = t?.doc.layers.filter((l) => l.type === 'text' && l.justify) ?? []
+      expect(j.length, id).toBeGreaterThan(0)
+      for (const l of j) expect(l.type === 'text' && (l.jw ?? 0) > 100, id).toBe(true)
+    }
+  })
   it('bare fonter fra biblioteket, og kursiv bare der fonten har den', async () => {
     for (const t of await loadLibrary()) {
       for (const l of t.doc.layers) {

@@ -128,9 +128,14 @@ fargeskjema (Bakgrunn/Tekst/Støttefarge), så fargevelgeren virker. `.ph` → b
 - Valg og avvik (dokumentert): bildefeltenes plassholderfarge tas ikke med (materialet: «grå plassholdere»); gråtonemaler får metning −100 på bildefeltet (materialet: «filter: grayscale(1)»); `text-align: justify` (062) tegnes venstrejustert; 017 og 066 har valgfritt bilde (designet bruker en gradient som standard).
 - Tester: `engine/templates/templates.test.ts` (100 maler, kategorier, format, prosjektformatet godtar dem uendret, bildefelt, fonter og kursiv), `e2e/photo-library.spec.ts` (PC og mobil: velg mal, legg inn bilde, lagre, eksporter i malens format).
 
+### Oppfølging 2026-11-14 (etter 43f63e0)
+- **trl-22 (12 portretter):** en ferdig mal med flere bildefelt enn grensen på 5 egne bilder får grensen satt til antall felt (`slots` på malen, høyst 24). Settes bare når malen velges fra «Ferdige maler»; alle andre maler beholder grensen på 5. Testet: alle 12 feltene fylles, lagres, åpnes og er med i eksporten (hvert bilde i sitt felt); en vanlig mal avviser fortsatt det sjette bildet (`e2e/thumbnail-slots.spec.ts`).
+- **Blokkjustering (062, også 061 og 100):** Photo-tekst har nå `justify` (og `jw`, bredden fra originalen): alle linjer unntatt den siste fylles ut langs begge marger ved å fordele mellomrommet mellom ordene, som CSS. Linjebrytingen er originalens. «Blokkjuster» i panelet (Avansert modus, og der laget bruker det). 062: avvik mot originalen 2,44 % → 0,84 %; alle 100 Photo-maler nå: 80 under 2 %, alle under 5 %, snitt 1,29 %.
+- **Fonter («Last ned selv», 153):** generatoren tar med åpne fonter utenfor Google som finnes som Fontsource-pakke med lisensfil (`LICENSE` følger med i `/fonts/LICENSE-<font>.txt`) og en åpen lisens i pakken. **11 er tatt med:** Uncut Sans, Cooper Hewitt, Pretendard, Junction, Bagnard Sans, Apfel Grotezk, Ostrich Sans, Bagnard, Bluu Next (OFL-1.1), Aileron (CC0-1.0), Metropolis (Unlicense). Bagnard, Bagnard Sans og Ostrich Sans mangler Æ, Ø og Å (målt i Chromium) og er merket «Uten ÆØÅ» i fontvelgeren. **142 er ikke tatt med:** det finnes ingen pakke med fontfiler og lisensfil som kan låses i byggekjeden, og materialet har ikke lisensfilene; de kan tas med når fontfil og lisensfil hentes fra stiftelsen og legges inn sammen. Listen står i `docs/fonter-ikke-med.json` (142 fonter).
+- **Lisens i katalogen:** leses nå fra fontpakken (før satt til OFL-1.1 for alle). Fire Google-fonter har Apache-2.0 (Permanent Marker, Satisfy, Syncopate, Ultra) – også en åpen lisens som tillater å legge fonten ved.
+
 ## 4. Åpne punkter og risiko
-- **«Last ned selv»-fonter (ca. 150):** materialet har fontfiler for 12 familier. Resten må lastes ned fra kildene
-  før de kan brukes; til da vises de ikke i velgeren (ingen font uten fil eller lisens).
+- **«Last ned selv»-fonter (153):** 11 er tatt med (se Oppfølging 2026-11-14); 142 venter på fontfil og lisensfil fra stiftelsen (docs/fonter-ikke-med.json).
 - **Lisensfiler for de 12:** OFL krever at lisensen følger fonten; materialet har ikke OFL.txt for disse.
 - **Størrelse:** alle Google-fonter i biblioteket som selvhostede filer gir anslagsvis 20–40 MB i deployen (lastes
   bare ved bruk). Måles i fase 1.

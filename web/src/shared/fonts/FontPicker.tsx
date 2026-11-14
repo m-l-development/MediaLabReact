@@ -116,6 +116,7 @@ function Row({ name, entry, on, sample, onPick }: { name: string; entry: FontEnt
         <span className={s.sample} style={{ fontFamily: familyCss(name) }}>{sample}</span>
         <span className={s.meta}>
           {entry ? t(STYLE_KEY(entry.style)) : t('fp.inProject')}
+          {entry?.noAeoa && <span className={s.warn} data-font-noaeoa="" title={t('fp.noAeoaTip')}>{t('fp.noAeoa')}</span>}
           {entry && (
             <span className={s.snitt} aria-label={t('fp.snitt')}>
               <b aria-disabled={!entry.snitt.b} title={t(entry.snitt.b ? 'fp.hasB' : 'fp.noB')}>B</b>

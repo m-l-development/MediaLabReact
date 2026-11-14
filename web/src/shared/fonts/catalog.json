@@ -1818,7 +1818,7 @@
   },
   "css": "/fonts/ultra.css",
   "variable": false,
-  "license": "OFL-1.1"
+  "license": "Apache-2.0"
  },
  {
   "id": "nunito",
@@ -2516,7 +2516,7 @@
   },
   "css": "/fonts/permanent-marker.css",
   "variable": false,
-  "license": "OFL-1.1"
+  "license": "Apache-2.0"
  },
  {
   "id": "pinyon-script",
@@ -2661,7 +2661,7 @@
   },
   "css": "/fonts/satisfy.css",
   "variable": false,
-  "license": "OFL-1.1"
+  "license": "Apache-2.0"
  },
  {
   "id": "sacramento",
@@ -3995,7 +3995,7 @@
   },
   "css": "/fonts/syncopate.css",
   "variable": false,
-  "license": "OFL-1.1"
+  "license": "Apache-2.0"
  },
  {
   "id": "jetbrains-mono",
@@ -4298,6 +4298,35 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "uncut-sans",
+  "name": "Uncut Sans",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   500,
+   600,
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/uncut-sans.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
   "id": "saira",
   "name": "Saira",
   "style": "sans",
@@ -4388,6 +4417,101 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "aileron",
+  "name": "Aileron",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   100,
+   300,
+   400,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/aileron.css",
+  "variable": false,
+  "license": "CC0-1.0"
+ },
+ {
+  "id": "metropolis",
+  "name": "Metropolis",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "open",
+  "note": "CC0 (fritt), Sjekk ÆØÅ",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/metropolis.css",
+  "variable": false,
+  "license": "Unlicense"
+ },
+ {
+  "id": "cooper-hewitt",
+  "name": "Cooper Hewitt",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": true,
+   "bi": true
+  },
+  "css": "/fonts/cooper-hewitt.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
   "id": "host-grotesk",
   "name": "Host Grotesk",
   "style": "mod",
@@ -4438,6 +4562,59 @@
    "bi": false
   },
   "css": "/fonts/cal-sans.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bagnard-sans",
+  "name": "Bagnard Sans",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "open",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bagnard-sans.css",
+  "variable": false,
+  "license": "OFL-1.1",
+  "noAeoa": true
+ },
+ {
+  "id": "junction",
+  "name": "Junction",
+  "style": "sans",
+  "uses": [
+   "B",
+   "U",
+   "L"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   300,
+   400,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/junction.css",
   "variable": false,
   "license": "OFL-1.1"
  },
@@ -4507,6 +4684,39 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "pretendard",
+  "name": "Pretendard",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   100,
+   200,
+   300,
+   400,
+   500,
+   600,
+   700,
+   800,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/pretendard.css",
+  "variable": false,
+  "license": "OFL-1.1"
+ },
+ {
   "id": "radio-canada",
   "name": "Radio Canada",
   "style": "sans",
@@ -4535,6 +4745,34 @@
   "css": "/fonts/radio-canada.css",
   "variable": true,
   "license": "OFL-1.1"
+ },
+ {
+  "id": "ostrich-sans",
+  "name": "Ostrich Sans",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "open",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   300,
+   400,
+   700,
+   900
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/ostrich-sans.css",
+  "variable": false,
+  "license": "OFL-1.1",
+  "noAeoa": true
  },
  {
   "id": "tasa-orbiter",
@@ -4680,6 +4918,32 @@
   },
   "css": "/fonts/tasa-explorer.css",
   "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "apfel-grotezk",
+  "name": "Apfel Grotezk",
+  "style": "mod",
+  "uses": [
+   "B",
+   "L",
+   "T"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   400,
+   700
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/apfel-grotezk.css",
+  "variable": false,
   "license": "OFL-1.1"
  },
  {
@@ -5193,6 +5457,31 @@
   "license": "OFL-1.1"
  },
  {
+  "id": "bagnard",
+  "name": "Bagnard",
+  "style": "serif",
+  "uses": [
+   "V",
+   "E"
+  ],
+  "source": "open",
+  "note": "Sjekk ÆØÅ",
+  "weights": [
+   400
+  ],
+  "italic": false,
+  "snitt": {
+   "r": true,
+   "b": false,
+   "i": false,
+   "bi": false
+  },
+  "css": "/fonts/bagnard.css",
+  "variable": false,
+  "license": "OFL-1.1",
+  "noAeoa": true
+ },
+ {
   "id": "eb-garamond",
   "name": "EB Garamond",
   "style": "serif",
@@ -5248,6 +5537,30 @@
   },
   "css": "/fonts/geom.css",
   "variable": true,
+  "license": "OFL-1.1"
+ },
+ {
+  "id": "bluu-next",
+  "name": "Bluu Next",
+  "style": "disp",
+  "uses": [
+   "T",
+   "S"
+  ],
+  "source": "open",
+  "note": "",
+  "weights": [
+   700
+  ],
+  "italic": true,
+  "snitt": {
+   "r": true,
+   "b": true,
+   "i": false,
+   "bi": true
+  },
+  "css": "/fonts/bluu-next.css",
+  "variable": false,
   "license": "OFL-1.1"
  },
  {

@@ -16,7 +16,10 @@ export interface FontEntry {
   name: string
   style: FontStyle
   uses: FontUse[]
-  source: 'google'
+  /** google = Google Fonts; open = åpen font utenfor Google (Fontsource-pakke med lisensfil). */
+  source: 'google' | 'open'
+  /** Fonten mangler Æ, Ø og Å (tegnene vises i reservefonten). */
+  noAeoa?: boolean
   note: string
   /** Vektene fonten har (normal stil). */
   weights: number[]

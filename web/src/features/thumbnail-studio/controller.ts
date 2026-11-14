@@ -8,7 +8,7 @@ import type { ImageCache } from './engine/images'
 import { base, BASE_KEYS, layout, type BaseKey } from './engine/layouts'
 import { LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library'
 import { LIB_CATS, loadLibrary, type LibTemplate } from './engine/templates'
-import { clone, countImgs, FONTS, H, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
+import { clone, countImgs, FONTS, H, imgLimit, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
 import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
 import type { Phrase, Vars } from './texts'
 import { newQr, updateQr, type QrSpec } from '../../shared/qr/qr'
@@ -983,6 +983,9 @@ export class ThumbController {
     this.pickNew(c, { doc: () => {
       const d = clone(t.doc)
       for (const l of d.layers) l.id = uid()
+      // flere bildefelt enn grensen på 5 (trl-22: 12 portretter): grensen blir antall felt i malen
+      const n = d.layers.filter((l) => l.type === 'image').length + d.layers.filter((l) => l.type === 'text' && 'fillSrc' in l).length
+      if (n > MAX_IMG) d.slots = n
       return d
     } })
   }
@@ -1915,7 +1918,7 @@ export class ThumbController {
     this.set({ picker: null })
     const probe = this.s.doc
     if (!probe) return
-    if (t.mode === 'add' && src.startsWith('m:') && countImgs(probe) >= MAX_IMG && !this.hasSrc(probe, src)) {
+    if (t.mode === 'add' && src.startsWith('m:') && countImgs(probe) >= imgLimit(probe) && !this.hasSrc(probe, src)) {
       this.flash('Maks 5 bilder per mal. Fjern et bilde først.')
       return
     }
@@ -1961,7 +1964,7 @@ export class ThumbController {
       if (l?.type === 'text') l.fillSrc = null
     }
     if (t.mode === 'bg') probe.bg.src = null
-    if (countImgs(probe) >= MAX_IMG) {
+    if (countImgs(probe) >= imgLimit(probe)) {
       this.flash('Maks 5 bilder per mal. Fjern et bilde først.')
       return
     }

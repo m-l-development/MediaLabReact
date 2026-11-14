@@ -156,6 +156,9 @@ export interface TextLayer extends Base {
   hl?: { c: string; px: number; py: number; r: number } | null
   /** Tekst på sirkelbane: radius i px (positiv = bue opp, negativ = bue ned); mangler/0 = rett. */
   arc?: number
+  /** Blokkjustering (CSS text-align: justify): alle linjer unntatt den siste fylles ut til bredden `jw` (mangler = bredeste linje). */
+  justify?: boolean
+  jw?: number
   /** Grunnlinjen til første linje målt fra toppen av tekstboksen (px, før strekk). Mangler = linjene midtstilles som før. */
   bl?: number
 }
@@ -271,6 +274,7 @@ export function textBox(L: TextLayer): { w: number; h: number; lines: string[] }
       // eldre nettlesere uten letterSpacing
     }
     for (const s of lines) w = Math.max(w, g.measureText(s || ' ').width)
+    if (L.justify && L.jw) w = Math.max(w, L.jw)
   } else {
     // uten lerret (tester): anslag ut fra antall tegn
     for (const s of lines) w = Math.max(w, (s || ' ').length * (L.size * 0.56 + (L.ls || 0)))

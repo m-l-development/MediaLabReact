@@ -15,6 +15,8 @@ import type { QrSpec } from '../../../shared/qr/qr'
 export const W = 1920
 export const H = 1080
 export const MAX_IMG = 5
+/** Største antall egne bilder i en mal med flere bildefelt (ferdige maler, f.eks. trl-22 med 12 portretter). */
+export const MAX_SLOTS = 24
 export const MAX_TPL = 5
 
 export type Weight = 400 | 500 | 600 | 700 | 800 | 900
@@ -202,6 +204,8 @@ export interface Doc {
   layers: Layer[]
   /** Nøkkel til standardoppsettet dokumentet ble laget fra (når det ikke er kategoriens grunnoppsett). */
   lay?: string
+  /** Antall bildefelt i en ferdig mal med flere enn MAX_IMG (grensen for egne bilder blir da antall felt). */
+  slots?: number
 }
 
 /** Kort, tilfeldig ID (samme form som dagens app: små bokstaver og tall). */
@@ -274,6 +278,11 @@ export function refsOf(doc: Pick<Doc, 'layers'> & { bg?: Partial<Background> }):
 }
 
 /** Egne bilder i malen (maks 5; gamle innebygde logoer og Fellesmappe-logoer teller som i dag bare når de er lokale). */
+/** Grensen for egne bilder i dokumentet: MAX_IMG, eller antall bildefelt i en ferdig mal som har flere. */
+export function imgLimit(doc: Pick<Doc, 'slots'>): number {
+  return Math.max(MAX_IMG, Math.min(MAX_SLOTS, Math.floor(doc.slots ?? 0)))
+}
+
 export function countImgs(doc: Doc): number {
   const own = (v: string | null | undefined) => !!v && (v.startsWith('db:') || v.startsWith('m:'))
   const s = new Set<string>()

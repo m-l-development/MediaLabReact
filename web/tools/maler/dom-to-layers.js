@@ -354,6 +354,8 @@ export function convertOne(sec, opts = {}) {
       upper: tt === 'uppercase', fit: false, bar: false, barColor: '#ffffff', barH: 8, ...common(P),
     }
     if (italic) l.italic = true
+    // blokkjustering (Photo): bredden linjene fylles ut til
+    if (opts.justify && /justify/.test(cs.textAlign) && L.length > 1) l.jw = r1((Math.max(...L.map((x) => x.right)) - Math.min(...L.map((x) => x.left))) * K * k)
     if (chain(P).some((x) => { const mk = getComputedStyle(x).maskImage || getComputedStyle(x).webkitMaskImage; return mk && mk !== 'none' })) l.grunge = true
     if (stretch !== 100) l.stretch = stretch
     if (Math.abs(pl.ky / k - 1) > 0.005) l.sy = r3(pl.ky / k)

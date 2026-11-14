@@ -207,3 +207,13 @@ li[aria-selected='true'] .row {
     padding: 10px 8px;
   }
 }
+
+/* fonter uten Æ, Ø og Å */
+.warn {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(240, 163, 90, 0.18);
+  color: #f0a35a;
+  font-size: 11px;
+}

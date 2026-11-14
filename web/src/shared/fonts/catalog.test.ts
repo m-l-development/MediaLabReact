@@ -7,7 +7,10 @@ describe('det felles fontbiblioteket', () => {
     const blocked = new Set((rows as { name: string; lic: string; src: string }[]).filter((r) => r.lic !== 'ok' || r.src === 'x').map((r) => r.name))
     expect(FONT_CATALOG.length).toBeGreaterThan(190)
     expect(FONT_CATALOG.filter((f) => blocked.has(f.name))).toEqual([])
-    expect(FONT_CATALOG.every((f) => f.license === 'OFL-1.1' && f.css.startsWith('/fonts/') && f.css.endsWith('.css'))).toBe(true)
+    // lisensen er den fontpakken oppgir (OFL for de fleste; Apache-2.0 for fire Google-fonter; CC0/Unlicense for to åpne)
+    expect(FONT_CATALOG.filter((f) => !['OFL-1.1', 'Apache-2.0', 'CC0-1.0', 'Unlicense'].includes(f.license) || !f.css.startsWith('/fonts/') || !f.css.endsWith('.css'))).toEqual([])
+    expect(FONT_CATALOG.filter((f) => f.license === 'Apache-2.0').map((f) => f.name).sort()).toEqual(['Permanent Marker', 'Satisfy', 'Syncopate', 'Ultra'])
+    expect(FONT_CATALOG.filter((f) => f.source === 'open').map((f) => f.name).sort()).toEqual(['Aileron', 'Apfel Grotezk', 'Bagnard', 'Bagnard Sans', 'Bluu Next', 'Cooper Hewitt', 'Junction', 'Metropolis', 'Ostrich Sans', 'Pretendard', 'Uncut Sans'])
   })
   it('har alle fontene malene og appene bruker', () => {
     for (const n of ['Archivo', 'Montserrat', 'Bebas Neue', 'Anton', 'Oswald', 'League Spartan', 'Playfair Display', 'DM Serif Display', 'Space Grotesk', 'Fraunces', 'Six Caps', 'Pinyon Script', 'Bricolage Grotesque', 'UnifrakturMaguntia', 'Rubik Dirt']) {
