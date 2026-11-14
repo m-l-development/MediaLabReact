@@ -10,7 +10,8 @@ import {
   ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, LOOKS, SHAPES, shapeLayer, targetSlot, textLayer, uid,
   type Adj, type CurveKey, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
-import { autoTone, cleanDev, DEV, type Dev, type Histogram } from './engine/develop'
+import { autoTone, cleanDev, DEV, hdrMerge, LOC, type Dev, type DevKey, type Histogram, type LocalAdj } from './engine/develop'
+import { readExif, type Exif } from './engine/exif'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
 import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
@@ -1865,12 +1866,72 @@ export class PhotoController {
   }
 
   /** Avansert framkalling (engine/develop.ts, bare i Avansert modus). Nøytral verdi fjerner feltet helt. */
-  setDev(id: string, k: keyof Dev, v: number, key?: string): void {
+  setDev(id: string, k: DevKey, v: number, key?: string): void {
     this.patchL(id, (q) => (q.type === 'image' ? { dev: cleanDev({ ...DEV, ...q.dev, [k]: v }) } : {}), key)
   }
 
   resetDev(id: string): void {
     this.patchL(id, { dev: null })
+  }
+
+  /** Lokale justeringer (gradientmasker): legg til, endre (patch) og slett. */
+  addLoc(id: string, k: LocalAdj['k']): void {
+    this.patchL(id, (q) => (q.type === 'image' ? { dev: cleanDev({ ...DEV, ...q.dev, loc: [...(q.dev?.loc ?? []), { k, ...LOC, ...(k === 'lin' ? { y: 0.3, r: 0.4, a: 90, inv: true, exp: -40 } : k === 'spot' ? { r: 0.15, f: 0.5, sx: 0.65, sy: 0.5 } : { exp: 30 }) }] }) } : {}))
+  }
+
+  setLoc(id: string, i: number, patch: Partial<LocalAdj> | null, key?: string): void {
+    this.patchL(id, (q) => {
+      if (q.type !== 'image') return {}
+      const loc = [...(q.dev?.loc ?? [])]
+      if (!loc[i]) return {}
+      if (patch) loc[i] = { ...loc[i]!, ...patch }
+      else loc.splice(i, 1)
+      return { dev: cleanDev({ ...DEV, ...q.dev, loc }) }
+    }, key)
+  }
+
+  /** Bildelagene som er valgt (det aktive og ev. flere med Shift), i lagrekkefølge. */
+  selImages(): Extract<PdLayer, { type: 'image' }>[] {
+    const ids = new Set([this.s.sel, ...this.s.multi].filter(Boolean))
+    return (this.s.doc?.layers ?? []).filter((L): L is Extract<PdLayer, { type: 'image' }> => L.type === 'image' && ids.has(L.id) && !!L.src && this.M.media.has(L.src))
+  }
+
+  /**
+   * HDR-sammenslåing av 2–5 valgte bilder av samme motiv med ulik eksponering (eksponeringsfusjon, engine/develop.ts).
+   * Resultatet blir et nytt bilde (som PNG i Dine medier); originalene røres ikke.
+   */
+  async hdrMerge(): Promise<void> {
+    const Ls = this.selImages().slice(0, 5)
+    if (Ls.length < 2) { this.flash('Velg 2–5 bilder av samme motiv med ulik eksponering (Shift-klikk).'); return }
+    const Es = Ls.map((L) => this.M.media.get(L.src!)!)
+    const k = Math.min(1, 2400 / Math.max(Es[0]!.w, Es[0]!.h))
+    const W = Math.max(1, Math.round(Es[0]!.w * k)), H = Math.max(1, Math.round(Es[0]!.h * k))
+    const ims = Es.map((E) => {
+      const c = mk(W, H), g = c.getContext('2d', { willReadFrequently: true })!
+      g.drawImage(baseOf(E, Math.max(W, H)), 0, 0, W, H)
+      return g.getImageData(0, 0, W, H)
+    })
+    const out = mk(W, H)
+    const px = hdrMerge(ims)
+    out.getContext('2d')!.putImageData(new ImageData(px.data, W, H), 0, 0)
+    const blob = await new Promise<Blob | null>((res) => out.toBlob(res, 'image/png'))
+    if (!blob) return
+    this.set({ sel: null, multi: [] })
+    await this.addBlob(blob, 'HDR.png')
+    this.flash('HDR-bildet er lagt til som nytt bilde.')
+  }
+
+  /** EXIF-metadata for bildelaget (fra originalfilen, bare JPEG har EXIF). */
+  async exifOf(id: string): Promise<Exif | null> {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!E?.url) return null
+    try {
+      const r = await fetch(E.url)
+      return readExif(await r.arrayBuffer())
+    } catch {
+      return null
+    }
   }
 
   /** Histogram for bildelaget (raw = originalen). Null uten bilde. */

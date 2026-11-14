@@ -69,3 +69,32 @@ describe('Forsiden: menighetens logo', () => {
     expect(document.querySelector('[data-ch-hub-church]')).toBeNull()
   })
 })
+
+/** HUB-02: snarveier til Fellesmappe (medlem) og Samarbeidsmappe (bare med aktiv gruppe). */
+describe('Forsiden: mappesnarveier', () => {
+  const show = (m: Me | null, collab: boolean) => {
+    const services = { community: { hasActiveCollab: async () => collab }, files: { blob: async () => null } } as unknown as Services
+    render(<ServicesContext value={services}><Hub me={m} /></ServicesContext>)
+  }
+  const link = (href: string) => document.querySelector(`a[href="${href}"]`)
+  const member = () => me([{ id: 'c1', name: 'Bymenigheten', logo_file_id: null } as Me['churches'][number]])
+
+  it('medlem med aktiv gruppe: Fellesmappe og Samarbeidsmappe', async () => {
+    show(member(), true)
+    expect(link('/fellesmappe')).toBeTruthy()
+    await waitFor(() => expect(link('/samarbeidsmappe')).toBeTruthy())
+  })
+
+  it('medlem uten aktiv gruppe: bare Fellesmappe', async () => {
+    show(member(), false)
+    expect(link('/fellesmappe')).toBeTruthy()
+    await new Promise((r) => setTimeout(r, 20))
+    expect(link('/samarbeidsmappe')).toBeNull()
+  })
+
+  it('uten menighet: ingen mappesnarveier', () => {
+    show(me([]), true)
+    expect(link('/fellesmappe')).toBeNull()
+    expect(link('/samarbeidsmappe')).toBeNull()
+  })
+})

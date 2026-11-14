@@ -67,6 +67,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Interpolering': 'Interpolation',
   'Slett keyframen': 'Delete the keyframe',
   'Posisjon X': 'Position X',
+  'Ankerpunkt X': 'Anchor point X',
+  'Ankerpunkt Y': 'Anchor point Y',
   'Posisjon Y': 'Position Y',
   'Rotasjon': 'Rotation',
   'Myk': 'Ease',
