@@ -312,6 +312,38 @@
   .shell:has([data-ml-workspace]) .adminFab {
     display: none;
   }
+
+  /* tilbakeknappene får plassen til venstre for de runde knappene (34 px + 8 px mellomrom per knapp) og brytes ikke;
+     med begge knapper vises bare pilen på «Media Lab», og lange navn kortes med … */
+  .shell:has([data-ml-workspace]) {
+    --dock-w: 50px;
+  }
+  .shell:has([data-ml-workspace]):has(.dock > :nth-child(2)) {
+    --dock-w: 92px;
+  }
+  .shell:has([data-ml-workspace]):has(.dock > :nth-child(3)) {
+    --dock-w: 134px;
+  }
+  .shell:has([data-ml-workspace]):has(.dock > :nth-child(4)) {
+    --dock-w: 176px;
+  }
+  .shell:has([data-ml-workspace]) .backGroup {
+    flex-wrap: nowrap;
+    min-width: 0;
+    max-width: calc(100vw - 32px - var(--dock-w));
+  }
+  .shell:has([data-ml-workspace]) .backPill {
+    min-width: 0;
+    padding: 0 12px;
+  }
+  .shell:has([data-ml-workspace]) .pillText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shell:has([data-ml-workspace]) .backGroup:has([data-ml-back='some']) .backPill:first-child .pillText {
+    display: none;
+  }
 }
 
 /* berøringsmål ~44 px på berøringsskjerm (PC med mus er uendret) */
