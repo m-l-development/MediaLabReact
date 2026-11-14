@@ -15,8 +15,8 @@ export type KfKind = 'clip' | 'ov' | 'text'
 /** [egenskap, navn, min, maks, steg]. `op` (klipp) er bare animerbar (grunnverdi 1). */
 export type PropDef = readonly [string, string, number, number, number]
 export const KF_PROPS: Record<KfKind, readonly PropDef[]> = {
-  clip: [['x', 'Posisjon X', -1, 1, 0.01], ['y', 'Posisjon Y', -1, 1, 0.01], ['scale', 'Skalering', 0.1, 5, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['op', 'Opasitet', 0, 1, 0.01]],
-  ov: [['x', 'Posisjon X', -1, 2, 0.005], ['y', 'Posisjon Y', -1, 2, 0.005], ['scale', 'Skalering', 0.02, 4, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['opacity', 'Opasitet', 0, 1, 0.01]],
+  clip: [['x', 'Posisjon X', -1, 1, 0.01], ['y', 'Posisjon Y', -1, 1, 0.01], ['scale', 'Skalering', 0.1, 5, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['ax', 'Ankerpunkt X', -0.5, 0.5, 0.01], ['ay', 'Ankerpunkt Y', -0.5, 0.5, 0.01], ['op', 'Opasitet', 0, 1, 0.01]],
+  ov: [['x', 'Posisjon X', -1, 2, 0.005], ['y', 'Posisjon Y', -1, 2, 0.005], ['scale', 'Skalering', 0.02, 4, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['ax', 'Ankerpunkt X', -0.5, 0.5, 0.01], ['ay', 'Ankerpunkt Y', -0.5, 0.5, 0.01], ['opacity', 'Opasitet', 0, 1, 0.01]],
   text: [['x', 'Posisjon X', -0.5, 1.5, 0.005], ['y', 'Posisjon Y', -0.5, 1.5, 0.005], ['size', 'Størrelse', 8, 600, 1], ['opacity', 'Opasitet', 0, 1, 0.01]],
 }
 export const EASES: readonly (readonly [Ease, string])[] = [['lin', 'Lineær'], ['ease', 'Myk'], ['hold', 'Hold']]

@@ -14,7 +14,8 @@ import { BgColor } from '../../shared/ui/BgColor'
 import { CurveGradient } from '../../shared/fill/CurveGradient'
 import { curveFn } from './engine/render'
 import { curvePoint, onCurve } from '../../shared/fill/curve'
-import { DEV, type Dev, type Histogram } from './engine/develop'
+import { DEV, devRange, HSL_RANGES, LOC, type Dev, type DevKey, type Histogram, type HslRange, type LocalAdj } from './engine/develop'
+import type { Exif } from './engine/exif'
 import { useEffect, useRef, useState } from 'react'
 import type React from 'react'
 import type { Phrase, Tx } from './texts'
@@ -135,6 +136,15 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
         </div>
         <span className={s.note}>{tx(mGrp ? 'Gruppen flyttes og skaleres som ett objekt. Dobbeltklikk på et element for å redigere det alene.' : 'Dra i hjørnene for å skalere alle likt, eller i sidene for å strekke. Grupper lagene for å låse dem sammen.')}</span>
         <span className={s.dimSm}>{tx('Ctrl+G grupperer · Ctrl+Shift+G deler opp · Shift+klikk legger til eller fjerner')}</span>
+        {c.s.adv && c.selImages().length > 1 && (
+          <div data-pd-hdr-box="">
+            <span className={s.eyebrowSm}>{tx('HDR-sammenslåing')}</span>
+            <div className={s.looks}>
+              <button type="button" data-pd-hdr="" disabled={c.selImages().length > 5} onClick={() => void c.hdrMerge()}>{tx('Slå sammen valgte bilder til HDR')} ({c.selImages().length})</button>
+            </div>
+            <span className={s.dimSm}>{tx('Velg 2–5 bilder av samme motiv med ulik eksponering (Shift-klikk).')}</span>
+          </div>
+        )}
       </div>
     )
   }
@@ -375,7 +385,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
   )
 }
 
-const DEVL: [keyof Dev, Phrase, number, number][] = [['whites', 'Hvitpunkt', -100, 100], ['blacks', 'Svartpunkt', -100, 100], ['vib', 'Vibrance', -100, 100], ['clarity', 'Klarhet', -100, 100], ['sharp', 'Skarphet', 0, 100]]
+const DEVL: [DevKey, Phrase][] = [['whites', 'Hvitpunkt'], ['blacks', 'Svartpunkt'], ['vib', 'Vibrance'], ['clarity', 'Klarhet'], ['texture', 'Tekstur'], ['sharp', 'Skarphet'], ['nr', 'Støyreduksjon']]
 
 /** Histogram (lyshet + RGB) for valgt bildelag, tegnet på et lite lerret. */
 function HistView({ h }: { h: Histogram | null }) {
@@ -402,9 +412,18 @@ function HistView({ h }: { h: Histogram | null }) {
 
 /** Avansert framkalling (Avansert modus): hvit-/svartpunkt, vibrance, klarhet, skarphet, auto-tone, histogram, kopier/lim inn og før/etter. */
 function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { type: 'image' }>; tx: Tx }) {
-  const dev = { ...DEV, ...L.dev }
+  const dev: Dev = { ...DEV, ...L.dev }
   const h = c.histOfLayer(L.id)
   const hold = (on: boolean) => c.setBefore(on ? L.id : null)
+  const [hr, setHr] = useState<HslRange>('Red')
+  const [zone, setZone] = useState<'s' | 'm' | 'h'>('s')
+  const num = (k: DevKey) => Number(dev[k] ?? 0) || 0
+  const slider = (k: DevKey, l: Phrase) => {
+    const [mn, mx] = devRange(k)
+    const v = num(k)
+    return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${v > 0 && mn < 0 ? '+' : ''}${Math.round(v)}`} on={(x) => c.setDev(L.id, k, x, `dev${k}`)} def={0} reset={() => c.setDev(L.id, k, 0)} />
+  }
+  const zk = { s: ['gsh', 'gss'], m: ['gmh', 'gms'], h: ['ghh', 'ghs'] } as const
   return (
     <div data-pd-adv-dev="">
       <div className={s.sectionHead}>
@@ -418,10 +437,109 @@ function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { ty
         <button type="button" data-pd-copydev="" onClick={() => c.copyDev(L.id)}>{tx('Kopier framkalling')}</button>
         <button type="button" data-pd-pastedev="" disabled={!c.s.devClip} onClick={() => c.pasteDev(L.id)}>{tx('Lim inn framkalling')}</button>
       </div>
-      {DEVL.map(([k, l, mn, mx]) => {
-        const v = Number(dev[k] ?? 0)
-        return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${v > 0 && mn < 0 ? '+' : ''}${Math.round(v)}`} on={(x) => c.setDev(L.id, k, x, `dev${k}`)} def={0} reset={() => c.setDev(L.id, k, 0)} />
-      })}
+      {DEVL.map(([k, l]) => slider(k, l))}
+
+      <span className={s.eyebrowSm}>{tx('Perspektiv')}</span>
+      <div data-pd-persp="">
+        {slider('pv', 'Vertikalt')}
+        {slider('ph', 'Horisontalt')}
+      </div>
+
+      <span className={s.eyebrowSm}>{tx('HSL / fargeområder')}</span>
+      <div data-pd-hsl="">
+        <div className={s.looks}>
+          {HSL_RANGES.map(([n]) => <button key={n} type="button" data-pd-hsl-range={n} aria-pressed={hr === n} title={tx(HSL_NAMES[n])} onClick={() => setHr(n)}><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 6, background: HSL_SW[n], verticalAlign: 'middle' }} /> {tx(HSL_NAMES[n])}</button>)}
+        </div>
+        {slider(`h${hr}`, 'Fargetone')}
+        {slider(`s${hr}`, 'Metning')}
+        {slider(`l${hr}`, 'Lyshet')}
+      </div>
+
+      <span className={s.eyebrowSm}>{tx('Fargegradering')}</span>
+      <div data-pd-grade="">
+        <div className={s.looks}>
+          {([['s', 'Skygger'], ['m', 'Mellomtoner'], ['h', 'Høylys']] as const).map(([k, l]) => <button key={k} type="button" data-pd-grade-zone={k} aria-pressed={zone === k} onClick={() => setZone(k)}>{tx(l)}</button>)}
+        </div>
+        {slider(zk[zone][0], 'Fargetone')}
+        {slider(zk[zone][1], 'Styrke')}
+        {slider('gbal', 'Balanse')}
+      </div>
+
+      <div className={s.sectionHead}>
+        <span className={s.eyebrowSm}>{tx('Lokale justeringer')}</span>
+      </div>
+      <div data-pd-loc="">
+        <div className={s.looks}>
+          <button type="button" data-pd-loc-add="lin" disabled={(dev.loc?.length ?? 0) >= 8} onClick={() => c.addLoc(L.id, 'lin')}>{tx('+ Lineær gradient')}</button>
+          <button type="button" data-pd-loc-add="rad" disabled={(dev.loc?.length ?? 0) >= 8} onClick={() => c.addLoc(L.id, 'rad')}>{tx('+ Radial gradient')}</button>
+          <button type="button" data-pd-loc-add="spot" disabled={(dev.loc?.length ?? 0) >= 8} title={tx('Flekkfjerning og kloning: dekker et område med et annet område i bildet')} onClick={() => c.addLoc(L.id, 'spot')}>{tx('+ Flekkfjerning')}</button>
+        </div>
+        {(dev.loc ?? []).map((m, i) => {
+          const set = (p: Partial<LocalAdj>, key?: string) => c.setLoc(L.id, i, p, key)
+          const R = (k: 'x' | 'y' | 'r' | 'a' | 'f' | 'exp' | 'con' | 'sat' | 'temp' | 'sx' | 'sy', l: Phrase, mn: number, mx: number, sc = 1) => {
+            const d0 = k === 'sx' ? 0.65 : k === 'sy' ? 0.5 : (LOC[k] as number)
+            const v = (m[k] ?? d0) * sc
+            return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${Math.round(v)}`} on={(x) => set({ [k]: x / sc }, `loc${i}${k}`)} def={d0 * sc} reset={() => set({ [k]: d0 })} />
+          }
+          const spotK = m.k === 'spot'
+          return (
+            <div key={i} data-pd-loc-item={i} style={{ borderTop: '1px solid var(--line, #8884)', paddingTop: 6, marginTop: 6 }}>
+              <div className={s.sectionHead}>
+                <span>{tx(m.k === 'lin' ? 'Lineær' : spotK ? 'Flekkfjerning' : 'Radial')} {i + 1}</span>
+                <span>
+                  <button type="button" className={s.resetBtn} data-pd-loc-on="" aria-pressed={m.on} onClick={() => set({ on: !m.on })}>{tx(m.on ? 'På' : 'Av')}</button>
+                  {!spotK && <button type="button" className={s.resetBtn} data-pd-loc-inv="" aria-pressed={m.inv} onClick={() => set({ inv: !m.inv })}>{tx('Snu')}</button>}
+                  <button type="button" className={s.resetBtn} data-pd-loc-del="" onClick={() => c.setLoc(L.id, i, null)}>{tx('Slett')}</button>
+                </span>
+              </div>
+              {!spotK && R('exp', 'Eksponering', -100, 100)}
+              {!spotK && R('con', 'Kontrast', -100, 100)}
+              {!spotK && R('sat', 'Metning', -100, 100)}
+              {!spotK && R('temp', 'Temperatur', -100, 100)}
+              {R('x', 'Plassering vannrett', -50, 150, 100)}
+              {R('y', 'Plassering loddrett', -50, 150, 100)}
+              {R('r', m.k === 'lin' ? 'Overgang' : 'Størrelse', 2, 150, 100)}
+              {!spotK && R('a', 'Vinkel', -180, 180)}
+              {m.k !== 'lin' && R('f', 'Myk kant', 0, 100, 100)}
+              {spotK && R('sx', 'Kilde vannrett', 0, 100, 100)}
+              {spotK && R('sy', 'Kilde loddrett', 0, 100, 100)}
+            </div>
+          )
+        })}
+      </div>
+
+      <span className={s.eyebrowSm}>{tx('HDR-sammenslåing')}</span>
+      <span className={s.dimSm} data-pd-hdr-hint="">{tx('Velg 2–5 bilder av samme motiv med ulik eksponering (Shift-klikk).')}</span>
+
+      <ExifView c={c} id={L.id} src={L.src} tx={tx} />
+    </div>
+  )
+}
+
+const HSL_NAMES: Record<HslRange, Phrase> = { Red: 'Rød', Orange: 'Oransje', Yellow: 'Gul', Green: 'Grønn', Aqua: 'Turkis', Blue: 'Blå', Purple: 'Lilla', Magenta: 'Magenta' }
+const HSL_SW: Record<HslRange, string> = { Red: '#e53935', Orange: '#fb8c00', Yellow: '#fdd835', Green: '#43a047', Aqua: '#00acc1', Blue: '#1e88e5', Purple: '#8e24aa', Magenta: '#d81b60' }
+
+/** EXIF-metadata fra originalfilen (bare visning). */
+function ExifView({ c, id, src, tx }: { c: PhotoController; id: string; src: string | null; tx: Tx }) {
+  const [ex, setEx] = useState<{ src: string | null; v: Exif | null } | null>(null)
+  useEffect(() => {
+    let live = true
+    void c.exifOf(id).then((v) => { if (live) setEx({ src, v }) })
+    return () => { live = false }
+  }, [c, id, src])
+  const v = ex?.src === src ? ex.v : null
+  const rows: [Phrase, string | number | undefined][] = v ? [['Kamera', [v.make, v.model].filter(Boolean).join(' ')], ['Objektiv', v.lens], ['Tatt', v.date], ['Lukker', v.exposure], ['Blender', v.fnumber], ['ISO', v.iso], ['Brennvidde', v.focal], ['Størrelse', v.width && v.height ? `${v.width} × ${v.height}` : undefined], ['Programvare', v.software]] : []
+  const shown = rows.filter(([, x]) => x != null && x !== '')
+  return (
+    <div data-pd-exif="">
+      <span className={s.eyebrowSm}>{tx('Metadata')}</span>
+      {shown.length ? (
+        <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2px 10px', margin: '4px 0', fontSize: 12 }}>
+          {shown.map(([k, x]) => <div key={k} style={{ display: 'contents' }}><dt className={s.dimSm}>{tx(k)}</dt><dd style={{ margin: 0 }} data-pd-exif-row={k}>{String(x)}</dd></div>)}
+        </dl>
+      ) : (
+        <span className={s.dimSm}>{tx(ex ? 'Bildet har ingen EXIF-metadata.' : 'Leser metadata …')}</span>
+      )}
     </div>
   )
 }

@@ -514,8 +514,12 @@ function paintClipRaw(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: 
       const fy = c.fy ?? 0.5
       ctx.save()
       ctx.translate(W / 2 + (c.x || 0) * W, H / 2 + (c.y || 0) * H)
+      // ankerpunkt: rotasjon og speiling skjer rundt dette punktet i klippet (0 = midten, som før)
+      const ax = (c.ax || 0) * dw, ay = (c.ay || 0) * dh
+      if (ax || ay) ctx.translate(ax, ay)
       if (c.rot) ctx.rotate((c.rot * Math.PI) / 180)
       if (c.flipH || c.flipV) ctx.scale(c.flipH ? -1 : 1, c.flipV ? -1 : 1)
+      if (ax || ay) ctx.translate(-ax, -ay)
       ctx.drawImage(s, cr[0], cr[1], cr[2], cr[3], -dw / 2 + (W - dw) * (fx - 0.5), -dh / 2 + (H - dh) * (fy - 0.5), dw, dh)
       ctx.restore()
     }
@@ -781,7 +785,9 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   if (o.fadeIn > 0) a *= clamp(lt / o.fadeIn, 0, 1)
   if (o.fadeOut > 0) a *= clamp((d - lt) / o.fadeOut, 0, 1)
   ctx.save()
-  ctx.translate(cx, cy)
+  // ankerpunkt: inn-/ut-animasjon, rotasjon og speiling skjer rundt dette punktet (0 = midten, som før)
+  const ax = (o.ax || 0) * dw, ay = (o.ay || 0) * dh
+  ctx.translate(cx + ax, cy + ay)
   if (o.anim === 'fade') a *= e
   else if (o.anim === 'pop') {
     a *= clamp(k * 3, 0, 1)
@@ -806,6 +812,7 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   ctx.globalCompositeOperation = o.blend || 'source-over'
   if (o.rot) ctx.rotate((o.rot * Math.PI) / 180)
   if (o.flipH || o.flipV) ctx.scale(o.flipH ? -1 : 1, o.flipV ? -1 : 1)
+  if (ax || ay) ctx.translate(-ax, -ay)
   const rad = ((o.radius || 0) * Math.min(dw, dh)) / 2
   // skyggen er et fylt rektangel bak overlegget; med grønnskjerm er overlegget gjennomsiktig der nøkkelfargen var, så
   // skyggen følger da det som er igjen (under), ellers ble hele rektangelet svart i stedet for klippet bak

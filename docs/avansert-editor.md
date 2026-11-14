@@ -97,3 +97,46 @@ Implementert hittil (se commits på connecthub):
    å hentes ved bygging.
 
 Rust-verktøy trengs bare hvis vi senere vil bygge fra kilde i stedet for å bruke de publiserte pakkene.
+
+## 5. Funksjonsmatrise for #170 (status 2026-11-14)
+
+Status: **Ferdig** = implementert og testet (enhetstest og/eller e2e) · **Delvis** = deler finnes, se merknad · **Ikke** = ikke implementert, med begrunnelse. Alt er skrevet selvstendig (ingen kode eller runtime-avhengighet fra LightCraft/FilmCraft).
+
+### Photo Design «Avansert»
+
+| Område | Funksjon | Status | Hvor / test |
+| --- | --- | --- | --- |
+| A | Import av flere bilder, bildeserie, ZIP-eksport | Ferdig | `engine/batch.ts` · `photo-design-batch.spec.ts` |
+| A | Kopier/lim inn framkalling mellom bilder | Ferdig | `copyDev`/`pasteDev` · `photo-design.spec.ts` |
+| A | Synkroniser innstillinger i bildeserie | Ferdig | `syncBatch` · `batch.test.ts` |
+| A | Metadata (EXIF: kamera, objektiv, tidspunkt, lukker, blender, ISO, brennvidde) | Ferdig | `engine/exif.ts` · `develop.test.ts`, `photo-develop-tools.spec.ts` (ekte JPEG) |
+| A | Virtuelle kopier | Ikke (bevisst) | Brukeren ba om ikke å bygge et parallelt system med virtuelle kopier; «Dupliser» (Ctrl+D) dekker behovet |
+| B | Eksponering, kontrast, høylys/skygger, hvit-/svartpunkt, temperatur, metning, vibrance | Ferdig | `Adj` + `develop.ts` · `photo-design-advanced.spec.ts` |
+| B | Klarhet, tekstur, skarphet, støyreduksjon (lys + farge) | Ferdig | `applyDev` · `develop.test.ts`, `photo-develop-tools.spec.ts` |
+| B | Auto-tone, histogram, før/etter | Ferdig | `photo-design-advanced.spec.ts` |
+| C | RGB-kurver per kanal | Ferdig | `CurveEditor` · `photo-design-advanced.spec.ts` |
+| C | HSL per fargeområde (8 områder × fargetone/metning/lyshet) | Ferdig | `hslAdjust` · `develop.test.ts`, e2e |
+| C | Fargegradering (skygger/mellomtoner/høylys + balanse) | Ferdig | `applyDev` · `develop.test.ts`, e2e |
+| D | Lineære og radiale gradientmasker med lokal eksponering, kontrast, metning, temperatur; flytt, størrelse, vinkel, myk kant; av/på, snu, slett, nullstill | Ferdig | `LocalAdj`/`locWeight` · `develop.test.ts`, e2e |
+| D | Penselmaske med lokale justeringer | Delvis | Pensel finnes for motivmasken (utklipp, `shared/mask`), ikke for lokale justeringer |
+| D | Motivbasert maske | Delvis | AI-motivmaske finnes (utklipp/Isolate); brukes ikke som maske for lokale justeringer |
+| D | Kombinere maskeområder (legg til/trekk fra) | Delvis | Flere masker virker samtidig og kan snus; ingen egen «trekk fra»-operasjon |
+| E | Flekkfjerning og kloning (kilde, radius, myk kant, fargetilpasning langs kanten) | Ferdig | `spot` · `develop.test.ts`, e2e |
+| E | Perspektivkorreksjon (vertikal/horisontal, fyller flaten) | Ferdig | `perspective` · `develop.test.ts`, e2e |
+| E | Objektivkorreksjon (forvrengning/vignett per objektiv) | Ikke | Krever objektivprofiler (data) som ikke finnes; vignett kan justeres manuelt |
+| E | Rotasjon og oppretting | Ferdig | lagets rotasjon/speiling og beskjæring |
+| E | HDR-sammenslåing (eksponeringsfusjon av 2–5 valgte bilder → nytt bilde) | Ferdig | `hdrMerge` · `develop.test.ts`, `photo-develop-tools.spec.ts` |
+| E | Panorama | Ikke (teknisk uegnet nå) | Krever punktmatching, homografi og sømløs blanding; uten runtime-avhengigheter blir det ikke pålitelig nok i nettleseren. Ikke markert som ferdig |
+| F | Eksport = forhåndsvisning | Ferdig | samme `render` · `photo-develop-tools.spec.ts` (avvik < 6) |
+
+### Motion Design «Avansert»
+
+| Område | Funksjon | Status | Hvor / test |
+| --- | --- | --- | --- |
+| A | Mediebibliotek med filinfo | Ferdig | `AdvBin` · motion-e2e |
+| B | Flere spor, snapping, lås/skjul, del klipp | Ferdig | `Timeline` · `motion-ux.spec.ts` m.fl. |
+| D | Effekter, beskjæring/maske, fargekorreksjon (grade/kurver) | Ferdig | `engine/fx.ts` · `fx.test.ts`, e2e |
+| D | Ankerpunkt (X/Y, kan keyframes; rotasjon, speiling og inn/ut-animasjon rundt punktet) | Ferdig | `render.ts` · `motion-anchor.spec.ts` |
+| E | Keyframes med interpolering | Ferdig | `engine/kf.ts` · `motion-keyframes.spec.ts` |
+| F | Fade, hastighet, revers, lydmikser og ducking | Ferdig | `motion-speed.spec.ts`, `engine.test.ts` |
+| G | Eksport (oppløsning/fps, avbryt) | Ferdig | `AdvExport` · `motion-export.spec.ts` |
