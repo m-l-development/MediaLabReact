@@ -56,3 +56,17 @@ describe('keyframes', () => {
     expect(q.clips[0]?.kf).toEqual(p.clips[0]?.kf)
   })
 })
+
+describe('easing-kurver (referansenes «ease out» m.fl.)', () => {
+  it('in/out/back: endepunktene står fast; ut bremser, inn akselererer, fjær går forbi', async () => {
+    const { easeK, cleanKeys } = await import('./kf')
+    for (const e of ['lin', 'ease', 'in', 'out', 'back'] as const) {
+      expect(easeK(e, 0)).toBeCloseTo(0)
+      expect(easeK(e, 1)).toBeCloseTo(1)
+    }
+    expect(easeK('out', 0.5)).toBeGreaterThan(0.5)
+    expect(easeK('in', 0.5)).toBeLessThan(0.5)
+    expect(Math.max(...[0.6, 0.7, 0.8, 0.9].map((k) => easeK('back', k)))).toBeGreaterThan(1)
+    expect(cleanKeys({ x: [{ t: 0, v: 0, e: 'out' }, { t: 1, v: 1, e: 'ukjent' }] })?.x).toEqual([{ t: 0, v: 0, e: 'out' }, { t: 1, v: 1 }])
+  })
+})
