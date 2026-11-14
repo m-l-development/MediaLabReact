@@ -1,6 +1,10 @@
 import type { Batch } from './batch'
 import type { Dev } from './develop'
 import type { Fill } from '../../../shared/fill/fill'
+import type { Paint } from '../../thumbnail-studio/engine/paint'
+import type { Shadow } from '../../../shared/render/outline'
+import { stretchFamily, stretchReady } from '../../../shared/fonts/loader'
+export type { Paint, Shadow }
 
 /**
  * Dokumentformatet i Photo Design (samme felt som media-lab/src/legacy/photo-engine.js, så prosjekter, maler og
@@ -80,6 +84,12 @@ interface Base {
   grp?: string | null
   /** Malens opprinnelige farger på laget (fargevalget regnes ut fra dem, se engine/palette.ts). */
   tc?: TplColors
+  /** Skygger og glød (CSS box-/text-shadow) i dokumentpiksler; mangler = ingen (fase 4). */
+  shadows?: Shadow[] | null
+  /** Uskarphet i dokumentpiksler; mangler = ingen. */
+  blur?: number
+  /** Klippemaske: polygon i andeler av laget (x, y, …), som CSS clip-path: polygon. */
+  poly?: number[] | null
 }
 
 /** Fargefeltene et lag kan ha. */
@@ -106,6 +116,8 @@ export interface ImageLayer extends Base {
   dev?: Dev | null
   /** Beskjæringsform (CROP_SHAPES): bildet klippes til formen. Mangler / «rect» = rektangel. */
   cshape?: string
+  /** Egne hjørner (8 tall som CSS border-radius); bildet klippes til dem. */
+  radii?: number[] | null
 }
 
 export interface TextLayer extends Base {
@@ -129,6 +141,22 @@ export interface TextLayer extends Base {
   barH?: number
   barW?: number
   barGap?: number
+  /** Kursiv (bare fonter med ekte kursiv). */
+  italic?: boolean
+  /** Fontbredde i prosent (fonter med bredde-akse); mangler = 100. */
+  stretch?: number
+  /** Gradient/tekstur i bokstavene (maling, engine/paint.ts i Thumbnail Studio). */
+  paint?: Paint[] | null
+  /** Bilde i bokstavene (Dine medier); null = plass for et bilde. */
+  fillSrc?: string | null
+  /** Slitt tekst (grunge-maske): andel som slites bort, 0–1. */
+  grunge?: number
+  /** Bakgrunnsboks bak hver linje (highlight): farge, luft vannrett/loddrett og hjørner (px). */
+  hl?: { c: string; px: number; py: number; r: number } | null
+  /** Tekst på sirkelbane: radius i px (positiv = bue opp, negativ = bue ned); mangler/0 = rett. */
+  arc?: number
+  /** Grunnlinjen til første linje målt fra toppen av tekstboksen (px, før strekk). Mangler = linjene midtstilles som før. */
+  bl?: number
 }
 
 export interface ShapeLayer extends Base {
@@ -142,6 +170,16 @@ export interface ShapeLayer extends Base {
   radius: number
   strokeC: string
   strokeW: number
+  /** Egne hjørner: 8 tall (rx, ry for øvre venstre, øvre høyre, nedre høyre, nedre venstre). */
+  radii?: number[] | null
+  /** Fri form (kind 'path'): SVG-sti i et eget koordinatsystem (vw × vh). */
+  path?: { d: string; vw: number; vh: number; fillRule?: 'nonzero' | 'evenodd' } | null
+  /** Gradienter, mønstre (striper, rutenett, prikker, bølger, strekkode, stjerner) og korn over fyllet. */
+  paint?: Paint[] | null
+  /** Stiplet kant: strek og mellomrom (px). */
+  dash?: number[] | null
+  /** Valgt mønster (engine/patterns.ts); malingen lages av det. */
+  pat?: string | null
 }
 
 export interface GlowLayer extends Base {
@@ -210,6 +248,12 @@ export function glowLayer(o: Partial<GlowLayer> = {}): GlowLayer {
 
 let MC: CanvasRenderingContext2D | null = null
 
+/** Canvas-fonten for et tekstlag: kursiv og bredde bare når laget har dem (bredden bare når den er lastet). */
+export function pdFont(L: TextLayer, size = L.size): string {
+  const fam = L.stretch && L.stretch !== 100 && stretchReady(L.font, L.stretch) ? stretchFamily(L.font, L.stretch) : L.font
+  return `${L.italic ? 'italic ' : ''}${L.weight || 400} ${size}px "${fam}", Archivo, sans-serif`
+}
+
 /** Tekstboksens størrelse (bredeste linje × antall linjer), med strekk (tsx/tsy). */
 export function textBox(L: TextLayer): { w: number; h: number; lines: string[] } {
   if (!MC) MC = document.createElement('canvas').getContext('2d')
@@ -217,7 +261,7 @@ export function textBox(L: TextLayer): { w: number; h: number; lines: string[] }
   const lines = String(L.upper ? L.text.toUpperCase() : L.text).split('\n')
   let w = 0
   if (g) {
-    g.font = `${L.weight || 400} ${L.size}px "${L.font}", Archivo, sans-serif`
+    g.font = pdFont(L)
     try {
       g.letterSpacing = `${L.ls || 0}px`
     } catch {

@@ -425,6 +425,7 @@ function AddPanel({ c, S, tx, pickFile }: EditorProps) {
         </div>
       </div>
       {group('Lys og effekter', [
+        ['Korn', () => c.addGrain(), 'M5 5h.01M9 7h.01M14 5h.01M18 8h.01M6 11h.01M11 12h.01M16 12h.01M7 16h.01M12 17h.01M17 16h.01M9 20h.01M15 20h.01', undefined, 'Korn over hele bildet (styrke: gjennomsiktighet)'],
         ['Lys', () => c.addGlow(), 'M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', undefined, 'Et mykt lys over bildet'],
         ['Toning', () => c.addGrad(), 'M4 4h16v16H4zM4 20 20 4', undefined, 'En fargeovergang over hele bildet'],
         ...(S.adv ? [['Effekt …', () => c.openFx(), 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z', S.fxOpen, 'Velg en effekt, se den på bildet og legg den til som et eget lag'] as [Phrase, () => void, string, (boolean | undefined)?, Phrase?]] : []),

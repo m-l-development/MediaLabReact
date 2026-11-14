@@ -3,7 +3,7 @@
 Levende oversikt for hele oppdraget (felles fontbibliotek, 151 Thumbnail-maler, 100 Photo Design-maler og
 editorfunksjonene de trenger). Oppdateres etter hver fase. Sjekklisten for malene står nederst.
 
-Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). **Fase 3 (151 Thumbnail-maler) implementert og testet 2026-11-12** (se Fase 3 – status). Fase 4 (Photo-funksjoner) neste.
+Status per fase: **Steg 1 (kartlegging) ferdig 2026-11-12.** **Fase 1 (fonter) implementert og testet 2026-11-12** (se Fase 1 – status). **Fase 2 (filtre F01–F13) implementert og testet 2026-11-12** (se Fase 2 – status). **Fase 3 (151 Thumbnail-maler) implementert og testet 2026-11-12** (se Fase 3 – status). **Fase 4 (Photo-funksjoner) implementert og testet 2026-11-12** (se Fase 4 – status). Fase 5 (100 Photo-maler) neste.
 
 ## 1. Originalmaterialet (fasiten)
 
@@ -108,6 +108,14 @@ oppsett, eksisterende snarveier, Isolate Subject, Mockups, mediebiblioteket, byg
 Generelle funksjoner (ikke knyttet til maler), valgfrie felt på lagene: korn (overlegg), slitt tekst (grunge-maske),
 loddrett tekst, klippemaske/polygon, glød (farget uskarp skygge), tekstur i tekst, sirkeltekst, strekkode, konturtekst,
 blandingsmodus m.m. – endelig liste fra «Funksjoner»-linjene (se Photo-guiden, punkt 6) mot det som finnes.
+
+#### Fase 4 – status
+- Nye, valgfrie felt i Photo Design (`engine/model.ts`, tegnes i `engine/render.ts`; uten dem tegnes alt som før): skygger og glød i farge (`shadows`), uskarphet (`blur`) og klippemaske/polygon (`poly`) på alle lag; på tekst kursiv, fontbredde, grunnlinje (`bl`, for malene), gradient/tekstur i bokstavene (`paint`), bilde i teksten (`fillSrc`), slitt tekst (`grunge`, materialets korn med terskel), bakgrunnsboks (`hl`) og tekst på sirkelbane (`arc`); på former egne hjørner, fri form (SVG-sti), maling/mønster (`paint`, `pat`) og stiplet kant; på bilder egne hjørner og skygge.
+- Mønstre (`engine/patterns.ts`): korn, striper, rutenett, prikker, bølgelinjer, strekkode, stjernehimmel. «Legg til → Korn» legger korn over hele bildet (overlegg 55 %, som materialets .grain); styrken er lagets gjennomsiktighet.
+- Panel (`Props.tsx`, `Extras`): Kursiv, Fontbredde, Glød, Bakgrunnsboks, Slitt tekst, Tekst på sirkelbane, Loddrett tekst (90°/270°), Bilde i teksten, Mønster, Stiplet kant og Slagskygge – i Avansert modus, og alltid når laget bruker dem. Fra før: blandingsmodus, gjennomsiktighet, rotasjon, toning, kontur, skygge, understrek, strekk, speil, beskjæringsformer, bildejusteringer, dupliser og lagrekkefølge.
+- Felles tegnehjelp for Thumbnail og Photo: `shared/render/outline.ts` (egne hjørner, skygger); malingen er `thumbnail-studio/engine/paint.ts`.
+- Bilde i teksten følger med i prosjektets bilder (`assetIdsOf`), lastes ved åpning og velges med «Velg bilde» (samme bildevelger).
+- Tester: `e2e/photo-features.spec.ts` (hver funksjon endrer tegningen; Enkel modus uendret; alt er likt etter lagring og omlasting).
 
 ### Fase 5 – Photo Design: 100 maler
 Samme metode som fase 3 (måling fra originalene, generator, visuell kontroll). `--bg/--tx/--ac` → malens

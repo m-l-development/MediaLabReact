@@ -18,7 +18,7 @@ const isRec = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 
 export function assetIdsOf(d: Pick<PdDoc, 'layers' | 'back' | 'batch'>): string[] {
   const out = new Set<string>()
-  const srcs = [...d.layers, ...(d.back?.layers ?? [])].map((L) => (L.type === 'image' ? L.src : null))
+  const srcs = [...d.layers, ...(d.back?.layers ?? [])].map((L) => (L.type === 'image' ? L.src : L.type === 'text' ? (L.fillSrc ?? null) : null))
   // bildeserien: alle bildene, også de som ikke er åpne
   for (const it of d.batch?.items ?? []) srcs.push(it.src)
   for (const src of srcs) {
