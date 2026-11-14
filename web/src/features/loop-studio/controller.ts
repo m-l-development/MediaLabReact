@@ -3,6 +3,7 @@
  * Kontrolleren holder tilstanden (`state`, oppdateres synkront som i dagens app) og gir visningen alle verdier og
  * handlinger via `view()`. Globale skript (UkeLoop, MLShare, MLCloud, CH) er byttet ut med tjenester i `deps`.
  */
+import { paletteOfTheme, themeFromParam } from '../../shared/templates/theme'
 import { fontByName } from '../../shared/fonts/catalog'
 import { loadFont } from '../../shared/fonts/loader'
 import type { Me } from '../../domain/account'
@@ -184,6 +185,17 @@ const hidden = (el: HTMLElement) => {
 }
 const asRec = (o: object) => o as Record<string, unknown>
 const num = (v: unknown, d: number) => (v == null ? d : Number(v))
+
+/**
+ * Fargetema fra malbiblioteket (`tema` i adressen, shared/templates): aksentfargen og de fem fargepanelene får
+ * temaets farger (gjennomsiktigheten beholdes). Uten tema (Standard) endres ingenting.
+ */
+function themeCfg(p: string | undefined): Partial<Cfg> {
+  const P = paletteOfTheme(themeFromParam(p))
+  if (!P) return {}
+  const cols = [P.bg, P.fill, P.bg2, P.acc, P.mid]
+  return { accent: P.acc, panels: DEF_PANELS.map((x, i) => ({ ...x, color: cols[i] ?? x.color })) }
+}
 
 export class LoopController {
   deps: LoopDeps
@@ -1307,7 +1319,7 @@ export class LoopController {
     this.audioRef = saved?.audio ?? null
     this.banner = this.demo ? 'demo' : this.fromBase ? 'base' : this.archived ? 'legacy' : null
     this.initAt = performance.now()
-    this.setState({ ready: true, tpl, programText: base.programText || '', slides: base.slides, cfg: { ...this.state.cfg, ...(base.cfg ?? {}) }, videoName: (this.videoRef && base.videoName) || '', audioName: (this.audioRef && base.audioName) || '', selected: base.slides[0]?.id ?? null })
+    this.setState({ ready: true, tpl, programText: base.programText || '', slides: base.slides, cfg: { ...this.state.cfg, ...(base.cfg ?? {}), ...themeCfg(q.tema) }, videoName: (this.videoRef && base.videoName) || '', audioName: (this.audioRef && base.audioName) || '', selected: base.slides[0]?.id ?? null })
     /* bare én lydmotor per side: lukk tidligere kontekster (ny åpning, oppdatering av koden) */
     contexts.splice(0).forEach((x) => void x.close().catch(() => undefined))
     if (soundOwner) {

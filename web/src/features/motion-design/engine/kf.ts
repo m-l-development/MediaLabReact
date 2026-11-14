@@ -7,7 +7,7 @@
  */
 import type { Effect } from './fx'
 
-export type Ease = 'lin' | 'ease' | 'hold'
+export type Ease = 'lin' | 'ease' | 'hold' | 'in' | 'out' | 'back'
 export interface Key { t: number; v: number; e?: Ease }
 export type Keys = Record<string, Key[]>
 
@@ -19,7 +19,7 @@ export const KF_PROPS: Record<KfKind, readonly PropDef[]> = {
   ov: [['x', 'Posisjon X', -1, 2, 0.005], ['y', 'Posisjon Y', -1, 2, 0.005], ['scale', 'Skalering', 0.02, 4, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['ax', 'Ankerpunkt X', -0.5, 0.5, 0.01], ['ay', 'Ankerpunkt Y', -0.5, 0.5, 0.01], ['opacity', 'Opasitet', 0, 1, 0.01]],
   text: [['x', 'Posisjon X', -0.5, 1.5, 0.005], ['y', 'Posisjon Y', -0.5, 1.5, 0.005], ['size', 'Størrelse', 8, 600, 1], ['opacity', 'Opasitet', 0, 1, 0.01]],
 }
-export const EASES: readonly (readonly [Ease, string])[] = [['lin', 'Lineær'], ['ease', 'Myk'], ['hold', 'Hold']]
+export const EASES: readonly (readonly [Ease, string])[] = [['lin', 'Lineær'], ['ease', 'Myk'], ['in', 'Myk start (akselerer)'], ['out', 'Myk slutt (brems)'], ['back', 'Fjær (forbi og tilbake)'], ['hold', 'Hold']]
 
 const PROP_RE = /^(x|y|scale|rot|op|opacity|size|fx:[\w-]{1,40})$/
 const isRec = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
@@ -36,11 +36,21 @@ export function cleanKeys(v: unknown): Keys | undefined {
       const t = Number(x.t)
       const val = Number(x.v)
       if (!Number.isFinite(t) || !Number.isFinite(val) || Math.abs(t) > 86400) continue
-      keys.push(x.e === 'ease' || x.e === 'hold' ? { t, v: val, e: x.e } : { t, v: val })
+      keys.push(EASE_KEYS.has(x.e as Ease) && x.e !== 'lin' ? { t, v: val, e: x.e as Ease } : { t, v: val })
     }
     if (keys.length) out[k] = keys.sort((a, b) => a.t - b.t)
   }
   return Object.keys(out).length ? out : undefined
+}
+
+/** Interpolasjonskurvene (samme som «Perlambatan keluar»/ease-out osv. i referansene). */
+const EASE_KEYS = new Set<Ease>(['lin', 'ease', 'hold', 'in', 'out', 'back'])
+export function easeK(e: Ease | undefined, k: number): number {
+  if (e === 'ease') return k * k * (3 - 2 * k)
+  if (e === 'in') return k * k * k
+  if (e === 'out') return 1 - (1 - k) ** 3
+  if (e === 'back') { const c = 1.70158; return 1 + (c + 1) * (k - 1) ** 3 + c * (k - 1) ** 2 }
+  return k
 }
 
 /** Verdien ved tiden t (før første/etter siste keyframe: første/siste verdi). Easing gjelder fra keyframen den står på. */
@@ -57,7 +67,7 @@ export function valAt(keys: readonly Key[], t: number): number {
   const b = keys[i + 1] as Key
   if (a.e === 'hold') return a.v
   let k = (t - a.t) / Math.max(1e-9, b.t - a.t)
-  if (a.e === 'ease') k = k * k * (3 - 2 * k)
+  k = easeK(a.e, k)
   return a.v + (b.v - a.v) * k
 }
 

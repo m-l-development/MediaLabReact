@@ -1,3 +1,5 @@
+import { themeContent } from './theme'
+import type { Palette } from '../../../shared/templates/theme'
 /**
  * Motion design – tidslinjemodellen. Typet port av media-lab/src/legacy/motion-engine.js (modell, maler, validering).
  * Dokumentformatet er det samme som i dagens app, så .motion-filer og prosjekter kan flyttes begge veier.
@@ -169,6 +171,17 @@ export interface TextItem {
   strokeColor: string
   grad: boolean
   color2: string
+  /** Tallrull: tallet teksten ruller fra (siffer for siffer, som en kilometerteller); mangler = fra 0. */
+  rollFrom?: string
+  /** Opptelling: teller fra cdFrom til cdTo (heltall) i løpet av cdDur sekunder; «{n}» i teksten byttes med tallet. */
+  cdTo?: number
+  cdDur?: number
+  /** Tekstmaske: videoen synes bare gjennom bokstavene; resten dekkes av en farge (solid) eller et uskarpt bilde (blur). */
+  knock?: 'solid' | 'blur'
+  knockColor?: string
+  /** Bane: radius (andel av bildebredden) og fart (omdreininger per sekund) for tekst som går i sirkel. */
+  orbitR?: number
+  orbitV?: number
 }
 
 export interface Sub { id: string; link?: string; start: number; end: number; text: string }
@@ -276,7 +289,7 @@ export const FORMATS: readonly Format[] = [
 export const FONTS = ['Archivo', 'Montserrat', 'Bebas Neue', 'Anton', 'Oswald', 'League Spartan', 'Playfair Display'] as const
 export const TRANS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Toning'], ['dip', 'Via svart'], ['dipw', 'Via hvitt'], ['flash', 'Blits'], ['push-l', 'Skyv mot venstre'], ['push-r', 'Skyv mot høyre'], ['push-u', 'Skyv opp'], ['push-d', 'Skyv ned'], ['cover-l', 'Dekk fra høyre'], ['cover-r', 'Dekk fra venstre'], ['cover-u', 'Dekk nedenfra'], ['cover-d', 'Dekk ovenfra'], ['whip', 'Sveip'], ['zoom-in', 'Zoom inn'], ['zoom-out', 'Zoom ut'], ['spin', 'Snurr'], ['wipe-r', 'Visk mot høyre'], ['wipe-l', 'Visk mot venstre'], ['wipe-d', 'Visk ned'], ['wipe-u', 'Visk opp'], ['iris', 'Sirkel'], ['diamond', 'Diamant'], ['clock', 'Klokke'], ['blinds', 'Persienner'], ['bars', 'Striper'], ['doors', 'Dører'], ['blur', 'Uskarp'], ['glitch', 'Glitch'], ['pixel', 'Piksler'], ['xzoom', 'Kryss-zoom'], ['ramp', 'Fartsrampe'], ['match', 'Match cut'], ['mask', 'Maskering'], ['chroma', 'Kromatisk glitch'], ['leak', 'Lyslekkasje']]
 const TRMAP: Record<string, string> = { slide: 'cover-l', slideup: 'cover-u', wipe: 'wipe-r', zoom: 'zoom-in' }
-export const ANIMS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Ton inn'], ['rise', 'Stig opp'], ['pop', 'Sprett'], ['slide', 'Skyv inn'], ['blur', 'Fra uskarp'], ['type', 'Skrivemaskin'], ['words', 'Ord for ord'], ['letters', 'Bokstav for bokstav'], ['bounce', 'Hopp inn'], ['wave', 'Bølge'], ['glitch', 'Glitch'], ['zoomout', 'Zoom inn fra stor'], ['drop', 'Fall ned'], ['flip', 'Vend'], ['spread', 'Trekk sammen'], ['wipe', 'Avdekk']]
+export const ANIMS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Ton inn'], ['rise', 'Stig opp'], ['pop', 'Sprett'], ['slide', 'Skyv inn'], ['blur', 'Fra uskarp'], ['type', 'Skrivemaskin'], ['words', 'Ord for ord'], ['letters', 'Bokstav for bokstav'], ['bounce', 'Hopp inn'], ['wave', 'Bølge'], ['glitch', 'Glitch'], ['zoomout', 'Zoom inn fra stor'], ['drop', 'Fall ned'], ['flip', 'Vend'], ['spread', 'Trekk sammen'], ['wipe', 'Avdekk'], ['roll', 'Tallrull'], ['scroll', 'Rulletekst'], ['orbit', 'Bane'], ['brush', 'Penselstrøk']]
 export const OVANIMS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Ton'], ['pop', 'Sprett'], ['slide', 'Skyv'], ['zoom', 'Zoom'], ['rise', 'Stig opp']]
 export const BLENDS: readonly (readonly [GlobalCompositeOperation, string])[] = [['source-over', 'Normal'], ['screen', 'Lysere (screen)'], ['multiply', 'Mørkere (multiply)'], ['overlay', 'Overlegg'], ['soft-light', 'Mykt lys'], ['lighten', 'Lysne'], ['darken', 'Mørkne'], ['difference', 'Differanse']]
 export const LOOKS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['warm', 'Varm'], ['cool', 'Kald'], ['film', 'Film'], ['bw', 'Svart-hvitt'], ['noir', 'Noir'], ['faded', 'Falmet'], ['vivid', 'Levende'], ['sepia', 'Sepia'], ['dream', 'Drøm'], ['teal', 'Teal og oransje'], ['night', 'Natt']]
@@ -415,9 +428,15 @@ export const TEMPLATES: readonly Template[] = [
   { k: 'blank', name: 'Tom', desc: 'Start med tom tidslinje', tt: 1, make: () => ({ clips: [], texts: [] }) },
 ]
 
-export function create(fmt: Pick<Format, 'k' | 'w' | 'h'>, tk: string, name?: string): Project {
+/** Kategoriene i malbiblioteket (det felles biblioteket i shared/templates). */
+export const TPL_CATS = ['Møter og arrangement', 'Tekst og budskap', 'Musikk og lovsang', 'Start'] as const
+export const TPL_CAT: Record<string, (typeof TPL_CATS)[number]> = { meet: 'Møter og arrangement', event: 'Møter og arrangement', count: 'Møter og arrangement', speaker: 'Møter og arrangement', quote: 'Tekst og budskap', announce: 'Tekst og budskap', worship: 'Musikk og lovsang', blank: 'Start' }
+
+/** Nytt prosjekt fra en mal; med en palett (fargetema) får malen nye farger, ellers malens egne (Standard). */
+export function create(fmt: Pick<Format, 'k' | 'w' | 'h'>, tk: string, name?: string, pal?: Palette | null): Project {
   const tp = TEMPLATES.find((x) => x.k === tk) ?? TEMPLATES[TEMPLATES.length - 1]
-  const d = tp ? tp.make() : { clips: [], texts: [] }
+  const d0 = tp ? tp.make() : { clips: [], texts: [] }
+  const d = pal ? themeContent(d0, pal) : d0
   return normalize({ id: uid('p'), name: name || (!tp || tp.k === 'blank' ? 'Nytt prosjekt' : tp.name), fmt: fmt.k, w: fmt.w, h: fmt.h, bg: '#000000', media: [], clips: d.clips, ov: [], markers: [], texts: d.texts, subs: d.subs ?? [], subStyle: d.subStyle ?? { ...SUBSTYLE }, music: [], logo: { src: '', pos: 'tr', size: 0.12, opacity: 0.9, on: false }, created: Date.now(), updated: Date.now() })
 }
 
@@ -490,6 +509,18 @@ function anchor(x: Record<string, unknown>): { ax?: number; ay?: number } {
   return { ...(ax ? { ax } : {}), ...(ay ? { ay } : {}) }
 }
 
+/** Nye tekstfelt (tallrull, opptelling, tekstmaske, bane) fra lagrede data; bare de som er i bruk. */
+function textExtra(x: Record<string, unknown>): Partial<TextItem> {
+  const o: Partial<TextItem> = {}
+  if (typeof x.rollFrom === 'string' && /^[0-9 .,:/-]{1,24}$/.test(x.rollFrom)) o.rollFrom = x.rollFrom
+  if (x.cdTo !== undefined && x.cdTo !== null && Number.isFinite(Number(x.cdTo))) o.cdTo = num(x.cdTo, 0, -9999999, 9999999)
+  if (x.cdDur !== undefined && Number.isFinite(Number(x.cdDur))) o.cdDur = num(x.cdDur, 2, 0.1, 3600)
+  if (x.knock === 'solid' || x.knock === 'blur') { o.knock = x.knock; o.knockColor = col(x.knockColor, '#000000') }
+  if (x.orbitR !== undefined) o.orbitR = num(x.orbitR, 0.3, 0.05, 1)
+  if (x.orbitV !== undefined) o.orbitV = num(x.orbitV, 0.12, -2, 2)
+  return o
+}
+
 export function normalize(input: unknown): Project {
   if (!isRec(input)) throw new Error('bad')
   const p = input
@@ -533,7 +564,7 @@ export function normalize(input: unknown): Project {
   const texts: TextItem[] = recs(p.texts, 1000).map((x) => withLink({
     ...(x.valign === 'top' || x.valign === 'bottom' ? { valign: x.valign } : {}),
     ...(cleanKeys(x.kf) ? { kf: cleanKeys(x.kf) as Keys } : {}),
-    id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: fontOf(x.font), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'),
+    id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: fontOf(x.font), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'), ...textExtra(x),
   }, lnk(x.link)))
   const subs: Sub[] = recs(p.subs, 5000).map((x) => {
     const s = num(x.start, 0, 0, 86400)

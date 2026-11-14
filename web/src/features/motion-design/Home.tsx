@@ -1,7 +1,9 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import type { MotionController, MState } from './controller'
-import { fmtD, FORMATS, TEMPLATES } from './engine/model'
+import { fmtD, FORMATS, TEMPLATES, TPL_CAT, TPL_CATS } from './engine/model'
+import { TemplateLibrary } from '../../shared/templates/TemplateLibrary'
+import { ThemePicker } from '../../shared/templates/ThemePicker'
 import type { Tx } from './texts'
 import s from './MotionDesign.module.css'
 
@@ -51,17 +53,13 @@ export function Home({ c, S, tx, folders, onOpenFile, onGrantWaiting }: { c: Mot
           <span className={s.eyebrow}>{tx('Steg 2 av 2 · {fmt}', { fmt: `${tx(f.name)} · ${f.ratio}` })}</span>
           <h2 className={s.h2}>{tx('Velg mal')}</h2>
         </div>
-        <div className={s.tplGrid} style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${f.w / f.h < 0.9 ? 170 : 240}px, 1fr))` }}>
-          {TEMPLATES.map((tp) => (
-            <button key={tp.k} type="button" className={s.tplCard} data-tpl={tp.k} onClick={() => void c.pickTpl(tp.k)}>
-              <span className={s.tplImg} style={{ aspectRatio: `${f.w} / ${f.h}`, backgroundImage: css(S.tplThumbs[tp.k] ?? '') }} />
-              <span className={s.tplText}>
-                <span className={s.formatName}>{tx(tp.name)}</span>
-                <span className={s.tplDesc}>{tx(tp.desc)}</span>
-              </span>
-            </button>
-          ))}
-        </div>
+        {/* det felles malbiblioteket (alle maler, kategorier, søk, sortering) med felles fargevelger */}
+        <TemplateLibrary attr="data-tpl" aspect={`${f.w} / ${f.h}`} minW={f.w / f.h < 0.9 ? 170 : 240}
+          items={TEMPLATES.map((tp, i) => ({ id: tp.k, name: tx(tp.name), desc: tx(tp.desc), cat: TPL_CAT[tp.k] ?? 'Start', order: i }))}
+          cats={TPL_CATS} catLabel={(k) => tx(k as Parameters<typeof tx>[0])}
+          head={<ThemePicker value={S.tplTheme} onChange={(v) => c.setTplTheme(v)} />}
+          preview={(x) => S.tplThumbs[x.id] ? <img src={S.tplThumbs[x.id]} alt="" /> : null}
+          onPick={(x) => void c.pickTpl(x.id)} />
       </div>
     )
   }

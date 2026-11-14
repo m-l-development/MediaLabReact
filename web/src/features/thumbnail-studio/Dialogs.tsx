@@ -1,5 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
+import { ThemePicker } from '../../shared/templates/ThemePicker'
+import { TemplateLibrary } from '../../shared/templates/TemplateLibrary'
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ToolId } from '../../domain/tool'
 import { useLang } from '../../shared/i18n/i18n'
@@ -33,7 +35,7 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
   const cat = c.cat()
   if (!cat) return null
   const list = c.newList(cat)
-  const cur = COMBOS.find((x) => x.k === S.newPal) ?? COMBOS[0]
+  const libItems = (S.lib ?? []).map((t, i) => ({ id: t.code, name: t.name, desc: `${t.code} · ${t.desc}`, cat: t.cat, order: i, t }))
   const items = list.map((o) => {
     const img = o.k === 'blank' ? '' : c.previewOf(cat, o.k)
     return (
@@ -57,51 +59,20 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
           <span className={s.modalTitle}>{tx(S.newMode === 'apply' ? 'Bytt oppsett' : 'Ny mal')}</span>
           <span className={s.modalLead}>{tx(S.newMode === 'apply' ? 'Velg et nytt oppsett. Personbilde, navn, tema og egne bilder blir med over. Du kan angre etterpå.' : 'Velg hvordan den nye malen skal starte.')}</span>
         </div>
-        <div className={s.rel}>
-          <button type="button" className={s.palBtn} aria-expanded={S.palOpen} onClick={() => c.togglePal()}>
-            <span className={s.palSw}>{cur?.sw.map((x, i) => <i key={i} style={{ background: x }} />)}</span>
-            <span>{tx('Velg farge')}</span>
-            <span className={s.dim}>{cur ? tx(cur.name as Phrase) : ''}</span>
-          </button>
-          {S.palOpen && (
-            <div className={s.palMenu}>
-              {COMBOS.map((x) => (
-                <button key={x.k} type="button" aria-pressed={x.k === S.newPal} onClick={() => c.setPal(x.k)}>
-                  <span className={s.palSw}>{x.sw.map((col, i) => <i key={i} style={{ background: col }} />)}</span>
-                  <span>{tx(x.name as Phrase)}</span>
-                  <span aria-hidden="true" style={{ opacity: x.k === S.newPal ? 1 : 0 }}>✓</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <ThemePicker value={c.theme()} onChange={(v) => c.setTheme(v)} std={COMBOS[0]?.sw as [string, string, string]} />
       </div>
       <div className={s.layoutGrid}>{top}</div>
       <div className={s.layoutGrid}>{items.slice(top.length)}</div>
       {/* ferdige maler fra designsamlingen (fase 3) – et tillegg under oppsettene */}
       <div className={s.ctrlHead} data-lib-head>{tx('Ferdige maler')}</div>
       <span className={s.note}>{tx('Ferdige maler fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger.')}</span>
-      <div className={s.seg} role="group" aria-label={tx('Ferdige maler')} data-lib-cats>
-        {LIB_CATS.map((k) => <button key={k} type="button" aria-pressed={S.libCat === k} onClick={() => c.setLibCat(k)}>{tx(k)}</button>)}
-      </div>
-      <div className={s.layoutGrid} data-lib-grid>
-        {S.lib == null && <span className={s.note}>{tx('Laster …')}</span>}
-        {c.libList().map((t) => {
-          const img = S.previews['lib:' + t.code]
-          return (
-            <button key={t.code} type="button" className={s.layoutCard} data-lib={t.code} onClick={() => c.pickLib(cat, t)}>
-              <span className={s.layoutThumb}>
-                {img && <img src={img} alt="" />}
-                {img == null && <span>{tx('Lager skisse …')}</span>}
-              </span>
-              <span className={s.layoutText}>
-                <b>{t.name}</b>
-                <span>{t.code} · {t.desc}</span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      <TemplateLibrary items={libItems} cats={LIB_CATS} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null}
+        onShow={(list) => void c.genLibPrev(list.map((x) => x.t))}
+        preview={(x) => {
+          const img = c.libPreviewOf(x.t)
+          return img ? <img src={img} alt="" /> : img == null ? <span>{tx('Lager skisse …')}</span> : null
+        }}
+        onPick={(x) => c.pickLib(cat, x.t)} />
       <div className={s.modalFoot}>
         <button type="button" className={s.pillSm} onClick={() => c.closeNew()}>{tx('Avbryt')}</button>
       </div>
