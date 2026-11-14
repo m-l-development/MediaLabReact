@@ -6,6 +6,7 @@ import { bakeList } from './engine/text-list'
 import { hasSnitt } from '../../shared/fonts/catalog'
 import { cleanFilters, FILTERS, filterDef, newFilter, type FilterId, type ImgFilter } from './engine/filters'
 import type { Phrase, Vars } from './texts'
+import type { QrSpec } from '../../shared/qr/qr'
 
 /** Beskrivelse av én kontroll i egenskapspanelet (samme rekkefølge og valg som dagens app). */
 export interface Unit { u: string; k: number; d?: number; t?: Phrase }
@@ -25,6 +26,7 @@ export type Ctrl =
   | { k: 'img'; label: Phrase; src: string | null; pick: () => void; clear: () => void; layer?: ImageLayer }
   | { k: 'adv'; val: AdvAdj | null; set: (p: AdvAdj) => void }
   | { k: 'bg'; label: Phrase; val: string; def: string; note: Phrase; set: (v: string) => void }
+  | { k: 'qr'; val: QrSpec; set: (p: Partial<QrSpec>) => void }
 
 export const WEIGHT_NAMES: Record<number, Phrase> = { 400: 'Vanlig', 500: 'Medium', 600: 'Halvfet', 700: 'Fet', 800: 'Ekstra fet', 900: 'Svart' }
 
@@ -236,6 +238,9 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
     }
     // malens bakgrunn rett ved bildet (samme verdi som under «Bakgrunn» i malpanelet)
     if (c.s.doc?.bg.type === 'color') C.push({ k: 'bg', label: 'Bakgrunn', val: c.s.doc.bg.color, def: '#000000', note: 'Fargen bak bildene i hele malen. Den kommer med i eksporten.', set: (v) => c.setBg({ color: v }) })
+  } else if (l.type === 'shape' && l.kind === 'qr') {
+    // QR-kode: samme valg som i Loop Studio; størrelsen er lagets størrelse (dra i hjørnene eller skriv tallene)
+    if (l.qr) C.push({ k: 'qr', val: l.qr, set: (p) => void c.setQr(l.id, p) })
   } else if (l.type === 'shape') {
     C.push(SG('Form', l.kind, [['rect', 'Firkant'], ['rounded', 'Avrundet'], ['ellipse', 'Sirkel'], ['line', 'Strek']], (v) => {
       if (v === l.kind) return

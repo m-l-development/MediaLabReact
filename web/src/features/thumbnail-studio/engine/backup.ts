@@ -1,6 +1,7 @@
 import { isBaseKey, type BaseKey } from './layouts'
 import { cleanFilters } from './filters'
 import { cleanPaint } from './paint'
+import { cleanQr } from '../../../shared/qr/qr'
 import { ASSETS, emptyDoc, L, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
 import type { AdvAdj, AdvKey } from '../../../shared/image/AdvAdjust'
 
@@ -162,6 +163,11 @@ function cleanExtra(n: Layer, l: Record<string, unknown>, local: LocalMap) {
       if (vw && vh) n.path = { d: pa.d, vw, vh, ...(pa.fillRule === 'evenodd' ? { fillRule: 'evenodd' as const } : {}) }
     }
     if (n.kind === 'path' && !n.path) n.kind = 'rect'
+    if (n.kind === 'qr') {
+      const q = cleanQr(l.qr)
+      if (q) n.qr = q
+      else n.kind = 'rect'
+    }
   } 
 }
 

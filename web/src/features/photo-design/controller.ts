@@ -1,4 +1,5 @@
 import { patternPaint } from './engine/patterns'
+import { newQr, updateQr, type QrSpec } from '../../shared/qr/qr'
 import { createStore, type Store } from '../../shared/lib/store'
 import { snapActive } from '../../shared/lib/snap'
 import { fillStops, type Fill } from '../../shared/fill/fill'
@@ -849,6 +850,26 @@ export class PhotoController {
     const d = this.s.doc
     if (!d) return
     this.addLayer(shapeLayer({ name: this.d.t('Korn'), kind: 'rect', x: d.w / 2, y: d.h / 2, w: d.w, h: d.h, fill: 'rgba(0,0,0,0)', pat: 'grain', paint: patternPaint('grain', '#ffffff', d.w, d.h), blend: 'overlay', op: 0.55 }))
+  }
+
+  /** QR-kode (samme løsning som i Loop Studio): et kvadrat; innholdet skrives i panelet. */
+  addQr(): void {
+    const d = this.s.doc
+    if (!d) return
+    const m = Math.round(Math.min(d.w, d.h) * 0.28)
+    this.addLayer(shapeLayer({ kind: 'qr', name: this.d.t('QR-kode'), x: d.w / 2, y: d.h / 2, w: m, h: m, fill: 'rgba(0,0,0,0)', qr: newQr() }))
+  }
+
+  /** Endrer QR-koden og lager den på nytt (biblioteket lastes første gang). */
+  async setQr(id: string, p: Partial<QrSpec>): Promise<void> {
+    const L = this.s.doc?.layers.find((x) => x.id === id)
+    if (L?.type !== 'shape' || !L.qr) return
+    const prev = L.qr
+    const key = 'qr:' + id + ':' + Object.keys(p).join(',')
+    this.patchL(id, { qr: { ...prev, ...p } }, key)
+    const n = await updateQr(prev, p)
+    const cur = this.s.doc?.layers.find((x) => x.id === id)
+    if (cur?.type === 'shape' && cur.qr) this.patchL(id, { qr: { ...cur.qr, url: n.url, rows: n.rows } }, key)
   }
 
   addGrad(): void {

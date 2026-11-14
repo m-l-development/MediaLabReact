@@ -5,6 +5,7 @@ import { useLang } from '../../shared/i18n/i18n'
 import { BgColor } from '../../shared/ui/BgColor'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
 import { FontPicker } from '../../shared/fonts/FontPicker'
+import { QrFields } from '../../shared/qr/QrFields'
 import { localStore } from '../../shared/lib/storage'
 import type { ThumbController } from './controller'
 import type { Ctrl, Unit } from './ctrl-defs'
@@ -99,6 +100,8 @@ export function Controls({ ctrls, c, tx, profileColors, imageUrl }: { ctrls: Ctr
                 ))}
               </div>
             )
+          case 'qr':
+            return <QrFields key={i} value={x.val} onChange={x.set} />
           case 'img':
             return <ImageCtrl key={i} ctrl={x} c={c} tx={tx} url={imageUrl(x.src)} />
         }

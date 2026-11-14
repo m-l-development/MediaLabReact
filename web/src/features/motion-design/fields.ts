@@ -10,6 +10,8 @@ import {
   type Music, type Overlay, type Placed, type Project, type Sub, type TextItem,
 } from './engine/model'
 import type { Phrase, Vars } from './texts'
+import type { QrSpec } from '../../shared/qr/qr'
+
 
 export type Show = string | { p: Phrase; v?: Vars }
 export type Opt = readonly [string, string]
@@ -29,6 +31,7 @@ export type Field =
   | { k: 'area'; label: Phrase; val: string; on: (v: string) => void }
   | { k: 'curve'; c: Grade; on: (o: Partial<Grade>) => void }
   | { k: 'bg'; label: Phrase; val: string; def: string; note?: Phrase; on: (v: string) => void }
+  | { k: 'qr'; val: QrSpec; on: (p: Partial<QrSpec>) => void }
 
 type P<T> = (o: Partial<T>) => void
 const pct = (v: number): string => `${Math.round(v * 100)} %`
@@ -227,6 +230,8 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
 export function ovFields(c: MotionController, p: Project, o: Overlay): Field[] {
   const set = (v: Partial<Overlay>) => c.patch('ov', o.id, v)
   const out: Field[] = []
+  // QR-kode: samme valg som i Loop Studio; resten (plassering, størrelse, tid) som for andre bilder
+  if (o.qr) out.push({ k: 'qr', val: o.qr, on: (q) => c.setQr(o.id, q) })
   const md = mediaOf(p, o.media)?.dur || 86400
   if (o.kind === 'video') {
     out.push(note('Lengde {len}. Dra i kantene på tidslinjen for å klippe.', { len: fmtT(ovDur(o)) }),

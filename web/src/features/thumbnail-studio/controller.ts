@@ -11,6 +11,7 @@ import { LIB_CATS, loadLibrary, type LibTemplate } from './engine/templates'
 import { clone, countImgs, FONTS, H, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
 import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
 import type { Phrase, Vars } from './texts'
+import { newQr, updateQr, type QrSpec } from '../../shared/qr/qr'
 
 export type View = 'home' | 'cat' | 'edit'
 export interface Loc { cat?: string; tpl?: string; base?: string }
@@ -1364,6 +1365,22 @@ export class ThumbController {
   unlink(id: string): void {
     this.setL(id, { link: null })
     this.flash('Laget er koblet fra.')
+  }
+
+  /** QR-kode (samme løsning som i Loop Studio): et kvadrat nede til høyre; innholdet skrives i panelet. */
+  addQr(): void {
+    this.addLayer(L('shape', { kind: 'qr', name: this.d.t('QR-kode'), x: 1500, y: 660, w: 340, h: 340, fill: 'rgba(0,0,0,0)', qr: newQr() }))
+  }
+
+  /** Endrer QR-koden og lager den på nytt (biblioteket lastes første gang). */
+  async setQr(id: string, p: Partial<QrSpec>): Promise<void> {
+    const l = this.s.doc?.layers.find((x) => x.id === id)
+    if (l?.type !== 'shape' || !l.qr) return
+    const prev = l.qr
+    this.setL(id, { qr: { ...prev, ...p } }, 'qr:' + id + ':' + Object.keys(p).join(','))
+    const n = await updateQr(prev, p)
+    const cur = this.s.doc?.layers.find((x) => x.id === id)
+    if (cur?.type === 'shape' && cur.qr) this.setL(id, { qr: { ...cur.qr, url: n.url, rows: n.rows } }, 'qr:' + id + ':' + Object.keys(p).join(','))
   }
 
   addShape(kind: ShapeLayer['kind']): void {

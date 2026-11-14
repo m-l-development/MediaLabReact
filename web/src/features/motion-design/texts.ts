@@ -760,6 +760,9 @@ export const EN: Readonly<Record<string, string>> = {
   'Åpne prosjektmappe': 'Open project folder',
   'Åpner prosjektfilen …': 'Opening the project file …',
   'Åpner prosjektmappen …': 'Opening the project folder …',
+  '+ QR-kode': '+ QR code',
+  'QR-kode': 'QR code',
+  'QR-kode over videoen, til en nettside, e-post, telefon, SMS eller tekst': 'QR code over the video, for a website, email, phone, SMS or text',
 }
 
 export type Phrase = string

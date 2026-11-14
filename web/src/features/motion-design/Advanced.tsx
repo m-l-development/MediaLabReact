@@ -34,6 +34,7 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
       <div className={s.binBtns}>
         <button type="button" className={`${s.barBtn} ${s.small}`} onClick={onShared}>{tx('Fra Dine medier')}</button>
         {!rep && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-color="" title={tx('Ensfarget flate eller fargeovergang på V1')} onClick={() => c.addColor()}>{tx('+ Fargeflate')}</button>}
+        {!rep && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-qr="" title={tx('QR-kode over videoen, til en nettside, e-post, telefon, SMS eller tekst')} onClick={() => void c.addQr()}>{tx('+ QR-kode')}</button>}
       </div>
       <span className={s.hint}>{tx('MP4, MOV, WebM, PNG, JPG, WebP, GIF, MP3, WAV, M4A, AAC, OGG og FLAC. Du kan også dra filer inn i vinduet.')}</span>
       {S.binErr.length > 0 && (

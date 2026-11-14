@@ -3,6 +3,7 @@ import type { Dev } from './develop'
 import type { Fill } from '../../../shared/fill/fill'
 import type { Paint } from '../../thumbnail-studio/engine/paint'
 import type { Shadow } from '../../../shared/render/outline'
+import type { QrSpec } from '../../../shared/qr/qr'
 import { stretchFamily, stretchReady } from '../../../shared/fonts/loader'
 export type { Paint, Shadow }
 
@@ -180,6 +181,8 @@ export interface ShapeLayer extends Base {
   dash?: number[] | null
   /** Valgt mønster (engine/patterns.ts); malingen lages av det. */
   pat?: string | null
+  /** QR-kode (kind 'qr'): samme løsning som i Loop Studio (shared/qr). */
+  qr?: QrSpec | null
 }
 
 export interface GlowLayer extends Base {

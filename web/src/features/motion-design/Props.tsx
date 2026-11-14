@@ -11,6 +11,8 @@ import { BgColor } from '../../shared/ui/BgColor'
 import type { Field, Show } from './fields'
 import type { Tx } from './texts'
 import s from './MotionDesign.module.css'
+import { QrFields } from '../../shared/qr/QrFields'
+
 
 const CHANS: [CurveCh, string, string][] = [['m', '#f3f1ec', 'Alle kanaler'], ['r', '#ff5a5f', 'Rød'], ['g', '#3ccf7a', 'Grønn'], ['b', '#5b7cff', 'Blå']]
 const COLS: Record<CurveCh, string> = { m: '#ffffff', r: '#ff5a5f', g: '#3ccf7a', b: '#5b7cff' }
@@ -268,6 +270,8 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
           <input type="color" className={s.colorIn} value={f.val} onChange={(e) => f.on(e.target.value)} />
         </label>
       )
+    case 'qr':
+      return <QrFields value={f.val} onChange={f.on} />
     case 'font':
       return (
         <div className={s.lbl}>

@@ -19,6 +19,8 @@ import type { FolderStatus, MotionFiles } from './files'
 import type { MdEntry, MdRepo } from './repo'
 import type { Phrase, Vars } from './texts'
 import type { DirHandle } from '../../infrastructure/fs/project-folders'
+import { newQr, qrPng, qrRows, updateQr, type QrSpec } from '../../shared/qr/qr'
+
 
 export type Kind = 'clip' | 'text' | 'sub' | 'music' | 'ov'
 export interface Sel { type: Kind; id: string }
@@ -2193,6 +2195,65 @@ export class MotionController {
       this.waves[id] = w.url
       this.set((s) => ({ rev: s.rev + 1 }))
     }
+  }
+
+  /* ---------- QR-kode (samme løsning som i Loop Studio, shared/qr) ---------- */
+
+  private qrTimer: Record<string, ReturnType<typeof setTimeout>> = {}
+
+  /** Bildet av koden (skarpe moduler, 1200 px) lagres i prosjektmappen som andre bilder. Tom kode: «Skann meg», som i Loop. */
+  private async qrMedia(q: QrSpec): Promise<Media | null> {
+    const p0 = this.s.proj
+    if (!p0) return null
+    const shown = q.rows?.length ? q : { ...q, rows: await qrRows('Skann meg') }
+    const png = await qrPng(shown, 1200)
+    if (!png) return null
+    const f = new File([png], 'qr-kode.png', { type: 'image/png' })
+    let id: string
+    try {
+      id = await this.d.files.add(p0, f, f.name)
+    } catch {
+      this.flash('Nettleseren har ikke plass til filen.')
+      return null
+    }
+    const m = await this.mediaFor(id, f, 'image', this.d.t('QR-kode'))
+    if (m) this.setProj((p) => (p.media.some((x) => x.id === m.id) ? p : { ...p, media: [...p.media, m] }), false)
+    return m
+  }
+
+  /** Ny QR-kode som overlegg ved spillehodet (innholdet skrives i panelet). */
+  async addQr(): Promise<void> {
+    const q = newQr()
+    const m = await this.qrMedia(q)
+    const fr = this.s.proj
+    if (!m || !fr) return
+    const o = overlay(m, { start: this.t, scale: fr.w >= fr.h ? 0.2 : 0.36, x: 0.84, y: 0.74, radius: 0, shadow: false, anim: 'none', name: this.d.t('QR-kode'), qr: q })
+    this.setProj((p) => ({ ...p, ov: [...p.ov, o] }), true, 'add')
+    this.set({ sel: { type: 'ov', id: o.id }, multi: [] })
+  }
+
+  /** Endrer QR-koden; bildet lages på nytt når du slutter å skrive (det gamle fjernes når ingen bruker det). */
+  setQr(id: string, patch: Partial<QrSpec>): void {
+    const o = this.s.proj?.ov.find((x) => x.id === id)
+    if (!o?.qr) return
+    const next = { ...o.qr, ...patch }
+    this.setProj((p) => ({ ...p, ov: p.ov.map((x) => (x.id === id ? { ...x, qr: next } : x)) }), true, 'qr:' + id)
+    clearTimeout(this.qrTimer[id])
+    this.qrTimer[id] = setTimeout(() => void this.regenQr(id), 450)
+  }
+
+  private async regenQr(id: string): Promise<void> {
+    const o = this.s.proj?.ov.find((x) => x.id === id)
+    if (!o?.qr) return
+    const q = await updateQr({ ...o.qr, url: '', rows: null }, {})
+    const m = await this.qrMedia(q)
+    if (!m || !this.alive) return
+    const old = o.media
+    this.setProj((p) => {
+      const ov = p.ov.map((x) => (x.id === id ? { ...x, media: m.id, qr: { ...(x.qr ?? q), url: q.url, rows: q.rows } } : x))
+      const n = { ...p, ov }
+      return usedMedia(n).has(old) ? n : { ...n, media: n.media.filter((x) => x.id !== old) }
+    }, true, 'qr:' + id)
   }
 
   removeMedia(m: Media): void {

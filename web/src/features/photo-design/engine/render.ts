@@ -2,6 +2,7 @@ import { drawFill, fillOn } from '../../../shared/fill/fill'
 import { loadFonts, loadStretch } from '../../../shared/fonts/loader'
 import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { fillPaint } from '../../thumbnail-studio/engine/paint'
+import { drawQr } from '../../../shared/qr/qr'
 import { loadGrain } from '../../thumbnail-studio/engine/filters'
 import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
@@ -540,6 +541,9 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
     }
   } else if (L.type === 'fx') {
     drawFx(g, L, dm.w, dm.h, { t: o.t ?? 0, ...(o.full ? { full: true } : {}), scale: o.scale })
+  } else if (L.type === 'shape' && L.kind === 'qr') {
+    // QR-kode: skarpe moduler i lagets størrelse; plassholder i redigering til innholdet er skrevet
+    drawQr(g, L.qr, -L.w / 2, -L.h / 2, L.w, L.h, !o.noPh)
   } else if (L.type === 'shape') {
     let fs: string | CanvasGradient = L.fill
     if (L.fill2) {

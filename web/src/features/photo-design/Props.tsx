@@ -3,6 +3,7 @@
 import { FontPicker } from '../../shared/fonts/FontPicker'
 import { hasSnitt, weightsOf } from '../../shared/fonts/catalog'
 import { PATTERNS, patternPaint } from './engine/patterns'
+import { QrFields } from '../../shared/qr/QrFields'
 import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
@@ -293,7 +294,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
               )}
             </>
           )}
-          {L.type === 'shape' && (
+          {L.type === 'shape' && L.kind === 'qr' && L.qr && <QrFields value={L.qr} onChange={(p) => void c.setQr(L.id, p)} />}
+          {L.type === 'shape' && L.kind !== 'qr' && (
             <>
               <div className={s.kindGrid}>
                 {SHAPES.map(([k, l]) => <button key={k} type="button" aria-pressed={(L.kind || 'rect') === k} onClick={() => P((q) => ({ kind: k, ...(k === 'line' && q.type === 'shape' ? { h: Math.max(2, Math.min(q.h, q.w * 0.05)) } : {}) }))}>{tx(l as Phrase)}</button>)}
