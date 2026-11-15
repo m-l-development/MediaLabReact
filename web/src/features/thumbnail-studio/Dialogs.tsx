@@ -7,7 +7,7 @@ import type { ToolId } from '../../domain/tool'
 import { useLang } from '../../shared/i18n/i18n'
 import { MaskEditor } from '../../shared/mask/MaskEditor'
 import { ContextMenu as Menu } from '../../shared/ui/ContextMenu'
-import { type CropBox, type PanelKey, type State, type ThumbController } from './controller'
+import { PREV_ERR, type CropBox, type PanelKey, type State, type ThumbController } from './controller'
 import { COMBOS } from './engine/colors'
 import type { ImageCache } from './engine/images'
 import { MAX_TPL } from './engine/model'
@@ -31,6 +31,18 @@ function Modal({ label, onClose, wide, children }: { label: string; onClose: () 
 }
 
 /** «Ny mal» og «Bytt oppsett»: kategoriens grunnoppsett og standardoppsettene, med fargevalg. */
+/** Skissen feilet: tydelig melding og «Prøv igjen» (uten å åpne malen). */
+function PrevError({ tx, onRetry }: { tx: Tx; onRetry: () => void }) {
+  return (
+    <span data-prev-err="">
+      {tx('Kunne ikke lage skisse.')}{' '}
+      <span role="button" tabIndex={0} data-prev-retry="" style={{ textDecoration: 'underline', cursor: 'pointer' }}
+        onClick={(e) => { e.stopPropagation(); onRetry() }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onRetry() } }}>{tx('Prøv igjen')}</span>
+    </span>
+  )
+}
+
 export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }) {
   const cat = c.cat()
   if (!cat) return null
@@ -42,8 +54,9 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
     return (
       <button key={o.k} type="button" className={s.layoutCard} data-layout={o.k} onClick={() => c.pickNew(cat, o)}>
         <span className={s.layoutThumb}>
-          {img && <img src={img} alt="" />}
+          {img && img !== PREV_ERR && <img src={img} alt="" />}
           {o.k !== 'blank' && img == null && <span>{tx('Lager skisse …')}</span>}
+          {img === PREV_ERR && <PrevError tx={tx} onRetry={() => c.retryPrev(o.k + ':' + cat.id)} />}
         </span>
         <span className={s.layoutText}>
           <b>{o.translate ? tx(o.name as Phrase) : o.name}</b>
@@ -71,7 +84,7 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
         onShow={(list) => void c.genReady(list)}
         preview={(x) => {
           const img = c.readyPreviewOf(x)
-          return img ? <img src={img} alt="" /> : img == null ? <span>{tx('Lager skisse …')}</span> : null
+          return img === PREV_ERR ? <PrevError tx={tx} onRetry={() => c.retryPrev(x.key)} /> : img ? <img src={img} alt="" /> : <span>{tx('Lager skisse …')}</span>
         }}
         onPick={(x) => c.pickReady(cat, x)} />
       <div className={s.modalFoot}>

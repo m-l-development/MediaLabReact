@@ -270,6 +270,9 @@ interface Drag {
  * Thumbnail Studio: tilstand og handlinger (samme oppførsel som media-lab/src/pages/thumbnail-studio/logic.js).
  * Grensesnittet leser `state` og kaller metodene; ingen bilder eller binærdata ligger i React-tilstand.
  */
+/** Skissen kunne ikke lages (vises som melding med «Prøv igjen»). */
+export const PREV_ERR = 'err:'
+
 /** En ferdig mal i det samlede biblioteket (oppsett eller designsamlingen). */
 export interface ReadyTpl { id: string; key: string; name: string; desc: string; cat: string; order: number; doc: () => Doc; lib?: LibTemplate }
 
@@ -981,7 +984,8 @@ export class ThumbController {
     this.set((s) => ({ newPal: v?.k ?? 'default', newCustom: v?.k === 'custom' ? (v.c ?? s.newCustom) : s.newCustom, palOpen: false }))
     // grunnoppsettene øverst og de synlige kortene i biblioteket, i én kø (den forrige avbrytes)
     const c = this.cat()
-    void this.genReady([...(c ? this.baseItems(c) : []), ...this.shown.filter((x) => !x.key.startsWith('base:'))])
+    void c
+    void this.genReady(this.shown)
   }
 
   /**
@@ -1021,7 +1025,7 @@ export class ThumbController {
   /** Nye skisser legges inn samlet én gang per bilde (ikke én oppdatering av hele dialogen per skisse). */
   private putPrev(key: string, base: string, img: string): void {
     this.pend[key] = img
-    if (img) this.lastPrev.set(base, img)
+    if (img && img !== PREV_ERR) this.lastPrev.set(base, img)
     if (img.startsWith('blob:')) {
       this.blobs.push(img)
       if (this.blobs.length > 600) {
@@ -1048,7 +1052,12 @@ export class ThumbController {
    * den forrige køen straks, så raske fargebytter ikke hoper seg opp; skisser som finnes fra før gjenbrukes.
    */
   async genReady(list: { key: string; doc: () => Doc }[]): Promise<void> {
-    this.shown = list
+    // ÉN kø for «Ny mal»: kategoriens grunnoppsett først, så de synlige kortene i biblioteket. Før avbrøt bibliotekets
+    // melding køen for grunnoppsettene (ny run), så de ble stående på «Lager skisse …».
+    const lib = list.filter((x) => !x.key.startsWith('base:'))
+    this.shown = lib
+    const c = this.cat()
+    list = [...(c && this.s.newOpen ? this.baseItems(c) : []), ...lib]
     const run = ++this.prevRun
     const tk = this.themeKey()
     const th = this.theme()
@@ -1065,7 +1074,8 @@ export class ThumbController {
         const R = this.d.renderer
         img = R.snapshotUrl ? await R.snapshotUrl(doc, 480, true, ph) : await R.snapshot(doc, 480, true, ph)
       } catch {
-        img = ''
+        // feilet: kortet viser en melding med «Prøv igjen»; resten av køen fortsetter
+        img = PREV_ERR
       }
       if (!this.alive || !this.s.newOpen || run !== this.prevRun) {
         if (img.startsWith('blob:')) URL.revokeObjectURL(img)
@@ -1073,6 +1083,17 @@ export class ThumbController {
       }
       this.putPrev(key, x.key, img)
     }
+  }
+
+  /** Ny skisse for en mal som feilet (knappen «Prøv igjen» på kortet). */
+  retryPrev(base: string): void {
+    const key = base + '|' + this.themeKey()
+    this.set((st) => {
+      const pv = { ...st.previews }
+      delete pv[key]
+      return { previews: pv }
+    })
+    void this.genReady(this.shown)
   }
 
   /** Velg en ferdig mal fra biblioteket (i valgt fargetema). */
@@ -1138,7 +1159,8 @@ export class ThumbController {
   }
 
   private async genPrev(c: Category) {
-    await this.genReady(this.baseItems(c))
+    void c
+    await this.genReady(this.shown)
   }
 
 
