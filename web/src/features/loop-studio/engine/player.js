@@ -111,7 +111,7 @@ export function __ukeloopRendererFactory() {
   }
   function fxLeak(ctx, W, H, now, ac, amt) {
     ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = amt;
-    [[0.15 + 0.12 * Math.sin(now * 0.13), 0.2 + 0.1 * Math.cos(now * 0.17), ac, 0.4], [0.85 + 0.1 * Math.cos(now * 0.11), 0.75 + 0.12 * Math.sin(now * 0.09), '#ffd9a8', 0.26]].forEach(function (p) {
+    [[0.15 + 0.12 * Math.sin(now * 0.13), 0.2 + 0.1 * Math.cos(now * 0.17), ac, 0.4], [0.85 + 0.1 * Math.cos(now * 0.11), 0.75 + 0.12 * Math.sin(now * 0.09), FXC('#ffd9a8'), 0.26]].forEach(function (p) {
       var cx = p[0] * W, cy = p[1] * H, r = Math.max(W, H) * 0.45, g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       g.addColorStop(0, rgba(p[2], p[3])); g.addColorStop(1, rgba(p[2], 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     });
@@ -142,12 +142,27 @@ export function __ukeloopRendererFactory() {
     }
     ctx.restore();
   }
+  /* Fargetema for dekorative lyseffekter (gnister, lysstriper, glød, konfetti): de varme fargene følger temaets
+     aksent (rosa/blå: temaets flatefarge) med samme lyshet som originalen, så gløden og formen er den samme.
+     Rent hvite lyskjerner er bevisste og beholdes. Uten tema (FXP null) brukes originalfargene. */
+  var FXP = null, FXC_CACHE = {};
+  function fxLum(h) { var n = parseInt(h.slice(1), 16); return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); }
+  function fxMix(a, b, t) { var A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16); var o = [16, 8, 0].map(function (sh) { var x = (A >> sh) & 255, y = (B >> sh) & 255; return Math.round(x + (y - x) * t); }); return '#' + o.map(function (v) { return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+  function FXC(hex) {
+    if (!FXP) return hex;
+    var key = FXP[0] + FXP[1] + hex;
+    if (FXC_CACHE[key]) return FXC_CACHE[key];
+    var base = hex === '#ff9fbf' || hex === '#9fd8ff' ? FXP[1] : FXP[0];
+    var L = fxLum(hex), Lb = fxLum(base);
+    var t = Lb >= 250 ? 0 : Math.max(0, Math.min(0.9, (L - Lb) / (255 - Lb)));
+    return (FXC_CACHE[key] = fxMix(base, '#ffffff', t));
+  }
   function hsh(n) { var v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); }
   function fxNewYear(ctx, W, H, T, P, now, ac, u, amt) {
     ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.lineCap = 'round';
-    var cols = ['#ffd27a', '#fff3d6', ac, '#ff9fbf', '#9fd8ff', '#ffe08a'], rt = 0.75, lanes = 5;
+    var cols = [FXC('#ffd27a'), FXC('#fff3d6'), ac, FXC('#ff9fbf'), FXC('#9fd8ff'), FXC('#ffe08a')], rt = 0.75, lanes = 5;
     var hz = ctx.createLinearGradient(0, H, 0, H * 0.55);
-    hz.addColorStop(0, rgba('#ffb45a', 0.16 * amt)); hz.addColorStop(1, rgba('#ffb45a', 0));
+    hz.addColorStop(0, rgba(FXC('#ffb45a'), 0.16 * amt)); hz.addColorStop(1, rgba(FXC('#ffb45a'), 0));
     ctx.fillStyle = hz; ctx.fillRect(0, H * 0.55, W, H * 0.45);
     function pt(cx, cy, an, R, sp, g, tt) { var ex = 1 - Math.exp(-tt * 3.2); return [cx + Math.cos(an) * R * sp * ex, cy + Math.sin(an) * R * sp * ex + g * u * tt * tt]; }
     for (var ln = 0; ln < lanes; ln++) {
@@ -161,31 +176,31 @@ export function __ukeloopRendererFactory() {
         if (lt < rt) {
           var rp = 1 - Math.pow(1 - lt / rt, 2), sx = cx + (hsh(id + 9.9) - 0.5) * 80 * u, rx = lerp(rp, sx, cx), ry = lerp(rp, H * 1.02, cy);
           var tg = ctx.createLinearGradient(rx, ry, rx, ry + 90 * u);
-          tg.addColorStop(0, rgba('#fff3d6', 0.8 * amt)); tg.addColorStop(1, rgba('#ffd27a', 0));
+          tg.addColorStop(0, rgba(FXC('#fff3d6'), 0.8 * amt)); tg.addColorStop(1, rgba(FXC('#ffd27a'), 0));
           ctx.strokeStyle = tg; ctx.lineWidth = 2.4 * u; ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(lerp(rp, sx, cx) + 0, ry + 90 * u); ctx.stroke();
           ctx.fillStyle = rgba('#ffffff', 0.9 * amt); ctx.beginPath(); ctx.arc(rx, ry, 2.4 * u, 0, Math.PI * 2); ctx.fill();
-          for (var sk = 0; sk < 6; sk++) { var sxx = rx + (hsh(id + sk + Math.floor(lt * 20)) - 0.5) * 14 * u, syy = ry + (20 + 60 * hsh(id + sk * 3.3 + Math.floor(lt * 20))) * u; ctx.fillStyle = rgba('#ffd27a', 0.55 * amt * (1 - (syy - ry) / (90 * u))); ctx.fillRect(sxx, syy, 1.6 * u, 1.6 * u); }
+          for (var sk = 0; sk < 6; sk++) { var sxx = rx + (hsh(id + sk + Math.floor(lt * 20)) - 0.5) * 14 * u, syy = ry + (20 + 60 * hsh(id + sk * 3.3 + Math.floor(lt * 20))) * u; ctx.fillStyle = rgba(FXC('#ffd27a'), 0.55 * amt * (1 - (syy - ry) / (90 * u))); ctx.fillRect(sxx, syy, 1.6 * u, 1.6 * u); }
           continue;
         }
         var bt = lt - rt, fade = Math.pow(1 - bt / life, ty === 1 ? 1.1 : 1.5) * amt, g = ty === 1 ? 150 : 55, back = ty === 1 ? 0.5 : 0.22;
         var M = ty === 2 ? 48 : ty === 4 ? 56 : 42, col2 = cols[Math.floor(hsh(id + 8.1) * cols.length)];
-        if (bt < 0.45) { var fl = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.8); fl.addColorStop(0, rgba('#fff8e8', 0.4 * amt * (1 - bt / 0.45))); fl.addColorStop(1, rgba('#fff8e8', 0)); ctx.fillStyle = fl; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); }
+        if (bt < 0.45) { var fl = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.8); fl.addColorStop(0, rgba(FXC('#fff8e8'), 0.4 * amt * (1 - bt / 0.45))); fl.addColorStop(1, rgba(FXC('#fff8e8'), 0)); ctx.fillStyle = fl; ctx.fillRect(cx - R, cy - R, R * 2, R * 2); }
         for (var i = 0; i < M; i++) {
           var inner = ty === 4 && i % 2 === 1, an = (i / M) * Math.PI * 2 + (hsh(id + i) - 0.5) * (ty === 2 ? 0.05 : 0.3);
           var sp = ty === 2 ? 1 : (inner ? 0.5 : 0.62 + 0.38 * hsh(id * 3 + i)), pl = life * (0.7 + 0.3 * hsh(id * 5 + i)), pf = bt >= pl ? 0 : Math.pow(1 - bt / pl, 1.4) * amt;
           if (pf <= 0.01) continue;
-          var pc = ty === 1 ? '#ffc861' : inner ? col2 : col, pw = (ty === 1 ? 1.6 : 2.3) * u;
+          var pc = ty === 1 ? FXC('#ffc861') : inner ? col2 : col, pw = (ty === 1 ? 1.6 : 2.3) * u;
           var pts = [], SEG = 4;
           for (var s = 0; s <= SEG; s++) pts.push(pt(cx, cy, an, R, sp, g, Math.max(0, bt - back * s / SEG)));
           for (s = 0; s < SEG; s++) {
             var sa = pf * 0.75 * (1 - s / SEG);
-            ctx.strokeStyle = rgba(s === 0 ? '#fff4dc' : pc, sa); ctx.lineWidth = pw * (1 - s / (SEG + 1));
+            ctx.strokeStyle = rgba(s === 0 ? FXC('#fff4dc') : pc, sa); ctx.lineWidth = pw * (1 - s / (SEG + 1));
             ctx.beginPath(); ctx.moveTo(pts[s + 1][0], pts[s + 1][1]); ctx.lineTo(pts[s][0], pts[s][1]); ctx.stroke();
           }
           var tw = ty === 3 && bt > pl * 0.4 ? 0.35 + 0.65 * Math.abs(Math.sin(bt * 11 + i * 1.7)) : 1, hx = pts[0][0], hy = pts[0][1];
           ctx.fillStyle = rgba(pc, 0.28 * pf * tw); ctx.beginPath(); ctx.arc(hx, hy, 5 * u, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = rgba('#ffffff', 0.9 * pf * tw); ctx.beginPath(); ctx.arc(hx, hy, 1.9 * u, 0, Math.PI * 2); ctx.fill();
-          if (ty === 3 && bt > pl * 0.45) for (var c = 0; c < 2; c++) { var cxx = hx + (hsh(id + i * 7 + c + Math.floor(bt * 14)) - 0.5) * 22 * u, cyy = hy + (hsh(id + i * 11 + c + Math.floor(bt * 14)) - 0.5) * 22 * u; ctx.fillStyle = rgba('#fff4dc', 0.6 * pf); ctx.fillRect(cxx, cyy, 1.6 * u, 1.6 * u); }
+          if (ty === 3 && bt > pl * 0.45) for (var c = 0; c < 2; c++) { var cxx = hx + (hsh(id + i * 7 + c + Math.floor(bt * 14)) - 0.5) * 22 * u, cyy = hy + (hsh(id + i * 11 + c + Math.floor(bt * 14)) - 0.5) * 22 * u; ctx.fillStyle = rgba(FXC('#fff4dc'), 0.6 * pf); ctx.fillRect(cxx, cyy, 1.6 * u, 1.6 * u); }
         }
         var gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.4);
         gl.addColorStop(0, rgba(col, 0.14 * fade)); gl.addColorStop(1, rgba(col, 0));
@@ -198,7 +213,7 @@ export function __ukeloopRendererFactory() {
       var cy2 = (((now * (0.03 + 0.035 * s2) + s1) % 1.15) - 0.08) * H, cx2 = (hsh(j + 41) + 0.03 * Math.sin(now * (0.5 + 0.4 * s3) + j)) * W;
       var rot = now * (1 + 2 * s3) + j, fw = (5 + 5 * s2) * u, fh = (2.6 + 2 * s1) * u, flip = Math.cos(now * (2 + 2 * s1) + j);
       ctx.save(); ctx.translate(cx2, cy2); ctx.rotate(rot); ctx.scale(1, 0.25 + 0.75 * Math.abs(flip));
-      ctx.fillStyle = rgba(j % 3 === 0 ? '#fff3d6' : j % 3 === 1 ? '#f2c14e' : '#d9a441', (0.55 + 0.3 * Math.abs(flip)) * amt);
+      ctx.fillStyle = rgba(j % 3 === 0 ? FXC('#fff3d6') : j % 3 === 1 ? FXC('#f2c14e') : FXC('#d9a441'), (0.55 + 0.3 * Math.abs(flip)) * amt);
       ctx.fillRect(-fw / 2, -fh / 2, fw, fh); ctx.restore();
     }
     ctx.restore();
@@ -419,6 +434,7 @@ export function __ukeloopRendererFactory() {
   function presence(lt, dur) { return Math.min(ramp(lt, -0.6, 0.3), 1 - ramp(lt, dur - 0.6, dur + 0.3)); }
   function drawFrame(ctx, W, H, data, media, t) {
     var u = Math.min(W, H) / 1080, PT = H > W, cfg = data.cfg || {}, slides = data.slides || [];
+    FXP = cfg.fxPal && cfg.fxPal.length === 2 ? cfg.fxPal : null;
     var SC = function (s, k) { return s && s.ov && s.ov[k] != null ? s.ov[k] : cfg[k]; };
     var fam = cfg.font || 'Archivo';
     FONT = (fam === 'Helvetica' ? '' : '"' + fam + '", ') + '"Helvetica Neue", Helvetica, Arial, sans-serif';

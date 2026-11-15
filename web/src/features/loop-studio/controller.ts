@@ -195,7 +195,7 @@ function themeCfg(p: string | undefined): Partial<Cfg> {
   if (!P) return {}
   const cols = [P.bg, P.fill, P.bg2, P.acc, P.mid]
   // tekst i temaets tekstfarge, og vignetten bak teksten i temaets bakgrunnsfarge (så kontrasten holder over bildene)
-  return { accent: P.acc, ink: P.fg, vigColor: P.bg, panelBg: P.bg2, panels: DEF_PANELS.map((x, i) => ({ ...x, color: cols[i] ?? x.color })) }
+  return { accent: P.acc, ink: P.fg, vigColor: P.bg, panelBg: P.bg2, fxPal: [P.acc, P.fill], panels: DEF_PANELS.map((x, i) => ({ ...x, color: cols[i] ?? x.color })) }
 }
 
 /**
@@ -1580,7 +1580,7 @@ export class LoopController {
         vigColor: isHex(c.vigColor) ? c.vigColor : null, vigType: VIGT.includes(String(c.vigType)) ? c.vigType : 'auto', vigs: cleanVigs(c.vigs), ...vigNums,
         logoSrc: c.logoSrc, logoOn: c.logoOn, logoSize: c.logoSize, headerScale: c.headerScale, topLabelScale: c.topLabelScale, logoX: c.logoX, logoY: c.logoY, logoOpacity: c.logoOpacity,
         style: c.style, duotone: !!c.duotone, kickerStyle: c.kickerStyle, palette: Array.isArray(c.palette) ? c.palette : null,
-        panels: cleanPanels(c.panels) ?? (Array.isArray(c.panels) ? [] : null), panelsRotate: !!c.panelsRotate, panelBg: isHex(c.panelBg) ? c.panelBg : null, ink: isHex(c.ink) ? c.ink : null,
+        panels: cleanPanels(c.panels) ?? (Array.isArray(c.panels) ? [] : null), panelsRotate: !!c.panelsRotate, panelBg: isHex(c.panelBg) ? c.panelBg : null, ink: isHex(c.ink) ? c.ink : null, fxPal: Array.isArray(c.fxPal) && c.fxPal.length === 2 && c.fxPal.every(isHex) ? c.fxPal : null,
         tintColor: isHex(c.tintColor) ? c.tintColor : null, tintAmt: c.tintAmt, tintBlend: c.tintBlend,
         transFx: c.transFx, textFx: c.textFx, overlayFx: c.overlayFx, fxAmount: c.fxAmount, ovSpeed: c.ovSpeed, ovAlpha: c.ovAlpha, ovColor: isHex(c.ovColor) ? c.ovColor : null, fxSpeed: c.fxSpeed,
         kenBurns: c.kenBurns, sweep: c.sweep, font: c.font, titleScale: c.titleScale, textScale: c.textScale,

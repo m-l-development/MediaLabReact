@@ -1,4 +1,5 @@
 import { refTemplates } from './templates2'
+import { refTemplates13 } from './templates3'
 import { themeContent } from './theme'
 import type { Palette } from '../../../shared/templates/theme'
 /**
@@ -48,6 +49,8 @@ interface ClipCommon extends Grade {
 }
 
 export interface ColorClip extends ClipCommon {
+  /** Plassholder i en mal («Klipp 3»): vises med nummer, og «Bytt bilde eller video» legger inn eget klipp. */
+  ph?: string
   kind: 'color'
   dur: number
   c1: string
@@ -96,6 +99,20 @@ export interface Overlay extends Grade {
   id: string
   /** QR-kode (samme løsning som i Loop Studio, shared/qr): bildet er koden, innstillingene ligger her. */
   qr?: QrSpec | null
+  /**
+   * Ramme (bilde-i-bilde som form): en fylt flate med sideforholdet `ar` (høyde/bredde), hjørner (radius), kantlinje,
+   * skygge, animasjon og keyframes som et vanlig overlegg. «Bytt inn bilde/video» legger media i rammen (utsnittet
+   * fyller rammen) og beholder resten. Mangler = vanlig bilde-/videooverlegg.
+   */
+  shape?: { fill: string; fill2?: string | null; ang?: number; a1?: number; a2?: number } | null
+  /**
+   * Tekstmaske (matte): overlegget vises bare gjennom bokstavene i tekstlaget `text` (med tekstens animasjoner og
+   * keyframes) og eventuelt et penselvindu som tørkes frem fra venstre (fra t0 i dur sekunder, i området x/y/w/h).
+   */
+  /** Plassholdernummer på en ramme («Klipp 2»), og om rammen alltid fyller hele bildet (bakgrunnslag i en mal). */
+  ph?: string
+  fill?: boolean
+  matte?: { text: string; brush?: { t0: number; dur: number; x: number; y: number; w: number; h: number } | null } | null
   link?: string
   /** Effekter (Avansert), i rekkefølge. Se engine/fx.ts. */
   effects?: Effect[]
@@ -174,6 +191,15 @@ export interface TextItem {
   color2: string
   /** Tallrull: tallet teksten ruller fra (siffer for siffer, som en kilometerteller); mangler = fra 0. */
   rollFrom?: string | undefined
+  /** Tallrull: forsinkelse mellom sifrene (s), fra venstre (ltr) og ekstra runder per siffer. */
+  rollStag?: number
+  rollLtr?: boolean
+  rollSpin?: number
+  /** Fontskifte: teksten bytter mellom disse fontene (hver fontRate s) og ender på `font`. */
+  fonts?: string[]
+  fontRate?: number
+  /** Glød i tekstens farge (0 = av; 0,2–1 = mykt lys rundt bokstavene). */
+  glow?: number
   /** Opptelling: teller fra cdFrom til cdTo (heltall) i løpet av cdDur sekunder; «{n}» i teksten byttes med tallet. */
   cdTo?: number | undefined
   cdDur?: number
@@ -246,6 +272,13 @@ export const layerKey = (k: TrackKey, lane: number) => `${k}:${lane}`
 
 export interface Project {
   id: string
+  /** Malens tempo (BPM): klippene skifter på takten; Music Sync bruker det. Mangler = ukjent. */
+  tempo?: number
+  /** Malens bevegelsesprofil for Music Sync (filmatisk, dynamisk, minimal, typografisk). */
+  motion?: 'cinematic' | 'dynamic' | 'minimal' | 'typo'
+  /** Music Sync er brukt: profil og tempo i musikken; `syncBase` = prosjektets tid før synkroniseringen (JSON). */
+  sync?: { style: 'cinematic' | 'dynamic' | 'minimal' | 'typo'; bpm: number; media: string } | null
+  syncBase?: string
   name: string
   fmt: string
   w: number
@@ -290,7 +323,7 @@ export const FORMATS: readonly Format[] = [
 export const FONTS = ['Archivo', 'Montserrat', 'Bebas Neue', 'Anton', 'Oswald', 'League Spartan', 'Playfair Display'] as const
 export const TRANS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Toning'], ['dip', 'Via svart'], ['dipw', 'Via hvitt'], ['flash', 'Blits'], ['push-l', 'Skyv mot venstre'], ['push-r', 'Skyv mot høyre'], ['push-u', 'Skyv opp'], ['push-d', 'Skyv ned'], ['cover-l', 'Dekk fra høyre'], ['cover-r', 'Dekk fra venstre'], ['cover-u', 'Dekk nedenfra'], ['cover-d', 'Dekk ovenfra'], ['whip', 'Sveip'], ['zoom-in', 'Zoom inn'], ['zoom-out', 'Zoom ut'], ['spin', 'Snurr'], ['wipe-r', 'Visk mot høyre'], ['wipe-l', 'Visk mot venstre'], ['wipe-d', 'Visk ned'], ['wipe-u', 'Visk opp'], ['iris', 'Sirkel'], ['diamond', 'Diamant'], ['clock', 'Klokke'], ['blinds', 'Persienner'], ['bars', 'Striper'], ['doors', 'Dører'], ['blur', 'Uskarp'], ['glitch', 'Glitch'], ['pixel', 'Piksler'], ['xzoom', 'Kryss-zoom'], ['ramp', 'Fartsrampe'], ['match', 'Match cut'], ['mask', 'Maskering'], ['chroma', 'Kromatisk glitch'], ['leak', 'Lyslekkasje']]
 const TRMAP: Record<string, string> = { slide: 'cover-l', slideup: 'cover-u', wipe: 'wipe-r', zoom: 'zoom-in' }
-export const ANIMS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Ton inn'], ['rise', 'Stig opp'], ['pop', 'Sprett'], ['slide', 'Skyv inn'], ['blur', 'Fra uskarp'], ['type', 'Skrivemaskin'], ['words', 'Ord for ord'], ['letters', 'Bokstav for bokstav'], ['bounce', 'Hopp inn'], ['wave', 'Bølge'], ['glitch', 'Glitch'], ['zoomout', 'Zoom inn fra stor'], ['drop', 'Fall ned'], ['flip', 'Vend'], ['spread', 'Trekk sammen'], ['wipe', 'Avdekk'], ['roll', 'Tallrull'], ['scroll', 'Rulletekst'], ['orbit', 'Bane'], ['brush', 'Penselstrøk']]
+export const ANIMS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Ton inn'], ['rise', 'Stig opp'], ['pop', 'Sprett'], ['slide', 'Skyv inn'], ['blur', 'Fra uskarp'], ['type', 'Skrivemaskin'], ['words', 'Ord for ord'], ['letters', 'Bokstav for bokstav'], ['bounce', 'Hopp inn'], ['wave', 'Bølge'], ['glitch', 'Glitch'], ['zoomout', 'Zoom inn fra stor'], ['drop', 'Fall ned'], ['flip', 'Vend'], ['spread', 'Trekk sammen'], ['wipe', 'Avdekk'], ['roll', 'Tallrull'], ['scroll', 'Rulletekst'], ['orbit', 'Bane'], ['brush', 'Penselstrøk'], ['scatter', 'Spredte bokstaver samles'], ['ldrop', 'Bokstaver faller inn']]
 export const OVANIMS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['fade', 'Ton'], ['pop', 'Sprett'], ['slide', 'Skyv'], ['zoom', 'Zoom'], ['rise', 'Stig opp']]
 export const BLENDS: readonly (readonly [GlobalCompositeOperation, string])[] = [['source-over', 'Normal'], ['screen', 'Lysere (screen)'], ['multiply', 'Mørkere (multiply)'], ['overlay', 'Overlegg'], ['soft-light', 'Mykt lys'], ['lighten', 'Lysne'], ['darken', 'Mørkne'], ['difference', 'Differanse']]
 export const LOOKS: readonly (readonly [string, string])[] = [['none', 'Ingen'], ['warm', 'Varm'], ['cool', 'Kald'], ['film', 'Film'], ['bw', 'Svart-hvitt'], ['noir', 'Noir'], ['faded', 'Falmet'], ['vivid', 'Levende'], ['sepia', 'Sepia'], ['dream', 'Drøm'], ['teal', 'Teal og oransje'], ['night', 'Natt']]
@@ -379,6 +412,24 @@ export function overlay(m: Media, o: Partial<Overlay> = {}): Overlay {
   const r = m.w && m.h ? m.h / m.w : 0.5625
   return { ...GRADE0, id: uid('o'), lane: 0, kind: v ? 'video' : 'image', media: m.id, name: m.name, start: 0, in: 0, out: v ? m.dur || 5 : 0, dur: v ? 0 : 4, speed: 1, rev: false, vol: 1, muted: false, x: 0.72, y: 0.72, scale: 0.4, rot: 0, opacity: 1, fadeIn: 0, fadeOut: 0, anim: 'pop', blend: 'source-over', radius: 0.08, border: 0, borderColor: '#ffffff', shadow: true, flipH: false, flipV: false, crop: { ...CROP0 }, ar: r, keyOn: false, keyColor: '#00ff00', keySim: 0.35, keySmooth: 0.1, keySpill: 0.5, ...o }
 }
+/** Ny ramme (bilde-i-bilde som redigerbar form) midt i bildet. */
+export function frameOverlay(o: Partial<Overlay> = {}): Overlay {
+  return { ...GRADE0, id: uid('o'), lane: 0, kind: 'image', media: '', name: 'Ramme', start: 0, in: 0, out: 0, dur: 4, speed: 1, rev: false, vol: 1, muted: false, x: 0.5, y: 0.5, scale: 0.42, rot: 0, opacity: 1, fadeIn: 0, fadeOut: 0, anim: 'pop', blend: 'source-over', radius: 0.08, border: 0.6, borderColor: '#ffffff', shadow: true, flipH: false, flipV: false, crop: { ...CROP0 }, ar: 0.5625, keyOn: false, keyColor: '#00ff00', keySim: 0.35, keySmooth: 0.1, keySpill: 0.5, shape: { fill: '#2b2f3a', fill2: null, ang: 135 }, ...o }
+}
+
+/** Utsnitt som fyller en ramme med sideforholdet `ar` (høyde/bredde) med et medium på `mw`×`mh` (sentrert). */
+export function coverCrop(ar: number, mw: number, mh: number): Crop {
+  if (!(mw > 0 && mh > 0 && ar > 0)) return { ...CROP0 }
+  const mar = mh / mw
+  if (mar > ar) {
+    // høyere enn rammen: skjær bort topp og bunn
+    const keep = ar / mar
+    return { l: 0, r: 0, t: (1 - keep) / 2, b: (1 - keep) / 2 }
+  }
+  const keep = mar / ar
+  return { l: (1 - keep) / 2, r: (1 - keep) / 2, t: 0, b: 0 }
+}
+
 export function music(m: Media, o: Partial<Music> = {}): Music {
   return { id: uid('a'), lane: 0, media: m.id, name: m.name, start: 0, in: 0, out: m.dur || 30, srcDur: m.dur || 30, vol: 0.8, fadeIn: 1, fadeOut: 2, loop: false, ...o }
 }
@@ -387,11 +438,13 @@ export const SUBSTYLE: SubStyle = { mode: 'line', hl: '#f5b82c', size: 46, color
 /* ---------- maler ---------- */
 
 const ACC = '#f5b82c'
-interface TplContent { clips: Clip[]; texts: TextItem[]; subs?: Sub[]; subStyle?: SubStyle }
-export interface Template { k: string; name: string; desc: string; tt: number; make: () => TplContent }
+interface TplContent { clips: Clip[]; texts: TextItem[]; ov?: Overlay[]; subs?: Sub[]; subStyle?: SubStyle }
+export interface Template { k: string; name: string; desc: string; tt: number; bpm?: number; motion?: 'cinematic' | 'dynamic' | 'minimal' | 'typo'; make: () => TplContent }
+const MSTYLES = ['cinematic', 'dynamic', 'minimal', 'typo'] as const
 
 /** Maler etter referansevideoene og tre premiummaler (engine/templates2.ts). */
-const REF_TEMPLATES = refTemplates({ text, colorClip })
+// de 13 referansevideoene (docs/motion-referansemaler.md) og de tre egne premiummalene
+const REF_TEMPLATES = [...refTemplates13({ text, colorClip, frame: frameOverlay }), ...refTemplates({ text, colorClip }).filter((t) => t.k === 'launch' || t.k === 'chapters' || t.k === 'kinetic')]
 
 export const TEMPLATES: readonly Template[] = [
   { k: 'meet', name: 'Møtepromo', desc: 'Dato, tid og sted over to scener', tt: 2.2, make: () => ({
@@ -444,7 +497,7 @@ export function create(fmt: Pick<Format, 'k' | 'w' | 'h'>, tk: string, name?: st
   const d0 = tp ? tp.make() : { clips: [], texts: [] }
   // temaet gjelder også undertekststilen (malens egen eller standardstilen)
   const d = pal ? themeContent({ ...d0, subStyle: d0.subStyle ?? { ...SUBSTYLE } }, pal) : d0
-  return normalize({ id: uid('p'), name: name || (!tp || tp.k === 'blank' ? 'Nytt prosjekt' : tp.name), fmt: fmt.k, w: fmt.w, h: fmt.h, bg: '#000000', media: [], clips: d.clips, ov: [], markers: [], texts: d.texts, subs: d.subs ?? [], subStyle: d.subStyle ?? { ...SUBSTYLE }, music: [], logo: { src: '', pos: 'tr', size: 0.12, opacity: 0.9, on: false }, created: Date.now(), updated: Date.now() })
+  return normalize({ id: uid('p'), ...(tp?.bpm ? { tempo: tp.bpm } : {}), motion: tp?.motion ?? 'minimal', name: name || (!tp || tp.k === 'blank' ? 'Nytt prosjekt' : tp.name), fmt: fmt.k, w: fmt.w, h: fmt.h, bg: '#000000', media: [], clips: d.clips, ov: d.ov ?? [], markers: [], texts: d.texts, subs: d.subs ?? [], subStyle: d.subStyle ?? { ...SUBSTYLE }, music: [], logo: { src: '', pos: 'tr', size: 0.12, opacity: 0.9, on: false }, created: Date.now(), updated: Date.now() })
 }
 
 /* ---------- validering (alt som leses fra lagring eller filer) ---------- */
@@ -525,6 +578,14 @@ function textExtra(x: Record<string, unknown>): Partial<TextItem> {
   if (x.knock === 'solid' || x.knock === 'blur') { o.knock = x.knock; o.knockColor = col(x.knockColor, '#000000') }
   if (x.orbitR !== undefined) o.orbitR = num(x.orbitR, 0.3, 0.05, 1)
   if (x.orbitV !== undefined) o.orbitV = num(x.orbitV, 0.12, -2, 2)
+  if (x.rollStag !== undefined) o.rollStag = num(x.rollStag, 0.12, 0, 2)
+  if (x.rollLtr) o.rollLtr = true
+  if (x.glow !== undefined && Number(x.glow) > 0) o.glow = num(x.glow, 0.4, 0, 2)
+  if (x.rollSpin !== undefined) o.rollSpin = Math.round(num(x.rollSpin, 0, 0, 5))
+  if (Array.isArray(x.fonts)) {
+    const f = x.fonts.filter((v): v is string => typeof v === 'string' && v.length > 0 && v.length < 60).slice(0, 12)
+    if (f.length) { o.fonts = f; o.fontRate = num(x.fontRate, 0.3, 0.05, 5) }
+  }
   return o
 }
 
@@ -543,7 +604,7 @@ export function normalize(input: unknown): Project {
     const ckf = cleanKeys(c.kf)
     const base = { id: sid(c.id, 'c'), ...(efx ? { effects: efx } : {}), ...(ckf ? { kf: ckf } : {}), trans: trans(c.trans), dim: num(c.dim, 0, 0, 1), temp: num(c.temp, 0, -1, 1), tint: num(c.tint, 0, -1, 1), vig: num(c.vig, 0, 0, 1), grain: num(c.grain, 0, 0, 1), ...grade(c) }
     if (k === 'color') {
-      return withLink({ ...base, kind: 'color' as const, dur: num(c.dur, 5, 0.2, 3600), c1: col(c.c1, '#111111'), c2: col(c.c2, '#2a2a2a'), grad: oneOf(c.grad, ['none', 'linear', 'radial'] as const, 'linear'), ang: num(c.ang, 135, -3600, 3600), spin: num(c.spin, 0, -90, 90) }, lnk(c.link))
+      return withLink({ ...base, ...(typeof c.ph === 'string' && c.ph ? { ph: c.ph.slice(0, 40) } : {}), kind: 'color' as const, dur: num(c.dur, 5, 0.2, 3600), c1: col(c.c1, '#111111'), c2: col(c.c2, '#2a2a2a'), grad: oneOf(c.grad, ['none', 'linear', 'radial'] as const, 'linear'), ang: num(c.ang, 135, -3600, 3600), spin: num(c.spin, 0, -90, 90) }, lnk(c.link))
     }
     const r: MediaClip = { ...base, kind: k, media: sid(c.media, 'm'), name: str(c.name, '', 200), in: num(c.in, 0, 0, 86400), out: num(c.out, 5, 0, 86400), dur: num(c.dur, 4, 0, 3600), vol: num(c.vol, 1, 0, 2), muted: !!c.muted, fit: oneOf(c.fit, ['cover', 'contain'] as const, 'cover'), zoom: num(c.zoom, 1, 1, 4), fx: num(c.fx, 0.5, 0, 1), fy: num(c.fy, 0.5, 0, 1), kb: !!c.kb, speed: num(c.speed, 1, 0.1, 8), rev: !!c.rev, afi: num(c.afi, 0, 0, 30), afo: num(c.afo, 0, 0, 30), x: num(c.x, 0, -2, 2), y: num(c.y, 0, -2, 2), scale: num(c.scale, 1, 0.1, 5), rot: num(c.rot, 0, -3600, 3600), flipH: !!c.flipH, flipV: !!c.flipV, crop: crop(c.crop), ...anchor(c) }
     if (r.kind === 'video' && r.out <= r.in + 0.05) r.out = r.in + 0.1
@@ -553,7 +614,12 @@ export function normalize(input: unknown): Project {
     const oefx = cleanEffects(x.effects)
     const okf = cleanKeys(x.kf)
     const oqr = cleanQr(x.qr)
-    const r: Overlay = { id: sid(x.id, 'o'), ...(oqr ? { qr: oqr } : {}), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
+    const sh = isRec(x.shape) ? x.shape : null
+    const oshape = sh ? { fill: col(sh.fill, '#2b2f3a'), fill2: typeof sh.fill2 === 'string' && /^#[0-9a-f]{6}$/i.test(sh.fill2) ? sh.fill2 : null, ang: num(sh.ang, 135, -360, 360), ...(sh.a1 !== undefined ? { a1: num(sh.a1, 1, 0, 1) } : {}), ...(sh.a2 !== undefined ? { a2: num(sh.a2, 1, 0, 1) } : {}) } : null
+    const mt = isRec(x.matte) && typeof x.matte.text === 'string' ? x.matte : null
+    const mb = mt && isRec(mt.brush) ? mt.brush : null
+    const omatte = mt ? { text: String(mt.text).slice(0, 80), brush: mb ? { t0: num(mb.t0, 0, 0, 3600), dur: num(mb.dur, 1.5, 0.1, 60), x: num(mb.x, 0.1, -1, 2), y: num(mb.y, 0.2, -1, 2), w: num(mb.w, 0.8, 0, 3), h: num(mb.h, 0.5, 0, 3) } : null } : null
+    const r: Overlay = { id: sid(x.id, 'o'), ...(oqr ? { qr: oqr } : {}), ...(oshape ? { shape: oshape } : {}), ...(omatte ? { matte: omatte } : {}), ...(typeof x.ph === 'string' && x.ph ? { ph: x.ph.slice(0, 40) } : {}), ...(x.fill ? { fill: true } : {}), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
       x: num(x.x, 0.5, -1, 2), y: num(x.y, 0.5, -1, 2), scale: num(x.scale, 0.4, 0.02, 4), rot: num(x.rot, 0, -3600, 3600), opacity: num(x.opacity, 1, 0, 1), fadeIn: num(x.fadeIn, 0, 0, 30), fadeOut: num(x.fadeOut, 0, 0, 30), anim: oneOf(x.anim, OAK, 'none'), blend: oneOf(x.blend, BK, 'source-over'),
       radius: num(x.radius, 0, 0, 1), border: num(x.border, 0, 0, 5), borderColor: col(x.borderColor, '#ffffff'), shadow: !!x.shadow, flipH: !!x.flipH, flipV: !!x.flipV, crop: crop(x.crop), ar: num(x.ar, 0.5625, 0.05, 20), keyOn: !!x.keyOn, keyColor: col(x.keyColor, '#00ff00'), keySim: num(x.keySim, 0.35, 0.01, 1), keySmooth: num(x.keySmooth, 0.1, 0.005, 1), keySpill: num(x.keySpill, 0.5, 0, 1), ...grade(x), ...anchor(x) }
     if (r.kind === 'video' && r.out <= r.in + 0.05) r.out = r.in + 0.1
@@ -585,7 +651,10 @@ export function normalize(input: unknown): Project {
   })
   const lg = isRec(p.logo) ? p.logo : {}
   const proj: Project = {
-    id: sid(p.id, 'p'), name: str(p.name, 'Prosjekt', 120), fmt: str(p.fmt, 'custom', 20), w, h, bg: col(p.bg, '#000000'), created: num(p.created, Date.now()), updated: num(p.updated, Date.now()),
+    id: sid(p.id, 'p'), ...(p.tempo !== undefined && Number(p.tempo) > 0 ? { tempo: num(p.tempo, 120, 40, 240) } : {}),
+    ...(MSTYLES.includes(p.motion as never) ? { motion: p.motion as NonNullable<Project['motion']> } : {}),
+    ...(isRec(p.sync) && MSTYLES.includes(p.sync.style as never) ? { sync: { style: p.sync.style as NonNullable<Project['motion']>, bpm: num(p.sync.bpm, 120, 20, 300), media: str(p.sync.media, '', 80) } } : {}),
+    ...(typeof p.syncBase === 'string' && p.syncBase.length < 4_000_000 ? { syncBase: p.syncBase } : {}), name: str(p.name, 'Prosjekt', 120), fmt: str(p.fmt, 'custom', 20), w, h, bg: col(p.bg, '#000000'), created: num(p.created, Date.now()), updated: num(p.updated, Date.now()),
     thumb: typeof p.thumb === 'string' && THUMB.test(p.thumb) && p.thumb.length < 200000 ? p.thumb : '',
     media, clips, ov, markers, tin: trans(p.tin), tout: trans(p.tout), tracks,
     lanes: { text: Math.round(num(lz.text, 1, 1, 50)), ov: Math.round(num(lz.ov, 1, 1, 50)), music: Math.round(num(lz.music, 1, 1, 50)) },

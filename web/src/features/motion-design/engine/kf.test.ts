@@ -70,3 +70,11 @@ describe('easing-kurver (referansenes «ease out» m.fl.)', () => {
     expect(cleanKeys({ x: [{ t: 0, v: 0, e: 'out' }, { t: 1, v: 1, e: 'ukjent' }] })?.x).toEqual([{ t: 0, v: 0, e: 'out' }, { t: 1, v: 1 }])
   })
 })
+
+describe('keyframes som lagres', () => {
+  it('sporing (track) og ankerpunkt (ax/ay) beholdes ved lagring/innlesing', async () => {
+    const { cleanKeys } = await import('./kf')
+    const k = cleanKeys({ track: [{ t: 0, v: 0.9 }, { t: 1.5, v: 0.02 }], ax: [{ t: 0, v: 0 }, { t: 1, v: 0.5 }], ay: [{ t: 0, v: 0.2 }] })
+    expect(Object.keys(k ?? {}).sort()).toEqual(['ax', 'ay', 'track'])
+  })
+})

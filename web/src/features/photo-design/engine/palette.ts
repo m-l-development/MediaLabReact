@@ -1,4 +1,5 @@
 import { COMBOS, luma, type Combo } from '../../thumbnail-studio/engine/colors'
+import type { ThemeValue } from '../../../shared/templates/theme'
 import { newDoc, type PdDoc, type PdLayer, type Scheme, type TplColors } from './model'
 
 /**
@@ -231,3 +232,26 @@ export const liveScheme = {
 
 /** Lav kontrast mellom tekst og bakgrunn i valget (vises som et varsel; teksten justeres automatisk der det trengs). */
 export const lowContrast = (s: Scheme): boolean => Math.abs(luma(rolesOf(s).text) - luma(rolesOf(s).bg)) < MIN_CONTRAST
+
+/** Photos fargevalg (tre farger + roller) som felles tema-verdi: egne farger = [bakgrunn, tekst, støtte]. */
+export function themeOf(sc: Scheme | null): ThemeValue {
+  if (!sc) return null
+  if (sc.k !== 'custom') return { k: sc.k }
+  const R = rolesOf(sc)
+  return { k: 'custom', c: [R.bg, R.text, R.off] }
+}
+
+/** Felles tema-verdi → Photos fargevalg. Egne farger beholder rekkefølgen (rollene) du har valgt i Photo. */
+export function schemeOfTheme(v: ThemeValue, prev: Scheme | null): Scheme | null {
+  if (!v) return null
+  if (v.k !== 'custom') return schemeOfPreset(v.k)
+  const c = v.c ?? [STARTER.c[0], STARTER.c[1], STARTER.c[2]]
+  if (prev?.k === 'custom') {
+    // samme roller som før: fargen i rolle i havner på plassen rollen peker på
+    const cc = [...prev.c] as Scheme['c']
+    prev.r.forEach((ci, ri) => { cc[ci] = c[ri] as string })
+    return { k: 'custom', c: cc, r: prev.r }
+  }
+  return { k: 'custom', c: [c[0], c[1], c[2]], r: [0, 1, 2] }
+}
+

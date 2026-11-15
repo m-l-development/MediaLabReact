@@ -12,6 +12,7 @@ const box = async (loc: Locator) => (await loc.boundingBox()) as { x: number; y:
 async function photo(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
 }

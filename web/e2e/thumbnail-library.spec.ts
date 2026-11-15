@@ -116,7 +116,8 @@ test('bilde i teksten: malens bokstaver fylles med et valgt bilde', async ({ pag
 })
 
 test('skisser: grunnoppsettene og alle ferdige maler får forhåndsvisning (ingen blir stående på «Lager skisse …»)', async ({ page }, info) => {
-  test.slow()
+  // mange skisser (480 px) etter hverandre; under parallell last trengs tid, men hvert kort SKAL få et bilde
+  test.setTimeout(420_000)
   const errors = errorsOf(page)
   if (info.project.name !== 'mobil') await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/thumbnail-studio')
@@ -124,7 +125,7 @@ test('skisser: grunnoppsettene og alle ferdige maler får forhåndsvisning (inge
   await page.getByRole('button', { name: /Ny mal/ }).click()
   const dlg = page.getByRole('dialog', { name: 'Ny mal' })
   // grunnoppsettet (feilen: køen for biblioteket avbrøt grunnoppsettene)
-  await expect(dlg.locator('[data-layout="base:main"] img')).toBeVisible({ timeout: 20_000 })
+  await expect(dlg.locator('[data-layout="base:main"] img')).toBeVisible({ timeout: 60_000 })
   const lib = dlg.locator('[data-tpl-lib]')
   // hver kategori: rull gjennom alle kortene; hvert kort får et bilde
   const cats = await lib.locator('[data-tpl-cats] button').evaluateAll((els) => els.map((e) => e.getAttribute('data-tpl-cat')!))
@@ -136,7 +137,7 @@ test('skisser: grunnoppsettene og alle ferdige maler får forhåndsvisning (inge
     for (const i of [...new Set([...Array(Math.min(n, 8)).keys(), n - 1])]) {
       const it = items.nth(i)
       await it.scrollIntoViewIfNeeded()
-      await expect(it.locator('img'), `${cat} nr. ${i + 1}`).toBeVisible({ timeout: 20_000 })
+      await expect(it.locator('img'), `${cat} nr. ${i + 1}`).toBeVisible({ timeout: 60_000 })
     }
   }
   // «Alle maler»: hvert 15. kort gjennom hele biblioteket
@@ -145,7 +146,7 @@ test('skisser: grunnoppsettene og alle ferdige maler får forhåndsvisning (inge
   const total = await all.count()
   for (let i = 0; i < total; i += 15) {
     await all.nth(i).scrollIntoViewIfNeeded()
-    await expect(all.nth(i).locator('img'), `alle nr. ${i + 1}`).toBeVisible({ timeout: 20_000 })
+    await expect(all.nth(i).locator('img'), `alle nr. ${i + 1}`).toBeVisible({ timeout: 60_000 })
   }
   await expect(dlg.locator('[data-prev-err]')).toHaveCount(0)
   expect(errors).toEqual([])

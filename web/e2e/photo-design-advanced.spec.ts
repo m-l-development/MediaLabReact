@@ -17,6 +17,7 @@ const mean = (page: Page) => page.locator('[data-pd-wrap] canvas').first().evalu
 
 async function open(page: Page) {
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()

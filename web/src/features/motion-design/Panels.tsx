@@ -56,7 +56,7 @@ function MediaTile({ c, m, p, replace, tx }: { c: MotionController; m: Media; p:
       <div className={s.medBody}>
         <span className={s.medName}>{m.name}</span>
         <div className={s.medBtns}>
-          <button type="button" className={s.mini} onClick={() => (replace ? c.replaceClip(replace, m) : c.insertClip(m))}>{tx(replace ? 'Bruk her' : 'Legg til')}</button>
+          <button type="button" className={s.mini} onClick={() => (replace ? c.replaceAny(replace, m) : c.insertClip(m))}>{tx(replace ? 'Bruk her' : 'Legg til')}</button>
           {!replace && <button type="button" className={s.mini} title={tx('Legg over hovedvideoen (bilde-i-bilde)')} onClick={() => c.addOverlay(m)}>{tx('Overlegg')}</button>}
         </div>
       </div>
@@ -64,8 +64,11 @@ function MediaTile({ c, m, p, replace, tx }: { c: MotionController; m: Media; p:
   )
 }
 
+/** Navn på bevegelsesprofilene i Music Sync. */
+const STYLE_NAME = { cinematic: 'Filmatisk (rolig, myk)', dynamic: 'Dynamisk (energisk)', minimal: 'Minimal (behersket)', typo: 'Typografisk (tekst i rytme)' } as const
+
 export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void; onLogoCloud: () => void }) {
-  const rep = S.replaceFor && p.clips.some((x) => x.id === S.replaceFor) ? S.replaceFor : null
+  const rep = S.replaceFor && (p.clips.some((x) => x.id === S.replaceFor) || p.ov.some((x) => x.id === S.replaceFor)) ? S.replaceFor : null
   const T = totalDur(p)
   const vis = p.media.filter((m) => m.kind !== 'audio')
   const lg = p.logo
@@ -103,6 +106,21 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
             <button type="button" className={`${s.barBtn} ${s.small}`} onClick={onShared}>{tx('Fra Dine medier')}</button>
             <span className={s.hint}>{tx('Du kan også dra filer rett inn i vinduet. Filene blir i nettleseren og lastes aldri opp.')}</span>
             <button type="button" className={s.dashed} onClick={() => c.addColor()}>{tx('+ Fargeflate')}</button>
+            {/* malens plassholdere: hvert felt kan byttes direkte (last opp eller velg fra medier) */}
+            {c.phList().length > 0 && (
+              <div data-md-ph-list="">
+                <span className={s.eyebrowSm}>{tx('Malens bilde- og videofelt')}</span>
+                <span className={s.hint}>{tx('Klikk på et felt i forhåndsvisningen, eller her, for å bytte det med eget bilde eller egen video. Samme nummer flere steder byttes samtidig.')}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {c.phList().slice(0, 24).map((x) => (
+                    <button key={x.ph} type="button" className={s.mini} data-md-ph={x.ph} title={tx('Last opp bilde eller video …')} onClick={() => c.uploadInto(x.id)}>{x.ph}</button>
+                  ))}
+                  {c.phList().length > 24 && <span className={s.hint}>{tx('+{n} til', { n: c.phList().length - 24 })}</span>}
+                </div>
+              </div>
+            )}
+            {c.placeholders().length > 0 && <button type="button" className={s.dashed} data-md-fill-ph="" title={tx('Fyller malens plassholdere med de importerte bildene og videoene, i rekkefølge')} onClick={() => c.fillPlaceholders()}>{tx('Fyll plassholderne med mine filer')}</button>}
+            <button type="button" className={s.dashed} data-md-add-frame="" title={tx('Ramme for bilde eller video over hovedvideoen; bytt inn innhold, flytt, skaler og animer den')} onClick={() => c.addFrame()}>{tx('+ Ramme (bilde-i-bilde)')}</button>
             <button type="button" className={s.dashed} data-md-add-qr="" title={tx('QR-kode over videoen, til en nettside, e-post, telefon, SMS eller tekst')} onClick={() => void c.addQr()}>{tx('+ QR-kode')}</button>
             {vis.length > 0 && (
               <div className={s.medGrid}>
@@ -167,7 +185,32 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
         )}
         {S.tab === 'audio' && (
           <>
-            <button type="button" className={s.bigLight} onClick={() => c.pickFiles('music', 'audio/*')}>{tx('+ Last opp musikk')}</button>
+            <button type="button" className={s.bigLight} data-md-add-music="" onClick={() => c.pickFiles('music', 'audio/*')}>{tx('+ Last opp musikk')}</button>
+            {/* musikk og takt: malen følger sangen */}
+            <div data-md-music-sync="" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {p.tempo ? <span className={s.hint}>{tx('Malen er laget i ca. {bpm} BPM: klippene skifter på takten. Legg til egen musikk og trykk «Music Sync».', { bpm: Math.round(p.tempo) })}</span> : null}
+              {p.music.length > 0 && (
+                <>
+                  <button type="button" className={s.dashed} data-md-listen="" onClick={() => c.listen()}>{tx('▶ Forhåndslytt fra start')}</button>
+                  {/* Music Sync: malen tilpasser timing, bevegelse og overganger til musikken (kan slås av og brukes på nytt) */}
+                  <div className={s.syncBox} data-md-sync-box="" data-on={p.sync ? '1' : '0'}>
+                    <span className={s.eyebrowSm}>Music Sync</span>
+                    <span className={s.hint} data-md-sync-status="">{S.syncBusy ? tx('Analyserer musikken: takt, intensitet, pauser og drops …') : p.sync ? tx('På · {bpm} BPM · {style}', { bpm: Math.round(p.sync.bpm), style: tx(STYLE_NAME[p.sync.style]) }) : tx('Av. Malen bruker sin egen timing.')}</span>
+                    <label className={s.lbl}>
+                      <span className={s.b}>{tx('Bevegelse')}</span>
+                      <select className={s.select} data-md-sync-style="" value={p.sync?.style ?? p.motion ?? 'dynamic'} disabled={S.syncBusy} onChange={(e) => void c.musicSync(e.target.value as 'dynamic')}>
+                        {(['cinematic', 'dynamic', 'minimal', 'typo'] as const).map((k) => <option key={k} value={k}>{tx(STYLE_NAME[k])}{k === p.motion ? ' · ' + tx('malens egen') : ''}</option>)}
+                      </select>
+                    </label>
+                    <button type="button" className={s.bigLight} data-md-sync="" disabled={S.syncBusy} aria-busy={S.syncBusy} onClick={() => void c.musicSync()}>{tx(S.syncBusy ? 'Analyserer …' : p.sync ? 'Bruk Music Sync på nytt' : 'Music Sync')}</button>
+                    {p.sync && <button type="button" className={s.dashed} data-md-sync-off="" disabled={S.syncBusy} onClick={() => c.musicSyncOff()}>{tx('Slå av Music Sync')}</button>}
+                    <span className={s.hint}>{tx('Klipp, overganger, tekster og keyframes følger takten og intensiteten. Designet endres ikke, og alt kan justeres for hånd etterpå.')}</span>
+                  </div>
+                  <button type="button" className={s.dashed} data-md-fit-len="" onClick={() => c.fitLength()}>{tx('Tilpass lengden til musikken')}</button>
+                  <button type="button" className={s.dashed} data-md-replace-music="" onClick={() => c.pickFiles('music-replace', 'audio/*')}>{tx('Bytt musikk …')}</button>
+                </>
+              )}
+            </div>
             <button type="button" className={`${s.vo} ${S.vo ? s.voOn : ''}`} onClick={() => void c.toggleVo()}>
               <span className={s.voDot} />
               <span>{tx(S.vo ? 'Stopp opptak' : 'Ta opp voiceover')}</span>

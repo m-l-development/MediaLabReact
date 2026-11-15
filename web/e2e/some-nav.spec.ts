@@ -22,6 +22,7 @@ test('Photo Design: «← SoMe-mappen» går til SoMe-oversikten, «← Media La
 
   // fra editoren (undersiden) og tilbake til forsiden
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await expect(page.getByRole('link', { name: /SoMe-mappen/ })).toBeVisible()

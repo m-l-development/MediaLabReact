@@ -1,7 +1,8 @@
 'use no memo'
 import { useEffect, useRef, useState } from 'react'
-import { assignRole, liveScheme, lowContrast, ORDERS, PALETTES, paletteOf, ROLES, rolesOf, STARTER, schemeOfPreset, type Role } from './engine/palette'
+import { assignRole, liveScheme, lowContrast, ORDERS, paletteOf, ROLES, rolesOf, schemeOfTheme, STARTER, themeOf, type Role } from './engine/palette'
 import type { Scheme } from './engine/model'
+import { ThemePicker } from '../../shared/templates/ThemePicker'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
 
@@ -110,16 +111,10 @@ function ColorField({ label, value, onChange, onLive, testId }: { label: string;
  * hurtigvalg for rekkefølgen). Endringene vises med en gang. `value` null = malens egne farger.
  */
 export function ColorBar({ value, onChange, tx, scope }: { value: Scheme | null; onChange: (v: Scheme | null) => void; tx: Tx; scope: 'home' | 'doc' }) {
-  const [menu, setMenu] = useState(false)
   const [pop, setPop] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  useDismiss(menu || pop, ref, () => {
-    setMenu(false)
-    setPop(false)
-  })
+  useDismiss(pop, ref, () => setPop(false))
   const cur = value ?? null
-  const R = cur ? rolesOf(cur) : null
-  const name = !cur ? tx('Standard') : cur.k === 'custom' ? tx('Egne farger') : tx(paletteOf(cur.k).name as Phrase)
   const edit = cur ?? STARTER
   const withColor = (i: number, v: string): Scheme => {
     const c = [...edit.c] as Scheme['c']
@@ -145,33 +140,11 @@ export function ColorBar({ value, onChange, tx, scope }: { value: Scheme | null;
   }
   return (
     <div className={s.schemeBar} ref={ref} data-pd-scheme={scope}>
-      <div className={s.palWrap}>
-        <button type="button" className={s.palBtn} aria-expanded={menu} aria-haspopup="true" data-pd-pal-btn="" onClick={() => { setPop(false); setMenu((v) => !v) }}>
-          <span className={s.palSw}>{(cur ? [R?.bg, R?.text, R?.off] : paletteOf('default').sw).map((x, i) => <i key={i} style={{ background: x }} />)}</span>
-          <span>{tx('Velg farge')}</span>
-          <span className={s.palName}>{name}</span>
-        </button>
-        {menu && (
-          <div className={s.palMenu} role="group" aria-label={tx('Velg farge')}>
-            {PALETTES.map((x) => {
-              const on = x.p ? cur?.k === x.k : !cur
-              return (
-                <button key={x.k} type="button" aria-pressed={on} data-pd-pal={x.k} onClick={() => { onChange(schemeOfPreset(x.k)); setMenu(false) }}>
-                  <span className={s.palSw}>{(x.p ? [x.p.bg, x.p.fg, x.p.acc] : x.sw).map((col, i) => <i key={i} style={{ background: col }} />)}</span>
-                  <span>{x.p ? tx(x.name as Phrase) : tx('Standard (malens farger)')}</span>
-                  <span aria-hidden="true" style={{ opacity: on ? 1 : 0 }}>✓</span>
-                </button>
-              )
-            })}
-            <button type="button" data-pd-pal="custom" aria-pressed={cur?.k === 'custom'} onClick={() => { if (!cur) onChange(STARTER); setMenu(false); setPop(true) }}>
-              <span className={s.palSw}>{edit.c.map((col, i) => <i key={i} style={{ background: col }} />)}</span>
-              <span>{tx('Egne farger …')}</span>
-              <span aria-hidden="true" style={{ opacity: cur?.k === 'custom' ? 1 : 0 }}>✓</span>
-            </button>
-          </div>
-        )}
-      </div>
-      <button type="button" className={s.schemeTrio} aria-expanded={pop} aria-haspopup="dialog" data-pd-roles-btn="" title={tx('Velg farger og rekkefølge')} onClick={() => { setMenu(false); if (!cur) onChange(STARTER); setPop((v) => !v) }}>
+      {/* den felles fargevelgeren (shared/templates, som i Thumbnail/Motion/Loop): Standard, de ti temaene og egne farger */}
+      <ThemePicker value={themeOf(cur)} std={paletteOf('default').sw as [string, string, string]} stdLabel={tx('Standard (malens farger)')}
+        onChange={(v) => onChange(schemeOfTheme(v, cur))}
+        onLive={(v) => liveScheme.set(scope, v === undefined ? undefined : schemeOfTheme(v, cur))} />
+      <button type="button" className={s.schemeTrio} aria-expanded={pop} aria-haspopup="dialog" data-pd-roles-btn="" title={tx('Velg farger og rekkefølge')} onClick={() => { if (!cur) onChange(STARTER); setPop((v) => !v) }}>
         {ROLES.map((r) => (
           <span key={r} className={s.schemeChip}>
             <i style={{ background: rolesOf(edit)[r] }} />

@@ -10,9 +10,9 @@ const sq = FORMATS[0] ?? { k: 'sq', name: '', ratio: '', w: 1080, h: 1080 }
 const vid: Media = { id: 'm-v1', name: 'klipp.mp4', kind: 'video', dur: 10, w: 1920, h: 1080, thumb: '' }
 
 describe('maler og formater', () => {
-  it('5 formater og 20 maler (8 + 9 etter referansene + 3 premium), alle gir gyldige prosjekter', () => {
+  it('5 formater og 24 maler (8 + 13 etter referansevideoene + 3 premium), alle gir gyldige prosjekter', () => {
     expect(FORMATS.map((f) => f.ratio)).toEqual(['1:1', '4:5', '9:16', '16:9', '2,63:1'])
-    expect(TEMPLATES).toHaveLength(20)
+    expect(TEMPLATES).toHaveLength(24)
     for (const t of TEMPLATES) {
       const p = create(sq, t.k)
       expect(p.w).toBe(1080)

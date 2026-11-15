@@ -11,6 +11,7 @@ test.skip(({ isMobile }) => isMobile, 'tastaturinnskriving testes på PC')
 test('Photo Design: tallet ved en slider kan skrives inn, Escape forkaster, ugyldig tekst avvises, pil opp endrer', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()

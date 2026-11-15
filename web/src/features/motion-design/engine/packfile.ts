@@ -74,7 +74,8 @@ export async function unpack(file: Blob, put: (blob: Blob, name: string) => Prom
   p.media = p.media.filter((m) => map[m.id]).map((m) => ({ ...m, id: map[m.id] ?? m.id })).filter((m) => !seen.has(m.id) && !!seen.add(m.id))
   p.clips = p.clips.filter((c) => c.kind === 'color' || map[c.media]).map((c) => (c.kind === 'color' ? c : { ...c, media: map[c.media] ?? c.media }))
   p.music = p.music.filter((m) => map[m.media]).map((m) => ({ ...m, media: map[m.media] ?? m.media }))
-  p.ov = p.ov.filter((m) => map[m.media]).map((m) => ({ ...m, media: map[m.media] ?? m.media }))
+  // rammer (former uten media) beholdes
+  p.ov = p.ov.filter((m) => m.shape || map[m.media]).map((m) => ({ ...m, media: map[m.media] ?? m.media }))
   if (p.logo.src && !/^images\//.test(p.logo.src)) p.logo.src = map[p.logo.src] ?? ''
   return p
 }

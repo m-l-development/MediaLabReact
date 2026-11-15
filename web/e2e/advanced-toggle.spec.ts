@@ -15,6 +15,7 @@ for (const width of [1440, 1024]) {
   test(`Photo Design (${width} px): Avansert ved Autolagring, slår på effektbiblioteket`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.goto('/app/photo-design')
+    await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
     await page.locator('[data-tpl="photo"]').click()
     await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
     await sameRow(page)

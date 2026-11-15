@@ -120,6 +120,12 @@ const transOpts = TRANS as readonly Opt[]
 export function clipFields(c: MotionController, p: Project, it: Clip, l: Placed | undefined, idx: number): Field[] {
   const set = (o: Partial<Clip>) => c.patch('clip', it.id, o)
   const out: Field[] = []
+  if (it.kind === 'color' && it.ph) {
+    // plassholder i en mal: bytt inn eget bilde/video (alle felt med samme nummer byttes samtidig)
+    out.push(head('Plassholder'),
+      { k: 'acts', label: 'Innhold', acts: [{ l: 'Bytt bilde eller video', click: () => c.set({ tab: 'media', replaceFor: it.id, drawer: 'l' }) }] },
+      note('Plassholder {name}: bytt den med eget bilde eller egen video. Overgang, effekter, keyframes og tid beholdes.', { name: it.ph }))
+  }
   if (it.kind === 'color') {
     out.push(color('Farge 1', it.c1, (v) => set({ c1: v })), color('Farge 2', it.c2, (v) => set({ c2: v })),
       seg('Type', it.grad, [['none', 'Ensfarget'], ['linear', 'Lineær'], ['radial', 'Rund']], (v) => set({ grad: v as 'none' })))
@@ -246,11 +252,27 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
   return out
 }
 
+/** Sideforhold for rammer (høyde/bredde). */
+const FRAME_AR: readonly Opt[] = [['0.5625', '16:9'], ['0.75', '4:3'], ['1', '1:1'], ['1.25', '4:5'], ['1.7778', '9:16'], ['0.4286', '21:9']]
+
 export function ovFields(c: MotionController, p: Project, o: Overlay): Field[] {
   const set = (v: Partial<Overlay>) => c.patch('ov', o.id, v)
   const out: Field[] = []
   // QR-kode: samme valg som i Loop Studio; resten (plassering, størrelse, tid) som for andre bilder
   if (o.qr) out.push({ k: 'qr', val: o.qr, on: (q) => c.setQr(o.id, q) })
+  // ramme (bilde-i-bilde som form): fyll, sideforhold og «Bytt inn» (media legges i rammen, resten beholdes)
+  if (o.shape) {
+    const sh = o.shape
+    out.push(head('Ramme (bilde-i-bilde)'),
+      { k: 'acts', label: 'Innhold', acts: [{ l: 'Bytt inn bilde eller video', click: () => c.set({ tab: 'media', replaceFor: o.id, drawer: 'l' }) }] },
+      note('Bildet eller videoen fyller rammen. Plassering, størrelse, hjørner, kant, skygge, animasjon og keyframes beholdes.'),
+      color('Fyllfarge', sh.fill, (v) => set({ shape: { ...sh, fill: v } })),
+      toggle('Fargeovergang', !!sh.fill2, (v) => set({ shape: { ...sh, fill2: v ? (sh.fill2 || '#5b6478') : null } })))
+    if (sh.fill2) out.push(color('Farge 2', sh.fill2, (v) => set({ shape: { ...sh, fill2: v } })), range('Vinkel', sh.ang ?? 135, 0, 360, 1, `${Math.round(sh.ang ?? 135)}°`, (v) => set({ shape: { ...sh, ang: v } })))
+    out.push(select('Sideforhold', String(o.ar), FRAME_AR, (v) => set({ ar: Number(v) })))
+  } else if (o.media && !o.qr) {
+    out.push({ k: 'acts', label: 'Innhold', acts: [{ l: 'Bytt bilde eller video', click: () => c.set({ tab: 'media', replaceFor: o.id, drawer: 'l' }) }] })
+  }
   const md = mediaOf(p, o.media)?.dur || 86400
   if (o.kind === 'video') {
     out.push(note('Lengde {len}. Dra i kantene på tidslinjen for å klippe.', { len: fmtT(ovDur(o)) }),

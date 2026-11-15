@@ -8,7 +8,15 @@ import s from './Templates.module.css'
  * Felles «Velg farge» for ferdige maler: Standard (malens egne farger), de ti temaene og «Egne farger» med tre fargevalg
  * (bakgrunn, tekst, aksent). Samme utseende som i Thumbnail Studio. Endringer under dra kommer høyst én gang per bilde.
  */
-export function ThemePicker({ value, onChange, std }: { value: ThemeValue; onChange: (v: ThemeValue) => void; std?: [string, string, string] }) {
+export function ThemePicker({ value, onChange, std, onLive, stdLabel }: {
+  value: ThemeValue
+  onChange: (v: ThemeValue) => void
+  std?: [string, string, string]
+  /** Valgfritt: mens du drar i en egen farge sendes fargene hit (lerretene tegnes direkte), og selve valget lagres når
+   * du slipper (onChange). `undefined` = dragningen er slutt. Uten onLive går hver endring rett til onChange. */
+  onLive?: (v: ThemeValue | undefined) => void
+  stdLabel?: string
+}) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -30,15 +38,28 @@ export function ThemePicker({ value, onChange, std }: { value: ThemeValue; onCha
   // fargevelgeren sender mange endringer under dra: én per bilde
   const raf = useRef(0)
   const next = useRef<[string, string, string] | null>(null)
-  useEffect(() => () => cancelAnimationFrame(raf.current), [])
+  const commitT = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => { cancelAnimationFrame(raf.current); clearTimeout(commitT.current) }, [])
   const setCustom = (i: number, v: string) => {
-    const c = [...custom] as [string, string, string]
+    const c = [...(onLive && next.current ? next.current : custom)] as [string, string, string]
     c[i] = v
     next.current = c
     if (!raf.current) raf.current = requestAnimationFrame(() => {
       raf.current = 0
-      if (next.current) onChange({ k: 'custom', c: next.current })
+      if (!next.current) return
+      if (onLive) onLive({ k: 'custom', c: next.current })
+      else onChange({ k: 'custom', c: next.current })
     })
+    if (onLive) {
+      // lagres når dragningen har stoppet (siste farge vinner)
+      clearTimeout(commitT.current)
+      commitT.current = setTimeout(() => {
+        const c2 = next.current
+        next.current = null
+        if (c2) onChange({ k: 'custom', c: c2 })
+        onLive(undefined)
+      }, 250)
+    }
   }
   return (
     <div className={s.rel} ref={ref} data-theme-picker="">
@@ -51,7 +72,7 @@ export function ThemePicker({ value, onChange, std }: { value: ThemeValue; onCha
         <div className={s.palMenu} role="group" aria-label={t('tpl.pick')}>
           <button type="button" aria-pressed={!value} data-theme-opt="std" onClick={() => { onChange(null); setOpen(false) }}>
             <span className={s.palSw}>{(std ?? ['#000000', '#ffffff', '#f5b800']).map((x, i) => <i key={i} style={{ background: x }} />)}</span>
-            <span>{t('tpl.standard')}</span>
+            <span>{stdLabel ?? t('tpl.standard')}</span>
             <span aria-hidden="true" style={{ opacity: !value ? 1 : 0 }}>✓</span>
           </button>
           {THEMES.map((x) => (

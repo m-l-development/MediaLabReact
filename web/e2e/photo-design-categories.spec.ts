@@ -14,6 +14,7 @@ const chip = (page: Page, cat: string) => page.locator(`[data-pd-projects] [data
 const projects = (page: Page) => page.locator('[data-pd-projects] [data-project]')
 
 async function newProject(page: Page, name: string) {
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.getByLabel('Prosjektnavn').fill(name)
@@ -22,7 +23,7 @@ async function saveAndHome(page: Page) {
   await page.getByRole('button', { name: 'Lagre', exact: true }).click()
   await expect(page.getByText(/^Lagret/).first()).toBeVisible()
   await page.getByRole('button', { name: /Prosjekter/ }).first().click()
-  await expect(page.locator('[data-tpl="photo"]')).toBeVisible()
+  await expect(page.locator('[data-pd-lib-open]')).toBeVisible()
 }
 
 test('kategorier: lage, velge, duplikat og tomt navn, mal og prosjekt i kategori, filter, flytt, lagring', async ({ page }) => {

@@ -471,6 +471,18 @@ function paintClip(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: Med
   paintClipRaw(ctx, W, H, p, c, M, lt, dur, blur, t, null)
 }
 
+/** Klippets/overleggets størrelse som andel av bildets bredde/høyde (uten Ken Burns), for ankerpunktet i editoren. */
+export function boxFrac(it: { kind: string; scale?: number; zoom?: number; fit?: string; crop?: Crop } & Record<string, unknown>, W: number, H: number, sz: [number, number] | null, ov: boolean): [number, number] {
+  if (!sz || !sz[0] || !sz[1]) return ov ? [it.scale ?? 1, it.scale ?? 1] : [it.scale ?? 1, it.scale ?? 1]
+  const cr = cropRect(it as never, sz)
+  if (ov) {
+    const dw = (it.scale ?? 1) * W
+    return [dw / W, (dw * cr[3]) / cr[2] / H]
+  }
+  const sc = (it.fit === 'contain' ? Math.min(W / cr[2], H / cr[3]) : Math.max(W / cr[2], H / cr[3])) * (it.zoom || 1) * (it.scale || 1)
+  return [(cr[2] * sc) / W, (cr[3] * sc) / H]
+}
+
 function paintClipRaw(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: MediaEls, lt: number, dur: number, blur: number, t: number, mid: (() => void) | null): void {
   const F = hasFilter()
   if (c.kind === 'color') {
@@ -494,6 +506,7 @@ function paintClipRaw(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: 
     if (f0 && F) ctx.filter = f0
     ctx.fillStyle = g
     ctx.fillRect(0, 0, W, H)
+    if (c.ph) phMark(ctx, c.ph, W / 2, H / 2, W, H, c.c1)
   } else {
     const s = c.kind === 'video' ? M.vids[c.id] : M.imgs[c.media]
     const sz = srcSize(s)
@@ -513,10 +526,11 @@ function paintClipRaw(ctx: Ctx2D, W: number, H: number, p: Project, c: Clip, M: 
       const fx = c.fx ?? 0.5
       const fy = c.fy ?? 0.5
       ctx.save()
-      ctx.translate(W / 2 + (c.x || 0) * W, H / 2 + (c.y || 0) * H)
-      // ankerpunkt: rotasjon og speiling skjer rundt dette punktet i klippet (0 = midten, som før)
+      // ankerpunkt (0 = midten, som før): x/y er der ankeret står, og skalering (også med keyframes), rotasjon og
+      // speiling skjer rundt det – ankeret blir stående når størrelsen endres. Endres ankeret, flytter editoren x/y
+      // tilsvarende (controller.setProp), så klippet ikke hopper.
       const ax = (c.ax || 0) * dw, ay = (c.ay || 0) * dh
-      if (ax || ay) ctx.translate(ax, ay)
+      ctx.translate(W / 2 + (c.x || 0) * W, H / 2 + (c.y || 0) * H)
       if (c.rot) ctx.rotate((c.rot * Math.PI) / 180)
       if (c.flipH || c.flipV) ctx.scale(c.flipH ? -1 : 1, c.flipV ? -1 : 1)
       if (ax || ay) ctx.translate(-ax, -ay)
@@ -777,15 +791,18 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   const F = hasFilter()
   const lt = t - o.start
   const d = ovDur(o)
-  const s = o.kind === 'video' ? M.vids[o.id] : M.imgs[o.media]
-  const sz = srcSize(s)
-  if (!s || !sz[0] || (o.kind === 'video' && (s as HTMLVideoElement).readyState < 2)) return
-  const cr = cropRect(o, sz)
+  // ramme (form): ingen media, størrelsen er bredde × sideforhold
+  const shp = o.shape ?? null
+  const s = shp ? null : o.kind === 'video' ? M.vids[o.id] : M.imgs[o.media]
+  // ramme som fyller hele bildet (bakgrunnslag i en mal): sideforholdet følger bildet
+  const far = o.fill ? H / W : o.ar > 0 ? o.ar : 0.5625
+  const sz: [number, number] = shp ? [1000, 1000 * far] : srcSize(s)
+  if (!shp && (!s || !sz[0] || (o.kind === 'video' && (s as HTMLVideoElement).readyState < 2))) return
+  const cr = shp ? [0, 0, sz[0], sz[1]] as [number, number, number, number] : cropRect(o, sz)
   const dw = o.scale * W
   const dh = (dw * cr[3]) / cr[2]
   const cx = o.x * W
   const cy = o.y * H
-  if (rects) rects[`ov:${o.id}`] = { x: cx - dw / 2, y: cy - dh / 2, w: dw, h: dh }
   const inD = Math.min(0.5, d / 3)
   const kIn = o.anim === 'none' ? 1 : clamp(lt / inD, 0, 1)
   const kOut = o.anim === 'none' ? 1 : clamp((d - lt) / inD, 0, 1)
@@ -795,9 +812,11 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
   if (o.fadeIn > 0) a *= clamp(lt / o.fadeIn, 0, 1)
   if (o.fadeOut > 0) a *= clamp((d - lt) / o.fadeOut, 0, 1)
   ctx.save()
-  // ankerpunkt: inn-/ut-animasjon, rotasjon og speiling skjer rundt dette punktet (0 = midten, som før)
+  // ankerpunkt (0 = midten, som før): x/y er der ankeret står; skalering (også keyframes), inn-/ut-animasjon,
+  // rotasjon og speiling skjer rundt det
   const ax = (o.ax || 0) * dw, ay = (o.ay || 0) * dh
-  ctx.translate(cx + ax, cy + ay)
+  if (rects) rects[`ov:${o.id}`] = { x: cx - ax - dw / 2, y: cy - ay - dh / 2, w: dw, h: dh }
+  ctx.translate(cx, cy)
   if (o.anim === 'fade') a *= e
   else if (o.anim === 'pop') {
     a *= clamp(k * 3, 0, 1)
@@ -851,7 +870,10 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
     const px = ctx2d(pc)
     px.clearRect(0, 0, sw, sh)
     if (f && F) px.filter = f
-    px.drawImage(s, cr[0], cr[1], cr[2], cr[3], 0, 0, sw, sh)
+    if (shp) {
+      px.fillStyle = shapeFill(px, shp, sw, sh, 0, 0)
+      px.fillRect(0, 0, sw, sh)
+    } else if (s) px.drawImage(s, cr[0], cr[1], cr[2], cr[3], 0, 0, sw, sh)
     if (F) px.filter = 'none'
     if (!F && oblur > 0.3) softBlur(px, sw, sh, oblur)
     pixFx(px, sw, sh, ops0.length ? { ...o, ops: ops0 } : o)
@@ -865,7 +887,11 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
     } else ctx.drawImage(pc, -dw / 2, -dh / 2, dw, dh)
   } else {
     if (f && F) ctx.filter = f
-    ctx.drawImage(s, cr[0], cr[1], cr[2], cr[3], -dw / 2, -dh / 2, dw, dh)
+    if (shp) {
+      ctx.fillStyle = shapeFill(ctx, shp, dw, dh, -dw / 2, -dh / 2)
+      ctx.fillRect(-dw / 2, -dh / 2, dw, dh)
+      if (o.ph) phMark(ctx, o.ph, 0, 0, dw, dh, shp.fill)
+    } else if (s) ctx.drawImage(s, cr[0], cr[1], cr[2], cr[3], -dw / 2, -dh / 2, dw, dh)
   }
   if ('filter' in ctx) ctx.filter = 'none'
   if (rad > 0 || o.border > 0) {
@@ -878,6 +904,135 @@ function drawOv(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: nu
       ctx.stroke()
     }
   }
+  ctx.restore()
+}
+
+/** Fyll for en ramme: farge eller lineær gradient (vinkel i grader) over flaten. */
+function shapeFill(g: Ctx2D, sh: { fill: string; fill2?: string | null; ang?: number; a1?: number; a2?: number }, w: number, h: number, x0: number, y0: number): string | CanvasGradient {
+  const al = (hex: string, a: number | undefined) => {
+    if (a === undefined || a >= 1) return hex
+    const n = parseInt(hex.slice(1), 16)
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.max(0, a)})`
+  }
+  if (!sh.fill2) return al(sh.fill, sh.a1)
+  const a = ((sh.ang ?? 135) * Math.PI) / 180, r = Math.hypot(w, h) / 2, cx = x0 + w / 2, cy = y0 + h / 2
+  const gr = g.createLinearGradient(cx - Math.cos(a) * r, cy - Math.sin(a) * r, cx + Math.cos(a) * r, cy + Math.sin(a) * r)
+  gr.addColorStop(0, al(sh.fill, sh.a1))
+  gr.addColorStop(1, al(sh.fill2, sh.a2))
+  return gr
+}
+
+/**
+ * Tydelig plassholder for eget bilde/video: stiplet ramme innenfor flaten, et lite bilde-/videoikon og nummeret
+ * («Klipp 3»). Vises til feltet er byttet (klikk på det i forhåndsvisningen: «Bytt bilde eller video»).
+ */
+function phMark(ctx: Ctx2D, s: string, cx: number, cy: number, w: number, h: number, bg: string): void {
+  const n = parseInt(bg.slice(1), 16)
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
+  const ink = lum > 140 ? 'rgba(20,20,20,' : 'rgba(255,255,255,'
+  const m = Math.min(w, h)
+  ctx.save()
+  if ('filter' in ctx) ctx.filter = 'none'
+  ctx.globalAlpha = 1
+  // stiplet ramme
+  const ins = m * 0.05
+  ctx.strokeStyle = ink + '0.35)'
+  ctx.lineWidth = Math.max(1, m * 0.004)
+  ctx.setLineDash([m * 0.02, m * 0.014])
+  rr(ctx, cx - w / 2 + ins, cy - h / 2 + ins, w - ins * 2, h - ins * 2, m * 0.03)
+  ctx.stroke()
+  ctx.setLineDash([])
+  // ikon: bilde med «play»
+  const iw = m * 0.11, ih = iw * 0.72, iy = cy - m * 0.07
+  ctx.strokeStyle = ink + '0.6)'
+  ctx.lineWidth = Math.max(1, m * 0.006)
+  rr(ctx, cx - iw / 2, iy - ih / 2, iw, ih, iw * 0.12)
+  ctx.stroke()
+  ctx.fillStyle = ink + '0.6)'
+  ctx.beginPath()
+  ctx.moveTo(cx - iw * 0.12, iy - ih * 0.2)
+  ctx.lineTo(cx + iw * 0.18, iy)
+  ctx.lineTo(cx - iw * 0.12, iy + ih * 0.2)
+  ctx.closePath()
+  ctx.fill()
+  // nummer
+  ctx.font = `500 ${Math.max(9, m * 0.045).toFixed(1)}px "Archivo", Helvetica, Arial, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = ink + '0.7)'
+  ctx.fillText(s, cx, cy + m * 0.045)
+  ctx.restore()
+}
+
+
+/** Et lite lerret til mål (tekstens ramme) uten å tegne på bildet. */
+function scratchCtx(): Ctx2D {
+  const c = scratch('mt-r', 4, 4)
+  const g = ctx2d(c)
+  g.clearRect(0, 0, 4, 4)
+  return g
+}
+
+/**
+ * Overlegg med tekstmaske (matte): overlegget tegnes på et eget lag og vises bare der tekstlaget har bokstaver
+ * (med tekstens animasjoner og keyframes – også «zoom gjennom bokstavene») og der penselvinduet er tørket frem.
+ * Forhåndsvisning og eksport bruker samme vei.
+ */
+function drawMatted(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t: number, rects: Rects | null, x: TextItem, U: number): void {
+  const cv = ctx.canvas
+  const tf = ctx.getTransform()
+  const lay = scratch('mt-l', cv.width, cv.height)
+  const lg = ctx2d(lay)
+  lg.setTransform(1, 0, 0, 1, 0, 0)
+  lg.globalAlpha = 1
+  lg.globalCompositeOperation = 'source-over'
+  lg.clearRect(0, 0, cv.width, cv.height)
+  lg.setTransform(tf)
+  drawOv(lg, W, H, o, M, t, rects)
+  const mk = scratch('mt-m', cv.width, cv.height)
+  const mg = ctx2d(mk)
+  mg.setTransform(1, 0, 0, 1, 0, 0)
+  mg.globalAlpha = 1
+  mg.globalCompositeOperation = 'source-over'
+  mg.clearRect(0, 0, cv.width, cv.height)
+  mg.setTransform(tf)
+  const lt = t - x.start
+  if (t >= x.start && t < x.start + x.dur) {
+    KN.add(mg)
+    drawText(mg, W, H, animAt({ ...x, knock: undefined, color: '#ffffff', grad: false, box: 'none', stroke: 0, shadow: false }, lt), lt, U, null, t)
+    KN.delete(mg)
+  }
+  const b = o.matte?.brush
+  if (b) {
+    const k = clamp((t - b.t0) / Math.max(0.1, b.dur), 0, 1)
+    if (k > 0) {
+      // penselvindu: runde strøk (som fingre over dugget glass) tørkes frem fra venstre, i to rader
+      const bx = b.x * W, by = b.y * H, bw = b.w * W, bh = b.h * H
+      const r = bh * 0.32
+      mg.save()
+      mg.globalAlpha = 1
+      mg.fillStyle = '#ffffff'
+      mg.beginPath()
+      for (let row = 0; row < 2; row++) {
+        const y0 = by + bh * (row ? 0.68 : 0.32)
+        const end = bx + bw * clamp(k * 1.15 - row * 0.15, 0, 1)
+        for (let xx = bx; xx <= end; xx += r * 0.35) {
+          const jy = Math.sin(xx / (r * 1.7) + row) * r * 0.22
+          mg.moveTo(xx + r, y0 + jy)
+          mg.arc(xx, y0 + jy, r, 0, Math.PI * 2)
+        }
+      }
+      mg.fill()
+      mg.restore()
+    }
+  }
+  lg.setTransform(1, 0, 0, 1, 0, 0)
+  lg.globalCompositeOperation = 'destination-in'
+  lg.drawImage(mk, 0, 0)
+  lg.globalCompositeOperation = 'source-over'
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.drawImage(lay, 0, 0)
   ctx.restore()
 }
 
@@ -983,6 +1138,11 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
     s = x.text.includes('{n}') ? x.text.split('{n}').join(String(n)) : String(n)
   } else if (x.countdown) s = fmtCount((x.cdFrom ?? dur) - lt, x.cdFmt)
   if (x.upper) s = s.toLocaleUpperCase('nb')
+  if (x.fonts?.length) {
+    // fontskifte: bytter font hver fontRate s, ender på tekstens egen font
+    const fi = Math.floor(lt / Math.max(0.05, x.fontRate ?? 0.3))
+    if (fi < x.fonts.length) x = { ...x, font: x.fonts[fi] ?? x.font }
+  }
   const px = x.size * U
   setFont(ctx, x, px)
   const lines = wrap(ctx, s, x.maxW * W)
@@ -998,7 +1158,7 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   if (rects) rects[x.id] = { x: left - pad, y: top - pad, w: bw + pad * 2, h: bh + pad * 2 }
   let a = kOut * x.opacity
   if (a <= 0.001) return
-  const tok = an === 'words' || an === 'letters' || an === 'wave' || an === 'bounce'
+  const tok = an === 'words' || an === 'letters' || an === 'wave' || an === 'bounce' || an === 'scatter' || an === 'ldrop'
   ctx.save()
   if (an === 'fade' || an === 'type') a *= an === 'type' ? Math.min(1, kIn * 6) : e
   else if (an === 'rise') {
@@ -1127,9 +1287,11 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
         if (d >= 0 && d <= 9) {
           const fc = from.length - n + j >= 0 ? from.charCodeAt(from.length - n + j) - 48 : -1
           const f0 = fc >= 0 && fc <= 9 ? fc : 0
-          const steps = x.rollFrom !== undefined ? (d - f0 + 10) % 10 : 10 + d
-          const kk = clamp((lt - (n - 1 - j) * 0.12) / rd, 0, 1)
-          const pos = easeOut(kk) * steps
+          const steps = (x.rollFrom !== undefined ? (d - f0 + 10) % 10 : 10 + d) + 10 * (x.rollSpin ?? 0)
+          const order = x.rollLtr ? j : n - 1 - j
+          const kk = clamp((lt - order * (x.rollStag ?? 0.12)) / rd, 0, 1)
+          // med ekstra runder lander sifferet med et lite overslag (som i referansen)
+          const pos = (x.rollSpin ? Math.min(steps + 0.12, easeBack(kk) * steps) : easeOut(kk) * steps)
           const b0 = Math.floor(pos)
           const fr = pos - b0
           for (const [k, off] of [[b0, -fr], [b0 + 1, 1 - fr]] as const) {
@@ -1150,7 +1312,12 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
       ctx.fill()
       ctx.restore()
     }
-    if (x.shadow) {
+    if (x.glow) {
+      // glød i tekstens farge
+      ctx.shadowColor = x.color
+      ctx.shadowBlur = px * 0.35 * x.glow
+      ctx.shadowOffsetY = 0
+    } else if (x.shadow) {
       ctx.shadowColor = 'rgba(0,0,0,0.55)'
       ctx.shadowBlur = px * 0.28
       ctx.shadowOffsetY = px * 0.06
@@ -1185,6 +1352,22 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
       } else if (an === 'bounce') {
         ctx.globalAlpha = a * clamp(kk * 3, 0, 1)
         ctx.translate(0, -(1 - easeBack(kk)) * px * 0.9)
+      } else if (an === 'scatter') {
+        // spredte bokstaver: fra tilfeldig sted og vinkel inn på plass
+        const r1 = rnd(ti * 7.13 + 1), r2 = rnd(ti * 3.71 + 2), r3 = rnd(ti * 5.31 + 3)
+        const q = 1 - easeOut(kk)
+        ctx.globalAlpha = a * clamp(kk * 2, 0, 1)
+        const cxx = cur + w / 2
+        ctx.translate((r1 - 0.5) * px * 6 * q, (r2 - 0.5) * px * 4 * q)
+        ctx.translate(cxx, ly)
+        ctx.rotate((r3 - 0.5) * 2.4 * q)
+        ctx.translate(-cxx, -ly)
+      } else if (an === 'ldrop') {
+        // bokstavene faller inn én og én ovenfra med et lite rykk (ujevn rekkefølge)
+        const jit = (rnd(ti * 9.7) - 0.5) * 0.25
+        const k2 = clamp((lt - dl * 0.8 - jit * 0.3) / 0.3, 0, 1)
+        ctx.globalAlpha = a * clamp(k2 * 3, 0, 1)
+        ctx.translate(0, -(1 - easeBack(k2)) * px * 1.3 + (rnd(ti * 4.1) - 0.5) * px * 0.12 * (1 - k2))
       } else if (an === 'letters') {
         ctx.globalAlpha = a * kk
         const ls = 0.3 + 0.7 * easeBack(kk)
@@ -1271,10 +1454,24 @@ export function drawFrame(ctx: Ctx2D, W: number, H: number, p: Project, M: Media
     })
   }
   if (!hidden(p, 'ov')) {
-    for (const o of p.ov.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= o.start && t < o.start + ovDur(o)) drawOv(ctx, W, H, animAt(o, t - o.start), M, t, rects)
+    for (const o of p.ov.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) {
+      if (!(t >= o.start && t < o.start + ovDur(o))) continue
+      const mt = o.matte ? p.texts.find((x) => x.id === o.matte?.text) : null
+      if (o.matte && mt) drawMatted(ctx, W, H, animAt(o, t - o.start), M, t, rects, mt, U)
+      else drawOv(ctx, W, H, animAt(o, t - o.start), M, t, rects)
+    }
   }
   if (!hidden(p, 'text')) {
-    for (const x of p.texts.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) if (t >= x.start && t < x.start + x.dur) drawText(ctx, W, H, animAt(x, t - x.start), t - x.start, U, rects, t)
+    const mattes = new Set(p.ov.filter((o) => o.matte).map((o) => o.matte?.text))
+    for (const x of p.texts.slice().sort((a, b) => (b.lane || 0) - (a.lane || 0))) {
+      if (!(t >= x.start && t < x.start + x.dur)) continue
+      // tekst som er maske for et overlegg: bare valgrammen (tegnes som en del av overlegget)
+      if (mattes.has(x.id)) {
+        if (rects) { const r0: Rects = {}; drawText(scratchCtx(), W, H, animAt(x, t - x.start), t - x.start, U, r0, t); if (r0[x.id]) rects[x.id] = r0[x.id] as Rect }
+        continue
+      }
+      drawText(ctx, W, H, animAt(x, t - x.start), t - x.start, U, rects, t)
+    }
   }
   if (!hidden(p, 'subs')) {
     const sub = p.subs.find((s) => t >= s.start && t < s.end)

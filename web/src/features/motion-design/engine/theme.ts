@@ -1,5 +1,5 @@
 import { ink, luma, mapColor, recolorDeep, type Palette } from '../../../shared/templates/theme'
-import type { Clip, SubStyle, TextItem } from './model'
+import type { Clip, Overlay, SubStyle, TextItem } from './model'
 
 /**
  * Fargetema på en Motion-mal (shared/templates/theme.ts): ALLE farger i malen følger paletten – bakgrunnsklipp
@@ -8,8 +8,8 @@ import type { Clip, SubStyle, TextItem } from './model'
  * (tekstboks = aksent, omriss/maske = scenefarge), og teksten sikres lesbar mot det den står på.
  * Tekst, plassering, tid, animasjoner og overganger røres ikke.
  */
-export function themeContent<T extends { clips: Clip[]; texts: TextItem[]; subStyle?: SubStyle }>(c: T, P: Palette): T {
-  const deep = recolorDeep({ clips: c.clips, texts: c.texts, subStyle: c.subStyle }, P, (path) => {
+export function themeContent<T extends { clips: Clip[]; texts: TextItem[]; ov?: Overlay[]; subStyle?: SubStyle }>(c: T, P: Palette): T {
+  const deep = recolorDeep({ clips: c.clips, texts: c.texts, ov: c.ov ?? [], subStyle: c.subStyle }, P, (path) => {
     const top = path[0], last = path[path.length - 1] ?? ''
     if (top === 'clips' && (last === 'c1' || last === 'c2') && path.length === 3) return 'bg'
     if (top === 'texts' && path.length === 3) {
@@ -17,6 +17,9 @@ export function themeContent<T extends { clips: Clip[]; texts: TextItem[]; subSt
       if (last === 'strokeColor' || last === 'knockColor') return 'bg'
       if (last === 'color2') return 'acc'
     }
+    // rammer: flaten er en flate, kantlinjen en aksent
+    if (top === 'ov' && path[2] === 'shape') return 'fill'
+    if (top === 'ov' && last === 'borderColor') return 'acc'
     if (top === 'subStyle' && path.length === 2) return last === 'hl' ? 'acc' : last === 'bg' ? 'bg' : last === 'color' ? 'text' : undefined
     return undefined
   })
@@ -30,5 +33,5 @@ export function themeContent<T extends { clips: Clip[]; texts: TextItem[]; subSt
     const boxed = t.box !== 'none'
     return { ...t, color: legible(mapColor(o.color, 'text', P), boxed ? t.bg : under) }
   })
-  return { ...c, clips, texts, ...(deep.subStyle ? { subStyle: deep.subStyle } : {}) }
+  return { ...c, clips, texts, ...(c.ov ? { ov: deep.ov } : {}), ...(deep.subStyle ? { subStyle: deep.subStyle } : {}) }
 }

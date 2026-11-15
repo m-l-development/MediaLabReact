@@ -3,19 +3,20 @@ import type { ToolId } from '../../domain/tool'
 import { loadFonts } from '../../shared/fonts/loader'
 import { createStore, type Store } from '../../shared/lib/store'
 import { idle } from '../../shared/lib/idle'
-import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
+import { audioStats, beats, clearAudioCache, pcm, toWav, wave } from './engine/audio'
 import { canEncode, exportMp4 } from './engine/export'
 import {
-  clamp, colorClip, create, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
+  clamp, colorClip, coverCrop, create, frameOverlay, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
   contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
   LAYER_LABEL, LAYER_ROW, layerKey, type LayerType,
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
 import { cdAfter, cdBefore, cdStart, moveLane, shiftLayers, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
-import { newEffect, type Effect, type FxKind } from './engine/fx'
+import { FX_DEFS, newEffect, type Effect, type FxKind } from './engine/fx'
+import { analyse, syncProject, type MotionStyle } from './engine/musicsync'
 import { keyAt, scaleKeys, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
 import { pack, unpack } from './engine/packfile'
-import { drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
+import { boxFrac, drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
 import { transcribe } from './engine/transcribe'
 import type { FolderStatus, MotionFiles } from './files'
 import type { MdEntry, MdRepo } from './repo'
@@ -32,7 +33,7 @@ export type Insp = 'clip' | 'fx' | 'anim' | 'speed' | 'audio'
 const inspGroup = (k: Kind) => (k === 'clip' || k === 'ov' ? 'v' : k)
 export type Tab = 'media' | 'text' | 'subs' | 'audio' | 'logo' | 'trans'
 export type View = 'home' | 'format' | 'tpl' | 'edit'
-export type FileMode = 'lib' | 'replace' | 'music' | 'vo' | 'logo' | 'drop'
+export type FileMode = 'lib' | 'replace' | 'music' | 'music-replace' | 'vo' | 'logo' | 'drop'
 export interface Loc { v?: string; f?: string; p?: string }
 export interface MenuItem { l: Phrase; k: string; danger: boolean; click: () => void }
 export interface Menu { x: number; y: number; items: (MenuItem | 'sep')[] }
@@ -82,6 +83,8 @@ export interface MState {
   secOpen: Record<string, boolean>
   drawer: 'l' | 'r'
   menu: Menu | null
+  /** Music Sync analyserer musikken (lastetilstand) */
+  syncBusy: boolean
   trDrag: { type: string; x: number; y: number; hit: TransHit | null } | null
   medDrag: { id: string; name: string; x: number; y: number; hit: Hit | null } | null
   xform: Xform | null
@@ -204,7 +207,8 @@ interface XfBox { cx: number; cy: number; w: number; h: number; rot: number; it:
 /** Motion design: tilstand og handlinger (samme oppførsel som media-lab/src/pages/motion-design/logic.js). */
 /** Laster fontene tekstene og undertekstene bruker (fonter fra biblioteket hentes ved bruk). */
 function projFonts(p: Project): Promise<unknown> {
-  return loadFonts([...p.texts.map((x) => ({ font: x.font, weight: x.weight, italic: x.italic })), { font: p.subStyle.font, weight: p.subStyle.weight }])
+  // også fontene i et fontskifte (tekst som bytter font underveis), så forhåndsvisning og eksport tegner dem riktig
+  return loadFonts([...p.texts.flatMap((x) => [{ font: x.font, weight: x.weight, italic: x.italic }, ...(x.fonts ?? []).map((f) => ({ font: f, weight: x.weight, italic: x.italic }))]), { font: p.subStyle.font, weight: p.subStyle.weight }])
 }
 
 /** Lagret fargetema for malene (ugyldig → Standard). */
@@ -214,6 +218,13 @@ function readTheme(v: string | null | undefined): ThemeValue {
   } catch {
     return null
   }
+}
+
+/** En video i et felt på D sekunder: lengre video kuttes (fra start), kortere spilles saktere så lengden blir D. */
+function fitVideo(len: number, D: number): { in: number; out: number; speed: number } {
+  if (!(len > 0)) return { in: 0, out: D, speed: 1 }
+  if (len >= D) return { in: 0, out: D, speed: 1 }
+  return { in: 0, out: len, speed: Math.max(0.1, len / D) }
 }
 
 export class MotionController {
@@ -277,7 +288,7 @@ export class MotionController {
       ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, tplTheme: readTheme(st.get('motiondesign.tpltheme')), msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
       toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, full: false, narrow: false, vw: 1440, dragOver: false,
-      clipDrag: null, packing: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
+      clipDrag: null, packing: false, syncBusy: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
       folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], insp: 'clip', tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
     })
   }
@@ -1310,10 +1321,15 @@ export class MotionController {
     const byLane = <T extends { lane: number }>(a: readonly T[]) => [...a].sort((x, y) => (y.lane || 0) - (x.lane || 0)).reverse()
     const hit = byLane(p.texts).find((x) => t >= x.start && t < x.start + x.dur && inR(x.id))
     const lk = (k: TrackKey) => p.tracks[k].lock || p.tracks[k].hide
-    const ovHit = (!hit || lk('text')) && !lk('ov') ? byLane(p.ov).find((o) => t >= o.start && t < o.start + ovDur(o) && inR(`ov:${o.id}`)) : undefined
+    // dekorative flater over hele bildet (f.eks. mørk side) tar ikke klikket fra feltene under
+    const ovHit = (!hit || lk('text')) && !lk('ov') ? byLane(p.ov).find((o) => t >= o.start && t < o.start + ovDur(o) && inR(`ov:${o.id}`) && !(o.fill && o.shape && !o.ph)) : undefined
     if (ovHit) {
       e.preventDefault()
       this.set((s) => ({ sel: { type: 'ov', id: ovHit.id }, multi: [], replaceFor: null, xform: s.xform?.id === ovHit.id ? s.xform : null }))
+      if (ovHit.ph && e.button === 0) {
+        this.phMenu(ovHit.id, ovHit.ph, e.clientX, e.clientY)
+        return
+      }
       this.dragWith(e, 3, (dx, dy) => {
         let nx = ovHit.x + dx / r.width
         let ny = ovHit.y + dy / r.height
@@ -1326,6 +1342,10 @@ export class MotionController {
     if (!hit || lk('text')) {
       const l = lk('video') ? undefined : layout(p).filter((y) => t >= y.start && t < y.end).pop()
       this.set((s) => ({ sel: l ? { type: 'clip', id: l.c.id } : null, multi: [], replaceFor: null, xform: s.xform && l && s.xform.id === l.c.id ? s.xform : null }))
+      if (l && l.c.kind === 'color' && l.c.ph && e.button === 0) {
+        this.phMenu(l.c.id, l.c.ph, e.clientX, e.clientY)
+        return
+      }
       if (l && l.c.kind !== 'color' && e.button === 0 && !lk('video')) {
         e.preventDefault()
         const c0 = l.c
@@ -2200,7 +2220,10 @@ export class MotionController {
     const rep = this.s.replaceFor
     if (mode === 'replace' && rep) {
       const m = added.find((x) => x.kind !== 'audio')
-      if (m) this.replaceClip(rep, m)
+      if (m) this.replaceAny(rep, m)
+    } else if (mode === 'music-replace') {
+      const m = added.find((x) => x.kind === 'audio')
+      if (m) this.replaceMusic(m)
     } else if (mode === 'music') {
       for (const m of added) if (m.kind === 'audio') this.addMusic(m)
     } else if (mode === 'vo') {
@@ -2574,7 +2597,24 @@ export class MotionController {
     if (keys?.length || prop === 'op') {
       this.mapKf((x) => MotionController.setKf(x, prop, upsertKey(x.kf?.[prop], tg.lt, v)), `kfv-${tg.id}-${prop}`)
     } else if (prop.startsWith('fx:')) this.patchEffect(prop.slice(3), { v }, `fx-${prop.slice(3)}`)
-    else this.patch(tg.kind, tg.id, { [prop]: v }, `pv-${tg.id}-${prop}`)
+    else if ((prop === 'ax' || prop === 'ay') && (tg.kind === 'clip' || tg.kind === 'ov')) {
+      // x/y er ankerets plass: flytt dem like mye som ankeret, så klippet/overlegget blir stående der det er
+      const it = tg.it as unknown as Record<string, number | string>
+      const f = this.boxOf(tg.kind, it)
+      const d = v - (Number(it[prop]) || 0)
+      const pos = prop === 'ax' ? { x: (Number(it.x) || 0) + d * f[0] } : { y: (Number(it.y) || 0) + d * f[1] }
+      const kfPos = (it as unknown as { kf?: Record<string, unknown[]> }).kf?.[prop === 'ax' ? 'x' : 'y']
+      this.patch(tg.kind, tg.id, { [prop]: v, ...(kfPos && (kfPos as unknown[]).length ? {} : pos) }, `pv-${tg.id}-${prop}`)
+    } else this.patch(tg.kind, tg.id, { [prop]: v }, `pv-${tg.id}-${prop}`)
+  }
+
+  /** Størrelsen på klippet/overlegget som andel av bildet (bredde, høyde). */
+  private boxOf(kind: 'clip' | 'ov', it: Record<string, unknown>): [number, number] {
+    const p = this.s.proj
+    if (!p) return [1, 1]
+    const el = it.kind === 'video' ? this.M.vids[String(it.id)] : this.M.imgs[String(it.media)]
+    const sz: [number, number] | null = el ? (el instanceof HTMLVideoElement ? [el.videoWidth, el.videoHeight] : [(el as HTMLImageElement).naturalWidth, (el as HTMLImageElement).naturalHeight]) : null
+    return boxFrac(it as never, p.w, p.h, sz, kind === 'ov')
   }
 
   /** ◆: keyframe ved spillehodet av/på (ny keyframe får verdien egenskapen har her). */
@@ -2864,12 +2904,261 @@ export class MotionController {
       ...p,
       clips: p.clips.map((c) => {
         if (c.id !== id) return c
-        const n = mediaClip(m, { id: c.id, trans: c.trans })
-        if (n.kind === 'image') n.dur = c.kind === 'video' ? Math.max(0.1, (c.out - c.in) / (c.speed || 1)) : c.dur
+        // malens oppsett beholdes: overgang, effekter, keyframes, fargejustering, plassering/skala/rotasjon og anker
+        const keep: Partial<MediaClip> = { id: c.id, trans: c.trans, dim: c.dim, temp: c.temp, tint: c.tint, vig: c.vig, grain: c.grain, ...(c.effects ? { effects: c.effects } : {}), ...(c.kf ? { kf: c.kf } : {}) }
+        for (const k of ['x', 'y', 'scale', 'rot', 'flipH', 'flipV', 'ax', 'ay', 'look', 'bri', 'con', 'sat', 'blur', 'op'] as const) {
+          const v = (c as unknown as Record<string, unknown>)[k]
+          if (v !== undefined) (keep as Record<string, unknown>)[k] = v
+        }
+        const n = mediaClip(m, keep)
+        // feltets lengde beholdes (malens timing): et bilde får lengden; en lengre video kuttes til den, en kortere spilles
+        // litt saktere så den fyller feltet
+        const D = c.kind === 'video' ? Math.max(0.1, (c.out - c.in) / (c.speed || 1)) : c.kind === 'image' ? c.dur : c.dur
+        if (n.kind === 'image') n.dur = D
+        else if (c.kind === 'color' && c.ph) Object.assign(n, fitVideo(m.dur || 0, D))
         return n
       }),
     }))
     this.set({ replaceFor: null, sel: { type: 'clip', id } })
+  }
+
+  /**
+   * Bytter innholdet i et overlegg eller en ramme: bildet/videoen fyller rammen (utsnittet tilpasses rammens
+   * sideforhold), og plassering, størrelse, hjørner, kant, skygge, animasjon, keyframes, effekter og tid beholdes.
+   */
+  replaceOv(id: string, m: Media): void {
+    this.setProj((p) => ({
+      ...p,
+      ov: p.ov.map((o) => {
+        if (o.id !== id) return o
+        const v = m.kind === 'video'
+        const ar = o.fill && this.s.proj ? this.s.proj.h / this.s.proj.w : o.ar
+        const crop = coverCrop(ar, m.w || 16, m.h || 9)
+        const { shape: _sh, qr: _qr, ph: _ph, ...rest } = o
+        void _sh
+        void _qr
+        void _ph
+        const D = Math.max(0.2, ovDur(o))
+        // rammer og plassholdere beholder lengden (malens timing); vanlige overlegg får hele videoen som før
+        const slot = !!(o.shape || o.ph)
+        return { ...rest, kind: v ? 'video' : 'image', media: m.id, name: m.name, dur: v ? 0 : D, ...(v ? (slot ? fitVideo(m.dur || 0, D) : { in: 0, out: m.dur || 5, speed: 1 }) : { in: 0, out: 0, speed: 1 }), crop, ar }
+      }),
+    }))
+    this.set({ replaceFor: null, sel: { type: 'ov', id } })
+  }
+
+  /** «Bruk her»: bytter media i det valgte klippet, overlegget eller rammen. */
+  replaceAny(id: string, m: Media): void {
+    const p = this.s.proj
+    // samme plassholdernummer flere steder i en mal (f.eks. video i bokstavene og samme video i fullskjerm) er samme
+    // innhold: alle byttes samtidig
+    const ph = p ? (p.clips.find((c) => c.id === id && c.kind === 'color') as { ph?: string } | undefined)?.ph ?? p.ov.find((o) => o.id === id)?.ph : undefined
+    const same = ph && p ? [...p.clips.filter((c) => c.kind === 'color' && c.ph === ph).map((c) => c.id), ...p.ov.filter((o) => o.ph === ph).map((o) => o.id)] : [id]
+    for (const x of same) {
+      if (this.s.proj?.ov.some((o) => o.id === x)) this.replaceOv(x, m)
+      else this.replaceClip(x, m)
+    }
+    this.set({ sel: p?.ov.some((o) => o.id === id) ? { type: 'ov', id } : { type: 'clip', id } })
+  }
+
+  /** Meny ved klikk på en plassholder i forhåndsvisningen: last opp eller velg eget bilde/video. */
+  phMenu(id: string, _ph: string, x: number, y: number): void {
+    this.set({ menu: { x, y, items: [
+      this.mi('Last opp bilde eller video …', '', () => this.uploadInto(id)),
+      this.mi('Velg fra prosjektets medier', '', () => this.set({ tab: 'media', replaceFor: id, drawer: 'l' })),
+      'sep',
+      this.mi('Fyll alle plassholderne med mine filer', '', () => this.fillPlaceholders()),
+    ] } })
+  }
+
+  /** Last opp et bilde eller en video rett inn i feltet (plassholder, ramme eller klipp). */
+  uploadInto(id: string): void {
+    this.set({ replaceFor: id })
+    this.pickFiles('replace', 'image/*,video/*')
+  }
+
+  /** Plassholdernes status: nummer, om det er fylt (byttet) og et element å bytte. */
+  phList(): { ph: string; id: string }[] {
+    const p = this.s.proj
+    if (!p) return []
+    const out: { ph: string; id: string }[] = []
+    for (const c of p.clips) if (c.kind === 'color' && c.ph && !out.some((x) => x.ph === c.ph)) out.push({ ph: c.ph, id: c.id })
+    for (const o of p.ov) if (o.ph && !out.some((x) => x.ph === o.ph)) out.push({ ph: o.ph, id: o.id })
+    return out
+  }
+
+  /* ---------- musikk: tempo, tilpasning, bytte og forhåndslytting ---------- */
+
+  /**
+   * Skalerer hele prosjektets tid med faktoren f: klipp (bilde/farge får lengden, video tar mer av kilden eller spilles
+   * raskere/saktere), overganger, tekster, overlegg/rammer, keyframes, tidsbaserte effekter, undertekster og markører.
+   * Musikken røres ikke. Brukes av «Tilpass til musikken».
+   */
+  retime(f: number): void {
+    if (!(f > 0) || Math.abs(f - 1) < 0.002) return
+    const mdur = (id: string) => this.s.proj?.media.find((m) => m.id === id)?.dur ?? 0
+    const kfx = <T extends { kf?: Keys }>(it: T): T => (it.kf ? { ...it, kf: Object.fromEntries(Object.entries(it.kf).map(([k, l]) => [k, l.map((q) => ({ ...q, t: q.t * f }))])) } : it)
+    const efx = <T extends { effects?: Effect[] }>(it: T): T => (it.effects ? { ...it, effects: it.effects.map((e) => {
+      const d = FX_DEFS[e.kind]
+      return { ...e, ...(d?.unit === 's' ? { v: e.v * f } : {}), ...(d?.l2 && /\(s\)/.test(d.l2) && e.v2 !== undefined ? { v2: e.v2 * f } : {}) }
+    }) } : it)
+    const vid = <T extends { media: string; in: number; out: number; speed: number }>(c: T): T => {
+      const len = (c.out - c.in) * f
+      return c.in + len <= mdur(c.media) + 0.01 ? { ...c, out: c.in + len } : { ...c, speed: clamp(c.speed / f, 0.1, 8) }
+    }
+    this.setProj((p) => ({
+      ...p,
+      ...(p.tempo ? { tempo: Math.round((p.tempo / f) * 10) / 10 } : {}),
+      clips: p.clips.map((c) => efx(kfx({ ...(c.kind === 'video' ? vid(c) : { ...c, dur: c.dur * f }), trans: { ...c.trans, dur: c.trans.dur * f } } as Clip))),
+      ov: p.ov.map((o) => efx(kfx({ ...(o.kind === 'video' && !o.shape ? vid(o) : { ...o, dur: o.dur * f }), start: o.start * f, fadeIn: o.fadeIn * f, fadeOut: o.fadeOut * f, ...(o.matte?.brush ? { matte: { ...o.matte, brush: { ...o.matte.brush, t0: o.matte.brush.t0 * f, dur: o.matte.brush.dur * f } } } : {}) }))),
+      texts: p.texts.map((x) => kfx({ ...x, start: x.start * f, dur: x.dur * f, ...(x.cdDur !== undefined ? { cdDur: x.cdDur * f } : {}) })),
+      subs: p.subs.map((x) => ({ ...x, start: x.start * f, end: x.end * f })),
+      markers: p.markers.map((k) => ({ ...k, t: k.t * f })),
+    }))
+  }
+
+  /** Musikken som brukes (valgt lydspor, ellers det første). */
+  private song(): Music | null {
+    const p = this.s.proj
+    if (!p?.music.length) return null
+    const sel = this.s.sel?.type === 'music' ? p.music.find((m) => m.id === this.s.sel?.id) : undefined
+    return sel ?? p.music[0] ?? null
+  }
+
+  /**
+   * Music Sync: analyserer musikken (takt, lokalt tempo, intensitet, pauser, drops, skifter) og tilpasser malens
+   * timing, bevegelse og overganger til den – med malens egen bevegelsesprofil, uten å endre designet. Prosjektets tid
+   * før synkroniseringen lagres, så Music Sync kan slås av (alt tilbake) eller brukes på nytt (f.eks. med ny musikk
+   * eller en annen profil). Etterpå er alt vanlige verdier som kan justeres for hånd.
+   */
+  async musicSync(style?: MotionStyle): Promise<void> {
+    const p0 = this.s.proj
+    const m = this.song()
+    if (!p0 || !m) {
+      this.flash('Legg til musikk først.')
+      return
+    }
+    if (this.s.syncBusy) return
+    this.set({ syncBusy: true })
+    try {
+      const base = p0.syncBase ? { ...p0, ...(JSON.parse(p0.syncBase) as Partial<Project>) } as Project : p0
+      const bm = base.music.find((x) => x.id === m.id) ?? m
+      // sangens kilde fra der sporet starter (malens start følger første slag)
+      const a = await pcm(this.getBlob, m.media, 0, null).catch(() => null)
+      const cur = this.s.proj
+      if (!a || !cur || !a.x.length) {
+        this.flash('Fant ikke takten i sporet.')
+        return
+      }
+      const map = analyse(a.x, a.sr)
+      if (map.beats.length < 4) {
+        this.flash('Fant ikke takten i sporet.')
+        return
+      }
+      const st: MotionStyle = style ?? cur.sync?.style ?? cur.motion ?? 'dynamic'
+      const fxSec = (k: string) => { const d = FX_DEFS[k as FxKind]; return { v: d?.unit === 's', v2: !!d?.l2 && /\(s\)/.test(d.l2) } }
+      // musikken som brukes nå (kan være byttet siden første synkronisering)
+      const src = { ...base, music: base.music.map((x) => (x.id === bm.id ? { ...x, media: m.media, name: m.name, in: bm.media === m.media ? bm.in : 0, out: m.out, srcDur: m.srcDur } : x)) }
+      const song0 = src.music.find((x) => x.id === m.id)?.in ?? 0
+      const r = syncProject(src, map, st, { songStart: song0, fxSec })
+      const snap = JSON.stringify({ clips: base.clips, texts: base.texts, ov: base.ov, subs: base.subs, markers: base.markers, music: base.music, tempo: base.tempo })
+      this.setProj(() => ({ ...r.proj, sync: { style: st, bpm: Math.round(map.bpm * 10) / 10, media: m.media }, syncBase: snap }), true, 'sync')
+      const n = map.events.filter((e) => e.kind === 'drop').length
+      this.flash(n ? 'Music Sync: malen følger musikken ({bpm} BPM, {n} drop).' : 'Music Sync: malen følger musikken ({bpm} BPM).', { bpm: Math.round(map.bpm), n })
+    } finally {
+      this.set({ syncBusy: false })
+    }
+  }
+
+  /** Slår av Music Sync: malens tid før synkroniseringen kommer tilbake (musikken blir værende). */
+  musicSyncOff(): void {
+    const p = this.s.proj
+    if (!p?.syncBase) return
+    const base = JSON.parse(p.syncBase) as Partial<Project>
+    this.setProj((q) => {
+      const { sync: _s, syncBase: _b, ...rest } = q
+      void _s
+      void _b
+      const music = q.music.map((x) => { const o = base.music?.find((y) => y.id === x.id); return o && o.media === x.media ? { ...x, in: o.in, start: o.start } : x })
+      return { ...rest, ...(base.clips ? { clips: base.clips } : {}), ...(base.texts ? { texts: base.texts } : {}), ...(base.ov ? { ov: base.ov } : {}), ...(base.subs ? { subs: base.subs } : {}), ...(base.markers ? { markers: base.markers } : {}), ...(base.tempo ? { tempo: base.tempo } : {}), music }
+    }, true, 'sync')
+    this.flash('Music Sync er slått av. Malens egen timing er tilbake.')
+  }
+
+  /** Videoen blir like lang som musikken (hele malen skaleres jevnt). */
+  fitLength(): void {
+    const p = this.s.proj
+    const m = this.song()
+    if (!p || !m) {
+      this.flash('Legg til musikk først.')
+      return
+    }
+    const T = totalDur(p)
+    const L = m.out - m.in
+    if (!(T > 0.5 && L > 0.5)) return
+    this.retime(L / T)
+    this.flash('Videoen er like lang som musikken.')
+  }
+
+  /** Ny musikk i samme spor: start, volum og fade beholdes. */
+  replaceMusic(a: Media): void {
+    const m = this.song()
+    if (!m) {
+      this.addMusic(a)
+      return
+    }
+    this.setProj((p) => ({ ...p, music: p.music.map((x) => (x.id === m.id ? { ...x, media: a.id, name: a.name, in: 0, out: a.dur || 30, srcDur: a.dur || 30 } : x)) }))
+    this.flash('Musikken er byttet. Trykk «Music Sync» for å følge den nye sangen.')
+  }
+
+  /** Spiller av fra start med musikken (forhåndslytting). */
+  listen(): void {
+    this.seek(0)
+    if (!this.playing) this.togglePlay()
+  }
+
+  /** Plassholdernumrene i prosjektet i rekkefølge (klipp først, så rammer). */
+  placeholders(): string[] {
+    const p = this.s.proj
+    if (!p) return []
+    const out: string[] = []
+    for (const c of p.clips) if (c.kind === 'color' && c.ph && !out.includes(c.ph)) out.push(c.ph)
+    for (const o of p.ov) if (o.ph && !out.includes(o.ph)) out.push(o.ph)
+    return out
+  }
+
+  /**
+   * Fyller malens plassholdere med de importerte bildene og videoene i rekkefølge (går rundt hvis det er færre filer
+   * enn plassholdere). Hver plassholder beholder overgang, effekter, keyframes, plassering og tid.
+   */
+  fillPlaceholders(): void {
+    const p = this.s.proj
+    if (!p) return
+    const media = p.media.filter((m) => m.kind !== 'audio')
+    const labels = this.placeholders()
+    if (!labels.length) return
+    if (!media.length) {
+      this.flash('Importer bilder eller videoer først, så fylles plassholderne med dem.')
+      return
+    }
+    labels.forEach((ph, i) => {
+      const m = media[i % media.length] as Media
+      const cur = this.s.proj
+      if (!cur) return
+      for (const c of cur.clips) if (c.kind === 'color' && c.ph === ph) this.replaceClip(c.id, m)
+      for (const o of cur.ov) if (o.ph === ph) this.replaceOv(o.id, m)
+    })
+    this.set({ sel: null })
+    this.flash('{n} plassholdere er fylt med dine filer.', { n: labels.length })
+  }
+
+  /** Ny ramme (bilde-i-bilde som redigerbar form) ved spillehodet. */
+  addFrame(): void {
+    const fr = this.s.proj
+    if (!fr) return
+    const o = frameOverlay({ start: this.t, ar: fr.w >= fr.h ? 0.5625 : 1.25, scale: fr.w >= fr.h ? 0.42 : 0.7, name: this.d.t('Ramme') })
+    this.setProj((p) => ({ ...p, ov: [...p.ov, o] }), true, 'add')
+    this.set({ sel: { type: 'ov', id: o.id }, multi: [] })
   }
 
   addMusic(m: Media): void {
