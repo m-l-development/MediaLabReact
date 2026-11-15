@@ -513,18 +513,35 @@ function FxPanel({ c, S, tx }: EditorProps) {
 function MaskDialog({ c, S, tx }: EditorProps) {
   const e = S.maskEdit
   if (!e) return null
+  // «Fjern objekt» og lokal maske: det som merkes rødt (Fjern) er det som fjernes / justeres; bildet vises som original
+  const mark = e.purpose !== 'cut'
+  const title = e.purpose === 'remove' ? 'Fjern objekt' : e.purpose === 'local' ? 'Maske for lokal justering' : 'Finjuster masken'
+  const lead = e.purpose === 'remove'
+    ? 'Merk det som skal fjernes (rødt) med pensel, former eller «Velg objekt». «Fyll med AI» tegner det som var bak; «Gjør uskarp» gjør bare området uskarpt.'
+    : e.purpose === 'local'
+      ? 'Mal over området justeringen skal gjelde (rødt) med pensel, former eller «Velg objekt». Justeringene stilles inn etterpå.'
+      : 'Behold eller fjern deler av bildet med pensel, former eller «Velg objekt». Endringen kan angres i editoren.'
+  const fb = S.fillBusy
   return (
-    <div className={s.maskBack} role="dialog" aria-modal="true" aria-label={tx('Finjuster masken')} data-pd-mask="">
+    <div className={s.maskBack} role="dialog" aria-modal="true" aria-label={tx(title)} data-pd-mask={e.purpose}>
       <div className={s.maskHead}>
-        <strong>{tx('Finjuster masken')}</strong>
-        <span>{tx('Behold eller fjern deler av bildet med pensel, former eller «Velg objekt». Endringen kan angres i editoren.')}</span>
+        <strong>{tx(title)}</strong>
+        <span>{tx(lead)}</span>
       </div>
       <div className={s.maskBody}>
-        <MaskEditor image={e.image} mask={e.mask} onChange={() => undefined} selectObject={(x, y) => c.selectInMask(x, y)} />
+        <MaskEditor image={e.image} mask={e.mask} onChange={() => undefined} selectObject={(x, y) => c.selectInMask(x, y)} {...(mark ? { startKeep: false, startView: 'original' as const } : {})} />
       </div>
+      {fb && <span className={s.dimSm} data-pd-fill-busy="" role="status">{tx(fb.phase === 'model' ? 'Laster ned AI-modellen … {pct} %' : 'Fyller inn … {pct} %', { pct: Math.round(fb.pct) })}</span>}
       <div className={s.row2}>
-        <button type="button" className={s.smallBtn} onClick={() => c.closeMaskEdit()}>{tx('Avbryt')}</button>
-        <button type="button" className={s.primary} data-pd-mask-apply="" onClick={() => c.applyMaskEdit()}>{tx('Bruk')}</button>
+        <button type="button" className={s.smallBtn} disabled={!!fb} onClick={() => c.closeMaskEdit()}>{tx('Avbryt')}</button>
+        {e.purpose === 'remove'
+          ? (
+            <>
+              <button type="button" className={s.smallBtn} data-pd-remove-blur="" disabled={!!fb} onClick={() => void c.runRemove('blur')}>{tx('Gjør uskarp')}</button>
+              <button type="button" className={s.primary} data-pd-remove-ai="" disabled={!!fb} onClick={() => void c.runRemove('ai')}>{tx('Fyll med AI')}</button>
+            </>
+          )
+          : <button type="button" className={s.primary} data-pd-mask-apply="" onClick={() => c.applyMaskEdit()}>{tx('Bruk')}</button>}
       </div>
     </div>
   )

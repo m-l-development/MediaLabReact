@@ -12,15 +12,25 @@ import { isolate, loop, motion, nav, photo, thumbnail } from './steps'
 
 const CYCLES = Number(process.env.MEM_CYCLES ?? 3)
 
-interface Sample { step: string; heapMB: number; nodes: number; listeners: number; docs: number; procMB: number }
+interface Sample { step: string; heapMB: number; nodes: number; listeners: number; docs: number; procMB: number; rendMB: number; gpuMB: number; layout: number }
 const rows: Sample[] = []
 
-function procMB(): number {
+/** Privat minne (MB) for nettleserens prosesser: totalt, sideprosessene (renderer) og GPU-prosessen (lerreter, bilder). */
+function procMB(): { all: number; rend: number; gpu: number } {
   try {
-    const out = execSync(`powershell -NoProfile -Command "(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like '*ms-playwright*' } | Measure-Object -Property PrivatePageCount -Sum).Sum"`, { encoding: 'utf8' })
-    return Math.round(Number(out.trim()) / 1048576)
+    const out = execSync(`powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like '*ms-playwright*' } | ForEach-Object { '{0} {1}' -f $_.PrivatePageCount, ($_.CommandLine -replace '.*--type=([a-z-]+).*', '$1') }"`, { encoding: 'utf8' })
+    let all = 0, rend = 0, gpu = 0
+    for (const l of out.trim().split(/\r?\n/)) {
+      const [n, t] = l.trim().split(' ')
+      const mb = Number(n) / 1048576
+      if (!Number.isFinite(mb)) continue
+      all += mb
+      if (t === 'renderer') rend += mb
+      if (t === 'gpu-process') gpu += mb
+    }
+    return { all: Math.round(all), rend: Math.round(rend), gpu: Math.round(gpu) }
   } catch {
-    return -1
+    return { all: -1, rend: -1, gpu: -1 }
   }
 }
 
@@ -29,9 +39,10 @@ async function measure(page: Page, cdp: CDPSession, step: string) {
   for (let i = 0; i < 2; i++) await cdp.send('HeapProfiler.collectGarbage')
   await page.waitForTimeout(400)
   const m = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((x) => [x.name, x.value]))
-  const r: Sample = { step, heapMB: Math.round(((m.JSHeapUsedSize ?? 0) / 1048576) * 10) / 10, nodes: m.Nodes ?? 0, listeners: m.JSEventListeners ?? 0, docs: m.Documents ?? 0, procMB: procMB() }
+  const p = procMB()
+  const r: Sample = { step, heapMB: Math.round(((m.JSHeapUsedSize ?? 0) / 1048576) * 10) / 10, nodes: m.Nodes ?? 0, listeners: m.JSEventListeners ?? 0, docs: m.Documents ?? 0, procMB: p.all, rendMB: p.rend, gpuMB: p.gpu, layout: m.LayoutObjects ?? 0 }
   rows.push(r)
-  console.log(`MEM ${step.padEnd(28)} heap ${String(r.heapMB).padStart(6)} MB  noder ${String(r.nodes).padStart(6)}  lyttere ${String(r.listeners).padStart(5)}  dok ${r.docs}  prosesser ${r.procMB} MB`)
+  console.log(`MEM ${step.padEnd(28)} heap ${String(r.heapMB).padStart(6)} MB  noder ${String(r.nodes).padStart(6)}  lyttere ${String(r.listeners).padStart(5)}  dok ${r.docs}  prosesser ${r.procMB} MB (side ${r.rendMB}, GPU ${r.gpuMB})  layout ${r.layout}`)
 }
 
 test('minne: åpne og lukke editorene, bytte apper, stå i ro', async ({ page }) => {
@@ -42,7 +53,11 @@ test('minne: åpne og lukke editorene, bytte apper, stå i ro', async ({ page })
   await page.goto('/app/')
   await page.locator('main').first().waitFor()
   await measure(page, cdp, 'start (forsiden)')
-  const tools: [string, (p: Page) => Promise<void>][] = [['photo-design', photo], ['thumbnail', thumbnail], ['motion', motion], ['loop', loop], ['isolate', isolate]]
+  const all: [string, (p: Page) => Promise<void>][] = [['photo-design', photo], ['thumbnail', thumbnail], ['motion', motion], ['loop', loop], ['isolate', isolate]]
+  // MEM_ONLY=isolate,loop … måler bare de verktøyene; MEM_NO_AI=1 stenger AI-nedlastingene ute (skiller modellminnet fra resten)
+  const only = process.env.MEM_ONLY?.split(',')
+  const tools = only ? all.filter(([n]) => only.includes(n)) : all
+  if (process.env.MEM_NO_AI) await page.route(/huggingface\.co|hf\.co/, (r) => r.abort())
   for (let c = 1; c <= CYCLES; c++) {
     for (const [name, run] of tools) {
       try {

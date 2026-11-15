@@ -45,8 +45,13 @@ export type HslRange = (typeof HSL_RANGES)[number][0]
 
 /** Lokal justering: maske (lineær gradient eller radial/ellipse) + justeringer som bare virker innenfor masken. */
 export interface LocalAdj {
-  /** lin/rad = gradientmaske med justeringer; spot = flekkfjerning/kloning (kopierer fra kilden sx, sy med myk kant) */
-  k: 'lin' | 'rad' | 'spot'
+  /**
+   * lin/rad = gradientmaske med justeringer; spot = flekkfjerning/kloning (kopierer fra kilden sx, sy med myk kant);
+   * px = pikselmaske (malt med pensel eller valgt med AI – «Velg objekt» / motiv), lagret i `pm`
+   */
+  k: 'lin' | 'rad' | 'spot' | 'px'
+  /** pikselmasken (k = 'px'): «b,h,<base64>» – kjørelengdekodet 8-bit maske, høyst 768 px på lengste side */
+  pm?: string
   /** kilde for flekkfjerning (0…1 i bildet) */
   sx?: number
   sy?: number
@@ -111,8 +116,10 @@ function cleanLoc(v: unknown): LocalAdj[] | null {
     const o = q as Record<string, unknown>
     const num = (k: keyof typeof LOC, lo: number, hi: number) => { const n = Number(o[k]); return Number.isFinite(n) ? clamp(n, lo, hi) : (LOC[k] as number) }
     const sp = o.k === 'spot'
+    const px = o.k === 'px'
+    if (px && !(typeof o.pm === 'string' && o.pm.length < 1_500_000 && decodeMask(o.pm))) continue
     const n01 = (v: unknown, d: number) => { const n = Number(v); return v != null && Number.isFinite(n) ? clamp(n, 0, 1) : d }
-    out.push({ ...(sp ? { sx: n01(o.sx, 0.6), sy: n01(o.sy, 0.5) } : {}), k: o.k === 'lin' ? 'lin' : sp ? 'spot' : 'rad', on: o.on !== false, x: num('x', -0.5, 1.5), y: num('y', -0.5, 1.5), r: num('r', 0.02, 1.5), a: num('a', -360, 360), f: num('f', 0, 1), inv: o.inv === true, exp: num('exp', -100, 100), con: num('con', -100, 100), sat: num('sat', -100, 100), temp: num('temp', -100, 100) })
+    out.push({ ...(sp ? { sx: n01(o.sx, 0.6), sy: n01(o.sy, 0.5) } : {}), ...(px ? { pm: o.pm as string } : {}), k: o.k === 'lin' ? 'lin' : sp ? 'spot' : px ? 'px' : 'rad', on: o.on !== false, x: num('x', -0.5, 1.5), y: num('y', -0.5, 1.5), r: num('r', 0.02, 1.5), a: num('a', -360, 360), f: num('f', 0, 1), inv: o.inv === true, exp: num('exp', -100, 100), con: num('con', -100, 100), sat: num('sat', -100, 100), temp: num('temp', -100, 100) })
   }
   return out.length ? out : null
 }
@@ -230,8 +237,87 @@ function spot(img: ImageData, m: LocalAdj): void {
   }
 }
 
+/* ---------- pikselmasker (pensel / AI) ---------- */
+
+export interface PxMask { w: number; h: number; a: Uint8ClampedArray }
+const MAXM = 768
+
+/** Masken (0–255 per piksel, w × h) nedskalert til høyst 768 px og kjørelengdekodet → «b,h,<base64>». */
+export function encodeMask(a: Uint8ClampedArray, w: number, h: number): string {
+  const k = Math.min(1, MAXM / Math.max(w, h))
+  const W = Math.max(1, Math.round(w * k)), H = Math.max(1, Math.round(h * k))
+  const out: number[] = []
+  let run = 0, cur = -1
+  for (let y = 0; y < H; y++) {
+    const y0 = Math.floor((y * h) / H), y1 = Math.max(y0 + 1, Math.floor(((y + 1) * h) / H))
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.floor((x * w) / W), x1 = Math.max(x0 + 1, Math.floor(((x + 1) * w) / W))
+      // snitt over ruten (myke kanter beholdes), avrundet til 64 nivåer (gir lange løp)
+      let sum = 0, n = 0
+      for (let yy = y0; yy < y1; yy += Math.max(1, (y1 - y0) >> 2)) for (let xx = x0; xx < x1; xx += Math.max(1, (x1 - x0) >> 2)) { sum += a[yy * w + xx] ?? 0; n++ }
+      const v = Math.min(255, Math.round(sum / n / 4) * 4)
+      if (v === cur && run < 255) run++
+      else {
+        if (run) out.push(run, cur)
+        cur = v
+        run = 1
+      }
+    }
+  }
+  if (run) out.push(run, cur)
+  let b = ''
+  const u = Uint8Array.from(out)
+  for (let i = 0; i < u.length; i += 0x8000) b += String.fromCharCode(...u.subarray(i, i + 0x8000))
+  return `${W},${H},${btoa(b)}`
+}
+
+const PM = new Map<string, PxMask | null>()
+/** Dekodet pikselmaske (hurtigbufret), eller null om strengen er ugyldig. */
+export function decodeMask(pm: string): PxMask | null {
+  const have = PM.get(pm)
+  if (have !== undefined) return have
+  let res: PxMask | null = null
+  try {
+    const m = /^(\d{1,4}),(\d{1,4}),([A-Za-z0-9+/=]*)$/.exec(pm)
+    const W = Number(m?.[1]), H = Number(m?.[2])
+    if (m && W > 0 && H > 0 && W <= 4096 && H <= 4096) {
+      const bin = atob(m[3] ?? '')
+      const a = new Uint8ClampedArray(W * H)
+      let p = 0
+      for (let i = 0; i + 1 < bin.length && p < a.length; i += 2) {
+        const run = bin.charCodeAt(i), v = bin.charCodeAt(i + 1)
+        a.fill(v, p, Math.min(a.length, p + run))
+        p += run
+      }
+      if (p === a.length) res = { w: W, h: H, a }
+    }
+  } catch {
+    res = null
+  }
+  if (PM.size > 24) PM.delete(PM.keys().next().value as string)
+  PM.set(pm, res)
+  return res
+}
+
+/** Pikselmaskens vekt 0…1 i (u, v) (bilineært mellom pikslene, så kantene blir myke også i stor oppløsning). */
+function pxWeight(M: PxMask, u: number, v: number): number {
+  const x = u * M.w - 0.5, y = v * M.h - 0.5
+  const x0 = Math.max(0, Math.min(M.w - 1, Math.floor(x))), y0 = Math.max(0, Math.min(M.h - 1, Math.floor(y)))
+  const x1 = Math.min(M.w - 1, x0 + 1), y1 = Math.min(M.h - 1, y0 + 1)
+  const fx = Math.max(0, Math.min(1, x - x0)), fy = Math.max(0, Math.min(1, y - y0))
+  const a = M.a
+  const top = (a[y0 * M.w + x0] ?? 0) * (1 - fx) + (a[y0 * M.w + x1] ?? 0) * fx
+  const bot = (a[y1 * M.w + x0] ?? 0) * (1 - fx) + (a[y1 * M.w + x1] ?? 0) * fx
+  return (top * (1 - fy) + bot * fy) / 255
+}
+
 /** Vekt 0…1 for en lokal maske i punkt (u, v) (0…1); sideforholdet tas med så sirkler blir runde. */
 export function locWeight(m: LocalAdj, u: number, v: number, asp: number): number {
+  if (m.k === 'px') {
+    const M = m.pm ? decodeMask(m.pm) : null
+    const w = M ? pxWeight(M, u, v) : 0
+    return m.inv ? 1 - w : w
+  }
   const dx = (u - m.x) * asp, dy = v - m.y
   const rad = (m.a * Math.PI) / 180
   let w: number

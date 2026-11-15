@@ -44,6 +44,10 @@ export interface MaskEditorProps {
   onChange: () => void
   /** «Velg objekt»: maske for objektet ved punktet (bildepiksler), eller null. Mangler den, vises ikke verktøyet. */
   selectObject?: (x: number, y: number) => Promise<Mask | null>
+  /** Start med «Behold» (standard) eller «Fjern» (f.eks. når det som males er det som skal fjernes) */
+  startKeep?: boolean
+  /** Visningen ved start (ellers den sist brukte) – «original» viser bildet med det merkede området i rødt */
+  startView?: View
 }
 
 interface Drag {
@@ -62,18 +66,18 @@ interface Drag {
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 
-export function MaskEditor({ image, mask, onChange, selectObject }: MaskEditorProps) {
+export function MaskEditor({ image, mask, onChange, selectObject, startKeep = true, startView }: MaskEditorProps) {
   const t = useT()
   const W = image.width
   const H = image.height
   const wrap = useRef<HTMLDivElement>(null)
   const view = useRef<HTMLCanvasElement>(null)
   const [tool, setTool] = useState<Tool>('brush')
-  const [keep, setKeep] = useState(true)
+  const [keep, setKeep] = useState(startKeep)
   const [size, setSize] = useState(() => Math.max(4, Math.round(Math.max(W, H) / 40)))
   const [hard, setHard] = useState(0.8)
   const [snap, setSnap] = useState(false)
-  const [mode, setModeState] = useState<View>(() => lastView)
+  const [mode, setModeState] = useState<View>(() => startView ?? lastView)
   const setMode = (v: View) => {
     rememberView(v)
     setModeState(v)
