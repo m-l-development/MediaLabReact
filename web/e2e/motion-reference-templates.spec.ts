@@ -39,7 +39,7 @@ const TPL: [k: string, fmt: 'wide' | 'story', times: number[], exp: number][] = 
   ['lyricvideo', 'wide', [1, 5.5, 9, 25, 37], 6.9],
   ['daycount916', 'story', [0.6, 2, 3.6, 5, 8], 5.2],
   ['theend916', 'story', [0.3, 4.6, 8, 11.5, 16], 2.6],
-  ['vacation', 'wide', [0.5, 2.5, 4.6, 6.8, 10], 3.2],
+  ['vacation', 'wide', [0.5, 2.5, 5.3, 7.1, 10.2], 3.2],
   ['andwiththat', 'story', [0.5, 1.8, 3, 5.6, 9], 2.6],
 ]
 
