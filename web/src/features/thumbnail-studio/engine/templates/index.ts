@@ -19,6 +19,9 @@ export interface LibTemplate {
 /** Kategoriene i materialets rekkefølge. */
 export const LIB_CATS = ['Generell video', 'Bibelvideo', 'Direktesending', 'Promo', 'Trailer', 'Teaser'] as const
 
+/** Alle kategoriene i det samlede malbiblioteket (designsamlingen + de ferdige oppsettene), uten duplikater. */
+export const READY_CATS = ['Generell video', 'Tale og gudstjeneste', 'Bibelvideo', 'Direktesending', 'Intervju og panel', 'Podkast', 'Arrangement', 'Promo', 'Musikk', 'Korte videoer', 'Trailer', 'Teaser'] as const
+
 let lib: Promise<LibTemplate[]> | null = null
 /** Malene lastes først når de trengs (egen fil, ca. 100 kB komprimert). */
 export function loadLibrary(): Promise<LibTemplate[]> {

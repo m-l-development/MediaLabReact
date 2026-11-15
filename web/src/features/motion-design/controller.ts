@@ -2,6 +2,7 @@ import { cleanTheme, paletteOfTheme, type ThemeValue } from '../../shared/templa
 import type { ToolId } from '../../domain/tool'
 import { loadFonts } from '../../shared/fonts/loader'
 import { createStore, type Store } from '../../shared/lib/store'
+import { idle } from '../../shared/lib/idle'
 import { audioStats, beats, clearAudioCache, toWav, wave } from './engine/audio'
 import { canEncode, exportMp4 } from './engine/export'
 import {
@@ -380,36 +381,68 @@ export class MotionController {
     void this.genThumbs()
   }
 
+  /** Skisser per format og tema (blob-adresser): tilbake til et tema du har brukt er umiddelbart. */
+  private thumbCache = new Map<string, Record<string, string>>()
+  private thumbRun = 0
+
+  /**
+   * Skissene i malvalget i valgt tema. Et nytt tema avbryter køen straks (ingen opphopning ved raske bytter); mens nye
+   * skisser lages, vises de forrige, og de nye legges inn samlet per bilde. JPEG-kodingen er asynkron (toBlob).
+   */
   private async genThumbs(): Promise<void> {
     const f = this.s.fmt
     if (!f) return
+    const run = ++this.thumbRun
+    const th = this.s.tplTheme
+    const ck = f.k + ':' + f.w + 'x' + f.h + '|' + JSON.stringify(th)
+    const have = this.thumbCache.get(ck)
+    if (have && Object.keys(have).length >= TEMPLATES.length) {
+      this.set({ tplThumbs: have })
+      return
+    }
     try {
       if (document.fonts?.ready) await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 900))])
     } catch {
       // fortsett uten
     }
-    const out: Record<string, string> = {}
-    const th = this.s.tplTheme
+    const out: Record<string, string> = { ...(have ?? {}) }
+    this.thumbCache.set(ck, out)
+    // høyst 12 tema i minnet (egne farger under dragging lager mange); de eldste frigjøres
+    while (this.thumbCache.size > 12) {
+      const [k0, v0] = this.thumbCache.entries().next().value as [string, Record<string, string>]
+      this.thumbCache.delete(k0)
+      const inUse = new Set(Object.values(this.s.tplThumbs))
+      for (const u of Object.values(v0)) if (u.startsWith('blob:') && !inUse.has(u)) URL.revokeObjectURL(u)
+    }
     const pal = paletteOfTheme(th)
+    let raf = 0
+    const flush = () => {
+      raf = 0
+      if (this.alive && run === this.thumbRun && this.s.view === 'tpl' && this.s.fmt === f) this.set((st) => ({ tplThumbs: { ...st.tplThumbs, ...out } }))
+    }
     for (const tp of TEMPLATES) {
-      await new Promise((r) => setTimeout(r, 0))
-      if (this.s.tplTheme !== th) return
+      if (out[tp.k]) continue
+      // klikk behandles først; valgt mal (editoren åpnet) eller nytt tema: ikke lag flere skisser
+      await idle()
+      if (!this.alive || run !== this.thumbRun || this.s.view !== 'tpl' || this.s.fmt !== f) return
       const p = create(f, tp.k, undefined, pal)
-      const s = 420 / Math.max(f.w, f.h)
+      const sc = 420 / Math.max(f.w, f.h)
       const c = document.createElement('canvas')
-      c.width = Math.round(f.w * s)
-      c.height = Math.round(f.h * s)
+      c.width = Math.round(f.w * sc)
+      c.height = Math.round(f.h * sc)
       try {
         const g = c.getContext('2d')
         if (g) {
           drawFrame(g, c.width, c.height, p, { vids: {}, imgs: {} }, tp.tt, null)
-          out[tp.k] = c.toDataURL('image/jpeg', 0.82)
+          const bl = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.82))
+          out[tp.k] = bl ? URL.createObjectURL(bl) : c.toDataURL('image/jpeg', 0.82)
         }
       } catch {
         // malen vises uten bilde
       }
+      if (!raf) raf = requestAnimationFrame(flush)
     }
-    if (this.alive && this.s.view === 'tpl' && this.s.fmt === f && this.s.tplTheme === th) this.set({ tplThumbs: out })
+    flush()
   }
 
   /** Felles fargevelger over malene: nye skisser i temaet; valget huskes. */

@@ -130,6 +130,8 @@ export interface ImgRule { id: string; kw?: string; bg?: string | null; bgPort?:
 
 export interface Cfg {
   accent?: Hex
+  /** Tekstfarge fra fargetemaet (mangler = hvit, som før). */
+  ink?: Hex | null
   header?: string
   topLabel?: string
   headerX?: number | null

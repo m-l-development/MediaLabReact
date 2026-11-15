@@ -154,3 +154,83 @@ export function mapAny(v: string, use: ColorUse, P: Palette): string {
   const [r, g, b] = hexRgb(out)
   return `rgba(${r}, ${g}, ${b}, ${a})`
 }
+
+/* ---------- felles, dyp omfarging av hele maler (alle apper) ---------- */
+
+/** Rollen til en farge ut fra hvor den ligger i malen (nærmeste nøkkel med mening vinner), eller 'keep'. */
+export type DeepRole = ColorUse | 'keep'
+const R_BG = /^(bg|bg2|background|backdrop|c1|c2|base|scene|canvas|page)$/i
+const R_FILL = /paint|fill|bar|box|panel|card|plate|band|ribbon|badge|pill|chip|label|tag|block|shape|frame/i
+const R_ACC = /stroke|border|line|outline|tint|glow|accent|^acc|^hl$|highlight|ring|knock|deco|icon|color2|rule|dot|wave|underline|mark|brush|spark|arrow|accentc/i
+const R_SHADOW = /shadow/i
+
+function roleOfPath(path: readonly string[], v: string): DeepRole {
+  for (let i = path.length - 1; i >= 0; i--) {
+    const k = path[i] ?? ''
+    if (!k || /^\d+$/.test(k) || /^(color|c|col|value|v|stops|st|paint|layers|items|list)$/i.test(k)) continue
+    if (R_SHADOW.test(k)) {
+      // nøytrale skygger (svart/grå) beholdes; fargede skygger og glød følger aksenten
+      const s = sat(v)
+      return s != null && s < 0.15 ? 'keep' : 'acc'
+    }
+    if (R_BG.test(k)) return 'bg'
+    if (R_ACC.test(k)) return 'acc'
+    if (R_FILL.test(k)) return 'fill'
+    if (/text|font|title|head|name|kicker|label|caption|sub|body|fg|ink|^color$/i.test(k)) return 'text'
+  }
+  return 'text'
+}
+
+function sat(v: string): number | null {
+  const m = RGB.exec(v.trim())
+  const h = m ? rgbHex(Number(m[1]), Number(m[2]), Number(m[3])) : v
+  return hsl(h)?.s ?? null
+}
+
+const SKIP_KEY = /^(id|src|url|href|name|text|font|family|k|type|kind|code|desc|cat|mask|data|blob)$/i
+const memo = new WeakMap<Palette, Map<string, string>>()
+
+/**
+ * Omfarger alle farger i en mal (alle nivåer: lag, skygger, malingslag/gradientstopp, rammer, paneler, bakgrunn …)
+ * etter paletten. Rollen bestemmes av plasseringen (se roleOfPath); `role` kan overstyre for en sti. Returnerer en
+ * ny kopi; originalen endres ikke. Resultatene huskes per palett, så raske tema-bytter ikke regner det samme på nytt.
+ */
+export function recolorDeep<T>(x: T, P: Palette, role?: (path: readonly string[], v: string) => DeepRole | undefined): T {
+  let cache = memo.get(P)
+  if (!cache) memo.set(P, (cache = new Map()))
+  const C = cache
+  const walk = (v: unknown, path: string[]): unknown => {
+    if (typeof v === 'string') {
+      if (!isColorValue(v)) return v
+      const r = role?.(path, v) ?? roleOfPath(path, v)
+      if (r === 'keep') return v
+      const key = r + '|' + v
+      let out = C.get(key)
+      if (out === undefined) C.set(key, (out = mapAny(v, r, P)))
+      return out
+    }
+    if (Array.isArray(v)) return v.map((y, i) => walk(y, [...path, String(i)]))
+    if (v && typeof v === 'object') {
+      if (Object.getPrototypeOf(v) !== Object.prototype) return v
+      const o: Record<string, unknown> = {}
+      for (const [k, y] of Object.entries(v)) o[k] = SKIP_KEY.test(k) ? y : walk(y, [...path, k])
+      return o
+    }
+    return v
+  }
+  return walk(x, []) as T
+}
+
+/** Alle farger (normalisert til #rrggbb) i et objekt, med stien – for tester og fargekontroll. */
+export function colorsIn(x: unknown, path: string[] = [], out: { path: string; c: string }[] = []): { path: string; c: string }[] {
+  if (typeof x === 'string') {
+    if (isColorValue(x)) {
+      const m = RGB.exec(x.trim())
+      let h = m ? rgbHex(Number(m[1]), Number(m[2]), Number(m[3])) : x.toLowerCase()
+      if (h.length === 4) h = '#' + h.slice(1).replace(/./g, '$&$&')
+      if (!(m && m[4] !== undefined && m[4] !== '' && Number(m[4]) === 0)) out.push({ path: path.join('.'), c: h })
+    }
+  } else if (Array.isArray(x)) x.forEach((y, i) => colorsIn(y, [...path, String(i)], out))
+  else if (x && typeof x === 'object') for (const [k, y] of Object.entries(x)) if (!SKIP_KEY.test(k)) colorsIn(y, [...path, k], out)
+  return out
+}

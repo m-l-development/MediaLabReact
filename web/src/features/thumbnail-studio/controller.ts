@@ -1,13 +1,14 @@
 import { createStore, type Store } from '../../shared/lib/store'
 import { weightsOf } from '../../shared/fonts/catalog'
 import { snapActive } from '../../shared/lib/snap'
+import { idle } from '../../shared/lib/idle'
 import type { SharedSetup } from '../../services/shared-setup'
 import { cleanCategory, cleanDoc, DEFAULT_CATS, type Category, type Template } from './engine/backup'
 import { COMBOS, ink, luma, profileOf, recolor } from './engine/colors'
 import { CUSTOM_START, type ThemeValue } from '../../shared/templates/theme'
 import type { ImageCache } from './engine/images'
 import { base, BASE_KEYS, layout, type BaseKey } from './engine/layouts'
-import { LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library'
+import { LAYOUT_CAT, LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library'
 import { LIB_CATS, loadLibrary, type LibTemplate } from './engine/templates'
 import { clone, countImgs, FONTS, H, imgLimit, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
 import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
@@ -269,6 +270,9 @@ interface Drag {
  * Thumbnail Studio: tilstand og handlinger (samme oppførsel som media-lab/src/pages/thumbnail-studio/logic.js).
  * Grensesnittet leser `state` og kaller metodene; ingen bilder eller binærdata ligger i React-tilstand.
  */
+/** En ferdig mal i det samlede biblioteket (oppsett eller designsamlingen). */
+export interface ReadyTpl { id: string; key: string; name: string; desc: string; cat: string; order: number; doc: () => Doc; lib?: LibTemplate }
+
 export class ThumbController {
   readonly state: Store<State>
   private d: Deps
@@ -975,36 +979,115 @@ export class ThumbController {
 
   setTheme(v: ThemeValue): void {
     this.set((s) => ({ newPal: v?.k ?? 'default', newCustom: v?.k === 'custom' ? (v.c ?? s.newCustom) : s.newCustom, palOpen: false }))
+    // grunnoppsettene øverst og de synlige kortene i biblioteket, i én kø (den forrige avbrytes)
     const c = this.cat()
-    if (c) void this.genPrev(c)
-    if (this.libShown) void this.genLibPrev(this.libShown)
+    void this.genReady([...(c ? this.baseItems(c) : []), ...this.shown.filter((x) => !x.key.startsWith('base:'))])
+  }
+
+  /**
+   * Alle ferdige maler i ett bibliotek: de ferdige oppsettene (Stor krok, To personer …) og designsamlingen, med felles
+   * kategorier (READY_CATS). «Ny mal» (grunnoppsett og blank) og «Egne maler» står utenfor biblioteket.
+   */
+  readyList(c: Category): ReadyTpl[] {
+    const lay = LAYOUT_LIST.filter((o) => o.k !== 'blank').map((o, i): ReadyTpl => ({
+      id: o.k, key: 'lay:' + o.k + ':' + c.name, name: this.d.t(o.name as Phrase), desc: this.d.t(o.desc as Phrase), cat: LAYOUT_CAT[o.k] ?? 'Generell video', order: i,
+      doc: () => {
+        const d = layout(o.k)
+        for (const l of d.layers) if (l.type === 'text' && String(l.text).startsWith('Kategori')) l.text = c.name + l.text.slice(8)
+        return d
+      },
+    }))
+    const lib = (this.s.lib ?? []).map((t, i): ReadyTpl => ({ id: t.code, key: 'lib:' + t.code, name: t.name, desc: `${t.code} · ${t.desc}`, cat: t.cat, order: lay.length + i, doc: () => clone(t.doc), lib: t }))
+    return [...lay, ...lib]
+  }
+
+  /** Skissen i valgt tema; mens den lages vises forrige skisse av samme mal (ingen blinking ved fargebytte). */
+  readyPreviewOf(x: { key: string }): string | undefined {
+    return this.s.previews[x.key + '|' + this.themeKey()] ?? this.lastPrev.get(x.key)
   }
 
   libPreviewOf(t: LibTemplate): string | undefined {
-    return this.s.previews['lib:' + t.code + '|' + this.themeKey()]
+    return this.readyPreviewOf({ key: 'lib:' + t.code })
   }
 
-  private libShown: LibTemplate[] | null = null
-  private libRun = 0
-  /** Skisser (i valgt fargetema) for malene som vises nå; en ny liste eller et nytt tema avbryter den forrige. */
-  async genLibPrev(list: LibTemplate[]): Promise<void> {
-    this.libShown = list
-    const run = ++this.libRun
+  /** Siste skisse per mal (uansett tema) og rekkefølgen blob-adressene ble laget i (eldste frigjøres over taket). */
+  private lastPrev = new Map<string, string>()
+  private blobs: string[] = []
+  private pend: Record<string, string> = {}
+  private pendRaf = 0
+  private shown: { key: string; doc: () => Doc }[] = []
+  private prevRun = 0
+
+  /** Nye skisser legges inn samlet én gang per bilde (ikke én oppdatering av hele dialogen per skisse). */
+  private putPrev(key: string, base: string, img: string): void {
+    this.pend[key] = img
+    if (img) this.lastPrev.set(base, img)
+    if (img.startsWith('blob:')) {
+      this.blobs.push(img)
+      if (this.blobs.length > 600) {
+        const old = this.blobs.shift()!
+        // fjernes bare når den ikke lenger vises som siste skisse
+        if (![...this.lastPrev.values()].includes(old)) {
+          URL.revokeObjectURL(old)
+          this.set((st) => ({ previews: Object.fromEntries(Object.entries(st.previews).filter(([, v]) => v !== old)) }))
+        }
+      }
+    }
+    if (this.pendRaf) return
+    const flush = () => {
+      this.pendRaf = 0
+      const p = this.pend
+      this.pend = {}
+      if (this.alive) this.set((st) => ({ previews: { ...st.previews, ...p } }))
+    }
+    this.pendRaf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(flush) : (setTimeout(flush, 16) as unknown as number)
+  }
+
+  /**
+   * Skisser for malene som vises nå (biblioteket melder bare de synlige kortene). Et nytt tema eller en ny liste avbryter
+   * den forrige køen straks, så raske fargebytter ikke hoper seg opp; skisser som finnes fra før gjenbrukes.
+   */
+  async genReady(list: { key: string; doc: () => Doc }[]): Promise<void> {
+    this.shown = list
+    const run = ++this.prevRun
     const tk = this.themeKey()
     const th = this.theme()
-    for (const t of list) {
-      const key = 'lib:' + t.code + '|' + tk
-      if (this.s.previews[key] != null) continue
+    const ph = (role: string | null) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde')
+    for (const x of list) {
+      const key = x.key + '|' + tk
+      if (this.s.previews[key] != null || this.pend[key] != null) continue
+      await idle()
+      if (!this.alive || !this.s.newOpen || run !== this.prevRun) return
       let img = ''
       try {
-        const d = clone(t.doc)
-        img = await this.d.renderer.snapshot(th ? recolor(d, th) : d, 480, true, (role) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde'))
+        const d = x.doc()
+        const doc = th ? recolor(d, th) : d
+        const R = this.d.renderer
+        img = R.snapshotUrl ? await R.snapshotUrl(doc, 480, true, ph) : await R.snapshot(doc, 480, true, ph)
       } catch {
         img = ''
       }
-      if (!this.alive || !this.s.newOpen || run !== this.libRun) return
-      this.set((s) => ({ previews: { ...s.previews, [key]: img } }))
+      if (!this.alive || !this.s.newOpen || run !== this.prevRun) {
+        if (img.startsWith('blob:')) URL.revokeObjectURL(img)
+        return
+      }
+      this.putPrev(key, x.key, img)
     }
+  }
+
+  /** Velg en ferdig mal fra biblioteket (i valgt fargetema). */
+  pickReady(c: Category, x: ReadyTpl): void {
+    if (x.lib) return this.pickLib(c, x.lib)
+    this.pickNew(c, { doc: () => {
+      const th = this.theme()
+      const d = x.doc()
+      return th ? recolor(d, th) : d
+    } })
+  }
+
+  /** Eldre navn (designsamlingen alene). */
+  async genLibPrev(list: LibTemplate[]): Promise<void> {
+    return this.genReady(list.map((t) => ({ key: 'lib:' + t.code, doc: () => clone(t.doc) })))
   }
 
   /** Ny mal (eller nytt oppsett) fra en ferdig mal: en kopi med egne lag-ID-er. */
@@ -1037,37 +1120,27 @@ export class ThumbController {
       for (const l of d.layers) if (l.type === 'text' && String(l.text).startsWith('Kategori')) l.text = c.name + l.text.slice(8)
       return d
     }
-    const std = LAYOUT_LIST.map((o) => ({ k: o.k, name: o.name, desc: o.desc, translate: true, doc: lay(o.k) }))
+    const std = LAYOUT_LIST.filter((o) => o.k === 'blank').map((o) => ({ k: o.k, name: o.name, desc: o.desc, translate: true, doc: lay(o.k) }))
     return [...bases, ...std].map((o) => ({ ...o, doc: () => {
       const d = o.doc()
       return !th || o.k === 'blank' ? d : recolor(d, th)
     } }))
   }
 
-  private pvKey(c: Category, k: string): string {
-    return (k.startsWith('base:') ? k + ':' + c.id : k + ':' + c.name) + '|' + this.themeKey()
-  }
 
   previewOf(c: Category, k: string): string | undefined {
-    return this.s.previews[this.pvKey(c, k)]
+    return this.readyPreviewOf({ key: k + ':' + c.id })
+  }
+
+  /** Grunnoppsettene i «Ny mal» som elementer i skissekøen (nøkkel per kategori). */
+  private baseItems(c: Category): { key: string; doc: () => Doc }[] {
+    return this.layoutsOf(c).map((l) => ({ key: 'base:' + l.id + ':' + c.id, doc: () => this.layoutDoc(c, l.id) }))
   }
 
   private async genPrev(c: Category) {
-    const pal = this.themeKey()
-    for (const o of this.newList(c)) {
-      if (o.k === 'blank') continue
-      const key = this.pvKey(c, o.k)
-      if (!o.k.startsWith('base:') && this.s.previews[key]) continue
-      let img = ''
-      try {
-        img = await this.d.renderer.snapshot(o.doc(), 480, true, (role) => this.d.t(role === 'person' ? 'Legg til person' : 'Legg til bilde'))
-      } catch {
-        img = ''
-      }
-      if (!this.alive || !this.s.newOpen || this.themeKey() !== pal) return
-      this.set((s) => ({ previews: { ...s.previews, [key]: img } }))
-    }
+    await this.genReady(this.baseItems(c))
   }
+
 
   setPal(k: string): void {
     this.setTheme(k === 'default' ? null : k === 'custom' ? { k: 'custom', c: this.s.newCustom ?? CUSTOM_START } : { k })

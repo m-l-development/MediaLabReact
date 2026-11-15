@@ -28,7 +28,8 @@ test('startsiden: formater, de 19 malene og sikkerhetskopi', async ({ page }) =>
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
   await expect(page.getByRole('heading', { level: 1, name: 'Photo design' })).toBeVisible()
-  await expect(page.locator('[data-tpl]')).toHaveCount(19)
+  // «Tomt» + alle ferdige maler samlet (18 egne + 100 fra designsamlingen)
+  await expect(page.locator('[data-tpl]')).toHaveCount(119)
   await page.getByRole('button', { name: /Story 9:16/ }).click()
   await expect(page.getByRole('button', { name: /Story 9:16/ })).toHaveAttribute('aria-pressed', 'true')
   const dl = page.waitForEvent('download')
@@ -139,7 +140,9 @@ test('effekter i avansert modus blir egne lag', async ({ page }, info) => {
 })
 
 /** Andel piksler i lerretet (forhåndsvisningen av en mal) som er tydelig blå (paletten «Hvit og blå»). */
-const blueIn = (page: Page, k: string) => page.locator(`[data-tpl="${k}"] canvas`).evaluate((c: HTMLCanvasElement) => {
+/** Forhåndsvisningene tegnes når kortet er nær skjermen: rull dit først. */
+const see = async (page: Page, sel: string) => { if (sel.startsWith('[data-tpl=')) await page.locator(sel.replace(/ canvas$/, '')).first().scrollIntoViewIfNeeded() }
+const blueIn = async (page: Page, k: string) => (await see(page, `[data-tpl="${k}"]`), page.locator(`[data-tpl="${k}"] canvas`)).evaluate((c: HTMLCanvasElement) => {
   const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data
   let n = 0
   for (let i = 0; i < d.length; i += 16) if ((d[i + 2] ?? 0) > 150 && (d[i] ?? 0) < 60) n++
@@ -219,8 +222,9 @@ test('alle malene vises på lerretet, også når de åpnes etter hverandre (skri
   const errors = await errorsOf(page)
   page.on('dialog', (d) => void d.dismiss())
   await page.goto('/app/photo-design')
-  await expect(page.locator('[data-tpl]')).toHaveCount(19)
-  const keys = await page.locator('[data-tpl]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tpl') as string))
+  await expect(page.locator('[data-tpl]')).toHaveCount(119)
+  // Photos egne maler («Tomt» + 18); designsamlingen (001–100) har egne tester
+  const keys = (await page.locator('[data-tpl]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tpl') as string))).filter((k) => !/^[0-9]+$/.test(k))
   expect(keys).toHaveLength(19)
   for (const k of keys) {
     await page.locator(`[data-tpl="${k}"]`).click()
@@ -240,7 +244,7 @@ test('alle malene vises på lerretet, også når de åpnes etter hverandre (skri
 })
 
 /** Andel piksler i et lerret som ligger nær fargen `hex` (±28 per kanal). */
-const shareOf = (page: Page, sel: string, hex: string) => page.locator(sel).first().evaluate((c: HTMLCanvasElement, h: string) => {
+const shareOf = async (page: Page, sel: string, hex: string) => (await see(page, sel), page.locator(sel)).first().evaluate((c: HTMLCanvasElement, h: string) => {
   const n = parseInt(h.slice(1), 16), R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255
   const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data
   let k = 0

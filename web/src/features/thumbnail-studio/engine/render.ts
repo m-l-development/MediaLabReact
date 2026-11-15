@@ -681,6 +681,20 @@ export class Renderer {
     return c.toDataURL('image/jpeg', 0.82)
   }
 
+  /**
+   * Samme skisse som blob-adresse: JPEG-kodingen skjer asynkront (toBlob), så hovedtråden ikke låses mens mange skisser
+   * lages (malbiblioteket, fargebytte). Samme oppløsning og kvalitet som snapshot.
+   */
+  async snapshotUrl(doc: Doc, w = 480, edit = false, placeholder?: RenderOptions['placeholder']): Promise<string> {
+    await ensureFonts(doc)
+    await this.images.loadAll(doc)
+    const s = w / W
+    const c = canvas(Math.round(W * s), Math.round(H * s))
+    this.render(ctx(c), doc, { s, edit, ...(placeholder ? { placeholder } : {}) })
+    const b = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.82))
+    return b ? URL.createObjectURL(b) : c.toDataURL('image/jpeg', 0.82)
+  }
+
   /** Gjennomsiktige kanter i bildet som beskjæring (andel av bredde/høyde), eller null. */
   alphaBox(src: string | null): { cL: number; cT: number; cR: number; cB: number } | null {
     const e = this.images.get(src)

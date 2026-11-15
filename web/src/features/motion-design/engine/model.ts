@@ -442,7 +442,8 @@ export const TPL_CAT: Record<string, string> = { ...Object.fromEntries(REF_TEMPL
 export function create(fmt: Pick<Format, 'k' | 'w' | 'h'>, tk: string, name?: string, pal?: Palette | null): Project {
   const tp = TEMPLATES.find((x) => x.k === tk) ?? TEMPLATES[TEMPLATES.length - 1]
   const d0 = tp ? tp.make() : { clips: [], texts: [] }
-  const d = pal ? themeContent(d0, pal) : d0
+  // temaet gjelder også undertekststilen (malens egen eller standardstilen)
+  const d = pal ? themeContent({ ...d0, subStyle: d0.subStyle ?? { ...SUBSTYLE } }, pal) : d0
   return normalize({ id: uid('p'), name: name || (!tp || tp.k === 'blank' ? 'Nytt prosjekt' : tp.name), fmt: fmt.k, w: fmt.w, h: fmt.h, bg: '#000000', media: [], clips: d.clips, ov: [], markers: [], texts: d.texts, subs: d.subs ?? [], subStyle: d.subStyle ?? { ...SUBSTYLE }, music: [], logo: { src: '', pos: 'tr', size: 0.12, opacity: 0.9, on: false }, created: Date.now(), updated: Date.now() })
 }
 

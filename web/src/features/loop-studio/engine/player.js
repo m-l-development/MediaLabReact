@@ -212,7 +212,14 @@ export function __ukeloopRendererFactory() {
   function OFF(E, f) { var k = KEYMAP[f] || f, o = E.toff && k ? E.toff[k] : null; return o ? { x: (o.x || 0) * E.W, y: (o.y || 0) * E.H } : { x: 0, y: 0 }; }
   function MV(ctx, E, k, fn) { var o = OFF(E, k); if (!o.x && !o.y) { fn(); return; } ctx.save(); ctx.translate(o.x, o.y); fn(); ctx.restore(); }
   function FS(E, f) { var v = E.tsc && f ? E.tsc[f] : null; return v > 0 ? v : 1; }
-  function TC(E, f, d) { return E.tcol && f && E.tcol[f] ? E.tcol[f] : d; }
+  function TC(E, f, d) { return E.tcol && f && E.tcol[f] ? E.tcol[f] : INK(E.cfg, d); }
+  /* tekstfarge fra fargetemaet (cfg.ink): hvit standardtekst blir temaets tekstfarge, med samme gjennomsiktighet */
+  function INK(cfg, d) {
+    if (!cfg || !cfg.ink) return d;
+    if (d === '#fff' || d === '#ffffff') return cfg.ink;
+    var m = /^rgba\(255,255,255,([0-9.]+)\)$/.exec(d);
+    return m ? rgba(cfg.ink, Number(m[1])) : d;
+  }
   function recT(E, field, x, y, w, h) { if (E.rec && E.rects && E.rects.texts && w > 0) { var o = OFF(E, field); E.rects.texts.push({ id: E.rec, field: field, x: x + o.x, y: y + o.y, w: w, h: h }); } }
   function kicker(ctx, E, x, top, p, label, pill, extra, fl) {
     fl = fl || [];
@@ -763,7 +770,7 @@ export function __ukeloopRendererFactory() {
         var bh = lines.length * lh, cx = (t.x == null ? 0.5 : t.x) * W, cy = (t.y == null ? 0.3 : t.y) * H, x0 = cx - mw / 2, y0 = cy - bh / 2 + dy;
         ctx.save(); ctx.globalAlpha = pr * ent;
         if (t.box) { var bp = fs * 0.35; ctx.fillStyle = t.boxColor || 'rgba(0,0,0,0.6)'; rr(ctx, x0 - bp, y0 - bp * 0.6, mw + bp * 2, bh + bp * 1.2, Math.min(fs * 0.3, 24 * u)); ctx.fill(); }
-        ctx.fillStyle = t.color || '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = t.color || INK(cfg, '#ffffff'); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
         lines.forEach(function (l, li) { ctx.fillText(t.upper ? up(l) : l, cx, y0 + li * lh + fs * 0.86); });
         ctx.textAlign = 'left'; ctx.restore();
         if (live) rects.fitems.push({ kind: 'ftext', id: s.id, i: ti, x: x0, y: y0, w: mw, h: bh });
@@ -790,7 +797,7 @@ export function __ukeloopRendererFactory() {
     /* standing chrome */
     ctx.globalAlpha = 1; ctx.textBaseline = 'alphabetic';
     if (cfg.topLabel) {
-      var tls = cfg.topLabelScale > 0 ? cfg.topLabelScale : 1; setFont(ctx, 20 * u * XS * tls, 500, 0.4); ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.textAlign = 'right';
+      var tls = cfg.topLabelScale > 0 ? cfg.topLabelScale : 1; setFont(ctx, 20 * u * XS * tls, 500, 0.4); ctx.fillStyle = INK(cfg, 'rgba(255,255,255,0.88)'); ctx.textAlign = 'right';
       var tlx = cfg.topLabelX == null ? W - E.M + 8 * u : cfg.topLabelX * W, tly = cfg.topLabelY == null ? E.M + 7 * u : cfg.topLabelY * H;
       ctx.fillText(up(cfg.topLabel), tlx, tly + 18 * u * XS * tls); ctx.textAlign = 'left';
       var tlw = ctx.measureText(up(cfg.topLabel)).width;
@@ -801,7 +808,7 @@ export function __ukeloopRendererFactory() {
       var hx = cfg.headerX == null ? E.M : cfg.headerX * W, hy = cfg.headerY == null ? E.M : cfg.headerY * H;
       var hw = ctx.measureText(up(cfg.header)).width;
       rects.header = { x: hx, y: hy - 4 * u, w: hw, h: 40 * u * XS * hds };
-      if (outroW < 1) { ctx.globalAlpha = 1 - clamp(outroW, 0, 1); ctx.fillStyle = '#fff'; ctx.fillText(up(cfg.header), hx, hy + 27 * u * XS * hds); ctx.globalAlpha = 1; }
+      if (outroW < 1) { ctx.globalAlpha = 1 - clamp(outroW, 0, 1); ctx.fillStyle = INK(cfg, '#fff'); ctx.fillText(up(cfg.header), hx, hy + 27 * u * XS * hds); ctx.globalAlpha = 1; }
     }
     /* week rail */
     if (cfg.rail !== false) {
@@ -823,7 +830,7 @@ export function __ukeloopRendererFactory() {
           var ix = E.M + i * (iw + gap);
           ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(ix, ry, iw, 1.5 * u);
           if (i === ai) { ctx.fillStyle = cfg.accent; ctx.fillRect(ix, ry, iw * af, 1.5 * u); }
-          setFont(ctx, 19 * u * XS, 600, 0.22); ctx.fillStyle = i === ai ? '#fff' : 'rgba(255,255,255,0.6)';
+          setFont(ctx, 19 * u * XS, 600, 0.22); ctx.fillStyle = INK(cfg, i === ai ? '#fff' : 'rgba(255,255,255,0.6)');
           ctx.fillText(up(it.day), ix, ry + 11 * u + 17 * u);
         });
         ctx.globalAlpha = 1;

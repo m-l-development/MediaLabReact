@@ -94,7 +94,8 @@ interface Base {
 }
 
 /** Fargefeltene et lag kan ha. */
-export interface TplColors { color?: string; fill?: string; fill2?: string | null; strokeC?: string }
+/** Malens opprinnelige farger på laget: tekst/flate/strek, markering bak tekst, toning på bilder og fargen i hver skygge. */
+export interface TplColors { color?: string; fill?: string; fill2?: string | null; strokeC?: string; barColor?: string; tint?: string | null; sh?: string[] }
 
 /** Malfarger: tre farger og hvilken som er bakgrunn, tekst og støttefarge (indekser i c). k = ferdig kombinasjon eller «custom». */
 export interface Scheme { k: string; c: [string, string, string]; r: [number, number, number] }
@@ -230,6 +231,8 @@ export interface PdDoc {
   /** Malen dokumentet ble laget fra, malens opprinnelige bakgrunn og fargevalget (null = malens egne farger). */
   tplK?: string
   bg0?: string | null
+  /** Malens opprinnelige andre bakgrunnsfarge (gradient); fargevalget regnes ut fra den. */
+  bg20?: string | null
   scheme?: Scheme | null
   /** Bildeserie (batchredigering): mange separate bilder; laget i `layers` er bildet som er åpent. Se engine/batch.ts. */
   batch?: Batch | null

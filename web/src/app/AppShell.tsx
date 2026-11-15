@@ -123,8 +123,8 @@ function ThemeButton() {
 function SomePill() {
   const t = useT()
   return (
-    <Link to={{ name: 'hub' }} hash="some" className={styles.backPill} data-ml-back="some">
-      <span aria-hidden="true">←</span> {t('nav.someFolder')}
+    <Link to={{ name: 'hub' }} hash="some" className={styles.backPill} data-ml-back="some" aria-label={t('nav.someFolder')}>
+      <span aria-hidden="true">←</span> <span className={styles.pillText}>{t('nav.someFolder')}</span>
     </Link>
   )
 }
@@ -132,8 +132,8 @@ function SomePill() {
 function BackPill() {
   const t = useT()
   return (
-    <Link to={{ name: 'hub' }} className={styles.backPill}>
-      <span aria-hidden="true">←</span> {t('app.name')}
+    <Link to={{ name: 'hub' }} className={styles.backPill} aria-label={t('app.name')}>
+      <span aria-hidden="true">←</span> <span className={styles.pillText}>{t('app.name')}</span>
     </Link>
   )
 }

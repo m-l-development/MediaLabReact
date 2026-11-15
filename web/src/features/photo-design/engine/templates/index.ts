@@ -23,3 +23,17 @@ export function loadLibrary(): Promise<LibPhoto[]> {
   lib ??= import('./photos.json').then((m) => m.default as unknown as LibPhoto[])
   return lib
 }
+
+/**
+ * Photos egne maler i samme kategorier som designsamlingen, så alle ferdige maler står samlet (shared/templates).
+ * «Tomt» er ikke en ferdig mal; den står for seg som «Ny mal».
+ */
+export const TPL_CAT: Readonly<Record<string, string>> = {
+  card2: 'Hverdag, kafé, info og sosiale medier', photo: 'Hverdag, kafé, info og sosiale medier', bold: 'Hverdag, kafé, info og sosiale medier',
+  split: 'Hverdag, kafé, info og sosiale medier', news: 'Hverdag, kafé, info og sosiale medier', thanks: 'Hverdag, kafé, info og sosiale medier',
+  facts: 'Hverdag, kafé, info og sosiale medier', staff: 'Hverdag, kafé, info og sosiale medier',
+  quote: 'Bibelvers, sitat og typografi', verse: 'Bibelvers, sitat og typografi', minimal: 'Bibelvers, sitat og typografi',
+  event: 'Arrangement og plakater', series: 'Arrangement og plakater', countdown: 'Arrangement og plakater',
+  week: 'Program, ukeplan og kalender', day: 'Program, ukeplan og kalender', weekday: 'Program, ukeplan og kalender',
+  poster: 'Festival og konsert',
+}
