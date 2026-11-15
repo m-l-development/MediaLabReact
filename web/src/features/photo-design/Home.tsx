@@ -1,8 +1,8 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fontReady } from '../../shared/fonts/loader'
-import { TemplateLibrary } from '../../shared/templates/TemplateLibrary'
+import { TemplatePicker } from '../../shared/templates/TemplatePicker'
 import type { PhotoController, PState } from './controller'
 import { ColorBar } from './Colors'
 import { FORMATS, TEMPLATES, type Format, type PdDoc, type Scheme } from './engine/model'
@@ -168,6 +168,7 @@ function LibPreview({ t, scheme, tx }: { t: LibPhoto; scheme: Scheme | null; tx:
 
 export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoController; S: PState; tx: Tx; onBackup: () => void; onRestore: () => void; onBatch: () => void }) {
   const [w, h] = c.fmtWH()
+  const [libOpen, setLibOpen] = useState(false)
   useEffect(() => {
     void c.loadLib()
   }, [c])
@@ -223,9 +224,10 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
       <section className={s.section}>
         <div className={s.rowBetween}>
           <span className={s.eyebrow}>{tx('2 · Mal')}</span>
-          <ColorBar value={S.scheme} onChange={(v) => c.setScheme(v)} tx={tx} scope="home" />
+          {/* samme flyt som Thumbnail Studio: «Ny mal …» åpner den felles malpopupen (fargevelgeren står i popupen) */}
+          <button type="button" className={s.pillDark} data-pd-lib-open="" onClick={() => setLibOpen(true)}>{tx('Ny mal …')}</button>
         </div>
-        <span className={s.note}>{tx('Fargene gjelder alle malene. En mal du har gitt egne farger i editoren, beholder dem.')}</span>
+        <span className={s.note}>{tx('Velg en ferdig mal i «Ny mal …» (alle maler, kategorier, søk og farger), eller start med en tom side.')}</span>
         {/* «Ny mal»: tom side (egne maler står under «Mine maler») */}
         <div className={s.tplGrid} data-pd-new="">
           <div className={s.tplItem}>
@@ -241,13 +243,19 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
             {ownTpls.map((t) => <button key={t.k} type="button" className={s.tplReset} data-tpl-own={t.k} onClick={() => c.forgetTplScheme(t.k)}>{tx('Bruk fellesfargene')} · {tx(t.l as Phrase)}</button>)}
           </div>
         )}
-        {/* alle ferdige maler samlet: kategorier, søk og sortering (shared/templates, som i Thumbnail Studio) */}
-        <div data-pd-lib="">
-          <TemplateLibrary items={libItems} cats={LIB_CATS} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null} minW={170} aspect="1 / 1" attr="data-tpl"
-            preview={(x) => x.lib ? <LibPreview t={x.lib} scheme={S.scheme} tx={tx} /> : <TplPreview k={x.id} w={w} h={h} scheme={c.schemeFor(x.id)} own={Object.prototype.hasOwnProperty.call(S.tplSchemes, x.id)} tx={tx} />}
-            onPick={(x) => { if (x.lib) c.createLib(x.lib); else c.create(x.id) }} />
-        </div>
       </section>
+      {libOpen && (
+        <TemplatePicker title={tx('Ny mal')} lead={tx('Velg hvordan den nye malen skal starte.')} onClose={() => setLibOpen(false)}
+          head={<ColorBar value={S.scheme} onChange={(v) => c.setScheme(v)} tx={tx} scope="home" />}
+          startLabel={tx('Start fra')} startAspect="1 / 1" startAttr="data-tpl"
+          start={[{ id: 'blank', name: tx('Tomt'), desc: tx('Helt tom side i valgt format'), onPick: () => { setLibOpen(false); c.create('blank') }, preview: <TplPreview k="blank" w={w} h={h} scheme={c.schemeFor('blank')} own={false} tx={tx} /> }]}
+          libLabel={tx('Ferdige maler')} libNote={tx('Alle ferdige maler samlet. Alt er vanlige lag: bytt tekst, bilder og farger. Fargene øverst gjelder alle malene; en mal du har gitt egne farger i editoren, beholder dem.')} cancelLabel={tx('Avbryt')}
+          lib={{
+            items: libItems, cats: LIB_CATS, catLabel: (k) => tx(k as Phrase), loading: S.lib == null, aspect: '1 / 1', attr: 'data-tpl',
+            preview: (x) => x.lib ? <LibPreview t={x.lib} scheme={S.scheme} tx={tx} /> : <TplPreview k={x.id} w={w} h={h} scheme={c.schemeFor(x.id)} own={Object.prototype.hasOwnProperty.call(S.tplSchemes, x.id)} tx={tx} />,
+            onPick: (x) => { setLibOpen(false); if (x.lib) c.createLib(x.lib); else c.create(x.id) },
+          }} />
+      )}
       <section className={s.section}>
         <div className={s.rowBetween}>
           <span className={s.eyebrow}>{tx('Egne maler')}</span>

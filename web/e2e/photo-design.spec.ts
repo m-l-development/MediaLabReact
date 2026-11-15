@@ -29,7 +29,9 @@ test('startsiden: formater, de 19 malene og sikkerhetskopi', async ({ page }) =>
   await page.goto('/app/photo-design')
   await expect(page.getByRole('heading', { level: 1, name: 'Photo design' })).toBeVisible()
   // «Tomt» + alle ferdige maler samlet (18 egne + 100 fra designsamlingen)
-  await expect(page.locator('[data-tpl]')).toHaveCount(119)
+  await openLib(page)
+  await expect(page.locator('[data-tpl-picker] [data-tpl]')).toHaveCount(119)
+  await page.keyboard.press('Escape')
   await page.getByRole('button', { name: /Story 9:16/ }).click()
   await expect(page.getByRole('button', { name: /Story 9:16/ })).toHaveAttribute('aria-pressed', 'true')
   const dl = page.waitForEvent('download')
@@ -43,6 +45,7 @@ test('nytt prosjekt fra mal: bilde, tekst, lagre og eksporter PNG, JPG og PDF', 
   test.slow()
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await expect(page.getByText('Lag', { exact: true }).first()).toBeVisible()
@@ -140,9 +143,15 @@ test('effekter i avansert modus blir egne lag', async ({ page }, info) => {
 })
 
 /** Andel piksler i lerretet (forhåndsvisningen av en mal) som er tydelig blå (paletten «Hvit og blå»). */
+/** Malene og fargevelgeren står i den felles malpopupen («Ny mal …», som i Thumbnail): åpne den hvis den er lukket. */
+const openLib = async (page: Page) => {
+  if (await page.locator('[data-tpl-picker]').count()) return
+  await page.locator('[data-pd-lib-open]').click()
+  await expect(page.locator('[data-tpl-picker]')).toBeVisible()
+}
 /** Forhåndsvisningene tegnes når kortet er nær skjermen: rull dit først. */
-const see = async (page: Page, sel: string) => { if (sel.startsWith('[data-tpl=')) await page.locator(sel.replace(/ canvas$/, '')).first().scrollIntoViewIfNeeded() }
-const blueIn = async (page: Page, k: string) => (await see(page, `[data-tpl="${k}"]`), page.locator(`[data-tpl="${k}"] canvas`)).evaluate((c: HTMLCanvasElement) => {
+const see = async (page: Page, sel: string) => { if (sel.startsWith('[data-tpl=')) { await openLib(page); await page.locator('[data-tpl-picker] ' + sel.replace(/ canvas$/, '')).first().scrollIntoViewIfNeeded() } }
+const blueIn = async (page: Page, k: string) => (await see(page, `[data-tpl="${k}"]`), page.locator(`[data-tpl-picker] [data-tpl="${k}"] canvas`)).evaluate((c: HTMLCanvasElement) => {
   const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data
   let n = 0
   for (let i = 0; i < d.length; i += 16) if ((d[i + 2] ?? 0) > 150 && (d[i] ?? 0) < 60) n++
@@ -152,40 +161,44 @@ const blueIn = async (page: Page, k: string) => (await see(page, `[data-tpl="${k
 test('fargepalett over malene: samme valg som i Thumbnail Studio, oppdaterer forhåndsvisningene og beholdes', async ({ page }) => {
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
-  const btn = page.locator('[data-pd-pal-btn]')
-  // velgeren står over malene
+  await openLib(page)
+  const btn = page.locator('[data-tpl-picker] [data-pd-scheme] [data-theme-btn]')
+  // velgeren står over malene (øverst i popupen, som i Thumbnail)
   const yBtn = (await btn.boundingBox())?.y ?? 0
-  const yTpl = (await page.locator('[data-tpl]').first().boundingBox())?.y ?? 0
+  const yTpl = (await page.locator('[data-tpl-picker] [data-tpl-lib]').first().boundingBox())?.y ?? 0
   expect(yBtn).toBeLessThan(yTpl)
   await expect(btn).toContainText('Standard')
   await expect.poll(() => blueIn(page, 'bold')).toBeLessThan(0.05)
   await btn.click()
-  await expect(page.locator('[data-pd-pal]')).toHaveCount(12) // Standard, 10 kombinasjoner og «Egne farger …»
-  await page.locator('[data-pd-pal="wbl"]').click()
-  await expect(page.locator('[data-pd-pal]')).toHaveCount(0) // menyen lukkes
+  await expect(page.locator('[data-theme-opt]')).toHaveCount(12) // felles velger: Standard, 10 temaer og «Egne farger»
+  await page.locator('[data-theme-opt="wbl"]').click()
+  await expect(page.locator('[data-theme-opt]')).toHaveCount(0) // menyen lukkes
   await expect(btn).toContainText('Hvit og blå')
   // forhåndsvisningen tegnes på nytt med en gang
   await expect.poll(() => blueIn(page, 'bold')).toBeGreaterThan(0.5)
   // malen åpnes i paletten
-  await page.locator('[data-tpl="bold"]').click()
+  await page.locator('[data-tpl-picker] [data-tpl="bold"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.getByRole('button', { name: /Prosjekter/ }).first().click()
   page.once('dialog', (d) => void d.dismiss())
   // paletten er beholdt etter bytte av mal og etter ny innlasting
-  await expect(page.locator('[data-pd-pal-btn]')).toContainText('Hvit og blå')
+  await openLib(page)
+  await expect(page.locator('[data-pd-scheme] [data-theme-btn]')).toContainText('Hvit og blå')
   await page.reload()
-  await expect(page.locator('[data-pd-pal-btn]')).toContainText('Hvit og blå')
+  await openLib(page)
+  await expect(page.locator('[data-pd-scheme] [data-theme-btn]')).toContainText('Hvit og blå')
   await expect.poll(() => blueIn(page, 'countdown')).toBeGreaterThan(0.3)
   // tilbake til standard med tastaturet: Escape lukker menyen
-  await page.locator('[data-pd-pal-btn]').click()
+  await page.locator('[data-pd-scheme] [data-theme-btn]').click()
   await page.keyboard.press('Escape')
-  await expect(page.locator('[data-pd-pal]')).toHaveCount(0)
+  await expect(page.locator('[data-theme-opt]')).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
 test('nytt bilde fyller malens tomme bildeplass (uten at den er valgt), og teksten ligger fortsatt over', async ({ page }) => {
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="split"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await dock(page, 'layers')
@@ -209,7 +222,8 @@ test('de 10 nye malene åpnes i editoren med lagene sine', async ({ page }) => {
   const errors = await errorsOf(page)
   for (const k of ['split', 'verse', 'series', 'countdown', 'news', 'poster', 'thanks', 'facts', 'staff', 'minimal']) {
     await page.goto('/app/photo-design')
-    await page.locator(`[data-tpl="${k}"]`).click()
+    await openLib(page)
+    await page.locator(`[data-tpl-picker] [data-tpl="${k}"]`).click()
     await expect(page.locator('[data-pd-view="edit"]'), k).toBeVisible()
     await dock(page, 'layers')
     expect(await page.locator('[data-layer]').count(), k).toBeGreaterThan(2)
@@ -222,12 +236,14 @@ test('alle malene vises på lerretet, også når de åpnes etter hverandre (skri
   const errors = await errorsOf(page)
   page.on('dialog', (d) => void d.dismiss())
   await page.goto('/app/photo-design')
-  await expect(page.locator('[data-tpl]')).toHaveCount(119)
+  await openLib(page)
+  await expect(page.locator('[data-tpl-picker] [data-tpl]')).toHaveCount(119)
   // Photos egne maler («Tomt» + 18); designsamlingen (001–100) har egne tester
-  const keys = (await page.locator('[data-tpl]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tpl') as string))).filter((k) => !/^[0-9]+$/.test(k))
+  const keys = (await page.locator('[data-tpl-picker] [data-tpl]').evaluateAll((els) => els.map((e) => e.getAttribute('data-tpl') as string))).filter((k) => !/^[0-9]+$/.test(k))
   expect(keys).toHaveLength(19)
   for (const k of keys) {
-    await page.locator(`[data-tpl="${k}"]`).click()
+    await openLib(page)
+    await page.locator(`[data-tpl-picker] [data-tpl="${k}"]`).click()
     const cv = page.locator('[data-pd-view="edit"] canvas').first()
     // lerretets oppløsning følger visningen (ikke 10 × 10), og malen er tegnet (flere farger enn bakgrunnen)
     await expect.poll(() => cv.evaluate((c: HTMLCanvasElement, key: string) => {
@@ -238,13 +254,13 @@ test('alle malene vises på lerretet, også når de åpnes etter hverandre (skri
       return c.width >= r.width * 0.9 && (key === 'blank' || s.size > 3)
     }, k), k).toBe(true)
     await page.getByRole('button', { name: /Prosjekter/ }).first().click()
-    await expect(page.locator('[data-tpl]').first()).toBeVisible()
+    await expect(page.locator('[data-pd-lib-open]')).toBeVisible()
   }
   expect(errors).toEqual([])
 })
 
 /** Andel piksler i et lerret som ligger nær fargen `hex` (±28 per kanal). */
-const shareOf = async (page: Page, sel: string, hex: string) => (await see(page, sel), page.locator(sel)).first().evaluate((c: HTMLCanvasElement, h: string) => {
+const shareOf = async (page: Page, sel: string, hex: string) => (await see(page, sel), page.locator(sel.startsWith('[data-tpl=') ? '[data-tpl-picker] ' + sel : sel)).first().evaluate((c: HTMLCanvasElement, h: string) => {
   const n = parseInt(h.slice(1), 16), R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255
   const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, c.width, c.height).data
   let k = 0
@@ -256,6 +272,7 @@ test('egne farger: tre fargevelgere, roller, hurtigvalg – forhåndsvisningen o
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
   const prev = '[data-tpl="countdown"] canvas'
+  await openLib(page)
   await page.locator('[data-pd-roles-btn]').click()
   const pop = page.locator('[data-pd-roles]')
   await expect(pop).toBeVisible()
@@ -281,15 +298,15 @@ test('egne farger: tre fargevelgere, roller, hurtigvalg – forhåndsvisningen o
   // egen farge med fargevelgeren: farge 1 blir grønn
   await pop.locator('[data-pd-color="0"]').fill('#118844')
   await expect.poll(() => shareOf(page, prev, '#118844')).toBeGreaterThan(0.4)
-  await expect(page.locator('[data-pd-pal-btn]')).toContainText('Egne farger')
+  await expect(page.locator('[data-pd-scheme] [data-theme-btn]')).toContainText('Egne farger')
   await pop.locator('[data-pd-roles-done]').click()
   await expect(pop).toHaveCount(0)
   // valget beholdes når du bytter mal og etter ny innlasting
   await page.reload()
   await expect.poll(() => shareOf(page, '[data-tpl="thanks"] canvas', '#118844')).toBeGreaterThan(0.3)
   // ferdig kombinasjon fyller de tre fargene, og kan justeres videre
-  await page.locator('[data-pd-pal-btn]').click()
-  await page.locator('[data-pd-pal="wbl"]').click()
+  await page.locator('[data-pd-scheme] [data-theme-btn]').click()
+  await page.locator('[data-theme-opt="wbl"]').click()
   await expect.poll(() => shareOf(page, prev, '#0b4fd6')).toBeGreaterThan(0.4)
   await page.locator('[data-pd-roles-btn]').click()
   await expect(page.locator('[data-pd-color="0"]')).toHaveValue('#0b4fd6')
@@ -303,6 +320,7 @@ test('farger i prosjektet: endres i editoren, lagres med prosjektet, huskes for 
   const errors = await errorsOf(page)
   page.on('dialog', (d) => void d.dismiss())
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="countdown"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   const cv = '[data-pd-view="edit"] canvas'
@@ -333,13 +351,14 @@ test('farger i prosjektet: endres i editoren, lagres med prosjektet, huskes for 
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await expect.poll(() => shareOf(page, cv, '#f6c1c7')).toBeGreaterThan(0.4)
   await page.getByRole('button', { name: 'Stil', exact: true }).click()
-  await expect(page.locator('[data-pd-scheme="doc"] [data-pd-pal-btn]')).toContainText('Egne farger')
+  await expect(page.locator('[data-pd-scheme="doc"] [data-theme-btn]')).toContainText('Egne farger')
   expect(errors).toEqual([])
 })
 
 test('fargevelgeren under dragging: mange endringer raskt, siste farge havner i malen (og feltet følger med)', async ({ page }) => {
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
+  await openLib(page)
   await page.locator('[data-pd-roles-btn]').click()
   const inp = page.locator('[data-pd-color="0"]')
   // Maskinens egen bildetakt (samme side, uten endringer): under last er den tregere, og en fast grense ga ustabil test.
@@ -387,6 +406,7 @@ test('«Bytt bilde» tar ikke tilbake valget hvis du har valgt et annet lag mens
     HTMLImageElement.prototype.decode = function () { return new Promise<void>((r) => setTimeout(r, 2000)).then(() => decode.call(this)) }
   })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()

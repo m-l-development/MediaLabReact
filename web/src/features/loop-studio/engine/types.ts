@@ -132,6 +132,8 @@ export interface Cfg {
   accent?: Hex
   /** Tekstfarge fra fargetemaet (mangler = hvit, som før). */
   ink?: Hex | null
+  /** Dekorative lyseffekter i temaet: [aksent, flate] (mangler = effektenes egne farger). */
+  fxPal?: [Hex, Hex] | null
   header?: string
   topLabel?: string
   headerX?: number | null

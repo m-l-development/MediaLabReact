@@ -10,6 +10,7 @@ test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'PC'))
 test('TB-6D1979: tall i glideren kan skrives inn, dobbeltklikk og ↺ nullstiller', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()
   const ch = page.waitForEvent('filechooser')

@@ -4,11 +4,11 @@
  * tallrull, opptelling, rulletekst, bane, penselstrøk, filmstriper, overganger), så alt kan endres eller lages fra
  * bunnen av uten mal. Fargeklippene byttes med egne bilder eller videoer («Bytt» på klippet).
  */
-import type { Clip, ColorClip, TextItem } from './model'
+import type { Clip, ColorClip, Overlay, TextItem } from './model'
 import type { Effect } from './fx'
 
-interface Content { clips: Clip[]; texts: TextItem[] }
-export interface RefTemplate { k: string; name: string; desc: string; tt: number; cat: string; make: () => Content }
+interface Content { clips: Clip[]; texts: TextItem[]; ov?: Overlay[] }
+export interface RefTemplate { k: string; name: string; desc: string; tt: number; cat: string; motion?: 'cinematic' | 'dynamic' | 'minimal' | 'typo'; make: () => Content }
 
 let n = 0
 const fxId = () => `f${Date.now().toString(36)}${(n++).toString(36)}`
@@ -129,7 +129,7 @@ export function refTemplates({ text, colorClip }: Make): RefTemplate[] {
   },
   // ---------- tre egne premiummaler ----------
   {
-    k: 'launch', name: 'Premium: Lansering', desc: 'Mørk scene, nedtelling med tallrull, glitch-tittel og blitsmontasje', tt: 4.2, cat: 'Premium',
+    k: 'launch', motion: 'dynamic', name: 'Premium: Lansering', desc: 'Mørk scene, nedtelling med tallrull, glitch-tittel og blitsmontasje', tt: 4.2, cat: 'Premium',
     make: () => ({
       clips: [colorClip({ dur: 6, c1: '#07040f', c2: '#3b1d6e', grad: 'radial', effects: bars(0.1, 0.6), trans: { type: 'none', dur: 0.5 } }),
         ...montage(['#3b1d6e', '#e53fbf', '#120a24', '#29c4d6', '#5a2bb0', '#f5b82c'], 0.45, 'flash', 0.12),
@@ -144,7 +144,7 @@ export function refTemplates({ text, colorClip }: Make): RefTemplate[] {
     }),
   },
   {
-    k: 'chapters', name: 'Premium: Kapitler', desc: 'Elegant serif med kapitteltall som ruller og visk-overganger', tt: 2.2, cat: 'Premium',
+    k: 'chapters', motion: 'cinematic', name: 'Premium: Kapitler', desc: 'Elegant serif med kapitteltall som ruller og visk-overganger', tt: 2.2, cat: 'Premium',
     make: () => {
       const C = ['#f1e9dc', '#e6d3c0', '#d9e1d6']
       const T = ['Velkommen', 'Fellesskap', 'Håp']
@@ -159,7 +159,7 @@ export function refTemplates({ text, colorClip }: Make): RefTemplate[] {
     },
   },
   {
-    k: 'kinetic', name: 'Premium: Kinetisk promo', desc: 'Store ord som slår inn i takt, tekstmaske og fartsfylte overganger', tt: 1.8, cat: 'Premium',
+    k: 'kinetic', motion: 'typo', name: 'Premium: Kinetisk promo', desc: 'Store ord som slår inn i takt, tekstmaske og fartsfylte overganger', tt: 1.8, cat: 'Premium',
     make: () => {
       const words: [string, string, string][] = [['STERKERE', '#ff5a36', '#1a1a1a'], ['SAMMEN', '#1a1a1a', '#f5b82c'], ['HVER', '#f5b82c', '#1a1a1a'], ['UKE', '#1a1a1a', '#ff5a36']]
       return {

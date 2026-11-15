@@ -7,7 +7,8 @@ import { seekTo } from './motion-helpers'
  * er animert (bildet endrer seg over tid), og tekstene kan redigeres i editoren. Bildene lagres som kontaktark
  * (test-results) for visuell kontroll.
  */
-const NEW = ['credits', 'yearroll', 'daycount', 'flashmontage', 'travel', 'fogreveal', 'monthdump', 'lyrics', 'recap', 'launch', 'chapters', 'kinetic']
+// de tre premiummalene (de 13 referansemalene testes grundig i motion-reference-templates.spec.ts)
+const NEW = ['launch', 'chapters', 'kinetic']
 
 const snap = (page: Page) => page.locator('[data-md-canvas]').evaluate((c: HTMLCanvasElement) => c.toDataURL('image/jpeg', 0.7))
 const sig = (page: Page) => page.locator('[data-md-canvas]').evaluate((c: HTMLCanvasElement) => {

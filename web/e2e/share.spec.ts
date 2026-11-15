@@ -11,6 +11,7 @@ async function arrivesInIsolate(page: Page) {
 
 test('Photo Design: eksporten «Bruk i Isolate Subject»', async ({ page }) => {
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.getByRole('button', { name: 'Eksporter', exact: true }).click()

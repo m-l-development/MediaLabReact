@@ -75,3 +75,20 @@ describe('fargevalg på alle ferdige Photo-maler', () => {
     }
   })
 })
+
+describe('felles fargevelger ↔ Photos fargevalg (roller beholdes)', () => {
+  it('ferdig tema, Standard og egne farger går begge veier', async () => {
+    const { themeOf, schemeOfTheme } = await import('../palette')
+    expect(themeOf(null)).toBeNull()
+    expect(schemeOfTheme(null, null)).toBeNull()
+    expect(schemeOfTheme({ k: 'wbl' }, null)).toEqual(schemeOfPreset('wbl'))
+    expect(themeOf(schemeOfPreset('wbl'))).toEqual({ k: 'wbl' })
+    // egne farger med byttet rekkefølge: den felles velgeren viser [bakgrunn, tekst, støtte]
+    const mine: Scheme = { k: 'custom', c: ['#111111', '#eeeeee', '#ff0000'], r: [2, 0, 1] }
+    expect(themeOf(mine)).toEqual({ k: 'custom', c: ['#ff0000', '#111111', '#eeeeee'] })
+    // ny bakgrunnsfarge fra velgeren: rollene (rekkefølgen) er de samme, bare bakgrunnsfargen er byttet
+    const next = schemeOfTheme({ k: 'custom', c: ['#00aa00', '#111111', '#eeeeee'] }, mine)!
+    expect(next.r).toEqual([2, 0, 1])
+    expect(rolesOf(next)).toEqual({ bg: '#00aa00', text: '#111111', off: '#eeeeee' })
+  })
+})

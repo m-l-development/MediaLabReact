@@ -14,6 +14,7 @@ test.describe('mobil', () => {
 
   test('Photo Design: «⋯» på det valgte laget og i lagpanelet åpner lagmenyen; menyvalgene er fingerstore', async ({ page }) => {
     await page.goto('/app/photo-design')
+    await page.locator('[data-pd-lib-open]').tap()
     await page.locator('[data-tpl="photo"]').tap()
     await page.locator('[data-dock-tab="layers"]').tap()
     const row = page.locator('[data-layer]').first()
@@ -74,6 +75,7 @@ test('PC med mus: «⋯» er skjult (desktop uendret)', async ({ page, isMobile 
   test.skip(isMobile, 'bare PC')
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await page.locator('[data-layer]').first().click()
   await expect(more(page).first()).toBeHidden()

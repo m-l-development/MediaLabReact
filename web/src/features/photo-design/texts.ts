@@ -877,6 +877,13 @@ export const EN = {
   'Slå sammen valgte bilder til HDR': 'Merge selected images to HDR',
   'Snu': 'Invert',
   'Velg 2–5 bilder av samme motiv med ulik eksponering (Shift-klikk).': 'Select 2–5 images of the same scene with different exposures (Shift-click).',
+  'Ny mal …': 'New template …',
+  'Velg en ferdig mal i «Ny mal …» (alle maler, kategorier, søk og farger), eller start med en tom side.': 'Choose a ready-made template in “New template …” (all templates, categories, search and colours), or start with a blank page.',
+  'Ny mal': 'New template',
+  'Velg hvordan den nye malen skal starte.': 'Choose how the new template should start.',
+  'Start fra': 'Start from',
+  'Helt tom side i valgt format': 'Completely blank page in the chosen format',
+  'Alle ferdige maler samlet. Alt er vanlige lag: bytt tekst, bilder og farger. Fargene øverst gjelder alle malene; en mal du har gitt egne farger i editoren, beholder dem.': 'All ready-made templates in one place. Everything is ordinary layers: change text, images and colours. The colours at the top apply to all templates; a template you gave its own colours in the editor keeps them.',
 } as const satisfies Record<string, string>
 
 export type Phrase = keyof typeof EN

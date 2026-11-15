@@ -15,7 +15,8 @@ test('ferdig mal: velg fra kategorien, legg inn bilde, lagre, åpne igjen og eks
   if (info.project.name !== 'mobil') await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
   // ett malbibliotek på siden: «Alle maler» + de fem kategoriene; Photos egne maler er fordelt i dem
-  const lib = page.locator('[data-pd-lib] [data-tpl-lib]')
+  await page.locator('[data-pd-lib-open]').click()
+  const lib = page.locator('[data-tpl-picker] [data-tpl-lib]')
   await expect(lib.locator('[data-tpl-cats] button')).toHaveCount(6)
   await expect(lib.locator('[data-tpl-item]')).toHaveCount(118)
   const nums = await lib.locator('[data-tpl-cats] button span').allTextContents()

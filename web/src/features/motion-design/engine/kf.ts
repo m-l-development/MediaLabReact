@@ -17,11 +17,13 @@ export type PropDef = readonly [string, string, number, number, number]
 export const KF_PROPS: Record<KfKind, readonly PropDef[]> = {
   clip: [['x', 'Posisjon X', -1, 1, 0.01], ['y', 'Posisjon Y', -1, 1, 0.01], ['scale', 'Skalering', 0.1, 5, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['ax', 'Ankerpunkt X', -0.5, 0.5, 0.01], ['ay', 'Ankerpunkt Y', -0.5, 0.5, 0.01], ['op', 'Opasitet', 0, 1, 0.01]],
   ov: [['x', 'Posisjon X', -1, 2, 0.005], ['y', 'Posisjon Y', -1, 2, 0.005], ['scale', 'Skalering', 0.02, 4, 0.01], ['rot', 'Rotasjon', -720, 720, 1], ['ax', 'Ankerpunkt X', -0.5, 0.5, 0.01], ['ay', 'Ankerpunkt Y', -0.5, 0.5, 0.01], ['opacity', 'Opasitet', 0, 1, 0.01]],
-  text: [['x', 'Posisjon X', -0.5, 1.5, 0.005], ['y', 'Posisjon Y', -0.5, 1.5, 0.005], ['size', 'Størrelse', 8, 600, 1], ['opacity', 'Opasitet', 0, 1, 0.01]],
+  // størrelse helt opp til «zoom gjennom bokstavene» (teksten fyller bildet), og sporing (bokstavavstand)
+  text: [['x', 'Posisjon X', -0.5, 1.5, 0.005], ['y', 'Posisjon Y', -0.5, 1.5, 0.005], ['size', 'Størrelse', 8, 20000, 1], ['track', 'Sporing', -0.2, 3, 0.01], ['opacity', 'Opasitet', 0, 1, 0.01]],
 }
 export const EASES: readonly (readonly [Ease, string])[] = [['lin', 'Lineær'], ['ease', 'Myk'], ['in', 'Myk start (akselerer)'], ['out', 'Myk slutt (brems)'], ['back', 'Fjær (forbi og tilbake)'], ['hold', 'Hold']]
 
-const PROP_RE = /^(x|y|scale|rot|op|opacity|size|fx:[\w-]{1,40})$/
+// track (sporing) og ankerpunkt (ax/ay) kan også ha keyframes – de ble før forkastet ved lagring
+const PROP_RE = /^(x|y|scale|rot|op|opacity|size|track|ax|ay|fx:[\w-]{1,40})$/
 const isRec = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /** Kontroll av lagrede keyframes (sortert, ugyldige fjernet). undefined = ingen. */

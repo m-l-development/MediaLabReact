@@ -26,7 +26,7 @@ async function exportRange(page: Page, from: string, to: string): Promise<Buffer
   return fs.readFileSync(await d.path())
 }
 
-for (const [k, t, th] of [['credits', 2, ''], ['fogreveal', 3, ''], ['daycount', 1, ''], ['monthdump', 2, ''], ['monthdump', 2, 'wbl'], ['kinetic', 1, 'wg']] as const) {
+for (const [k, t, th] of [['theend', 2, ''], ['newyork', 2, ''], ['maydump', 4, ''], ['maydump', 4, 'wbl'], ['kinetic', 1, 'wg']] as const) {
   test(`eksport av mal ${k}${th ? ' i tema ' + th : ''}: gyldig MP4, bildet = forhåndsvisningen`, async ({ page }, info) => {
     test.skip(info.project.name === 'mobil', 'PC')
     test.slow()
@@ -50,6 +50,7 @@ for (const [k, t, th] of [['credits', 2, ''], ['fogreveal', 3, ''], ['daycount',
     expect(Math.abs((v?.duration ?? 0) - 4)).toBeLessThan(0.1)
     const px = (await framesAt(page, buf, [t + 0.02])).px[0]!
     const d = Math.abs(px[0]! - pv[0]!) + Math.abs(px[1]! - pv[1]!) + Math.abs(px[2]! - pv[2]!)
-    expect(d, `midtpunktet i eksporten (${px}) er likt forhåndsvisningen (${pv})`).toBeLessThan(60)
+    // midtpunktet kan treffe plassholdernummeret (tynn tekst): kantutjevningen er ulik i 720p og forhåndsvisningen
+    expect(d, `midtpunktet i eksporten (${px}) er likt forhåndsvisningen (${pv})`).toBeLessThan(70)
   })
 }

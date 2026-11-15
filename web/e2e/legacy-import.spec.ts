@@ -41,6 +41,7 @@ test('Photo Design: prosjekt fra forrige versjon hentes, kan åpnes og redigeres
   test.slow()
   // 1. lag et ekte prosjekt og hent sikkerhetskopien i dagens format
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()

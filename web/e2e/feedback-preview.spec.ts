@@ -240,7 +240,7 @@ test('forhåndsvisningen viser den ekte siden i riktig app og visning, uten å k
     // eldre sak uten lagret visning: elementet lå i redigeringen (lerretet), så redigeringsvisningen velges
     { name: 'thumbnail-eldre', c: { app: 'thumbnail-studio', page: '/thumbnail-studio.dc.html', view: null, role: 'user', viewport: '1440×900', rect: { x: 40, y: 40, w: 4, h: 4 }, element: { tag: 'canvas', label: 'Lerret' } }, want: '[data-ts-canvas]' },
     // ny sak på startvisningen (ui = ''): bare én ramme, ingen prøving av redigeringen
-    { name: 'photo-design-start', c: { app: 'photo-design', page: '/app/photo-design', view: null, role: 'user', ui: '', viewport: '1440×900', rect: { x: 10, y: 10, w: 20, h: 10 }, element: { tag: 'h1' } }, want: '[data-tpl="photo"]', frames: 1 },
+    { name: 'photo-design-start', c: { app: 'photo-design', page: '/app/photo-design', view: null, role: 'user', ui: '', viewport: '1440×900', rect: { x: 10, y: 10, w: 20, h: 10 }, element: { tag: 'h1' } }, want: '[data-pd-lib-open]', frames: 1 },
     { name: 'forside-mobil', c: { app: 'media-lab', page: '/media-lab.dc.html', view: null, role: 'user', viewport: '390×844', rect: { x: 25, y: 41, w: 51, h: 18 }, element: { tag: 'a' } }, want: 'main' },
   ]
   for (const k of cases) {

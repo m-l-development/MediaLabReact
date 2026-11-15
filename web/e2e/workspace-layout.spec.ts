@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 /** Editorene fyller vinduet under topplinjen (som Loop Studio): ingen siderulling, arbeidsflaten bruker høyden. */
 
 const open: [string, (page: Page) => Promise<void>][] = [
-  ['Photo Design', async (page) => { await page.goto('/app/photo-design'); await page.locator('[data-tpl="photo"]').click(); await page.locator('[data-pd-view="edit"]').waitFor() }],
+  ['Photo Design', async (page) => { await page.goto('/app/photo-design'); await page.locator('[data-pd-lib-open]').click(); await page.locator('[data-tpl="photo"]').click(); await page.locator('[data-pd-view="edit"]').waitFor() }],
   ['Motion Design', async (page) => { await page.goto('/app/motion-design'); await page.getByRole('button', { name: 'Nytt prosjekt' }).click(); await page.locator('[data-format="wide"]').click(); await page.locator('[data-tpl="blank"]').click(); await page.locator('[data-md-canvas]').waitFor() }],
   ['Thumbnail Studio', async (page) => { await page.goto('/app/thumbnail-studio'); await page.getByRole('button', { name: /Søndagsmøte/ }).click(); await page.getByRole('button', { name: /Ny mal/ }).click(); await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="base:main"]').click(); await page.locator('[data-ts-view="edit"]').waitFor() }],
   ['Mockups', async (page) => { await page.goto('/app/mockups?mockup=tv-wall'); await page.locator('[data-ml-workspace] canvas').first().waitFor({ timeout: 30_000 }) }],

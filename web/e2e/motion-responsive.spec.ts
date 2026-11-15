@@ -74,7 +74,7 @@ for (const [w, h, label] of SIZES) {
     await page.locator('[data-format="story"]').click()
     await expect(page.locator('[data-tpl-lib]')).toBeVisible()
     r.maler = await audit(page, touch)
-    await page.locator('[data-tpl="credits"]').click()
+    await page.locator('[data-tpl="theend"]').click()
     await expect(page.locator('[data-md-canvas]')).toBeVisible()
     await page.waitForTimeout(600)
     r.editor = await audit(page, touch)

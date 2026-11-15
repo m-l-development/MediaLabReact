@@ -310,3 +310,19 @@ export async function renderAudio(p: Project, getBlob: GetBlob, sr: number, tota
   if (!any) return null
   return oc.startRendering()
 }
+
+/** Lydsporet som mono PCM (for Music Sync-analysen), fra a til b sekunder i kilden; 22 050 Hz holder for takt og intensitet. */
+export async function pcm(getBlob: GetBlob, id: string, a = 0, b: number | null = null): Promise<{ x: Float32Array; sr: number } | null> {
+  const sr = 22050
+  const oc = new OfflineAudioContext(1, 1, sr)
+  const buf = await decode(oc, getBlob, id, sr)
+  if (!buf) return null
+  const s0 = Math.max(0, Math.floor(a * buf.sampleRate))
+  const s1 = Math.min(buf.length, b === null ? buf.length : Math.ceil(b * buf.sampleRate))
+  const x = new Float32Array(Math.max(0, s1 - s0))
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const d = buf.getChannelData(ch)
+    for (let i = 0; i < x.length; i++) x[i] = (x[i] ?? 0) + (d[s0 + i] ?? 0) / buf.numberOfChannels
+  }
+  return { x, sr: buf.sampleRate }
+}

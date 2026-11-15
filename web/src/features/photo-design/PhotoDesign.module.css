@@ -278,6 +278,11 @@
   color: #c9c5bc;
 }
 
+:root[data-theme='light'] .chipAdd {
+  border-color: rgba(0, 0, 0, 0.35);
+  color: #2b2925;
+}
+
 .projCard {
   position: relative;
   display: flex;

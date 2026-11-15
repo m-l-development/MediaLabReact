@@ -179,6 +179,7 @@ test('Photo Design: «Kopier bilde» gir et PNG på utklippstavlen, «Bruk i …
   const chromium = context.browser()?.browserType().name() === 'chromium'
   if (chromium) await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.goto('/app/photo-design')
+  await press(page, page.locator('[data-pd-lib-open]'))
   await press(page, page.locator('[data-tpl="photo"]'))
   await press(page, page.getByRole('button', { name: 'Eksporter', exact: true }).first())
   await press(page, page.getByRole('button', { name: 'Kopier bilde' }))

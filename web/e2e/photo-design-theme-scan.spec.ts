@@ -16,9 +16,10 @@ test('lys modus i hele Photo Design: tekst lesbar og ingen mørke paneler (start
   await page.goto('/app/photo-design')
   await page.evaluate(() => localStorage.setItem('medialab.theme', 'light'))
   await page.reload()
-  await expect(page.locator('[data-tpl="photo"]')).toBeVisible()
+  await expect(page.locator('[data-pd-lib-open]')).toBeVisible()
   await check(page, 'startside', problems)
 
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await check(page, 'editor', problems)

@@ -31,6 +31,7 @@ test('Finjuster masken: endringen skrives til laget og kan angres', async ({ pag
   page.on('pageerror', (e) => errors.push(e.message))
   await page.setViewportSize({ width: 1440, height: 950 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()
   const chooser = page.waitForEvent('filechooser')

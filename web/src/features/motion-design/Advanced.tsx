@@ -21,7 +21,7 @@ const sec = (v: number) => (Math.round(v * 100) / 100).toFixed(2)
 
 export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MState; p: Project; tx: Tx; onShared: () => void }) {
   // «Bytt media» på et klipp i V1: biblioteket viser «Bruk her» på hver fil som kan erstatte det
-  const rep = S.replaceFor && p.clips.some((x) => x.id === S.replaceFor) ? S.replaceFor : null
+  const rep = S.replaceFor && (p.clips.some((x) => x.id === S.replaceFor) || p.ov.some((x) => x.id === S.replaceFor)) ? S.replaceFor : null
   return (
     <div className={s.panel} data-md-bin="">
       {rep && (
@@ -34,6 +34,14 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
       <div className={s.binBtns}>
         <button type="button" className={`${s.barBtn} ${s.small}`} onClick={onShared}>{tx('Fra Dine medier')}</button>
         {!rep && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-color="" title={tx('Ensfarget flate eller fargeovergang på V1')} onClick={() => c.addColor()}>{tx('+ Fargeflate')}</button>}
+        {!rep && c.phList().length > 0 && (
+          <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }} data-md-ph-list="">
+            {c.phList().slice(0, 12).map((x) => <button key={x.ph} type="button" className={`${s.barBtn} ${s.small}`} data-md-ph={x.ph} title={tx('Last opp bilde eller video …')} onClick={() => c.uploadInto(x.id)}>{x.ph}</button>)}
+            {c.phList().length > 12 && <span className={s.hint}>{tx('+{n} til', { n: c.phList().length - 12 })}</span>}
+          </span>
+        )}
+        {!rep && c.placeholders().length > 0 && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-fill-ph="" title={tx('Fyller malens plassholdere med de importerte bildene og videoene, i rekkefølge')} onClick={() => c.fillPlaceholders()}>{tx('Fyll plassholderne med mine filer')}</button>}
+        {!rep && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-frame="" title={tx('Ramme for bilde eller video over hovedvideoen; bytt inn innhold, flytt, skaler og animer den')} onClick={() => c.addFrame()}>{tx('+ Ramme (bilde-i-bilde)')}</button>}
         {!rep && <button type="button" className={`${s.barBtn} ${s.small}`} data-md-add-qr="" title={tx('QR-kode over videoen, til en nettside, e-post, telefon, SMS eller tekst')} onClick={() => void c.addQr()}>{tx('+ QR-kode')}</button>}
       </div>
       <span className={s.hint}>{tx('MP4, MOV, WebM, PNG, JPG, WebP, GIF, MP3, WAV, M4A, AAC, OGG og FLAC. Du kan også dra filer inn i vinduet.')}</span>
@@ -55,7 +63,7 @@ export function AdvBin({ c, S, p, tx, onShared }: { c: MotionController; S: MSta
               <span className={s.binMeta} data-md-bin-meta="">{tx(KIND[m.kind])} · {m.kind === 'image' ? tx('ingen varighet') : fmtTC(m.dur)}{m.w ? ` · ${m.w}×${m.h}` : ''}</span>
             </span>
             <span className={s.binBtns}>
-              {rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-use="" onClick={() => c.replaceClip(rep, m)}>{tx('Bruk her')}</button>}
+              {rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-use="" onClick={() => c.replaceAny(rep, m)}>{tx('Bruk her')}</button>}
               {!rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-to="v1" title={tx('Legg på hovedsporet V1 (etter valgt klipp, ellers sist)')} onClick={() => c.addToTrack(m, 'v1')}>V1</button>}
               {!rep && m.kind !== 'audio' && <button type="button" className={s.mini} data-md-to="v"title={tx('Legg på et nytt videospor øverst ved spillehodet (dekker sporene under)')} onClick={() => c.addToTrack(m, 'v')}>{tx('V+')}</button>}
               {!rep && m.kind === 'audio' && <button type="button" className={s.mini} data-md-to="a" title={tx('Legg på et lydspor ved spillehodet')} onClick={() => c.addToTrack(m, 'a')}>{tx('Lydspor')}</button>}

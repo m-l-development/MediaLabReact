@@ -3415,3 +3415,16 @@
 .editorNarrow .tabs::-webkit-scrollbar {
   display: none;
 }
+
+/* Music Sync i lydpanelet */
+.syncBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #2b2b2b;
+  border-radius: 12px;
+}
+.syncBox[data-on='1'] {
+  border-color: #f5b82c;
+}

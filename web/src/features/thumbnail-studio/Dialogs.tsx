@@ -1,7 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import { ThemePicker } from '../../shared/templates/ThemePicker'
-import { TemplateLibrary } from '../../shared/templates/TemplateLibrary'
+import { TemplatePicker } from '../../shared/templates/TemplatePicker'
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { ToolId } from '../../domain/tool'
 import { useLang } from '../../shared/i18n/i18n'
@@ -46,51 +46,31 @@ function PrevError({ tx, onRetry }: { tx: Tx; onRetry: () => void }) {
 export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }) {
   const cat = c.cat()
   if (!cat) return null
-  const list = c.newList(cat)
-  // alle ferdige maler i ett bibliotek (oppsettene + designsamlingen) med felles kategorier
-  const ready = c.readyList(cat)
-  const items = list.map((o) => {
-    const img = o.k === 'blank' ? '' : c.previewOf(cat, o.k)
-    return (
-      <button key={o.k} type="button" className={s.layoutCard} data-layout={o.k} onClick={() => c.pickNew(cat, o)}>
-        <span className={s.layoutThumb}>
-          {img && img !== PREV_ERR && <img src={img} alt="" />}
-          {o.k !== 'blank' && img == null && <span>{tx('Lager skisse …')}</span>}
-          {img === PREV_ERR && <PrevError tx={tx} onRetry={() => c.retryPrev(o.k + ':' + cat.id)} />}
-        </span>
-        <span className={s.layoutText}>
-          <b>{o.translate ? tx(o.name as Phrase) : o.name}</b>
-          <span>{tx(o.desc as Phrase)}</span>
-        </span>
-      </button>
-    )
-  })
+  const title = tx(S.newMode === 'apply' ? 'Bytt oppsett' : 'Ny mal')
+  // den felles malpopupen (shared/templates/TemplatePicker) – samme som i Photo Studio
   return (
-    <Modal label={tx(S.newMode === 'apply' ? 'Bytt oppsett' : 'Ny mal')} onClose={() => c.closeNew()}>
-      <div className={s.modalHead}>
-        <div>
-          <span className={s.modalTitle}>{tx(S.newMode === 'apply' ? 'Bytt oppsett' : 'Ny mal')}</span>
-          <span className={s.modalLead}>{tx(S.newMode === 'apply' ? 'Velg et nytt oppsett. Personbilde, navn, tema og egne bilder blir med over. Du kan angre etterpå.' : 'Velg hvordan den nye malen skal starte.')}</span>
-        </div>
-        <ThemePicker value={c.theme()} onChange={(v) => c.setTheme(v)} std={COMBOS[0]?.sw as [string, string, string]} />
-      </div>
-      {/* «Ny mal»: kategoriens grunnoppsett og blank (egne maler står på kategorisiden) */}
-      <div className={s.ctrlHead} data-new-head>{tx('Start fra')}</div>
-      <div className={s.layoutGrid}>{items}</div>
-      {/* alle ferdige maler samlet (shared/templates): kategorier, søk og sortering */}
-      <div className={s.ctrlHead} data-lib-head>{tx('Ferdige maler')}</div>
-      <span className={s.note}>{tx('Alle ferdige maler samlet. Alt er vanlige lag: bytt tekst, bilder og farger.')}</span>
-      <TemplateLibrary items={ready} cats={READY_CATS} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null} attr="data-layout"
-        onShow={(list) => void c.genReady(list)}
-        preview={(x) => {
+    <TemplatePicker title={title} onClose={() => c.closeNew()}
+      lead={tx(S.newMode === 'apply' ? 'Velg et nytt oppsett. Personbilde, navn, tema og egne bilder blir med over. Du kan angre etterpå.' : 'Velg hvordan den nye malen skal starte.')}
+      head={<ThemePicker value={c.theme()} onChange={(v) => c.setTheme(v)} std={COMBOS[0]?.sw as [string, string, string]} />}
+      // «Ny mal»: kategoriens grunnoppsett og blank (egne maler står på kategorisiden)
+      startLabel={tx('Start fra')}
+      start={c.newList(cat).map((o) => {
+        const img = o.k === 'blank' ? '' : c.previewOf(cat, o.k)
+        return {
+          id: o.k, name: o.translate ? tx(o.name as Phrase) : o.name, desc: tx(o.desc as Phrase), onPick: () => c.pickNew(cat, o),
+          preview: img === PREV_ERR ? <PrevError tx={tx} onRetry={() => c.retryPrev(o.k + ':' + cat.id)} /> : img ? <img src={img} alt="" /> : o.k !== 'blank' ? <span>{tx('Lager skisse …')}</span> : null,
+        }
+      })}
+      libLabel={tx('Ferdige maler')} libNote={tx('Alle ferdige maler samlet. Alt er vanlige lag: bytt tekst, bilder og farger.')} cancelLabel={tx('Avbryt')}
+      lib={{
+        items: c.readyList(cat), cats: READY_CATS, catLabel: (k) => tx(k as Phrase), loading: S.lib == null, attr: 'data-layout',
+        onShow: (list) => void c.genReady(list),
+        preview: (x) => {
           const img = c.readyPreviewOf(x)
           return img === PREV_ERR ? <PrevError tx={tx} onRetry={() => c.retryPrev(x.key)} /> : img ? <img src={img} alt="" /> : <span>{tx('Lager skisse …')}</span>
-        }}
-        onPick={(x) => c.pickReady(cat, x)} />
-      <div className={s.modalFoot}>
-        <button type="button" className={s.pillSm} onClick={() => c.closeNew()}>{tx('Avbryt')}</button>
-      </div>
-    </Modal>
+        },
+        onPick: (x) => c.pickReady(cat, x),
+      }} />
   )
 }
 

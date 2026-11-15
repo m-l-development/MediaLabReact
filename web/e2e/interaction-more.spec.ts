@@ -13,6 +13,7 @@ const box = async (loc: Locator) => (await loc.boundingBox()) as { x: number; y:
 async function photo(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
 }
@@ -189,6 +190,7 @@ test('flere kontekstmenyer: keyframe (Motion), bildelag (Photo), forhåndsvisnin
   // Photo: bildelaget har bildehandlingene og «Til fremst»
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click({ button: 'right' })
   const lm = page.getByRole('menu', { name: 'Lagmeny' })
@@ -210,6 +212,7 @@ test('flere kontekstmenyer: keyframe (Motion), bildelag (Photo), forhåndsvisnin
 test('Photo Design: lås fra høyreklikkmenyen sperrer egenskaper, sletting og endringsvalg; «Lås opp» åpner igjen', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
   const row = page.locator(`[data-layer="${id}"]`)
@@ -231,6 +234,7 @@ test('Photo Design: lås fra høyreklikkmenyen sperrer egenskaper, sletting og e
 test('Photo Design: «Beskjær» – kanten kutter rammen, bildet står stille (ikke skalering)', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
   await page.locator(`[data-layer="${id}"]`).click()
@@ -262,6 +266,7 @@ test('Photo Design: «Beskjær» – kanten kutter rammen, bildet står stille (
 test('Photo Design: beskjæring med form – «Sirkel» gir kvadratisk ramme og runde kanter', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
   await page.locator(`[data-layer="${id}"]`).click()
@@ -290,6 +295,7 @@ test('Photo Design: beskjæring med form – «Sirkel» gir kvadratisk ramme og 
 test('Photo Design: beskjæring med snakkeboble – rammen beholder sideforholdet når kanten dras', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')
   await page.locator(`[data-layer="${id}"]`).click()
@@ -316,6 +322,7 @@ test('Photo Design: beskjæring med snakkeboble – rammen beholder sideforholde
 test('Photo Design: zoom i utsnittet 10–1000 % (også ut) og forklaring av blandingsmodus', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
+  await page.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen (som i Thumbnail)
   await page.locator('[data-tpl="photo"]').click()
   await page.locator('[data-adv-toggle], [role="switch"]:has-text("Avansert")').first().click()
   const id = await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).getAttribute('data-layer')

@@ -10,7 +10,8 @@ export interface ViewDef { id: string; detect: string; url?: string; steps: stri
 // uten demo: editoren med en tom serie (som de andre appenes tomme tilstand), uten å lage demobilder først
 const LOOP_EDIT: ViewDef = { id: 'edit', detect: '[data-loop-canvas]', url: '?mal=week', steps: [] }
 export const VIEWS: Record<string, ViewDef[]> = {
-  'photo-design': [{ id: 'edit', detect: '[data-pd-view="edit"]', steps: ['[data-tpl="photo"]'] }],
+  // malene står i den felles malpopupen («Ny mal …»): åpne den, så malen
+  'photo-design': [{ id: 'edit', detect: '[data-pd-view="edit"]', steps: ['[data-pd-lib-open]', '[data-tpl-picker] [data-tpl="photo"]'] }],
   'motion-design': [{ id: 'edit', detect: '[data-md-canvas]', steps: ['[data-md-new]', '[data-format="wide"]', '[data-tpl="blank"]'] }],
   'thumbnail-studio': [{ id: 'edit', detect: '[data-ts-canvas]', url: '?cat=sunday', steps: ['[data-ts-new]', '[data-layout="base:main"]'] }],
   'loop-studio': [LOOP_EDIT],

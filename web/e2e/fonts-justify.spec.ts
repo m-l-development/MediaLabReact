@@ -94,7 +94,8 @@ for (const id of ['061', '062', '100']) {
     page.on('pageerror', (e) => errors.push(e.message))
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/app/photo-design')
-    const lib = page.locator('[data-pd-lib] [data-tpl-lib]')
+    await page.locator('[data-pd-lib-open]').click()
+  const lib = page.locator('[data-tpl-picker] [data-tpl-lib]')
     const cat = id === '100' ? 'Hverdag, kafé, info og sosiale medier' : 'Bibelvers, sitat og typografi'
     await lib.locator('[data-tpl-cats] button', { hasText: cat }).click()
     await lib.locator(`[data-tpl-item="${id}"]`).click()
