@@ -32,6 +32,17 @@ function sheet(name: string): Promise<void> {
   return p
 }
 
+/** Snitt som er ferdig lastet (for synkrone spørsmål, se fontReady). */
+const loaded = new Set<string>()
+
+/** Er snittet ferdig lastet nå (uten å vente)? */
+export function fontReady(name: string, weight: number | string = 400, italic = false): boolean {
+  if (!name) return true
+  // innebygde fonter er registrert med @font-face (fonts.css), så nettleserens sjekk er pålitelig for dem
+  if (CORE.has(name.toLowerCase())) { try { return document.fonts.check(`${italic ? 'italic ' : ''}${weight} 40px "${name}"`) } catch { return false } }
+  return loaded.has(`${italic ? 'italic ' : ''}${weight} 40px "${name}"`)
+}
+
 /** Laster et snitt av fonten (æ, ø og å med). Gir true når fonten er klar, false når den ikke kunne lastes. */
 export function loadFont(name: string, weight: number | string = 400, italic = false): Promise<boolean> {
   if (!name || typeof document === 'undefined' || !document.fonts?.load) return Promise.resolve(false)
@@ -40,7 +51,7 @@ export function loadFont(name: string, weight: number | string = 400, italic = f
   if (!p) {
     p = sheet(name)
       .then(() => document.fonts.load(k, 'ÆØÅ æøå Hg'))
-      .then((l) => l.length > 0)
+      .then((l) => { const ok = l.length > 0; if (ok) loaded.add(k); return ok })
       .catch(() => false)
     ready.set(k, p)
   }

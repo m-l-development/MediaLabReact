@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useT } from '../i18n/i18n'
 import { ALL, filterTemplates, type TplItem } from './filter'
 import type { TplSort } from './theme'
@@ -30,7 +30,31 @@ export function TemplateLibrary<T extends TplItem>({ items, cats, catLabel, prev
   const [sort, setSort] = useState<TplSort>('std')
   const list = useMemo(() => filterTemplates(items, { cat, q, sort, cats }), [items, cat, q, sort, cats])
   const key = list.map((x) => x.id).join('|')
-  useEffect(() => { onShow?.(list) }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  // bare kortene som er på (eller nær) skjermen meldes, så appen ikke lager skisser for hele biblioteket (151+ maler)
+  // ved hvert fargebytte; nye kort meldes når man ruller
+  const grid = useRef<HTMLDivElement>(null)
+  // forhåndsvisningen tegnes først når kortet har vært nær skjermen (null = alle, uten IntersectionObserver)
+  const [seen, setSeen] = useState<Set<string> | null>(() => new Set())
+  const show = useRef(onShow)
+  useEffect(() => { show.current = onShow })
+  useEffect(() => {
+    const g = grid.current
+    if (!g || typeof IntersectionObserver === 'undefined') { setSeen(null); show.current?.(list); return }
+    const vis = new Set<string>()
+    let raf = 0
+    const emit = () => { raf = 0; show.current?.(list.filter((x) => vis.has(x.id))) }
+    const io = new IntersectionObserver((es) => {
+      let ch = false
+      for (const e of es) {
+        const id = (e.target as HTMLElement).dataset.tplItem ?? ''
+        if (e.isIntersecting ? !vis.has(id) : vis.has(id)) { ch = true; if (e.isIntersecting) vis.add(id); else vis.delete(id) }
+      }
+      if (ch) setSeen((p) => { const n = new Set(p ?? []); let add = false; for (const id of vis) if (!n.has(id)) { n.add(id); add = true } return add ? n : p })
+      if (ch && !raf && show.current) raf = requestAnimationFrame(emit)
+    }, { rootMargin: '300px 0px' })
+    g.querySelectorAll('[data-tpl-item]').forEach((el) => io.observe(el))
+    return () => { io.disconnect(); cancelAnimationFrame(raf) }
+  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
   const n = (c: string) => items.filter((x) => x.cat === c).length
   const style = { '--tpl-min': `${minW ?? 220}px`, '--tpl-min-m': `${Math.max(120, Math.round((minW ?? 220) * 0.62))}px` } as CSSProperties
   return (
@@ -51,10 +75,10 @@ export function TemplateLibrary<T extends TplItem>({ items, cats, catLabel, prev
       </div>
       {loading && <span className={s.note}>{t('tpl.loading')}</span>}
       {!loading && !list.length && <span className={s.note} data-tpl-none="">{t('tpl.none')}</span>}
-      <div className={s.grid} style={style} data-tpl-grid="">
+      <div ref={grid} className={s.grid} style={style} data-tpl-grid="">
         {list.map((x) => (
           <button key={x.id} type="button" className={s.card} data-tpl-item={x.id} data-tpl-item-cat={x.cat} {...(attr ? { [attr]: x.id } : {})} onClick={() => onPick(x)}>
-            <span className={s.thumb} style={{ aspectRatio: aspect }}>{preview(x)}</span>
+            <span className={s.thumb} style={{ aspectRatio: aspect }}>{!seen || seen.has(x.id) ? preview(x) : null}</span>
             <span className={s.text}>
               <b>{x.name}</b>
               {x.desc && <span>{x.desc}</span>}

@@ -62,7 +62,9 @@ test('ny mal fra grunnoppsettet: bytt navn og person, lagre, og eksporter 1080p 
   await page.getByRole('button', { name: /Ny mal/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Ny mal' })
   await expect(dialog).toBeVisible()
-  await expect(dialog.locator('[data-layout]')).toHaveCount(29)
+  // «Ny mal»: grunnoppsettene og blank; alle ferdige oppsett ligger i biblioteket under
+  await expect(dialog.locator('[data-tpl-lib] [data-layout]')).toHaveCount(178)
+  await expect(dialog.locator('[data-layout="blank"]')).toHaveCount(1)
   await dialog.locator('[data-layout="base:main"]').click()
 
   // Panelet «Mal»: navn og person

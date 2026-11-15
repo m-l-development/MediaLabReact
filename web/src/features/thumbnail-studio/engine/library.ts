@@ -99,3 +99,19 @@ export const LAYOUT_LIST: readonly { k: string; name: string; desc: string }[] =
   { k: 'playlistvinyl', name: 'Vinyl', desc: 'Cover med en vinylplate bak og navn på listen' },
   { k: 'playlisttop', name: 'Toppliste', desc: 'Stort tall og navn på listen' },
 ]
+
+/**
+ * Kategori for hvert ferdig oppsett, så de står sammen med designsamlingen i ett malbibliotek (shared/templates).
+ * Kategoriene som finnes i designsamlingen (LIB_CATS) brukes der de passer, så ingen kategori finnes to ganger.
+ */
+export const LAYOUT_CAT: Readonly<Record<string, string>> = {
+  shorthook: 'Korte videoer', shortsplit: 'Korte videoer', shorttip: 'Korte videoer',
+  interview: 'Intervju og panel', interviewquote: 'Intervju og panel', interviewlower: 'Intervju og panel',
+  panelthree: 'Intervju og panel', panelfour: 'Intervju og panel', panelvs: 'Intervju og panel',
+  podcast: 'Podkast', podcastwave: 'Podkast', podcastguest: 'Podkast',
+  event: 'Arrangement', eventdate: 'Arrangement', eventticket: 'Arrangement',
+  speaker: 'Tale og gudstjeneste', sermon: 'Tale og gudstjeneste', sundayverse: 'Bibelvideo',
+  promo: 'Promo', promocenter: 'Promo', promoframe: 'Promo',
+  music: 'Musikk', musiccover: 'Musikk', musiclive: 'Musikk',
+  playlisttracks: 'Musikk', playlistvinyl: 'Musikk', playlisttop: 'Musikk',
+}

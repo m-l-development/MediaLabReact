@@ -1,6 +1,6 @@
 import type { Doc } from './model'
 
-import { HEX, isColorValue, mapAny, paletteOfTheme, THEMES, type Palette, type ThemeValue } from '../../../shared/templates/theme'
+import { HEX, paletteOfTheme, recolorDeep, THEMES, type Palette, type ThemeValue } from '../../../shared/templates/theme'
 
 export { hexRgb, ink, luma, type Palette } from '../../../shared/templates/theme'
 export { rgba } from '../../../shared/templates/rgba'
@@ -17,17 +17,14 @@ export const COMBOS: readonly Combo[] = [
 export function recolor(doc: Doc, key: string | ThemeValue | Palette): Doc {
   const P = typeof key === 'string' ? COMBOS.find((c) => c.k === key)?.p : key && 'bg2' in key ? key : paletteOfTheme(key)
   if (!P) return doc
-  const bg = doc.bg as unknown as Record<string, unknown>
-  for (const k of ['color', 'c1', 'c2']) if (isColorValue(bg[k])) bg[k] = mapAny(bg[k], 'bg', P)
-  for (const l of doc.layers) {
-    const o = l as unknown as Record<string, unknown>
-    for (const k of Object.keys(o)) {
-      const v = o[k]
-      if (!isColorValue(v) || k === 'id' || k === 'src') continue
-      const use = /fill|^barColor$/.test(k) ? 'fill' : l.type === 'glow' || /stroke|border|tint/i.test(k) ? 'acc' : 'text'
-      o[k] = mapAny(v, use, P)
-    }
-  }
+  // hele malen (alle nivåer: lag, skygger, malingslag, rammer, bakgrunn) – felles motor i shared/templates
+  const out = recolorDeep({ bg: doc.bg, layers: doc.layers }, P, (path) => {
+    if (path[0] === 'bg') return 'bg'
+    if (path[0] === 'layers' && path.length === 3 && doc.layers[Number(path[1])]?.type === 'glow') return 'acc'
+    return undefined
+  })
+  doc.bg = out.bg
+  doc.layers = out.layers
   return doc
 }
 

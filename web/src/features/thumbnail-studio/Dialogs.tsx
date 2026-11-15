@@ -11,7 +11,7 @@ import { type CropBox, type PanelKey, type State, type ThumbController } from '.
 import { COMBOS } from './engine/colors'
 import type { ImageCache } from './engine/images'
 import { MAX_TPL } from './engine/model'
-import { LIB_CATS } from './engine/templates'
+import { READY_CATS } from './engine/templates'
 import type { Phrase, Tx } from './texts'
 import s from './ThumbnailStudio.module.css'
 
@@ -35,7 +35,8 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
   const cat = c.cat()
   if (!cat) return null
   const list = c.newList(cat)
-  const libItems = (S.lib ?? []).map((t, i) => ({ id: t.code, name: t.name, desc: `${t.code} · ${t.desc}`, cat: t.cat, order: i, t }))
+  // alle ferdige maler i ett bibliotek (oppsettene + designsamlingen) med felles kategorier
+  const ready = c.readyList(cat)
   const items = list.map((o) => {
     const img = o.k === 'blank' ? '' : c.previewOf(cat, o.k)
     return (
@@ -51,7 +52,6 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
       </button>
     )
   })
-  const top = items.slice(0, c.layoutsOf(cat).length + 1)
   return (
     <Modal label={tx(S.newMode === 'apply' ? 'Bytt oppsett' : 'Ny mal')} onClose={() => c.closeNew()}>
       <div className={s.modalHead}>
@@ -61,18 +61,19 @@ export function NewDialog({ c, S, tx }: { c: ThumbController; S: State; tx: Tx }
         </div>
         <ThemePicker value={c.theme()} onChange={(v) => c.setTheme(v)} std={COMBOS[0]?.sw as [string, string, string]} />
       </div>
-      <div className={s.layoutGrid}>{top}</div>
-      <div className={s.layoutGrid}>{items.slice(top.length)}</div>
-      {/* ferdige maler fra designsamlingen (fase 3) – et tillegg under oppsettene */}
+      {/* «Ny mal»: kategoriens grunnoppsett og blank (egne maler står på kategorisiden) */}
+      <div className={s.ctrlHead} data-new-head>{tx('Start fra')}</div>
+      <div className={s.layoutGrid}>{items}</div>
+      {/* alle ferdige maler samlet (shared/templates): kategorier, søk og sortering */}
       <div className={s.ctrlHead} data-lib-head>{tx('Ferdige maler')}</div>
-      <span className={s.note}>{tx('Ferdige maler fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger.')}</span>
-      <TemplateLibrary items={libItems} cats={LIB_CATS} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null}
-        onShow={(list) => void c.genLibPrev(list.map((x) => x.t))}
+      <span className={s.note}>{tx('Alle ferdige maler samlet. Alt er vanlige lag: bytt tekst, bilder og farger.')}</span>
+      <TemplateLibrary items={ready} cats={READY_CATS} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null} attr="data-layout"
+        onShow={(list) => void c.genReady(list)}
         preview={(x) => {
-          const img = c.libPreviewOf(x.t)
+          const img = c.readyPreviewOf(x)
           return img ? <img src={img} alt="" /> : img == null ? <span>{tx('Lager skisse …')}</span> : null
         }}
-        onPick={(x) => c.pickLib(cat, x.t)} />
+        onPick={(x) => c.pickReady(cat, x)} />
       <div className={s.modalFoot}>
         <button type="button" className={s.pillSm} onClick={() => c.closeNew()}>{tx('Avbryt')}</button>
       </div>

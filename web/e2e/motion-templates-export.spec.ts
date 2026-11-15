@@ -26,14 +26,18 @@ async function exportRange(page: Page, from: string, to: string): Promise<Buffer
   return fs.readFileSync(await d.path())
 }
 
-for (const [k, t] of [['credits', 2], ['fogreveal', 3], ['daycount', 1], ['monthdump', 2]] as const) {
-  test(`eksport av mal ${k}: gyldig MP4, bildet = forhåndsvisningen`, async ({ page }, info) => {
+for (const [k, t, th] of [['credits', 2, ''], ['fogreveal', 3, ''], ['daycount', 1, ''], ['monthdump', 2, ''], ['monthdump', 2, 'wbl'], ['kinetic', 1, 'wg']] as const) {
+  test(`eksport av mal ${k}${th ? ' i tema ' + th : ''}: gyldig MP4, bildet = forhåndsvisningen`, async ({ page }, info) => {
     test.skip(info.project.name === 'mobil', 'PC')
     test.slow()
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/app/motion-design')
     await page.locator('[data-md-new]').click()
     await page.locator('[data-format="wide"]').click()
+    if (th) {
+      await page.locator('[data-tpl-lib] [data-theme-btn]').click()
+      await page.locator(`[data-theme-opt="${th}"]`).click()
+    }
     await page.locator(`[data-tpl="${k}"]`).click()
     await page.locator('[data-adv-toggle]').click()
     await seekTo(page, t)

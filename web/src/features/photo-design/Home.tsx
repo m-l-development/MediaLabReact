@@ -1,14 +1,15 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { useEffect, useRef, useState } from 'react'
-import { TemplateLibrary, TemplateModal } from '../../shared/templates/TemplateLibrary'
+import { useEffect, useRef } from 'react'
+import { fontReady } from '../../shared/fonts/loader'
+import { TemplateLibrary } from '../../shared/templates/TemplateLibrary'
 import type { PhotoController, PState } from './controller'
 import { ColorBar } from './Colors'
 import { FORMATS, TEMPLATES, type Format, type PdDoc, type Scheme } from './engine/model'
 import { applyScheme, liveScheme, tplDoc } from './engine/palette'
 import { docFonts, render } from './engine/render'
 import type { Phrase, Tx } from './texts'
-import { LIB_CATS, type LibPhoto } from './engine/templates'
+import { LIB_CATS, TPL_CAT, type LibPhoto } from './engine/templates'
 import s from './PhotoDesign.module.css'
 
 /**
@@ -17,15 +18,36 @@ import s from './PhotoDesign.module.css'
  */
 const drawQueue: (() => void)[] = []
 let drawRaf = 0
+// miniatyrene tegnes i egne korte oppgaver ETTER at bildet er vist (ikke i requestAnimationFrame før tegningen): et klikk
+// (fargebytte, meny) vises straks, og miniatyrene følger fortløpende uten å holde igjen skjermen
+const post = (() => {
+  if (typeof MessageChannel === 'undefined') return (f: () => void) => void setTimeout(f, 0)
+  const ch = new MessageChannel()
+  let cb: (() => void) | null = null
+  ch.port1.onmessage = () => { const f = cb; cb = null; f?.() }
+  return (f: () => void) => { cb = f; ch.port2.postMessage(0) }
+})()
 function queueDraw(fn: () => void) {
   drawQueue.push(fn)
-  if (!drawRaf) drawRaf = requestAnimationFrame(runDraws)
+  if (!drawRaf) { drawRaf = 1; requestAnimationFrame(() => post(runDraws)) }
 }
 function runDraws() {
-  drawRaf = 0
   const t0 = performance.now()
   while (drawQueue.length && performance.now() - t0 < 8) (drawQueue.shift() as () => void)()
-  if (drawQueue.length) drawRaf = requestAnimationFrame(runDraws)
+  if (drawQueue.length) post(runDraws)
+  else drawRaf = 0
+}
+
+/** Maler (og designsamlingens maler) der skriftene er lastet og tegningen gjort på nytt én gang. */
+const fontsDone = new Set<string>()
+
+const finalDocs = new Set<string>()
+function fontsLoaded(d: PdDoc): boolean {
+  try {
+    return [...d.layers, ...(d.back?.layers ?? [])].every((l) => l.type !== 'text' || fontReady(l.font, l.weight, !!l.italic))
+  } catch {
+    return false
+  }
 }
 
 /** Malene uten farger per format (oppsettet med tekstmåling lages én gang; fargene legges på ved hver tegning). */
@@ -36,6 +58,8 @@ function baseDoc(k: string, w: number, h: number): PdDoc {
   if (!d) {
     d = tplDoc(w, h, k, null)
     baseDocs.set(id, d)
+    // bygd med alle skriftene på plass: tekstmålene er riktige og trenger ikke lages på nytt når skriftene meldes klare
+    if (fontsLoaded(d)) finalDocs.add(id)
   }
   return d
 }
@@ -72,10 +96,18 @@ function TplPreview({ k, w, h, scheme, own, tx }: { k: string; w: number; h: num
     }
     const saved = JSON.parse(key) as Scheme | null
     draw(saved)
-    // fonter fra biblioteket lastes ved bruk: tegnes på nytt når malens fonter er klare
-    void Promise.all([document.fonts?.ready, docFonts(baseDoc(k, w, h))]).then(() => {
-      baseDocs.clear() // tekstmålene med de riktige skriftene
-      if (ver >= 0) draw(saved)
+    // fonter fra biblioteket lastes ved bruk: tegnes på nytt når malens fonter er klare – bare første gang per mal
+    // (før ble alle tekstmål kastet og alle miniatyrene tegnet to ganger ved hvert fargebytte)
+    // malen bygges (med tekstmåling) i den tidsdelte tegnekøen, ikke for alle miniatyrene på én gang i effekten
+    if (!fontsDone.has('t:' + k)) queueDraw(() => {
+      if (ver < 0) return
+      void Promise.all([document.fonts?.ready, docFonts(baseDoc(k, w, h))]).then(() => {
+        if (fontsDone.has('t:' + k) || ver < 0) return
+        fontsDone.add('t:' + k)
+        let stale = false
+        for (const id of [...baseDocs.keys()]) if (id.startsWith(k + '|') && !finalDocs.has(id)) { baseDocs.delete(id); stale = true } // tekstmålene med de riktige skriftene
+        if (stale) draw(saved)
+      })
     })
     const off = own ? () => undefined : liveScheme.sub((scope, sc) => {
       if (scope === 'home' && sc !== undefined) draw(sc)
@@ -116,9 +148,13 @@ function LibPreview({ t, scheme, tx }: { t: LibPhoto; scheme: Scheme | null; tx:
     }
     const saved = JSON.parse(key) as Scheme | null
     draw(saved)
-    void Promise.all([document.fonts?.ready, docFonts(t.doc)]).then(() => {
-      if (ver >= 0) draw(saved)
-    })
+    if (!fontsDone.has('l:' + t.id)) {
+      void Promise.all([document.fonts?.ready, docFonts(t.doc)]).then(() => {
+        if (fontsDone.has('l:' + t.id) || ver < 0) return
+        fontsDone.add('l:' + t.id)
+        if (ver >= 0) draw(saved)
+      })
+    }
     const off = liveScheme.sub((scope, sc) => {
       if (scope === 'home' && sc !== undefined) draw(sc)
     })
@@ -131,7 +167,6 @@ function LibPreview({ t, scheme, tx }: { t: LibPhoto; scheme: Scheme | null; tx:
 }
 
 export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoController; S: PState; tx: Tx; onBackup: () => void; onRestore: () => void; onBatch: () => void }) {
-  const [libOpen, setLibOpen] = useState(false)
   const [w, h] = c.fmtWH()
   useEffect(() => {
     void c.loadLib()
@@ -142,12 +177,12 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
   const projects = S.entries.filter((p) => !p.tpl)
   const shownProjects = S.projCat == null ? projects : S.projCat === '' ? projects.filter((p) => !p.cat || !S.cats.includes(p.cat)) : projects.filter((p) => p.cat === S.projCat)
   const lang = tx('nb-NO')
-  // det felles malbiblioteket: Photos egne maler («Grunnmaler») og de ferdige malene fra designsamlingen
+  // ett malbibliotek: Photos egne ferdige maler og designsamlingen i de samme kategoriene («Tomt» står for seg)
   const libItems = [
-    ...TEMPLATES.map((t, i) => ({ id: t.k, name: tx(t.l as Phrase), cat: 'Grunnmaler', order: i, lib: null as LibPhoto | null })),
+    ...TEMPLATES.filter((t) => t.k !== 'blank').map((t, i) => ({ id: t.k, name: tx(t.l as Phrase), cat: TPL_CAT[t.k] ?? 'Hverdag, kafé, info og sosiale medier', order: i, lib: null as LibPhoto | null })),
     ...(S.lib ?? []).map((t, i) => ({ id: t.id, name: `${t.id} ${t.name}`, cat: t.cat, order: 1000 + i, lib: t as LibPhoto | null })),
   ]
-  const libCats = ['Grunnmaler', ...LIB_CATS]
+  const ownTpls = TEMPLATES.filter((t) => Object.prototype.hasOwnProperty.call(S.tplSchemes, t.k))
   return (
     <div className={s.home}>
       <div className={s.homeHead}>
@@ -191,38 +226,28 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
           <ColorBar value={S.scheme} onChange={(v) => c.setScheme(v)} tx={tx} scope="home" />
         </div>
         <span className={s.note}>{tx('Fargene gjelder alle malene. En mal du har gitt egne farger i editoren, beholder dem.')}</span>
-        <div className={s.tplGrid}>
-          {TEMPLATES.map((t) => {
-            const own = Object.prototype.hasOwnProperty.call(S.tplSchemes, t.k)
-            return (
-              <div key={t.k} className={s.tplItem}>
-                <button type="button" className={s.tplCard} data-tpl={t.k} onClick={() => c.create(t.k)}>
-                  <div className={s.tplBox}><TplPreview k={t.k} w={w} h={h} scheme={c.schemeFor(t.k)} own={own} tx={tx} /></div>
-                  <span className={s.tplName}>{tx(t.l as Phrase)}</span>
-                  {own && <span className={s.tplOwn} data-tpl-own={t.k}>{tx('Egne farger for malen')}</span>}
-                </button>
-                {own && <button type="button" className={s.tplReset} onClick={() => c.forgetTplScheme(t.k)}>{tx('Bruk fellesfargene')}</button>}
-              </div>
-            )
-          })}
+        {/* «Ny mal»: tom side (egne maler står under «Mine maler») */}
+        <div className={s.tplGrid} data-pd-new="">
+          <div className={s.tplItem}>
+            <button type="button" className={s.tplCard} data-tpl="blank" onClick={() => c.create('blank')}>
+              <div className={s.tplBox}><TplPreview k="blank" w={w} h={h} scheme={c.schemeFor('blank')} own={false} tx={tx} /></div>
+              <span className={s.tplName}>{tx('Tomt')}</span>
+            </button>
+          </div>
+        </div>
+        {ownTpls.length > 0 && (
+          <div className={s.rowBetween} data-pd-own-list="">
+            <span className={s.note}>{tx('Egne farger for malen')}: {ownTpls.map((t) => tx(t.l as Phrase)).join(', ')}</span>
+            {ownTpls.map((t) => <button key={t.k} type="button" className={s.tplReset} data-tpl-own={t.k} onClick={() => c.forgetTplScheme(t.k)}>{tx('Bruk fellesfargene')} · {tx(t.l as Phrase)}</button>)}
+          </div>
+        )}
+        {/* alle ferdige maler samlet: kategorier, søk og sortering (shared/templates, som i Thumbnail Studio) */}
+        <div data-pd-lib="">
+          <TemplateLibrary items={libItems} cats={LIB_CATS} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null} minW={170} aspect="1 / 1" attr="data-tpl"
+            preview={(x) => x.lib ? <LibPreview t={x.lib} scheme={S.scheme} tx={tx} /> : <TplPreview k={x.id} w={w} h={h} scheme={c.schemeFor(x.id)} own={Object.prototype.hasOwnProperty.call(S.tplSchemes, x.id)} tx={tx} />}
+            onPick={(x) => { if (x.lib) c.createLib(x.lib); else c.create(x.id) }} />
         </div>
       </section>
-      {/* ferdige maler: det felles malbiblioteket (alle maler, kategorier, søk, sortering) i en popup som i Thumbnail Studio */}
-      <section className={s.section} data-pd-lib="">
-        <div className={s.rowBetween}>
-          <span className={s.eyebrow}>{tx('Ferdige maler')}</span>
-          <button type="button" className={s.pillDark} data-pd-lib-open="" onClick={() => setLibOpen(true)}>{tx('Alle maler …')}</button>
-        </div>
-        <span className={s.note}>{tx('Fra designsamlingen. Alt er vanlige lag: bytt tekst, bilder og farger. Fargene over gjelder også disse.')}</span>
-      </section>
-      {libOpen && (
-        <TemplateModal title={tx('Maler')} lead={tx('Alle maler i Photo design. Velg farger øverst; Standard beholder malens egne farger.')} onClose={() => setLibOpen(false)}
-          head={<ColorBar value={S.scheme} onChange={(v) => c.setScheme(v)} tx={tx} scope="home" />}>
-          <TemplateLibrary items={libItems} cats={libCats} catLabel={(k) => tx(k as Phrase)} loading={S.lib == null} minW={170} aspect="1 / 1"
-            preview={(x) => x.lib ? <LibPreview t={x.lib} scheme={S.scheme} tx={tx} /> : <TplPreview k={x.id} w={w} h={h} scheme={c.schemeFor(x.id)} own={false} tx={tx} />}
-            onPick={(x) => { setLibOpen(false); if (x.lib) c.createLib(x.lib); else c.create(x.id) }} />
-        </TemplateModal>
-      )}
       <section className={s.section}>
         <div className={s.rowBetween}>
           <span className={s.eyebrow}>{tx('Egne maler')}</span>

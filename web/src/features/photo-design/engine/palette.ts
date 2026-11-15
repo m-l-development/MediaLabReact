@@ -65,8 +65,15 @@ function sat(h: string): number {
   return d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
 }
 
-const colorsOf = (L: PdLayer): TplColors =>
-  L.type === 'text' ? { color: L.color, strokeC: L.strokeC } : L.type === 'shape' ? { fill: L.fill, fill2: L.fill2, strokeC: L.strokeC } : L.type === 'glow' ? { color: L.color } : {}
+/** Alle fargene på laget som følger fargevalget (også markering, toning og skygger – ikke bare tekst og flate). */
+const colorsOf = (L: PdLayer): TplColors => {
+  const sh = L.shadows?.length ? { sh: L.shadows.map((x) => x.c) } : {}
+  if (L.type === 'text') return { color: L.color, strokeC: L.strokeC, ...(L.barColor ? { barColor: L.barColor } : {}), ...sh }
+  if (L.type === 'shape') return { fill: L.fill, fill2: L.fill2, strokeC: L.strokeC, ...sh }
+  if (L.type === 'glow') return { color: L.color }
+  if (L.type === 'image') return { ...(L.tint ? { tint: L.tint } : {}), ...sh }
+  return { ...sh }
+}
 
 /** Toning over et bilde (delvis gjennomsiktig eller som går over til gjennomsiktig): beholder malens farge. */
 function isToning(layers: PdLayer[], i: number): boolean {
@@ -116,11 +123,16 @@ function sideColors(layers: PdLayer[], bg0: string | null, s: Scheme | null): { 
     return R.text
   }
   layers.forEach((L, i) => {
-    if (isToning(layers, i)) return
     const o = cols.get(L.id) as TplColors
+    // fargede skygger og glød følger støttefargen; nøytrale (svarte/grå) skygger beholdes
+    if (o.sh) o.sh = o.sh.map((c) => (HEX.test(c) && sat(c) >= 0.15 ? R.off : c))
+    if (isToning(layers, i)) return
     if (L.type === 'text') {
       o.color = map(o.color, 'text') as string
       o.strokeC = map(o.strokeC, 'accent') as string
+      if (o.barColor) o.barColor = map(o.barColor, 'fill') as string
+    } else if (L.type === 'image') {
+      if (o.tint) o.tint = map(o.tint, 'accent') ?? null
     } else if (L.type === 'shape') {
       o.fill = map(o.fill, 'fill') as string
       o.fill2 = map(o.fill2, 'fill') ?? null
@@ -146,28 +158,44 @@ function sideColors(layers: PdLayer[], bg0: string | null, s: Scheme | null): { 
 
 function applySide(layers: PdLayer[], bgNow: string | null, bg0: string | null, prev: Scheme | null, next: Scheme | null): { layers: PdLayer[]; bg: string | null } {
   // malens opprinnelige farger tas vare på første gang (også for prosjekter som ble laget før fargevalget fantes)
-  const base = layers.map((L) => (L.tc ? L : ({ ...L, tc: colorsOf(L) } as PdLayer)))
+  // eldre prosjekter: tc mangler markering/toning/skygger – de ble aldri endret av fargevalget før, så dagens verdier er malens
+  const base = layers.map((L) => ({ ...L, tc: L.tc ? { ...colorsOf(L), ...L.tc } : colorsOf(L) } as PdLayer))
   const was = sideColors(base, bg0, prev)
   const now = sideColors(base, bg0, next)
   const out = base.map((L) => {
     const a = was.cols.get(L.id) ?? {}, b = now.cols.get(L.id) ?? {}
     const o: Record<string, unknown> = { ...L }
-    for (const k of ['color', 'fill', 'fill2', 'strokeC'] as const) {
+    for (const k of ['color', 'fill', 'fill2', 'strokeC', 'barColor', 'tint'] as const) {
       if (!(k in b)) continue
       // bare felt som fortsatt har fargen det forrige valget ga (ellers har du endret det selv)
       if ((L as unknown as Record<string, unknown>)[k] === (a as Record<string, unknown>)[k]) o[k] = (b as Record<string, unknown>)[k]
     }
+    if (L.shadows?.length && b.sh) o.shadows = L.shadows.map((x, j) => (a.sh?.[j] === x.c && b.sh?.[j] ? { ...x, c: b.sh[j] as string } : x))
     return o as unknown as PdLayer
   })
   return { layers: out, bg: bgNow === was.bg ? now.bg : bgNow }
 }
 
 /** Bruker fargevalget `s` (null = malens egne farger) på dokumentet (begge sider). Returnerer et nytt dokument. */
+/** Den andre bakgrunnsfargen (gradient) i fargevalget: bakgrunnsfargen gjort mørkere/lysere som i malen. */
+function bg2Of(bg20: string | null | undefined, bg0: string | null | undefined, s: Scheme | null): string | null | undefined {
+  if (!s || !bg20 || !HEX.test(bg20)) return bg20
+  const R = rolesOf(s)
+  if (bg0 && HEX.test(bg0) && Math.abs(luma(bg20) - luma(bg0)) >= 40 && sat(bg20) >= 0.25) return R.off
+  return mix(R.bg, bg0 && HEX.test(bg0) && luma(bg20) > luma(bg0) ? '#ffffff' : '#000000', 0.3)
+}
+
 export function applyScheme(d: PdDoc, s: Scheme | null): PdDoc {
   const prev = d.scheme ?? null
   const bg0 = d.bg0 === undefined ? d.bg : d.bg0
   const front = applySide(d.layers, d.bg, bg0, prev, s)
   const out: PdDoc = { ...d, bg: front.bg, bg0, layers: front.layers, scheme: s }
+  if (d.bg2 != null || d.bg20 != null) {
+    const bg20 = d.bg20 === undefined ? d.bg2 : d.bg20
+    out.bg20 = bg20 ?? null
+    // bare hvis du ikke har endret den selv
+    if (d.bg2 === bg2Of(bg20, bg0, prev)) out.bg2 = bg2Of(bg20, bg0, s) ?? null
+  }
   if (d.back) {
     const b0 = d.back.bg0 === undefined ? d.back.bg : d.back.bg0
     const back = applySide(d.back.layers, d.back.bg, b0, prev, s)

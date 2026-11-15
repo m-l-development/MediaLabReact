@@ -3,7 +3,7 @@
  * Kontrolleren holder tilstanden (`state`, oppdateres synkront som i dagens app) og gir visningen alle verdier og
  * handlinger via `view()`. Globale skript (UkeLoop, MLShare, MLCloud, CH) er byttet ut med tjenester i `deps`.
  */
-import { paletteOfTheme, themeFromParam } from '../../shared/templates/theme'
+import { paletteOfTheme, recolorDeep, themeFromParam } from '../../shared/templates/theme'
 import { fontByName } from '../../shared/fonts/catalog'
 import { loadFont } from '../../shared/fonts/loader'
 import type { Me } from '../../domain/account'
@@ -194,7 +194,19 @@ function themeCfg(p: string | undefined): Partial<Cfg> {
   const P = paletteOfTheme(themeFromParam(p))
   if (!P) return {}
   const cols = [P.bg, P.fill, P.bg2, P.acc, P.mid]
-  return { accent: P.acc, panels: DEF_PANELS.map((x, i) => ({ ...x, color: cols[i] ?? x.color })) }
+  // tekst i temaets tekstfarge, og vignetten bak teksten i temaets bakgrunnsfarge (så kontrasten holder over bildene)
+  return { accent: P.acc, ink: P.fg, vigColor: P.bg, panelBg: P.bg2, panels: DEF_PANELS.map((x, i) => ({ ...x, color: cols[i] ?? x.color })) }
+}
+
+/**
+ * Hele serien i temaet: alle farger i oppsettet (aksent, paneler, gradienter, tekst, bokser, vignetter, overlegg …) og i
+ * lysbildene følger paletten via den felles dype omfargingen (shared/templates). Panelene får temaets fem farger.
+ */
+export function themeSeries<C extends object, S>(cfg: C, slides: S[], p: string | undefined): { cfg: C; slides: S[] } {
+  const P = paletteOfTheme(themeFromParam(p))
+  if (!P) return { cfg, slides }
+  const out = recolorDeep({ cfg, slides }, P, (path) => (path[path.length - 1] === 'accent' ? 'acc' : undefined))
+  return { cfg: { ...out.cfg, ...themeCfg(p) }, slides: out.slides }
 }
 
 export class LoopController {
@@ -1319,7 +1331,8 @@ export class LoopController {
     this.audioRef = saved?.audio ?? null
     this.banner = this.demo ? 'demo' : this.fromBase ? 'base' : this.archived ? 'legacy' : null
     this.initAt = performance.now()
-    this.setState({ ready: true, tpl, programText: base.programText || '', slides: base.slides, cfg: { ...this.state.cfg, ...(base.cfg ?? {}), ...themeCfg(q.tema) }, videoName: (this.videoRef && base.videoName) || '', audioName: (this.audioRef && base.audioName) || '', selected: base.slides[0]?.id ?? null })
+    const th = themeSeries({ ...this.state.cfg, ...(base.cfg ?? {}) }, base.slides, q.tema)
+    this.setState({ ready: true, tpl, programText: base.programText || '', slides: th.slides, cfg: th.cfg, videoName: (this.videoRef && base.videoName) || '', audioName: (this.audioRef && base.audioName) || '', selected: base.slides[0]?.id ?? null })
     /* bare én lydmotor per side: lukk tidligere kontekster (ny åpning, oppdatering av koden) */
     contexts.splice(0).forEach((x) => void x.close().catch(() => undefined))
     if (soundOwner) {
@@ -1567,7 +1580,7 @@ export class LoopController {
         vigColor: isHex(c.vigColor) ? c.vigColor : null, vigType: VIGT.includes(String(c.vigType)) ? c.vigType : 'auto', vigs: cleanVigs(c.vigs), ...vigNums,
         logoSrc: c.logoSrc, logoOn: c.logoOn, logoSize: c.logoSize, headerScale: c.headerScale, topLabelScale: c.topLabelScale, logoX: c.logoX, logoY: c.logoY, logoOpacity: c.logoOpacity,
         style: c.style, duotone: !!c.duotone, kickerStyle: c.kickerStyle, palette: Array.isArray(c.palette) ? c.palette : null,
-        panels: cleanPanels(c.panels) ?? (Array.isArray(c.panels) ? [] : null), panelsRotate: !!c.panelsRotate, panelBg: isHex(c.panelBg) ? c.panelBg : null,
+        panels: cleanPanels(c.panels) ?? (Array.isArray(c.panels) ? [] : null), panelsRotate: !!c.panelsRotate, panelBg: isHex(c.panelBg) ? c.panelBg : null, ink: isHex(c.ink) ? c.ink : null,
         tintColor: isHex(c.tintColor) ? c.tintColor : null, tintAmt: c.tintAmt, tintBlend: c.tintBlend,
         transFx: c.transFx, textFx: c.textFx, overlayFx: c.overlayFx, fxAmount: c.fxAmount, ovSpeed: c.ovSpeed, ovAlpha: c.ovAlpha, ovColor: isHex(c.ovColor) ? c.ovColor : null, fxSpeed: c.fxSpeed,
         kenBurns: c.kenBurns, sweep: c.sweep, font: c.font, titleScale: c.titleScale, textScale: c.textScale,

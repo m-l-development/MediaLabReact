@@ -53,10 +53,12 @@ export function Home({ c, S, tx, folders, onOpenFile, onGrantWaiting }: { c: Mot
           <span className={s.eyebrow}>{tx('Steg 2 av 2 · {fmt}', { fmt: `${tx(f.name)} · ${f.ratio}` })}</span>
           <h2 className={s.h2}>{tx('Velg mal')}</h2>
         </div>
-        {/* det felles malbiblioteket (alle maler, kategorier, søk, sortering) med felles fargevelger */}
+        {/* «Ny mal»: tomt prosjekt står for seg; alle ferdige maler i biblioteket under */}
+        <button type="button" className={s.bigLight} style={{ alignSelf: 'flex-start', padding: '0 22px' }} data-tpl="blank" data-md-blank="" onClick={() => void c.pickTpl('blank')}>+ {tx('Tom')} · {tx('Start med tom tidslinje')}</button>
+        {/* det felles malbiblioteket (alle ferdige maler, kategorier, søk, sortering) med felles fargevelger */}
         <TemplateLibrary attr="data-tpl" aspect={`${f.w} / ${f.h}`} minW={f.w / f.h < 0.9 ? 170 : 240}
-          items={TEMPLATES.map((tp, i) => ({ id: tp.k, name: tx(tp.name), desc: tx(tp.desc), cat: TPL_CAT[tp.k] ?? 'Start', order: i }))}
-          cats={TPL_CATS} catLabel={(k) => tx(k as Parameters<typeof tx>[0])}
+          items={TEMPLATES.filter((tp) => tp.k !== 'blank').map((tp, i) => ({ id: tp.k, name: tx(tp.name), desc: tx(tp.desc), cat: TPL_CAT[tp.k] ?? 'Tekst og budskap', order: i }))}
+          cats={TPL_CATS.filter((k) => k !== 'Start')} catLabel={(k) => tx(k as Parameters<typeof tx>[0])}
           head={<ThemePicker value={S.tplTheme} onChange={(v) => c.setTplTheme(v)} />}
           preview={(x) => S.tplThumbs[x.id] ? <img src={S.tplThumbs[x.id]} alt="" /> : null}
           onPick={(x) => void c.pickTpl(x.id)} />
