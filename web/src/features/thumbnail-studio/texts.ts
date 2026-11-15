@@ -611,6 +611,8 @@ export const EN = {
   'Promo': 'Promo',
   'Trailer': 'Trailer',
   'Teaser': 'Teaser',
+  'Kunne ikke lage skisse.': 'Could not create the preview.',
+  'Prøv igjen': 'Try again',
   'Start fra': 'Start from',
   'Alle ferdige maler samlet. Alt er vanlige lag: bytt tekst, bilder og farger.': 'All ready-made templates in one place. Everything is ordinary layers: change text, images and colours.',
   'Tale og gudstjeneste': 'Sermon and service',
