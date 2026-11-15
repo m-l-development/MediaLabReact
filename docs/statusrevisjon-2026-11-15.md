@@ -81,6 +81,11 @@ lerretsminne (≈ 256–384 MB); Photo holdt opptil tre lerreter i eksportstørr
 ut. Nå frigjøres store mellomlagre etter eksport og ved «Bytt bilde»: levende lerretsminne etter to 48 MP-eksporter og tre
 bytter **110 → 7 MB** (test). **Ikke bekreftet på ekte iPhone** – står som åpen til det er testet.
 
+**Produktfeil funnet av CI og rettet:** «Bytt bilde» to ganger raskt (først et stort, så et lite bilde) kunne ende med det
+første bildet, fordi det store ble ferdig sist og overskrev det nye. Nå vinner det siste valget for samme lag; bilder som
+legges til samtidig (f.eks. HDR), kommer fortsatt alle med. Test: «raskt Bytt bilde» feilet 2/2 uten rettingen, består
+etter.
+
 ### New York – penselvinduet
 Målt bilde for bilde i originalen (2,2–4,0 s) og justert: vinduets plassering (x 0,16–0,85, y 0,18–0,77), boblenes
 størrelse og avstand (store, få, dype innhakk oppe og nede), avrundede hjørner foran, og veksten (liten klatt fra ≈ 2,0 s,

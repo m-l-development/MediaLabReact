@@ -192,3 +192,23 @@ test('lerretsminnet etter 48 MP-eksport og to «Bytt bilde» holder seg under iO
   console.log(`LERRET levende lerretsminne etter to eksporter og tre bytter: ${mb} MB`)
   expect(mb, 'samlet lerretsminne').toBeLessThan(200)
 })
+
+test('raskt «Bytt bilde» to ganger (stort, så lite): det siste valget vinner selv om det første blir ferdig senere', async ({ page, context }, info) => {
+  test.skip(info.project.name === 'mobil', 'PC')
+  test.setTimeout(300_000)
+  const gen = await context.newPage()
+  await gen.goto('/app/')
+  const big = await photo(gen, 12000, 9000, '#2f6fd0'), small = await photo(gen, 1200, 900, '#2fa050')
+  await gen.close()
+  await openPhoto(page)
+  for (const [n, buf] of [['stor.jpg', big], ['liten.jpg', small]] as const) {
+    if (!(await page.getByRole('button', { name: 'Bytt bilde' }).isVisible())) await page.locator('[data-layer]').last().click()
+    const ch = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Bytt bilde' }).click()
+    await (await ch).setFiles({ name: n, mimeType: 'image/jpeg', buffer: buf })
+  }
+  // vent til det store bildet uansett er ferdig behandlet, og se at det lille (grønn himmel) står igjen
+  await page.waitForTimeout(8000)
+  const sky = await page.locator('[data-pd-wrap] canvas').first().evaluate((cv: HTMLCanvasElement) => { const d = cv.getContext('2d')!.getImageData(Math.round(cv.width * 0.5), Math.round(cv.height * 0.12), 1, 1).data; return [d[0]!, d[1]!, d[2]!] })
+  expect(Math.max(...sky) === sky[1], `grønn himmel (det siste bildet), fikk ${sky}`).toBe(true)
+})

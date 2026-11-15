@@ -204,6 +204,8 @@ export class PhotoController {
   private tt: ReturnType<typeof setTimeout> | undefined
   private fmtBase: FormatBase | null = null
   private savedMasks = new Map<string, string>()
+  /** Siste bildevalg per mål (lag-ID, valgt lag eller «nytt lag»), så eldre valg som blir ferdige senere, ignoreres. */
+  private addSeq = new Map<string, number>()
   private now: () => number
 
   constructor(deps: PDeps) {
@@ -1020,6 +1022,13 @@ export class PhotoController {
     // i en bildeserie blir bildet et nytt bilde i serien, ikke et lag
     if (d.batch) return this.addBatchFiles([{ blob, name }])
     const sel0 = this.s.sel // valget da bildet ble valgt; lasting og lagring tar tid
+    // det siste valget for samme mål vinner: et stort bilde som blir ferdig etter et nyere (mindre) valg, skal ikke
+    // overskrive det (før kunne «Bytt bilde» to ganger raskt ende med det første bildet)
+    // bare ved «Bytt bilde» (et bestemt lag); flere bilder som legges til samtidig, skal alle komme med
+    const target = replace ?? ''
+    const seq = (this.addSeq.get(target) ?? 0) + 1
+    this.addSeq.set(target, seq)
+    const stale = () => !!target && this.addSeq.get(target) !== seq
     if (!/^image\/(png|jpeg|webp|gif)$/.test(blob.type || '')) {
       this.flash('Bruk PNG, JPG, WebP eller GIF.')
       return
@@ -1035,8 +1044,10 @@ export class PhotoController {
       this.flash('Bildet kunne ikke leses.')
       return
     }
+    if (stale()) return
     const key = src ?? (await this.d.putImage(blob, name || 'bilde'))
     this.M.media.set(key, E)
+    if (stale()) return
     const doc = this.s.doc
     if (!doc) return
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
