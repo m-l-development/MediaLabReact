@@ -10,6 +10,23 @@ arbeidshistorikken (341 meldinger, 2026-10-10 → 2026-11-15), registrene (`feat
   dekker de fleste av disse indirekte (se Testresultater).
 - Mockups, falske adaptere og «komponenten finnes» regnes ikke som ferdig.
 
+## Oppfølging (fra `b36806c`) – de gjenstående punktene
+
+Denne delen erstatter de tilsvarende radene lenger ned (DELVIS / IKKE FERDIG), som står igjen som historikk.
+
+| # | Krav | Implementert | Testet | Resultat | Mangler | Filer |
+|---|---|---|---|---|---|---|
+| 1 | Photo: penselmaske og AI-maske for lokale justeringer | Ny lokal maske «Pensel» (k = `px`): males i den felles maskeredigeringen (pensel, former, «Velg objekt» med SlimSAM, rødt = valgt), lagres kjørelengdekodet i prosjektet; «+ Motiv (AI)» lager masken med objektmodellen (ormbg); «Mal på masken …» redigerer; «Snu» virker | Enhetstester (koding/dekoding, myke kanter, justering bare der det er malt, lagring/innlasting, ugyldig maske forkastes); `e2e/photo-ai-mask.spec.ts` (ekte foto: eksponering bare i malt halvdel); `e2e-real/photo-remove.spec.ts` (ekte AI-motivmaske) | **Verifisert** | – | `engine/develop.ts`, `controller.ts`, `Props.tsx`, `shared/mask/MaskEditor.tsx` |
+| 1 | Photo: AI-fylling som rekonstruerer bakgrunnen; uskarp som eget valg | «Fjern objekt …» (Motiv-fanen): merk objektet (rødt) → «Fyll med AI» (LaMa, lokalt i nettleseren, full oppløsning; uten AI-støtte: innholdsbevisst utfylling med beskjed) eller «Gjør uskarp» (eget valg). Resultatet blir et nytt bilde i laget; Angre henter originalen | `e2e/photo-ai-mask.spec.ts` på ekte foto (stue): speilet fjernes og blir vegg (mørke piksler 0 %, kantstyrke halvert), Angre gir speilet tilbake; uskarp beholder fargene; **ekte LaMa** i `e2e-real/photo-remove.spec.ts`: speilet og pampasgress/vase fjernet, veggen rekonstruert (før/etter-ark kontrollert visuelt) | **Verifisert** (LaMa lokalt; i CI brukes innholdsbevisst reserve fordi modellen ikke lastes ned der) | Svake spor kan bli igjen ved store områder med struktur bak (stigen til høyre i testbildet) | `controller.ts` (`openRemove`, `runRemove`), `Editor.tsx`, `PhotoDesign.tsx` |
+| 2 | Photo: hvitt bilde ved «Bytt bilde» | Sannsynlig årsak funnet og rettet: lerret over nettleserens grense (iOS: 16,7 M piksler) tegnes tomt uten feil – et 48 MP-bilde (8064 × 6048) ble hvitt i eksport/full oppløsning. `baseOf` prøver nå lerretsstørrelsen og skalerer bare ned der nettleseren ikke klarer den (ingen kvalitetstap i Chrome/PC) | `e2e/photo-white-image.spec.ts`: etterligner iOS-grensen; feilet før rettingen (eksporten uten bilde), består etter (forhåndsvisning og eksport viser bildet); kontroll uten grense består | **Rettet for denne årsaken – ikke verifisert som eierens tilfelle** | Ikke testet på ekte iPhone; eierens bilde aldri mottatt. Markeres ikke som løst før det er bekreftet | `engine/render.ts` (`canvasFits`, `baseOf`) |
+| 3 | Minne: lengre målinger, finn årsaken til økende DOM- og nettleserminne | Målingen deler nå opp i JS-heap, DOM-noder, lyttere, layout, sideprosess (renderer), GPU og totalt. Ny `e2e-mem/retain.spec.ts` finner korteste sterke sti fra GC-røttene til frakoblede lerreter | 10 runder gjennom alle editorene (50 åpninger): **med** Playwrights filopplasting vokser DOM +1774/runde og sideprosessen +72 MB/runde – årsak påvist: DevTools-protokollens filfelt-håndtak («DevTools console») holder hele det lukkede verktøyet med lerreter (48 MB per bilde). Med et ekte slipp av filen: 0 frakoblede noder. **Uten** artefaktet: DOM-noder 186 og lyttere 228 helt flate i 10 runder, GPU flat (≈ 30 MB), JS-heap 18 → 21 MB | DOM- og lerretslekkasjen var et måleartefakt (ikke i appen). **Gjenstår:** sideprosessens eget minne vokser ≈ 15 MB per runde (Thumbnail 5, Motion 4, Loop 4, Photo 2, Isolate 0 MB per besøk) – nettleserens interne (bildedekoding, fonter, kompilert kode); ikke fordelt videre | Profilering av nettleserens interne minne (memory-infra) for å se om veksten flater ut | `e2e-mem/memory.spec.ts`, `steps.ts`, `retain.spec.ts` |
+| 4 | Deling og samarbeid mot dev-backend | – | `run-dev.mjs --only=par`: delt grunnoppsett (SHR-07), rollebytte (PLT-16), to brukere på samme PC (PLT-17), Loop delt i menigheten, personlig grunnoppsett/«Del med menigheten», menighetens disk (to brukere, versjoner, Admin-sletting, isolering), serie fra felles grunnoppsett | **Verifisert** (6/6 PC). PLT-17 feilet først: testen var utdatert (Photo-malene ligger i popupen) – rettet | Mobilvariantene hoppes over i dev-løpet (som før) | `e2e-dev/*` |
+| 5 | 30 dagers innlogging: levetid, fornyelse, sikkerhet, logout | Økten lagres i `localStorage` (`ch.auth`), tilgangstokenet varer 1 time og fornyes automatisk; informasjonskapselen `ch_at` (tilgangstokenet for sperren) har samme levetid, `SameSite=Lax`, `Secure` på https | Ny `e2e-dev/session-dev.spec.ts` mot dev: levetid ≈ 1 t, `ch_at` ≤ 65 min og Lax, utløpt token fornyes og brukeren forblir innlogget, utlogging fjerner økten og informasjonskapselen, og **både det siste og det første refresh-tokenet avvises av Supabase** etter utlogging | **Verifisert:** fornyelse, sikkerhet og utlogging virker. **Men:** det finnes ingen 30-dagersgrense – økten fornyes i det uendelige til utlogging | 30-dagersgrensen (trinn 6a i `kartlegging-og-plan.md`, alternativ A: `amr`-kontroll i RLS/API, gratis) er aldri godkjent eller bygget. Endrer kjernen i tilgangsmodellen → **krever eierens godkjenning** | `infrastructure/supabase/client.ts`, `services/auth/auth-service.ts` |
+| 6 | New York: originalens håndtegnede penselmaske | Formen målt bilde for bilde i originalen og gjenskapt: en «sky» med en rad bobler (ulik størrelse) langs topp og bunn, glatte sider med avrundede hjørner, liten klatt først og så rask vekst mot høyre (målt kurve) | Eksportert og sammenlignet med originalen på 2,2–4,0 s (ark i scratchpad) | **Nær originalen** (formen og fronten innen ≈ 0,1–0,2 s) | Ikke piksel-lik: originalen er en håndtegnet strøk-animasjon; vår er parametrisk. Visuell godkjenning hos eier | `engine/render.ts` (`drawMatted`), `engine/templates3.ts` |
+| 7 | `feature-gaps-2.spec.ts` (eierens lokale fil) | Testen var utdatert: valget «Ingen look» heter nå «Original» og er aktivt fra start; testen klikket det og ventet en endring. Forventningen rettet (hopper over «Original» som «Ingen») | Kjørt: 3/3 bestått | **Rettet (testen), ikke en produktfeil** | Filen er fortsatt ukommittert (eierens regel) | `e2e/feature-gaps-2.spec.ts` |
+
+Panorama og objektivkorreksjon er ikke startet (venter på godkjenning). Ingen betalte tjenester er tatt i bruk.
+
 ## Testresultater (denne revisjonen)
 
 | Kontroll | Resultat |
@@ -46,22 +63,22 @@ arbeidshistorikken (341 meldinger, 2026-10-10 → 2026-11-15), registrene (`feat
 
 | Krav | Implementert | Mangler / begrensning | Filer |
 |---|---|---|---|
-| Minne/lekkasjer | JS-heap stabil; ingen JS-rotet lekkasje funnet | DOM-noder og prosessminne vokser per runde (se målingen). Ikke bevist lekkasje, men ikke avkreftet. Krever egen undersøkelse med lengre kjøring | `e2e-mem/*` |
+| Minne/lekkasjer (→ Oppfølging #3) | JS-heap stabil; ingen JS-rotet lekkasje funnet | DOM-noder og prosessminne vokser per runde (se målingen). Ikke bevist lekkasje, men ikke avkreftet. Krever egen undersøkelse med lengre kjøring | `e2e-mem/*` |
 | iPhone/Safari | WebKit-konfig (`playwright.iphone.config.ts`) | Kun emulert WebKit, ikke i CI; ekte iPhone ikke testet i denne revisjonen | |
-| Deling/samarbeid (Loop, grupper, item_shares) | Implementert, tester i `e2e-dev` | Krever dev-backend; ikke kjørt i denne revisjonen (ingen hemmeligheter brukt) | `e2e-dev/*` |
-| AI-maskering på ekte bilder (hår, briller, kabler, scenelys) | SlimSAM, pensel | `e2e-real` krever modeller; ikke kjørt i denne revisjonen | `e2e-real/*` |
-| Photo «Bytt bilde» gir hvitt bilde (rapportert 2026-10-17) | – | Aldri gjenskapt (trenger eierens bilde); ingen regresjonstest | |
+| Deling/samarbeid (→ Oppfølging #4: verifisert) | Implementert, tester i `e2e-dev` | Krever dev-backend; ikke kjørt i denne revisjonen (ingen hemmeligheter brukt) | `e2e-dev/*` |
+| AI-maskering på ekte bilder (→ Oppfølging #1: ekte LaMa og motivmaske kjørt) | SlimSAM, pensel | `e2e-real` krever modeller; ikke kjørt i denne revisjonen | `e2e-real/*` |
+| Photo «Bytt bilde» gir hvitt bilde (→ Oppfølging #2) | – | Aldri gjenskapt (trenger eierens bilde); ingen regresjonstest | |
 | Lekkede passord-beskyttelse | – | Krever Supabase Pro (eier har akseptert varselet) | |
-| «Husk meg» 30 dager / brukere logges ut | `persistSession`, `autoRefreshToken` | Ingen dokumentert rotårsak eller test for utløpt/tilbakekalt sesjon funnet i registeret | `infrastructure/supabase/client.ts` |
+| «Husk meg» 30 dager (→ Oppfølging #5) | `persistSession`, `autoRefreshToken` | Ingen dokumentert rotårsak eller test for utløpt/tilbakekalt sesjon funnet i registeret | `infrastructure/supabase/client.ts` |
 | Ustabile tester | – | `image-paste-guard` (melding 2,6 s) og fire andre feiler av og til under full last; består alene | `e2e/*` |
 
 ## IKKE FERDIG
 
 | Krav | Status |
 |---|---|
-| Photo: penselmaske og motiv-/AI-maske som lokale justeringer (2026-10) | Bare lineære og radiale masker finnes |
+| Photo: penselmaske og motiv-/AI-maske (→ Oppfølging #1: ferdig) | Bare lineære og radiale masker finnes |
 | Photo: panorama og objektivkorreksjon | Bevisst ikke laget (beslutning i `avansert-editor.md`); krever eierens vurdering om det fortsatt ønskes |
-| Motion: penselvindu som fri form (originalens «sky»-form i New York) | Runde strøk (dokumentert begrensning) |
+| Motion: penselvindu i New York (→ Oppfølging #6) | Runde strøk (dokumentert begrensning) |
 
 ## FEIL SOM HAR OPPSTÅTT – funnet og rettet i denne revisjonen
 
@@ -88,7 +105,8 @@ Ingen tidligere fungerende funksjon ble funnet ødelagt i den fulle regresjonen 
 
 - Visuell godkjenning av de 13 Motion-malene (se «Teknisk ferdig – ikke visuelt godkjent»).
 - Om penselmaske/AI-maske i Photo og panorama/objektivkorreksjon fortsatt skal lages.
-- Om `feature-gaps-2.spec.ts` (lokal fil) skal oppdateres eller slettes.
+- `feature-gaps-2.spec.ts`: rettet (Oppfølging #7).
+- 30-dagersgrensen (trinn 6a, alternativ A) – godkjenning før bygging.
 - Supabase Pro (lekkede passord) og ekte iPhone-testing (kostnad).
 
 ## Produksjon og Git (ved start av revisjonen)

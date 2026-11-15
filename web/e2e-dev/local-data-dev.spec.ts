@@ -27,6 +27,7 @@ async function hasLegacyCat(p: Page) {
 }
 async function saveProject(p: Page) {
   await p.goto('/app/photo-design')
+  await p.locator('[data-pd-lib-open]').click() // malene står i den felles malpopupen
   await p.locator('[data-tpl="photo"]').click()
   await expect(p.locator('[data-pd-view="edit"]')).toBeVisible({ timeout: 30_000 })
   await p.getByRole('button', { name: 'Lagre', exact: true }).click()

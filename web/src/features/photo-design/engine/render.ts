@@ -156,9 +156,42 @@ function blurInto(src: HTMLCanvasElement, r: number): HTMLCanvasElement {
   return o
 }
 
-/** Bildet nedskalert til høyst `maxD` (hurtigbufret). */
+/**
+ * Klarer nettleseren et lerret på w × h? iOS Safari (og enheter med lite minne) tegner ingenting på et lerret over
+ * grensen (iOS: 4096² = 16,7 M piksler) – uten feil. Et bilde fra et 48 MP-kamera ble da tomt («hvitt bilde»), f.eks. i
+ * eksporten. Prøves én gang per størrelse: tegn en piksel i hjørnet og les den tilbake.
+ */
+const FITS = new Map<number, boolean>()
+export function canvasFits(w: number, h: number): boolean {
+  const W = Math.max(1, Math.round(w)), H = Math.max(1, Math.round(h))
+  if (W * H <= 4096 * 4096) return true
+  const k = Math.ceil((W * H) / 1e6)
+  const have = FITS.get(k)
+  if (have !== undefined) return have
+  let ok = false
+  try {
+    const c = document.createElement('canvas')
+    c.width = W
+    c.height = H
+    const g = c.getContext('2d', { willReadFrequently: true })
+    if (g) {
+      g.fillStyle = '#fff'
+      g.fillRect(W - 1, H - 1, 1, 1)
+      ok = (g.getImageData(W - 1, H - 1, 1, 1).data[3] ?? 0) === 255
+    }
+    c.width = 0
+    c.height = 0
+  } catch {
+    ok = false
+  }
+  FITS.set(k, ok)
+  return ok
+}
+
+/** Bildet nedskalert til høyst `maxD` (hurtigbufret) – og aldri større enn nettleseren klarer å tegne. */
 export function baseOf(E: MediaEntry, maxD: number): HTMLCanvasElement {
-  const s = Math.min(1, maxD / Math.max(E.w, E.h))
+  let s = Math.min(1, maxD / Math.max(E.w, E.h))
+  while (s > 0.05 && !canvasFits(E.w * s, E.h * s)) s *= 0.85
   const k = 'b' + Math.round(E.w * s)
   const have = E.cache.get(k)
   if (have) {

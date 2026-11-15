@@ -1005,23 +1005,34 @@ function drawMatted(ctx: Ctx2D, W: number, H: number, o: Overlay, M: MediaEls, t
   const b = o.matte?.brush
   if (b) {
     const k = clamp((t - b.t0) / Math.max(0.1, b.dur), 0, 1)
-    if (k > 0) {
-      // penselvindu: runde strøk (som fingre over dugget glass) tørkes frem fra venstre, i to rader
+    // den første klatten kommer litt ut i forløpet (som når fingeren treffer glasset)
+    if (k > 0.13) {
+      // penselvindu som i originalen: en «sky» tørket i glasset – flaten vokser mot høyre, med en rad bobler langs
+      // topp- og bunnkanten (litt ulik størrelse), avrundet venstre kant og avrundede hjørner foran
       const bx = b.x * W, by = b.y * H, bw = b.w * W, bh = b.h * H
-      const r = bh * 0.32
+      const r = Math.max(4, bh * 0.15)
+      // fronten (målt i originalen): en liten klatt først, så rask vekst og myk stopp
+      const sk = clamp((k - 0.15) / 0.7, 0, 1)
+      const xr = bx + Math.max(bw * 0.17, bw * sk * sk * (3 - 2 * sk))
+      const bump = (i: number) => r * (0.8 + 0.4 * (((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1))
       mg.save()
       mg.globalAlpha = 1
       mg.fillStyle = '#ffffff'
       mg.beginPath()
-      for (let row = 0; row < 2; row++) {
-        const y0 = by + bh * (row ? 0.68 : 0.32)
-        const end = bx + bw * clamp(k * 1.15 - row * 0.15, 0, 1)
-        for (let xx = bx; xx <= end; xx += r * 0.35) {
-          const jy = Math.sin(xx / (r * 1.7) + row) * r * 0.22
-          mg.moveTo(xx + r, y0 + jy)
-          mg.arc(xx, y0 + jy, r, 0, Math.PI * 2)
-        }
+      // kjernen
+      mg.rect(bx + r, by + r, Math.max(0, xr - bx - 2 * r), bh - 2 * r)
+      // bobler oppe og nede
+      let i = 0
+      for (let xx = bx + r; xx <= xr - r + 0.5; xx += r * 1.6, i++) {
+        const rt = bump(i), rb = bump(i + 57)
+        mg.moveTo(xx + rt, by + r)
+        mg.arc(xx, by + r, rt, 0, Math.PI * 2)
+        mg.moveTo(xx + rb, by + bh - r)
+        mg.arc(xx, by + bh - r, rb, 0, Math.PI * 2)
       }
+      // glatte sider: venstre kant og fronten er rette med avrundede hjørner (boblene ligger bare oppe og nede)
+      mg.moveTo(bx, by + r)
+      mg.rect(bx, by + r, Math.max(0, xr - bx), bh - 2 * r)
       mg.fill()
       mg.restore()
     }

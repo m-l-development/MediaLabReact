@@ -10,7 +10,9 @@ import {
   ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, LOOKS, SHAPES, shapeLayer, targetSlot, textLayer, uid,
   type Adj, type CurveKey, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
 } from './engine/model'
-import { autoTone, cleanDev, DEV, hdrMerge, LOC, type Dev, type DevKey, type Histogram, type LocalAdj } from './engine/develop'
+import { autoTone, cleanDev, decodeMask, DEV, encodeMask, hdrMerge, LOC, type Dev, type DevKey, type Histogram, type LocalAdj } from './engine/develop'
+import { blurArea } from '../isolate-subject/engine/blur'
+import { defaultGrow } from '../isolate-subject/engine/inpaint'
 import { readExif, type Exif } from './engine/exif'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
@@ -90,7 +92,13 @@ export interface PState {
   /** Effektvelgeren (popup) er åpen. */
   fxOpen: boolean
   /** «Finjuster masken»: bildet og masken som redigeres i den felles maskeredigeringen. */
-  maskEdit: { id: string; image: HTMLCanvasElement; mask: Uint8ClampedArray } | null
+  /**
+   * Den felles maskeredigeringen: cut = lagets utklippsmaske; remove = «Fjern objekt» (det som merkes rødt, fjernes og
+   * fylles); local = pikselmaske for en lokal justering (det som merkes rødt, justeres). `loc` = justeringen som endres.
+   */
+  maskEdit: { id: string; image: HTMLCanvasElement; mask: Uint8ClampedArray; purpose: 'cut' | 'remove' | 'local'; loc?: number } | null
+  /** «Fjern objekt» pågår: AI-modellen lastes ned / bildet fylles */
+  fillBusy: { phase: 'model' | 'run'; pct: number } | null
   /** Effekten som forhåndsvises (tegnes øverst, er ikke i prosjektet før «Legg til effekt»). */
   fxPick: FxLayer | null
   fxQ: string
@@ -137,6 +145,11 @@ export interface PDeps {
   cutout(src: HTMLCanvasElement, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<HTMLCanvasElement | null>
   /** «Velg objekt» i den felles maskeredigeringen (SlimSAM). */
   selectObject?(image: HTMLCanvasElement, x: number, y: number): Promise<Uint8ClampedArray | null>
+  /**
+   * «Fjern objekt»: fyller området (mask 255 = fjern) med AI (LaMa, rekonstruerer det som er bak) eller, når AI ikke
+   * kan brukes, innholdsbevisst utfylling. Samme motor som Isolate Subject.
+   */
+  aiFill?(rgba: Uint8ClampedArray, W: number, H: number, mask: Uint8ClampedArray, opt: { grow: number; seed: number; ai: boolean }, onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<{ rgba: Uint8ClampedArray; method: 'ai' | 'patch'; why?: 'device' | 'failed' }>
   storage: { get(k: string): string | null; set(k: string, v: string): void; remove(k: string): void }
   confirm(p: Phrase, v?: Vars): boolean
   prompt(p: Phrase, def?: string): string | null
@@ -208,7 +221,7 @@ export class PhotoController {
       projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, ctx: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, fillBusy: null, ctx: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), libCat: LIB_CATS[0], lib: null, bx: null, bfmt: 'jpg', tver: 0,
     })
   }
@@ -1774,13 +1787,15 @@ export class PhotoController {
         for (let i = 0; i < W * H; i++) mask[i] = d[i * 4 + 3] ?? 0
       }
     }
-    this.set({ maskEdit: { id: L.id, image, mask } })
+    this.set({ maskEdit: { id: L.id, image, mask, purpose: 'cut' } })
   }
 
   applyMaskEdit(): void {
     const e = this.s.maskEdit
     const L = e && this.s.doc?.layers.find((q) => q.id === e.id)
     if (!e || !L || L.type !== 'image') return
+    if (e.purpose === 'remove') return void this.runRemove('ai')
+    if (e.purpose === 'local') return this.applyLocMask()
     const m = this.maskFor(L, true)
     const g = m?.c.getContext('2d')
     if (m && g) {
@@ -1807,7 +1822,159 @@ export class PhotoController {
   }
 
   closeMaskEdit(): void {
+    if (this.s.fillBusy) return
     this.set({ maskEdit: null })
+  }
+
+  /** «Fjern objekt …»: merk objektet (rødt) med pensel, former eller «Velg objekt»; så fylles det med AI eller gjøres uskarpt. */
+  openRemove(): void {
+    const L = this.selL()
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!L || L.type !== 'image' || !E || this.s.maskEdit) {
+      if (!E) this.flash('Legg inn et bilde først.')
+      return
+    }
+    const image = baseOf(E, 2048)
+    this.set({ maskEdit: { id: L.id, image, mask: new Uint8ClampedArray(image.width * image.height).fill(255), purpose: 'remove' } })
+  }
+
+  /**
+   * Fjerner det merkede området i bildet: `ai` = fyll med AI (LaMa rekonstruerer bakgrunnen; uten AI-støtte brukes
+   * innholdsbevisst utfylling, og det sies fra), `blur` = gjør bare området uskarpt (eget, valgfritt verktøy).
+   * Bildet behandles i full oppløsning og blir et nytt bilde i laget (Angre henter originalen tilbake).
+   */
+  async runRemove(mode: 'ai' | 'blur'): Promise<void> {
+    const e = this.s.maskEdit
+    const L = e && this.s.doc?.layers.find((q) => q.id === e.id)
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!e || !L || L.type !== 'image' || !E || this.s.fillBusy) return
+    // full oppløsning (begrenset bare av hva nettleseren klarer å tegne)
+    const full = baseOf(E, Math.max(E.w, E.h))
+    const W = full.width
+    const H = full.height
+    const g = full.getContext('2d', { willReadFrequently: true })
+    if (!g) return
+    // det merkede (rødt = maske 0 i redigeringen) skalert opp til bildet
+    const sm = mk(e.image.width, e.image.height)
+    const sg = sm.getContext('2d')
+    if (!sg) return
+    const id = sg.createImageData(sm.width, sm.height)
+    let any = 0
+    for (let i = 0; i < e.mask.length; i++) {
+      const v = 255 - (e.mask[i] ?? 255)
+      id.data[i * 4 + 3] = v
+      if (v > 127) any++
+    }
+    if (!any) {
+      this.flash('Merk det som skal fjernes først (mal med «Fjern», eller bruk «Velg objekt»).')
+      return
+    }
+    sg.putImageData(id, 0, 0)
+    const big = mk(W, H)
+    const bg = big.getContext('2d', { willReadFrequently: true })
+    if (!bg) return
+    bg.drawImage(sm, 0, 0, W, H)
+    const md = bg.getImageData(0, 0, W, H).data
+    const remove = new Uint8ClampedArray(W * H)
+    for (let i = 0; i < remove.length; i++) remove[i] = (md[i * 4 + 3] ?? 0) > 127 ? 255 : 0
+    const rgba = g.getImageData(0, 0, W, H).data
+    this.set({ fillBusy: { phase: 'run', pct: 0 } })
+    try {
+      let out: Uint8ClampedArray = rgba
+      let note: Phrase | null = null
+      if (mode === 'blur') blurArea(out, W, H, remove, 60, defaultGrow(W, H))
+      else {
+        if (!this.d.aiFill) throw new Error('fill')
+        const r = await this.d.aiFill(rgba, W, H, remove, { grow: defaultGrow(W, H), seed: 7, ai: true }, (phase, pct) => this.set({ fillBusy: { phase, pct } }))
+        out = r.rgba
+        if (r.method !== 'ai') note = r.why === 'device' ? 'AI-fylling støttes ikke på denne enheten – området er fylt med omgivelsene (innholdsbevisst).' : 'AI-modellen kunne ikke lastes – området er fylt med omgivelsene (innholdsbevisst).'
+      }
+      const c = mk(W, H)
+      c.getContext('2d')?.putImageData(new ImageData(new Uint8ClampedArray(out), W, H), 0, 0)
+      const blob = await new Promise<Blob | null>((res) => c.toBlob(res, W * H > 12e6 ? 'image/jpeg' : 'image/png', 0.95))
+      if (!blob) throw new Error('blob')
+      const src = await this.d.putImage(blob, `${L.name || 'bilde'}-fjernet.${blob.type === 'image/png' ? 'png' : 'jpg'}`)
+      this.M.media.set(src, await loadImg(blob))
+      this.patchL(L.id, { src })
+      this.set({ maskEdit: null })
+      this.flash(note ?? (mode === 'blur' ? 'Området er gjort uskarpt. Angre henter originalen tilbake.' : 'Objektet er fjernet og bakgrunnen fylt inn med AI. Angre henter originalen tilbake.'))
+    } catch {
+      this.flash('Kunne ikke fjerne objektet. Prøv et mindre område.')
+    } finally {
+      this.set({ fillBusy: null })
+    }
+  }
+
+  /** Pikselmaske for en lokal justering: mal (eller «Velg objekt») området som skal justeres. `i` = endre en eksisterende. */
+  openLocMask(i: number | null = null): void {
+    const L = this.selL()
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!L || L.type !== 'image' || !E || this.s.maskEdit) {
+      if (!E) this.flash('Legg inn et bilde først.')
+      return
+    }
+    const image = baseOf(E, 2048)
+    const W = image.width
+    const H = image.height
+    const mask = new Uint8ClampedArray(W * H).fill(255)
+    const pm = i !== null ? L.dev?.loc?.[i]?.pm : undefined
+    const M = pm ? decodeMask(pm) : null
+    if (M) {
+      for (let y = 0; y < H; y++) {
+        const my = Math.min(M.h - 1, Math.floor((y * M.h) / H)) * M.w
+        for (let x = 0; x < W; x++) mask[y * W + x] = 255 - (M.a[my + Math.min(M.w - 1, Math.floor((x * M.w) / W))] ?? 0)
+      }
+    }
+    this.set({ maskEdit: { id: L.id, image, mask, purpose: 'local', ...(i !== null ? { loc: i } : {}) } })
+  }
+
+  private applyLocMask(): void {
+    const e = this.s.maskEdit
+    if (!e) return
+    const a = new Uint8ClampedArray(e.mask.length)
+    let any = false
+    for (let i = 0; i < a.length; i++) {
+      a[i] = 255 - (e.mask[i] ?? 255)
+      if ((a[i] ?? 0) > 8) any = true
+    }
+    if (!any) {
+      this.flash('Mal over området justeringen skal gjelde (rødt), eller bruk «Velg objekt».')
+      return
+    }
+    const pm = encodeMask(a, e.image.width, e.image.height)
+    if (e.loc !== undefined) this.setLoc(e.id, e.loc, { pm })
+    else this.addPxLoc(e.id, pm)
+    this.set({ maskEdit: null })
+  }
+
+  private addPxLoc(id: string, pm: string): void {
+    this.patchL(id, (q) => (q.type === 'image' ? { dev: cleanDev({ ...DEV, ...q.dev, loc: [...(q.dev?.loc ?? []), { k: 'px' as const, ...LOC, pm, exp: 30 }] }) } : {}))
+  }
+
+  /** AI-maske: motivet (objektmodellen) blir en pikselmaske for en lokal justering (Snu = alt unntatt motivet). */
+  async addLocSubject(id: string): Promise<void> {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!L || L.type !== 'image' || !E || this.s.busy) return
+    const src = baseOf(E, 1024)
+    this.set({ busy: 'model' })
+    try {
+      const m = await this.d.cutout(src, 'object', (phase) => this.set({ busy: phase }))
+      const g = m?.getContext('2d', { willReadFrequently: true })
+      if (!m || !g) {
+        this.flash('Fant ikke noe tydelig motiv i bildet.')
+        return
+      }
+      const d = g.getImageData(0, 0, m.width, m.height).data
+      const a = new Uint8ClampedArray(m.width * m.height)
+      for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3] ?? 0
+      this.addPxLoc(id, encodeMask(a, m.width, m.height))
+      this.flash('Motivet er valgt med AI. Juster eksponering, kontrast, metning eller temperatur – «Snu» justerer alt unntatt motivet.')
+    } catch {
+      this.flash('AI-modellen kunne ikke lastes. Prøv igjen, eller mal masken selv.')
+    } finally {
+      this.set({ busy: '' })
+    }
   }
 
   selectInMask(x: number, y: number): Promise<Uint8ClampedArray | null> {

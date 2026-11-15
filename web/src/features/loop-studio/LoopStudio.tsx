@@ -332,10 +332,10 @@ function Banners({ c, tx }: { c: LoopController; tx: (s: unknown) => string }) {
               {tx('Åpne grunnoppsettet')}
             </a>
           )}
-          <button type="button" data-ch-demo-save="1" onClick={c.openBaseDialog} style={{ height: '30px', padding: '0 14px', border: '1px solid #f5b82c', borderRadius: '999px', background: 'transparent', color: '#f5d38f', font: 'inherit', cursor: 'pointer' }}>
+          <button type="button" data-ch-demo-save="1" onClick={c.openBaseDialog} style={{ height: '32px', padding: '0 14px', border: '1px solid #f5b82c', borderRadius: '999px', background: 'transparent', color: '#f5d38f', font: 'inherit', cursor: 'pointer' }}>
             {tx('Lagre som grunnoppsett')}
           </button>
-          <a href="#" data-ch-demo-exit="1" onClick={(e) => { e.preventDefault(); c.deps.open({ mal: c.state.tpl || 'week' }) }} style={{ height: '30px', display: 'inline-flex', alignItems: 'center', padding: '0 14px', borderRadius: '999px', background: '#f5b82c', color: '#111', textDecoration: 'none' }}>
+          <a href="#" data-ch-demo-exit="1" onClick={(e) => { e.preventDefault(); c.deps.open({ mal: c.state.tpl || 'week' }) }} style={{ height: '32px', display: 'inline-flex', alignItems: 'center', padding: '0 14px', borderRadius: '999px', background: '#f5b82c', color: '#111', textDecoration: 'none' }}>
             {tx('Avslutt demo')}
           </a>
         </div>

@@ -19,6 +19,7 @@ import { AssetPicker } from '../media-library/AssetPicker'
 import { PhotoController, type Pt, type SharedPd } from './controller'
 import { Editor } from './Editor'
 import { PhotoCutout } from './engine/cutout'
+import { FillRunner } from '../isolate-subject/engine/fill'
 import { Home } from './Home'
 import { PdRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
@@ -62,6 +63,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   const [parts] = useState(() => {
     const repo = new PdRepo(projects)
     const cutout = new PhotoCutout()
+    const filler = new FillRunner()
     const say = (p: Phrase, v?: Vars) => tr(langRef.current, p, v)
     const st = auth.state.get()
     const me = () => { const a = auth.state.get(); return a.status === 'ready' ? a.me : null }
@@ -110,12 +112,13 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       },
       cutout: (src, kind, onProgress) => cutout.run(src, kind, onProgress),
       selectObject: (image, x, y) => cutout.select(image, x, y),
+      aiFill: (rgba, W, H, mask, opt, onProgress) => filler.fill(rgba, W, H, mask, opt, onProgress),
       storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v), remove: (k) => userStore.remove(k) },
       confirm: (p, v) => window.confirm(say(p, v)),
       prompt: (p, def) => window.prompt(say(p), def),
       t: say,
     })
-    return { c, repo, cutout }
+    return { c, repo, cutout, filler }
   })
   const { c, repo } = parts
   const S = useStore(c.state)
@@ -147,6 +150,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       dispose: () => {
         c.dispose()
         parts.cutout.dispose()
+        parts.filler.dispose()
       },
     })
   }, [registerLifecycle, c, parts])

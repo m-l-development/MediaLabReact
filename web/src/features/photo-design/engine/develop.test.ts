@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyDev, cleanDev, DEV, devNeutral, hdrMerge, LOC, locWeight, type Dev, type Px } from './develop'
+import { applyDev, cleanDev, decodeMask, DEV, devNeutral, encodeMask, hdrMerge, LOC, locWeight, type Dev, type Px } from './develop'
 import { readExif } from './exif'
 
 /** Lite testbilde: f(x, y) → [r, g, b]. */
@@ -138,5 +138,42 @@ describe('EXIF', () => {
     const jpg = new Uint8Array([0xff, 0xd8, ...app1, ...tiff, 0xff, 0xd9])
     expect(readExif(jpg.buffer)).toEqual({ make: 'Canon', model: 'R6', exposure: '1/250 s', fnumber: 'f/2.8', iso: 400, focal: '50 mm' })
     expect(readExif(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer), 'PNG har ingen EXIF').toBeNull()
+  })
+})
+
+describe('pikselmaske (pensel / AI) for lokale justeringer', () => {
+  it('koding og dekoding: formen og myke kanter beholdes, nedskalert til høyst 768 px', () => {
+    const w = 1600, h = 900
+    const a = new Uint8ClampedArray(w * h)
+    // et rektangel (motiv) med myk kant
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const d = Math.min(x - 400, 1200 - x, y - 200, 700 - y); a[y * w + x] = d > 20 ? 255 : d > 0 ? Math.round((d / 20) * 255) : 0 }
+    const pm = encodeMask(a, w, h)
+    expect(pm.length).toBeLessThan(60_000)
+    const M = decodeMask(pm)!
+    expect(Math.max(M.w, M.h)).toBe(768)
+    const m = { ...LOC, k: 'px' as const, pm, exp: 50 }
+    expect(locWeight(m, 0.5, 0.5, 16 / 9)).toBeCloseTo(1, 1)
+    expect(locWeight(m, 0.1, 0.1, 16 / 9)).toBe(0)
+    expect(locWeight({ ...m, inv: true }, 0.1, 0.1, 16 / 9)).toBe(1)
+    // kanten er myk (mellom 0 og 1 like innenfor)
+    const edge = locWeight(m, 405 / w, 0.5, 16 / 9)
+    expect(edge).toBeGreaterThan(0.05)
+    expect(edge).toBeLessThan(0.95)
+  })
+  it('justeringen virker bare der masken er malt, og lagres/lastes (cleanDev) uendret', () => {
+    const w = 64, h = 32
+    const a = new Uint8ClampedArray(w * h)
+    for (let y = 0; y < h; y++) for (let x = 32; x < w; x++) a[y * w + x] = 255 // høyre halvdel
+    const pm = encodeMask(a, w, h)
+    const d = cleanDev({ ...DEV, loc: [{ ...LOC, k: 'px', pm, exp: 80 }] })!
+    expect(d.loc?.[0]?.k).toBe('px')
+    expect(d.loc?.[0]?.pm).toBe(pm)
+    const img = new ImageData(new Uint8ClampedArray(w * h * 4).fill(100), w, h)
+    applyDev(img, d)
+    expect(img.data[(16 * w + 8) * 4]).toBe(100) // venstre: urørt
+    expect(img.data[(16 * w + 56) * 4]).toBeGreaterThan(160) // høyre: lysere
+  })
+  it('ugyldig maske forkastes ved lasting', () => {
+    expect(cleanDev({ ...DEV, loc: [{ ...LOC, k: 'px', pm: 'tull', exp: 10 }] })).toBeNull()
   })
 })

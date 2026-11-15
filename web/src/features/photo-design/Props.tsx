@@ -358,6 +358,8 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
             <button type="button" className={s.primary} disabled={!!S.busy} onClick={() => void c.cut('object')}>{tx('Objekt')}</button>
           </div>
           <span className={s.dimSm}>{tx('Kjører i nettleseren. Første gang lastes modellen ned (MODNet for personer, ormbg for objekter).')}</span>
+          <span className={s.eyebrowSm}>{tx('Fjern objekt')}</span>
+          <button type="button" className={s.smallBtnBlue} data-pd-remove-open="" disabled={!has || !!S.busy} title={tx('Fjern objekter og fyll inn bakgrunnen med AI, eller gjør et område uskarpt')} onClick={() => c.openRemove()}>{tx('Fjern objekt …')}</button>
           <span className={s.eyebrowSm}>{tx('Pensel på masken')}</span>
           <button type="button" className={S.tool === 'brush' ? s.brushOn : s.smallBtn} onClick={() => {
             if (!has) {
@@ -473,6 +475,8 @@ function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { ty
           <button type="button" data-pd-loc-add="lin" disabled={(dev.loc?.length ?? 0) >= 8} onClick={() => c.addLoc(L.id, 'lin')}>{tx('+ Lineær gradient')}</button>
           <button type="button" data-pd-loc-add="rad" disabled={(dev.loc?.length ?? 0) >= 8} onClick={() => c.addLoc(L.id, 'rad')}>{tx('+ Radial gradient')}</button>
           <button type="button" data-pd-loc-add="spot" disabled={(dev.loc?.length ?? 0) >= 8} title={tx('Flekkfjerning og kloning: dekker et område med et annet område i bildet')} onClick={() => c.addLoc(L.id, 'spot')}>{tx('+ Flekkfjerning')}</button>
+          <button type="button" data-pd-loc-add="px" disabled={(dev.loc?.length ?? 0) >= 8} title={tx('Pensel- eller AI-maske: justeringen virker bare der du har malt (eller på motivet AI fant)')} onClick={() => c.openLocMask(null)}>{tx('+ Pensel')}</button>
+          <button type="button" data-pd-loc-add="subject" disabled={(dev.loc?.length ?? 0) >= 8 || !!c.s.busy} title={tx('Pensel- eller AI-maske: justeringen virker bare der du har malt (eller på motivet AI fant)')} onClick={() => void c.addLocSubject(L.id)}>{tx('+ Motiv (AI)')}</button>
         </div>
         {(dev.loc ?? []).map((m, i) => {
           const set = (p: Partial<LocalAdj>, key?: string) => c.setLoc(L.id, i, p, key)
@@ -482,10 +486,11 @@ function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { ty
             return <Range key={k} label={tx(l)} min={mn} max={mx} step={1} val={v} show={`${Math.round(v)}`} on={(x) => set({ [k]: x / sc }, `loc${i}${k}`)} def={d0 * sc} reset={() => set({ [k]: d0 })} />
           }
           const spotK = m.k === 'spot'
+          const pxK = m.k === 'px'
           return (
             <div key={i} data-pd-loc-item={i} style={{ borderTop: '1px solid var(--line, #8884)', paddingTop: 6, marginTop: 6 }}>
               <div className={s.sectionHead}>
-                <span>{tx(m.k === 'lin' ? 'Lineær' : spotK ? 'Flekkfjerning' : 'Radial')} {i + 1}</span>
+                <span>{tx(m.k === 'lin' ? 'Lineær' : spotK ? 'Flekkfjerning' : pxK ? 'Pensel' : 'Radial')} {i + 1}</span>
                 <span>
                   <button type="button" className={s.resetBtn} data-pd-loc-on="" aria-pressed={m.on} onClick={() => set({ on: !m.on })}>{tx(m.on ? 'På' : 'Av')}</button>
                   {!spotK && <button type="button" className={s.resetBtn} data-pd-loc-inv="" aria-pressed={m.inv} onClick={() => set({ inv: !m.inv })}>{tx('Snu')}</button>}
@@ -496,11 +501,12 @@ function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { ty
               {!spotK && R('con', 'Kontrast', -100, 100)}
               {!spotK && R('sat', 'Metning', -100, 100)}
               {!spotK && R('temp', 'Temperatur', -100, 100)}
-              {R('x', 'Plassering vannrett', -50, 150, 100)}
-              {R('y', 'Plassering loddrett', -50, 150, 100)}
-              {R('r', m.k === 'lin' ? 'Overgang' : 'Størrelse', 2, 150, 100)}
-              {!spotK && R('a', 'Vinkel', -180, 180)}
-              {m.k !== 'lin' && R('f', 'Myk kant', 0, 100, 100)}
+              {pxK && <button type="button" className={s.smallBtnBlue} data-pd-loc-paint={i} onClick={() => c.openLocMask(i)}>{tx('Mal på masken …')}</button>}
+              {!pxK && R('x', 'Plassering vannrett', -50, 150, 100)}
+              {!pxK && R('y', 'Plassering loddrett', -50, 150, 100)}
+              {!pxK && R('r', m.k === 'lin' ? 'Overgang' : 'Størrelse', 2, 150, 100)}
+              {!spotK && !pxK && R('a', 'Vinkel', -180, 180)}
+              {m.k !== 'lin' && !pxK && R('f', 'Myk kant', 0, 100, 100)}
               {spotK && R('sx', 'Kilde vannrett', 0, 100, 100)}
               {spotK && R('sy', 'Kilde loddrett', 0, 100, 100)}
             </div>
