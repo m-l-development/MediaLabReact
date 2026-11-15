@@ -353,6 +353,10 @@ export class ThumbController {
 
   dispose(): void {
     this.alive = false
+    // malskissene (blob:-adresser) frigjøres når verktøyet lukkes – før ble de liggende i minnet til siden ble lastet på nytt
+    for (const b of this.blobs) URL.revokeObjectURL(b)
+    this.blobs = []
+    this.lastPrev.clear()
     clearTimeout(this.msgTimer)
     clearTimeout(this.autoTimer)
     clearTimeout(this.sharedTimer)

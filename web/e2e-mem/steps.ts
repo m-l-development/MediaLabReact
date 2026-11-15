@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { png } from '../e2e/png'
 
 export const BIG = png(4000, 3000, (x, y) => [(x * 7 + y) & 255, (y * 5) & 255, ((x ^ y) * 3) & 255, 255])
-export const TALL = png(2400, 3600, (x, y) => [(x * 3) & 255, (x + y * 2) & 255, (y * 7) & 255, 255])
+export const TALL = process.env.MEM_SMALL ? png(600, 900, (x, y) => [(x * 3) & 255, (x + y * 2) & 255, (y * 7) & 255, 255]) : png(2400, 3600, (x, y) => [(x * 3) & 255, (x + y * 2) & 255, (y * 7) & 255, 255])
 
 type FileSpec = { name: string; mimeType: string; buffer: Buffer }
 
@@ -22,7 +22,7 @@ async function pick(page: Page, trigger: import('@playwright/test').Locator, fil
     return
   }
   await page.evaluate((f) => {
-    type W = { __memNext?: typeof f | null; __memPatched?: boolean }
+    type W = { __memNext?: typeof f | null; __memPatched?: boolean; __memFiles?: Map<string, File> }
     const w = window as unknown as W
     w.__memNext = f
     if (w.__memPatched) return
@@ -35,7 +35,11 @@ async function pick(page: Page, trigger: import('@playwright/test').Locator, fil
       const u = new Uint8Array(bin.length)
       for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i)
       const dt = new DataTransfer()
-      dt.items.add(new File([u], n.name, { type: n.type }))
+      // MEM_REUSE_FILE: samme File-objekt hver gang (skiller filens bytes fra bildebehandlingen)
+      const files = (w.__memFiles ??= new Map())
+      const file = n.reuse ? (files.get(n.name) ?? new File([u], n.name, { type: n.type })) : new File([u], n.name, { type: n.type })
+      if (n.reuse) files.set(n.name, file)
+      dt.items.add(file)
       el.files = dt.files
       el.dispatchEvent(new Event('input', { bubbles: true }))
       el.dispatchEvent(new Event('change', { bubbles: true }))
@@ -45,7 +49,7 @@ async function pick(page: Page, trigger: import('@playwright/test').Locator, fil
     HTMLInputElement.prototype.click = function (this: HTMLInputElement) { if (!deliver(this)) click.call(this) }
     const sp = HTMLInputElement.prototype.showPicker
     if (sp) HTMLInputElement.prototype.showPicker = function (this: HTMLInputElement) { if (!deliver(this)) sp.call(this) }
-  }, { b64: file.buffer.toString('base64'), name: file.name, type: file.mimeType })
+  }, { b64: file.buffer.toString('base64'), name: file.name, type: file.mimeType, reuse: !!process.env.MEM_REUSE_FILE })
   await trigger.click()
 }
 
@@ -143,3 +147,24 @@ export async function isolate(page: Page) {
   await page.locator('[data-effect-apply]').click()
 }
 
+
+/** Oppdeling av Thumbnail-steget (minneprofilering): a = bare åpne, b = + malbiblioteket, c = + mal og bilde. */
+export async function thumbA(page: Page) {
+  await nav(page, '/app/thumbnail-studio?cat=sunday')
+  await expect(page.getByRole('button', { name: /Ny mal/ })).toBeVisible()
+}
+export async function thumbB(page: Page) {
+  await thumbA(page)
+  await page.getByRole('button', { name: /Ny mal/ }).click()
+  await expect(page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="base:main"]')).toBeVisible()
+  await page.waitForTimeout(1500)
+  await page.keyboard.press('Escape')
+}
+export const thumbC = thumbnail
+export async function thumbC1(page: Page) {
+  await thumbA(page)
+  await page.getByRole('button', { name: /Ny mal/ }).click()
+  await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="base:main"]').click()
+  await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
+  await page.waitForTimeout(1000)
+}

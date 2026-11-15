@@ -225,7 +225,8 @@ test('Thumbnail, Mockups og Photo: innliming i felt og dialoger ignoreres; på s
   await page.waitForTimeout(400)
   await expect(page.getByText('Velg en mal, så legges bildet inn.')).toHaveCount(0)
   await pasteImage(page, null)
-  await expect(page.getByText('Velg en mal, så legges bildet inn.')).toBeVisible()
+  // meldingen står i 2,6 s, men innlesingen kan ta lenger tid enn 5 s under full testbelastning (som for Mockups under)
+  await expect(page.getByText('Velg en mal, så legges bildet inn.')).toBeVisible({ timeout: 20000 })
 
   // Mockups (innlimt bilde = design i alle mockupene)
   await page.goto('/app/mockups')

@@ -17,7 +17,7 @@ import { readExif, type Exif } from './engine/exif'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
 import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
-import { baseOf, cover, docFonts, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
+import { baseOf, cover, docFonts, dropCaches, histOf, hit, loadImg, mk, printPDF, releaseLarge, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
 
@@ -1048,6 +1048,8 @@ export class PhotoController {
     const ph = targetSlot(doc, { replace: rep, at: !!at, hit: at ? hit(doc, at[0], at[1]) : null, sel: this.selL(), ...(opt.logo ? { logo: true } : {}) })
     const nm = String(name || this.d.t('Bilde')).replace(/\.[a-z0-9]+$/i, '').slice(0, 40)
     if (ph && ph.type === 'image') {
+      // det forrige bildet beholdes (Angre), men mellomlagrene frigjøres
+      if (ph.src && ph.src !== key) dropCaches(this.M.media.get(ph.src))
       this.patchL(ph.id, { src: key, cz: 1, cx: 0, cy: 0, name: ph.src ? ph.name : nm, mask: null })
       this.M.masks.delete(ph.id)
       // har brukeren valgt et annet lag mens bildet ble behandlet, beholdes det valget (før forsvant f.eks. tekstfeltet)
@@ -2625,6 +2627,8 @@ export class PhotoController {
     const g = c.getContext('2d')
     if (!g) return null
     render(g, d, s, this.M, { full: true, noPh: true, transparent: x.fmt === 'png' && x.t })
+    // mellomlagrene i full oppløsning trengs ikke lenger (iOS: grensen for samlet lerretsminne)
+    releaseLarge(this.M.media)
     if (x.fmt === 'jpg') {
       const j = mk(c.width, c.height)
       const jg = j.getContext('2d')
