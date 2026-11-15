@@ -13,7 +13,9 @@ export async function nav(page: Page, path: string) {
 
 export async function photo(page: Page) {
   await nav(page, '/app/photo-design')
-  await page.locator('[data-tpl="photo"]').click()
+  // malene åpnes fra den felles malpopupen («Ny mal …»)
+  await page.locator('[data-pd-lib-open]').click()
+  await page.locator('[data-tpl-picker] [data-tpl="photo"]').click()
   await expect(page.locator('[data-pd-view="edit"]')).toBeVisible()
   await page.locator('[data-layer]').filter({ hasText: 'Bakgrunnsbilde' }).click()
   const ch = page.waitForEvent('filechooser')

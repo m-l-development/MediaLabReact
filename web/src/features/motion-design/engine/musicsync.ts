@@ -201,8 +201,13 @@ export function analyse(x: Float32Array, sr: number): MusicMap {
 /** Malens bevegelsesprofil: hvordan montasjen og animasjonene svarer på musikken (samme motor, ulik respons). */
 export type MotionStyle = 'cinematic' | 'dynamic' | 'minimal' | 'typo'
 export interface StyleRule {
-  /** antall taktslag per klipp ved høy / middels / lav intensitet */
+  /**
+   * klipplengde i montasjen ved høy / middels / lav intensitet, som faktor på malens egen lengde målt i slag (malens
+   * rytme – også halve og kvarte slag – beholdes; lav intensitet holder lenger, høy kan dele slaget)
+   */
   beats: [number, number, number]
+  /** hvor rolig profilen er (1 = energisk): byttes profilen, skaleres malens rytme med forholdet mellom profilene */
+  weight: number
   /** overgang som andel av et taktslag (null = malens egen lengde, begrenset til et halvt slag) */
   trans: number | null
   /** kutt og lite støt (zoom) på drops */
@@ -213,10 +218,10 @@ export interface StyleRule {
   restructure: boolean
 }
 export const STYLES: Record<MotionStyle, StyleRule> = {
-  cinematic: { beats: [2, 4, 8], trans: 1, punch: 0, holdPause: true, restructure: true },
-  dynamic: { beats: [1, 2, 2], trans: null, punch: 0.08, holdPause: true, restructure: true },
-  minimal: { beats: [2, 2, 4], trans: 0.5, punch: 0, holdPause: true, restructure: true },
-  typo: { beats: [1, 2, 4], trans: null, punch: 0.04, holdPause: true, restructure: false },
+  cinematic: { beats: [1, 1, 2], weight: 2, trans: 1, punch: 0, holdPause: true, restructure: true },
+  dynamic: { beats: [1, 1, 2], weight: 1, trans: null, punch: 0.08, holdPause: true, restructure: true },
+  minimal: { beats: [1, 1, 1.5], weight: 1.5, trans: 0.5, punch: 0, holdPause: true, restructure: true },
+  typo: { beats: [1, 1, 2], weight: 1, trans: null, punch: 0.04, holdPause: true, restructure: false },
 }
 
 /**
@@ -247,12 +252,20 @@ interface ClipLike { kind: string; dur: number; in?: number; out?: number; speed
 interface TimedLike { start: number; dur: number; kf?: Keys }
 interface ProjLike {
   tempo?: number
+  motion?: MotionStyle
   clips: ClipLike[]
   texts: (TimedLike & { cdDur?: number })[]
   ov: (TimedLike & { kind: string; in?: number; out?: number; speed?: number; fadeIn: number; fadeOut: number; shape?: unknown; matte?: { text: string; brush?: { t0: number; dur: number } | null } | null })[]
   subs: { start: number; end: number }[]
   markers: { id: string; t: number; label: string; color: string }[]
   music: { id: string; start: number; in: number; out: number }[]
+}
+
+/** Lengde i slag til nærmeste musikalske verdi (kvart, halvt, helt slag, takter …). */
+const SNAP = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16]
+export function snapBeats(x: number): number {
+  const v = Math.max(0.25, Math.min(16, x))
+  return SNAP.reduce((a, b) => (Math.abs(Math.log(b / v)) < Math.abs(Math.log(a / v)) ? b : a))
 }
 
 export interface SyncResult<P> { proj: P; bpm: number; cuts: number; events: MusicEvent[] }
@@ -262,16 +275,37 @@ export interface SyncResult<P> { proj: P; bpm: number; cuts: number; events: Mus
  * og malens stil, drops får kutt (og et lite støt i dynamiske maler), pauser holdes. Designet (layout, typografi, farger,
  * animasjonstype) røres ikke. `secTime(id)` = sekunder per enhet for tidsbaserte effektverdier (fra FX_DEFS).
  */
-export function syncProject<P extends ProjLike>(base: P, map: MusicMap, style: MotionStyle, opt: { songStart: number; fxSec: (kind: string) => { v: boolean; v2: boolean } }): SyncResult<P> {
+export function syncProject<P extends ProjLike>(base0: P, map: MusicMap, style: MotionStyle, opt: { songStart: number; fxSec: (kind: string) => { v: boolean; v2: boolean } }): SyncResult<P> {
   const rule = STYLES[style]
+  // faktisk lengde på tidslinjen (som clipDur/ovDur): video = (ut − inn) / fart – `dur` brukes ikke for video (er 0)
+  const isVid = (c: { kind: string; in?: number; out?: number }) => c.kind === 'video' && c.in !== undefined && c.out !== undefined
+  const vDur = (c: { in?: number; out?: number; speed?: number }) => Math.max(0.1, ((c.out ?? 0) - (c.in ?? 0)) / (c.speed || 1))
+  const base: P = {
+    ...base0,
+    clips: base0.clips.map((c) => ({ ...c, dur: isVid(c) ? vDur(c) : Math.max(0.2, c.dur || 4) })),
+    ov: base0.ov.map((o) => (isVid(o) && !o.shape ? { ...o, dur: vDur(o) } : o)),
+  }
+  // video: samme start i kilden, fart etter ny lengde (innenfor 0,1–8×), slutten følger så lengden stemmer nøyaktig
+  const fitV = <T extends { in?: number; out?: number }>(c: T, nd: number): { speed: number; out: number } => {
+    const sp = Math.max(0.1, Math.min(8, ((c.out as number) - (c.in as number)) / nd))
+    return { speed: sp, out: (c.in as number) + nd * sp }
+  }
   const P = base.tempo ? 60 / base.tempo : 60 / Math.max(60, Math.min(200, map.bpm))
   // musikkens slag regnet fra sangens start i prosjektet (musikk-sporet kan starte senere i sangen)
-  const beatsRel = map.beats.map((t) => t - opt.songStart).filter((t) => t >= -0.01)
-  const mm: MusicMap = { ...map, beats: beatsRel }
+  const beatsAll = map.beats.map((t) => t - opt.songStart).filter((t) => t >= -0.01)
+  const offAll = map.beats.length - beatsAll.length
+  // halv / dobbel takt: malens slag følger det slagnivået i musikken som ligger nærmest malens tempo (en mal på 83 BPM
+  // mot en sang på 150 BPM følger hvert andre slag; mot en sang på 50 BPM også slagene midt mellom)
+  const r = base.tempo ? map.bpm / base.tempo : 1
+  const lvl = r > 1.45 ? 2 : r < 0.69 ? 0.5 : 1
+  const ph = lvl === 2 ? (((map.downbeats.find((k) => k >= offAll) ?? offAll) - offAll) % 2) : 0
+  const beatsRel = lvl === 2 ? beatsAll.filter((_, i) => i % 2 === ph) : lvl === 0.5 ? beatsAll.flatMap((b, i) => (i < beatsAll.length - 1 ? [b, (b + (beatsAll[i + 1] as number)) / 2] : [b])) : beatsAll
+  const gi = (k: number) => offAll + Math.round((k * lvl) + (lvl === 2 ? ph : 0))
+  const mm: MusicMap = { ...map, bpm: map.bpm / lvl, beats: beatsRel }
   // malens første kutt (hovedøyeblikket) – flyttes til nærmeste sterke slag (drop / takt-ener) innen ±2 takter
   const firstCut = base.clips[0]?.dur ?? 0
   const kCut = Math.round(firstCut / P)
-  const strong = new Set<number>([...map.downbeats.map((k) => k - (map.beats.length - beatsRel.length)), ...map.events.filter((e) => e.kind !== 'pause').map((e) => beatsRel.findIndex((b) => Math.abs(b - (e.t - opt.songStart)) < 0.08))])
+  const strong = new Set<number>([...map.downbeats.map((k) => (k - offAll - (lvl === 2 ? ph : 0)) / lvl).filter((k) => Number.isInteger(k)), ...map.events.filter((e) => e.kind !== 'pause').map((e) => beatsRel.findIndex((b) => Math.abs(b - (e.t - opt.songStart)) < 0.08))])
   let b0 = 0
   for (let d = 0; d <= 8; d++) {
     if (strong.has(kCut + d) && kCut + d - kCut >= 0) {
@@ -285,38 +319,66 @@ export function syncProject<P extends ProjLike>(base: P, map: MusicMap, style: M
   const span = (a: number, d: number) => Math.max(0.05, W(a + d) - W(a))
   const localK = (t: number, d: number) => span(t, d) / Math.max(0.05, d)
 
+  // brøkdels slagposisjon i sangen (fra sangens start i prosjektet) og tilbake; utenfor slagene: lokal periode
+  const Ps = beatsRel.length > 1 ? ((beatsRel.at(-1) as number) - (beatsRel[0] as number)) / (beatsRel.length - 1) : 60 / Math.max(40, map.bpm)
+  const posOf = (t: number): number => {
+    const B = beatsRel
+    if (!B.length) return t / Ps
+    if (t <= (B[0] as number)) return (t - (B[0] as number)) / Ps
+    if (t >= (B.at(-1) as number)) return B.length - 1 + (t - (B.at(-1) as number)) / Ps
+    let lo = 0, hi = B.length - 1
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if ((B[m] as number) <= t) lo = m; else hi = m }
+    return lo + (t - (B[lo] as number)) / Math.max(1e-6, (B[hi] as number) - (B[lo] as number))
+  }
+  const timeOf = (x: number): number => {
+    const B = beatsRel
+    if (!B.length) return x * Ps
+    if (x <= 0) return (B[0] as number) + x * Ps
+    if (x >= B.length - 1) return (B.at(-1) as number) + (x - (B.length - 1)) * Ps
+    const k = Math.floor(x), a = B[k] as number, b = B[k + 1] as number
+    return a + (x - k) * (b - a)
+  }
+  // malens egen profil → valgt profil: roligere profil gir lengre klipp (forhold), malens egen gir malens rytme
+  const styleK = rule.weight / STYLES[base.motion ?? style].weight
+
   // 1) klippene: intro (malens egne) avbildes; montasjen (plassholdere etter første kutt) får lengde etter intensitet
   const out: ClipLike[] = []
   let tSrc = 0, tDst = 0
-  const beatAt = (t: number) => {
-    let k = 0
-    while (k < beatsRel.length - 1 && (beatsRel[k + 1] as number) - w0 <= t + 1e-3) k++
-    return k
+  // intensitet over en takt (fire slag rundt), ikke per slag – ellers ser tomme mellomslag ut som pauser
+  const energyAt = (k: number) => {
+    const i = gi(k)
+    let sum = 0, n = 0
+    for (let j = i - 1; j <= i + 2; j++) { const e = map.energy[j]; if (e !== undefined) { sum += e; n++ } }
+    return n ? sum / n : 0.5
   }
-  const energyAt = (k: number) => map.energy[k + (map.beats.length - beatsRel.length)] ?? 0.5
   const isMontage = (i: number) => i > 0 && (base.clips[i]?.ph !== undefined || base.clips[i]?.kind !== 'color')
   for (let i = 0; i < base.clips.length; i++) {
     const c = base.clips[i] as ClipLike
     let nd: number
     if (!isMontage(i) || !rule.restructure) nd = span(tSrc, c.dur)
     else {
-      // klipp i montasjen: antall slag etter intensitet og stil; drops gir kutt; pauser holdes
-      let k = beatAt(tDst)
-      const e = energyAt(k)
-      let n = e > 0.66 ? rule.beats[0] : e > 0.33 ? rule.beats[1] : rule.beats[2]
-      if (rule.holdPause) while (energyAt(k + n) < 0.12 && n < 16) n++
-      const k1 = Math.min(beatsRel.length - 1, k + n)
-      const drop = map.events.find((ev) => ev.kind === 'drop' && ev.t - opt.songStart > tDst + w0 + 0.05 && ev.t - opt.songStart < (beatsRel[k1] ?? 0) - 0.05)
-      const end = drop ? drop.t - opt.songStart - w0 : (beatsRel[k1] ?? tDst + n * P) - w0
-      nd = Math.max(0.12, end - tDst)
-      k = k1
+      // klipp i montasjen: malens egen lengde i slag (lynklipp på et kvart slag forblir lynklipp, en lang scene forblir
+      // lang), justert for intensitet og profil; kuttene på musikkens slag (eller delslag); drops gir kutt; pauses holdes
+      const pos = posOf(tDst + w0)
+      const e = energyAt(Math.floor(pos))
+      const own = c.dur / P
+      let n = snapBeats(own * styleK * (e > 0.66 ? rule.beats[0] : e > 0.33 ? rule.beats[1] : rule.beats[2]))
+      if (rule.holdPause) while (energyAt(Math.floor(pos + n)) < 0.12 && n < 16) n += Math.max(0.25, Math.min(1, n))
+      // slutten på rutenettet (slag eller delslag n < 1): første klipp etter introen tar opp forskyvningen
+      const q = n < 1 ? n : 1
+      let pEnd = Math.round((pos + n) / q) * q
+      if (pEnd < pos + q / 2) pEnd += q
+      const tEnd = timeOf(pEnd)
+      const drop = map.events.find((ev) => ev.kind === 'drop' && ev.t - opt.songStart > tDst + w0 + 0.05 && ev.t - opt.songStart < tEnd - 0.05)
+      const end = drop ? drop.t - opt.songStart - w0 : tEnd - w0
+      nd = Math.max(0.08, end - tDst)
     }
     const f = nd / Math.max(0.05, c.dur)
     const trans = { ...c.trans, dur: rule.trans !== null ? Math.min(nd / 2, rule.trans * P * localK(tSrc, c.dur)) : Math.min(c.trans.dur * f, nd / 2, 0.5 * P * localK(tSrc, c.dur)) }
     const nc: ClipLike = { ...c, trans, dur: nd }
     if (c.kind === 'video' && c.in !== undefined && c.out !== undefined) {
       // videoklipp: samme utsnitt av kilden, spilles raskere/saktere så lengden passer
-      nc.speed = Math.max(0.1, Math.min(8, ((c.out - c.in) / nd)))
+      Object.assign(nc, fitV(c, nd))
     }
     if (c.kf) nc.kf = Object.fromEntries(Object.entries(c.kf).map(([n, l]) => [n, l.map((q) => ({ ...q, t: q.t * f }))]))
     if (c.effects) nc.effects = c.effects.map((ef) => { const s = opt.fxSec(ef.kind); return { ...ef, ...(s.v ? { v: ef.v * f } : {}), ...(s.v2 && ef.v2 !== undefined ? { v2: ef.v2 * f } : {}) } })
@@ -361,7 +423,7 @@ export function syncProject<P extends ProjLike>(base: P, map: MusicMap, style: M
     const vid = o.kind === 'video' && !o.shape && o.in !== undefined && o.out !== undefined
     return {
       ...o, start: ns, dur: nd, fadeIn: span2(o.start, o.fadeIn), fadeOut: span2(o.start + o.dur - o.fadeOut, o.fadeOut),
-      ...(vid ? { speed: Math.max(0.1, Math.min(8, ((o.out as number) - (o.in as number)) / nd)) } : {}),
+      ...(vid ? fitV(o, nd) : {}),
       ...(o.kf ? { kf: kfM(o.kf, o.start, ns) } : {}),
       ...(o.matte?.brush ? { matte: { ...o.matte, brush: { ...o.matte.brush, t0: M(o.matte.brush.t0), dur: span2(o.matte.brush.t0, o.matte.brush.dur) } } } : {}),
     }
@@ -369,7 +431,7 @@ export function syncProject<P extends ProjLike>(base: P, map: MusicMap, style: M
   const subs = base.subs.map((x) => ({ ...x, start: M(x.start), end: M(x.end) }))
   // taktslagene som markører (synlige på tidslinjen), uten å røre brukerens egne markører
   const T = tDst
-  const beatMarks = beatsRel.map((b) => b - w0).filter((t) => t >= 0 && t <= T).map((t, i) => ({ id: `sync-${i}`, t, label: 'Takt', color: '#f5b82c' }))
+  const beatMarks = beatsAll.map((b) => b - w0).filter((t) => t >= 0 && t <= T).map((t, i) => ({ id: `sync-${i}`, t, label: 'Takt', color: '#f5b82c' }))
   const markers = [...base.markers.filter((k) => k.label !== 'Takt' && !k.id.startsWith('sync-')), ...beatMarks].sort((a, b) => a.t - b.t)
   // sangen starter slik at malens første slag (t = 0) faller på musikkens slag b0
   const music = base.music.map((m, i) => (i === 0 ? { ...m, in: Math.max(0, opt.songStart + w0), start: 0 } : m))

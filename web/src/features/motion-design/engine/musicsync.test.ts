@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { analyse, syncProject, type MotionStyle } from './musicsync'
-import { create, TEMPLATES } from './model'
+import { clipDur, contentDur, create, layout, TEMPLATES, type Clip } from './model'
 import { FX_DEFS } from './fx'
 
 /**
@@ -82,16 +82,20 @@ describe('Music Sync på malene', () => {
   const dropSong = analyse(song([[0, 10, 120, 0.3], [10, 11, 120, 0], [11, 40, 120, 1]]), SR)
 
   for (const k of ['theend', 'october', 'vacation', 'andwiththat', 'maydump']) {
-    it(`${k}: kuttene i montasjen ligger på taktslag, designet er uendret`, () => {
+    it(`${k}: kuttene i montasjen ligger på musikkens slag (eller delslag når malen kutter raskere), designet er uendret`, () => {
       const base = music(create(fmt, k), 40)
       const r = syncProject(base, fast, 'dynamic', { songStart: 0, fxSec })
-      const beats = fast.beats.map((b) => b - (r.proj.music[0]?.in ?? 0))
+      const b1 = fast.beats.map((b) => b - (r.proj.music[0]?.in ?? 0))
+      // slag og delslag (halve og kvarte): malens lynklipp beholder sin rytme, men på musikkens rutenett
+      const beats = b1.flatMap((b, i) => { const n = b1[i + 1]; return n === undefined ? [b] : [b, b + (n - b) / 4, b + (n - b) / 2, b + (3 * (n - b)) / 4] })
       let t = 0
       const cuts: number[] = []
       for (const c of r.proj.clips) { t += c.dur; cuts.push(t) }
       const first = base.clips[0]?.dur ?? 0
-      const onBeat = cuts.slice(1, -1).filter((c) => c > first && near(c, beats, 0.03)).length
-      expect(onBeat / Math.max(1, cuts.slice(1, -1).filter((c) => c > first).length)).toBeGreaterThan(0.9)
+      // kutt mens musikken spiller (etter sangens slutt finnes ingen slag)
+      const inSong = cuts.slice(1, -1).filter((c) => c > first && c < (b1.at(-1) ?? 0))
+      const onBeat = inSong.filter((c) => near(c, beats, 0.03)).length
+      expect(onBeat / Math.max(1, inSong.length)).toBeGreaterThan(0.9)
       // design: tekst (innhold, font, farge, plassering) og rammer (form, farge, plassering) er de samme
       expect(r.proj.texts.map((x) => [x.text, x.font, x.color, x.x, x.y, x.size, x.anim])).toEqual(base.texts.map((x) => [x.text, x.font, x.color, x.x, x.y, x.size, x.anim]))
       expect(r.proj.ov.map((o) => [o.shape, o.x, o.y, o.scale, o.ph])).toEqual(base.ov.map((o) => [o.shape, o.x, o.y, o.scale, o.ph]))
@@ -152,6 +156,48 @@ describe('Music Sync på malene', () => {
         for (const c of r.proj.clips) expect(Number.isFinite(c.dur) && c.dur > 0, tp.k).toBe(true)
         for (const x of r.proj.texts) expect(Number.isFinite(x.start) && x.dur > 0, tp.k).toBe(true)
       }
+    }
+  })
+
+  it('utfylte felt (egne videoer med dur 0 og bilder): lengden er riktig, video spilles på nøyaktig ny lengde', () => {
+    for (const k of ['theend', 'october', 'vacation', 'andwiththat']) {
+      const b0 = music(create(fmt, k), 40)
+      // som «Fyll alle plassholderne»: annethvert felt video (dur 0, in/out i kilden), ellers bilde
+      let n = 0
+      const clips = b0.clips.map((c) => (c.kind === 'color' && c.ph ? (n++ % 2 ? { ...c, kind: 'image' as const, media: 'b', dur: c.dur } : { ...c, kind: 'video' as const, media: 'v', dur: 0, in: 0.3, out: 0.3 + c.dur, speed: 1 }) : c)) as typeof b0.clips
+      const base = { ...b0, clips }
+      const before = contentDur(base)
+      const r = syncProject(base, fast, 'dynamic', { songStart: 0, fxSec })
+      const after = contentDur(r.proj)
+      expect(after, `${k}: ${before.toFixed(1)} s → ${after.toFixed(1)} s`).toBeLessThan(before * 2)
+      expect(after).toBeGreaterThan(before * 0.4)
+      for (const x of r.proj.texts) expect(x.start + x.dur, k).toBeLessThan(after + 0.01)
+      // videoklippene: (ut − inn) / fart = lengden i den nye montasjen
+      let t = 0
+      const ends = r.proj.clips.map((c) => (t += clipDur(c as Clip)))
+      expect(ends.at(-1)).toBeCloseTo(layout(r.proj).at(-1)?.end ?? 0, 1)
+      for (const c of r.proj.clips) if (c.kind === 'video') expect(c.in).toBe(0.3)
+    }
+  })
+
+  it('malens egen rytme beholdes: lynmontasje forblir lynmontasje, en lang scene forblir lang', () => {
+    const mid = analyse(song([[0, 40, 112, 1]]), SR)
+    const per = 60 / mid.bpm
+    const dc = syncProject(music(create(fmt, 'daycount'), 40), mid, 'dynamic', { songStart: 0, fxSec })
+    const m = dc.proj.clips.slice(1).map((c) => c.dur)
+    expect(m.reduce((s, x) => s + x, 0) / m.length, 'lynklippene i dagtelleren er kortere enn et slag').toBeLessThan(per)
+    const ny = syncProject(music(create(fmt, 'newyork'), 40), mid, 'cinematic', { songStart: 0, fxSec })
+    expect(ny.proj.clips[1]?.dur ?? 0, 'avsløringen i New York er fortsatt lang').toBeGreaterThan(3)
+  })
+
+  it('halv / dobbel takt: en mal på 83 BPM mot 150 og 40 BPM følger nærmeste slagnivå (lengden omtrent som malen)', () => {
+    const base = music(create(fmt, 'october'), 60)
+    const T0 = contentDur(base)
+    for (const bpm of [150, 166, 42]) {
+      const m = analyse(song([[0, 60, bpm, 1]]), SR)
+      const T = contentDur(syncProject(base, m, 'dynamic', { songStart: 0, fxSec }).proj)
+      expect(T / T0, `${bpm} BPM: ${T0.toFixed(1)} s → ${T.toFixed(1)} s`).toBeGreaterThan(0.5)
+      expect(T / T0).toBeLessThan(1.6)
     }
   })
 })

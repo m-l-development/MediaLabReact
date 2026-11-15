@@ -65,23 +65,23 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
     anim: 'roll', knock: 'solid', knockColor: '#000000', kf: zoomThrough(size, zoom0, zoom1),
   })
   /** Dagteller → nytt år (felles for 16:9 og 9:16). */
-  const dayCounter = (bg: string, x: number, align: 'left' | 'center', big: number, small: number, cut: { first: number; iv: readonly number[] }, gx: number): Content => ({
+  const dayCounter = (bg: string, x: number, align: 'left' | 'center', big: number, small: number, cut: { first: number; iv: readonly number[] }, gx: number, ys = 0.29, yb = 0.55): Content => ({
     clips: [colorClip({ dur: cut.first, c1: bg, c2: bg, grad: 'none', trans: { type: 'none', dur: 0.2 } }), ...cutSeq(1, cut.iv, PASTEL, 0.5)],
     texts: [
-      text({ start: 0, dur: 2.4, text: '{n}/365', countdown: true, cdFrom: 1, cdTo: 360, cdDur: 2.3, font: 'Oswald', weight: 300, size: small, x, y: 0.29, align, anim: 'none' }),
-      text({ start: 2.4, dur: 1.4, text: '360/365', font: 'Oswald', weight: 300, size: small, x, y: 0.29, align, anim: 'none' }),
-      text({ start: 0, dur: 3.2, text: '{n}', countdown: true, cdFrom: 0, cdTo: 2026, cdDur: 2.3, font: 'Bebas Neue', weight: 400, size: big, x, y: 0.55, align, anim: 'none' }),
-      text({ start: 2.4, dur: 1.6, text: 'GOODBYE', font: 'Oswald', weight: 700, size: small * 0.95, track: 0.08, x: x + gx, y: 0.29, align: 'left', anim: 'letters' }),
-      text({ start: 3.2, dur: 1.2, text: '2027', rollFrom: '2026', font: 'Bebas Neue', weight: 400, size: big, x, y: 0.55, align, anim: 'roll' }),
-      text({ start: 4.4, dur: cut.first - 4.4, text: 'WELCOME', font: 'Oswald', weight: 700, size: small * 0.95, track: 0.6, x, y: 0.29, align, anim: 'ldrop' }),
-      text({ start: 4.4, dur: cut.first - 4.4, text: '2027', font: 'Bebas Neue', weight: 400, size: big, x, y: 0.55, align, anim: 'none' }),
+      text({ start: 0, dur: 2.4, text: '{n}/365', countdown: true, cdFrom: 1, cdTo: 360, cdDur: 2.3, font: 'Oswald', weight: 300, size: small, x, y: ys, align, anim: 'none' }),
+      text({ start: 2.4, dur: 1.4, text: '360/365', font: 'Oswald', weight: 300, size: small, x, y: ys, align, anim: 'none' }),
+      text({ start: 0, dur: 3.2, text: '{n}', countdown: true, cdFrom: 0, cdTo: 2026, cdDur: 2.3, font: 'Bebas Neue', weight: 400, size: big, x, y: yb, align, anim: 'none' }),
+      text({ start: 2.4, dur: 1.6, text: 'GOODBYE', font: 'Oswald', weight: 700, size: small * 0.95, track: 0.08, x: x + gx, y: ys, align: 'left', anim: 'letters' }),
+      text({ start: 3.2, dur: 1.2, text: '2027', rollFrom: '2026', font: 'Bebas Neue', weight: 400, size: big, x, y: yb, align, anim: 'roll' }),
+      text({ start: 4.4, dur: cut.first - 4.4, text: 'WELCOME', font: 'Oswald', weight: 700, size: small * 0.95, track: 0.6, x, y: ys, align, anim: 'ldrop' }),
+      text({ start: 4.4, dur: cut.first - 4.4, text: '2027', font: 'Bebas Neue', weight: 400, size: big, x, y: yb, align, anim: 'none' }),
     ],
   })
   return [
     {
       k: 'theend', motion: 'dynamic', bpm: 113, name: 'THE END – rulletekst', desc: 'Video i bokstavene, zoom gjennom tittelen, montasje med rulletekst i høyre kolonne', tt: 9, cat: 'Rulletekst og avslutning',
       make: () => {
-        const intro = text({ start: 0, dur: 6, text: 'THE END', font: 'Anton', weight: 400, size: 150, y: 0.3, anim: 'ldrop', knock: 'solid', knockColor: '#050505', kf: zoomThrough(150, 4.2, 5.9) })
+        const intro = text({ start: 0, dur: 6, text: 'THE END', font: 'Anton', weight: 400, size: 320, y: 0.45, anim: 'ldrop', knock: 'solid', knockColor: '#050505', kf: zoomThrough(320, 4.2, 5.9) })
         return {
           clips: [ph(1, CUTS.theend.first, '#5a4632'), ...cutSeq(2, CUTS.theend.iv, FILM, 0.6)],
           ov: [frame({ name: 'Mørk side', fill: true, x: 0.5, y: 0.5, scale: 1, start: 7, dur: 15.2, anim: 'fade', radius: 0, border: 0, shadow: false, shape: { fill: '#000000', fill2: '#000000', ang: 0, a1: 0, a2: 0.78 } })],
@@ -96,11 +96,11 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
     },
     {
       k: 'yearroll', motion: 'cinematic', bpm: 88.6, name: 'Årstall som ruller', desc: 'Sifrene ruller inn ett og ett med video i tallene, så zoom gjennom til videoen', tt: 2.4, cat: 'Kinetisk typografi',
-      make: () => ({ clips: [ph(1, 8, '#c9762e')], texts: [yearRoll(0.32, 230, 3.8, 5.2)] }),
+      make: () => ({ clips: [ph(1, 8, '#c9762e')], texts: [yearRoll(0.4, 450, 3.8, 5.2)] }),
     },
     {
       k: 'yearmontage', motion: 'dynamic', bpm: 109, name: 'Årstall og montasje', desc: 'Rullende årstall med video i tallene, zoom gjennom og taktfast montasje', tt: 2.2, cat: 'Montasje og musikk',
-      make: () => ({ clips: [ph(1, CUTS.yearmontage.first, PASTEL[0] as string), ...cutSeq(2, CUTS.yearmontage.iv, PASTEL, 0.6)], texts: [yearRoll(0.36, 210, 3.6, 5.6)] }),
+      make: () => ({ clips: [ph(1, CUTS.yearmontage.first, PASTEL[0] as string), ...cutSeq(2, CUTS.yearmontage.iv, PASTEL, 0.6)], texts: [yearRoll(0.43, 460, 3.6, 5.6)] }),
     },
     {
       k: 'october', motion: 'dynamic', bpm: 83, name: 'Life in October', desc: 'Rød tittel med glød som skifter font, montasje og bilde-i-bilde som vokser til fullskjerm', tt: 1.6, cat: 'Tittel og intro',
@@ -130,7 +130,7 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
       make: () => ({
         clips: [ph(1, CUTS.travel.first, '#2f7f86'), ...cutSeq(2, CUTS.travel.iv, ['#2b6f80', '#c88a54', '#1f4f66', '#3d8e93', '#a8783f', '#24495a', '#4aa3a4', '#d19a62'], 1.5)],
         texts: [
-          text({ start: 0.3, dur: CUTS.travel.first - 0.3, text: 'YOUR LOCATION', font: 'Anton', weight: 400, size: 118, color: '#f2d68a', y: 0.47, maxW: 1.6, anim: 'fade', kf: { track: K([0, 0.9, 'out'], [1.5, 0.02, 'out']), y: K([0, 0.45], [6.9, 0.53]) } }),
+          text({ start: 0.3, dur: CUTS.travel.first - 0.3, text: 'YOUR LOCATION', font: 'Anton', weight: 400, size: 165, color: '#f2d68a', y: 0.5, maxW: 1.6, anim: 'fade', kf: { track: K([0, 0.9, 'out'], [1.5, 0.02, 'out']), y: K([0, 0.45], [6.9, 0.53]) } }),
           text({ start: 1.5, dur: CUTS.travel.first - 1.5, text: 'TRAVEL VLOG', font: 'Montserrat', weight: 700, size: 24, track: 0.45, color: '#f2e6c8', y: 0.37, anim: 'fade', kf: { y: K([0, 0.36], [5.7, 0.43]) } }),
           text({ start: 0.2, dur: CUTS.travel.first - 0.2, text: 'PARAM', font: 'Permanent Marker', weight: 400, size: 34, x: 0.5, y: 0.46, anim: 'orbit', orbitR: 0.2, orbitV: 0.07 }),
         ],
@@ -143,7 +143,7 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
     {
       k: 'newyork', motion: 'cinematic', bpm: 110, name: 'By i bokstavene – dugget vindu', desc: 'Regn på vinduet, byvideo i bokstavene og penselstrøk som tørker glasset', tt: 2, cat: 'Tittel og intro',
       make: () => {
-        const title = text({ start: 0.35, dur: 3.95, text: 'NEW YORK', font: 'Anton', weight: 400, size: 120, y: 0.37, anim: 'slide' })
+        const title = text({ start: 0.35, dur: 3.95, text: 'NEW YORK', font: 'Anton', weight: 400, size: 300, y: 0.48, anim: 'slide' })
         return {
           clips: [ph(1, 4.3, '#8d9ba6'), ph(2, 4.5, '#c47a45', 'fade', 0.3)],
           ov: [frame({ ph: 'Klipp 2', name: 'Klipp 2', fill: true, x: 0.5, y: 0.5, scale: 1, start: 0, dur: 4.3, anim: 'none', radius: 0, border: 0, shadow: false, shape: { fill: '#c47a45', fill2: '#24425e', ang: 90 }, matte: { text: title.id, brush: { t0: 2.1, dur: 2.1, x: 0.12, y: 0.16, w: 0.78, h: 0.62 } } })],
@@ -196,16 +196,16 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
     },
     {
       k: 'daycount916', motion: 'dynamic', bpm: 109, name: 'Dagteller (stående)', desc: 'Dagteller → nytt år for 9:16, lilla flate og montasje i takt', tt: 1.6, cat: 'Montasje og musikk',
-      make: () => dayCounter('#4d404b', 0.28, 'left', 280, 66, CUTS.daycount916, 0.25),
+      make: () => dayCounter('#4d404b', 0.28, 'left', 280, 66, CUTS.daycount916, 0.25, 0.405, 0.48),
     },
     {
       k: 'theend916', motion: 'minimal', bpm: 125, name: 'THE END (stående)', desc: 'Video i bokstavene, montasje, tittel som stiger opp og midtstilt rulletekst – for 9:16', tt: 2.6, cat: 'Rulletekst og avslutning',
       make: () => ({
         clips: [ph(1, CUTS.theend916.first, '#3e4b45'), ...cutSeq(2, CUTS.theend916.iv, FILM, 1)],
         texts: [
-          text({ start: 0, dur: 5.2, text: 'THE END', font: 'Anton', weight: 400, size: 120, y: 0.3, anim: 'ldrop', knock: 'solid', knockColor: '#050505', kf: zoomThrough(120, 3.6, 5.1) }),
+          text({ start: 0, dur: 5.2, text: 'THE END', font: 'Anton', weight: 400, size: 230, y: 0.5, anim: 'ldrop', knock: 'solid', knockColor: '#050505', kf: zoomThrough(230, 3.6, 5.1) }),
           // tittelen stiger opp nedenfra, så ruller den og rulleteksten (rett under) sammen oppover
-          text({ start: 10.5, dur: 20, text: 'THE END', font: 'Anton', weight: 400, size: 110, y: 0.42, anim: 'fade', kf: { y: K([0, 1.05, 'out'], [1.1, 0.42], [20, -1.3]) } }),
+          text({ start: 10.5, dur: 20, text: 'THE END', font: 'Anton', weight: 400, size: 180, y: 0.42, anim: 'fade', kf: { y: K([0, 1.05, 'out'], [1.1, 0.42], [20, -1.3]) } }),
           text({ start: 10.5, dur: 20, text: CREDITS, font: 'Oswald', weight: 400, size: 26, upper: true, lh: 1.12, y: 0.47, valign: 'top', maxW: 0.7, anim: 'fade', kf: { y: K([0, 1.1, 'out'], [1.1, 0.47], [20, -1.25]) } }),
         ],
       }),
@@ -220,7 +220,7 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
             pip('4b', { start: 6.6, dur: 0.95, x: 0.5, y: 0.47, scale: 0.6, ar: 0.5625, kf: { scale: K([0, 0.6, 'out'], [0.9, 1.0, 'in']) }, shape: { fill: '#0b4d52', fill2: null, ang: 90 } }),
             pip('13b', { start: 17.1, dur: 0.75, x: 0.5, y: 0.47, scale: 0.8, ar: 0.5625, kf: { scale: K([0, 0.8, 'out'], [0.7, 1.0, 'in']) }, shape: { fill: '#e6331a', fill2: null, ang: 90 } }),
           ],
-          texts: [text({ start: 0.15, dur: 4.9, text: 'VACATION', font: 'Montserrat', weight: 800, size: 150, color: '#e8141c', glow: 0.55, y: 0.4, anim: 'fade' })],
+          texts: [text({ start: 0.15, dur: 4.9, text: 'VACATION', font: 'Montserrat', weight: 800, size: 260, color: '#e8141c', glow: 0.55, y: 0.38, anim: 'fade' })],
         }
       },
     },
