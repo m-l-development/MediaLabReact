@@ -7,6 +7,15 @@ import { format, useLang, type Lang } from '../../shared/i18n/i18n'
 export type Vars = Record<string, string | number>
 
 export const EN: Readonly<Record<string, string>> = {
+  // lengde og Music Sync (automatisk/manuelt)
+  'Lengde': 'Length',
+  'Nå: {s} s': 'Now: {s} s',
+  'Som musikken': 'Same as the music',
+  'Egen lengde (s)': 'Custom length (s)',
+  'Lengre: nye medieplasser og gjentakelse med variasjon. Kortere: de viktigste delene beholdes. Designet og animasjonene beholdes.': 'Longer: new media slots and repetition with variation. Shorter: the most important parts are kept. The design and animations are kept.',
+  'Automatisk ved endringer': 'Automatic on changes',
+  'Automatisk: Music Sync kjøres på nytt når du bytter musikk eller klipp, legger til eller fjerner klipp, eller endrer lengden. Manuelt: bare når du trykker på knappen.': 'Automatic: Music Sync runs again when you change the music or a clip, add or remove clips, or change the length. Manual: only when you press the button.',
+  'Videoen er nå {s} s.': 'The video is now {s} s.',
   // Avansert tidslinje
   'Til prosjektslutt': 'To project end',
   'Varer til prosjektslutt ({t})': 'Lasts until the project end ({t})',

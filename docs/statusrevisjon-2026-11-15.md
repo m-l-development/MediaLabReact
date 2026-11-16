@@ -4,10 +4,10 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `a7d10ca` (merge av `e61e12a`, Panorama; connecthub = main = prod, Release verify grønn 2026-11-16). Objektivkorreksjonen er i releasen etter denne. Kontroller før
+**Siste kjente produksjonscommit:** `e4be106` (merge av `47d77e4`, objektivkorreksjon; Release verify grønn 2026-11-16). Oppgave 7 (Motion) er i releasen etter denne. Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 7 (Motion: Music Sync + forlenge/forkorte maler, med tilleggene).**
+**Ukommittert arbeid:** ingen. **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
@@ -93,6 +93,12 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    design bryter sammen. Ikke ferdig før hele den nye eksporten er sett gjennom og konkrete forbedringer er dokumentert.
    Mål: publiserbart på Instagram/TikTok, ikke bare en teknisk eksport. (Skjermbildet fra eieren: Vacation, 18,6 s,
    94 BPM, «Typografisk» bevegelse, mange svært korte fargeflate-klipp på 0,0–0,8 s i midten, markører på hvert slag.)
+   **Analyse av eierens Vacation-video (2026-11-16, bilde for bilde, verktøy: scratchpad `vac/analyze.cjs`):** 18,88 s,
+   bare plassholdere (fargeflater «Klipp N») og tittelen «VACATION». Funn: (1) tittelen står stille 0–4,5 s mens musikken
+   har høy energi og tydelige slag fra 1 s; (2) mikroklipp på 0,03 s (×3), 0,1 s og 0,2 s – blink, ikke klipp;
+   (3) klipplengdene er låst til et rutenett på 10/20 bilder (0,33/0,67 s), ikke til slagene – mange bytter 90–230 ms fra
+   nærmeste slag; (4) omvendt dramaturgi: rolig parti 7–11 s (energi 0,05) klippes hvert 0,33 s, mens toppen 14–16,5 s
+   (energi 0,14) har et klipp på 1,3 s; (5) appen viste 94 BPM, mens slagene i lyden gir ≈ 133 BPM (kontrolleres).
    **VIKTIG TILLEGG 2 (eier) – universell musikkstøtte:** alle spor skal fungere på alle Motion-maler uansett sjanger,
    BPM, tempo eller struktur – ingen maler som bare passer bestemte låter/BPM, ingen spesialtilfeller. Systemet:
    (1) analyserer hvert spor (BPM, slag, takter, pauser, energi, drops, oppbygging, overganger), (2) analyserer hver mal
@@ -104,6 +110,44 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    Test HVER mal med flere ulike spor: rolig, rask elektronisk, hip-hop/trap, pop, cinematisk, store drops, ujevn rytme /
    varierende tempo – reelle kombinasjoner, se gjennom eksportene. Ikke reduser malenes kvalitet eller fjern animasjoner.
    (Testmusikk må være gratis og lovlig – lag egne syntetiske spor i hver stil, eller bruk fritt lisensierte.)
+
+   **RESULTAT (2026-11-16) – implementert i den eksisterende motoren (`engine/musicsync.ts`, `engine/length.ts`,
+   `controller.ts`, `Panels.tsx`), ikke verifisert på ekte iPhone:**
+   - *Årsaker funnet:* (a) taktsporingen hoppet mellom perioder (0,57 / 0,79 / 0,45 / 0,34 / 0,67 s i samme spor – 76–176
+     BPM), og ved 22,05 kHz (appens dekoding) ble vinduene halvparten så mange, så tempoet ble 90 BPM (⅔ av riktig);
+     autokorrelasjonen leste dessuten halve indekser (0); (b) «Typografisk» omstrukturerte ikke montasjen (bare
+     tidsstrekk) → malens faste lynrytme sto uansett musikk; (c) drops kunne kutte et klipp ned til 0,05 s; (d) «Bruk på
+     nytt» regnet fra malen før synk, så byttet innhold, nye/slettede klipp og manuelle endringer forsvant.
+   - *Analyse:* tempo fra autokorrelasjon med metrisk korrekt valg (halv/dobbel takt bare når slagene ikke sitter på
+     pulsen), DP-taktsporing (Ellis) med lokalt tempo (ekte tempoendringer bare når grunnpulsen forsvinner og det nye
+     bekreftes i ≥ 6 s; synkoperte mønstre gir ikke tempoendring), samme resultat ved alle samplingsfrekvenser, pulsens
+     tydelighet (musikk uten fast takt → frase/energi-styring), seksjoner fra takt-trekk (intro, vers, oppbygging, høy,
+     drop, pause, avslutning), drops finjustert til anslaget, klimaks.
+   - *Klippeplan:* intro (tittel) kortere ved energisk start og første kutt på sterkt øyeblikk; montasjen etter seksjon,
+     energi og profil, malens egen rytme (kort/lang) og tempo beholdt, variasjon, kutt på slag (takt-ener for lengre
+     klipp), seksjonsgrenser og drops alltid kutt (kort serie etter kraftige drops), minste lengde etter profil og mal
+     (aldri < 0,25 s), overganger sentrert på kuttet, bilde-i-bilde-høydepunkter starter på kutt og slutter så klippbyttet
+     skjer mens de dekker bildet; uttoning når sangen fortsetter etter videoen.
+   - *Lengde:* «Lengde» (15/30/60 s, «Som musikken», egen verdi) – forlenge med nye medieplasser (gjentakelse med
+     variasjon, ulike farger), forkorte ved å ta ut de minst viktige klippene, scenemaler strekkes jevnt; det som varer til
+     slutten følger slutten; musikken gjentas ved behov (planen bruker den gjentatte sangens slag) og tones ut; resten
+     fordeles som hele slag (ingen lang stillestående slutt).
+   - *Brukerens arbeid:* «Bruk Music Sync på nytt» bygger på prosjektet slik det er (byttet innhold, nye/slettede klipp,
+     tekster, ny musikk, lengde); klipp/tekster/rammer justert for hånd merkes faste og beholder tiden; valg
+     «Automatisk ved endringer» (standard) / manuelt; angre/gjør om som før. «Fyll plassholderne» med samme video gir
+     ulike øyeblikk i hvert felt.
+   - *Tester:* `musicsync.test.ts` (19), `musicsync.universal.test.ts` (alle 23 maler × 7 sjangre × profiler: ingen
+     blink-klipp, kutt på slagene, variasjon, roligere deler holder lenger, kutt på drops, ingenting utenfor), `length.test.ts`
+     (alle maler × original/15/30/60/kortere, + Music Sync), `musicgen.ts` (syntetisk testmusikk: rolig, elektronisk med
+     drop, trap, pop, filmmusikk uten takt, store drops, ujevnt tempo); `e2e-real/motion-vacation.spec.ts` (eierens lyd,
+     lokal fil – ikke i CI): hel eksport original / 30 / 60 / 12 s / ny musikk / eget klipp, gjennomgått bilde for bilde.
+   - *Vacation – sammenligning (hele eksporten):* eierens original: 11/28 kutt på slag, 6 blink < 0,2 s (0,03–0,1 s),
+     tittel 4,5 s. Ny (samme mal, musikk, «Typografisk»): 18/18 kutt på slag, korteste klipp 0,43 s, 0 blink, tittel 3,2 s,
+     innenfor sangen (16,9 s); 30 s 27/28, 60 s 58/59 (de to «avvikene» er bilde-i-bilde-animasjoner, kontrollert bilde for
+     bilde), 12 s 6/7, ny musikk 22/24; sluttklipp 0,5–2,5 s; ingen svarte bilder utover inntoningen.
+   - *Gjenstår / ikke verifisert:* eiers visuelle godkjenning av eksportene; ekte musikk i alle sjangre (testene bruker
+     syntetisk musikk + eierens spor – ingen kjøpt/nedlastet musikk); tempoendring midt i en sang er krevende (testet
+     syntetisk); ekte iPhone.
 
 ### Faste regler
 Ingen betalte tjenester eller kostnader. Ikke reduser kvalitet/funksjonalitet (heller ikke PC). Ikke slett tester eller
