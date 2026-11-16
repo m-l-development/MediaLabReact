@@ -185,21 +185,24 @@ test('looper fra forrige versjon hentes (kopi) med bilder, og gamle data røres 
   }
   const disk = [{ id: 'd-abcd1234', name: 'Gammel loop', base: 'week', savedAt: 1700000000000, fav: true, count: 1, data: { programText: '', slides: legacy.slides, cfg: legacy.cfg } }]
   const img = png(64, 36, () => [20, 200, 40, 255]).toString('base64')
-  await page.evaluate(async ({ legacy: L, disk: D, img: I }) => {
+  const stored = await page.evaluate(async ({ legacy: L, disk: D, img: I }) => {
     localStorage.setItem('ukeloop.v2', JSON.stringify(L))
     localStorage.setItem('loopstudio.disk.v1', JSON.stringify(D))
     const bin = Uint8Array.from(atob(I), (c) => c.charCodeAt(0))
-    await new Promise<void>((res, rej) => {
+    return await new Promise<boolean>((res, rej) => {
       const r = indexedDB.open('ukeloop', 1)
       r.onupgradeneeded = () => r.result.createObjectStore('media')
       r.onerror = () => rej(r.error)
       r.onsuccess = () => {
         const tx = r.result.transaction('media', 'readwrite')
         tx.objectStore('media').put(new Blob([bin], { type: 'image/png' }), 'img-old1')
-        tx.oncomplete = () => { r.result.close(); res() }
+        tx.oncomplete = () => { r.result.close(); res(true) }
+        // WebKit-bygget til Playwright på Windows kan ikke lagre Blob i IndexedDB (ekte Safari kan): da feiler transaksjonen
+        tx.onerror = () => { r.result.close(); res(false) }
       }
     })
   }, { legacy, disk, img })
+  test.skip(!stored, 'nettleseren i testen kan ikke lagre Blob i IndexedDB (WebKit på Windows) – den gamle loopen kan ikke lages')
 
   await page.goto('/app/loop-studio')
   await expect(page.getByText(/looper er hentet fra forrige versjon/)).toBeVisible({ timeout: 15000 })

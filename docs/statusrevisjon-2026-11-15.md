@@ -1,5 +1,60 @@
 # Statusrevisjon MediaLab – 2026-11-15
 
+## FORTSETTELSE – les dette først (oppdatert 2026-11-16)
+
+Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
+
+**Siste kjente produksjonscommit:** `0a50b0b` (connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
+videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
+
+**Ukommittert arbeid:** ingen (alt i commiten etter `0a50b0b`, se git log).
+- Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
+  `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
+
+### Prioritert arbeidsliste (godkjent av eier – arbeid selvstendig)
+1. **WebKit og mobil:** gå gjennom de gjenværende WebKit-feilene (`npx playwright test -c playwright.iphone.config.ts`).
+   Skill reelle feil fra tidsavbrudd/emulering, rett reelle feil, kjør full regresjon. Fullfør mobilgjennomgangen av alle
+   editorene (Thumbnail, Photo, Motion, Loop, Mockups, Isolate, QR) – funksjon, ikke bare utseende.
+   - Kjør WebKit-suiten ALENE: andre Playwright-kjøringer samtidig sletter `test-results` (ENOENT) og gir tidsavbrudd.
+   - Siste fulle kjøring (2026-11-16): **94 bestått / 4 feilet**; de fire er deretter rettet eller begrunnet hoppet over
+     (se «Oppfølging 4»). Gjenstår i mobilgjennomgangen: Mockups, QR og Isolate har ingen kjente feil i WebKit, men er
+     ikke gått gjennom manuelt skjerm for skjerm.
+2. **Minne:** årsaken til ≈ 4 MB vekst per innsatt bilde (Photo/Thumbnail/Motion) er ikke funnet. Utelukket: JS-heap,
+   DOM/lerreter, AI-tråder, blob:-adresser (`bloburl.spec.ts`: ingen åpne), IndexedDB og nettleserens bildevei
+   (`browser-baseline.spec.ts`). Bekreftet: dokumentbundet innebygd minne (`partition_alloc/allocated_objects`), følger
+   bildestørrelsen, frigjøres ved ny innlasting. `--memlog` gir ingen heaps_v2 i Playwright/Chrome. Neste: manuell
+   profilering i `chrome://memory-internals` / DevTools «Allocation sampling», eller videre oppdeling av bildeveien
+   (`assets.register` → probe/miniatyr/sjekksum; `ImageCache.load`; tegning) med `e2e-mem/profile.spec.ts`
+   (`MEM_PARTS=1 MEM_ONLY=thumbC`).
+3. **iPhone (ekte enhet, gratis):** ingen ekte iPhone tilgjengelig → IKKE VERIFISERT. Eieren har en testplan (seksjonen
+   «Oppfølging 3»). Gjelder: Motion-kort og «Fyll skjermen», store bilder/bildebytte/eksport, Isolate-kanter, fokus-zoom.
+   - Isolate-maskekanter: `ctx.filter`-erstatningen dekker dem (hovedtråd, også OffscreenCanvas der den finnes);
+     verifisert i WebKit (kanten blir myk). Tidligere påstand om at det ikke virket i Isolate var feil.
+4. **New York:** fingerstrøk-modellen er committet (Motion-referansetestene består). Gjenstår: eiers visuelle godkjenning; eventuelt finjustere
+   strøkenes form ytterligere mot originalen (`scratchpad`-verktøy: `qc/nyc.cjs`, `grab.cjs aee45477`).
+5. **Panorama** – GODKJENT av eier, startes når 1–4 er lukket eller dokumentert som ikke verifiserbare. Ekte panorama
+   (sammenføyning av flere bilder: trekkpunkter, homografi, sylinder-/sfærisk projeksjon, sømløs blending), redigerbart,
+   høy kvalitet, testet (sammenføyning, overganger, perspektiv, eksport). Gratis teknologi (egen kode eller åpen kildekode
+   uten kostnad). Sannsynlig plass: Photo Design (avansert framkalling / ny dialog).
+6. **Objektivkorreksjon** – GODKJENT, etter Panorama (fortegning tønne/pute, vignettering, kromatisk aberrasjon),
+   testet.
+
+### Faste regler
+Ingen betalte tjenester eller kostnader. Ikke reduser kvalitet/funksjonalitet (heller ikke PC). Ikke slett tester eller
+skjul feil. Hold eierens lokale filer utenfor. Test → commit → push → merge → deploy når release-gate er grønn, og
+kontroller faktisk produksjonscommit (connecthub, main, prod, release-gate). Release-flyten kan stoppe på et kappløp
+(«release-gate ble ikke stående som success … pending»): kjør Release-jobben på nytt.
+
+### Status kort
+- FERDIG, emulert: Motion-kort/miniatyr, «Fyll skjermen», ctx.filter-erstatning, SVG-teksturer, malforhåndsvisninger
+  (IntersectionObserver-reserve), dvh, fokus-zoom (enhetstest), hvitt bilde (lerretsgrense, lerretsminne, raske bytter).
+- IKKE VERIFISERT på ekte iPhone: alt over.
+- UØST: minnevekst ≈ 4 MB/bilde (årsak ukjent). IKKE VERIFISERT på ekte iPhone: knip-zoom i Motion, MP4-eksport,
+  Blob i IndexedDB (kan ikke emuleres på Windows).
+- Siste tester (2026-11-16): `npm run check` 699/699; Chrome full regresjon 394 bestått / 0 feilet; WebKit 94/4 → de 4
+  rettet/begrunnet (kjørt enkeltvis).
+
+
 Grunnlag: produksjon `ca00fee` (connecthub = main = prod ved start). Revisjonen dekker alle eierens meldinger i
 arbeidshistorikken (341 meldinger, 2026-10-10 → 2026-11-15), registrene (`feature-parity.md`, `gjenoppretting.md`,
 `testlogg.md`, `maler-og-fonter.md`, `motion-referansemaler.md`) og koden.
@@ -9,6 +64,28 @@ arbeidshistorikken (341 meldinger, 2026-10-10 → 2026-11-15), registrene (`feat
 - **Statisk** = funnet i kode og en test finnes, men ikke kjørt enkeltvis i denne revisjonen (vedlegget). Full regresjon
   dekker de fleste av disse indirekte (se Testresultater).
 - Mockups, falske adaptere og «komponenten finnes» regnes ikke som ferdig.
+
+## Oppfølging 4 (2026-11-16) – WebKit-feilene gjennomgått
+
+WebKit/iPhone-suiten (`playwright.iphone.config.ts`, iPhone 15-emulering 393 × 659, kjørt alene): **82/17 → 94 bestått,
+4 feilet** før de siste rettingene. Etter dem består alle de fire når de kjøres alene, eller de hoppes over med en
+begrunnelse i testen. Hver feil er klassifisert:
+
+| Test | Klassifisering | Tiltak |
+|---|---|---|
+| `mobile-touch` Motion: trykk på klipp | **Reell feil (lav skjerm):** i avansert modus brøt tidslinjens verktøyrad over flere linjer, fylte hele tidslinjen, og sporene fikk 1 px høyde – klipp kunne ikke trykkes | Verktøyraden er én rullbar linje på smal skjerm, sporene minst 96 px (`MotionDesign.module.css`). PC uendret |
+| `feedback-verify` TB-1591A7 Loop-banner | **Reell feil (lav skjerm):** grunnoppsett-banneret (fast nederst) dekket slide-kortene | På smal skjerm står banneret i flyten øverst i editoren (`Page.module.css`, `LoopStudio.tsx`). PC uendret |
+| `mobile-workflows` Thumbnail: dra lag | **Reell feil (lav skjerm):** «Legg til»-panelet + hjelpeboksen «Redigering på mobil» lot bare en stripe av lerretet være synlig; det nye laget lå bak panelet | Hjelpeboksen skjules mens et panel er åpent (`ThumbnailStudio.module.css`) |
+| `feedback-preview` forhåndsvisning fyller boksen | **Reell, liten:** rammen ble skalert først når ResizeObserver meldte seg (sent i Safari) | Måles straks ved oppstart (`LivePreview.tsx`); testen venter på skaleringen |
+| `isolate-fill` melding | **Riktig appatferd:** Safari får meldingen «AI-modellen krever mer minne …» (AI prøves ikke på iPhone) | Testen forventer den meldingen i WebKit |
+| `platform` web-app-kortet | **Gjelder ikke Safari:** iOS har ikke `beforeinstallprompt` | Hoppes over i WebKit (begrunnet) |
+| `mobile-touch` knip-zoom i Motion | **Emuleringsgrense:** tidslinjens knip bruker berøringshendelser; WebKit på Windows kan ikke lage dem (`TouchEvent`: Illegal constructor) | Trykk-delen testes i WebKit; knip testes i Chromium med ekte berøring. **IKKE VERIFISERT** på ekte iPhone |
+| `loop-studio` gamle looper | **Emuleringsgrense:** WebKit-bygget på Windows kan ikke lagre Blob i IndexedDB (ekte Safari kan) | Hoppes over når oppsettet ikke kan lagres (begrunnet) |
+| `export-import-all` Motion MP4 | **Emuleringsgrense:** bygget mangler VideoEncoder, MediaRecorder og captureStream (ekte Safari 17+ har dem) | Testen kontrollerer at Motion viser «Nettleseren kan ikke eksportere video …» i stedet for å henge. MP4 på ekte iPhone: **IKKE VERIFISERT** |
+| `photo-design` «egne farger», «alle malene», «farger i prosjektet» | **Tidsavbrudd:** WebKit-emuleringen er treg; forhåndsvisningen er riktig (kontrollert: grønn etter ny innlasting) | «egne farger» merket `test.slow` i WebKit og lengre venting; de andre består alene |
+
+Også: `e2e-mem/memlog.*` er fjernet (`--memlog` gir ingen heap-data ved automatisering); `e2e-mem/bloburl.spec.ts` er
+beholdt som verktøy.
 
 ## Oppfølging (fra `b36806c`) – de gjenstående punktene
 

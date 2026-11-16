@@ -146,6 +146,9 @@ test('et verktøy som ikke kunne lastes, repareres ved å hente filene på nytt 
 })
 
 test('web-app: manifest og ikoner, kortet ved installasjonsprompt, «Ikke nå» i 14 dager (PLT-07)', async ({ page, request }, info) => {
+  // Safari/iPhone har ikke installasjonsprompten (beforeinstallprompt), så kortet kan ikke vises der; iPhone-oppsettet
+  // setter dessuten «Ikke nå» på forhånd så kortet ikke dekker andre tester. Manifestet kontrolleres i Chromium-kjøringene.
+  test.skip(!!process.env.ML_WEBKIT, 'beforeinstallprompt finnes ikke i Safari/WebKit')
   const m = await (await request.get('/app/manifest.webmanifest')).json() as { start_url: string; scope: string; icons: { src: string }[] }
   expect([m.start_url, m.scope]).toEqual(['/app/', '/app/'])
   for (const i of m.icons) expect((await request.get(i.src)).headers()['content-type']).toBe('image/png')

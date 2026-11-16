@@ -92,7 +92,10 @@ export function LivePreview({ c, label, big, onClose, loading = 'Bygger forhånd
 
   useEffect(() => {
     const el = box.current
-    if (!el || typeof ResizeObserver === 'undefined') return
+    if (!el) return
+    // mål med en gang (ResizeObserver kan melde seg et bilde senere, i Safari ofte lenger)
+    if (el.clientWidth) setK(el.clientWidth / W)
+    if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(() => setK(el.clientWidth / W))
     ro.observe(el)
     return () => ro.disconnect()

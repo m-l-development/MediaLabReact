@@ -2719,3 +2719,10 @@ button:disabled {
 .editor[data-narrow] .editBarRight > * {
   flex: 0 0 auto;
 }
+
+/* Mobil: mens et panel er åpent, deler arbeidsflaten høyden med det. Hjelpeboksen «Redigering på mobil» skjules da, så
+   lerretet (og laget du nettopp la til) får plassen – på lave telefoner (iPhone) var lerretet ellers bare en stripe bak
+   panelet. Den vises igjen når panelet lukkes. */
+.mobileWork:has([data-dock-sheet]) .infoBox {
+  display: none;
+}

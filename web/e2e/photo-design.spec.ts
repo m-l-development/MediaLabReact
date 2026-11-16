@@ -269,6 +269,7 @@ const shareOf = async (page: Page, sel: string, hex: string) => (await see(page,
 }, hex)
 
 test('egne farger: tre fargevelgere, roller, hurtigvalg – forhåndsvisningen oppdateres med en gang', async ({ page }) => {
+  test.slow(!!process.env.ML_WEBKIT, 'mange omtegninger – WebKit-emuleringen er treg')
   const errors = await errorsOf(page)
   await page.goto('/app/photo-design')
   const prev = '[data-tpl="countdown"] canvas'
@@ -303,7 +304,8 @@ test('egne farger: tre fargevelgere, roller, hurtigvalg – forhåndsvisningen o
   await expect(pop).toHaveCount(0)
   // valget beholdes når du bytter mal og etter ny innlasting
   await page.reload()
-  await expect.poll(() => shareOf(page, '[data-tpl="thanks"] canvas', '#118844')).toBeGreaterThan(0.3)
+  // (forhåndsvisningen tegnes først når kortet er rullet fram – tregere i WebKit)
+  await expect.poll(() => shareOf(page, '[data-tpl="thanks"] canvas', '#118844'), { timeout: 20_000 }).toBeGreaterThan(0.3)
   // ferdig kombinasjon fyller de tre fargene, og kan justeres videre
   await page.locator('[data-pd-scheme] [data-theme-btn]').click()
   await page.locator('[data-theme-opt="wbl"]').click()

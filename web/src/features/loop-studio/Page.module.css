@@ -108,10 +108,17 @@
 }
 
 /* TB-1591A7: grunnoppsett-banneret ligger øverst på PC; på smale skjermer dekket det toppfeltet (tilbake, tittel,
-   Eksporter), så der legges det rett over knappene nederst */
+   Eksporter), og lagt nederst dekket det slide-kortene på lave telefoner (iPhone). Der står det derfor i flyten over
+   editoren: det skyver innholdet ned og dekker ingenting. */
 @media (max-width: 760px) {
   .baseBanner {
+    position: relative !important;
     top: auto !important;
-    bottom: calc(96px + env(safe-area-inset-bottom)) !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 1 !important;
+    width: fit-content;
+    margin: 6px auto;
+    box-shadow: none !important;
   }
 }
