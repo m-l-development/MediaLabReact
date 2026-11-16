@@ -1,5 +1,6 @@
 import type { Batch } from './batch'
 import type { Dev } from './develop'
+import type { Analysis, PanoParams } from './pano/stitch'
 import type { Fill } from '../../../shared/fill/fill'
 import type { Paint } from '../../thumbnail-studio/engine/paint'
 import type { Shadow } from '../../../shared/render/outline'
@@ -120,6 +121,19 @@ export interface ImageLayer extends Base {
   cshape?: string
   /** Egne hjørner (8 tall som CSS border-radius); bildet klippes til dem. */
   radii?: number[] | null
+  /** Panorama: kildebildene og innstillingene bildet ble satt sammen med («Rediger panorama …» åpner dem igjen). */
+  pano?: PanoRecipe | null
+}
+
+/** Oppskriften til et panorama: kildebildene (Dine medier), kameraene fra analysen og alle innstillinger. */
+export interface PanoRecipe {
+  v: 1
+  srcs: string[]
+  names: string[]
+  an: Analysis
+  p: PanoParams
+  /** Oppløsning (1 = full). */
+  scale: number
 }
 
 export interface TextLayer extends Base {

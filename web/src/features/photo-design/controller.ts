@@ -19,6 +19,7 @@ import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palet
 import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
 import { baseOf, cover, docFonts, dropCaches, histOf, hit, loadImg, mk, printPDF, releaseLarge, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
+import type { PanoRecipe } from './engine/model'
 import type { Phrase, Vars } from './texts'
 
 export type Pt = [number, number]
@@ -97,6 +98,8 @@ export interface PState {
    * fylles); local = pikselmaske for en lokal justering (det som merkes rødt, justeres). `loc` = justeringen som endres.
    */
   maskEdit: { id: string; image: HTMLCanvasElement; mask: Uint8ClampedArray; purpose: 'cut' | 'remove' | 'local'; loc?: number } | null
+  /** Panorama-dialogen: kildebildene (Dine medier) og oppskriften når et eksisterende panorama redigeres. */
+  pano: { layerId: string | null; srcs: string[]; names: string[]; recipe: PanoRecipe | null } | null
   /** «Fjern objekt» pågår: AI-modellen lastes ned / bildet fylles */
   fillBusy: { phase: 'model' | 'run'; pct: number } | null
   /** Effekten som forhåndsvises (tegnes øverst, er ikke i prosjektet før «Legg til effekt»). */
@@ -223,7 +226,7 @@ export class PhotoController {
       projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, fillBusy: null, ctx: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, pano: null, fillBusy: null, ctx: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), libCat: LIB_CATS[0], lib: null, bx: null, bfmt: 'jpg', tver: 0,
     })
   }
@@ -2099,6 +2102,117 @@ export class PhotoController {
     this.set({ sel: null, multi: [] })
     await this.addBlob(blob, 'HDR.png')
     this.flash('HDR-bildet er lagt til som nytt bilde.')
+  }
+
+  // ---------- panorama ----------
+
+  /**
+   * «Panorama …»: åpner dialogen. Et panoramalag åpnes med oppskriften sin (redigerbart); er flere bilder valgt, blir de
+   * kildebildene; ellers starter dialogen tom (bilder legges til der).
+   */
+  openPano(): void {
+    const L = this.selL()
+    if (L?.type === 'image' && L.pano) {
+      this.set({ pano: { layerId: L.id, srcs: [...L.pano.srcs], names: [...L.pano.names], recipe: L.pano } })
+      return
+    }
+    const Ls = this.selImages()
+    this.set({ pano: { layerId: null, srcs: Ls.length > 1 ? Ls.map((x) => x.src!) : [], names: Ls.length > 1 ? Ls.map((x) => x.name) : [], recipe: null } })
+  }
+
+  closePano(): void {
+    this.set({ pano: null })
+  }
+
+  /** Legger bilder til panoramaet (lagres i Dine medier, som andre bilder). */
+  async panoAdd(files: { blob: Blob; name: string }[]): Promise<void> {
+    const add: { src: string; name: string }[] = []
+    for (const f of files) {
+      if (!/^image\/(png|jpeg|webp)$/.test(f.blob.type || '')) { this.flash('Bruk PNG, JPG, WebP eller GIF.'); continue }
+      if (f.blob.size > 60e6) { this.flash('Bildet er for stort (maks 60 MB).'); continue }
+      try {
+        const src = await this.d.putImage(f.blob, f.name || 'bilde')
+        if (!this.M.media.has(src)) this.M.media.set(src, await loadImg(f.blob))
+        add.push({ src, name: String(f.name || 'Bilde').replace(/\.[a-z0-9]+$/i, '').slice(0, 40) })
+      } catch {
+        this.flash('Bildet kunne ikke leses.')
+      }
+    }
+    const P = this.s.pano
+    if (!P || !add.length) return
+    this.set({ pano: { ...P, srcs: [...P.srcs, ...add.map((x) => x.src)], names: [...P.names, ...add.map((x) => x.name)] } })
+  }
+
+  panoRemove(i: number): void {
+    const P = this.s.pano
+    if (!P) return
+    this.set({ pano: { ...P, srcs: P.srcs.filter((_, k) => k !== i), names: P.names.filter((_, k) => k !== i) } })
+  }
+
+  /** Kildebildet (lastes fra Dine medier ved behov). */
+  async panoMedia(src: string): Promise<MediaEntry | null> {
+    const have = this.M.media.get(src)
+    if (have) return have
+    const b = await this.d.openMedia(src).catch(() => null)
+    if (!b) return null
+    try {
+      const E = await loadImg(b)
+      this.M.media.set(src, E)
+      return E
+    } catch {
+      return null
+    }
+  }
+
+  /** Vannrett synsvinkel (radianer) fra EXIF, når brennvidden i 35 mm-ekvivalent finnes; ellers null. */
+  async panoFov(src: string): Promise<number | null> {
+    const E = await this.panoMedia(src)
+    if (!E?.url) return null
+    try {
+      const x = readExif(await (await fetch(E.url)).arrayBuffer())
+      const mm = x?.focal35 ?? NaN
+      if (!(mm > 4 && mm < 400)) return null
+      // 35 mm-film er 36 mm bred; et liggende bilde har den lange siden vannrett
+      const long = 36, wide = E.w >= E.h
+      return 2 * Math.atan((wide ? long : (long * E.w) / E.h) / 2 / mm)
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * «Bruk»: panoramaet blir et bildelag med oppskriften. Redigeres et panorama, byttes bildet i laget; ellers legges det
+   * til som nytt lag – eller (ingen åpent prosjekt) det blir et nytt prosjekt i panoramaets egen størrelse.
+   */
+  async applyPano(blob: Blob, recipe: PanoRecipe, size: { w: number; h: number }): Promise<void> {
+    const P = this.s.pano
+    if (!P) return
+    const src = await this.d.putImage(blob, 'Panorama')
+    this.M.media.set(src, await loadImg(blob))
+    if (!this.s.doc) {
+      // nytt prosjekt: lerretet får panoramaets størrelse (lengste side høyst 12 000 px), bildet fyller det
+      const k = Math.min(1, 12000 / Math.max(size.w, size.h))
+      const W = Math.max(1, Math.round(size.w * k)), H = Math.max(1, Math.round(size.h * k))
+      const d = tplDoc(W, H, 'blank', this.schemeFor('blank'), this.now())
+      d.name = this.d.t('Panorama')
+      d.layers = [...d.layers, imageLayer({ name: this.d.t('Panorama'), src, x: W / 2, y: H / 2, w: W, h: H, pano: recipe })]
+      this.set({ pano: null })
+      this.openDoc(d, null, true)
+      return
+    }
+    if (P.layerId && this.s.doc.layers.some((q) => q.id === P.layerId)) {
+      const L = this.s.doc.layers.find((q) => q.id === P.layerId)!
+      if (L.type === 'image' && L.src && L.src !== src) dropCaches(this.M.media.get(L.src))
+      // samme høyde i laget; bredden følger det nye forholdet
+      const h = L.type === 'image' ? L.h : 600
+      this.patchL(P.layerId, { src, pano: recipe, w: (h * size.w) / size.h, h, cz: 1, cx: 0, cy: 0 })
+    } else {
+      const doc = this.s.doc
+      const sc = Math.min((doc.w * 0.9) / size.w, (doc.h * 0.9) / size.h)
+      this.addLayer(imageLayer({ name: this.d.t('Panorama'), src, x: doc.w / 2, y: doc.h / 2, w: size.w * sc, h: size.h * sc, pano: recipe }))
+    }
+    this.set({ pano: null })
+    this.flash('Panoramaet er lagt inn.')
   }
 
   /** EXIF-metadata for bildelaget (fra originalfilen, bare JPEG har EXIF). */

@@ -4,10 +4,10 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `1710be0` (merge av `0bd120f`; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
+**Siste kjente produksjonscommit:** `239df9c` (merge av `ad1890b`, minnerettingen; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen. Neste oppgave: punkt 2 (minne) eller – når eieren godtar at minnet er dokumentert som uløst – punkt 5 Panorama.
+**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 6 Objektivkorreksjon**, deretter punkt 7 (Motion).
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
@@ -42,12 +42,60 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
      verifisert i WebKit (kanten blir myk). Tidligere påstand om at det ikke virket i Isolate var feil.
 4. **New York:** fingerstrøk-modellen er committet (Motion-referansetestene består). Gjenstår: eiers visuelle godkjenning; eventuelt finjustere
    strøkenes form ytterligere mot originalen (`scratchpad`-verktøy: `qc/nyc.cjs`, `grab.cjs aee45477`).
-5. **Panorama** – GODKJENT av eier, startes når 1–4 er lukket eller dokumentert som ikke verifiserbare. Ekte panorama
-   (sammenføyning av flere bilder: trekkpunkter, homografi, sylinder-/sfærisk projeksjon, sømløs blending), redigerbart,
-   høy kvalitet, testet (sammenføyning, overganger, perspektiv, eksport). Gratis teknologi (egen kode eller åpen kildekode
-   uten kostnad). Sannsynlig plass: Photo Design (avansert framkalling / ny dialog).
+5. **Panorama – FERDIG (2026-11-16), ikke verifisert på ekte iPhone.** Photo Design: «Panorama»-kort på startsiden,
+   «Panorama …» under Legg til → Medier, «Lag panorama av valgte bilder» ved flere valgte bilder, «Rediger panorama …» på
+   et panoramalag. Motor (egen kode, gratis, `engine/pano/`, i egen arbeidstråd): Harris-hjørner + BRIEF (tåler ulik
+   eksponering), gjensidig samsvar med forholdstest, kamerarotasjon per par (RANSAC, Horn), synsvinkel fra EXIF (35 mm)
+   eller beregnet (søk + finjustering mot alle innliere), spenntre + global finjustering, automatisk horisont,
+   eksponeringsutjevning per kanal (normalisert mot medianbildet), projeksjon sylinder/kule/plan, sømblending (myk ↔ skarp),
+   beskjæring automatisk (største rektangel uten tomme kanter) / hele (gjennomsiktig) / egen (dra ramme og hjørner).
+   Manuelt: hele panoramaet (rotasjon, vipp, midtpunkt, brennvidde) og hvert bilde (sideveis, opp/ned, rotasjon, dra i
+   forhåndsvisningen, ta ut/inn). Full oppløsning (PC ≤ 64 MP, iPhone ≤ 16 MP), JPEG 95 % (PNG ved tomme kanter);
+   «Bruk» = nytt prosjekt i panoramaets størrelse eller nytt/byttet lag med oppskriften (`pano` på laget); «Last ned».
+   Bilder som ikke overlapper, utelates med beskjed. Tester: `engine/pano/pano.test.ts` (ekte kameravisninger med kjent
+   fasit: 4 bilder i tilfeldig rekkefølge – synsvinkel ±2°, gir ±0,4°, feil mot virkeligheten < 14/255; 20 % overlapp med
+   vipp/rull – rotasjoner ±0,5°; mørkt/lyst bilde med gamma, støy, vignettering – eksponering utjevnet; fremmed bilde
+   utelates; plan/kule/finjustering/EXIF); `e2e/photo-panorama.spec.ts` (ekte fotografi som scene: hele flyten
+   legg til → juster → beskjær → Bruk → Rediger → Bruk; fem bilder med 0,35× og 1,45× eksponering og støy, nedlasting i
+   full oppløsning kontrollert) – PC, mobil og WebKit/iPhone-emulering. Kjent grense: overlapp som bare er ensfarget flate
+   (hvit vegg) eller helt utbrent kan ikke plasseres – appen sier fra.
 6. **Objektivkorreksjon** – GODKJENT, etter Panorama (fortegning tønne/pute, vignettering, kromatisk aberrasjon),
    testet.
+7. **Motion: Music Sync + forlenge/forkorte maler** – GODKJENT (eiers melding 2026-11-16), etter 5–6. Bygges inn i den
+   eksisterende Motion-motoren (ikke en parallell løsning). (a) Music Sync: analyse av hele lydsporet – faktiske slag,
+   takter/taktstruktur, energi, oppbygging, pauser, drops, klimaks, seksjoner (intro/vers/refreng/avslutning der mulig);
+   klippbytter og overganger på musikalsk naturlige steder, visuelle høydepunkter på musikalske høydepunkter, ikke
+   mekanisk lik rytme; klipplengder etter energi og malens uttrykk (rolig / rask TikTok / store drops gir ulike mønstre);
+   behold manuelle justeringer ved ny kjøring; valg automatisk/manuell. (b) Malens lengde: brukeren angir ønsket lengde
+   (f.eks. 18 → 30 / 60 s, og kortere) – fordel tid på klipp, nye medieplasser, gjenta/variere sekvenser, forleng rolige
+   partier, bevar overganger/animasjoner/keyframes, ingen tomrom/svarte bilder, tekst/grafikk følger timingen, musikken
+   tilpasses; ved forkorting prioriteres de viktigste delene. Forleng/forkort i tidslinjen, legg til/fjern/flytt klipp
+   uten å ødelegge animasjoner, angre/gjør om. (c) Samspill: ny analyse og bedre tidsfordeling etter bytte av musikk,
+   klipp, lengde – uten å ødelegge brukerens arbeid. (d) Test med Vacation-prosjektet og eierens video
+   (kopi utenfor repoet: `F:\ML-testdata\Vacation-1080p30.mp4`, 1,9 MB; originalen ligger i Claude-opplastingene):
+   original, 30 s, 60 s, kortere, rolig/rask/drops-musikk, bytte musikk og klipp etter synk, eksport med riktig lyd og bilde
+   gjennom HELE videoen; ingen klipp utenfor varigheten, aldri urimelig lang eksport. Gratis, lokale analysemetoder.
+   **VIKTIG TILLEGG (eier):** `Vacation-1080p30.mp4` er et NEGATIVT eksempel – dagens resultat er ikke godkjent. Gå
+   gjennom hele videoen bilde for bilde: klippetiming, overganger, tekst, animasjoner og musikkens rytme; finn konkret hva
+   som gjør det dårlig; sammenlign klippbyttene med faktiske slag, oppbygging og høydepunkter; finn hvorfor Music Sync
+   ikke gir naturlig visuell rytme; kontroller om tidslinjen og malens animasjoner ødelegges eller feilfordeles. Ikke bare
+   «flytt til nærmeste slag» – gjennomtenkt visuell dramaturgi, naturlig variasjon i klipplengder, presise overganger,
+   sammenheng mellom musikk og bilde. Bruk videoen som regresjonstest: eksporter en ny versjon med samme materiale og
+   musikk og sammenlign direkte med originalen; kontroller forlengelse til 30 og 60 s uten at rytme, animasjoner eller
+   design bryter sammen. Ikke ferdig før hele den nye eksporten er sett gjennom og konkrete forbedringer er dokumentert.
+   Mål: publiserbart på Instagram/TikTok, ikke bare en teknisk eksport. (Skjermbildet fra eieren: Vacation, 18,6 s,
+   94 BPM, «Typografisk» bevegelse, mange svært korte fargeflate-klipp på 0,0–0,8 s i midten, markører på hvert slag.)
+   **VIKTIG TILLEGG 2 (eier) – universell musikkstøtte:** alle spor skal fungere på alle Motion-maler uansett sjanger,
+   BPM, tempo eller struktur – ingen maler som bare passer bestemte låter/BPM, ingen spesialtilfeller. Systemet:
+   (1) analyserer hvert spor (BPM, slag, takter, pauser, energi, drops, oppbygging, overganger), (2) analyserer hver mal
+   (klipplengder, overganger, animasjoner, keyframes, tekst, høydepunkter, dramaturgi), (3) sammenligner og tilpasser
+   malens timing til musikken, (4) bevarer malens identitet og animasjoner, (5) håndterer musikk uten tydelig BPM/takt,
+   (6) håndterer store tempoforskjeller uten unaturlige klipp, hastige overganger eller tomme partier, (7) analyserer på
+   nytt ved bytte av lydspor. Malene må få en fleksibel tidsstruktur: høydepunkter, faste og fleksible sekvenser,
+   overgangspunkter, animasjoner/keyframes, områder som kan forlenges/forkortes, naturlige punkter for repetisjon/variasjon.
+   Test HVER mal med flere ulike spor: rolig, rask elektronisk, hip-hop/trap, pop, cinematisk, store drops, ujevn rytme /
+   varierende tempo – reelle kombinasjoner, se gjennom eksportene. Ikke reduser malenes kvalitet eller fjern animasjoner.
+   (Testmusikk må være gratis og lovlig – lag egne syntetiske spor i hver stil, eller bruk fritt lisensierte.)
 
 ### Faste regler
 Ingen betalte tjenester eller kostnader. Ikke reduser kvalitet/funksjonalitet (heller ikke PC). Ikke slett tester eller

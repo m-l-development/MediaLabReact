@@ -136,6 +136,11 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
         </div>
         <span className={s.note}>{tx(mGrp ? 'Gruppen flyttes og skaleres som ett objekt. Dobbeltklikk på et element for å redigere det alene.' : 'Dra i hjørnene for å skalere alle likt, eller i sidene for å strekke. Grupper lagene for å låse dem sammen.')}</span>
         <span className={s.dimSm}>{tx('Ctrl+G grupperer · Ctrl+Shift+G deler opp · Shift+klikk legger til eller fjerner')}</span>
+        {c.selImages().length > 1 && (
+          <div className={s.row2}>
+            <button type="button" className={s.smallBtn} data-pd-pano-sel="" onClick={() => c.openPano()}>{tx('Lag panorama av valgte bilder')} ({c.selImages().length})</button>
+          </div>
+        )}
         {c.s.adv && c.selImages().length > 1 && (
           <div data-pd-hdr-box="">
             <span className={s.eyebrowSm}>{tx('HDR-sammenslåing')}</span>
@@ -240,6 +245,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
                 <button type="button" className={s.smallBtn} onClick={() => P({ flipX: !L.flipX })}>{tx('Speil')}</button>
                 <button type="button" className={s.smallBtn} onClick={() => void c.trimEdges()}>{tx('Fjern tomme kanter')}</button>
                 <button type="button" className={s.smallBtn} onClick={() => c.showWhole()}>{tx('Vis hele bildet')}</button>
+                {L.pano && <button type="button" className={s.smallBtnOn} data-pd-pano-edit="" onClick={() => c.openPano()}>{tx('Rediger panorama …')}</button>}
               </div>
               {S.tool === 'crop' && <span className={s.warnNote}>{tx('Dra i bildet for å flytte utsnittet. Dra i kantene for å beskjære rammen.')}</span>}
               {/* beskjæringsform: de vanligste som knapper, resten i en liste */}

@@ -236,6 +236,14 @@ export function Home({ c, S, tx, onBackup, onRestore, onBatch }: { c: PhotoContr
               <span className={s.tplName}>{tx('Tomt')}</span>
             </button>
           </div>
+          <div className={s.tplItem}>
+            <button type="button" className={s.tplCard} data-pd-pano-new="" onClick={() => c.openPano()} title={tx('Sett sammen flere bilder til ett panorama')}>
+              <div className={s.tplBox} style={{ display: 'grid', placeItems: 'center' }}>
+                <svg width="64" height="32" viewBox="0 0 64 32" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M2 6c20 6 40 6 60 0v20c-20-6-40-6-60 0z" /><path d="M10 22l10-9 8 7 6-5 12 9" /></svg>
+              </div>
+              <span className={s.tplName}>{tx('Panorama')}</span>
+            </button>
+          </div>
         </div>
         {ownTpls.length > 0 && (
           <div className={s.rowBetween} data-pd-own-list="">

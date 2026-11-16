@@ -14,9 +14,11 @@ export interface Exif {
   width?: number
   height?: number
   software?: string
+  /** Brennvidde i 35 mm-ekvivalent (mm), når kameraet oppgir den (brukes til panoramaets synsvinkel). */
+  focal35?: number
 }
 
-const TAGS: Record<number, keyof Exif> = { 0x010f: 'make', 0x0110: 'model', 0x0131: 'software', 0x9003: 'date', 0x829a: 'exposure', 0x829d: 'fnumber', 0x8827: 'iso', 0x920a: 'focal', 0xa002: 'width', 0xa003: 'height', 0xa434: 'lens' }
+const TAGS: Record<number, keyof Exif> = { 0x010f: 'make', 0x0110: 'model', 0x0131: 'software', 0x9003: 'date', 0x829a: 'exposure', 0x829d: 'fnumber', 0x8827: 'iso', 0x920a: 'focal', 0xa002: 'width', 0xa003: 'height', 0xa434: 'lens', 0xa405: 'focal35' }
 
 export function readExif(buf: ArrayBuffer): Exif | null {
   const v = new DataView(buf)
