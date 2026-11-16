@@ -33,6 +33,9 @@ import type { DiskEntry, LoopMediaStore, LoopRepo, WorkData } from './store'
 import { loadMuxer, loadQr, loadTesseract, type QrFactory } from './engine/vendor'
 import { buildQrUrl } from '../../shared/qr/qr'
 
+/** Synlig høyde på mobil (iPhone: 100vh er høyere enn det som synes når Safaris linjer vises): dvh der det støttes. */
+const VH = typeof CSS !== "undefined" && CSS.supports?.("height", "100dvh") ? "dvh" : "vh"
+
 const R = __ukeloopRendererFactory()
 
 /* ---------- typer ---------- */
@@ -2620,7 +2623,7 @@ export class LoopController {
   applyFs(on: boolean) {
     const w = this.fsRef.current
     if (!w) return
-    const st = on ? { position: 'fixed', inset: '0', zIndex: '9000', borderRadius: '0', border: 'none', width: '100vw', height: '100vh' } : { position: 'relative', inset: '', zIndex: '', borderRadius: '10px', border: '1px solid #262626', width: '', height: '' }
+    const st = on ? { position: 'fixed', inset: '0', zIndex: '9000', borderRadius: '0', border: 'none', width: '100vw', height: '100' + VH } : { position: 'relative', inset: '', zIndex: '', borderRadius: '10px', border: '1px solid #262626', width: '', height: '' }
     Object.assign(w.style, st)
     document.body.style.overflow = on ? 'hidden' : ''
   }
@@ -4158,9 +4161,9 @@ export class LoopController {
       mobile: MB, asideBackDisp: MB ? 'none' : 'flex', asideHeadPad: MB ? '14px 16px 10px' : '20px 20px 14px', mainExportDisp: MB ? 'none' : 'block',
       rootDir: MB ? 'column' : 'row', rootWrap: MB ? 'nowrap' : 'wrap',
       asideFlex: MB ? 'none' : '1 1 360px', mainFlex: MB ? 'none' : '999 1 560px', paneW: MB ? '100%' : 'auto', rootPadB: MB ? 'calc(106px + env(safe-area-inset-bottom))' : '36px',
-      paneH: MB ? 'auto' : 'calc(100vh - 36px)', asideMaxW: MB ? 'none' : '440px', asideBorder: MB ? '0' : '1px solid #262626',
+      paneH: MB ? 'auto' : `calc(100${VH} - 36px)`, asideMaxW: MB ? 'none' : '440px', asideBorder: MB ? '0' : '1px solid #262626',
       asideDisplay: MB && pane !== 'edit' ? 'none' : 'flex', mainDisplay: MB && pane !== 'preview' ? 'none' : 'flex',
-      mainPad: MB ? '16px 14px' : '24px 28px', canvasMaxH: S.fs ? '100vh' : MB ? '62vh' : 'calc(100vh - 336px)',
+      mainPad: MB ? '16px 14px' : '24px 28px', canvasMaxH: S.fs ? '100' + VH : MB ? '62' + VH : `calc(100${VH} - 336px)`,
       mobileTabs: [['preview', 'Forhåndsvis'], ['edit', 'Rediger']].map(([k = '', l = '']) => {
         const o = pane === k
         return { label: l, bg: o ? '#e9e7e2' : 'transparent', color: o ? '#000' : '#e9e7e2', border: o ? '#e9e7e2' : '#3a3a3a', onClick: () => { this.setState({ mPane: k }); try { window.scrollTo(0, 0) } catch { /* ingenting */ } } }

@@ -12,6 +12,7 @@
   padding: 6px;
   /* ugjennomsiktig (ikke tema-overflaten, som er halvgjennomsiktig): menyen skal være lett å lese over alt innhold */
   max-height: calc(100vh - 8px);
+  max-height: calc(100dvh - 8px);
   overflow-y: auto;
   border: 1px solid #3a3a3a;
   border-radius: 10px;

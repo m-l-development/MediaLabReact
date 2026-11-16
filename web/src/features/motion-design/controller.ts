@@ -75,6 +75,11 @@ export interface MState {
   pv: { w: number; h: number; cw: number; ch: number }
   /** Fullskjermvisning av komposisjonen (se toggleFull). */
   full: boolean
+  /**
+   * «Fyll skjermen»: forhåndsvisningen over hele skjermflaten (100dvh, safe areas) der nettleseren ikke har ekte
+   * fullskjerm for elementer (Safari på iPhone). Ikke ekte fullskjerm – nettleserens egne linjer kan synes.
+   */
+  immersive: boolean
   narrow: boolean
   vw: number
   dragOver: boolean
@@ -287,7 +292,7 @@ export class MotionController {
     this.state = createStore<MState>({
       ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, tplTheme: readTheme(st.get('motiondesign.tpltheme')), msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
-      toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, full: false, narrow: false, vw: 1440, dragOver: false,
+      toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, full: false, immersive: false, narrow: false, vw: 1440, dragOver: false,
       clipDrag: null, packing: false, syncBusy: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
       folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], insp: 'clip', tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
     })
@@ -353,6 +358,10 @@ export class MotionController {
   }
 
   dispose(): void {
+    if (this.s.immersive) {
+      document.documentElement.removeAttribute('data-ml-immersive')
+      window.removeEventListener('keydown', this.immKey)
+    }
     this.alive = false
     cancelAnimationFrame(this.raf)
     clearInterval(this.voI)
@@ -784,6 +793,31 @@ export class MotionController {
     this.svT = setTimeout(() => void this.saveNow(), 900)
   }
 
+  /**
+   * Miniatyren til prosjektkortet: et bilde med innhold. Spillehodet først, så flere steder i videoen – mange maler
+   * starter på svart, og på iPhone er videoene ikke dekodet før de spilles (de tegnes da som en mørk flate). Uten
+   * innhold noe sted: miniatyren av første bilde/video i prosjektet. null = ingen (kortet viser da en reserve).
+   */
+  private makeThumb(p: Project): string | null {
+    const s = 360 / Math.max(p.w, p.h)
+    const c = document.createElement('canvas')
+    c.width = Math.round(p.w * s)
+    c.height = Math.round(p.h * s)
+    const g = c.getContext('2d', { willReadFrequently: true })
+    if (!g) return null
+    const T = totalDur(p)
+    const times = [this.t > 0.05 ? this.t : 1.5, 1.5, T * 0.35, T * 0.55, T * 0.75, T * 0.2, T * 0.9].map((t) => Math.max(0, Math.min(t, T - 0.02)))
+    for (const t of times) {
+      g.save()
+      drawFrame(g, c.width, c.height, p, this.M, t, null)
+      g.restore()
+      if (hasContent(g, c.width, c.height)) return c.toDataURL('image/jpeg', 0.72)
+    }
+    // reserve: miniatyren av første bilde eller video i prosjektet (lagret ved import)
+    const m = p.media.find((x) => (x.kind === 'image' || x.kind === 'video') && x.thumb)
+    return m ? m.thumb : null
+  }
+
   async saveNow(): Promise<void> {
     clearTimeout(this.svT)
     this.svT = undefined
@@ -791,16 +825,7 @@ export class MotionController {
     if (!p) return
     let thumb = p.thumb || ''
     try {
-      const s = 360 / Math.max(p.w, p.h)
-      const c = document.createElement('canvas')
-      c.width = Math.round(p.w * s)
-      c.height = Math.round(p.h * s)
-      const T = totalDur(p)
-      const g = c.getContext('2d')
-      if (g) {
-        drawFrame(g, c.width, c.height, p, this.M, Math.min(this.t > 0.05 ? this.t : Math.min(1.5, T / 2), T - 0.02), null)
-        thumb = c.toDataURL('image/jpeg', 0.72)
-      }
+      thumb = this.makeThumb(p) ?? thumb
     } catch {
       // beholder forrige miniatyr
     }
@@ -1192,15 +1217,47 @@ export class MotionController {
 
   /** Fullskjerm for forhåndsvisningen: bare komposisjonen, Escape avslutter (nettleseren), mellomrom spiller av / pauser. */
   toggleFull(): void {
+    if (this.s.immersive) return this.setImmersive(false)
     const el = this.els.stage
     if (!el) return
-    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined)
-    else void el.requestFullscreen?.().catch(() => this.flash('Fullskjerm er ikke tilgjengelig i denne nettleseren.'))
+    const d = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => void }
+    if (document.fullscreenElement) return void document.exitFullscreen().catch(() => undefined)
+    if (d.webkitFullscreenElement) return void d.webkitExitFullscreen?.()
+    // ekte fullskjerm der nettleseren har den (PC, Android, iPad); ellers «Fyll skjermen» (Safari på iPhone har ikke
+    // fullskjerm for andre elementer enn video – requestFullscreen finnes ikke der)
+    if (realFullscreen(el)) {
+      if (typeof el.requestFullscreen === 'function') void el.requestFullscreen().catch(() => this.setImmersive(true))
+      else (el as unknown as { webkitRequestFullscreen: () => void }).webkitRequestFullscreen()
+      return
+    }
+    this.setImmersive(true)
+  }
+
+  private immKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.s.immersive) {
+      e.preventDefault()
+      this.setImmersive(false)
+    }
+  }
+
+  /** «Fyll skjermen» av/på (se MState.immersive). */
+  setImmersive(on: boolean): void {
+    if (on === this.s.immersive) return
+    this.set({ immersive: on, full: on })
+    document.documentElement.toggleAttribute('data-ml-immersive', on)
+    if (on) window.addEventListener('keydown', this.immKey)
+    else window.removeEventListener('keydown', this.immKey)
+    this.fullDown = false
+    this.fullMs = 0
+    this.fullN = 0
+    requestAnimationFrame(() => this.measure())
   }
 
   /** Kalles ved fullscreenchange: ny tegnestørrelse for den nye flaten. */
   fullChanged(): void {
-    const on = !!this.els.stage && document.fullscreenElement === this.els.stage
+    if (this.s.immersive) return
+    const wk = (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement
+    const on = !!this.els.stage && (document.fullscreenElement === this.els.stage || wk === this.els.stage)
     this.fullDown = false
     this.fullMs = 0
     this.fullN = 0
@@ -4306,6 +4363,31 @@ export class MotionController {
 /* ---------- hjelpere ---------- */
 
 /** Liten miniatyr (data-URL). Med `alpha` beholdes gjennomsiktighet når den er liten nok. */
+/** Har bildet innhold (ikke en nesten ensfarget mørk flate)? Prøver 24 × 24 punkter. */
+export function hasContent(g: CanvasRenderingContext2D, w: number, h: number): boolean {
+  let sum = 0, sum2 = 0, n = 0
+  for (let y = 0; y < 24; y++) {
+    for (let x = 0; x < 24; x++) {
+      const d = g.getImageData(Math.floor(((x + 0.5) * w) / 24), Math.floor(((y + 0.5) * h) / 24), 1, 1).data
+      const l = 0.2126 * (d[0] ?? 0) + 0.7152 * (d[1] ?? 0) + 0.0722 * (d[2] ?? 0)
+      sum += l
+      sum2 += l * l
+      n++
+    }
+  }
+  const mean = sum / n
+  const sd = Math.sqrt(Math.max(0, sum2 / n - mean * mean))
+  return mean > 28 || sd > 10
+}
+
+/** Har nettleseren ekte fullskjerm for elementet (ikke Safari på iPhone)? */
+export function realFullscreen(el?: Element | null): boolean {
+  if (typeof document === 'undefined') return false
+  const d = document as Document & { webkitFullscreenEnabled?: boolean }
+  const e = (el ?? document.documentElement) as Element & { webkitRequestFullscreen?: unknown }
+  return (!!document.fullscreenEnabled && typeof e.requestFullscreen === 'function') || (!!d.webkitFullscreenEnabled && typeof e.webkitRequestFullscreen === 'function')
+}
+
 export function thumbOf(src: CanvasImageSource, w: number, h: number, alpha: boolean): string {
   try {
     if (!w || !h) return ''

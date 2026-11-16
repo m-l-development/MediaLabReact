@@ -196,6 +196,20 @@
   color: #f3f1ec;
 }
 
+/* reserve når prosjektet mangler miniatyr eller den er helt mørk (eldre prosjekter) */
+.cardFallback {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-size: 13px;
+  background: radial-gradient(120% 90% at 20% 0%, rgba(245, 184, 44, 0.22), transparent 60%), linear-gradient(135deg, #1b2230, #2a2033) !important;
+  cursor: pointer;
+}
+
 .cardThumb {
   display: block;
   width: 100%;
@@ -3185,6 +3199,23 @@
 /* fullskjerm: bare komposisjonen, sentrert på svart */
 .stage[data-md-full] {
   background: #000;
+}
+
+/* «Fyll skjermen» (Safari på iPhone): over hele skjermflaten, dynamisk høyde og safe areas (hakk, hjemlinje) */
+.stage[data-md-immersive] {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left) !important;
+  box-sizing: border-box;
+  touch-action: none;
+}
+
+.stage[data-md-immersive] .fullBar {
+  bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 .stage[data-md-full] .drop {

@@ -1,6 +1,6 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { TRSTD, type ExpState, type Insp, type MotionController, type MState } from './controller'
+import { TRSTD, type ExpState, type Insp, type MotionController, type MState, realFullscreen } from './controller'
 import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { FullBar } from './FullBar'
 import { MoreButton } from '../../shared/ui/MoreButton'
@@ -281,7 +281,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
           <LeftPanel c={c} S={S} p={p} tx={tx} onShared={onShared} onLogoCloud={onLogoCloud} />
         </aside>
         <section className={s.center} style={{ order: narrow ? 1 : 2 }}>
-          <div ref={c.bind('stage')} className={s.stage} style={{ padding: S.full ? 0 : port ? 8 : 16 }} data-md-full={S.full ? '' : undefined} tabIndex={0} aria-label={tx('Forhåndsvisning')} data-focus-region="" onKeyDown={(e) => c.menuKey(e, 'preview')}>
+          <div ref={c.bind('stage')} className={s.stage} style={{ padding: S.full ? 0 : port ? 8 : 16 }} data-md-full={S.full ? '' : undefined} data-md-immersive={S.immersive ? '' : undefined} tabIndex={0} aria-label={tx('Forhåndsvisning')} data-focus-region="" onKeyDown={(e) => c.menuKey(e, 'preview')}>
             <canvas ref={c.bind('canvas')} className={s.canvas} data-md-canvas="1" width={S.pv.cw} height={S.pv.ch} style={{ width: S.pv.w, height: S.pv.h }}
               onPointerDown={(e) => (S.full ? e.button === 0 && c.togglePlay() : c.canvasDown(e))} onContextMenu={(e) => (S.full ? e.preventDefault() : c.canvasCtx(e))} onDoubleClick={(e) => (S.full ? c.toggleFull() : c.canvasDbl(e))} onPointerMove={(e) => !S.full && c.canvasMove(e)} />
             {S.dragOver && <div className={s.drop}>{tx('Slipp filene for å legge dem til')}</div>}
@@ -300,7 +300,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
             <span ref={c.bind('time')} className={s.time} data-md-time="1">{fmtT(S.t)} / {fmtT(T)}</span>
             {/* berøringsskjerm: handlingene for valgt klipp (eller tidslinjen), samme meny som høyreklikk i tidslinjen */}
             <MoreButton label={tx('Handlinger for tidslinjen')} onOpen={() => c.touchMenu('timeline')} />
-            <button type="button" className={s.barRound} data-md-fullscreen="" title={tx('Fullskjerm (F) – Escape avslutter')} aria-label={tx('Fullskjerm')} onClick={() => c.toggleFull()}>
+            <button type="button" className={s.barRound} data-md-fullscreen="" title={tx(realFullscreen() ? 'Fullskjerm (F) – Escape avslutter' : 'Fyll skjermen (Safari på iPhone har ikke ekte fullskjerm for nettsider)')} aria-label={tx(realFullscreen() ? 'Fullskjerm' : 'Fyll skjermen')} onClick={() => c.toggleFull()}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
             </button>
             {narrow && (

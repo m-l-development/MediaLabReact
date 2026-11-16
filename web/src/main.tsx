@@ -10,10 +10,15 @@ import { createPreviewServices } from './app/preview-services'
 import { installErrorCapture } from './shared/feedback/errors'
 import { langStore } from './shared/i18n/i18n'
 import { initTheme } from './shared/theme/theme'
+import { iosNoFocusZoom } from './shared/platform/ios'
+import { installCanvasFilter } from './shared/platform/canvas-filter'
 import './styles/tokens.css'
 import './styles/base.css'
 
 installErrorCapture()
+iosNoFocusZoom()
+// Safari: ctx.filter (uskarphet, svart-hvitt …) mangler på lerret – innebygd erstatning
+installCanvasFilter()
 initTheme()
 document.documentElement.lang = langStore.get()
 

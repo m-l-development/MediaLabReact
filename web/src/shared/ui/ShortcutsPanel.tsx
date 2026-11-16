@@ -106,8 +106,11 @@ export function ShortcutsButton({ tool, fabClass }: { tool: string; fabClass: st
           { label: t('shortcuts.title') + ' …', keys: '?', onSelect: () => setOpen(true) },
           document.fullscreenElement
             ? { label: t('ctx.fullscreenOff'), keys: 'Esc', onSelect: () => void document.exitFullscreen?.() }
-            : { label: t('ctx.fullscreen'), onSelect: () => void document.documentElement.requestFullscreen?.().catch(() => undefined) },
-        ]} />
+            // bare der nettleseren har fullskjerm for siden (ikke Safari på iPhone, der valget ikke gjorde noe)
+            : document.fullscreenEnabled && typeof document.documentElement.requestFullscreen === 'function'
+              ? { label: t('ctx.fullscreen'), onSelect: () => void document.documentElement.requestFullscreen().catch(() => undefined) }
+              : null,
+        ].filter((x) => x !== null)} />
       )}
     </>
   )

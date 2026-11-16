@@ -1,5 +1,6 @@
 import { drawFill, fillOn } from '../../../shared/fill/fill'
 import { loadFonts, loadStretch } from '../../../shared/fonts/loader'
+import { fractalNoise, noiseTexture } from '../../../shared/lib/noise-texture'
 import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { fillPaint } from '../../thumbnail-studio/engine/paint'
 import { drawQr } from '../../../shared/qr/qr'
@@ -707,7 +708,7 @@ function customPath(L: ShapeLayer): Path2D | null {
 
 // slitt tekst som i materialet (.grunge): støy (feTurbulence .55, 3 oktaver, 420 px) med alfa-terskel
 // (-15 · a + 10,6) brukt som maske i 520 px-ruter. Styrken flytter terskelen: 100 % = materialets maske, 0 = ingen hull.
-const grungeImgs = new Map<number, HTMLImageElement | null>()
+const grungeImgs = new Map<number, CanvasImageSource | null>()
 const grungeKey = (amt: number) => Math.round(clamp(amt, 0, 1) * 20) / 20
 function grungeSvg(k: number): string {
   const off = (15 - 4.4 * k).toFixed(2)
@@ -718,17 +719,14 @@ export function loadGrunge(amt: number): Promise<void> {
   const k = grungeKey(amt)
   if (grungeImgs.has(k) || typeof Image === 'undefined') return Promise.resolve()
   grungeImgs.set(k, null)
-  return new Promise<void>((res) => {
-    const im = new Image()
-    im.onload = () => {
-      grungeImgs.set(k, im)
-      res()
-    }
-    im.onerror = () => res()
-    im.src = grungeSvg(k)
-  })
+  // Safari forurenser lerretet med SVG-filtre (eksporten feilet): da lages samme maske direkte (shared/lib/noise-texture)
+  const off = 15 - 4.4 * k
+  return noiseTexture(grungeSvg(k), 420, 420, (d) => {
+    const n = fractalNoise(420, 420, 0.55, 3, 7)
+    for (let i = 0; i < n.length; i++) d.data[i * 4 + 3] = Math.round(Math.min(1, Math.max(0, -15 * n[i]! + off)) * 255)
+  }).then((c) => { grungeImgs.set(k, c) })
 }
-function grungeMask(amt: number): HTMLImageElement | null {
+function grungeMask(amt: number): CanvasImageSource | null {
   const k = grungeKey(amt)
   const im = grungeImgs.get(k)
   if (im === undefined) void loadGrunge(amt)

@@ -53,7 +53,39 @@ export function TemplateLibrary<T extends TplItem>({ items, cats, catLabel, prev
       if (ch && !raf && show.current) raf = requestAnimationFrame(emit)
     }, { rootMargin: '300px 0px' })
     g.querySelectorAll('[data-tpl-item]').forEach((el) => io.observe(el))
-    return () => { io.disconnect(); cancelAnimationFrame(raf) }
+    // Safari/WebKit (iPhone): observatøren meldte bare ett av kortene i den rullbare malpopupen som synlig, så
+    // forhåndsvisningene ble aldri laget. Kortene nær skjermen regnes derfor også ut direkte (ved start, rulling og
+    // endret størrelse) – samme regel (300 px utenfor skjermen) som observatøren.
+    let scanRaf = 0
+    const scan = () => {
+      scanRaf = 0
+      const vh = window.innerHeight
+      let ch = false
+      g.querySelectorAll<HTMLElement>('[data-tpl-item]').forEach((el) => {
+        const r = el.getBoundingClientRect()
+        const id = el.dataset.tplItem ?? ''
+        const near = r.width > 0 && r.bottom > -300 && r.top < vh + 300
+        if (near && !vis.has(id)) { vis.add(id); ch = true }
+      })
+      if (ch) setSeen((p) => { const n = new Set(p ?? []); let add = false; for (const id of vis) if (!n.has(id)) { n.add(id); add = true } return add ? n : p })
+      if (ch && !raf && show.current) raf = requestAnimationFrame(emit)
+    }
+    const queue = () => { if (!scanRaf) scanRaf = requestAnimationFrame(scan) }
+    // kortene legges ut etter at listen er byttet: søk når rutenettet får/endrer størrelse og noen ganger i starten
+    const timers = [120, 400, 1000, 2000].map((ms) => setTimeout(queue, ms))
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(queue)
+    ro?.observe(g)
+    window.addEventListener('scroll', queue, { capture: true, passive: true })
+    window.addEventListener('resize', queue, { passive: true })
+    return () => {
+      io.disconnect()
+      ro?.disconnect()
+      cancelAnimationFrame(raf)
+      cancelAnimationFrame(scanRaf)
+      for (const t of timers) clearTimeout(t)
+      window.removeEventListener('scroll', queue, { capture: true })
+      window.removeEventListener('resize', queue)
+    }
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
   const n = (c: string) => items.filter((x) => x.cat === c).length
   const style = { '--tpl-min': `${minW ?? 220}px`, '--tpl-min-m': `${Math.max(120, Math.round((minW ?? 220) * 0.62))}px` } as CSSProperties

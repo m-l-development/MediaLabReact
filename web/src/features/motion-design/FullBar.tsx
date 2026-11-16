@@ -26,16 +26,19 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
   // Skjules når pekeren ikke er nær linjen (etter 1,5 s), så videoen er i fokus; vises igjen når pekeren nærmer seg
   // bunnen, ved tastetrykk, mens linjen har fokus eller mens man drar. Pekeren skjules sammen med linjen.
   const [shown, setShown] = useState(true)
+  const shownRef = useRef(true)
+  useEffect(() => { shownRef.current = shown }, [shown])
   const dragging = useRef(false)
   useEffect(() => {
     let timer = 0
     const stage = bar.current?.parentElement
+    let touchy = false
     const hideLater = () => {
       clearTimeout(timer)
       timer = window.setTimeout(() => {
         if (dragging.current || bar.current?.contains(document.activeElement)) return
         setShown(false)
-      }, 1500)
+      }, touchy ? 3000 : 1500)
     }
     const near = (y: number) => y > window.innerHeight - 140
     const move = (e: globalThis.PointerEvent) => {
@@ -52,6 +55,19 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
       hideLater()
     }
     const blur = () => hideLater()
+    // berøring: når linjen er skjult, viser første trykk den fram (og spiller ikke av / pauser) – uten mus og Esc er
+    // linjen (med «Lukk visningen») ellers umulig å nå på mobil
+    const down = (e: globalThis.PointerEvent) => {
+      if (e.pointerType === 'mouse') return
+      touchy = true
+      if (!shownRef.current && !bar.current?.contains(e.target as Node)) {
+        e.stopPropagation()
+        e.preventDefault()
+        setShown(true)
+      }
+      hideLater()
+    }
+    window.addEventListener('pointerdown', down, true)
     hideLater()
     window.addEventListener('pointermove', move)
     window.addEventListener('keydown', key, true)
@@ -60,6 +76,7 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
     return () => {
       clearTimeout(timer)
       window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerdown', down, true)
       window.removeEventListener('keydown', key, true)
       b?.removeEventListener('focusout', blur)
       stage?.removeAttribute('data-md-idle')
@@ -148,7 +165,7 @@ export function FullBar({ c, T, playing, tx }: { c: MotionController; T: number;
         <span className={s.fullHead} style={{ left: pct(t) }} aria-hidden="true" />
       </div>
       <span className={s.fullTime} data-md-full-time="">{label}</span>
-      <button type="button" className={s.fullExit} data-md-full-exit="" aria-label={tx('Avslutt fullskjerm')} title={tx('Avslutt fullskjerm') + ' (Esc)'} onClick={() => c.toggleFull()}>
+      <button type="button" className={s.fullExit} data-md-full-exit="" aria-label={tx(c.s.immersive ? 'Lukk visningen' : 'Avslutt fullskjerm')} title={tx(c.s.immersive ? 'Lukk visningen' : 'Avslutt fullskjerm') + ' (Esc)'} onClick={() => c.toggleFull()}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
         <kbd>Esc</kbd>
       </button>

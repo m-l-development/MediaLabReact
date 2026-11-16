@@ -51,7 +51,7 @@ test('ferdig mal: velg fra kategorien, legg inn bilde, lagre, åpne igjen og eks
   await (await dl).saveAs(file)
   const r = await page.evaluate(async (b64) => {
     const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(0, 0, bmp.width, bmp.height).data
