@@ -4,6 +4,7 @@
  * ingen kode fra LightCraft er brukt. Kjøres etter de vanlige justeringene (`Adj`) og bare når bildelaget har `dev`,
  * så bilder uten avansert framkalling gir nøyaktig samme resultat som før.
  */
+import { applyLens } from './lens'
 
 export interface DevBase {
   /** Hvitpunkt −100…100: positiv løfter de lyseste tonene, negativ demper dem. */
@@ -20,6 +21,12 @@ export interface DevBase {
   texture?: number
   /** Støyreduksjon 0…100: glatter lysstøy (kantbevarende) og fargestøy. */
   nr?: number
+  /** Objektivkorreksjon (engine/lens.ts): fortegning, kromatisk aberrasjon rød/blå, vignettering og dens midtpunkt. */
+  ldist?: number
+  lcar?: number
+  lcab?: number
+  lvig?: number
+  lvigm?: number
   /** Perspektiv −100…100: vertikal og horisontal trapeskorreksjon (bildet skaleres så kantene fylles). */
   pv?: number
   ph?: number
@@ -79,14 +86,14 @@ export const LOC: Omit<LocalAdj, 'k'> = { on: true, x: 0.5, y: 0.5, r: 0.35, a: 
 
 /** Alle tallfelt i Dev med gyldig område. */
 export type DevKey = Exclude<keyof Dev, 'loc'>
-const RANGE: Record<string, [number, number]> = { whites: [-100, 100], blacks: [-100, 100], vib: [-100, 100], clarity: [-100, 100], sharp: [0, 100], texture: [-100, 100], nr: [0, 100], pv: [-100, 100], ph: [-100, 100], gsh: [0, 360], gss: [0, 100], gmh: [0, 360], gms: [0, 100], ghh: [0, 360], ghs: [0, 100], gbal: [-100, 100] }
+const RANGE: Record<string, [number, number]> = { whites: [-100, 100], blacks: [-100, 100], vib: [-100, 100], clarity: [-100, 100], sharp: [0, 100], texture: [-100, 100], nr: [0, 100], pv: [-100, 100], ph: [-100, 100], ldist: [-100, 100], lcar: [-100, 100], lcab: [-100, 100], lvig: [-100, 100], lvigm: [0, 100], gsh: [0, 360], gss: [0, 100], gmh: [0, 360], gms: [0, 100], ghh: [0, 360], ghs: [0, 100], gbal: [-100, 100] }
 for (const [n] of HSL_RANGES) for (const p of 'hsl') RANGE[p + n] = [-100, 100]
 export const devRange = (k: DevKey): [number, number] => RANGE[k] ?? [-100, 100]
 
 export const DEV: Dev = { whites: 0, blacks: 0, vib: 0, clarity: 0, sharp: 0 }
 const KEYS = Object.keys(RANGE) as DevKey[]
 /** Felt som bare er fargetoner (gjør ingenting alene; styrken avgjør). */
-const HUE = new Set(['gsh', 'gmh', 'ghh'])
+const HUE = new Set(['gsh', 'gmh', 'ghh', 'lvigm'])
 
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v)
 
@@ -337,6 +344,8 @@ export function locWeight(m: LocalAdj, u: number, v: number, asp: number): numbe
 /** Bruker avansert framkalling på bildedataene (endrer dem). */
 export function applyDev(img: ImageData, d: Dev): void {
   if (devNeutral(d)) return
+  // objektivet først (som i kameraet), så perspektivet
+  applyLens(img, { dist: valOf(d, 'ldist'), car: valOf(d, 'lcar'), cab: valOf(d, 'lcab'), vig: valOf(d, 'lvig'), vigm: d.lvigm ?? 50 })
   const pv = valOf(d, 'pv'), ph = valOf(d, 'ph')
   if (pv || ph) perspective(img, pv, ph)
   for (const m of d.loc ?? []) if (m.k === 'spot' && m.on) spot(img, m)
