@@ -48,6 +48,20 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    uten kostnad). Sannsynlig plass: Photo Design (avansert framkalling / ny dialog).
 6. **Objektivkorreksjon** – GODKJENT, etter Panorama (fortegning tønne/pute, vignettering, kromatisk aberrasjon),
    testet.
+7. **Motion: Music Sync + forlenge/forkorte maler** – GODKJENT (eiers melding 2026-11-16), etter 5–6. Bygges inn i den
+   eksisterende Motion-motoren (ikke en parallell løsning). (a) Music Sync: analyse av hele lydsporet – faktiske slag,
+   takter/taktstruktur, energi, oppbygging, pauser, drops, klimaks, seksjoner (intro/vers/refreng/avslutning der mulig);
+   klippbytter og overganger på musikalsk naturlige steder, visuelle høydepunkter på musikalske høydepunkter, ikke
+   mekanisk lik rytme; klipplengder etter energi og malens uttrykk (rolig / rask TikTok / store drops gir ulike mønstre);
+   behold manuelle justeringer ved ny kjøring; valg automatisk/manuell. (b) Malens lengde: brukeren angir ønsket lengde
+   (f.eks. 18 → 30 / 60 s, og kortere) – fordel tid på klipp, nye medieplasser, gjenta/variere sekvenser, forleng rolige
+   partier, bevar overganger/animasjoner/keyframes, ingen tomrom/svarte bilder, tekst/grafikk følger timingen, musikken
+   tilpasses; ved forkorting prioriteres de viktigste delene. Forleng/forkort i tidslinjen, legg til/fjern/flytt klipp
+   uten å ødelegge animasjoner, angre/gjør om. (c) Samspill: ny analyse og bedre tidsfordeling etter bytte av musikk,
+   klipp, lengde – uten å ødelegge brukerens arbeid. (d) Test med Vacation-prosjektet og eierens video
+   (kopi utenfor repoet: `F:\ML-testdata\Vacation-1080p30.mp4`, 1,9 MB; originalen ligger i Claude-opplastingene):
+   original, 30 s, 60 s, kortere, rolig/rask/drops-musikk, bytte musikk og klipp etter synk, eksport med riktig lyd og bilde
+   gjennom HELE videoen; ingen klipp utenfor varigheten, aldri urimelig lang eksport. Gratis, lokale analysemetoder.
 
 ### Faste regler
 Ingen betalte tjenester eller kostnader. Ikke reduser kvalitet/funksjonalitet (heller ikke PC). Ikke slett tester eller
