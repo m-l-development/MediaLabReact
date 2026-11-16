@@ -4,7 +4,7 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `e4be106` (merge av `47d77e4`, objektivkorreksjon; Release verify grønn 2026-11-16). Oppgave 7 (Motion) er i releasen etter denne. Kontroller før
+**Siste kjente produksjonscommit:** `e3083b0` (merge av `4daa74f`: Panorama, objektivkorreksjon og Motion-oppgave 7 er alle i produksjon; Release verify grønn 2026-11-16). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
 **Ukommittert arbeid:** ingen. **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
