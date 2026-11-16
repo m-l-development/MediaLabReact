@@ -391,6 +391,7 @@ test('fargevelgeren under dragging: mange endringer raskt, siste farge havner i 
     return gaps.sort((a, b) => a - b)[15] as number
   })
   // ikke låst: fargevelgeren får tegne mellom endringene (en synkron omtegning per endring gir langt over dette)
+  console.log(`FARGE median ${frames.toFixed(1)} ms, uten endringer ${idle.toFixed(1)} ms`)
   expect(frames, `median ${frames.toFixed(1)} ms, bildetakt uten endringer ${idle.toFixed(1)} ms`).toBeLessThan(Math.max(50, idle * 2.5))
   await expect(inp).toHaveValue('#2266aa')
   await expect.poll(() => shareOf(page, '[data-tpl="countdown"] canvas', '#2266aa')).toBeGreaterThan(0.4)

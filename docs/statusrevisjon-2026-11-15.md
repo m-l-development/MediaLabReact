@@ -27,6 +27,73 @@ Denne delen erstatter de tilsvarende radene lenger ned (DELVIS / IKKE FERDIG), s
 
 Panorama og objektivkorreksjon er ikke startet (venter på godkjenning). Ingen betalte tjenester er tatt i bruk.
 
+## Oppfølging 2 (fra `453c338`) – minneprofilering, innlogging, hvitt bilde, New York
+
+### Minne (reell profilering)
+Verktøy: Chromes egen minneinstrumentering (memory-infra via DevTools-protokollen) – sideprosessens minne per allokator
+(V8, Blink GC, PartitionAlloc, malloc, Skia, cc, diskarderbart, font- og nettbuffer), GPU-prosessen separat, målt etter
+hver runde, etter 60 s i ro og etter simulert kritisk minnepress (`e2e-mem/profile.spec.ts`); heap-sammenligning per
+objekttype (`heapdiff.spec.ts`); kontrollmåling uten appen (`browser-baseline.spec.ts`).
+
+| Måling | Resultat |
+|---|---|
+| 12 runder gjennom alle editorene | Sideprosessen +15 MB/runde (138 → 315 MB). **PartitionAlloc** +12,4 MB/runde (25 → 161), Blink GC +1,6, V8 ≈ flat (19 → 22,5), malloc flat (≈ 55), Skia flat, diskarderbart svinger (buffer) |
+| 60 s i ro / kritisk minnepress | PartitionAlloc uendret (161 → 161) ⇒ **ikke buffer**. GPU-prosessen 142 → 5 MB etter ro ⇒ **forsinket frigjøring**, ikke lekkasje |
+| Per verktøy (6 runder) | Thumbnail +6,2 MB/runde, Photo +5,1, Motion +4,4, Loop +3,0, Isolate 0 |
+| Thumbnail delt opp | Bare åpne: 0. Malbiblioteket: +0,1. **Mal + bilde: +4,0 MB/runde** i `allocated_objects`; med et 16× mindre bilde +1,0 MB ⇒ følger bildet. Uendret med AI blokkert og med gjenbrukt fil |
+| Ny innlasting av siden | `allocated_objects` 22 → 2,9 MB ⇒ minnet er **knyttet til dokumentet** (frigjøres ved innlasting) |
+| Heap-sammenligning runde 1 → 4 | Ingen økning i Blob/File/Image/Canvas-objekter; < 1 MB endring (kompilert kode) ⇒ ikke nådd fra JavaScript |
+| Nettleseren alene (samme vei: IndexedDB → blob: → Image → lerret, 6 ganger) | +0,3 MB/runde ⇒ nettleserens egen buffer forklarer ikke 4 MB |
+
+**Rettet:** Photos effektbuffer (`shared/fx/fx.ts`) var bare begrenset av antall (200 lerreter, ≈ 3,7 MB hver) og ble aldri
+tømt – nå et minnebudsjett på 48 MB (eldste ut, lerretet frigjøres straks) og `clearFxCache()` når Photo lukkes. Thumbnails
+malskisser (blob:-adresser) ble ikke frigjort når verktøyet ble lukket – nå frigjort i `dispose()`. Photos store
+mellomlagre frigjøres etter eksport og ved «Bytt bilde» (se hvitt bilde).
+
+**Gjenstår (dokumentert, ikke løst):** ≈ 4 MB per innsatt bilde i Thumbnail (og tilsvarende i Photo/Motion) blir liggende i
+nettleserens innebygde minne til siden lastes på nytt. Det er ikke nådd fra JavaScript, frigjøres ikke av søppeltømming
+eller minnepress, og nettleserens egen bildevei gir det ikke. Innebygd prøvetaking med kallstakker
+(`Memory.startSampling`) er ikke tilgjengelig i denne Chromium-bygget (0 prøver). Neste steg: Chrome med
+`--memlog` / chrome://memory-internals for kallstakker. Praktisk betydning: ≈ 4 MB per bilde som legges inn i løpet av en
+økt; en ny innlasting nullstiller. Photo målt etter rettingen av effektbufferen: fortsatt +3,6 MB/runde (effektene var ikke i bruk i
+steget). Felles for Photo, Thumbnail og Motion (men ikke Isolate, 0 MB): bildet registreres i «Dine medier» (sjekksum,
+miniatyr, IndexedDB) – neste spor å følge.
+
+### Innlogging (verifisert mot dev, `e2e-dev/session-dev.spec.ts`)
+| Punkt | Faktisk |
+|---|---|
+| Tilgangstoken (JWT) | Utstedes for 60 min (`exp − iat` = 3600 s), fornyes automatisk før utløp; et utløpt token fornyes ved neste lasting og brukeren forblir innlogget |
+| Refresh-token | Roteres ved hver fornyelse (nytt token hver gang). Et brukt token godtas fortsatt etter 11 s (gjenbruksvinduet på dev er lengre enn Supabases standard 10 s), men **avvises etter 71 s** |
+| Lagring | Økten i `localStorage` (`ch.auth`); informasjonskapselen `ch_at` (tilgangstokenet for serversperren): 60 min, `SameSite=Lax`, `Secure` på https, ikke HttpOnly (skrives av appen) |
+| Utlogging | Økten fjernes lokalt, `ch_at` slettes, og både siste og første refresh-token avvises av Supabase (400) |
+| Sikkerhetsoverskrifter (prod) | Streng CSP (`script-src 'self'` + hasher, ingen `unsafe-inline` for skript), HSTS (1 år), `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy` |
+| Levetid | Ingen fast grense – økten varer til utlogging (eiers valg: ingen tvungen innlogging etter 30 dager) |
+
+Vurdering: løsningen er sikker for formålet. Ingen endring gjort. Eneste mulige skjerping er å sette gjenbruksvinduet for
+refresh-tokener til standard 10 s i Supabase (gratis innstilling) – ikke nødvendig, ikke gjort. Produksjonens
+innstillinger er ikke målt direkte (krever innlogging i prod).
+
+### Hvitt bilde ved «Bytt bilde»
+Reproduksjonstester (`e2e/photo-white-image.spec.ts`), iOS-grensen etterlignet (16,7 M piksler per lerret): 12 MP,
+48 MP og 108 MP – forhåndsvisning og eksport viser bildet; tre bytter etter hverandre (48 → 12 → 48 MP) viser hvert bilde.
+Alle består i Chrome **og WebKit** (Safari-motoren). Ny årsak funnet og rettet: iOS har også en grense for **samlet**
+lerretsminne (≈ 256–384 MB); Photo holdt opptil tre lerreter i eksportstørrelse per bilde, også for bilder som var byttet
+ut. Nå frigjøres store mellomlagre etter eksport og ved «Bytt bilde»: levende lerretsminne etter to 48 MP-eksporter og tre
+bytter **110 → 7 MB** (test). **Ikke bekreftet på ekte iPhone** – står som åpen til det er testet.
+
+**Produktfeil funnet av CI og rettet:** «Bytt bilde» to ganger raskt (først et stort, så et lite bilde) kunne ende med det
+første bildet, fordi det store ble ferdig sist og overskrev det nye. Nå vinner det siste valget for samme lag; bilder som
+legges til samtidig (f.eks. HDR), kommer fortsatt alle med. Test: «raskt Bytt bilde» feilet 2/2 uten rettingen, består
+etter.
+
+### New York – penselvinduet
+Målt bilde for bilde i originalen (2,2–4,0 s) og justert: vinduets plassering (x 0,16–0,85, y 0,18–0,77), boblenes
+størrelse og avstand (store, få, dype innhakk oppe og nede), avrundede hjørner foran, og veksten (liten klatt fra ≈ 2,0 s,
+rask vekst 2,8–3,4 s, myk stopp ≈ 3,7 s). Fortsatt redigerbart (plassering, størrelse, tid i `matte.brush`). Forskjeller
+som gjenstår: originalens første klatt er mer uregelmessig (håndtegnet), og boblene i originalen varierer mer i størrelse.
+En feil i min egen sammenligning (bildet ble tatt før videoen var ferdig dekodet) ga tidligere en tidsforskyvning på
+≈ 0,3 s som ble «rettet» feil; nå korrigert.
+
 ## Testresultater (denne revisjonen)
 
 | Kontroll | Resultat |

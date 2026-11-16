@@ -257,7 +257,7 @@ test('bildeserie: slett valgte (før det aktive, det aktive, avbryt, ZIP, lagrin
   await item(page, 1).locator('input[type="checkbox"]').check()
   page.once('dialog', (d) => void d.accept())
   await del.click()
-  expect(await names()).toEqual(['img03.png', 'img05.png', 'img06.png'])
+  await expect.poll(names, { message: 'serien er lastet etter åpning' }).toEqual(['img03.png', 'img05.png', 'img06.png'])
   await expect(pos(page)).toHaveText('Bilde 2 av 3')
   await expect(page.locator('[data-pd-batch-props]')).toContainText('img05.png')
   await expect(slider(page, 'Eksponering')).toHaveValue('0')
@@ -274,7 +274,7 @@ test('bildeserie: slett valgte (før det aktive, det aktive, avbryt, ZIP, lagrin
   await page.reload()
   await expect(page.locator('[data-project="Bildeserie"]')).toContainText('Bildeserie · 3 bilder')
   await page.locator('[data-project="Bildeserie"] button').first().click()
-  expect(await names()).toEqual(['img03.png', 'img05.png', 'img06.png'])
+  await expect.poll(names, { message: 'serien er lastet etter åpning' }).toEqual(['img03.png', 'img05.png', 'img06.png'])
   await expect(pos(page)).toHaveText('Bilde 2 av 3')
 
   // alle: tom tilstand med import

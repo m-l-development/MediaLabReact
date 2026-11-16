@@ -17,7 +17,7 @@ import { readExif, type Exif } from './engine/exif'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
 import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
-import { baseOf, cover, docFonts, histOf, hit, loadImg, mk, printPDF, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
+import { baseOf, cover, docFonts, dropCaches, histOf, hit, loadImg, mk, printPDF, releaseLarge, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { Phrase, Vars } from './texts'
 
@@ -204,6 +204,8 @@ export class PhotoController {
   private tt: ReturnType<typeof setTimeout> | undefined
   private fmtBase: FormatBase | null = null
   private savedMasks = new Map<string, string>()
+  /** Siste bildevalg per mål (lag-ID, valgt lag eller «nytt lag»), så eldre valg som blir ferdige senere, ignoreres. */
+  private addSeq = new Map<string, number>()
   private now: () => number
 
   constructor(deps: PDeps) {
@@ -1020,6 +1022,13 @@ export class PhotoController {
     // i en bildeserie blir bildet et nytt bilde i serien, ikke et lag
     if (d.batch) return this.addBatchFiles([{ blob, name }])
     const sel0 = this.s.sel // valget da bildet ble valgt; lasting og lagring tar tid
+    // det siste valget for samme mål vinner: et stort bilde som blir ferdig etter et nyere (mindre) valg, skal ikke
+    // overskrive det (før kunne «Bytt bilde» to ganger raskt ende med det første bildet)
+    // bare ved «Bytt bilde» (et bestemt lag); flere bilder som legges til samtidig, skal alle komme med
+    const target = replace ?? ''
+    const seq = (this.addSeq.get(target) ?? 0) + 1
+    this.addSeq.set(target, seq)
+    const stale = () => !!target && this.addSeq.get(target) !== seq
     if (!/^image\/(png|jpeg|webp|gif)$/.test(blob.type || '')) {
       this.flash('Bruk PNG, JPG, WebP eller GIF.')
       return
@@ -1035,8 +1044,10 @@ export class PhotoController {
       this.flash('Bildet kunne ikke leses.')
       return
     }
+    if (stale()) return
     const key = src ?? (await this.d.putImage(blob, name || 'bilde'))
     this.M.media.set(key, E)
+    if (stale()) return
     const doc = this.s.doc
     if (!doc) return
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
@@ -1048,6 +1059,8 @@ export class PhotoController {
     const ph = targetSlot(doc, { replace: rep, at: !!at, hit: at ? hit(doc, at[0], at[1]) : null, sel: this.selL(), ...(opt.logo ? { logo: true } : {}) })
     const nm = String(name || this.d.t('Bilde')).replace(/\.[a-z0-9]+$/i, '').slice(0, 40)
     if (ph && ph.type === 'image') {
+      // det forrige bildet beholdes (Angre), men mellomlagrene frigjøres
+      if (ph.src && ph.src !== key) dropCaches(this.M.media.get(ph.src))
       this.patchL(ph.id, { src: key, cz: 1, cx: 0, cy: 0, name: ph.src ? ph.name : nm, mask: null })
       this.M.masks.delete(ph.id)
       // har brukeren valgt et annet lag mens bildet ble behandlet, beholdes det valget (før forsvant f.eks. tekstfeltet)
@@ -2625,6 +2638,8 @@ export class PhotoController {
     const g = c.getContext('2d')
     if (!g) return null
     render(g, d, s, this.M, { full: true, noPh: true, transparent: x.fmt === 'png' && x.t })
+    // mellomlagrene i full oppløsning trengs ikke lenger (iOS: grensen for samlet lerretsminne)
+    releaseLarge(this.M.media)
     if (x.fmt === 'jpg') {
       const j = mk(c.width, c.height)
       const jg = j.getContext('2d')

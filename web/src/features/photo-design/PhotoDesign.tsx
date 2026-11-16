@@ -20,6 +20,7 @@ import { PhotoController, type Pt, type SharedPd } from './controller'
 import { Editor } from './Editor'
 import { PhotoCutout } from './engine/cutout'
 import { FillRunner } from '../isolate-subject/engine/fill'
+import { clearFxCache } from '../../shared/fx/fx'
 import { Home } from './Home'
 import { PdRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
@@ -151,6 +152,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         c.dispose()
         parts.cutout.dispose()
         parts.filler.dispose()
+        clearFxCache()
       },
     })
   }, [registerLifecycle, c, parts])

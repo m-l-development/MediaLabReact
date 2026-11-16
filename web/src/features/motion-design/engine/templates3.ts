@@ -146,7 +146,7 @@ export function refTemplates13({ text, colorClip, frame }: Make): RefTemplate[] 
         const title = text({ start: 0.35, dur: 3.95, text: 'NEW YORK', font: 'Anton', weight: 400, size: 300, y: 0.48, anim: 'slide' })
         return {
           clips: [ph(1, 4.3, '#8d9ba6'), ph(2, 4.5, '#c47a45', 'fade', 0.3)],
-          ov: [frame({ ph: 'Klipp 2', name: 'Klipp 2', fill: true, x: 0.5, y: 0.5, scale: 1, start: 0, dur: 4.3, anim: 'none', radius: 0, border: 0, shadow: false, shape: { fill: '#c47a45', fill2: '#24425e', ang: 90 }, matte: { text: title.id, brush: { t0: 1.65, dur: 2.2, x: 0.075, y: 0.15, w: 0.86, h: 0.6 } } })],
+          ov: [frame({ ph: 'Klipp 2', name: 'Klipp 2', fill: true, x: 0.5, y: 0.5, scale: 1, start: 0, dur: 4.3, anim: 'none', radius: 0, border: 0, shadow: false, shape: { fill: '#c47a45', fill2: '#24425e', ang: 90 }, matte: { text: title.id, brush: { t0: 1.95, dur: 2.05, x: 0.16, y: 0.18, w: 0.69, h: 0.59 } } })],
           texts: [title],
         }
       },

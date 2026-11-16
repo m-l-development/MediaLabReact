@@ -205,11 +205,54 @@ export function baseOf(E: MediaEntry, maxD: number): HTMLCanvasElement {
   E.cache.set(k, c)
   // høyst tre størrelser per bilde (visning, miniatyr, eksport); før vokste bufferen med én kopi per zoomnivå, og
   // eksportens kopi i full størrelse ble liggende resten av økten
-  for (const old of E.cache.keys()) {
+  for (const [old, oc] of E.cache) {
     if (E.cache.size <= 3) break
     E.cache.delete(old)
+    free(oc)
   }
   return c
+}
+
+/**
+ * Frigjør et lerret straks (bredde/høyde 0). Safari/iOS teller lerretsminne til lerretet er ryddet bort, og over grensen
+ * for samlet lerretsminne blir nye lerreter tomme («hvitt bilde»); en nullstilt størrelse frigjør minnet med en gang.
+ */
+function free(c: HTMLCanvasElement | undefined): void {
+  if (c && c.width * c.height > 1) {
+    c.width = 0
+    c.height = 0
+  }
+}
+
+/** Store mellomlagre (over `px` piksler) frigjøres – brukes etter eksport i full oppløsning; de lages på nytt ved behov. */
+export function releaseLarge(media: Map<string, MediaEntry>, px = 2048 * 2048): void {
+  for (const E of media.values()) {
+    for (const [k, c] of E.cache) if (c.width * c.height > px) { E.cache.delete(k); free(c) }
+    const big = (c?: HTMLCanvasElement) => !!c && c.width * c.height > px
+    if (big(E.p) || big(E.a)) {
+      const p = E.p, a = E.a
+      delete E.p
+      delete E.pk
+      delete E.a
+      delete E.ak
+      free(p)
+      if (a !== p) free(a)
+    }
+  }
+}
+
+/** Alle mellomlagre for et bilde frigjøres (bildet selv beholdes, f.eks. for Angre etter «Bytt bilde»). */
+export function dropCaches(E: MediaEntry | undefined): void {
+  if (!E) return
+  for (const c of E.cache.values()) free(c)
+  E.cache.clear()
+  const p = E.p, a = E.a
+  delete E.p
+  delete E.pk
+  delete E.a
+  delete E.ak
+  free(p)
+  if (a !== p) free(a)
 }
 
 function adjusted(E: MediaEntry, a: Adj, maxD: number): HTMLCanvasElement {

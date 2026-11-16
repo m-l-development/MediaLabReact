@@ -918,7 +918,27 @@ export function paint(q: G, W: number, H: number, fx: string, p: FxP, seed: numb
   }
 }
 
+/**
+ * Ferdig tegnede effektlag (per lag-ID). Begrenset av et minnebudsjett (eldste ut først, lerretet frigjøres straks) –
+ * før var grensen 200 lag uansett størrelse, og bufferen ble aldri tømt når verktøyet ble lukket.
+ */
 const CACHE = new Map<string, { k: string; c: HTMLCanvasElement }>()
+const BUDGET = 48 * 1048576
+let cacheBytes = 0
+const bytes = (c: HTMLCanvasElement) => c.width * c.height * 4
+function dropEntry(id: string): void {
+  const e = CACHE.get(id)
+  if (!e) return
+  CACHE.delete(id)
+  cacheBytes -= bytes(e.c)
+  e.c.width = 0
+  e.c.height = 0
+}
+/** Tømmer effektbufferen (når et verktøy lukkes). */
+export function clearFxCache(): void {
+  for (const id of [...CACHE.keys()]) dropEntry(id)
+  cacheBytes = 0
+}
 
 /** Tegner laget sentrert i origo (samme konvensjon som lagene i Photo Design). */
 export function draw(g: G, L: FxLayerLike, w: number, h: number, o: { t?: number; full?: boolean; scale?: number } = {}): void {
@@ -942,8 +962,17 @@ export function draw(g: G, L: FxLayerLike, w: number, h: number, o: { t?: number
   if (!e || e.k !== key) {
     const c = mk(W, H)
     paint(ctx(c), W, H, L.fx, p, L.seed, t)
+    dropEntry(ck)
     e = { k: key, c }
-    if (CACHE.size > 200) CACHE.clear()
+    CACHE.set(ck, e)
+    cacheBytes += bytes(c)
+    for (const id of CACHE.keys()) {
+      if (cacheBytes <= BUDGET || CACHE.size <= 1) break
+      if (id !== ck) dropEntry(id)
+    }
+  } else {
+    // sist brukt bakerst
+    CACHE.delete(ck)
     CACHE.set(ck, e)
   }
   g.drawImage(e.c, -w / 2, -h / 2, w, h)
