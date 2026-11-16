@@ -1,3 +1,4 @@
+import { fractalNoise, noiseTexture } from '../../../shared/lib/noise-texture'
 /**
  * Bildefiltre F01–F13 for bildelag (Thumbnail-maler del 3, «Bildeoverlays og filtre»; docs/maler-og-fonter.md, fase 2).
  * Et bildelag kan ha en liste med filtre i rekkefølge (øverste lag sist). Hvert filter kan slås av og på, justeres og
@@ -137,23 +138,22 @@ export const blurScale = (fs: readonly ImgFilter[]): number => (fs.some((f) => f
 
 // kornet i materialet: SVG feTurbulence (fractalNoise, baseFrequency .85, 3 oktaver), rute på 240 px
 const GRAIN_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>"
-let grain: HTMLImageElement | null = null
+let grain: CanvasImageSource | null = null
 let grainReady: Promise<void> | null = null
 
 /** Laster kornruten (én gang). Tegning før den er klar hopper over kornet; eksporten venter på den. */
 export function loadGrain(): Promise<void> {
   if (typeof Image === 'undefined') return Promise.resolve()
-  grainReady ??= new Promise<void>((res) => {
-    const im = new Image()
-    im.onload = () => { grain = im; res() }
-    im.onerror = () => res()
-    im.src = GRAIN_SVG
-  })
+  // Safari forurenser lerretet med SVG-filtre (eksporten feilet på iPhone): da lages kornet direkte (shared/lib/noise-texture)
+  grainReady ??= noiseTexture(GRAIN_SVG, 240, 240, (d) => {
+    const ch = [1, 2, 3, 4].map((k) => fractalNoise(240, 240, 0.85, 3, k * 101))
+    for (let i = 0; i < 240 * 240; i++) for (let c = 0; c < 4; c++) d.data[i * 4 + c] = Math.round(ch[c]![i]! * 255)
+  }).then((c) => { grain = c })
   return grainReady
 }
 
 /** Kornruten (null til den er lastet med `loadGrain`). Brukes også av malingen (engine/paint.ts). */
-export const grainImage = (): HTMLImageElement | null => grain
+export const grainImage = (): CanvasImageSource | null => grain
 
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 

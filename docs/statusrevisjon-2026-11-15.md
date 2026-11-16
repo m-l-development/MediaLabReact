@@ -426,3 +426,34 @@ Stier er relative til F:\ReactProjects\MediaLabReact\web (docs/ = F:\ReactProjec
 | R4-057 | 11-15 | Motion | Referanseopptak/fargeflater ikke permanent erstatning for ekte medier | motion-design templates (plassholdere) | e2e/motion-reference-templates.spec.ts («alle felt byttes med eget bilde/video») | kode+test | |
 | R4-058 | 11-15 | Motion | Music Sync: BPM/beats/intensitet/drops/tempoendringer, felles timing-motor, malprofiler, av/på, manuell overstyring | motion-design/engine (sync), controller.ts | e2e/motion-music-sync.spec.ts (sakte/rask/drop, per mal, lagring, eksport) | kode+test | Test dekker «tempoendringer» uklart; ekte musikk-variasjon begrenset til syntetiske spor |
 | R4-059 | 11-03 | QR | QR-funksjonalitet (kontrollert i revisjon) | shared/qr/qr.ts, QrFields.tsx | shared/qr/qr.test.ts; e2e/qr-codes.spec.ts (Thumbnail, Photo, Motion) | kode+test | Ikke Loop |
+
+## Oppfølging 3 – iPhone (Motion-miniatyr, fullskjerm, mobilgjennomgang)
+
+**Testgrunnlag:** ingen ekte iPhone tilgjengelig (ingen kostnader). Verifisert med Playwright **WebKit iPhone 15-emulering**
+(`playwright.iphone.config.ts`, Safari-motoren på Windows) og Chrome mobilemulering (Pixel 7). Alt nedenfor er derfor
+**IKKE VERIFISERT PÅ EKTE iPHONE** – se testplanen nederst.
+
+| Funn | Årsak | Retting | Test | Status |
+|---|---|---|---|---|
+| Motion: prosjektkortet et stort svart felt | Miniatyren ble tatt ved spillehodet (ofte et svart bilde: mange maler starter på svart, og på iPhone er videoene ikke dekodet før de spilles); prosjekter uten miniatyr fikk svart bakgrunn | Miniatyren velges blant flere tidspunkter (første med innhold), ellers miniatyren av første bilde/video; kortet viser en reserve (ikon, format, varighet) når miniatyren mangler eller er mørk – også for eldre prosjekter | `e2e/motion-mobile-iphone.spec.ts` (PC, Chrome mobil, WebKit iPhone): mal som starter på svart får miniatyr med innhold; tomt prosjekt og eldre svart miniatyr viser reserve | Implementert, emulert ✔ |
+| Motion: fullskjerm gjorde ingenting på iPhone | Safari på iPhone har ikke Fullscreen API for andre elementer enn video; `el.requestFullscreen?.()` avbrøt stille | Ekte fullskjerm der den finnes (PC, Android, iPad med webkit-prefiks); ellers «Fyll skjermen»: forhåndsvisningen over hele skjermflaten (`100dvh`, safe areas, over appens navigasjon), avspillingslinjen og «Lukk visningen». Kalles ikke fullskjerm. Esc lukker; på berøringsskjerm henter første trykk fram den skjulte linjen (uten å starte avspillingen) | Samme spec: dekker skjermen i portrett og landskap, ingenting fra appen over, lukk-knapp via trykk, editoren tilbake | Implementert, emulert ✔ |
+| Alle editorer: filtre, uskarphet, svart-hvitt, metning m.m. uten virkning på iPhone | Safari har ikke `filter` på 2D-lerret (31 bruk i Photo, Thumbnail, Motion, Isolate, effekter) – ignoreres stille | `shared/platform/canvas-filter.ts`: installeres bare der `filter` mangler; `drawImage` med filter gjøres som pikseloperasjoner (uskarphet, svart-hvitt, sepia, metning, fargetone, lysstyrke, kontrast, invertering, opasitet) i det tegnede området; `save/restore` tar filteret med. Chrome/PC uendret | Enhetstester (5); `thumbnail-filters` (svart-hvitt på personbildet) består nå i WebKit | Implementert, emulert ✔ (ikke i Web Workers – Isolates maskekanter) |
+| Photo/Thumbnail: eksport og lesing av lerretet feilet med «slitt tekst» og kornfilter | SVG-teksturer med `feTurbulence` forurenser lerretet i Safari («The operation is insecure») | `shared/lib/noise-texture.ts`: SVG-et brukes der lerretet forblir lesbart (Chrome, uendret), ellers samme type støy laget direkte på lerret | Enhetstester (3); designsamlingens mal «001» og fargetema-testen i Photo består i WebKit | Implementert, emulert ✔ |
+| Thumbnail: malforhåndsvisningene kom aldri på iPhone | IntersectionObserver meldte bare ett kort synlig i den rullbare malpopupen i WebKit | `TemplateLibrary` regner også ut synlige kort direkte (start, rulling, størrelse) | Malbibliotek-testene for Thumbnail og Motion består i WebKit | Implementert, emulert ✔ (én kategori i `thumbnail-library` feiler fortsatt i WebKit – under arbeid) |
+| Tekstfelt: iOS zoomer inn ved fokus (felt under 16 px) | iOS-adferd | `maximum-scale=1` bare på iOS (brukeren kan fortsatt knipe-zoome; Android uendret) | Enhetstest (iOS/iPadOS/Mac/Android) | Implementert, IKKE VERIFISERT (krever ekte iPhone) |
+| Dialoger og menyer kunne havne bak Safaris verktøylinje | `100vh` = høyden uten Safaris linjer | `dvh` etter hver `vh` (13 steder) og i Loops innebygde stiler; Loops fullskjermreserve bruker `dvh` | Regresjon | Implementert, IKKE VERIFISERT på ekte enhet |
+| Snarveimenyen: «Fullskjerm» gjorde ingenting på iPhone | som over | Valget vises bare der nettleseren har fullskjerm | – | Implementert |
+
+**WebKit iPhone-emulering, hele mobilsuiten:** før 69 bestått / 43 feilet → etter 76 / 23 (deretter flere rettet). Gjenstående
+feil i WebKit er under arbeid i neste runde: mange er tidsavbrudd (WebKit på Windows er tregere), fingerdrag av lag i
+Photo/Thumbnail (emulert berøring), fargetester etter temabytte, Loop-tester. **Skilles fra appfeil i neste runde.**
+
+### Testplan for deg på ekte iPhone (Safari, ca. 10 min)
+1. Motion → åpne et prosjekt → «Lagre» → tilbake til prosjektene: kortet viser et bilde eller en reserve (ikke svart).
+2. Motion → «Fyll skjermen» (knappen ved tidskoden): videoen fyller skjermen i både stående og liggende; trykk én gang
+   viser avspillingslinjen; «Lukk visningen» tar deg tilbake til editoren.
+3. Thumbnail → «Ny mal»: forhåndsvisningene kommer når du ruller; velg en mal med filter (f.eks. svart-hvitt) → bildet
+   endrer seg → Eksporter → bildet lastes ned.
+4. Photo → designmal «001» (søk «001») → Eksporter: bildet lastes ned med slitt tekst.
+5. Trykk i et lite tallfelt (f.eks. størrelse): siden skal ikke zoome inn.
+6. Photo → «Bytt bilde» med et bilde fra kameraet (gjerne 48 MP): bildet vises, og eksporten har det.

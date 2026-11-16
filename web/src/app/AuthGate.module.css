@@ -4,6 +4,7 @@
   align-content: center;
   gap: var(--space-3);
   min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-5);
   text-align: center;
 }

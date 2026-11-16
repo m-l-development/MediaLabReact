@@ -4,7 +4,7 @@
   --bg: #050505; --panel: #111111; --panel2: #181818; --line: rgba(255,255,255,.10); --line2: rgba(255,255,255,.18);
   --text: #f3f1ec; --muted: #9d998f; --accent: #9b1c3c; --accent-text: #ffb4c4; --ok: #2a9d8f; --ok-text: #bdf0e7;
   --warn: #c98a1b; --warn-text: #f5d38f; --inv: #f3f1ec; --inv-text: #0b0b0b; --shadow: 0 18px 50px rgba(0,0,0,.45);
-  min-height: 100vh; background: var(--bg); color: var(--text);
+  min-height: 100vh; min-height: 100dvh; background: var(--bg); color: var(--text);
   font: 500 14px/1.45 Archivo, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 :root[data-theme="light"] [data-ml-theme="admin"] {
@@ -25,7 +25,7 @@
 [data-ml-theme="admin"] .ch-env { font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 3px 8px; border-radius: 999px; background: #f5b301; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
 [data-ml-theme="admin"] .ch-top .ch-spacer { flex: 1; }
 [data-ml-theme="admin"] .ch-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
-[data-ml-theme="admin"] .ch-nav { position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px); overflow: auto; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; border-right: 1px solid var(--line); }
+[data-ml-theme="admin"] .ch-nav { position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px); height: calc(100dvh - 56px); overflow: auto; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; border-right: 1px solid var(--line); }
 [data-ml-theme="admin"] .ch-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 600; }
 [data-ml-theme="admin"] .ch-nav a:hover { background: var(--panel2); color: var(--text); }
 [data-ml-theme="admin"] .ch-nav a.on { background: var(--panel); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
@@ -99,7 +99,7 @@
 [data-ml-theme="admin"] .ch-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.55); display: flex; justify-content: flex-end; }
 [data-ml-theme="admin"] .ch-overlay.center { justify-content: center; align-items: center; padding: 16px; }
 [data-ml-theme="admin"] .ch-drawer { width: min(520px, 100%); height: 100%; overflow: auto; background: var(--bg); border-left: 1px solid var(--line); box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-[data-ml-theme="admin"] .ch-dialog { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+[data-ml-theme="admin"] .ch-dialog { width: min(520px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 [data-ml-theme="admin"] .ch-drawer header, [data-ml-theme="admin"] .ch-dialog header { display: flex; align-items: flex-start; gap: 12px; }
 [data-ml-theme="admin"] .ch-drawer header h2, [data-ml-theme="admin"] .ch-dialog header h2 { margin: 0; font-size: 18px; font-weight: 800; }
 [data-ml-theme="admin"] .ch-x { margin-left: auto; width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--line2); background: transparent; cursor: pointer; font-size: 16px; }

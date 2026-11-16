@@ -30,6 +30,7 @@
   z-index: 2147482001;
   width: min(320px, calc(100vw - 24px));
   max-height: calc(100vh - 80px);
+  max-height: calc(100dvh - 80px);
   overflow: auto;
   display: flex;
   flex-direction: column;

@@ -14,10 +14,12 @@
   /* større som standard; kan dras større eller mindre i hjørnet nede til høyre */
   width: min(760px, calc(100vw - 32px));
   height: min(820px, calc(100vh - 32px));
+  height: min(820px, calc(100dvh - 32px));
   min-width: min(420px, calc(100vw - 32px));
   min-height: 320px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   overflow: hidden;
   resize: both;
   padding: 18px;

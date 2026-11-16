@@ -9,7 +9,7 @@ import { importFiles, leftTab } from './motion-helpers'
  * bilde1-5.jpg og video1.webm). For hver mal eksporteres hele videoen to ganger: (A) slik malen er (plassholdere), og
  * (B) med egne bilder/video, egen musikk og Music Sync. MP4-ene sammenlignes etterpå bilde for bilde med originalene.
  */
-test.use({ channel: 'chrome' })
+test.use(process.env.ML_WEBKIT ? {} : { channel: 'chrome' })
 const QC = process.env.ML_REF_QC ?? ''
 const TPL: [string, 'wide' | 'story'][] = [
   ['theend', 'wide'], ['yearroll', 'wide'], ['yearmontage', 'wide'], ['october', 'wide'], ['travelvlog', 'wide'], ['daycount', 'wide'], ['newyork', 'wide'],

@@ -23,7 +23,7 @@ async function greenShare(page: Page, file?: string): Promise<number> {
       const cv = document.querySelector('[data-ts-canvas]') as HTMLCanvasElement
       src = cv; w = cv.width; h = cv.height
     }
-    const c = new OffscreenCanvas(w, h)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(src, 0, 0)
     const d = g.getImageData(0, 0, w, h).data

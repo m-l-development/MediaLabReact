@@ -17,8 +17,8 @@ async function diffToExport(page: Page, file: string): Promise<number> {
     const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
     const W = 240
     const H = Math.round((W * bmp.height) / bmp.width)
-    const a = new OffscreenCanvas(W, H).getContext('2d') as OffscreenCanvasRenderingContext2D
-    const b = new OffscreenCanvas(W, H).getContext('2d') as OffscreenCanvasRenderingContext2D
+    const a = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), { width: W, height: H })).getContext('2d') as OffscreenCanvasRenderingContext2D
+    const b = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), { width: W, height: H })).getContext('2d') as OffscreenCanvasRenderingContext2D
     a.drawImage(bmp, 0, 0, W, H)
     b.drawImage(cv, 0, 0, W, H)
     const A = a.getImageData(0, 0, W, H).data
@@ -75,7 +75,7 @@ test('Bagnard (uten ÆØÅ): varsel i velgeren også i et lagret prosjekt, og Æ
   await exportPng(page, file)
   const ink = await page.evaluate(async (b64) => {
     const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
-    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
     const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
     g.drawImage(bmp, 0, 0)
     const d = g.getImageData(bmp.width * 0.3, bmp.height * 0.4, bmp.width * 0.4, bmp.height * 0.2).data

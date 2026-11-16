@@ -21,7 +21,7 @@ const expected = (page: Page, url: string) => page.evaluate(async (u) => {
 /** Leser modulene i et PNG-bilde (base64) innenfor (x, y, størrelse) og sammenligner med radene. */
 const matches = (page: Page, b64: string, rows: string[], box: [number, number, number]) => page.evaluate(async ({ b64, rows, box }) => {
   const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
-  const c = new OffscreenCanvas(bmp.width, bmp.height)
+  const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height }))
   const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
   g.drawImage(bmp, 0, 0)
   const [x, y, s] = box

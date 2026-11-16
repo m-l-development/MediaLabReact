@@ -1,5 +1,6 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
+import { useEffect, useState } from 'react'
 import type { MotionController, MState } from './controller'
 import { fmtD, FORMATS, TEMPLATES, TPL_CAT, TPL_CATS } from './engine/model'
 import { TemplateLibrary } from '../../shared/templates/TemplateLibrary'
@@ -8,6 +9,53 @@ import type { Tx } from './texts'
 import s from './MotionDesign.module.css'
 
 const css = (u: string) => (u ? `url("${u.replace(/["\\\n]/g, '')}")` : 'none')
+
+/** Er miniatyren (data-URL) nesten helt mørk/ensfarget? Eldre prosjekter kan ha en svart miniatyr (f.eks. lagret på iPhone). */
+const darkMemo = new Map<string, boolean>()
+function useDarkThumb(u: string): boolean | null {
+  const [v, setV] = useState<{ u: string; dark: boolean } | null>(() => (darkMemo.has(u) ? { u, dark: darkMemo.get(u) as boolean } : null))
+  useEffect(() => {
+    if (!u || darkMemo.has(u)) return
+    let live = true
+    const im = new Image()
+    im.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = 24
+      c.height = 24
+      const g = c.getContext('2d', { willReadFrequently: true })
+      let dark = false
+      if (g) {
+        g.drawImage(im, 0, 0, 24, 24)
+        const d = g.getImageData(0, 0, 24, 24).data
+        let sum = 0, sum2 = 0
+        for (let i = 0; i < d.length; i += 4) { const l = 0.2126 * (d[i] ?? 0) + 0.7152 * (d[i + 1] ?? 0) + 0.0722 * (d[i + 2] ?? 0); sum += l; sum2 += l * l }
+        const n = d.length / 4, mean = sum / n
+        dark = !(mean > 28 || Math.sqrt(Math.max(0, sum2 / n - mean * mean)) > 10)
+      }
+      darkMemo.set(u, dark)
+      if (live) setV({ u, dark })
+    }
+    im.onerror = () => { darkMemo.set(u, true); if (live) setV({ u, dark: true }) }
+    im.src = u
+    return () => { live = false }
+  }, [u])
+  if (!u) return true
+  return v && v.u === u ? v.dark : (darkMemo.get(u) ?? null)
+}
+
+/** Prosjektkortets bilde: miniatyren, eller en tydelig reserve (format og varighet) når den mangler eller er mørk. */
+function CardThumb({ thumb, label, ratio, dur, onOpen }: { thumb: string; label: string; ratio: string; dur: string; onOpen: () => void }) {
+  const dark = useDarkThumb(thumb)
+  if (dark) {
+    return (
+      <button type="button" className={`${s.cardThumb} ${s.cardFallback}`} aria-label={label} data-thumb="fallback" onClick={onOpen}>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M10 9.5v5l4.5-2.5z" fill="currentColor" stroke="none" /></svg>
+        <span>{ratio} · {dur}</span>
+      </button>
+    )
+  }
+  return <button type="button" className={s.cardThumb} aria-label={label} data-thumb={dark === false ? 'image' : 'loading'} style={{ backgroundImage: css(thumb) }} onClick={onOpen} />
+}
 
 export function Home({ c, S, tx, folders, onOpenFile, onGrantWaiting }: { c: MotionController; S: MState; tx: Tx; folders: boolean; onOpenFile: () => void; onGrantWaiting: () => void }) {
   const lang = tx('nb-NO')
@@ -92,7 +140,7 @@ export function Home({ c, S, tx, folders, onOpenFile, onGrantWaiting }: { c: Mot
               const meta = `${f ? f.ratio : `${p.w}×${p.h}`} · ${fmtD(p.dur)} · ${new Date(p.updated).toLocaleDateString(lang, { day: 'numeric', month: 'short' })}`
               return (
                 <div key={p.id} className={s.card} data-project={p.id}>
-                  <button type="button" className={s.cardThumb} aria-label={tx('Åpne prosjekt')} style={{ backgroundImage: css(p.thumb) }} onClick={() => void c.openEntry(p)} />
+                  <CardThumb thumb={p.thumb} label={tx('Åpne prosjekt')} ratio={f ? f.ratio : `${p.w}×${p.h}`} dur={fmtD(p.dur)} onOpen={() => void c.openEntry(p)} />
                   <div className={s.cardRow}>
                     <div className={s.cardText}>
                       <span className={s.cardName}>{p.name}</span>

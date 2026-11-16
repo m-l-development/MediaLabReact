@@ -25,7 +25,7 @@ function measure(g: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 }
 const MEASURE = measure.toString()
 const sampleCanvas = new Function(`const measure = ${MEASURE}; const c = document.querySelector('[data-ts-canvas]'); return measure(c.getContext('2d'), c.width)`) as () => number[]
-const samplePng = new Function('b64', `const measure = ${MEASURE}; return (async () => { const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob()); const c = new OffscreenCanvas(bmp.width, bmp.height); const g = c.getContext('2d'); g.drawImage(bmp, 0, 0); return measure(g, bmp.width) })()`) as (b64: string) => Promise<number[]>
+const samplePng = new Function('b64', `const measure = ${MEASURE}; return (async () => { const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob()); const c = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(bmp.width, bmp.height) : Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height })); const g = c.getContext('2d'); g.drawImage(bmp, 0, 0); return measure(g, bmp.width) })()`) as (b64: string) => Promise<number[]>
 
 async function newFrom(page: Page, cat: string, code: string) {
   await page.setViewportSize({ width: 1440, height: 900 })

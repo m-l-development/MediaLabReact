@@ -31,8 +31,8 @@ async function diffToExport(page: Page, file: string): Promise<number> {
     const cv = document.querySelector(sel) as HTMLCanvasElement
     const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob())
     const W = 240, H = Math.round((W * bmp.height) / bmp.width)
-    const a = new OffscreenCanvas(W, H).getContext('2d') as OffscreenCanvasRenderingContext2D
-    const b = new OffscreenCanvas(W, H).getContext('2d') as OffscreenCanvasRenderingContext2D
+    const a = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), { width: W, height: H })).getContext('2d') as OffscreenCanvasRenderingContext2D
+    const b = (typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(W, H) : Object.assign(document.createElement('canvas'), { width: W, height: H })).getContext('2d') as OffscreenCanvasRenderingContext2D
     a.drawImage(bmp, 0, 0, W, H)
     b.drawImage(cv, 0, 0, W, H)
     const A = a.getImageData(0, 0, W, H).data, B = b.getImageData(0, 0, W, H).data
