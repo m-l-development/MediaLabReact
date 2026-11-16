@@ -101,7 +101,13 @@ test.describe('mobil: Motion-tidslinjen', () => {
     await clip.tap()
     await expect(clip).toHaveAttribute('data-sel', '')
     expect(await clip.evaluate((e) => (e as HTMLElement).style.left)).toBe(left0) // samme tid i tidslinjen
-    // knip: to fingre fra hverandre over tidslinjen
+    // knip: to fingre fra hverandre over tidslinjen. Tidslinjens knip bruker berøringshendelser (touchstart/-move), som
+    // WebKit-emuleringen på Windows ikke kan lage (TouchEvent: «Illegal constructor») – knipet testes i Chromium med ekte
+    // berøring via CDP; på ekte iPhone er det IKKE VERIFISERT (se statusdokumentet).
+    if (page.context().browser()?.browserType().name() === 'webkit') {
+      test.info().annotations.push({ type: 'begrensning', description: 'knip ikke emulerbart i WebKit (TouchEvent mangler)' })
+      return
+    }
     const zoom = page.locator('[data-md-zoom]')
     const z0 = Number(await zoom.inputValue())
     const tl = page.locator('[data-row="video"]')

@@ -490,6 +490,31 @@
   flex-wrap: wrap;
 }
 
+/* Smal og lav skjerm (f.eks. iPhone i høydeformat, avansert modus): tidslinjens verktøy på én rullbar linje – ellers
+   brøt knappene over flere linjer, fylte hele tidslinjen og sporene fikk 1 px høyde (klippene kunne ikke trykkes). */
+.editorNarrow .tlBar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.editorNarrow .tlBar::-webkit-scrollbar {
+  display: none;
+}
+
+.editorNarrow .tlBar > *,
+.editorNarrow .tlTools > * {
+  flex: 0 0 auto;
+}
+
+.editorNarrow .tlTools {
+  flex-wrap: nowrap;
+}
+
+.editorNarrow .tlBody {
+  min-height: 96px;
+}
+
 .bar {
   display: flex;
   flex: 0 0 auto;

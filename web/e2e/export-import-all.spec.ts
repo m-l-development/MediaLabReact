@@ -127,8 +127,14 @@ test('Motion Design: medieimport, prosjektfil lagre/åpne og MP4-eksport', async
     await page.waitForTimeout(800)
   }
   await press(page, page.getByRole('button', { name: 'Eksporter', exact: true }).first())
-  const v = await download(page, page.getByRole('button', { name: 'Eksporter MP4' }), 240000)
-  expect(isMp4(v.head), v.name).toBe(true)
+  // uten både WebCodecs og MediaRecorder (Playwright WebKit på Windows; ekte Safari har begge) sier Motion det tydelig
+  if (await page.evaluate(() => typeof (window as unknown as { VideoEncoder?: unknown }).VideoEncoder === 'undefined' && typeof MediaRecorder === 'undefined')) {
+    await press(page, page.getByRole('button', { name: 'Eksporter MP4' }))
+    await expect(page.getByText(/Nettleseren kan ikke eksportere video/).first()).toBeVisible({ timeout: 20_000 })
+  } else {
+    const v = await download(page, page.getByRole('button', { name: 'Eksporter MP4' }), 240000)
+    expect(isMp4(v.head), v.name).toBe(true)
+  }
   expect(errors).toEqual([])
 })
 

@@ -258,6 +258,8 @@ test('forhåndsvisningen viser den ekte siden i riktig app og visning, uten å k
     if (k === cases[0]) await expect(page.locator('[data-test-host] [data-fb-live="loading"] [data-fb-loading]')).toBeVisible()
     if ('frames' in k) expect(await page.locator('[data-test-host] iframe').count(), k.name).toBe(k.frames)
     await expect(box, k.name).toHaveAttribute('data-fb-live', 'ready', { timeout: 40_000 })
+    // rammen skaleres etter boksens bredde (ResizeObserver – kan komme et øyeblikk etter «ready»)
+    await expect.poll(() => box.evaluate((el) => Math.abs((el.querySelector('iframe') as HTMLIFrameElement).getBoundingClientRect().width - el.clientWidth)), k.name).toBeLessThan(1)
     const r = await box.evaluate((el, want) => {
       const f = el.querySelector('iframe') as HTMLIFrameElement, d = f.contentDocument as Document
       const b = el.getBoundingClientRect(), hl = (el.querySelector('[data-fb-hl]') as HTMLElement).getBoundingClientRect(), fr = f.getBoundingClientRect()

@@ -74,7 +74,9 @@ test('Fyll med omgivelser: teksten er borte og stripene fortsetter; Bruk, Angre 
   page.on('pageerror', (e) => errors.push(e.message))
   await markText(page, 'Fyll med omgivelser')
   await expect(page.locator('[data-effect="fill"]')).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByText(/AI-modellen kunne ikke lastes/)).toBeVisible()
+  // Safari/iPhone: AI-utfylling prøves ikke (for lite minne) – egen melding om det; ellers: modellen kunne ikke lastes (test uten nett)
+  const safari = page.context().browser()?.browserType().name() === 'webkit'
+  await expect(page.getByText(safari ? /AI-modellen krever mer minne enn denne nettleseren tillater/ : /AI-modellen kunne ikke lastes/)).toBeVisible()
   const filled = check(await exportPng(page, info.outputPath('fylt.png')))
   expect(filled.yellow).toBe(0)
   expect(filled.follows).toBeGreaterThan(0.8)
