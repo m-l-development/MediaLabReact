@@ -62,6 +62,16 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    (kopi utenfor repoet: `F:\ML-testdata\Vacation-1080p30.mp4`, 1,9 MB; originalen ligger i Claude-opplastingene):
    original, 30 s, 60 s, kortere, rolig/rask/drops-musikk, bytte musikk og klipp etter synk, eksport med riktig lyd og bilde
    gjennom HELE videoen; ingen klipp utenfor varigheten, aldri urimelig lang eksport. Gratis, lokale analysemetoder.
+   **VIKTIG TILLEGG (eier):** `Vacation-1080p30.mp4` er et NEGATIVT eksempel – dagens resultat er ikke godkjent. Gå
+   gjennom hele videoen bilde for bilde: klippetiming, overganger, tekst, animasjoner og musikkens rytme; finn konkret hva
+   som gjør det dårlig; sammenlign klippbyttene med faktiske slag, oppbygging og høydepunkter; finn hvorfor Music Sync
+   ikke gir naturlig visuell rytme; kontroller om tidslinjen og malens animasjoner ødelegges eller feilfordeles. Ikke bare
+   «flytt til nærmeste slag» – gjennomtenkt visuell dramaturgi, naturlig variasjon i klipplengder, presise overganger,
+   sammenheng mellom musikk og bilde. Bruk videoen som regresjonstest: eksporter en ny versjon med samme materiale og
+   musikk og sammenlign direkte med originalen; kontroller forlengelse til 30 og 60 s uten at rytme, animasjoner eller
+   design bryter sammen. Ikke ferdig før hele den nye eksporten er sett gjennom og konkrete forbedringer er dokumentert.
+   Mål: publiserbart på Instagram/TikTok, ikke bare en teknisk eksport. (Skjermbildet fra eieren: Vacation, 18,6 s,
+   94 BPM, «Typografisk» bevegelse, mange svært korte fargeflate-klipp på 0,0–0,8 s i midten, markører på hvert slag.)
 
 ### Faste regler
 Ingen betalte tjenester eller kostnader. Ikke reduser kvalitet/funksjonalitet (heller ikke PC). Ikke slett tester eller
