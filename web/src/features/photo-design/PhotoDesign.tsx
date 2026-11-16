@@ -24,6 +24,7 @@ import { clearFxCache } from '../../shared/fx/fx'
 import { Home } from './Home'
 import { PdRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
+import { PanoDialog } from './PanoDialog'
 import { backupPhoto, importLegacyPhoto, restorePhoto } from './transfer'
 import { useLang, useT } from '../../shared/i18n/i18n'
 import { toolTitleKey } from '../../shared/i18n/messages'
@@ -418,6 +419,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       )}
       {S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} pickFile={pickFile} onExport={(k, to) => void onExport(k, to)} sendTo={sendTo}
         onZip={(z) => download(z, c.fname().replace(/\.\w+$/, '') + '.zip')} />}
+      {S.pano && <PanoDialog c={c} S={S} tx={tx} />}
       {picker?.kind === 'media' && (
         <AssetPicker kinds={['image']} onClose={() => c.closePicker()} onPick={(a) => {
           c.closePicker()

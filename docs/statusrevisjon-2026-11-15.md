@@ -7,7 +7,7 @@ Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer o
 **Siste kjente produksjonscommit:** `239df9c` (merge av `ad1890b`, minnerettingen; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 5 Panorama** (punkt 1–4 er lukket eller dokumentert som IKKE VERIFISERT på ekte iPhone).
+**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 6 Objektivkorreksjon**, deretter punkt 7 (Motion).
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
@@ -42,10 +42,23 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
      verifisert i WebKit (kanten blir myk). Tidligere påstand om at det ikke virket i Isolate var feil.
 4. **New York:** fingerstrøk-modellen er committet (Motion-referansetestene består). Gjenstår: eiers visuelle godkjenning; eventuelt finjustere
    strøkenes form ytterligere mot originalen (`scratchpad`-verktøy: `qc/nyc.cjs`, `grab.cjs aee45477`).
-5. **Panorama** – GODKJENT av eier, startes når 1–4 er lukket eller dokumentert som ikke verifiserbare. Ekte panorama
-   (sammenføyning av flere bilder: trekkpunkter, homografi, sylinder-/sfærisk projeksjon, sømløs blending), redigerbart,
-   høy kvalitet, testet (sammenføyning, overganger, perspektiv, eksport). Gratis teknologi (egen kode eller åpen kildekode
-   uten kostnad). Sannsynlig plass: Photo Design (avansert framkalling / ny dialog).
+5. **Panorama – FERDIG (2026-11-16), ikke verifisert på ekte iPhone.** Photo Design: «Panorama»-kort på startsiden,
+   «Panorama …» under Legg til → Medier, «Lag panorama av valgte bilder» ved flere valgte bilder, «Rediger panorama …» på
+   et panoramalag. Motor (egen kode, gratis, `engine/pano/`, i egen arbeidstråd): Harris-hjørner + BRIEF (tåler ulik
+   eksponering), gjensidig samsvar med forholdstest, kamerarotasjon per par (RANSAC, Horn), synsvinkel fra EXIF (35 mm)
+   eller beregnet (søk + finjustering mot alle innliere), spenntre + global finjustering, automatisk horisont,
+   eksponeringsutjevning per kanal (normalisert mot medianbildet), projeksjon sylinder/kule/plan, sømblending (myk ↔ skarp),
+   beskjæring automatisk (største rektangel uten tomme kanter) / hele (gjennomsiktig) / egen (dra ramme og hjørner).
+   Manuelt: hele panoramaet (rotasjon, vipp, midtpunkt, brennvidde) og hvert bilde (sideveis, opp/ned, rotasjon, dra i
+   forhåndsvisningen, ta ut/inn). Full oppløsning (PC ≤ 64 MP, iPhone ≤ 16 MP), JPEG 95 % (PNG ved tomme kanter);
+   «Bruk» = nytt prosjekt i panoramaets størrelse eller nytt/byttet lag med oppskriften (`pano` på laget); «Last ned».
+   Bilder som ikke overlapper, utelates med beskjed. Tester: `engine/pano/pano.test.ts` (ekte kameravisninger med kjent
+   fasit: 4 bilder i tilfeldig rekkefølge – synsvinkel ±2°, gir ±0,4°, feil mot virkeligheten < 14/255; 20 % overlapp med
+   vipp/rull – rotasjoner ±0,5°; mørkt/lyst bilde med gamma, støy, vignettering – eksponering utjevnet; fremmed bilde
+   utelates; plan/kule/finjustering/EXIF); `e2e/photo-panorama.spec.ts` (ekte fotografi som scene: hele flyten
+   legg til → juster → beskjær → Bruk → Rediger → Bruk; fem bilder med 0,35× og 1,45× eksponering og støy, nedlasting i
+   full oppløsning kontrollert) – PC, mobil og WebKit/iPhone-emulering. Kjent grense: overlapp som bare er ensfarget flate
+   (hvit vegg) eller helt utbrent kan ikke plasseres – appen sier fra.
 6. **Objektivkorreksjon** – GODKJENT, etter Panorama (fortegning tønne/pute, vignettering, kromatisk aberrasjon),
    testet.
 7. **Motion: Music Sync + forlenge/forkorte maler** – GODKJENT (eiers melding 2026-11-16), etter 5–6. Bygges inn i den

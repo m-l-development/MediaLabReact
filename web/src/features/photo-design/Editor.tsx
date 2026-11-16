@@ -434,6 +434,7 @@ function AddPanel({ c, S, tx, pickFile }: EditorProps) {
       {group('Medier', [
         ['Dine medier', () => c.openPicker('media'), 'M4 7h6l2 2h8v10H4z', undefined, 'Bilder du har lagret i Media Lab'],
         ['Fellesmappe', () => c.openPicker('cloud', {}, 'ressurser'), 'M3 7h7l2 2h9v10H3zM12 13h6', undefined, 'Felles ressurser for menigheten'],
+        ['Panorama …', () => c.openPano(), 'M2 7c7 2 13 2 20 0v10c-7-2-13-2-20 0zM6 15l4-4 3 3 2-2 4 4', undefined, 'Sett sammen flere bilder til ett panorama'],
       ])}
     </>
   )

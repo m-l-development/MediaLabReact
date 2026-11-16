@@ -2912,3 +2912,103 @@ button:disabled {
   gap: 10px;
   margin-top: 4px;
 }
+
+/* Panorama-dialogen: forhåndsvisning + kontroller (PC side om side, mobil over hverandre) */
+.panoBody {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 16px;
+  min-height: 0;
+}
+.panoView {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+.panoStage {
+  position: relative;
+  align-self: center;
+  max-width: 100%;
+  max-height: 100%;
+  background: repeating-conic-gradient(#2c2c2c 0 25%, #1c1c1c 0 50%) 50% / 16px 16px;
+  touch-action: none;
+}
+.panoStage canvas {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 260px);
+  object-fit: contain;
+}
+.panoStage svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+.panoSide {
+  display: flex;
+  flex: 0 0 320px;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.panoList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.panoItem,
+.panoItemOn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid #2b2b2b;
+  border-radius: 8px;
+}
+.panoItemOn {
+  border-color: #f5b82c;
+}
+.panoName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+@media (max-width: 760px) {
+  .panoBody {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .panoView {
+    flex: 0 0 auto;
+  }
+  .panoStage canvas {
+    max-height: 45dvh;
+  }
+  .panoSide {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+}
+
+/* panoramadialogen dekker helt (startsiden skal ikke skinne gjennom på mobil) */
+.panoBack {
+  background: #080808;
+}
