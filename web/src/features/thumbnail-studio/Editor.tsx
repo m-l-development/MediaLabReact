@@ -655,7 +655,7 @@ function PropsPanel({ c, S, tx, images }: EditorProps) {
         <span>{tx(title)}</span>
         {(sl || isGroup) && <button type="button" className={s.btnSmall} onClick={() => c.ui({ sel: null, multi: [], barSel: null })}>{tx('Ferdig')}</button>}
       </div>
-      <Controls ctrls={ctrls} c={c} tx={tx} profileColors={c.profile().colors} imageUrl={(src) => images.url(src)} />
+      <Controls ctrls={ctrls} c={c} tx={tx} profileColors={c.profile().colors} imageUrl={(src) => images.url(src)} imagePic={(src) => images.get(src)?.img ?? null} />
     </aside>
   )
 }

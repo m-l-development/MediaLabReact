@@ -1,11 +1,23 @@
+import { blobBitmap, closePic, type Pic } from '../../../shared/lib/blob-image'
 import { ASSETS, srcsOf, type Doc } from './model'
 
 /** Henter en kilde (`m:`, `ch:`, `db:` …) som Blob. `null` = finnes ikke eller ingen tilgang. */
 export type SrcResolver = (src: string) => Promise<Blob | null>
 
-export interface LoadedImage { img: HTMLImageElement; url: string }
+export interface LoadedImage { img: Pic; url: string }
 
-interface Entry { p: Promise<LoadedImage | null>; img?: HTMLImageElement; url?: string; own?: string; ok?: boolean; fail?: boolean }
+interface Entry { p: Promise<LoadedImage | null>; img?: Pic; url?: string; own?: string; ok?: boolean; fail?: boolean }
+
+/** Vanlig <img> (Safari/iPhone, SVG, innebygde ressurser). */
+function imgOf(url: string): Promise<LoadedImage | null> {
+  return new Promise((res) => {
+    const im = new Image()
+    im.decoding = 'async'
+    im.onload = () => res({ img: im, url })
+    im.onerror = () => res(null)
+    im.src = url
+  })
+}
 
 /**
  * Bildene et dokument bruker, lastet én gang per kilde. Blob-adresser frigjøres med `dispose()` når verktøyet lukkes.
@@ -43,30 +55,32 @@ export class ImageCache {
     if (have) return have.p
     const e: Entry = { p: Promise.resolve(null) }
     this.entries.set(src, e)
-    const urlP: Promise<string | null> = src.startsWith('asset:')
-      ? Promise.resolve(ASSETS[src.slice(6)]?.url ?? null)
-      : this.resolve(src).then((b) => (b ? (e.own = URL.createObjectURL(b)) : null), () => null)
-    e.p = urlP.then((url) => new Promise<LoadedImage | null>((res) => {
-      if (!url) {
-        e.fail = true
-        return res(null)
-      }
-      const im = new Image()
-      im.decoding = 'async'
-      im.onload = () => {
-        e.img = im
-        e.url = url
+    e.p = this.fetch(src, e).then((r) => {
+      if (r && this.entries.get(src) === e) {
+        e.img = r.img
+        e.url = r.url
         e.ok = true
         this.notify()
-        res({ img: im, url })
+        return r
       }
-      im.onerror = () => {
-        e.fail = true
-        res(null)
-      }
-      im.src = url
-    }))
+      if (r) closePic(r.img)
+      e.fail = true
+      return null
+    })
     return e.p
+  }
+
+  private async fetch(src: string, e: Entry): Promise<LoadedImage | null> {
+    if (src.startsWith('asset:')) {
+      const url = ASSETS[src.slice(6)]?.url
+      return url ? imgOf(url) : null
+    }
+    const b = await this.resolve(src).catch(() => null)
+    if (!b) return null
+    const url = (e.own = URL.createObjectURL(b))
+    // Chromium: dekodes som ImageBitmap – et <img> fra blob:-adresse ble liggende i minnet (≈ filstørrelsen per bilde)
+    const bm = await blobBitmap(b)
+    return bm ? { img: bm, url } : imgOf(url)
   }
 
   /** Bildet hvis det er lastet; ellers startes lastingen og `null` returneres. */
@@ -116,11 +130,15 @@ export class ImageCache {
   forget(src: string): void {
     const e = this.entries.get(src)
     if (e?.own) URL.revokeObjectURL(e.own)
+    closePic(e?.img)
     this.entries.delete(src)
   }
 
   dispose(): void {
-    for (const e of this.entries.values()) if (e.own) URL.revokeObjectURL(e.own)
+    for (const e of this.entries.values()) {
+      if (e.own) URL.revokeObjectURL(e.own)
+      closePic(e.img)
+    }
     this.entries.clear()
     this.tints.clear()
     this.listeners.clear()

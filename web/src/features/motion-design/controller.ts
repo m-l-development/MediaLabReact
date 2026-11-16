@@ -1,6 +1,7 @@
 import { cleanTheme, paletteOfTheme, type ThemeValue } from '../../shared/templates/theme'
 import type { ToolId } from '../../domain/tool'
 import { loadFonts } from '../../shared/fonts/loader'
+import { bitmapImages, blobBitmap, closePic } from '../../shared/lib/blob-image'
 import { createStore, type Store } from '../../shared/lib/store'
 import { idle } from '../../shared/lib/idle'
 import { audioStats, beats, clearAudioCache, pcm, toWav, wave } from './engine/audio'
@@ -524,14 +525,21 @@ export class MotionController {
       }
       this.urls[m.id] = URL.createObjectURL(b)
       if (m.kind === 'image' && /png|webp|gif/.test(b.type) && !/^data:image\/(webp|png)/.test(m.thumb)) {
-        const im = new Image()
-        im.src = this.urls[m.id] ?? ''
-        try {
-          await im.decode()
-          const th = thumbOf(im, im.naturalWidth, im.naturalHeight, true)
+        const bm = await blobBitmap(b)
+        if (bm) {
+          const th = thumbOf(bm, bm.width, bm.height, true)
           if (th) m.thumb = th
-        } catch {
-          // beholder miniatyren
+          bm.close()
+        } else {
+          const im = new Image()
+          im.src = this.urls[m.id] ?? ''
+          try {
+            await im.decode()
+            const th = thumbOf(im, im.naturalWidth, im.naturalHeight, true)
+            if (th) m.thumb = th
+          } catch {
+            // beholder miniatyren
+          }
         }
       }
     }
@@ -973,11 +981,7 @@ export class MotionController {
     }
     for (const m of p.media) {
       const url = this.urls[m.id]
-      if (m.kind === 'image' && !this.M.imgs[m.id] && url) {
-        const im = new Image()
-        im.src = url
-        this.M.imgs[m.id] = im
-      }
+      if (m.kind === 'image' && !this.M.imgs[m.id] && !this.imgPend[m.id] && url) this.setImg(m.id, url)
     }
     const ls = p.logo.src
     if (ls && /^images\//.test(ls) && !this.M.imgs[ls]) {
@@ -985,6 +989,38 @@ export class MotionController {
       im.src = `/${ls}`
       this.M.imgs[ls] = im
     }
+  }
+
+  /** Bilder som dekodes som ImageBitmap (Chromium), per medie-id – eksporten venter på dem. */
+  private imgPend: Record<string, Promise<void>> = {}
+
+  /**
+   * Bildet til et medium. Chromium: ImageBitmap via blobben (et <img> fra blob:-adresse ble liggende i nettleserens minne,
+   * ≈ filstørrelsen per bilde – se shared/lib/blob-image.ts); ellers, eller hvis dekodingen feiler: vanlig <img> som før.
+   */
+  private setImg(id: string, url: string): void {
+    const el = () => {
+      const im = new Image()
+      im.src = url
+      return im
+    }
+    if (!bitmapImages()) {
+      this.M.imgs[id] = el()
+      return
+    }
+    const M = this.M
+    this.imgPend[id] = fetch(url)
+      .then((r) => r.blob())
+      .then(blobBitmap, () => null)
+      .then((bm) => {
+        // byttet ut eller lukket mens bildet ble dekodet
+        if (this.M !== M || this.urls[id] !== url) return closePic(bm)
+        closePic(M.imgs[id] as never)
+        M.imgs[id] = bm ?? el()
+      })
+      .finally(() => {
+        delete this.imgPend[id]
+      })
   }
 
   private pauseAll(): void {
@@ -3657,9 +3693,7 @@ export class MotionController {
     }
     const url = URL.createObjectURL(blob)
     this.urls[id] = url
-    const im = new Image()
-    im.src = url
-    this.M.imgs[id] = im
+    this.setImg(id, url)
     const m: Media = { id, name: 'Frosset bilde', kind: 'image', dur: 0, w: cv.width, h: cv.height, thumb: thumbOf(cv, cv.width, cv.height, false) }
     const off = (t - l.start) * (c.speed || 1)
     const fr = mediaClip(m, { trans: { type: 'none', dur: 0.5 }, kb: false, dur: 2 }) as MediaClip & AnyRec
@@ -4282,6 +4316,7 @@ export class MotionController {
         setTimeout(r, 8000)
       }))))
       this.pauseAll()
+      await Promise.all(Object.values(this.imgPend))
       await Promise.all(Object.values(this.M.imgs).map((im) => (!(im instanceof HTMLImageElement) || im.complete ? 0 : new Promise((r) => {
         im.addEventListener('load', r, { once: true })
         im.addEventListener('error', r, { once: true })
@@ -4424,10 +4459,19 @@ export function probe(k: Media['kind'], url: string): Promise<Pick<Media, 'w' | 
     }
     setTimeout(() => fin(null), 20000)
     if (k === 'image') {
-      const im = new Image()
-      im.onload = () => fin({ w: im.naturalWidth, h: im.naturalHeight, dur: 0, thumb: thumbOf(im, im.naturalWidth, im.naturalHeight, true) })
-      im.onerror = () => fin(null)
-      im.src = url
+      const viaImg = () => {
+        const im = new Image()
+        im.onload = () => fin({ w: im.naturalWidth, h: im.naturalHeight, dur: 0, thumb: thumbOf(im, im.naturalWidth, im.naturalHeight, true) })
+        im.onerror = () => fin(null)
+        im.src = url
+      }
+      // Chromium: ImageBitmap (et <img> fra blob:-adressen ble liggende i minnet, se shared/lib/blob-image.ts)
+      if (!bitmapImages()) viaImg()
+      else void fetch(url).then((r) => r.blob()).then(blobBitmap, () => null).then((bm) => {
+        if (!bm) return viaImg()
+        fin({ w: bm.width, h: bm.height, dur: 0, thumb: thumbOf(bm, bm.width, bm.height, true) })
+        bm.close()
+      })
     } else if (k === 'audio') {
       const a = new Audio()
       a.preload = 'metadata'

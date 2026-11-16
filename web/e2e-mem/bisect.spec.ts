@@ -6,6 +6,8 @@
  *   hash     – sha256 (crypto.subtle.digest over hele filen)
  *   probe    – browserProbe.probe (mål + miniatyr)
  *   img      – blob:-adresse + <img> dekoding + revoke
+ *   bitmap / fetchbitmap – createImageBitmap direkte / etter fetch av blob:-adressen (Motion)
+ *   imgnodecode, imgclear, datauri – varianter av <img>
  *   register – hele assets.register (hash, IndexedDB, probe, miniatyr)
  *   getblob  – innholdet hentet tilbake fra IndexedDB (som ImageCache gjør ved hver åpning) + <img>
  *   MEM_N=8 npx playwright test -c e2e-mem/bisect.config.ts
@@ -74,7 +76,8 @@ for (const part of PARTS) {
         const W = window as unknown as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
         const file = new File([W.__src as Blob], 'person.png', { type: 'image/png' })
         const show = (b: Blob) => new Promise<void>((ok) => { const u = URL.createObjectURL(b); const im = new Image(); im.onload = im.onerror = () => { void im.decode?.().catch(() => undefined); URL.revokeObjectURL(u); ok() }; im.src = u })
-        if (p === 'bitmap') { const bm = await createImageBitmap(file); bm.close() }
+        if (p === 'fetchbitmap') { const u = URL.createObjectURL(file); const bm = await createImageBitmap(await (await fetch(u)).blob()); bm.close(); URL.revokeObjectURL(u) }
+        else if (p === 'bitmap') { const bm = await createImageBitmap(file); bm.close() }
         else if (p === 'imgnodecode') await new Promise<void>((ok) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = im.onerror = () => { URL.revokeObjectURL(u); ok() }; im.src = u })
         else if (p === 'imgclear') await new Promise<void>((ok) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = im.onerror = () => { URL.revokeObjectURL(u); im.src = 'data:,'; ok() }; im.src = u })
         else if (p === 'datauri') await new Promise<void>((ok) => { const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = im.onerror = () => ok(); im.src = r.result as string }; r.readAsDataURL(file) })

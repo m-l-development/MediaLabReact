@@ -1,3 +1,4 @@
+import { blobBitmap } from '../../../shared/lib/blob-image'
 import { drawFill, fillOn } from '../../../shared/fill/fill'
 import { loadFonts, loadStretch } from '../../../shared/fonts/loader'
 import { fractalNoise, noiseTexture } from '../../../shared/lib/noise-texture'
@@ -50,6 +51,9 @@ export interface Media {
 
 export async function loadImg(blob: Blob): Promise<MediaEntry> {
   const u = URL.createObjectURL(blob)
+  // Chromium: ImageBitmap – et <img> fra blob:-adresse ble liggende i minnet (≈ filstørrelsen per bilde, se blob-image.ts)
+  const bm = await blobBitmap(blob)
+  if (bm) return { img: bm, w: bm.naturalWidth, h: bm.naturalHeight, url: u, cache: new Map() }
   const im = new Image()
   im.src = u
   try {
@@ -351,7 +355,7 @@ const foreign = new WeakMap<object, MediaEntry>()
  * Justert kopi av et bilde for andre verktøy (Thumbnail Studio, Loop Studio): de samme justeringene og RGB-kurvene som i
  * Photo. Hurtigbufret per bilde og innstilling; null når bildet ikke er lastet.
  */
-export function adjustImage(img: HTMLImageElement | HTMLCanvasElement, a: Partial<Adj>, maxD = 2400): HTMLCanvasElement | null {
+export function adjustImage(img: HTMLImageElement | HTMLCanvasElement | ImageBitmap, a: Partial<Adj>, maxD = 2400): HTMLCanvasElement | null {
   const w = img instanceof HTMLImageElement ? img.naturalWidth : img.width
   const h = img instanceof HTMLImageElement ? img.naturalHeight : img.height
   if (!w || !h) return null
