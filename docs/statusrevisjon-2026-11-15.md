@@ -72,6 +72,17 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    design bryter sammen. Ikke ferdig før hele den nye eksporten er sett gjennom og konkrete forbedringer er dokumentert.
    Mål: publiserbart på Instagram/TikTok, ikke bare en teknisk eksport. (Skjermbildet fra eieren: Vacation, 18,6 s,
    94 BPM, «Typografisk» bevegelse, mange svært korte fargeflate-klipp på 0,0–0,8 s i midten, markører på hvert slag.)
+   **VIKTIG TILLEGG 2 (eier) – universell musikkstøtte:** alle spor skal fungere på alle Motion-maler uansett sjanger,
+   BPM, tempo eller struktur – ingen maler som bare passer bestemte låter/BPM, ingen spesialtilfeller. Systemet:
+   (1) analyserer hvert spor (BPM, slag, takter, pauser, energi, drops, oppbygging, overganger), (2) analyserer hver mal
+   (klipplengder, overganger, animasjoner, keyframes, tekst, høydepunkter, dramaturgi), (3) sammenligner og tilpasser
+   malens timing til musikken, (4) bevarer malens identitet og animasjoner, (5) håndterer musikk uten tydelig BPM/takt,
+   (6) håndterer store tempoforskjeller uten unaturlige klipp, hastige overganger eller tomme partier, (7) analyserer på
+   nytt ved bytte av lydspor. Malene må få en fleksibel tidsstruktur: høydepunkter, faste og fleksible sekvenser,
+   overgangspunkter, animasjoner/keyframes, områder som kan forlenges/forkortes, naturlige punkter for repetisjon/variasjon.
+   Test HVER mal med flere ulike spor: rolig, rask elektronisk, hip-hop/trap, pop, cinematisk, store drops, ujevn rytme /
+   varierende tempo – reelle kombinasjoner, se gjennom eksportene. Ikke reduser malenes kvalitet eller fjern animasjoner.
+   (Testmusikk må være gratis og lovlig – lag egne syntetiske spor i hver stil, eller bruk fritt lisensierte.)
 
 ### Faste regler
 Ingen betalte tjenester eller kostnader. Ikke reduser kvalitet/funksjonalitet (heller ikke PC). Ikke slett tester eller
