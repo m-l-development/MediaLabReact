@@ -4,10 +4,10 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `1710be0` (merge av `0bd120f`; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
+**Siste kjente produksjonscommit:** `239df9c` (merge av `ad1890b`, minnerettingen; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen. Neste oppgave: punkt 2 (minne) eller – når eieren godtar at minnet er dokumentert som uløst – punkt 5 Panorama.
+**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 5 Panorama** (punkt 1–4 er lukket eller dokumentert som IKKE VERIFISERT på ekte iPhone).
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
