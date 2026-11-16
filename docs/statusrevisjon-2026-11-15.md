@@ -4,10 +4,10 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `0a50b0b` (connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
+**Siste kjente produksjonscommit:** `1710be0` (merge av `0bd120f`; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen (alt i commiten etter `0a50b0b`, se git log).
+**Ukommittert arbeid:** ingen. Neste oppgave: punkt 2 (minne) eller – når eieren godtar at minnet er dokumentert som uløst – punkt 5 Panorama.
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
@@ -19,13 +19,23 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    - Siste fulle kjøring (2026-11-16): **94 bestått / 4 feilet**; de fire er deretter rettet eller begrunnet hoppet over
      (se «Oppfølging 4»). Gjenstår i mobilgjennomgangen: Mockups, QR og Isolate har ingen kjente feil i WebKit, men er
      ikke gått gjennom manuelt skjerm for skjerm.
-2. **Minne:** årsaken til ≈ 4 MB vekst per innsatt bilde (Photo/Thumbnail/Motion) er ikke funnet. Utelukket: JS-heap,
-   DOM/lerreter, AI-tråder, blob:-adresser (`bloburl.spec.ts`: ingen åpne), IndexedDB og nettleserens bildevei
-   (`browser-baseline.spec.ts`). Bekreftet: dokumentbundet innebygd minne (`partition_alloc/allocated_objects`), følger
-   bildestørrelsen, frigjøres ved ny innlasting. `--memlog` gir ingen heaps_v2 i Playwright/Chrome. Neste: manuell
-   profilering i `chrome://memory-internals` / DevTools «Allocation sampling», eller videre oppdeling av bildeveien
-   (`assets.register` → probe/miniatyr/sjekksum; `ImageCache.load`; tegning) med `e2e-mem/profile.spec.ts`
-   (`MEM_PARTS=1 MEM_ONLY=thumbC`).
+2. **Minne: ÅRSAK FUNNET OG RETTET i Chromium (2026-11-16).** `e2e-mem/bisect.spec.ts` (`-c e2e-mem/bisect.config.ts`)
+   kjører hvert ledd i bildeveien alene. Resultat med et 3,0 MB PNG, per bilde, etter GC og kritisk minnepress:
+   File 0 · sha256 0 · probe/miniatyr 0,3 · `assets.register` (inkl. IndexedDB) 0,3 · **`<img>` fra blob:-adresse
+   4,05 MB (`partition_alloc`)** · det samme med/uten `decode()` og med `src` nullstilt etterpå: 4,05 · data:-adresse 1,0 ·
+   **`createImageBitmap` 0**. 40 bilder: +178 MB, lineært, uten tak. Altså: Chromium beholder de kodede bytene
+   (≈ filstørrelsen, rundet opp) for hvert bilde som lastes i et `<img>` fra en ny blob:-adresse – også etter
+   `revokeObjectURL`, GC og minnepress; frigjøres først ved ny innlasting av siden. Det forklarer veksten i Photo,
+   Thumbnail og Motion (alle laster bilder slik).
+   **Tiltak (gjort):** `shared/lib/blob-image.ts` – i Chromium dekodes bildene som `ImageBitmap` (EXIF-retning fra
+   bildet, vanlig fargekonvertering; kontrollert: JPEG med Orientation 6 gir samme mål og piksler som `<img>`). Brukt i
+   Thumbnail (`engine/images.ts` ImageCache + panelets miniatyr via `shared/ui/PicThumb.tsx`), Photo (`loadImg`) og
+   Motion (`setImg`, import-probe, miniatyr ved åpning; eksporten venter på dekodingen). SVG, feil og Safari/iPhone:
+   vanlig `<img>` som før (uendret oppførsel der). `fetch` av blob:-adressen + bitmap: 0 MB vekst (målt).
+   **Resultat** (`profile.spec.ts`, Photo + Thumbnail + Motion, 5 runder): sideprosessen 108 → 119 → 122 → 118 → 120 MB,
+   `partition_alloc` flat ≈ 10 MB (før: ≈ +11 MB per runde for de tre). Thumbnail alene 6 runder: `partition_alloc`
+   7,2 MB flat fra runde 2. Om Safari/iPhone har samme oppførsel kan ikke måles her (CDP-sporing finnes bare i
+   Chromium) – IKKE VERIFISERT.
 3. **iPhone (ekte enhet, gratis):** ingen ekte iPhone tilgjengelig → IKKE VERIFISERT. Eieren har en testplan (seksjonen
    «Oppfølging 3»). Gjelder: Motion-kort og «Fyll skjermen», store bilder/bildebytte/eksport, Isolate-kanter, fokus-zoom.
    - Isolate-maskekanter: `ctx.filter`-erstatningen dekker dem (hovedtråd, også OffscreenCanvas der den finnes);
@@ -49,7 +59,7 @@ kontroller faktisk produksjonscommit (connecthub, main, prod, release-gate). Rel
 - FERDIG, emulert: Motion-kort/miniatyr, «Fyll skjermen», ctx.filter-erstatning, SVG-teksturer, malforhåndsvisninger
   (IntersectionObserver-reserve), dvh, fokus-zoom (enhetstest), hvitt bilde (lerretsgrense, lerretsminne, raske bytter).
 - IKKE VERIFISERT på ekte iPhone: alt over.
-- UØST: minnevekst ≈ 4 MB/bilde (årsak ukjent). IKKE VERIFISERT på ekte iPhone: knip-zoom i Motion, MP4-eksport,
+- RETTET (Chromium): minnevekst ≈ 4 MB/bilde – Chromium beholdt kodede bytes for <img> fra blob:; nå ImageBitmap. IKKE VERIFISERT på ekte iPhone: knip-zoom i Motion, MP4-eksport,
   Blob i IndexedDB (kan ikke emuleres på Windows).
 - Siste tester (2026-11-16): `npm run check` 699/699; Chrome full regresjon 394 bestått / 0 feilet; WebKit 94/4 → de 4
   rettet/begrunnet (kjørt enkeltvis).

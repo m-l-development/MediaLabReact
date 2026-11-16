@@ -5,6 +5,7 @@ import { drawQr } from '../../../shared/qr/qr'
 import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { adjustImage } from '../../photo-design/engine/render'
 import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
+import type { Pic } from '../../../shared/lib/blob-image'
 import type { ImageCache, LoadedImage } from './images'
 import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
@@ -280,7 +281,7 @@ const textTop = (l: TextLayer, r: TextLayout) => (l.valign === 'middle' ? (l.h -
 /** Canvas letterSpacing (Chrome 99+, Safari 17+, Firefox 115+). */
 const HAS_LS = typeof CanvasRenderingContext2D !== 'undefined' && 'letterSpacing' in CanvasRenderingContext2D.prototype
 
-function drawText(g: G, l: TextLayer, s: number, img: HTMLImageElement | null = null) {
+function drawText(g: G, l: TextLayer, s: number, img: Pic | null = null) {
   if (!String(l.text || '').trim()) return
   // loddrett skalert tekst: tegnes i et strukket rom med samme bredde
   const sy = l.sy && l.sy > 0 && l.sy !== 1 ? l.sy : 1

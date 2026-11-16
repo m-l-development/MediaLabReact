@@ -1892,7 +1892,8 @@ button:disabled {
   background: repeating-conic-gradient(#2c2c2c 0 25%, #1c1c1c 0 50%) 50% / 12px 12px;
 }
 
-.imgThumb img {
+.imgThumb img,
+.imgThumb canvas {
   position: absolute;
   inset: 0;
   display: block;

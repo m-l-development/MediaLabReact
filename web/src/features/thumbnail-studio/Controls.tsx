@@ -6,6 +6,8 @@ import { BgColor } from '../../shared/ui/BgColor'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
 import { FontPicker } from '../../shared/fonts/FontPicker'
 import { QrFields } from '../../shared/qr/QrFields'
+import { PicThumb } from '../../shared/ui/PicThumb'
+import type { Pic } from '../../shared/lib/blob-image'
 import { localStore } from '../../shared/lib/storage'
 import type { ThumbController } from './controller'
 import type { Ctrl, Unit } from './ctrl-defs'
@@ -27,7 +29,7 @@ function readUnits(): Record<string, string> {
 }
 
 /** Egenskapspanelet: tegner kontrollene fra `controls.ts`. */
-export function Controls({ ctrls, c, tx, profileColors, imageUrl }: { ctrls: Ctrl[]; c: ThumbController; tx: Tx; profileColors: string[]; imageUrl: (src: string | null) => string }) {
+export function Controls({ ctrls, c, tx, profileColors, imageUrl, imagePic }: { ctrls: Ctrl[]; c: ThumbController; tx: Tx; profileColors: string[]; imageUrl: (src: string | null) => string; imagePic: (src: string | null) => Pic | null }) {
   return (
     <>
       {ctrls.map((x, i) => {
@@ -103,7 +105,7 @@ export function Controls({ ctrls, c, tx, profileColors, imageUrl }: { ctrls: Ctr
           case 'qr':
             return <QrFields key={i} value={x.val} onChange={x.set} />
           case 'img':
-            return <ImageCtrl key={i} ctrl={x} c={c} tx={tx} url={imageUrl(x.src)} />
+            return <ImageCtrl key={i} ctrl={x} c={c} tx={tx} url={imageUrl(x.src)} pic={imagePic(x.src)} />
         }
       })}
     </>
@@ -247,7 +249,7 @@ function TextArea({ ctrl, c, tx }: { ctrl: Extract<Ctrl, { k: 'area' }>; c: Thum
   )
 }
 
-function ImageCtrl({ ctrl, c, tx, url }: { ctrl: Extract<Ctrl, { k: 'img' }>; c: ThumbController; tx: Tx; url: string }) {
+function ImageCtrl({ ctrl, c, tx, url, pic }: { ctrl: Extract<Ctrl, { k: 'img' }>; c: ThumbController; tx: Tx; url: string; pic: Pic | null }) {
   const S = c.s
   const l = ctrl.layer
   const ai = S.ai
@@ -258,7 +260,7 @@ function ImageCtrl({ ctrl, c, tx, url }: { ctrl: Extract<Ctrl, { k: 'img' }>; c:
     <div className={s.ctrl}>
       <span className={s.ctrlLabel}>{tx(ctrl.label)}</span>
       <div className={s.imgRow}>
-        <div className={s.imgThumb}>{url && <img src={url} alt="" />}</div>
+        <div className={s.imgThumb}><PicThumb pic={pic} url={url} /></div>
         <div className={s.imgActions}>
           <button type="button" className={s.btnOn} onClick={ctrl.pick}>{tx(ctrl.src ? 'Bytt bilde' : 'Velg bilde')}</button>
           <button type="button" className={s.linkBtn} onClick={() => c.openPicker('media', l ? { mode: 'replace', id: l.id } : { mode: 'bg' })}>{tx('Fra Dine medier …')}</button>
