@@ -7,6 +7,16 @@ import { format, useLang, type Lang } from '../../shared/i18n/i18n'
 export type Vars = Record<string, string | number>
 
 export const EN = {
+  // objektivkorreksjon
+  'Objektivkorreksjon': 'Lens correction',
+  'Anslår fargekanter (kromatisk aberrasjon) og mørke hjørner (vignettering) fra bildet': 'Estimates colour fringes (chromatic aberration) and dark corners (vignetting) from the image',
+  'Fortegning (tønne ↔ pute)': 'Distortion (barrel ↔ pincushion)',
+  'Fargekant rød/cyan': 'Fringe red/cyan',
+  'Fargekant blå/gul': 'Fringe blue/yellow',
+  'Vignettering': 'Vignetting',
+  'Fortegning: høyre retter opp tønne (linjer som buer utover, vidvinkel), venstre retter opp pute. Fortegningen stilles inn for hånd – det finnes ingen objektivprofiler her. Bildet forstørres litt så kantene fylles.': 'Distortion: right corrects barrel (lines bowing outwards, wide angle), left corrects pincushion. Distortion is set by hand – there are no lens profiles here. The image is enlarged slightly so the edges are filled.',
+  'Objektivkorreksjonen er anslått fra bildet. Juster gjerne videre.': 'The lens correction was estimated from the image. Fine-tune as you like.',
+  'Fant ingen tydelige fargekanter eller mørke hjørner i bildet.': 'No clear colour fringes or dark corners were found in the image.',
   // panorama
   'Leser bildene …': 'Reading the images …',
   'Finner kjennetegn i bildene …': 'Finding features in the images …',

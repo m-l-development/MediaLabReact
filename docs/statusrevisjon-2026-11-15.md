@@ -4,10 +4,10 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `239df9c` (merge av `ad1890b`, minnerettingen; connecthub = main = prod, Release verify grønn 2026-11-16). Kontroller før
+**Siste kjente produksjonscommit:** `a7d10ca` (merge av `e61e12a`, Panorama; connecthub = main = prod, Release verify grønn 2026-11-16). Objektivkorreksjonen er i releasen etter denne. Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 6 Objektivkorreksjon**, deretter punkt 7 (Motion).
+**Ukommittert arbeid:** ingen. **Neste oppgave: punkt 7 (Motion: Music Sync + forlenge/forkorte maler, med tilleggene).**
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
@@ -59,8 +59,16 @@ videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/v
    legg til → juster → beskjær → Bruk → Rediger → Bruk; fem bilder med 0,35× og 1,45× eksponering og støy, nedlasting i
    full oppløsning kontrollert) – PC, mobil og WebKit/iPhone-emulering. Kjent grense: overlapp som bare er ensfarget flate
    (hvit vegg) eller helt utbrent kan ikke plasseres – appen sier fra.
-6. **Objektivkorreksjon** – GODKJENT, etter Panorama (fortegning tønne/pute, vignettering, kromatisk aberrasjon),
-   testet.
+6. **Objektivkorreksjon – FERDIG (2026-11-16), ikke verifisert på ekte iPhone.** Photo Design → Avansert framkalling →
+   «Objektivkorreksjon» (lagres på bildelaget som andre framkallingsvalg, gjelder forhåndsvisning og eksport likt):
+   fortegning tønne ↔ pute (radial modell, bildet forstørres akkurat nok til at kantene fylles), kromatisk aberrasjon
+   rød/cyan og blå/gul (radial skala per kanal), vignettering med midtpunkt. «Auto» anslår aberrasjonen (rød og blå kanal
+   tilpasses grønn rundt kantene, minste kvadrater med underpiksel) og vignetteringen (lysfall ytterst mot midten).
+   Fortegning stilles for hånd – ingen objektivprofiler (de finnes bare i betalte/lukkede databaser). Objektivet rettes
+   før perspektivet. Kode: `engine/lens.ts`. Tester: `engine/lens.test.ts` (rutenett med kjent tønnefortegning blir rett
+   – linjeavvik < 0,6 px; aberrasjon funnet innen 0,25 px i hjørnet og fargekantene redusert > 55 %; vignettering funnet
+   og hjørnene innen 6/255 av midten; lagring/avgrensning), `e2e/photo-lens.spec.ts` (ekte fotografi med lagt-til
+   objektivfeil: Auto, fortegning, lagring og gjenåpning).
 7. **Motion: Music Sync + forlenge/forkorte maler** – GODKJENT (eiers melding 2026-11-16), etter 5–6. Bygges inn i den
    eksisterende Motion-motoren (ikke en parallell løsning). (a) Music Sync: analyse av hele lydsporet – faktiske slag,
    takter/taktstruktur, energi, oppbygging, pauser, drops, klimaks, seksjoner (intro/vers/refreng/avslutning der mulig);

@@ -14,6 +14,7 @@ import { autoTone, cleanDev, decodeMask, DEV, encodeMask, hdrMerge, LOC, type De
 import { blurArea } from '../isolate-subject/engine/blur'
 import { defaultGrow } from '../isolate-subject/engine/inpaint'
 import { readExif, type Exif } from './engine/exif'
+import { autoLens } from './engine/lens'
 import { BATCH_MAX, batchDoc, batchLayer, exportName, fitSide, isEdited, syncBatch, THUMB, type Batch, type BatchItem } from './engine/batch'
 import { applyScheme, schemeOfPreset, tplDoc, validScheme } from './engine/palette'
 import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
@@ -2055,6 +2056,23 @@ export class PhotoController {
 
   resetDev(id: string): void {
     this.patchL(id, { dev: null })
+  }
+
+  /**
+   * Objektivkorreksjon «Auto»: kromatisk aberrasjon og vignettering anslås fra originalbildet (engine/lens.ts). Fortegning
+   * krever objektivprofiler og settes for hånd. Retur: om noe ble funnet.
+   */
+  autoLens(id: string): boolean {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    const E = L?.type === 'image' && L.src ? this.M.media.get(L.src) : undefined
+    if (!L || L.type !== 'image' || !E) return false
+    const c = baseOf(E, 1600)
+    const g = c.getContext('2d', { willReadFrequently: true })
+    if (!g) return false
+    const a = autoLens(g.getImageData(0, 0, c.width, c.height))
+    this.patchL(id, (q) => (q.type === 'image' ? { dev: cleanDev({ ...DEV, ...q.dev, lcar: a.car, lcab: a.cab, lvig: a.vig, lvigm: a.vigm }) } : {}))
+    this.flash(a.car || a.cab || a.vig ? 'Objektivkorreksjonen er anslått fra bildet. Juster gjerne videre.' : 'Fant ingen tydelige fargekanter eller mørke hjørner i bildet.')
+    return !!(a.car || a.cab || a.vig)
   }
 
   /** Lokale justeringer (gradientmasker): legg til, endre (patch) og slett. */

@@ -447,6 +447,19 @@ function AdvDevelop({ c, L, tx }: { c: PhotoController; L: Extract<PdLayer, { ty
       </div>
       {DEVL.map(([k, l]) => slider(k, l))}
 
+      <span className={s.eyebrowSm}>{tx('Objektivkorreksjon')}</span>
+      <div data-pd-lens="">
+        <div className={s.looks}>
+          <button type="button" data-pd-lens-auto="" title={tx('Anslår fargekanter (kromatisk aberrasjon) og mørke hjørner (vignettering) fra bildet')} onClick={() => c.autoLens(L.id)}>{tx('Auto')}</button>
+        </div>
+        {slider('ldist', 'Fortegning (tønne ↔ pute)')}
+        {slider('lcar', 'Fargekant rød/cyan')}
+        {slider('lcab', 'Fargekant blå/gul')}
+        {slider('lvig', 'Vignettering')}
+        {num('lvig') !== 0 && <Range label={tx('Midtpunkt')} min={0} max={100} step={1} val={L.dev?.lvigm ?? 50} show={`${Math.round(L.dev?.lvigm ?? 50)}`} on={(x) => c.setDev(L.id, 'lvigm', x, 'devlvigm')} def={50} reset={() => c.setDev(L.id, 'lvigm', 50)} />}
+        <span className={s.dimSm}>{tx('Fortegning: høyre retter opp tønne (linjer som buer utover, vidvinkel), venstre retter opp pute. Fortegningen stilles inn for hånd – det finnes ingen objektivprofiler her. Bildet forstørres litt så kantene fylles.')}</span>
+      </div>
+
       <span className={s.eyebrowSm}>{tx('Perspektiv')}</span>
       <div data-pd-persp="">
         {slider('pv', 'Vertikalt')}
