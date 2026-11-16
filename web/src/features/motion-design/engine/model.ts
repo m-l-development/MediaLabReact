@@ -36,6 +36,8 @@ export interface Crop { l: number; t: number; r: number; b: number }
 interface ClipCommon extends Grade {
   id: string
   link?: string
+  /** Lengden er justert for hånd etter Music Sync: beholdes når Music Sync kjøres på nytt (resten planlegges rundt). */
+  fix?: boolean
   /** Effekter (Avansert), i rekkefølge. Se engine/fx.ts. */
   effects?: Effect[]
   /** Keyframes (Avansert). Se engine/kf.ts. */
@@ -93,6 +95,8 @@ export interface MediaClip extends ClipCommon {
 export type Clip = ColorClip | MediaClip
 
 export interface Overlay extends Grade {
+  /** Tiden er justert for hånd etter Music Sync: beholdes når Music Sync kjøres på nytt. */
+  fix?: boolean
   /** Ankerpunkt (−0,5…0,5 av bredden/høyden, 0 = midten): punktet rotasjon, speiling og inn-/ut-animasjon skjer rundt. */
   ax?: number
   ay?: number
@@ -157,6 +161,8 @@ export interface Overlay extends Grade {
 export interface TextItem {
   id: string
   link?: string
+  /** Tiden er justert for hånd etter Music Sync: beholdes når Music Sync kjøres på nytt. */
+  fix?: boolean
   /** Keyframes (Avansert). Se engine/kf.ts. */
   kf?: Keys
   lane: number
@@ -277,7 +283,7 @@ export interface Project {
   /** Malens bevegelsesprofil for Music Sync (filmatisk, dynamisk, minimal, typografisk). */
   motion?: 'cinematic' | 'dynamic' | 'minimal' | 'typo'
   /** Music Sync er brukt: profil og tempo i musikken; `syncBase` = prosjektets tid før synkroniseringen (JSON). */
-  sync?: { style: 'cinematic' | 'dynamic' | 'minimal' | 'typo'; bpm: number; media: string } | null
+  sync?: { style: 'cinematic' | 'dynamic' | 'minimal' | 'typo'; bpm: number; media: string; auto?: boolean } | null
   syncBase?: string
   name: string
   fmt: string
@@ -602,7 +608,7 @@ export function normalize(input: unknown): Project {
     const k = oneOf(c.kind, ['video', 'image', 'color'] as const, 'color')
     const efx = cleanEffects(c.effects)
     const ckf = cleanKeys(c.kf)
-    const base = { id: sid(c.id, 'c'), ...(efx ? { effects: efx } : {}), ...(ckf ? { kf: ckf } : {}), trans: trans(c.trans), dim: num(c.dim, 0, 0, 1), temp: num(c.temp, 0, -1, 1), tint: num(c.tint, 0, -1, 1), vig: num(c.vig, 0, 0, 1), grain: num(c.grain, 0, 0, 1), ...grade(c) }
+    const base = { id: sid(c.id, 'c'), ...(c.fix === true ? { fix: true } : {}), ...(efx ? { effects: efx } : {}), ...(ckf ? { kf: ckf } : {}), trans: trans(c.trans), dim: num(c.dim, 0, 0, 1), temp: num(c.temp, 0, -1, 1), tint: num(c.tint, 0, -1, 1), vig: num(c.vig, 0, 0, 1), grain: num(c.grain, 0, 0, 1), ...grade(c) }
     if (k === 'color') {
       return withLink({ ...base, ...(typeof c.ph === 'string' && c.ph ? { ph: c.ph.slice(0, 40) } : {}), kind: 'color' as const, dur: num(c.dur, 5, 0.2, 3600), c1: col(c.c1, '#111111'), c2: col(c.c2, '#2a2a2a'), grad: oneOf(c.grad, ['none', 'linear', 'radial'] as const, 'linear'), ang: num(c.ang, 135, -3600, 3600), spin: num(c.spin, 0, -90, 90) }, lnk(c.link))
     }
@@ -619,7 +625,7 @@ export function normalize(input: unknown): Project {
     const mt = isRec(x.matte) && typeof x.matte.text === 'string' ? x.matte : null
     const mb = mt && isRec(mt.brush) ? mt.brush : null
     const omatte = mt ? { text: String(mt.text).slice(0, 80), brush: mb ? { t0: num(mb.t0, 0, 0, 3600), dur: num(mb.dur, 1.5, 0.1, 60), x: num(mb.x, 0.1, -1, 2), y: num(mb.y, 0.2, -1, 2), w: num(mb.w, 0.8, 0, 3), h: num(mb.h, 0.5, 0, 3) } : null } : null
-    const r: Overlay = { id: sid(x.id, 'o'), ...(oqr ? { qr: oqr } : {}), ...(oshape ? { shape: oshape } : {}), ...(omatte ? { matte: omatte } : {}), ...(typeof x.ph === 'string' && x.ph ? { ph: x.ph.slice(0, 40) } : {}), ...(x.fill ? { fill: true } : {}), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
+    const r: Overlay = { id: sid(x.id, 'o'), ...(x.fix === true ? { fix: true } : {}), ...(oqr ? { qr: oqr } : {}), ...(oshape ? { shape: oshape } : {}), ...(omatte ? { matte: omatte } : {}), ...(typeof x.ph === 'string' && x.ph ? { ph: x.ph.slice(0, 40) } : {}), ...(x.fill ? { fill: true } : {}), ...(oefx ? { effects: oefx } : {}), ...(okf ? { kf: okf } : {}), lane: ln(x.lane), kind: oneOf(x.kind, ['video', 'image'] as const, 'image'), media: sid(x.media, 'm'), name: str(x.name, '', 200), start: num(x.start, 0, 0, 86400), in: num(x.in, 0, 0, 86400), out: num(x.out, 5, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), speed: num(x.speed, 1, 0.1, 8), rev: !!x.rev, vol: num(x.vol, 1, 0, 2), muted: !!x.muted,
       x: num(x.x, 0.5, -1, 2), y: num(x.y, 0.5, -1, 2), scale: num(x.scale, 0.4, 0.02, 4), rot: num(x.rot, 0, -3600, 3600), opacity: num(x.opacity, 1, 0, 1), fadeIn: num(x.fadeIn, 0, 0, 30), fadeOut: num(x.fadeOut, 0, 0, 30), anim: oneOf(x.anim, OAK, 'none'), blend: oneOf(x.blend, BK, 'source-over'),
       radius: num(x.radius, 0, 0, 1), border: num(x.border, 0, 0, 5), borderColor: col(x.borderColor, '#ffffff'), shadow: !!x.shadow, flipH: !!x.flipH, flipV: !!x.flipV, crop: crop(x.crop), ar: num(x.ar, 0.5625, 0.05, 20), keyOn: !!x.keyOn, keyColor: col(x.keyColor, '#00ff00'), keySim: num(x.keySim, 0.35, 0.01, 1), keySmooth: num(x.keySmooth, 0.1, 0.005, 1), keySpill: num(x.keySpill, 0.5, 0, 1), ...grade(x), ...anchor(x) }
     if (r.kind === 'video' && r.out <= r.in + 0.05) r.out = r.in + 0.1
@@ -635,6 +641,7 @@ export function normalize(input: unknown): Project {
   const lz = isRec(p.lanes) ? p.lanes : {}
   const mx = isRec(p.mix) ? p.mix : {}
   const texts: TextItem[] = recs(p.texts, 1000).map((x) => withLink({
+    ...(x.fix === true ? { fix: true } : {}),
     ...(x.valign === 'top' || x.valign === 'bottom' ? { valign: x.valign } : {}),
     ...(cleanKeys(x.kf) ? { kf: cleanKeys(x.kf) as Keys } : {}),
     id: sid(x.id, 't'), lane: ln(x.lane), start: num(x.start, 0, 0, 86400), dur: num(x.dur, 4, 0.2, 86400), text: str(x.text, '', 2000), x: num(x.x, 0.5, -0.5, 1.5), y: num(x.y, 0.5, -0.5, 1.5), size: num(x.size, 90, 8, 600), font: fontOf(x.font), weight: num(x.weight, 700, 100, 900), italic: !!x.italic, color: col(x.color, '#ffffff'), align: oneOf(x.align, ['left', 'center', 'right'] as const, 'center'), anim: oneOf(x.anim, AK, 'fade'), box: oneOf(x.box, ['none', 'block', 'line'] as const, 'none'), bg: col(x.bg, '#000000'), maxW: num(x.maxW, 0.84, 0.1, 1), upper: !!x.upper, track: num(x.track, 0, -0.1, 1), shadow: !!x.shadow, lh: num(x.lh, 1.14, 0.7, 2.5), opacity: num(x.opacity, 1, 0, 1), countdown: !!x.countdown, cdFrom: x.cdFrom === null || x.cdFrom === undefined ? null : num(x.cdFrom, 10, 0, 8639999), cdFmt: oneOf(x.cdFmt, ['auto', 'ss', 'mmss', 'hhmmss', 'ddhhmmss'] as const, 'auto'), stroke: num(x.stroke, 0, 0, 10), strokeColor: col(x.strokeColor, '#000000'), grad: !!x.grad, color2: col(x.color2, '#f5b82c'), ...textExtra(x),
@@ -653,7 +660,7 @@ export function normalize(input: unknown): Project {
   const proj: Project = {
     id: sid(p.id, 'p'), ...(p.tempo !== undefined && Number(p.tempo) > 0 ? { tempo: num(p.tempo, 120, 40, 240) } : {}),
     ...(MSTYLES.includes(p.motion as never) ? { motion: p.motion as NonNullable<Project['motion']> } : {}),
-    ...(isRec(p.sync) && MSTYLES.includes(p.sync.style as never) ? { sync: { style: p.sync.style as NonNullable<Project['motion']>, bpm: num(p.sync.bpm, 120, 20, 300), media: str(p.sync.media, '', 80) } } : {}),
+    ...(isRec(p.sync) && MSTYLES.includes(p.sync.style as never) ? { sync: { style: p.sync.style as NonNullable<Project['motion']>, bpm: num(p.sync.bpm, 120, 20, 300), media: str(p.sync.media, '', 80), ...(p.sync.auto === false ? { auto: false } : {}) } } : {}),
     ...(typeof p.syncBase === 'string' && p.syncBase.length < 4_000_000 ? { syncBase: p.syncBase } : {}), name: str(p.name, 'Prosjekt', 120), fmt: str(p.fmt, 'custom', 20), w, h, bg: col(p.bg, '#000000'), created: num(p.created, Date.now()), updated: num(p.updated, Date.now()),
     thumb: typeof p.thumb === 'string' && THUMB.test(p.thumb) && p.thumb.length < 200000 ? p.thumb : '',
     media, clips, ov, markers, tin: trans(p.tin), tout: trans(p.tout), tracks,

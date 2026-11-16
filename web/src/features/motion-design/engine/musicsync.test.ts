@@ -143,7 +143,8 @@ describe('Music Sync på malene', () => {
     const base = music(create(fmt, 'lyricvideo'), 60)
     const r = syncProject(base, slow, 'typo', { songStart: 0, fxSec })
     // hver tekst ligger fortsatt innenfor klippet (frasen) den hørte til
-    const clipAt = (p: typeof base, t: number) => { let s = 0; for (let i = 0; i < p.clips.length; i++) { const d = p.clips[i]?.dur ?? 0; if (t < s + d) return i; s += d } return -1 }
+    // klippenes plass på tidslinjen (som appen: overganger overlapper, så summen av lengdene er ikke starttidene)
+    const clipAt = (p: typeof base, t: number) => { const L = layout(p); for (let i = 0; i < L.length; i++) { const nx = L[i + 1]; const endT = nx ? nx.start + nx.tr / 2 : (L[i]?.end ?? 0); if (t < endT) return i } return -1 }
     base.texts.forEach((x, i) => expect(clipAt(r.proj, (r.proj.texts[i]?.start ?? 0) + 0.01), x.text).toBe(clipAt(base, x.start + 0.01)))
   })
 

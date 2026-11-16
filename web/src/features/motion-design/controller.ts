@@ -7,14 +7,15 @@ import { idle } from '../../shared/lib/idle'
 import { audioStats, beats, clearAudioCache, pcm, toWav, wave } from './engine/audio'
 import { canEncode, exportMp4 } from './engine/export'
 import {
-  clamp, colorClip, coverCrop, create, frameOverlay, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
+  clamp, clipDur, colorClip, coverCrop, create, frameOverlay, exportSize, fixLanes, fmtEta, fmtT, FONTS, FORMATS, fromSrt, layout, mediaClip, mixOf, music, normalize,
   contentDur, ovDur, overlay, srcTime, TEMPLATES, text, toSrt, TRANS, totalDur, uid, usedMedia, voiced, duckAt,
   LAYER_LABEL, LAYER_ROW, layerKey, type LayerType,
   type Clip, type Format, type Media, type MediaClip, type Music, type Overlay, type Project, type Sub, type TextItem, type TrackKey,
 } from './engine/model'
 import { cdAfter, cdBefore, cdStart, moveLane, shiftLayers, spanOf, splitOv, splitSub, trimAt, withKf, type EditResult } from './engine/edit'
 import { FX_DEFS, newEffect, type Effect, type FxKind } from './engine/fx'
-import { analyse, syncProject, type MotionStyle } from './engine/musicsync'
+import { analyse, minClip, syncProject, type MotionStyle } from './engine/musicsync'
+import { resizeProject } from './engine/length'
 import { keyAt, scaleKeys, upsertKey, valAt, type Ease, type Key, type Keys, type KfKind } from './engine/kf'
 import { pack, unpack } from './engine/packfile'
 import { boxFrac, drawFrame, type MediaEls, type Rect, type Rects } from './engine/render'
@@ -231,6 +232,41 @@ function fitVideo(len: number, D: number): { in: number; out: number; speed: num
   if (!(len > 0)) return { in: 0, out: D, speed: 1 }
   if (len >= D) return { in: 0, out: D, speed: 1 }
   return { in: 0, out: len, speed: Math.max(0.1, len / D) }
+}
+
+
+/**
+ * Music Sync og manuelle endringer: når synkroniseringen er i bruk og brukeren endrer lengden på et klipp (dra i kanten,
+ * trim, tallfelt, deling …), merkes klippet som fast – lengden beholdes når Music Sync kjøres på nytt. Synkroniseringen
+ * selv og globale endringer av tiden (lengdevalg, «tilpass lengden») merker ikke.
+ */
+function markFixed(a: Project, b: Project, key?: string): Project {
+  if (!b.sync || key === 'sync' || key === 'retime' || key === 'len') return b
+  let changed = false
+  let clips = b.clips, texts = b.texts, ov = b.ov
+  if (a.clips !== b.clips) {
+    const old = new Map(a.clips.map((c) => [c.id, c]))
+    clips = b.clips.map((c) => {
+      const o = old.get(c.id)
+      if (!o || c.fix) return c
+      if (Math.abs(clipDur(c) - clipDur(o)) > 0.005) { changed = true; return { ...c, fix: true } }
+      return c
+    })
+  }
+  // tekster og rammer som flyttes eller får ny lengde for hånd
+  const mv = <X extends { id: string; start: number; dur: number; fix?: boolean }>(nw: X[], od: X[]): X[] => {
+    if (nw === od) return nw
+    const old = new Map(od.map((x) => [x.id, x]))
+    return nw.map((x) => {
+      const o = old.get(x.id)
+      if (!o || x.fix) return x
+      if (Math.abs(x.start - o.start) > 0.005 || Math.abs(x.dur - o.dur) > 0.005) { changed = true; return { ...x, fix: true } }
+      return x
+    })
+  }
+  texts = mv(b.texts, a.texts)
+  ov = mv(b.ov, a.ov)
+  return changed ? { ...b, clips, texts, ov } : b
 }
 
 export class MotionController {
@@ -752,7 +788,7 @@ export class MotionController {
     }
     const s0 = this.s.proj
     if (!s0) return
-    const n = this.linkFollow(s0, fn(s0))
+    const n = markFixed(s0, this.linkFollow(s0, fn(s0)), key)
     const had = new Set<string>()
     const pin = new Set<string>()
     for (const k of ['texts', 'ov', 'music'] as const) for (const x of s0[k]) had.add(x.id)
@@ -769,7 +805,7 @@ export class MotionController {
   /** Setter prosjektet uten historikk og lagring (under dra; lagres når musen slippes). */
   private live(fn: (p: Project) => Project): void {
     const p = this.s.proj
-    if (p) this.set({ proj: fn(p) })
+    if (p) this.set({ proj: markFixed(p, fn(p)) })
   }
 
   undo(): void {
@@ -2469,8 +2505,10 @@ export class MotionController {
     const L = this.selList()
     if (!L.length) return
     const ids = new Set(L.map((x) => x.id))
+    const hadClip = this.s.proj?.clips.some((c) => ids.has(c.id))
     this.setProj((p) => ({ ...p, clips: p.clips.filter((x) => !ids.has(x.id)), texts: p.texts.filter((x) => !ids.has(x.id)), subs: p.subs.filter((x) => !ids.has(x.id)), music: p.music.filter((x) => !ids.has(x.id)), ov: p.ov.filter((x) => !ids.has(x.id)) }))
     this.set({ sel: null, multi: [], replaceFor: null, xform: null })
+    if (hadClip) this.autoSync()
   }
 
   copySel(): void {
@@ -2990,6 +3028,7 @@ export class MotionController {
       return { ...p, clips: arr }
     }, true, 'add')
     this.set({ sel: { type: 'clip', id: c.id } })
+    this.autoSync()
   }
 
   replaceClip(id: string, m: Media): void {
@@ -3013,6 +3052,7 @@ export class MotionController {
       }),
     }))
     this.set({ replaceFor: null, sel: { type: 'clip', id } })
+    this.autoSync()
   }
 
   /**
@@ -3124,7 +3164,7 @@ export class MotionController {
    * før synkroniseringen lagres, så Music Sync kan slås av (alt tilbake) eller brukes på nytt (f.eks. med ny musikk
    * eller en annen profil). Etterpå er alt vanlige verdier som kan justeres for hånd.
    */
-  async musicSync(style?: MotionStyle): Promise<void> {
+  async musicSync(style?: MotionStyle, over?: { base?: Project; target?: number | null }): Promise<void> {
     const p0 = this.s.proj
     const m = this.song()
     if (!p0 || !m) {
@@ -3134,9 +3174,8 @@ export class MotionController {
     if (this.s.syncBusy) return
     this.set({ syncBusy: true })
     try {
-      const base = p0.syncBase ? { ...p0, ...(JSON.parse(p0.syncBase) as Partial<Project>) } as Project : p0
+      const base = over?.base ?? this.syncSource(p0)
       const bm = base.music.find((x) => x.id === m.id) ?? m
-      // sangens kilde fra der sporet starter (malens start følger første slag)
       const a = await pcm(this.getBlob, m.media, 0, null).catch(() => null)
       const cur = this.s.proj
       if (!a || !cur || !a.x.length) {
@@ -3153,9 +3192,17 @@ export class MotionController {
       // musikken som brukes nå (kan være byttet siden første synkronisering)
       const src = { ...base, music: base.music.map((x) => (x.id === bm.id ? { ...x, media: m.media, name: m.name, in: bm.media === m.media ? bm.in : 0, out: m.out, srcDur: m.srcDur } : x)) }
       const song0 = src.music.find((x) => x.id === m.id)?.in ?? 0
-      const r = syncProject(src, map, st, { songStart: song0, fxSec })
-      const snap = JSON.stringify({ clips: base.clips, texts: base.texts, ov: base.ov, subs: base.subs, markers: base.markers, music: base.music, tempo: base.tempo })
-      this.setProj(() => ({ ...r.proj, sync: { style: st, bpm: Math.round(map.bpm * 10) / 10, media: m.media }, syncBase: snap }), true, 'sync')
+      // klipp, tekster og rammer brukeren har justert for hånd, beholder tiden sin
+      const keep: Record<string, number> = {}
+      for (const c of cur.clips) if (c.fix) keep[c.id] = clipDur(c)
+      const target = over && 'target' in over ? over.target : (cur.dur && cur.dur > 0 ? cur.dur : null)
+      const r = syncProject(src, map, st, { songStart: song0, fxSec, keep, target: target ?? null })
+      const ft = new Map(cur.texts.filter((x) => x.fix).map((x) => [x.id, x]))
+      const fo = new Map(cur.ov.filter((x) => x.fix).map((x) => [x.id, x]))
+      const out = { ...r.proj, texts: r.proj.texts.map((x) => ft.get(x.id) ?? x), ov: r.proj.ov.map((x) => fo.get(x.id) ?? x) }
+      const snap = JSON.stringify({ clips: src.clips, texts: src.texts, ov: src.ov, subs: src.subs, markers: src.markers, music: src.music, tempo: src.tempo })
+      const auto = cur.sync ? cur.sync.auto !== false : true
+      this.setProj(() => ({ ...out, sync: { style: st, bpm: Math.round(map.bpm * 10) / 10, media: m.media, ...(auto ? {} : { auto: false }) }, syncBase: snap }), true, 'sync')
       const n = map.events.filter((e) => e.kind === 'drop').length
       this.flash(n ? 'Music Sync: malen følger musikken ({bpm} BPM, {n} drop).' : 'Music Sync: malen følger musikken ({bpm} BPM).', { bpm: Math.round(map.bpm), n })
     } finally {
@@ -3163,8 +3210,86 @@ export class MotionController {
     }
   }
 
+  /**
+   * Grunnlaget for Music Sync: prosjektet slik det er nå (byttet innhold, nye og slettede klipp, tekstendringer, ny musikk
+   * og lengde), med malens tid fra før synkroniseringen for alt som finnes der og ikke er justert for hånd. Nye elementer
+   * beholder sin tid. Slik går ingenting av brukerens arbeid tapt når Music Sync kjøres på nytt.
+   */
+  syncSource(p0: Project): Project {
+    if (!p0.syncBase) return p0
+    let sb: Partial<Project>
+    try { sb = JSON.parse(p0.syncBase) as Partial<Project> } catch { return p0 }
+    const bc = new Map((sb.clips ?? []).map((c) => [c.id, c]))
+    const bt = new Map((sb.texts ?? []).map((x) => [x.id, x]))
+    const bo = new Map((sb.ov ?? []).map((x) => [x.id, x]))
+    const kfs = <K extends Record<string, { t: number }[]> | undefined>(k: K, f: number): K => (k ? Object.fromEntries(Object.entries(k).map(([n, l]) => [n, l.map((q) => ({ ...q, t: q.t * f }))])) as K : k)
+    const clips = p0.clips.map((c) => {
+      const o = bc.get(c.id)
+      if (!o || c.fix) return c
+      const d = clipDur(o), now = clipDur(c)
+      const tr = { ...c.trans, dur: o.trans.dur }
+      const kf = c.kf ? { kf: kfs(c.kf, d / Math.max(0.05, now)) } : {}
+      if (c.kind === 'video') return { ...c, ...kf, trans: tr, speed: Math.max(0.1, Math.min(8, (c.out - c.in) / d)) }
+      return { ...c, ...kf, trans: tr, dur: d }
+    }) as Clip[]
+    const texts = p0.texts.map((x) => { const o = bt.get(x.id); return o && !x.fix ? { ...x, start: o.start, dur: o.dur, ...(x.kf ? { kf: kfs(x.kf, o.dur / Math.max(0.05, x.dur)) } : {}), ...(o.cdDur !== undefined ? { cdDur: o.cdDur } : {}) } : x })
+    const ov = p0.ov.map((x) => {
+      const o = bo.get(x.id)
+      if (!o || x.fix) return x
+      return { ...x, start: o.start, dur: o.dur, fadeIn: o.fadeIn, fadeOut: o.fadeOut, ...(x.kind === 'video' && !x.shape ? { speed: Math.max(0.1, Math.min(8, (x.out - x.in) / Math.max(0.1, o.dur))) } : {}), ...(x.kf ? { kf: kfs(x.kf, o.dur / Math.max(0.05, x.dur)) } : {}), ...(o.matte?.brush && x.matte ? { matte: { ...x.matte, brush: o.matte.brush } } : {}) }
+    })
+    const subs = sb.subs && sb.subs.length === p0.subs.length ? sb.subs : p0.subs
+    const markers = p0.markers.filter((k) => k.label !== 'Takt' && !k.id.startsWith('sync-'))
+    return { ...p0, clips, texts, ov, subs, markers, ...(sb.tempo ? { tempo: sb.tempo } : {}) }
+  }
+
+  /** Automatisk / manuell Music Sync: automatisk kjøres den på nytt etter bytte av musikk eller klipp, og ny lengde. */
+  setSyncAuto(on: boolean): void {
+    this.setProj((p) => (p.sync ? { ...p, sync: { ...p.sync, ...(on ? {} : { auto: false }) } } : p), true, 'sync-auto')
+    if (on) {
+      const q = this.s.proj
+      if (q?.sync) { const { auto: _a, ...rest } = q.sync; void _a; this.setProj((p) => ({ ...p, sync: rest }), false) }
+    }
+  }
+
+  private asT: ReturnType<typeof setTimeout> | undefined
+  /** Etter en endring som påvirker timingen: Music Sync på nytt når den er på og står på automatisk. */
+  private autoSync(): void {
+    const p = this.s.proj
+    if (!p?.sync || p.sync.auto === false || !p.music.length) return
+    clearTimeout(this.asT)
+    // (sjekkes på nytt når tiden er ute: brukeren kan ha slått av Music Sync eller valgt manuelt i mellomtiden)
+    this.asT = setTimeout(() => { const q = this.s.proj; if (q?.sync && q.sync.auto !== false && q.music.length) void this.musicSync() }, 400)
+  }
+
+  /**
+   * Lengden på videoen (s), eller «som musikken». Malen forlenges eller forkortes uten å miste designet (engine/length.ts);
+   * er Music Sync på, planlegges timingen på nytt for den nye lengden.
+   */
+  setLength(v: number | 'music'): void {
+    const p = this.s.proj
+    if (!p) return
+    const m = this.song()
+    const T = v === 'music' ? (m ? m.out - m.in : 0) : v
+    if (!(T > 1) || T > 3600) {
+      if (v === 'music') this.flash('Legg til musikk først.')
+      return
+    }
+    if (p.sync && m) {
+      // malens tid (uten synkroniseringen) får ny lengde, så planlegges timingen etter musikken på nytt
+      const own = p.clips.slice(1).map((c) => clipDur(c)).sort((a, b) => a - b)
+      const mc = minClip(p.sync.style, own[Math.floor(own.length / 2)] ?? 1) * 1.6
+      const base = resizeProject(this.syncSource(p), T, { minClip: mc })
+      void this.musicSync(undefined, { base, target: T })
+      return
+    }
+    this.setProj((q) => resizeProject(q, T), true, 'len')
+    this.flash('Videoen er nå {s} s.', { s: Math.round(T * 10) / 10 })
+  }
+
   /** Slår av Music Sync: malens tid før synkroniseringen kommer tilbake (musikken blir værende). */
   musicSyncOff(): void {
+    clearTimeout(this.asT)
     const p = this.s.proj
     if (!p?.syncBase) return
     const base = JSON.parse(p.syncBase) as Partial<Project>
@@ -3201,7 +3326,9 @@ export class MotionController {
       return
     }
     this.setProj((p) => ({ ...p, music: p.music.map((x) => (x.id === m.id ? { ...x, media: a.id, name: a.name, in: 0, out: a.dur || 30, srcDur: a.dur || 30 } : x)) }))
-    this.flash('Musikken er byttet. Trykk «Music Sync» for å følge den nye sangen.')
+    const q = this.s.proj
+    if (q?.sync && q.sync.auto !== false) this.autoSync()
+    else this.flash('Musikken er byttet. Trykk «Music Sync» for å følge den nye sangen.')
   }
 
   /** Spiller av fra start med musikken (forhåndslytting). */
@@ -3234,11 +3361,32 @@ export class MotionController {
       this.flash('Importer bilder eller videoer først, så fylles plassholderne med dem.')
       return
     }
+    // samme video i flere felt: hvert felt viser et annet øyeblikk (startpunktene spres over videoen) – ikke samme
+    // åpning (og samme første bilde) i alle feltene
+    const uses = new Map<string, number>()
+    const total = new Map<string, number>()
+    labels.forEach((_, i) => { const m = media[i % media.length] as Media; total.set(m.id, (total.get(m.id) ?? 0) + 1) })
     labels.forEach((ph, i) => {
       const m = media[i % media.length] as Media
       const cur = this.s.proj
       if (!cur) return
-      for (const c of cur.clips) if (c.kind === 'color' && c.ph === ph) this.replaceClip(c.id, m)
+      const k = uses.get(m.id) ?? 0
+      uses.set(m.id, k + 1)
+      for (const c of cur.clips) {
+        if (c.kind !== 'color' || c.ph !== ph) continue
+        this.replaceClip(c.id, m)
+        const n = total.get(m.id) ?? 1
+        if (m.kind === 'video' && n > 1 && (m.dur || 0) > 0) {
+          this.setProj((p) => ({ ...p, clips: p.clips.map((q) => {
+            if (q.id !== c.id || q.kind !== 'video') return q
+            const len = q.out - q.in
+            const room = Math.max(0, (m.dur || 0) - len - 0.05)
+            // jevnt fordelt, men aldri helt i starten (åpningsbildet) når det er plass
+            const at = room > 0 ? Math.min(room, 0.1 + (room - 0.1) * ((k % n) / Math.max(1, n - 1))) : 0
+            return { ...q, in: at, out: at + len }
+          }) }), false)
+        }
+      }
       for (const o of cur.ov) if (o.ph === ph) this.replaceOv(o.id, m)
     })
     this.set({ sel: null })

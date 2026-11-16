@@ -1,6 +1,6 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { IMAGE_ACCEPT, PRESETS, TRSTD, type MotionController, type MState, type Tab } from './controller'
 import { fmtD, fmtT, totalDur, usedMedia, type Media, type Project } from './engine/model'
 import { WHISPER_MODELS } from './engine/transcribe'
@@ -204,8 +204,15 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
                     </label>
                     <button type="button" className={s.bigLight} data-md-sync="" disabled={S.syncBusy} aria-busy={S.syncBusy} onClick={() => void c.musicSync()}>{tx(S.syncBusy ? 'Analyserer …' : p.sync ? 'Bruk Music Sync på nytt' : 'Music Sync')}</button>
                     {p.sync && <button type="button" className={s.dashed} data-md-sync-off="" disabled={S.syncBusy} onClick={() => c.musicSyncOff()}>{tx('Slå av Music Sync')}</button>}
+                    {p.sync && (
+                      <label className={s.lbl} title={tx('Automatisk: Music Sync kjøres på nytt når du bytter musikk eller klipp, legger til eller fjerner klipp, eller endrer lengden. Manuelt: bare når du trykker på knappen.')}>
+                        <input type="checkbox" data-md-sync-auto="" checked={p.sync.auto !== false} onChange={(e) => c.setSyncAuto(e.target.checked)} />
+                        <span className={s.b}>{tx('Automatisk ved endringer')}</span>
+                      </label>
+                    )}
                     <span className={s.hint}>{tx('Klipp, overganger, tekster og keyframes følger takten og intensiteten. Designet endres ikke, og alt kan justeres for hånd etterpå.')}</span>
                   </div>
+                  <LengthBox c={c} p={p} tx={tx} busy={S.syncBusy} />
                   <button type="button" className={s.dashed} data-md-fit-len="" onClick={() => c.fitLength()}>{tx('Tilpass lengden til musikken')}</button>
                   <button type="button" className={s.dashed} data-md-replace-music="" onClick={() => c.pickFiles('music-replace', 'audio/*')}>{tx('Bytt musikk …')}</button>
                 </>
@@ -278,5 +285,32 @@ export function LeftPanel({ c, S, p, tx, onShared, onLogoCloud }: { c: MotionCon
         )}
       </div>
     </>
+  )
+}
+
+/**
+ * Lengden på videoen: malen forlenges (nye medieplasser, gjentakelse med variasjon) eller forkortes (de viktigste delene
+ * beholdes) uten å miste designet; med Music Sync på planlegges timingen etter musikken for den nye lengden.
+ */
+function LengthBox({ c, p, tx, busy }: { c: MotionController; p: Project; tx: Tx; busy: boolean }) {
+  const cur = Math.round(totalDur(p) * 10) / 10
+  // utkast mens det skrives (ellers vises gjeldende lengde)
+  const [draft, setDraft] = useState<string | null>(null)
+  const v = draft ?? String(cur)
+  const go = (x: number | 'music') => { setDraft(null); c.setLength(x) }
+  return (
+    <div className={s.syncBox} data-md-length="">
+      <span className={s.eyebrowSm}>{tx('Lengde')}</span>
+      <span className={s.hint} data-md-length-now="">{tx('Nå: {s} s', { s: cur })}</span>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[15, 30, 60].map((x) => <button key={x} type="button" className={s.dashed} data-md-length-set={x} disabled={busy} onClick={() => go(x)}>{x} s</button>)}
+        <button type="button" className={s.dashed} data-md-length-set="music" disabled={busy} onClick={() => go('music')}>{tx('Som musikken')}</button>
+      </div>
+      <label className={s.lbl}>
+        <span className={s.b}>{tx('Egen lengde (s)')}</span>
+        <input className={s.num} data-md-length-input="" inputMode="decimal" value={v} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const n = Number(v.replace(',', '.')); if (n > 1) go(n) } }} onBlur={() => { const n = Number(v.replace(',', '.')); if (n > 1 && Math.abs(n - cur) > 0.05) go(n); else setDraft(null) }} />
+      </label>
+      <span className={s.hint}>{tx('Lengre: nye medieplasser og gjentakelse med variasjon. Kortere: de viktigste delene beholdes. Designet og animasjonene beholdes.')}</span>
+    </div>
   )
 }
