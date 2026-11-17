@@ -20,9 +20,9 @@ const g = (no: string, en: string, items: Shortcut[]): ShortcutGroup => ({ title
 
 /** Arbeidsflaten (lerret): samme i Photo Design, Thumbnail Studio og maskeredigeringen. */
 const canvas = g('Arbeidsflaten', 'Canvas', [
-  s('Hjul / to fingre opp–ned', 'Zoom rundt pekeren', 'Zoom at the pointer'),
-  s('Knip', 'Jevn zoom', 'Smooth zoom'),
-  s('Shift + hjul / to fingre sidelengs', 'Rull sideveis', 'Scroll sideways'),
+  s('Shift + hjul', 'Zoom rundt pekeren', 'Zoom at the pointer'),
+  s('Knip / to fingre (berøring)', 'Jevn zoom', 'Smooth zoom'),
+  s('Hjul / to fingre', 'Rull', 'Scroll'),
   s('Mellomrom + dra', 'Panorer (midlertidig hånd)', 'Pan (temporary hand)'),
   s('Midtknapp + dra', 'Panorer', 'Pan'),
   s('+ / −', 'Zoom inn / ut', 'Zoom in / out'),
@@ -80,8 +80,8 @@ export const SHORTCUTS: Record<string, readonly ShortcutGroup[]> = {
   'motion-design': [
     g('Tidslinjen', 'Timeline', [
       s('Hjul / to fingre opp–ned', 'Rull mellom spor', 'Scroll between tracks'),
-      s('Shift + hjul / to fingre sidelengs', 'Rull i tid', 'Scroll in time'),
-      s('Mod + hjul / Alt + hjul / knip', 'Zoom i tid rundt pekeren', 'Zoom in time at the pointer'),
+      s('To fingre sidelengs', 'Rull i tid', 'Scroll in time'),
+      s('Shift + hjul / Mod + hjul / Alt + hjul / knip', 'Zoom i tid rundt pekeren', 'Zoom in time at the pointer'),
       s('+ / − (Avansert)', 'Zoom i tid rundt spillehodet', 'Zoom in time around the playhead'),
       s('Shift+Z (Avansert)', 'Tilpass hele tidslinjen', 'Fit the whole timeline'),
       s('Mellomrom', 'Spill av / pause', 'Play / pause'),
@@ -110,7 +110,7 @@ export const SHORTCUTS: Record<string, readonly ShortcutGroup[]> = {
       s('Mellomrom', 'Spill av / pause', 'Play / pause'),
       s('Mod+Z / Mod+Shift+Z', 'Angre / gjør om', 'Undo / redo'),
       s('Alt + ← / → / Home / End', 'Flytt valgt slide', 'Move the selected slide'),
-      s('Hjul over forhåndsvisningen', 'Zoom rundt pekeren', 'Zoom at the pointer'),
+      s('Shift + hjul / knip med to fingre over forhåndsvisningen', 'Zoom rundt pekeren', 'Zoom at the pointer'),
       s('Høyreklikk / Shift+F10 på en slide', 'Dupliser, skjul, flytt, fjern', 'Duplicate, hide, move, remove'),
     ]),
     values,
@@ -123,7 +123,7 @@ export const SHORTCUTS: Record<string, readonly ShortcutGroup[]> = {
       s('← / →', 'Forrige / neste mockup', 'Previous / next mockup'),
       s('Escape', 'Avslutt plassering / lukk', 'Finish placing / close'),
       s('Høyreklikk / Shift+F10', 'Meny for designet', 'Design menu'),
-      s('Hjul / knip', 'Zoom rundt pekeren', 'Zoom at the pointer'),
+      s('Shift + hjul / knip', 'Zoom rundt pekeren', 'Zoom at the pointer'),
       s('Mellomrom + dra / midtknapp', 'Panorer', 'Pan'),
       s('+ / − / 0', 'Zoom inn / ut / tilpass', 'Zoom in / out / fit'),
       s('Alt+0', 'Forrige visning', 'Previous view'),

@@ -94,23 +94,26 @@ test('flytting og zoom: mus, styreflate, knip, midtknapp, mellomrom og to fingre
   // musehjul (hakk) zoomer 1,25× per hakk, og bildepunktet under markøren står stille
   const a = await scr(page, 120, 90)
   await page.mouse.move(a.x, a.y)
+  // zoom ved pekeren: Shift + hjul
+  await page.keyboard.down('Shift')
   await page.mouse.wheel(0, -120)
   await page.mouse.wheel(0, -120)
+  await page.keyboard.up('Shift')
   await page.waitForTimeout(80)
   const v1 = await viewOf(page)
   expect(v1.s / v0.s).toBeCloseTo(1.5625, 3)
   const a1 = await scr(page, 120, 90)
   expect(Math.abs(a1.x - a.x) + Math.abs(a1.y - a.y)).toBeLessThan(1.5)
 
-  // styreflate: to fingre sidelengs (dominerende deltaX) flytter sideveis uten å zoome
+  // styreflate: to fingre uten Shift ruller (flytter i begge retninger) uten å zoome
   await page.locator('[data-mask-canvas]').evaluate((c) => c.dispatchEvent(new WheelEvent('wheel', { deltaX: 30.5, deltaY: 4.25, clientX: 700, clientY: 400, bubbles: true, cancelable: true })))
   await page.waitForTimeout(80)
   const v1b = await viewOf(page)
   expect(v1b.s).toBeCloseTo(v1.s, 6)
   expect(v1b.ox).toBeCloseTo(v1.ox - 30.5, 3)
-  expect(v1b.oy).toBeCloseTo(v1.oy, 3)
-  // styreflate loddrett (brøkdeler): zoomer jevnt, panorerer ikke opp/ned
-  await page.locator('[data-mask-canvas]').evaluate((c) => c.dispatchEvent(new WheelEvent('wheel', { deltaY: -6.5, clientX: 700, clientY: 400, bubbles: true, cancelable: true })))
+  expect(v1b.oy).toBeCloseTo(v1.oy - 4.25, 3)
+  // Shift + styreflate loddrett (brøkdeler): zoomer jevnt, panorerer ikke opp/ned
+  await page.locator('[data-mask-canvas]').evaluate((c) => c.dispatchEvent(new WheelEvent('wheel', { deltaY: -6.5, shiftKey: true, clientX: 700, clientY: 400, bubbles: true, cancelable: true })))
   await page.waitForTimeout(80)
   const v2 = await viewOf(page)
   expect(v2.s / v1b.s).toBeCloseTo(Math.exp(0.065), 3)

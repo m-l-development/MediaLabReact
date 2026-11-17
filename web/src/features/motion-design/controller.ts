@@ -2255,7 +2255,8 @@ export class MotionController {
   }
 
   private onTlWheel = (e: WheelEvent): void => {
-    if (!(e.ctrlKey || e.metaKey || e.altKey)) return
+    // zoom ved pekeren: Shift + hjul (som de andre arbeidsflatene), Ctrl/⌘/Alt + hjul og knip som før
+    if (!(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey)) return
     e.preventDefault()
     const tl = this.els.tl
     const inner = this.els.tlInner

@@ -29,7 +29,7 @@ async function photo(page: Page) {
   await page.waitForTimeout(800)
 }
 
-test('Photo Design: rulling zoomer rundt pekeren, Shift+hjul ruller sideveis, mellomrom+dra panorerer uten å flytte laget', async ({ page }) => {
+test('Photo Design: Shift + hjul zoomer rundt pekeren, vanlig rulling zoomer ikke, mellomrom+dra panorerer uten å flytte laget', async ({ page }) => {
   await photo(page)
   const wrap = page.locator('[data-pd-wrap]')
   const stage = wrap.locator('xpath=..')
@@ -37,7 +37,12 @@ test('Photo Design: rulling zoomer rundt pekeren, Shift+hjul ruller sideveis, me
   const sb = await box(stage)
   const p0x = sb.x + sb.width * 0.4
   const p0y = sb.y + sb.height * 0.45
-  for (let i = 0; i < 2; i++) await wheelAt(stage, p0x, p0y, { deltaY: -120 })
+  // vanlig hjul (uten Shift) zoomer ikke
+  const wz = (await box(wrap)).width
+  await wheelAt(stage, p0x, p0y, { deltaY: -120 })
+  await page.waitForTimeout(150)
+  expect((await box(wrap)).width, 'hjulet uten Shift zoomet').toBeCloseTo(wz, 0)
+  for (let i = 0; i < 2; i++) await wheelAt(stage, p0x, p0y, { deltaY: -120, shiftKey: true })
   await page.waitForTimeout(150)
   const w0 = (await box(wrap)).width
   const b = await box(wrap)
@@ -47,7 +52,7 @@ test('Photo Design: rulling zoomer rundt pekeren, Shift+hjul ruller sideveis, me
   // dokumentpunktet under pekeren før zoom (andel av bredde/høyde)
   const fx = (px - b.x) / b.width
   const fy = (py - b.y) / b.height
-  for (let i = 0; i < 3; i++) await wheelAt(stage, px, py, { deltaY: -120 })
+  for (let i = 0; i < 3; i++) await wheelAt(stage, px, py, { deltaY: -120, shiftKey: true })
   await page.waitForTimeout(150)
   const b1 = await box(wrap)
   expect(b1.width / w0, '3 hakk = 1,25³').toBeCloseTo(Math.pow(1.25, 3), 1)
@@ -55,14 +60,20 @@ test('Photo Design: rulling zoomer rundt pekeren, Shift+hjul ruller sideveis, me
   expect(Math.abs(b1.x + fx * b1.width - px)).toBeLessThan(3)
   expect(Math.abs(b1.y + fy * b1.height - py)).toBeLessThan(3)
   const st0 = await stage.evaluate((e) => [e.scrollLeft, e.scrollTop])
-  // styreflate loddrett: zoomer (ruller ikke)
-  await wheelAt(stage, px, py, { deltaY: 8.5 })
+  // Shift + styreflate: jevn zoom
+  await wheelAt(stage, px, py, { deltaY: 8.5, shiftKey: true })
   await page.waitForTimeout(100)
-  expect((await box(wrap)).width).toBeLessThan(b1.width)
-  // Shift + hjul: sideveis
+  const b2 = await box(wrap)
+  expect(b2.width).toBeLessThan(b1.width)
+  // vanlig rulling ruller flaten (loddrett og sidelengs) og zoomer ikke
+  const top0 = await stage.evaluate((e) => e.scrollTop)
+  await wheelAt(stage, px, py, { deltaY: 120 })
+  await page.waitForTimeout(100)
+  expect(await stage.evaluate((e) => e.scrollTop)).toBeGreaterThan(top0)
   const before = await stage.evaluate((e) => e.scrollLeft)
-  await wheelAt(stage, px, py, { deltaY: 120, shiftKey: true })
+  await wheelAt(stage, px, py, { deltaX: 120 })
   expect(await stage.evaluate((e) => e.scrollLeft)).toBeGreaterThan(before)
+  expect((await box(wrap)).width).toBeCloseTo(b2.width, 0)
   // mellomrom + dra: panorerer, laget står stille i dokumentet (ingen angre-historikk)
   const layers0 = await page.locator('[data-layer]').count()
   const sc0 = await stage.evaluate((e) => [e.scrollLeft, e.scrollTop])
@@ -143,7 +154,7 @@ async function thumb(page: Page) {
   await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
 }
 
-test('Thumbnail Studio: rulling zoomer rundt pekeren; lagmenyen kan brukes med tastatur; panelet ruller som vanlig', async ({ page }) => {
+test('Thumbnail Studio: Shift + hjul zoomer rundt pekeren, vanlig hjul zoomer ikke; lagmenyen kan brukes med tastatur; panelet ruller som vanlig', async ({ page }) => {
   await thumb(page)
   const overlay = page.locator('[data-ts-overlay]')
   const stage = overlay.locator('xpath=../..')
@@ -151,7 +162,10 @@ test('Thumbnail Studio: rulling zoomer rundt pekeren; lagmenyen kan brukes med t
   const px = b.x + b.width * 0.7
   const py = b.y + b.height * 0.3
   const fx = (px - b.x) / b.width
-  for (let i = 0; i < 3; i++) await wheelAt(stage, px, py, { deltaY: -100 })
+  await wheelAt(stage, px, py, { deltaY: -100 })
+  await page.waitForTimeout(150)
+  expect((await box(overlay)).width, 'hjulet uten Shift zoomet').toBeCloseTo(b.width, 0)
+  for (let i = 0; i < 3; i++) await wheelAt(stage, px, py, { deltaY: -100, shiftKey: true })
   await page.waitForTimeout(150)
   const b1 = await box(overlay)
   expect(b1.width / b.width).toBeCloseTo(Math.pow(1.25, 3), 1)
@@ -179,7 +193,7 @@ test('Thumbnail Studio: rulling zoomer rundt pekeren; lagmenyen kan brukes med t
 })
 
 // ---------- Loop Studio ----------
-test('Loop Studio: rulling over forhåndsvisningen zoomer uten Ctrl', async ({ page }) => {
+test('Loop Studio: Shift + hjul over forhåndsvisningen zoomer; vanlig hjul gjør det ikke', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/loop-studio?mal=week')
   const view = page.locator('div[style*="transform-origin"]').first()
@@ -188,5 +202,10 @@ test('Loop Studio: rulling over forhåndsvisningen zoomer uten Ctrl', async ({ p
   const tf = () => page.evaluate(() => [...document.querySelectorAll<HTMLElement>('div')].map((d) => d.style.transform).find((t) => /scale\(/.test(t)) ?? '')
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
   await page.mouse.wheel(0, -120)
+  await page.waitForTimeout(300)
+  expect(await tf(), 'hjulet uten Shift zoomet').not.toMatch(/scale\(1\.2/)
+  await page.keyboard.down('Shift')
+  await page.mouse.wheel(0, -120)
+  await page.keyboard.up('Shift')
   await expect.poll(tf).toMatch(/scale\(1\.2/)
 })

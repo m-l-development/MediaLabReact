@@ -4,8 +4,8 @@ import { anchorScroll, isTypingTarget, wheelAction } from './workspace-nav'
 /**
  * Navigering på en arbeidsflate der lerretet ligger i en rullbar beholder (`stage` med overflow: auto, `content` med
  * størrelse etter zoom) – Photo Design og Thumbnail Studio. Samme regler som maskeredigeringen (workspace-nav):
- * - loddrett rulling og knip zoomer rundt punktet under pekeren (rulling flytter ikke flaten opp og ned);
- * - sidelengs rulling og Shift + hjul ruller sideveis;
+ * - Shift + hjul (og knip på styreflaten / to fingre på berøringsskjerm) zoomer rundt punktet under pekeren;
+ * - vanlig rulling ruller flaten (aldri zoom);
  * - mellomrom + dra eller dra med midtknappen panorerer (som Photoshop/Figma/After Effects); verktøyene får ikke
  *   klikket, så panorering tegner, flytter eller markerer aldri noe.
  * - Alt+0: forrige visning (zoom og utsnitt før siste hopp, f.eks. «Tilpass» eller 100 %); igjen bytter tilbake.
