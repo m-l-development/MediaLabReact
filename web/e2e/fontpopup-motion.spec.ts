@@ -1,7 +1,7 @@
 import fs0 from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { leftTab, newAdvProject, saveAndReload, seekTo } from './motion-helpers'
-import { canvasUrl, diffScaled, pop, settled, watchErrors } from './fontpopup-kit'
+import { diffScaled, pop, settled, watchErrors } from './fontpopup-kit'
 
 /**
  * Fontpopupen i Motion Design: teksten tegnes med <StyledText> (samme tegnemotor som de andre verktøyene), og alle
@@ -36,12 +36,19 @@ function frameAt(page: Page, file: Buffer, t: number): Promise<string> {
     v.muted = true
     v.src = URL.createObjectURL(new Blob([bin], { type: 'video/mp4' }))
     await new Promise((r, j) => { v.onloadeddata = r; v.onerror = () => j(new Error('video kan ikke spilles')) })
-    v.currentTime = t
-    await new Promise((r) => { v.onseeked = r })
     const c = document.createElement('canvas')
     c.width = v.videoWidth
     c.height = v.videoHeight
-    c.getContext('2d')!.drawImage(v, 0, 0)
+    const g = c.getContext('2d', { willReadFrequently: true })!
+    // ruten må være dekodet før den tegnes (ellers blir bildet tomt): vent på ruten og sjekk at noe er tegnet
+    for (let i = 0; i < 8; i++) {
+      v.currentTime = t + i * 0.001
+      await new Promise((r) => { v.onseeked = r })
+      await new Promise<void>((r) => { const vv = v as HTMLVideoElement & { requestVideoFrameCallback?: (f: () => void) => void }; if (vv.requestVideoFrameCallback) vv.requestVideoFrameCallback(() => r()); setTimeout(r, 400) })
+      g.clearRect(0, 0, c.width, c.height)
+      g.drawImage(v, 0, 0)
+      if (g.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3]) break
+    }
     return c.toDataURL('image/png')
   }, { b64: file.toString('base64'), t })
 }
@@ -118,6 +125,7 @@ test('fontpopupen i Motion: stil på lerretet, animasjoner bokstav for bokstav, 
   expect(await diffScaled(page, before, after, 480, 30, 0.12), 'teksten er ikke lik etter innlasting').toBeLessThan(0.01)
 
   // MP4: bildet ved 3 s er likt lerretet
+  const cv3 = await settled(page, CV)
   const dl = page.waitForEvent('download', { timeout: 300_000 })
   if (!(await page.getByRole('button', { name: 'Eksporter MP4' }).count())) await page.getByRole('button', { name: 'Eksporter', exact: true }).click()
   await page.getByRole('button', { name: 'Eksporter MP4' }).click()
@@ -126,8 +134,8 @@ test('fontpopupen i Motion: stil på lerretet, animasjoner bokstav for bokstav, 
   const buf = fs.readFileSync(await d.path())
   const fr = await frameAt(page, buf, 3)
   fs0.writeFileSync(info.outputPath('mp4.png'), Buffer.from(fr.split(',')[1]!, 'base64'))
-  fs0.writeFileSync(info.outputPath('lerret.png'), Buffer.from((await canvasUrl(page, CV)).split(',')[1]!, 'base64'))
-  expect(await diffScaled(page, fr, await canvasUrl(page, CV), 480, 60, 0.12), 'MP4-bildet er ikke likt lerretet').toBeLessThan(0.01)
+  fs0.writeFileSync(info.outputPath('lerret.png'), Buffer.from(cv3.split(',')[1]!, 'base64'))
+  expect(await diffScaled(page, fr, cv3, 480, 60, 0.12), 'MP4-bildet er ikke likt lerretet').toBeLessThan(0.01)
 
   expect(errors, errors.join('\n')).toEqual([])
 })

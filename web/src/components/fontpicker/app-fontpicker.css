@@ -13,3 +13,9 @@
   contain: none !important;
   will-change: auto !important;
 }
+
+/* Etiketten over feltet står på appens panel: appens tekstfarge (lesbar i både mørkt og lyst tema). Popupen og feltet
+   har sitt eget, faste mørke tema (som skjermbildene). */
+.fp > .fp-label {
+  color: var(--color-text, #8d8d88);
+}

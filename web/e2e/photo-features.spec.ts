@@ -17,6 +17,17 @@ const print = (page: Page) => page.locator(C).first().evaluate((c: HTMLCanvasEle
 })
 const settle = (page: Page) => page.waitForTimeout(350)
 
+/** Fontpopupen: velg en effekt (Effekter) eller form (Stil) for tekstlaget, og lukk popupen. */
+async function popPick(page: Page, tab: 'Effekter' | 'Stil', name: string) {
+  const P = page.getByRole('dialog', { name: 'Velg font' })
+  if (!(await P.count())) await page.locator('[data-fontpop] .fp-trigger').first().click()
+  await P.getByRole('tab', { name: tab, exact: true }).click()
+  const re = new RegExp('^' + name + '$')
+  if (tab === 'Stil') await P.locator('.fp-shapes button', { hasText: re }).click()
+  else await P.locator('.fp-fx:not(.fp-presets-grid):not(.fp-shapes) > button').filter({ has: page.locator('small', { hasText: re }) }).click()
+  await page.keyboard.press('Escape')
+}
+
 test('tekst og former: glød, bakgrunnsboks, slitt tekst, sirkelbane, bilde i teksten, mønster, stiplet kant og skygge', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
@@ -36,13 +47,14 @@ test('tekst og former: glød, bakgrunnsboks, slitt tekst, sirkelbane, bilde i te
     expect(q, what).not.toBe(p)
     p = q
   }
-  await page.getByRole('switch', { name: 'Glød' }).click()
+  // glød, bakgrunnsboks, slitt tekst og sirkelbane er effekter/former i fontpopupen
+  await popPick(page, 'Effekter', 'Glød')
   await changed('Glød')
-  await page.getByRole('switch', { name: 'Bakgrunnsboks' }).click()
+  await popPick(page, 'Effekter', 'Boks')
   await changed('Bakgrunnsboks')
-  await page.getByRole('slider', { name: 'Slitt tekst' }).fill('0.6')
+  await popPick(page, 'Effekter', 'Slitt')
   await changed('Slitt tekst')
-  await page.getByRole('slider', { name: 'Tekst på sirkelbane' }).fill('600')
+  await popPick(page, 'Stil', 'Sirkel')
   await changed('Sirkelbane')
   const ch = page.waitForEvent('filechooser')
   await page.locator('[data-pd-textfill]').getByRole('button', { name: 'Velg bilde' }).click()

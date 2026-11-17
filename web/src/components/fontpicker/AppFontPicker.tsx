@@ -68,6 +68,8 @@ export default function AppFontPicker(p: AppFontPickerProps) {
     }
   }
   return (
+    // Esc i popupen lukker bare popupen (ikke også markeringen i editoren)
+    <div style={{ display: 'contents' }} data-keep-color="" onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
     <FontPicker
       fonts={FONT_LIST}
       categories={FONT_CATEGORIES}
@@ -85,5 +87,6 @@ export default function AppFontPicker(p: AppFontPickerProps) {
       backgroundImage={bgUrl}
       baseSize={p.baseSize}
     />
+    </div>
   )
 }

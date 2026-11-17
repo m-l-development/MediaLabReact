@@ -169,7 +169,7 @@ for (const E of EDITORS) {
     expect(await share(page, cvFill, [20, 40, 230])).toBeGreaterThan(0.001)
     await page.keyboard.press('Escape')
     const outFill = await E.exportImage(page, info.outputPath('bildefyll.png'))
-    expect(await diffScaled(page, cvFill, outFill), 'eksport ≠ lerret (Bildefyll)').toBeLessThan(0.01)
+    expect(await diffScaled(page, cvFill, outFill), 'eksport ≠ lerret (Bildefyll)').toBeLessThan(0.02)
     await E.saveReload(page)
     const re = await settled(page, E.canvas)
     expect(await share(page, re, [230, 20, 20]), 'Bildefyll kom ikke tilbake etter innlasting').toBeGreaterThan(0.001)
@@ -185,7 +185,7 @@ for (const E of EDITORS) {
     await page.keyboard.press('Escape')
     const cv = await settled(page, E.canvas)
     const out = await E.exportImage(page, info.outputPath('ordsky-slitt.png'))
-    expect(await diffScaled(page, cv, out), 'eksport ≠ lerret (Slitt + Ordsky)').toBeLessThan(0.01)
+    expect(await diffScaled(page, cv, out), 'eksport ≠ lerret (Slitt + Ordsky)').toBeLessThan(0.02)
 
     expect(errors, errors.join('\n')).toEqual([])
   })

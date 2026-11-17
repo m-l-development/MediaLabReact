@@ -8,6 +8,13 @@ import { center, importFiles, insp, main, recordVideo, saveAndReload, tc } from 
  */
 test.beforeEach(() => test.skip(test.info().project.name === 'mobil', 'PC'))
 
+/** Tekststørrelsen i fontpopupens verktøylinje (px). */
+async function popSize(page: Page, v: string) {
+  await page.locator('[data-fontpop] .fp-trigger').first().click()
+  await page.getByRole('dialog', { name: 'Velg font' }).getByRole('spinbutton', { name: 'Tekststørrelse' }).fill(v)
+  await page.keyboard.press('Escape')
+}
+
 const props = (page: Page) => page.locator('[data-md-props]')
 const texts = (page: Page) => page.locator('[data-row="text"] [data-block="text"]')
 const tm = (page: Page, k: string) => page.locator(`[data-md-timing] [data-md-tm="${k}"]`)
@@ -120,7 +127,7 @@ test('nedtelling 20 min: bakgrunn følger, delt med video imellom, hjørne over 
   await tm(page, 'start').fill(String(Math.round(t * 100) / 100))
   await tm(page, 'start').blur()
   await page.locator('[data-md-place="tr"]').click()
-  await props(page).getByRole('slider', { name: /^Størrelse/ }).fill('90')
+  await popSize(page, '90')
   await seekAbs(page, Math.ceil(t) + 1)
   const corner = await page.locator('[data-md-canvas]').evaluate((c: HTMLCanvasElement) => {
     const g = c.getContext('2d') as CanvasRenderingContext2D

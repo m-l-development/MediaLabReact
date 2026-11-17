@@ -10,7 +10,7 @@ import { chk, css, interp, list, val } from './dc'
 import P from './LoopStudio.module.css'
 import { MoreButton } from '../../shared/ui/MoreButton'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
-import { FontPicker } from '../../shared/fonts/FontPicker'
+import { LoopFontPicker } from './LoopFontPicker'
 import { useT } from '../../shared/i18n/i18n'
 
 /** Berøringsskjerm: små knapper får minst 32 px trykkflate. */
@@ -3226,11 +3226,8 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
               <div style={{"display":"flex","flexDirection":"column","gap":"14px","paddingTop":"16px","borderTop":"1px solid #262626"}}>
                 {"\n            "}
                 <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
-                  <span style={{"fontSize":"12px","fontWeight":"600","color":"#9d998f"}}>
-                    {tx("Skrift")}
-                  </span>
-                  {/* det felles fontbiblioteket; Loops egne fonter (og Helvetica) øverst */}
-                  <FontPicker value={val(v.fontVal)} label={tx("Skrift")} top={v.fontTop} onChange={v.onFontName} />
+                  {/* fontpopupen (samme som i de andre verktøyene): fonten for hele loopen, og egen stil for overskrift og kicker */}
+                  <LoopFontPicker pop={v.fontPop} onFont={v.onFontName} />
                 </div>
                 {"\n            "}
                 <div style={{"display":"grid","gridTemplateColumns":"minmax(0,1fr) minmax(0,1fr)","gap":"12px"}}>

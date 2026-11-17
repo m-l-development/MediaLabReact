@@ -275,6 +275,8 @@ function loadImg(url: string): Promise<HTMLImageElement> {
       im.decode().then(() => ok(im), () => ok(im))
     }
     im.onerror = () => no(new Error('svg'))
+    // aldri vente for alltid (en hengende tegning ville stoppet køen for alle tekstlagene)
+    setTimeout(() => no(new Error('svg: tidsavbrudd')), 15000)
     im.src = url
   })
 }

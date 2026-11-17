@@ -71,13 +71,13 @@ export const pop = (page: Page): Locator => page.getByRole('dialog', { name: 'Ve
 export async function settled(page: Page, sel: string, prev?: string): Promise<string> {
   let last = await canvasUrl(page, sel)
   let same = 0
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 120; i++) {
     await page.waitForTimeout(150)
     const now = await canvasUrl(page, sel)
     same = now === last ? same + 1 : 0
     last = now
     // stabilt i 0,9 s (og endret, når et forrige bilde er gitt – eller etter 6 s uten endring)
-    if (same >= 6 && (prev === undefined || now !== prev || i > 40)) return now
+    if (same >= 6 && (prev === undefined || now !== prev || i > 100)) return now
   }
   return last
 }

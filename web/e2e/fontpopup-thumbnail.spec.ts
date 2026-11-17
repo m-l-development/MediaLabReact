@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { png } from './png'
-import { canvasUrl, diff, expectOnTop, fileUrl, pop, settled, share, watchErrors } from './fontpopup-kit'
+import { diff, expectOnTop, fileUrl, pop, settled, share, watchErrors } from './fontpopup-kit'
 import { dock } from './dock'
 
 /**

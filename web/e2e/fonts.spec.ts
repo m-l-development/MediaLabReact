@@ -2,17 +2,33 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { dock } from './dock'
 
 /**
- * Det felles fontbiblioteket (docs/maler-og-fonter.md, fase 1): fontvelgeren i Photo Design, Thumbnail Studio, Motion
+ * Det felles fontbiblioteket (docs/maler-og-fonter.md, fase 1) i fontpopupen (components/fontpicker): Photo Design, Thumbnail Studio, Motion
  * Design og Loop Studio. En font fra biblioteket velges, stilarket hentes ved bruk og fonten er faktisk lastet (så
  * lerretet og eksporten tegner med den). Vekter og kursiv bare der fonten har dem. Valget overlever lagring.
  */
 const desktopOnly = () => test.skip(test.info().project.name === 'mobil', 'PC (velgeren er den samme komponenten på mobil; se mobiltesten)')
 
+/** Fontpopupen (components/fontpicker): søk i «Alle» og velg raden med fonten. */
+const rowOf = (page: Page, name: string) => page.getByRole('dialog', { name: 'Velg font' }).locator('.fp-row').filter({ has: page.locator('.fp-sample', { hasText: new RegExp(`^${name}$`) }) }).first()
+async function openPop(scope: Locator, page: Page, name: string) {
+  const P = page.getByRole('dialog', { name: 'Velg font' })
+  if (!(await P.count())) await scope.locator('[data-fontpop] .fp-trigger').first().click()
+  await P.getByRole('tab', { name: 'Font', exact: true }).click()
+  await P.getByRole('tab', { name: 'Alle' }).click()
+  await P.getByPlaceholder(/Søk/).fill(name)
+}
 async function pickFont(scope: Locator, page: Page, name: string) {
-  await scope.locator('[data-font-picker] > button').first().click()
-  await page.locator('[data-font-search]').fill(name)
-  await page.locator(`[data-font-option="${name}"]`).click()
-  await expect(scope.locator('[data-font-picker] > button').first()).toHaveAttribute('data-font-value', name)
+  await openPop(scope, page, name)
+  await rowOf(page, name).click()
+  await expect(scope.locator('[data-fontpop] .fp-trigger').first()).toContainText(name)
+}
+/** Verktøylinjens Fet/Kursiv i popupen: aktiv bare når fonten har snittet. */
+async function cut(page: Page, scope: Locator, title: 'Fet' | 'Kursiv'): Promise<boolean> {
+  if (!(await page.getByRole('dialog', { name: 'Velg font' }).count())) await scope.locator('[data-fontpop] .fp-trigger').first().click()
+  const b = page.getByRole('dialog', { name: 'Velg font' }).locator('.fp-top button[title]').filter({ hasText: title === 'Fet' ? 'B' : 'I' }).first()
+  const on = (await b.getAttribute('title')) === title
+  await page.keyboard.press('Escape')
+  return on
 }
 
 async function loaded(page: Page, css: string) {
@@ -27,14 +43,13 @@ test('Photo Design: fontvelgeren laster fonten, viser bare ekte vekter og behold
   await page.goto('/app/photo-design')
   await page.locator('[data-tpl="blank"]').click()
   await page.getByRole('button', { name: 'Tekst', exact: true }).click()
-  const panel = page.locator('[data-pd-text]').locator('xpath=ancestor::*[.//*[@data-font-picker]][1]')
+  const panel = page.locator('body')
   await pickFont(panel, page, 'Fraunces')
   await loaded(page, '400 40px "Fraunces"')
-  await expect(page.locator('link[data-font="fraunces"]')).toHaveCount(1)
-  // Bebas Neue har bare én vekt: tykkelsen viser bare den (ingen kunstig fet)
+  await expect(page.locator('link[href$="fonts/fraunces.css"]').first()).toBeAttached()
+  // Bebas Neue har bare én vekt: Fet er av (ingen kunstig fet)
   await pickFont(panel, page, 'Bebas Neue')
-  const weights = panel.getByRole('combobox', { name: 'Tykkelse' })
-  await expect(weights.locator('option')).toHaveCount(1)
+  expect(await cut(page, panel, 'Fet')).toBe(false)
   await pickFont(panel, page, 'Six Caps')
   await loaded(page, '400 40px "Six Caps"')
   await page.getByRole('button', { name: 'Lagre', exact: true }).first().click()
@@ -43,7 +58,7 @@ test('Photo Design: fontvelgeren laster fonten, viser bare ekte vekter og behold
   await page.reload()
   await page.locator('[data-project]').first().click()
   await page.locator('[data-layer]').filter({ hasText: /Tekst/ }).first().click().catch(() => undefined)
-  await expect(page.locator('[data-font-picker] > button').first()).toHaveAttribute('data-font-value', 'Six Caps')
+  await expect(page.locator('[data-fontpop] .fp-trigger').first()).toContainText('Six Caps')
   await loaded(page, '400 40px "Six Caps"')
   expect(errors).toEqual([])
 })
@@ -57,12 +72,11 @@ test('Thumbnail Studio: tekstlagets font fra biblioteket, med fontens egne vekte
   await expect(page.locator('[data-ts-view="edit"]')).toBeVisible()
   // et tekstlag i laglisten (grunnoppsettets navn)
   await page.locator('[data-layer]').first().getByText('Fornavn Etternavn').click()
-  const picker = page.locator('[data-font-picker]').first()
-  await expect(picker).toBeVisible()
+  await expect(page.locator('[data-fontpop] .fp-trigger').first()).toBeVisible()
   await pickFont(page.locator('body'), page, 'Unbounded')
   await loaded(page, '400 40px "Unbounded"')
-  const w = page.getByRole('combobox', { name: 'Tykkelse' })
-  await expect(w.locator('option[value="900"]')).toHaveCount(1)
+  // Unbounded har ekte fet: Fet er på i verktøylinjen
+  expect(await cut(page, page.locator('body'), 'Fet')).toBe(true)
 })
 
 test('Motion Design: tekstens font fra biblioteket; kursiv av når fonten ikke har kursiv', async ({ page }) => {
@@ -79,9 +93,9 @@ test('Motion Design: tekstens font fra biblioteket; kursiv av når fonten ikke h
   await page.locator('[data-md-add-text]').click()
   await pickFont(page.locator('body'), page, 'Bebas Neue')
   await loaded(page, '400 40px "Bebas Neue"')
-  await expect(page.getByRole('switch', { name: 'Kursiv' })).toBeDisabled()
+  expect(await cut(page, page.locator('body'), 'Kursiv')).toBe(false)
   await pickFont(page.locator('body'), page, 'Playfair Display')
-  await expect(page.getByRole('switch', { name: 'Kursiv' })).toBeEnabled()
+  expect(await cut(page, page.locator('body'), 'Kursiv')).toBe(true)
   await pickFont(page.locator('body'), page, 'Fraunces')
   await loaded(page, '700 40px "Fraunces"')
 })
@@ -102,15 +116,15 @@ test('åpne fonter utenfor Google (Fontsource med lisensfil): lastes, og fonter 
   await page.goto('/app/photo-design')
   await page.locator('[data-tpl="blank"]').click()
   await page.getByRole('button', { name: 'Tekst', exact: true }).click()
-  const panel = page.locator('[data-pd-text]').locator('xpath=ancestor::*[.//*[@data-font-picker]][1]')
+  const panel = page.locator('body')
   await pickFont(panel, page, 'Uncut Sans')
   await loaded(page, '400 40px "Uncut Sans"')
-  await expect(page.locator('link[data-font="uncut-sans"]')).toHaveCount(1)
-  // Bagnard mangler Æ, Ø og Å: merket i velgeren
-  await panel.locator('[data-font-picker] > button').first().click()
-  await page.locator('[data-font-search]').fill('Bagnard')
-  await expect(page.locator('[data-font-option="Bagnard"] [data-font-noaeoa]')).toBeVisible()
-  await expect(page.locator('[data-font-option="Uncut Sans"] [data-font-noaeoa]')).toHaveCount(0)
+  await expect(page.locator('link[href$="fonts/uncut-sans.css"]').first()).toBeAttached()
+  // Bagnard mangler Æ, Ø og Å: merket «Uten ÆØÅ» i popupen
+  await openPop(panel, page, 'Bagnard')
+  await expect(rowOf(page, 'Bagnard').locator('.fp-warn')).toBeVisible()
+  await page.getByRole('dialog', { name: 'Velg font' }).getByPlaceholder(/Søk/).fill('Uncut Sans')
+  await expect(rowOf(page, 'Uncut Sans').locator('.fp-warn')).toHaveCount(0)
 })
 
 test('mobil: fontvelgeren i Rediger-skuffen i Photo Design', async ({ page }) => {

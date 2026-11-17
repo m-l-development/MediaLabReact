@@ -3066,6 +3066,9 @@ export class MotionController {
     this.setProj((p) => ({ ...p, [K]: (p[K] as Item[]).map((x) => {
       if (x.id !== id) return x
       const n: AnyRec = { ...x, ...obj }
+      // tekst med fontpopupens stil: ankeret (plassering i bildet) og plasseringen i tekstboksen følges at
+      const ts = kind === 'text' ? (x as unknown as TextItem).textStyle : null
+      if (ts && (obj.align || obj.valign) && !obj.textStyle) n.textStyle = { ...ts, ...(obj.align ? { alignH: obj.align } : {}), ...(obj.valign ? { alignV: obj.valign } : {}) }
       // ny fart: keyframes skaleres, så de treffer det samme innholdet (klippet blir kortere eller lengre)
       const os = (x as unknown as AnyRec).speed
       const kf = (x as { kf?: Keys }).kf

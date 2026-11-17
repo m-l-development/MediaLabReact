@@ -159,7 +159,7 @@ test('stilpakke, logo, vignett, overlegg og egen farge', async ({ page }) => {
   await page.getByRole('button', { name: /Promo\s*Fargepaneler/ }).click()
   await page.getByRole('button', { name: 'Stil', exact: true }).click()
   // skriften står i fontvelgeren (det felles fontbiblioteket, fase 1)
-  await expect(page.locator('[data-font-picker] > button').first()).toHaveAttribute('data-font-value', 'Oswald')
+  await expect(page.locator('[data-fontpop] .fp-trigger').first()).toContainText('Oswald')
 
   // logo: grønn, nederst til høyre
   const ch = page.waitForEvent('filechooser')

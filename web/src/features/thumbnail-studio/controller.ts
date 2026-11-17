@@ -344,8 +344,8 @@ export class ThumbController {
       bt = setTimeout(() => this.alive && this.set((s) => ({ tick: s.tick + 1 })), 80)
     })
     // tekst med fontpopupens stil: panelet (størrelsen «Tilpass til boksen» gir) oppdateres når bildet er ferdig
-    deps.renderer.palette = () => this.profile().colors
-    this.offStyled = deps.renderer.onStyled?.(() => {
+    if (deps.renderer) deps.renderer.palette = () => this.profile().colors
+    this.offStyled = deps.renderer?.onStyled?.(() => {
       clearTimeout(bt)
       bt = setTimeout(() => this.alive && this.set((s) => ({ tick: s.tick + 1 })), 80)
     }) ?? null

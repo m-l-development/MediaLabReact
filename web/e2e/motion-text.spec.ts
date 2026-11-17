@@ -20,12 +20,19 @@ const stats = (page: Page) => page.locator('[data-md-canvas]').evaluate((c: HTML
   return out
 })
 
+/** Tekststørrelsen i fontpopupens verktøylinje (px). */
+async function popSize(page: Page, v: string) {
+  await page.locator('[data-fontpop] .fp-trigger').first().click()
+  await page.getByRole('dialog', { name: 'Velg font' }).getByRole('spinbutton', { name: 'Tekststørrelse' }).fill(v)
+  await page.keyboard.press('Escape')
+}
+
 const insp = (page: Page) => page.locator('[data-md-props]')
 const blocks = (page: Page) => page.locator('[data-row="text"] [data-block="text"]')
 
 async function styleText(page: Page, color: string) {
   await insp(page).getByLabel('Tekstfarge').fill(color)
-  await insp(page).getByRole('slider', { name: 'Størrelse' }).fill('260')
+  await popSize(page, '260')
   const anim = insp(page).getByLabel('Animasjon')
   if (await anim.count()) await anim.selectOption('none')
 }

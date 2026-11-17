@@ -56,11 +56,17 @@ test('Bagnard (uten ÆØÅ): varsel i velgeren også i et lagret prosjekt, og Æ
   await page.locator('[data-tpl="blank"]').click()
   await page.getByRole('button', { name: 'Tekst', exact: true }).click()
   await page.locator('[data-pd-text]').fill('ÆØÅ')
-  const panel = page.locator('[data-pd-text]').locator('xpath=ancestor::*[.//*[@data-font-picker]][1]')
-  await panel.locator('[data-font-picker] > button').first().click()
-  await page.locator('[data-font-search]').fill('Bagnard')
-  await page.locator('[data-font-option="Bagnard"]').click()
-  await expect(panel.locator('[data-font-noaeoa-note]')).toBeVisible()
+  // fontpopupen: Bagnard er merket «Uten ÆØÅ»
+  const P = page.getByRole('dialog', { name: 'Velg font' })
+  const bag = P.locator('.fp-row').filter({ has: page.locator('.fp-sample', { hasText: /^Bagnard$/ }) }).first()
+  const find = async () => {
+    await page.locator('[data-fontpop] .fp-trigger').first().click()
+    await P.getByRole('tab', { name: 'Alle' }).click()
+    await P.getByPlaceholder(/Søk/).fill('Bagnard')
+  }
+  await find()
+  await expect(bag.locator('.fp-warn')).toBeVisible()
+  await bag.click()
   await page.getByRole('button', { name: 'Lagre', exact: true }).first().click()
   await expect(page.getByText('Ikke lagret')).toHaveCount(0)
   await page.getByRole('button', { name: /Prosjekter/ }).click()
@@ -68,8 +74,10 @@ test('Bagnard (uten ÆØÅ): varsel i velgeren også i et lagret prosjekt, og Æ
   await page.locator('[data-project]').first().click()
   await page.locator('[data-layer]').filter({ hasText: /ÆØÅ/ }).first().click().catch(() => undefined)
   // eksisterende prosjekt: fonten er fortsatt Bagnard, og varselet står der
-  await expect(page.locator('[data-font-picker] > button').first()).toHaveAttribute('data-font-value', 'Bagnard')
-  await expect(page.locator('[data-font-noaeoa-note]').first()).toBeVisible()
+  await expect(page.locator('[data-fontpop] .fp-trigger').first()).toContainText('Bagnard')
+  await find()
+  await expect(bag.locator('.fp-warn')).toBeVisible()
+  await page.keyboard.press('Escape')
   // ÆØÅ tegnes (i reservefonten): mørke piksler midt på, både på lerretet og i eksporten
   const file = info.outputPath('aeoa.png')
   await exportPng(page, file)
@@ -129,16 +137,16 @@ for (const id of ['061', '062', '100']) {
   })
 }
 
-test('Enkel modus: en funksjon laget bruker (glød) kan slås av og på igjen', async ({ page }) => {
+test('Enkel modus: en funksjon laget bruker (stiplet kant) kan slås av og på igjen', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/app/photo-design')
   await page.locator('[data-tpl="blank"]').click()
-  await page.getByRole('button', { name: 'Tekst', exact: true }).first().click()
-  // glød slås på i Avansert modus, så tilbake til Enkel modus
+  await page.locator('[data-pd-shapes] [data-shape="rect"]').click()
+  // stiplet kant slås på i Avansert modus, så tilbake til Enkel modus (tekstens glød er nå en effekt i fontpopupen)
   await page.locator('[data-adv-toggle]').click()
-  await page.getByRole('switch', { name: 'Glød' }).click()
+  await page.getByRole('switch', { name: 'Stiplet kant' }).click()
   await page.locator('[data-adv-toggle]').click()
-  const sw = page.getByRole('switch', { name: 'Glød' })
+  const sw = page.getByRole('switch', { name: 'Stiplet kant' })
   await expect(sw).toHaveAttribute('aria-checked', 'true')
   await sw.click()
   await expect(sw).toHaveAttribute('aria-checked', 'false')
