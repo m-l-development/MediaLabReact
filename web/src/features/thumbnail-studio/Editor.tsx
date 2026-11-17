@@ -13,6 +13,9 @@ import { gbox, PRESETS, rowOrder, type AddTarget, type PanelKey, type State, typ
 import type { ImageCache } from './engine/images'
 import { H, W, isLine, isLogoAsset, type Layer } from './engine/model'
 import { ensureFonts, type Renderer } from './engine/render'
+import { bakeList } from './engine/text-list'
+import InlineTextEditor from '../../components/text/InlineTextEditor'
+import { typoOf } from '../../components/text/typo'
 import type { Phrase, Tx } from './texts'
 import s from './ThumbnailStudio.module.css'
 
@@ -416,6 +419,18 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
   const inner = useRef<HTMLDivElement>(null)
   const pendingScroll = useRef<{ fx: number; fy: number } | null>(null)
   const d = S.doc
+  // direkte tekstredigering på lerretet (dobbeltklikk): laget som redigeres
+  const [inline, setInline] = useState<{ id: string; left: number; top: number; k: number } | null>(null)
+  const il = inline ? c.layer(inline.id) : null
+  const inlineEd = il?.type === 'text' && inline ? (() => {
+    const cr = { left: inline.left, top: inline.top }
+    const k = inline.k
+    const typo = typoOf({ font: il.font, stretch: il.stretch, size: il.size, color: il.color, boxWidth: il.w, upper: il.upper, textStyle: il.textStyle, legacy: { align: il.align, lh: il.lh, ls: il.ls, weight: il.weight, italic: il.italic } })
+    return (
+      <InlineTextEditor box={{ cx: cr.left + (il.x + il.w / 2) * k, cy: cr.top + (il.y + il.h / 2) * k, w: il.w * k, h: il.h * k, rot: il.rot }} typo={typo} scale={k}
+        value={bakeList(String(il.text || ''), il.list)} onChange={(v) => c.setL(il.id, { text: v, list: '' }, 'inline:' + il.id)} onDone={() => setInline(null)} />
+    )
+  })() : null
   const preview = S.fontPreview
 
   // Tegn lerretet når dokumentet, et bilde, fontene eller et tekstbilde (fontpopupens stil) endres.
@@ -585,11 +600,11 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
               onDoubleClick={() => {
                 const l = c.layer(S.sel)
                 if (l?.type === 'image' && l.src) c.openCrop(l.id)
-                else if (l?.type === 'text') setTimeout(() => {
-                  const t = document.querySelector<HTMLTextAreaElement>('textarea[data-ts-text]')
-                  t?.focus()
-                  t?.select()
-                }, 30)
+                // tekst: redigeres direkte der den står (panelet er fortsatt et alternativ)
+                else if (l?.type === 'text' && !l.lock && canvas.current) {
+                  const cr = canvas.current.getBoundingClientRect()
+                  setInline({ id: l.id, left: cr.left, top: cr.top, k: cr.width / W })
+                }
               }}
               onContextMenu={(e) => {
                 e.preventDefault()
@@ -638,6 +653,7 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
           <button type="button" className={s.btnSmall} onClick={() => pickFile({ mode: 'add' })}>{tx('Bilde')}</button>
         </div>
       )}
+      {inlineEd}
     </section>
   )
 }

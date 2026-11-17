@@ -1,3 +1,4 @@
+import { typoOf, type Typo } from '../../components/text/typo'
 /**
  * Feltene i egenskapspanelet (samme felt, rekkefølge og seksjoner som dagens app, logic.js clipFields/textFields …).
  * Feltene er data; Props.tsx tegner dem.
@@ -26,7 +27,7 @@ export type Field =
   | { k: 'seg'; label: Phrase; val: string; opts: readonly Opt[]; on: (v: string) => void }
   | { k: 'acts'; label: Phrase; acts: { l: Phrase; raw?: boolean; danger?: boolean; click: () => void }[] }
   | { k: 'num'; label: Phrase; val: number; min: number; max: number; step: number; on: (v: number) => void }
-  | { k: 'area'; label: Phrase; val: string; on: (v: string) => void }
+  | { k: 'area'; label: Phrase; val: string; on: (v: string) => void; typo?: Typo }
   | { k: 'curve'; c: Grade; on: (o: Partial<Grade>) => void }
   | { k: 'bg'; label: Phrase; val: string; def: string; note?: Phrase; on: (v: string) => void }
   | { k: 'qr'; val: QrSpec; on: (p: Partial<QrSpec>) => void }
@@ -171,6 +172,10 @@ export function clipFields(c: MotionController, p: Project, it: Clip, l: Placed 
 }
 
 export function textFields(c: MotionController, x: TextItem): Field[] {
+  const pj = c.s.proj
+  // tekstboksens bredde i samme enhet som størrelsen (størrelsen gjelder et 1080-bilde)
+  const typo = typoOf({ font: x.font, size: x.size, color: x.color, boxWidth: x.maxW * (pj ? (pj.w * 1080) / Math.min(pj.w, pj.h) : 1920), upper: x.upper, textStyle: x.textStyle, legacy: { align: x.align, lh: x.lh, ls: x.track, weight: x.weight, italic: x.italic } })
+  const tarea = (label: Phrase, val: string, on: (v: string) => void): Field => ({ k: 'area', label, val, on, typo })
   const set = (o: Partial<TextItem>) => c.patch('text', x.id, o)
   const out: Field[] = [toggle('Nedtelling', x.countdown, (v) => set(v ? { countdown: true } : { countdown: false, cdTo: undefined }))]
   if (x.countdown) out.push(toggle('Tell mellom to tall', x.cdTo !== undefined, (v) => set(v ? { cdTo: 100, cdFrom: x.cdFrom ?? 0, cdDur: Math.min(2, x.dur), text: x.text.includes('{n}') ? x.text : '{n}' } : { cdTo: undefined })))
@@ -179,7 +184,7 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
       num('Fra', x.cdFrom ?? 0, -9999999, 9999999, 1, (v) => set({ cdFrom: Math.round(v) })),
       num('Til', x.cdTo, -9999999, 9999999, 1, (v) => set({ cdTo: Math.round(v) })),
       num('Telletid (s)', x.cdDur ?? x.dur * 0.8, 0.1, 3600, 0.1, (v) => set({ cdDur: v })),
-      area('Tekst', x.text, (v) => set({ text: v })),
+      tarea('Tekst', x.text, (v) => set({ text: v })),
       note('«{n}» i teksten byttes med tallet, f.eks. «{n}/365».'))
   } else if (x.countdown) {
     const from = Math.round(x.cdFrom ?? x.dur)
@@ -199,7 +204,7 @@ export function textFields(c: MotionController, x: TextItem): Field[] {
       select('Visning', x.cdFmt || 'auto', [['auto', 'Automatisk'], ['ss', 'Sekunder (10)'], ['mmss', 'Min:sek (00:10)'], ['hhmmss', 'Tim:min:sek (00:00:10)'], ['ddhhmmss', 'Dag:tim:min:sek (00:00:00:10)']], (v) => set({ cdFmt: v as 'auto' })),
       note('Viser {start} ved start og teller ned så lenge teksten vises ({len}). Endre Varighet under Tid for hvor lenge den vises.', { start: fmtCount(from, x.cdFmt), len: fmtT(x.dur) }))
     if (Math.abs(x.dur - from) > 0.05 && from >= 1) out.push({ k: 'acts', label: '', acts: [act('Vis hele nedtellingen', () => set({ dur: from }))] })
-  } else out.push(area('Tekst', x.text, (v) => set({ text: v })))
+  } else out.push(tarea('Tekst', x.text, (v) => set({ text: v })))
   // fontpopupen: font, verktøylinjen (fet, kursiv, understrek, størrelse, linje- og bokstavavstand), plassering, retning,
   // roter, speilvend, former, ordsky og effekter (også kontur og fargeovergang)
   out.push({ k: 'fontpop', id: x.id },

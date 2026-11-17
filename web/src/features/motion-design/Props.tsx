@@ -1,6 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import AppFontPicker from '../../components/fontpicker/AppFontPicker'
+import TextLiveField from '../../components/text/TextLiveField'
 import { useEffect, useRef, useState } from 'react'
 import type { MotionController } from './controller'
 import { clamp, type CurveCh, type Grade, type Pt } from './engine/model'
@@ -246,7 +247,10 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
       return (
         <>
           <span className={s.lblTop}><span className={s.b}>{tx(f.label)}</span></span>
-          <textarea className={s.area} rows={3} value={f.val} aria-label={tx(f.label)} onChange={(e) => f.on(e.target.value)} />
+          {f.typo ? (
+            // tekst: live-visning (tekstens typografi, uten effekter) eller dagens tekstboks («Vis tekstboks») – samme felt
+            <TextLiveField typo={f.typo}><textarea className={s.area} rows={3} value={f.val} aria-label={tx(f.label)} onChange={(e) => f.on(e.target.value)} /></TextLiveField>
+          ) : <textarea className={s.area} rows={3} value={f.val} aria-label={tx(f.label)} onChange={(e) => f.on(e.target.value)} />}
         </>
       )
     case 'bg':
