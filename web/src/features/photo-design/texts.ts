@@ -269,6 +269,7 @@ export const EN = {
   'Buer': 'Arcs',
   'Bunntekst': 'Footer',
   'Bytt bilde': 'Replace image',
+  'Isoler motiv …': 'Isolate subject …',
   'Bølge': 'Wave',
   'Bølger': 'Waves',
   'Bål': 'Bonfire',

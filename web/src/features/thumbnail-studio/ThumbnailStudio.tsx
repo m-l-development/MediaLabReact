@@ -31,6 +31,8 @@ import { ThumbRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
 import s from './ThumbnailStudio.module.css'
 import { copyImage } from '../../shared/lib/clipboard'
+import { popupOpen } from '../../shared/lib/popup'
+import { useIsolatePopup } from '../isolate-subject/useIsolatePopup'
 
 const IMAGE_TYPES = 'image/png,image/jpeg,image/webp,image/avif,image/gif,image/bmp'
 const M_ID = (src: string) => src.slice(2) as AssetId
@@ -66,6 +68,12 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   }, [lang])
 
   const fileTarget = useRef<AddTarget>({ mode: 'add' })
+  // «Isoler motiv …»: popupen med hele Isolate Subject (kontrolleren når den gjennom en ref)
+  const iso = useIsolatePopup()
+  const isoOpen = useRef(iso.open)
+  useEffect(() => {
+    isoOpen.current = iso.open
+  }, [iso.open])
   const fileInput = useRef<HTMLInputElement>(null)
   const [parts] = useState(() => {
     const images = new ImageCache(async (src) => {
@@ -92,6 +100,12 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       async putImage(file, name) {
         const a = await assets.register(file, { name })
         return `m:${a.id}`
+      },
+      async isolate(src, apply) {
+        const m = src.startsWith('m:')
+        const blob = m ? await assets.open(M_ID(src)).catch(() => null) : src.startsWith('ch:') ? await files.blob(src.slice(3)).catch(() => null) : null
+        const a = m ? await assets.get(M_ID(src)).catch(() => null) : null
+        if (blob) isoOpen.current(blob, (a?.name ?? 'bilde').replace(/\.[^.]+$/, ''), apply)
       },
       async toLocal(src) {
         if (src.startsWith('m:')) return src
@@ -270,6 +284,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   // Tastatur (samme snarveier som dagens app) og innliming av bilder
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (popupOpen()) return
       const st = c.s
       // maskedialogen («Finjuster utklippet») og menyer har egne taster: malen bak skal ikke angre/slette samtidig
       if (st.view !== 'edit' || st.maskEdit || document.querySelector('[data-ctx-menu]')) return
@@ -354,6 +369,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       }
     }
     const paste = (e: ClipboardEvent) => {
+      if (popupOpen()) return
       const file = pastedImage(e)
       if (file) {
         e.preventDefault()
@@ -445,6 +461,7 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
   return (
     <div className={s.tool} data-ts-view={S.ready ? S.view : 'loading'}>
       {!S.ready && <div className={s.loading}>{tx('LASTER …')}</div>}
+      {iso.popup}
       {S.ready && S.view === 'home' && <Home c={c} S={S} tx={tx} onBackup={() => void doBackup()} onRestore={() => restoreInput.current?.click()} />}
       {S.ready && S.view === 'cat' && <CategoryView c={c} tx={tx} />}
       {S.ready && S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} images={images} renderer={renderer} pickFile={pickFile} />}

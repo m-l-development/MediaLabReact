@@ -664,3 +664,25 @@
 :root[data-theme='light'] .kind[data-other='keep'] span {
   color: #1a7f45;
 }
+
+/* «Isoler motiv»-popupen: tittel, Avbryt og «Ferdig – sett inn» alltid synlig øverst */
+.embedBar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.embedBar h2 {
+  flex: 1;
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 16px;
+}

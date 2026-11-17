@@ -1706,6 +1706,9 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                   <button onClick={v.pickSharedImg} style={{"height":"34px","padding":"0 14px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className={P.scp2}>
                     {tx("Fra delt mappe")}
                   </button>
+                  {v.isoBg ? <button onClick={v.isoBg} data-isolate-open="" style={{"height":"34px","padding":"0 14px","border":"1px solid #2b2b2b","borderRadius":"999px","background":"#121212","color":"#f3f1ec","font":"inherit","fontSize":"13px","fontWeight":"600","cursor":"pointer"}} className={P.scp2}>
+                    {tx("Isoler motiv …")}
+                  </button> : null}
                   {"\n              "}
                   {v.hasBg ? <>
                     {"\n                "}

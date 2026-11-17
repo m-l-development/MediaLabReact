@@ -139,6 +139,8 @@ export interface PDeps {
   repo: PdRepo
   /** Bilde i Dine medier: Blob for `m:<id>`. */
   openMedia(src: string): Promise<Blob | null>
+  /** «Isoler motiv …»: hele Isolate Subject i en popup med bildet; `apply` får PNG-en ved «Ferdig – sett inn». */
+  isolate?(blob: Blob, name: string, apply: (png: Blob, name: string) => void): void
   /** Legger et bilde i Dine medier. → `m:<id>`. */
   putImage(blob: Blob, name: string): Promise<string>
   /** Menighetens delte maler (TB-A43E52); mangler uten ConnectHub. */
@@ -1153,6 +1155,19 @@ export class PhotoController {
   }
 
   /** Et bilde som deles inn når ingen prosjekt er åpent: lag et tomt prosjekt først. */
+  get canIsolate(): boolean {
+    return !!this.d.isolate
+  }
+
+  /** «Isoler motiv …» på et bildelag: resultatet erstatter bildet i laget (Angre tar originalen tilbake). */
+  async isolateLayer(id: string): Promise<void> {
+    const L = this.s.doc?.layers.find((q) => q.id === id)
+    if (!L || L.type !== 'image' || !L.src || !this.d.isolate) return
+    const blob = await this.d.openMedia(L.src)
+    if (!blob) return
+    this.d.isolate(blob, L.name || 'bilde', (png, name) => void this.addBlob(png, name, null, undefined, id))
+  }
+
   receive(blob: Blob, name: string): void {
     if (this.s.view === 'edit') void this.addBlob(blob, name)
     else {

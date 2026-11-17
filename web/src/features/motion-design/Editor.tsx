@@ -38,7 +38,7 @@ function propsOf(c: MotionController, S: MState, p: Project): { title: Phrase; t
     const idx = p.clips.findIndex((x) => x.id === it.id)
     r = {
       title: it.kind === 'video' ? 'Videoklipp' : it.kind === 'image' ? 'Bilde' : 'Fargeflate', note: '', fields: clipFields(c, p, it, layout(p)[idx], idx),
-      actions: [{ l: 'Del ved spillehodet', click: () => c.split() }, ...(it.kind === 'video' ? [{ l: 'Frys bilde', click: () => void c.freeze() }] : []), { l: 'Bytt media', click: () => c.set({ tab: 'media', replaceFor: it.id }) }, ...look, { l: 'Dupliser', click: () => c.dupSel() }, { l: '← Flytt', click: () => c.moveClip(-1) }, { l: 'Flytt →', click: () => c.moveClip(1) }, { l: 'Slett', click: () => c.delSel(), danger: true }],
+      actions: [{ l: 'Del ved spillehodet', click: () => c.split() }, ...(it.kind === 'video' ? [{ l: 'Frys bilde', click: () => void c.freeze() }] : []), { l: 'Bytt media', click: () => c.set({ tab: 'media', replaceFor: it.id }) }, ...(it.kind === 'image' && it.media && c.canIsolate ? [{ l: 'Isoler motiv …' as const, click: () => void c.isolateItem(it.id, it.media as string) }] : []), ...look, { l: 'Dupliser', click: () => c.dupSel() }, { l: '← Flytt', click: () => c.moveClip(-1) }, { l: 'Flytt →', click: () => c.moveClip(1) }, { l: 'Slett', click: () => c.delSel(), danger: true }],
     }
   } else if (sel?.type === 'text') {
     const it = sel.it as Project['texts'][number]
@@ -51,7 +51,7 @@ function propsOf(c: MotionController, S: MState, p: Project): { title: Phrase; t
     const PO = (o: Partial<Project['ov'][number]>) => c.patch('ov', it.id, o)
     r = {
       title: it.kind === 'video' ? 'Overlegg · video' : 'Overlegg · bilde', note: '', fields: ovFields(c, p, it),
-      actions: [{ l: 'Midtstill', click: () => PO({ x: 0.5, y: 0.5 }) }, { l: 'Fyll bildet', click: () => PO({ x: 0.5, y: 0.5, scale: 1, radius: 0, shadow: false, rot: 0 }) }, { l: 'Flytt til spillehodet', click: () => PO({ start: c.t }) }, ...look, { l: 'Dupliser', click: () => c.dupSel() }, { l: 'Slett', click: () => c.delSel(), danger: true }],
+      actions: [...(it.kind === 'image' && it.media && c.canIsolate ? [{ l: 'Isoler motiv …' as const, click: () => void c.isolateItem(it.id, it.media as string) }] : []), { l: 'Midtstill', click: () => PO({ x: 0.5, y: 0.5 }) }, { l: 'Fyll bildet', click: () => PO({ x: 0.5, y: 0.5, scale: 1, radius: 0, shadow: false, rot: 0 }) }, { l: 'Flytt til spillehodet', click: () => PO({ start: c.t }) }, ...look, { l: 'Dupliser', click: () => c.dupSel() }, { l: 'Slett', click: () => c.delSel(), danger: true }],
     }
   } else if (sel?.type === 'music') {
     const it = sel.it as Project['music'][number]

@@ -1,0 +1,12 @@
+/* hele skjermen over editoren; innholdet ruller inne i popupen (samme oppsett som verktøyet på PC og mobil) */
+.popup {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px 32px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+}

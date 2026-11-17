@@ -197,6 +197,7 @@ export const EN = {
   'Former og felt': 'Shapes and panels',
   'Fornavn Etternavn': 'First name Last name',
   'Fra Dine medier …': 'From Your media …',
+  'Isoler motiv …': 'Isolate subject …',
   'Fra Fellesmappe …': 'From the shared folder …',
   'Frem': 'Forward',
   'Full (5 av 5). Slett en mal først.': 'Full (5 of 5). Delete a template first.',

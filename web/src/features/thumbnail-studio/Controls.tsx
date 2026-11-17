@@ -270,6 +270,7 @@ function ImageCtrl({ ctrl, c, tx, url, pic }: { ctrl: Extract<Ctrl, { k: 'img' }
           <button type="button" className={s.btnOn} onClick={ctrl.pick}>{tx(ctrl.src ? 'Bytt bilde' : 'Velg bilde')}</button>
           <button type="button" className={s.linkBtn} onClick={() => c.openPicker('media', l ? { mode: 'replace', id: l.id } : { mode: 'bg' })}>{tx('Fra Dine medier …')}</button>
           {ctrl.src && <button type="button" className={s.linkBtn} onClick={ctrl.clear}>{tx('Fjern bildet')}</button>}
+          {ctrl.src && c.canIsolate && <button type="button" className={s.linkBtn} data-isolate-open="" onClick={() => ctrl.src && c.isolateSrc(ctrl.src, l ? { mode: 'replace', id: l.id } : { mode: 'bg' })}>{tx('Isoler motiv …')}</button>}
         </div>
       </div>
       {l && own && !busy && !ai && (

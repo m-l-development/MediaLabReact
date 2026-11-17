@@ -24,8 +24,20 @@ const ASPECTS: readonly { value: Aspect; label: string | MessageKey }[] = [
 ]
 const isKey = (s: string): s is MessageKey => s.includes('.')
 
+/**
+ * Isolate Subject brukt inne i en annen editor («Isoler motiv»-popupen, IsolatePopup.tsx): bildet kommer fra editoren,
+ * og «Ferdig – sett inn» gir resultatet tilbake (PNG i full oppløsning, med gjennomsiktighet eller valgt bakgrunn).
+ * Alle verktøyets funksjoner er med; bare «Bruk i …» (som forlater editoren) og «Nytt bilde» er borte.
+ */
+export interface IsolateEmbed {
+  blob: Blob
+  name: string
+  onInsert: (png: Blob, name: string) => void
+  onCancel: () => void
+}
+
 /** Isolate Subject (IS-01–IS-12). Se controller.ts for logikken. */
-export default function IsolateSubject({ query, registerLifecycle }: ToolProps) {
+export default function IsolateSubject({ query, registerLifecycle, embed }: ToolProps & { embed?: IsolateEmbed }) {
   const t = useT()
   const { router } = useServices()
   const { assets } = useWorkspace()
@@ -41,6 +53,28 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
   useEffect(() => {
     registerLifecycle({ dispose: () => ctl.dispose(), isBusy: () => !!ctl.state.get().busy })
   }, [ctl, registerLifecycle])
+
+  // popupen: bildet fra editoren lastes straks (én gang)
+  const embedded = useRef(false)
+  useEffect(() => {
+    if (!embed || embedded.current) return
+    embedded.current = true
+    source.current = { blob: embed.blob, name: embed.name, assetId: null }
+    void ctl.load(embed.blob, embed.name)
+  }, [embed, ctl])
+
+  async function insert() {
+    // en forhåndsvisning (fyll/farge/uskarp) som vises, brukes
+    if (s.pending) ctl.acceptEffect()
+    const png = await ctl.exportPng()
+    if (png && embed) embed.onInsert(png, `${s.name || embed.name}-isolert.png`)
+  }
+
+  function cancel() {
+    if (!embed || s.busy) return
+    if (s.historySize > 0 && !window.confirm(t('isolate.embed.discard'))) return
+    embed.onCancel()
+  }
 
   // «Åpne i Isolate Subject» fra Dine medier: ?asset=<id>
   const assetParam = query.asset
@@ -132,7 +166,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
     else if (r === 'denied') setMessage(t('isolate.copyFailed'))
   }
 
-  const targets = TOOLS.filter((tool) => tool.id !== 'isolate-subject' && tool.load && tool.accepts.includes('image'))
+  const targets = embed ? [] : TOOLS.filter((tool) => tool.id !== 'isolate-subject' && tool.load && tool.accepts.includes('image'))
   const busyLabel = s.busy === 'model' ? t('isolate.busy.model', { pct: s.pct })
     : s.busy === 'analyze' ? t('isolate.busy.analyze') : s.busy === 'fill' ? t('isolate.busy.fill')
       : s.busy === 'seg' ? t('isolate.busy.seg') : t('isolate.busy.run')
@@ -145,7 +179,14 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
         if (f) loadFile(f)
       }} />
 
-      {s.phase !== 'empty' && (
+      {embed && (
+        <div className={styles.embedBar} data-isolate-embed="">
+          <h2>{t('isolate.embed.title')}</h2>
+          <Button variant="ghost" disabled={!!s.busy} onClick={cancel} data-embed-cancel="">{t('isolate.embed.cancel')}</Button>
+          <Button variant="primary" disabled={!s.ready || !!s.busy || s.editing} onClick={() => void insert()} data-embed-insert="">{t('isolate.embed.insert')}</Button>
+        </div>
+      )}
+      {!embed && s.phase !== 'empty' && (
         <div className={styles.topActions}>
           <Button onClick={() => { ctl.reset(); source.current = null; setSavedId(null) }}>{t('isolate.newImage')}</Button>
         </div>
