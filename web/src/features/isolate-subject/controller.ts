@@ -461,8 +461,9 @@ export class IsolateController {
         if (bg) bg = subtractMask(bg, mk.green)
       }
       const logoMissing = s.removeSet.some(textish) && !L && !mk.red
-      // «Behold logo/tekst» i et foto uten merke: be brukeren merke logoen (grønt) i stedet for å beholde feil ting
-      if (s.keepSet.some(textish) && !L && !mk.green) {
+      // «Behold logo/tekst» i et foto uten merke, og ingenting annet skal beholdes: be brukeren merke logoen (grønt) i
+      // stedet for å beholde feil ting. Med Bakgrunn eller andre valg under Behold går isoleringen videre som valgt.
+      if (s.keepSet.length > 0 && s.keepSet.every(textish) && !L && !mk.green) {
         this.redraw({ busy: null, mode: 'point', tab: 'keep', markKeep: true, error: 'isolate.run.markKeep' })
         return
       }
