@@ -4,12 +4,12 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `e3083b0` (merge av `4daa74f`: Panorama, objektivkorreksjon og Motion-oppgave 7 er alle i produksjon; Release verify grønn 2026-11-16). Kontroller før
+**Siste kjente produksjonscommit:** `a0a7567` (merge av `cffc19f`: fontpopupen i Thumbnail, Photo, Motion og Loop; Release verify grønn 2026-11-17). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
 **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
 
-### PÅGÅENDE (2026-11-17): fontpopupen overalt + profesjonelt tekstsystem – IKKE i produksjon ennå
+### FERDIG (2026-11-17, i produksjon a0a7567): fontpopupen overalt. NESTE: tekstredigering (se under)
 Oppdrag fra eier (godkjent, arbeid selvstendig, commit/push/merge/deploy når release-gate er grønn):
 A) Fontpopupen (eierens filer, kopiert UENDRET til `web/src/components/fontpicker/`: FontPicker.jsx/.css, TextStyle.jsx)
    i ALLE fire editorene, tekst tegnet med `<StyledText>` i visning og eksport, `textStyle` per tekstlag.
@@ -35,7 +35,12 @@ Eldre lag uten `textStyle` tegnes som før; nye lag og lag redigert i popupen f�
 `e2e/fontpopup-motion.spec.ts` (chrome-kanal; animasjoner + MP4 = lerret). Grønne i Chromium; WebKit (`-c
 playwright.iphone.config.ts`): thumbnail-spesifikasjonen grønn for lagring/eksport, funksjonstesten må kjøres på nytt.
 WebKit på Windows tegner VARIABLE fonter i grunnvekten (også i dagens app) – ikke en feil hos oss; tester bruker Anton.
-**Ukommittert/lokalt:** alt over er lokalt (se `git status`); eierens tre filer holdes utenfor.
+**NESTE (eiers nye krav 2026-11-17, erstatter B):** i alle editorene: (1) Live-visning av tekstfeltet som standard (samme
+font/justering/linjeskift/størrelse skalert, uten effekter) + bryter «Vis tekstboks» som viser dagens tekstboks uendret;
+(2) dobbeltklikk på tekst på lerretet = direkte redigering der teksten står (Esc avbryter, klikk utenfor lagrer);
+felles komponenter, samme state. Bilde-i-tekst skal IKKE endres nå. Plan: live-visningen er det SAMME textarea-elementet
+med annen stil (felles komponent), dobbeltklikk = felles InlineTextEditor over tekstboksen.
+Vercel: `media-lab/build/web-app.js` kjører nå npm ci når en avhengighet mangler (hurtigbufferen manglet html-to-image).
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 
