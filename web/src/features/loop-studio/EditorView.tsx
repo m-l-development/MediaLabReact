@@ -11,6 +11,7 @@ import P from './LoopStudio.module.css'
 import { MoreButton } from '../../shared/ui/MoreButton'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
 import { LoopFontPicker } from './LoopFontPicker'
+import TextLiveField from '../../components/text/TextLiveField'
 import { useT } from '../../shared/i18n/i18n'
 
 /** Berøringsskjerm: små knapper får minst 32 px trykkflate. */
@@ -999,7 +1000,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                         </span>
                       </span>
                     </span>
-                    <textarea value={val(v.f?.body)} onChange={v.on?.body} style={{"minHeight":"120px","resize":"vertical","padding":"10px 12px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"14px","lineHeight":"1.5","outline":"none"}} className={P.scp3} />
+                    <TextLiveField typo={v.typoBody}><textarea value={val(v.f?.body)} onChange={v.on?.body} style={{"minHeight":"120px","resize":"vertical","padding":"10px 12px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"14px","lineHeight":"1.5","outline":"none"}} className={P.scp3} /></TextLiveField>
                   </div>
                   {"\n              "}
                   <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>
@@ -1064,7 +1065,7 @@ export function EditorView({ v, tx }: { v: LoopView & { homeHref: string; goHome
                         </span>
                       </span>
                     </span>
-                    <textarea value={val(v.f?.headline)} onChange={v.on?.headline} style={{"minHeight":"64px","resize":"vertical","padding":"10px 12px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"14px","lineHeight":"1.5","outline":"none"}} className={P.scp3} />
+                    <TextLiveField typo={v.typoHeadline}><textarea value={val(v.f?.headline)} onChange={v.on?.headline} style={{"minHeight":"64px","resize":"vertical","padding":"10px 12px","border":"1px solid #2b2b2b","borderRadius":"8px","background":"#000","color":"#f3f1ec","font":"inherit","fontSize":"14px","lineHeight":"1.5","outline":"none"}} className={P.scp3} /></TextLiveField>
                   </div>
                   {"\n              "}
                   <div style={{"display":"flex","flexDirection":"column","gap":"6px"}}>

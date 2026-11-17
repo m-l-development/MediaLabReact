@@ -5,6 +5,8 @@ import { useLang } from '../../shared/i18n/i18n'
 import { BgColor } from '../../shared/ui/BgColor'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
 import AppFontPicker from '../../components/fontpicker/AppFontPicker'
+import TextLiveField from '../../components/text/TextLiveField'
+import { typoOf } from '../../components/text/typo'
 import { QrFields } from '../../shared/qr/QrFields'
 import { PicThumb } from '../../shared/ui/PicThumb'
 import type { Pic } from '../../shared/lib/blob-image'
@@ -229,6 +231,8 @@ function TextArea({ ctrl, c, tx }: { ctrl: Extract<Ctrl, { k: 'area' }>; c: Thum
           ))}
         </div>
       )}
+      {(() => {
+        const ta = (
       <textarea ref={ref} className={s.textarea} value={ctrl.val} rows={ctrl.rows} placeholder={tx(ctrl.ph)} aria-label={tx(ctrl.label)} data-ts-text={l ? '1' : undefined}
         onChange={(e) => ctrl.set(e.target.value)}
         onKeyDown={(e) => {
@@ -239,6 +243,12 @@ function TextArea({ ctrl, c, tx }: { ctrl: Extract<Ctrl, { k: 'area' }>; c: Thum
           c.setL(l.id, { text: r.text, list: '' })
           caret(r.sel[0], r.sel[1])
         }} />
+        )
+        // tekstlag: live-visning (lagets typografi, uten effekter) eller dagens tekstboks («Vis tekstboks»)
+        return l ? (
+          <TextLiveField typo={typoOf({ font: l.font, stretch: l.stretch, size: l.size, color: l.color, boxWidth: l.w, upper: l.upper, textStyle: l.textStyle, legacy: { align: l.align, lh: l.lh, ls: l.ls, weight: l.weight, italic: l.italic } })}>{ta}</TextLiveField>
+        ) : ta
+      })()}
       {l && <span className={s.hint}>{tx('Enter gir nytt punkt. Tab gir underpunkt, Shift+Tab går tilbake. Vanlig tekst og lister kan blandes.')}</span>}
     </div>
   )

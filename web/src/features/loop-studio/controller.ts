@@ -1,3 +1,4 @@
+import { typoOf } from '../../components/text/typo'
 import { appStyled, bakeStyled, loopStyled, setLoopPreview } from './engine/styled'
 import type { FontEntry } from '../../components/fontpicker/FontPicker.jsx'
 import { legacyTextStyle } from '../../components/fontpicker/styled-layer'
@@ -48,7 +49,7 @@ R.setStyled(appStyled)
 export type InputEv = { target: { value: string } }
 export type CheckEv = { target: { checked: boolean } }
 export type FileEv = { target: { files: ArrayLike<File> | null; value: string } }
-export type KeyEv = { key: string; shiftKey?: boolean; preventDefault(): void; stopPropagation(): void; target: EventTarget | null }
+export type KeyEv = { key: string; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; preventDefault(): void; stopPropagation(): void; target: EventTarget | null }
 export interface PEv {
   clientX: number
   clientY: number
@@ -3201,6 +3202,16 @@ export class LoopController {
       requestAnimationFrame(fix)
     })
   }
+  /** Redigering på lerretet: teksten skrives rett til feltet (samme verdi som tekstfeltet i panelet). */
+  private writeInline(ed: NonNullable<State['inlineEd']>, raw: string) {
+    const v = ed.multi ? raw.replace(/\r/g, '') : raw.replace(/\s*\n\s*/g, ' ')
+    if (ed.field === '__ftext') {
+      this.setState((st) => ({ slides: st.slides.map((x) => (x.id === ed.id ? { ...x, ftexts: (x.ftexts ?? []).map((t, j) => (j === ed.i ? { ...t, text: v } : t)) } : x)) }))
+      return
+    }
+    this.setF(ed.id, ed.field, v)
+  }
+
   commitInline() {
     const ed = this.state.inlineEd
     if (!ed) return
@@ -4439,15 +4450,31 @@ export class LoopController {
       htmlNote: [S.audioName && S.cfg.exportAudio !== false ? 'Lydsporet blir med. Sjekk at lyden fra kilden er slått på i sendeprogrammet.' : '', S.slides.some((x) => x.vid && !x.hidden) ? 'Videoer på slidene blir ikke med i HTML-spilleren (bakgrunnsbildet vises i stedet). Bruk MP4-eksport for å få dem med.' : ''].filter(Boolean).join(' '),
       statusLine: S.rec ? 'Tar opp video … ' + S.rec.pct + ' %' : !active.length ? 'Ingen slides ennå – skriv ukens program, eller trykk «Legg til».' : live ? 'Spiller slide ' + (S.playIdx + 1) + ' av ' + active.length + ' · ' + loopLen + ' per runde · ' + this.fmtLabel() : S.tst ? 'Tester effekten på slide ' + (idx + 1) + ' · ' + this.fmtLabel() : sel ? 'Pause · viser slide ' + (idx + 1) + (activeIdx < 0 ? ' (skjult i loopen)' : '') : 'Pause',
       onCanvasDown: this.onCanvasDown, onCanvasMove: this.onCanvasMove, onCanvasDbl: this.onCanvasDbl, onCanvasCtx: this.onCanvasCtx,
+      // tekstfeltene (live-visning): overskriften og brødteksten i loopens font og typografi (som i forhåndsvisningen)
+      typoHeadline: typoOf({ font: S.cfg.font || 'Archivo', size: 75 * (S.cfg.titleScale || 1), color: '#ffffff', boxWidth: 1280, upper: true, textStyle: S.cfg.ts?.title, legacy: { align: 'left', lh: 1.17, ls: -0.035, weight: 700 } }),
+      typoBody: typoOf({ font: S.cfg.font || 'Archivo', size: 48 * (S.cfg.textScale || 1), color: '#ffffff', boxWidth: 1280, legacy: { align: 'left', lh: 1.14, ls: -0.015, weight: 600 } }),
       hasInline: !!S.inlineEd, inlineRef: this.inlineRef, inlineVal: S.inlineEd ? S.inlineEd.value : '',
       inlineL: S.inlineEd ? S.inlineEd.left + 'px' : '0px', inlineT: S.inlineEd ? S.inlineEd.top + 'px' : '0px', inlineW: S.inlineEd ? S.inlineEd.width + 'px' : '0px',
       inlineH: S.inlineEd ? S.inlineEd.height + 'px' : '0px', inlineFs: S.inlineEd ? S.inlineEd.fs + 'px' : '16px', inlineHintT: S.inlineEd ? S.inlineEd.top + S.inlineEd.height + 6 + 'px' : '0px',
-      onInlineChange: (e: InputEv) => { const v = e.target.value; this.setState((st) => (st.inlineEd ? { inlineEd: { ...st.inlineEd, value: v } } : null)) },
-      inlineHint: S.inlineEd?.multi ? 'Enter lagrer · Shift+Enter ny linje · Esc avbryter' : 'Enter lagrer · Esc avbryter',
+      onInlineChange: (e: InputEv) => { const v = e.target.value, ed = this.state.inlineEd; this.setState((st) => (st.inlineEd ? { inlineEd: { ...st.inlineEd, value: v } } : null)); if (ed) this.writeInline(ed, v) },
+      inlineHint: S.inlineEd?.multi ? 'Enter ny linje · Ctrl+Enter lagrer · Esc avbryter' : 'Enter lagrer · Esc avbryter',
       onInlineKey: (e: KeyEv) => {
-        if (e.key === 'Escape') { e.preventDefault(); this.inlineCancel = true; this.setState({ inlineEd: null }); return }
+        if (e.key === 'Escape') {
+          // avbryt: teksten tilbake slik den var (endringene var skrevet rett til feltet)
+          e.preventDefault()
+          const ed0 = this.state.inlineEd
+          if (ed0) this.writeInline(ed0, ed0.orig)
+          this.inlineCancel = true
+          this.setState({ inlineEd: null })
+          return
+        }
         if (e.key !== 'Enter') return
         const ed = this.state.inlineEd
+        // tekst med flere linjer: Enter gir linjeskift (ikke andre editorfunksjoner); Ctrl/⌘+Enter lagrer
+        if (ed?.multi && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          e.stopPropagation()
+          return
+        }
         if (e.shiftKey && ed?.multi) {
           e.preventDefault()
           const t = e.target as HTMLTextAreaElement, a = t.selectionStart, b = t.selectionEnd, v = t.value.slice(0, a) + '\n' + t.value.slice(b)

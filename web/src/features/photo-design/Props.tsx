@@ -1,6 +1,8 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
 import AppFontPicker from '../../components/fontpicker/AppFontPicker'
+import TextLiveField from '../../components/text/TextLiveField'
+import { typoOf } from '../../components/text/typo'
 import { normalizeStyle } from '../../components/fontpicker/TextStyle.jsx'
 import { PATTERNS, patternPaint } from './engine/patterns'
 import { QrFields } from '../../shared/qr/QrFields'
@@ -8,7 +10,7 @@ import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
-import { ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
+import { textBox, ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
 import { NumField } from '../../shared/ui/NumField'
 import { BgColor } from '../../shared/ui/BgColor'
 import { CurveGradient } from '../../shared/fill/CurveGradient'
@@ -275,7 +277,10 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
             <>
               <label className={s.field}>
                 <span>{tx('Tekst')}</span>
-                <textarea rows={3} data-pd-text="1" value={L.text} onChange={(e) => P({ text: e.target.value.slice(0, 2000) }, 'text')} />
+                {/* live-visning (lagets typografi, uten effekter) eller dagens tekstboks («Vis tekstboks») – samme felt */}
+                <TextLiveField typo={typoOf({ font: L.font, stretch: L.stretch, size: L.size, color: L.color, boxWidth: textBox(L).w / (L.tsx || 1), upper: L.upper, textStyle: L.textStyle, legacy: { align: L.align, lh: L.lh, ls: (L.ls || 0) / Math.max(1, L.size), weight: L.weight, italic: L.italic } })}>
+                  <textarea rows={3} data-pd-text="1" value={L.text} onChange={(e) => P({ text: e.target.value.slice(0, 2000) }, 'text')} />
+                </TextLiveField>
               </label>
               {/* fontpopupen (components/fontpicker): font, verktøylinjen (fet, kursiv, understrek, størrelse, linje- og
                   bokstavavstand), plassering, retning, roter, speilvend, former, ordsky og effekter – samme popup som overalt */}

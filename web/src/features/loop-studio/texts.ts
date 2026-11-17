@@ -222,6 +222,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Enkle toninger, rolig tekst og litt filmkorn for et naturlig uttrykk.': 'Simple fades, calm text and a little film grain for a natural look.',
   'Enter lagrer · Esc avbryter': 'Enter saves · Esc cancels',
   'Enter lagrer · Shift+Enter ny linje · Esc avbryter': 'Enter saves · Shift+Enter new line · Esc cancels',
+  'Enter ny linje · Ctrl+Enter lagrer · Esc avbryter': 'Enter new line · Ctrl+Enter saves · Esc cancels',
   'Episk piano': 'Epic piano',
   'et bilde': 'an image',
   'Etikett': 'Label',

@@ -99,6 +99,8 @@ export interface MState {
   trDrag: { type: string; x: number; y: number; hit: TransHit | null } | null
   medDrag: { id: string; name: string; x: number; y: number; hit: Hit | null } | null
   xform: Xform | null
+  /** Teksten som redigeres direkte på lerretet (dobbeltklikk), eller null. */
+  inlineText: string | null
   curveCh: 'm' | 'r' | 'g' | 'b'
   folder: FolderStatus | null
   folderDlg: boolean
@@ -336,7 +338,7 @@ export class MotionController {
       ready: false, view: 'home', entries: [], fmt: null, cw: '1080', ch: '1080', tplThumbs: {}, tplTheme: readTheme(st.get('motiondesign.tpltheme')), msg: null, proj: null, projectId: null, sel: null, multi: [], t: 0, playing: false,
       zoom: 60, tab: 'media', replaceFor: null, exp: null, ai: { lang: 'norwegian', model: 'onnx-community/whisper-base', busy: false, msg: null, err: false },
       toast: null, saved: '', autosave: st.get('motiondesign.autosave') === '1', adv: st.get('motiondesign.advanced') === '1', pv: { w: 640, h: 360, cw: 640, ch: 360 }, full: false, immersive: false, narrow: false, vw: 1440, dragOver: false,
-      clipDrag: null, packing: false, syncBusy: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, curveCh: 'm', folder: null, folderDlg: false,
+      clipDrag: null, packing: false, syncBusy: false, secOpen, drawer: 'l', menu: null, trDrag: null, medDrag: null, xform: null, inlineText: null, curveCh: 'm', folder: null, folderDlg: false,
       folderBusy: null, waiting: [], picker: null, vo: null, hasClip: false, hasLook: null, lastExp: false, binErr: [], insp: 'clip', tlView: { l: 0, w: 30 }, tlH: Number(st.get('motiondesign.tlh')) || null, rev: 0,
     })
   }
@@ -1719,6 +1721,18 @@ export class MotionController {
     this.flash(mode === 'crop' ? 'Beskjær: dra i kantene. Dobbeltklikk eller Enter for å gå tilbake.' : type === 'ov' ? 'Dra i punktene for å endre størrelse, eller i det runde håndtaket for å rotere. Dobbeltklikk igjen for å beskjære. Esc avslutter.' : type === 'clip' ? 'Dra i punktene for å endre størrelse, eller i det runde håndtaket for å rotere. Esc avslutter.' : 'Dra i punktene for å endre størrelse. Esc avslutter.')
   }
 
+/** Tekstboksen til teksten `id` på skjermen (for redigering på lerretet), og skjermpiksler per tekstpiksel. */
+  inlineBox(id: string): { cx: number; cy: number; w: number; h: number; k: number } | null {
+    const r = this.rects[id]
+    const cv = this.els.canvas
+    const p = this.s.proj
+    if (!r || !cv?.width || !p) return null
+    const cr = cv.getBoundingClientRect()
+    const k = cr.width / cv.width
+    const U = (Math.min(p.w, p.h) / 1080) * (cv.width / p.w)
+    return { cx: cr.left + (r.x + r.w / 2) * k, cy: cr.top + (r.y + r.h / 2) * k, w: r.w * k, h: r.h * k, k: U * k }
+  }
+
   canvasDbl(e: React.MouseEvent<HTMLCanvasElement>): void {
     const s = this.s.sel
     const p = this.s.proj
@@ -1735,6 +1749,11 @@ export class MotionController {
     const xf = this.s.xform
     if (xf && xf.id === s.id) {
       if (s.type === 'ov') this.startXf('ov', s.id, xf.mode === 'crop' ? 'move' : 'crop')
+      return
+    }
+    // tekst: redigeres direkte der den står (flytt/skaler: «Transformer» i lagmenyen, som før)
+    if (s.type === 'text') {
+      this.set({ inlineText: s.id })
       return
     }
     this.startXf(s.type, s.id, 'move')

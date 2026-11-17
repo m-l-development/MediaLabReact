@@ -21,6 +21,9 @@ import { BLEED, dims, LOOKS, SHAPES, type PdDoc, type PdLayer } from './engine/m
 import { applyScheme, liveScheme } from './engine/palette'
 import { docFonts, hit, pdStyled, render, shapePath } from './engine/render'
 import { Props } from './Props'
+import InlineTextEditor from '../../components/text/InlineTextEditor'
+import { typoOf } from '../../components/text/typo'
+import { textBox } from './engine/model'
 import { Range } from './Ui'
 import type { Phrase, Tx } from './texts'
 import s from './PhotoDesign.module.css'
@@ -908,6 +911,17 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const d = S.doc as NonNullable<PState['doc']>
   const sc = c.sc()
+  // direkte tekstredigering på lerretet (dobbeltklikk)
+  const [inline, setInline] = useState<{ id: string; left: number; top: number } | null>(null)
+  const il = inline ? d.layers.find((q) => q.id === inline.id) : null
+  const inlineEd = il?.type === 'text' && inline ? (() => {
+    const r = { left: inline.left, top: inline.top }
+    const b = textBox(il)
+    return (
+      <InlineTextEditor box={{ cx: r.left + il.x * sc, cy: r.top + il.y * sc, w: b.w * sc, h: b.h * sc, rot: il.rot }} typo={typoOf({ font: il.font, stretch: il.stretch, size: il.size, color: il.color, boxWidth: textBox(il).w / (il.tsx || 1), upper: il.upper, textStyle: il.textStyle, legacy: { align: il.align, lh: il.lh, ls: (il.ls || 0) / Math.max(1, il.size), weight: il.weight, italic: il.italic } })}
+        scale={sc * (il.tsy || 1)} value={il.text} onChange={(v) => c.patchL(il.id, { text: v.slice(0, 2000) }, 'text')} onDone={() => setInline(null)} />
+    )
+  })() : null
 
   // hjelpelinjen under arbeidsflaten (bare PC); høyden trekkes fra når bildet tilpasses vinduet
   const tips = useRef<HTMLDivElement>(null)
@@ -1131,15 +1145,14 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
           const hitL = c.s.doc ? hit(c.s.doc, p[0], p[1]) : null
           if (!hitL) return
           if (hitL.type === 'text') {
+            // tekst: redigeres direkte der den står (panelet er fortsatt et alternativ)
             c.ui({ sel: hitL.id, multi: [] })
-            setTimeout(() => {
-              const t = document.querySelector<HTMLTextAreaElement>('textarea[data-pd-text]')
-              t?.focus()
-              t?.select()
-            }, 30)
+            const wr = wrap.current?.getBoundingClientRect()
+            if (wr) setInline({ id: hitL.id, left: wr.left, top: wr.top })
           } else if (hitL.type === 'image') c.ui({ sel: hitL.id, multi: [], tool: S.tool === 'crop' ? 'move' : 'crop', tab: 'layer' })
         }}>
         <canvas ref={canvas} width={10} height={10} className={s.canvas} />
+        {inlineEd}
         {d.bleed && <div className={s.safe} style={{ inset: BLEED * sc }} />}
         {S.guides?.lines.map(([x1, y1, x2, y2], i) => (
           <div key={`gl${i}`} className={s.guide} style={{ left: Math.min(x1, x2) * sc, top: Math.min(y1, y2) * sc, width: x1 === x2 ? 1 : Math.abs(x2 - x1) * sc, height: y1 === y2 ? 1 : Math.abs(y2 - y1) * sc }} />

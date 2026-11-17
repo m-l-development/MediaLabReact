@@ -1,5 +1,7 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
+import InlineTextEditor from '../../components/text/InlineTextEditor'
+import { typoOf } from '../../components/text/typo'
 import { TRSTD, type ExpState, type Insp, type MotionController, type MState, realFullscreen } from './controller'
 import { contentDur, exportSize, fmtT, layout, totalDur, type Project } from './engine/model'
 import { FullBar } from './FullBar'
@@ -284,6 +286,7 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
           <div ref={c.bind('stage')} className={s.stage} style={{ padding: S.full ? 0 : port ? 8 : 16 }} data-md-full={S.full ? '' : undefined} data-md-immersive={S.immersive ? '' : undefined} tabIndex={0} aria-label={tx('Forhåndsvisning')} data-focus-region="" onKeyDown={(e) => c.menuKey(e, 'preview')}>
             <canvas ref={c.bind('canvas')} className={s.canvas} data-md-canvas="1" width={S.pv.cw} height={S.pv.ch} style={{ width: S.pv.w, height: S.pv.h }}
               onPointerDown={(e) => (S.full ? e.button === 0 && c.togglePlay() : c.canvasDown(e))} onContextMenu={(e) => (S.full ? e.preventDefault() : c.canvasCtx(e))} onDoubleClick={(e) => (S.full ? c.toggleFull() : c.canvasDbl(e))} onPointerMove={(e) => !S.full && c.canvasMove(e)} />
+            {S.inlineText && !S.full ? <MotionInline c={c} id={S.inlineText} /> : null}
             {S.dragOver && <div className={s.drop}>{tx('Slipp filene for å legge dem til')}</div>}
             {S.full && <FullBar c={c} T={T} playing={S.playing} tx={tx} />}
             {!S.full && <MoreButton className={s.pvMore} label={tx('Handlinger for forhåndsvisningen')} onOpen={() => c.touchMenu('preview')} />}
@@ -464,4 +467,13 @@ export function Editor({ c, S, p, tx, onShared, onLogoCloud, folders, sendTo }: 
       )}
     </div>
   )
+}
+
+/** Direkte tekstredigering på lerretet (dobbeltklikk på en tekst): felles komponent (components/text). */
+function MotionInline({ c, id }: { c: MotionController; id: string }) {
+  const x = c.s.proj?.texts.find((q) => q.id === id)
+  const b = x ? c.inlineBox(id) : null
+  if (!x || !b) return null
+  const typo = typoOf({ font: x.font, size: x.size, color: x.color, boxWidth: b.w / b.k, upper: x.upper, textStyle: x.textStyle, legacy: { align: x.align, lh: x.lh, ls: x.track, weight: x.weight, italic: x.italic } })
+  return <InlineTextEditor box={b} typo={typo} scale={b.k} value={x.text} onChange={(v) => c.patch('text', id, { text: v }, 'inline:' + id)} onDone={() => c.set({ inlineText: null })} />
 }
