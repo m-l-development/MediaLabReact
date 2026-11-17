@@ -4,7 +4,7 @@ import { inpaint } from './inpaint'
 import { lamaCrop, lamaFill, SIZE } from './lama'
 import { keyRegion } from './keybox'
 import { hitMark, pendingMask, type Mark } from './marks'
-import { colorKey, cropBox, hasContent, isDegenerate, isGraphic, maxMask, refineMask, subtractMask } from './mask'
+import { colorKey, cropBox, hasContent, isDegenerate, isGraphic, maxMask, refineMask, subtractMask, textStrokes } from './mask'
 
 /** Lager et RGBA-bilde W×H fylt med `bg`, med et rektangel i `fg`. */
 function image(W: number, H: number, bg: number[], fg?: { color: number[]; x0: number; y0: number; x1: number; y1: number }) {
@@ -251,5 +251,51 @@ describe('fjerning: grafikk og farge', () => {
     expect(rgba[(10 * W + 6) * 4]).toBe(16)
     expect(rgba[(10 * W + 2) * 4]).toBe(255)
     expect(colorArea(rgba, W, H, new Uint8ClampedArray(W * H), '#000000')).toBe(false)
+  })
+})
+
+describe('fyll med omgivelser: skarphet', () => {
+  it('bred, tynn tekst fylles i full oppløsning (flere 512-utsnitt), ikke nedskalert og uskarp', async () => {
+    const W = 1400, H = 700
+    const rgba = new Uint8ClampedArray(W * H * 4).fill(100)
+    const remove = new Uint8ClampedArray(W * H)
+    for (let y = 500; y < 530; y++) for (let x = 200; x < 1200; x++) remove[y * W + x] = 255
+    let calls = 0
+    const ok = await lamaFill(rgba, W, H, remove, async () => {
+      calls++
+      // modellen svarer med et rutemønster på 1 piksel: overlever bare uten skalering
+      const out = new Float32Array(3 * SIZE * SIZE)
+      for (let i = 0; i < SIZE * SIZE; i++) for (let c = 0; c < 3; c++) out[c * SIZE * SIZE + i] = ((i % SIZE) + Math.floor(i / SIZE)) % 2 ? 255 : 0
+      return out
+    }, 2)
+    expect(ok).toBe(true)
+    expect(calls).toBeGreaterThan(1)
+    let lo = 255, hi = 0
+    for (let x = 600; x < 610; x++) { const v = rgba[(515 * W + x) * 4] as number; lo = Math.min(lo, v); hi = Math.max(hi, v) }
+    expect(hi - lo, 'mønsteret er skarpt').toBeGreaterThan(150)
+  })
+  it('et stort, tett område fylles fortsatt i ett utsnitt (oversikt)', async () => {
+    const W = 1400, H = 900
+    const rgba = new Uint8ClampedArray(W * H * 4).fill(100)
+    const remove = new Uint8ClampedArray(W * H)
+    for (let y = 100; y < 800; y++) for (let x = 300; x < 1000; x++) remove[y * W + x] = 255
+    let calls = 0
+    await lamaFill(rgba, W, H, remove, async () => { calls++; return new Float32Array(3 * SIZE * SIZE).fill(128) }, 2)
+    expect(calls).toBe(1)
+  })
+})
+
+describe('tekst i en firkant', () => {
+  it('finner bare de lyse bokstavstrekene på et mønstret foto, ikke hele firkanten', () => {
+    const W = 300, H = 120
+    const rgba = new Uint8ClampedArray(W * H * 4)
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = 40 + ((x * 7 + y * 3) % 50); rgba.set([v, v - 10, v + 20, 255], (y * W + x) * 4) }
+    // «bokstaver»: loddrette hvite strøk, 6 px brede
+    for (let x = 30; x < 270; x += 20) for (let y = 30; y < 90; y++) for (let k = 0; k < 6; k++) rgba.set([250, 250, 250, 255], (y * W + x + k) * 4)
+    const m = textStrokes(rgba, W, H, { x0: 10, y0: 10, x1: 290, y1: 110 })
+    expect(m).not.toBeNull()
+    expect(m![(60 * W + 32)]).toBe(255)
+    expect(m![(60 * W + 45)], 'mellom bokstavene beholdes').toBe(0)
+    expect(m![(5 * W + 5)], 'utenfor firkanten').toBe(0)
   })
 })

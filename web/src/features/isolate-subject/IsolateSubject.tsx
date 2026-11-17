@@ -207,7 +207,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
                   </button>
                 )
               })}
-              <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.mode === 'point'} disabled={!!s.busy} onClick={() => ctl.startMarking()}>
+              <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.mode === 'point'} data-mark-open="" disabled={!!s.busy} onClick={() => ctl.startMarking()}>
                 <strong>{t('isolate.mark')}</strong>
                 <span>{t('isolate.mark.desc')}</span>
               </button>

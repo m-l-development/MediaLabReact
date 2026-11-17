@@ -170,3 +170,72 @@ export function isGraphic(rgba: Uint8ClampedArray, mask: Mask): boolean {
   const top = [...counts.values()].sort((a, b) => b - a).slice(0, 16).reduce((a, b) => a + b, 0)
   return top >= 0.8 * n
 }
+
+/**
+ * Tekst i en firkant (Fjern tekst/logo i et foto): bare bokstavstrekene, ikke alt i firkanten. Strøk som er tydelig
+ * lysere (eller mørkere) enn omgivelsene og smalere enn `r` piksler, finnes med morfologisk «top-hat» på lysstyrken
+ * (lysstyrken minus en åpning med radius r). Utvides med 3 piksler (kantutjevning). null hvis det ikke ligner tekst
+ * (under 0,5 % eller over 60 % av firkanten).
+ */
+export function textStrokes(rgba: Uint8ClampedArray, W: number, H: number, box: { x0: number; y0: number; x1: number; y1: number }): Mask | null {
+  const X0 = Math.max(0, Math.floor(box.x0)), Y0 = Math.max(0, Math.floor(box.y0))
+  const w = Math.min(W, Math.ceil(box.x1)) - X0, h = Math.min(H, Math.ceil(box.y1)) - Y0
+  if (w < 8 || h < 8) return null
+  const L = new Uint8ClampedArray(w * h)
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = ((Y0 + y) * W + X0 + x) * 4
+    L[y * w + x] = Math.round(0.299 * (rgba[p] as number) + 0.587 * (rgba[p + 1] as number) + 0.114 * (rgba[p + 2] as number))
+  }
+  const r = Math.max(4, Math.round(Math.min(w, h) / 12))
+  const open = growMask(growMask(L, w, h, -r), w, h, r)
+  const close = growMask(growMask(L, w, h, r), w, h, -r)
+  // bakgrunnen: lysstyrken langs kanten av firkanten (median). Lys tekst er lysere enn den, mørk tekst mørkere.
+  const hist = new Array<number>(256).fill(0)
+  let edge = 0
+  for (let x = 0; x < w; x++) { hist[L[x] as number]!++; hist[L[(h - 1) * w + x] as number]!++; edge += 2 }
+  for (let y = 1; y < h - 1; y++) { hist[L[y * w] as number]!++; hist[L[y * w + w - 1] as number]!++; edge += 2 }
+  let bgL = 0
+  let acc = hist[0] as number
+  while (bgL < 255 && acc < edge / 2) acc += hist[++bgL] as number
+  const hatB = (i: number) => (L[i] as number) - (open[i] as number)
+  const hatD = (i: number) => (close[i] as number) - (L[i] as number)
+  let bright = 0
+  let dark = 0
+  for (let i = 0; i < L.length; i++) {
+    if (hatB(i) > 50 && (L[i] as number) > bgL + 50) bright++
+    if (hatD(i) > 50 && (L[i] as number) < bgL - 50) dark++
+  }
+  const useBright = bright >= dark
+  const hat = useBright ? hatB : hatD
+  const strong = (i: number) => hat(i) > 50 && (useBright ? (L[i] as number) > bgL + 50 : (L[i] as number) < bgL - 50)
+  // tekstens farge (gjennomsnittet av de tydelige strekene); svakere strek i samme farge tas også med (tekst over lys flate)
+  const col = [0, 0, 0]
+  let cn = 0
+  for (let i = 0; i < L.length; i++) {
+    if (!strong(i)) continue
+    const p = ((Y0 + ((i / w) | 0)) * W + X0 + (i % w)) * 4
+    for (let c = 0; c < 3; c++) col[c] = (col[c] as number) + (rgba[p + c] as number)
+    cn++
+  }
+  if (!cn) return null
+  for (let c = 0; c < 3; c++) col[c] = (col[c] as number) / cn
+  const k = new Uint8ClampedArray(w * h)
+  let n = 0
+  for (let i = 0; i < L.length; i++) {
+    let on = strong(i)
+    if (!on && hat(i) > 15) {
+      const p = ((Y0 + ((i / w) | 0)) * W + X0 + (i % w)) * 4
+      on = Math.hypot((rgba[p] as number) - (col[0] as number), (rgba[p + 1] as number) - (col[1] as number), (rgba[p + 2] as number) - (col[2] as number)) < 45
+    }
+    if (on) {
+      k[i] = 255
+      n++
+    }
+  }
+  if (n < 0.005 * w * h || n > 0.6 * w * h) return null
+  const g = growMask(k, w, h, 3)
+  const out = new Uint8ClampedArray(W * H)
+  for (let y = 0; y < h; y++) out.set(g.subarray(y * w, y * w + w), (Y0 + y) * W + X0)
+  return out
+}
+

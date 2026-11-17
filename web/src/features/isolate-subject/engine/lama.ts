@@ -69,14 +69,66 @@ export function resample(src: Float32Array, sw: number, sh: number, dw: number, 
   return out
 }
 
+interface Rect { x: number; y: number; w: number; h: number }
+
+/** Største side i fullt bilde som fylles i ett utsnitt; større, tynne områder deles opp (se lamaFill). */
+const TILE = 320
+/** Et område regnes som tynt (tekst, ledninger) når ingen piksel er lenger enn dette fra kjent bilde (i utsnittets mål). */
+const THIN = 0.12 * SIZE
+
 /**
  * Fyller området med LaMa. Endrer `rgba` bare i området (masken utvidet med `grow`) og 2 piksler myk overgang utenfor.
+ * Modellen ser 512×512. Et stort utsnitt måtte skaleres ned og opp igjen, og fyllet ble uskarpt (f.eks. en bred
+ * undertekst). Tynne områder fylles derfor i flere utsnitt på 512×512 i full oppløsning (ingen skalering); hvert utsnitt
+ * ser hele hullet som ukjent, men skriver bare sin egen rute. Store, tette områder (et objekt) fylles i ett utsnitt
+ * som før, der oversikten betyr mer enn detaljene.
  * Returnerer false hvis masken er tom.
  */
 export async function lamaFill(rgba: Uint8ClampedArray, W: number, H: number, remove: Mask, run: LamaRun, grow = defaultGrow(W, H)): Promise<boolean> {
   const b = bounds(remove, W, H)
   if (!b) return false
   const c = lamaCrop(b, W, H, grow)
+  const tiles = Math.max(c.w, c.h) > SIZE * 1.15 ? thinTiles(remove, W, H, b, grow) : null
+  if (!tiles) {
+    await fillCrop(rgba, W, remove, run, grow, c, c)
+    return true
+  }
+  for (const t of tiles) {
+    const w = Math.min(W, SIZE), h = Math.min(H, SIZE)
+    const crop = { x: Math.round(Math.min(W - w, Math.max(0, t.x + t.w / 2 - w / 2))), y: Math.round(Math.min(H - h, Math.max(0, t.y + t.h / 2 - h / 2))), w, h }
+    await fillCrop(rgba, W, remove, run, grow, crop, t)
+  }
+  return true
+}
+
+/** Rutene for et tynt område (null = ikke tynt, eller for mange ruter: fyll i ett utsnitt). */
+function thinTiles(remove: Mask, W: number, H: number, b: { x0: number; y0: number; x1: number; y1: number }, grow: number): Rect[] | null {
+  const pad = grow + 3
+  const x0 = Math.max(0, b.x0 - pad), y0 = Math.max(0, b.y0 - pad)
+  const w = Math.min(W, b.x1 + pad + 1) - x0, h = Math.min(H, b.y1 + pad + 1) - y0
+  const seed = new Uint8Array(w * h)
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) seed[y * w + x] = (remove[(y0 + y) * W + x0 + x] ?? 0) > 20 ? 1 : 0
+  const toHole = distance(seed, w, h)
+  const known = new Uint8Array(w * h)
+  for (let i = 0; i < known.length; i++) known[i] = (toHole[i] as number) <= grow ? 0 : 1
+  const toKnown = distance(known, w, h)
+  let deepest = 0
+  for (let i = 0; i < toKnown.length; i++) if (!known[i] && (toKnown[i] as number) > deepest) deepest = toKnown[i] as number
+  if (deepest > THIN) return null
+  const out: Rect[] = []
+  for (let ty = 0; ty < h; ty += TILE) {
+    for (let tx = 0; tx < w; tx += TILE) {
+      const tw = Math.min(TILE, w - tx), th = Math.min(TILE, h - ty)
+      let any = false
+      for (let y = ty; y < ty + th && !any; y++) for (let x = tx; x < tx + tw; x++) if (!known[y * w + x]) { any = true; break }
+      if (any) out.push({ x: x0 + tx, y: y0 + ty, w: tw, h: th })
+    }
+  }
+  return out.length && out.length <= 24 ? out : null
+}
+
+/** Ett modellkall: utsnittet `c` (hele hullet i det er ukjent), og bare pikslene i `write` endres. */
+async function fillCrop(rgba: Uint8ClampedArray, W: number, remove: Mask, run: LamaRun, grow: number, c: Rect, write: Rect): Promise<void> {
   const n = c.w * c.h
   // området i utsnittet, utvidet med `grow` (kantutjevning og skygger rundt objektet)
   const seed = new Uint8Array(n)
@@ -123,8 +175,9 @@ export async function lamaFill(rgba: Uint8ClampedArray, W: number, H: number, re
     const t = hole[i] ? 1 : d <= 1 ? 0.5 : d <= 2 ? 0.25 : 0
     if (!t) continue
     const x = i % c.w, y = (i / c.w) | 0
-    const p = ((c.y + y) * W + c.x + x) * 4
+    const gx = c.x + x, gy = c.y + y
+    if (gx < write.x || gy < write.y || gx >= write.x + write.w || gy >= write.y + write.h) continue
+    const p = (gy * W + gx) * 4
     for (let ch = 0; ch < 3; ch++) rgba[p + ch] = Math.round((rgba[p + ch] as number) * (1 - t) + ((up[i * 3 + ch] as number) + (off[ch] as number)) * t)
   }
-  return true
 }

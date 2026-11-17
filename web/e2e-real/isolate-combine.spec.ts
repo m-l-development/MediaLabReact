@@ -141,3 +141,56 @@ test('fjern logo i et foto uten å merke den: ingenting feil fjernes, brukeren b
   await expect(page.locator('aside [role="alert"]')).toContainText('Dra en firkant rundt dem', { timeout: 120_000 })
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeDisabled()
 })
+
+test('bred undertekst fjernes med Fyll med omgivelser uten at området blir uskarpt (ekte LaMa)', async ({ page }, info) => {
+  await page.goto('/app/')
+  const TXT = { x0: 220, y0: 770, x1: 1220, y1: 930 }
+  const [withText, sharpOrig] = await page.evaluate(async ({ data, box }) => {
+    const bmp = await createImageBitmap(await (await fetch(`data:image/jpeg;base64,${data}`)).blob())
+    const c = Object.assign(document.createElement('canvas'), { width: bmp.width, height: bmp.height })
+    const g = c.getContext('2d') as CanvasRenderingContext2D
+    g.drawImage(bmp, 0, 0)
+    const lap = (d: ImageData) => { let s = 0, n = 0; for (let y = 1; y < d.height - 1; y++) for (let x = 1; x < d.width - 1; x++) { const i = (y * d.width + x) * 4; s += Math.abs(4 * (d.data[i] as number) - (d.data[i - 4] as number) - (d.data[i + 4] as number) - (d.data[i - d.width * 4] as number) - (d.data[i + d.width * 4] as number)); n++ } return s / n }
+    const orig = lap(g.getImageData(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0))
+    g.fillStyle = '#fff'
+    g.font = 'bold 60px sans-serif'
+    g.textAlign = 'center'
+    g.fillText('Menigheten', 720, 830)
+    g.fillText('Verdens lys og jordens salt', 720, 905)
+    return [c.toDataURL('image/png').split(',')[1] as string, orig] as const
+  }, { data: PHOTO.toString('base64'), box: TXT })
+  await page.goto('/app/isolate-subject')
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: /Slipp et bilde her/ }).click()
+  await (await chooser).setFiles({ name: 'undertekst.png', mimeType: 'image/png', buffer: Buffer.from(withText, 'base64') })
+  await page.getByRole('button', { name: 'Hopp over' }).click()
+  await page.locator('[data-tab="remove"]').click()
+  await page.locator('[data-target="text"]').click()
+  await page.getByRole('button', { name: /^Merk i bildet/ }).click()
+  const b = (await page.locator('main canvas').first().boundingBox())!
+  await page.mouse.move(b.x + (b.width * TXT.x0) / 1440, b.y + (b.height * TXT.y0) / 1800)
+  await page.mouse.down()
+  await page.mouse.move(b.x + (b.width * 720) / 1440, b.y + (b.height * 850) / 1800, { steps: 5 })
+  await page.mouse.move(b.x + (b.width * TXT.x1) / 1440, b.y + (b.height * TXT.y1) / 1800, { steps: 5 })
+  await page.mouse.up()
+  await page.locator('[data-run]').click()
+  await expect(page.locator('[data-effect="fill"]')).toBeVisible({ timeout: 480_000 })
+  await page.locator('[data-effect-apply]').click()
+  const dl = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Last ned PNG' }).click()
+  const file = info.outputPath('undertekst.png')
+  await (await dl).saveAs(file)
+  const r = await page.evaluate(async ({ data, box }) => {
+    const bmp = await createImageBitmap(await (await fetch(`data:image/png;base64,${data}`)).blob())
+    const c = new OffscreenCanvas(bmp.width, bmp.height)
+    const g = c.getContext('2d') as OffscreenCanvasRenderingContext2D
+    g.drawImage(bmp, 0, 0)
+    const d = g.getImageData(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0)
+    let s = 0, n = 0, white = 0
+    for (let y = 1; y < d.height - 1; y++) for (let x = 1; x < d.width - 1; x++) { const i = (y * d.width + x) * 4; s += Math.abs(4 * (d.data[i] as number) - (d.data[i - 4] as number) - (d.data[i + 4] as number) - (d.data[i - d.width * 4] as number) - (d.data[i + d.width * 4] as number)); n++; if ((d.data[i] as number) > 235 && (d.data[i + 1] as number) > 235 && (d.data[i + 2] as number) > 235) white++ }
+    return { sharp: s / n, white: white / n }
+  }, { data: fs.readFileSync(file).toString('base64'), box: TXT })
+  console.log(`[undertekst] skarphet original=${sharpOrig.toFixed(2)} resultat=${r.sharp.toFixed(2)} hvitt=${(r.white * 100).toFixed(2)} %`)
+  expect(r.white, 'teksten er borte').toBeLessThan(0.01)
+  expect(r.sharp, 'skarpt (før: 0,39 av originalen, nedskalert og uskarpt)').toBeGreaterThan(sharpOrig * 0.5)
+})

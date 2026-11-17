@@ -4,7 +4,7 @@ import { blurArea, colorArea } from './engine/blur'
 import { FillRunner } from './engine/fill'
 import { defaultGrow } from './engine/inpaint'
 import { pendingMask, applyKeyMask, hitMark, type Mark } from './engine/marks'
-import { colorKey, cropBox, hasContent, invertMask, isGraphic, maxMask, refineMask, subtractMask, type Mask } from './engine/mask'
+import { colorKey, cropBox, hasContent, invertMask, isGraphic, maxMask, refineMask, subtractMask, textStrokes, type Mask } from './engine/mask'
 import { ACCEPT, cloneCanvas, crop, keyBox, loadToCanvas, makeCanvas, maskCanvas, MAX_BYTES, putRgba, rgbaOf, toBlob } from './engine/raster'
 import { AiSegmenter } from './engine/segment-client'
 import { StallError, type ModelKey, type Phase } from './engine/segmenter'
@@ -449,7 +449,7 @@ export class IsolateController {
       let keep = keepAll ? null : union(s.keepSet)
       let remove = union(s.removeSet.filter((t) => t !== 'background'))
       let bg = s.removeSet.includes('background') ? parts.background : null
-      const mk = await this.markMasks(src, s.marks, tok)
+      const mk = await this.markMasks(src, s.marks, tok, s.removeSet.includes('text') && !s.removeSet.includes('logo'))
       if (!mk || stale()) return
       if (mk.red) remove = remove ? maxMask(remove, mk.red) : mk.red
       if (mk.green) {
@@ -498,15 +498,27 @@ export class IsolateController {
   }
 
   /** Maskene fra «Merk i bildet»: rødt (fjern) og grønt (behold). null = avbrutt. */
-  private async markMasks(src: HTMLCanvasElement, marks: readonly Mark[], tok: number): Promise<{ red: Mask | null; green: Mask | null } | null> {
+  private async markMasks(src: HTMLCanvasElement, marks: readonly Mark[], tok: number, text = false): Promise<{ red: Mask | null; green: Mask | null } | null> {
     const W = src.width
     const H = src.height
-    let red = pendingMask(marks, W, H)
+    // Tekst (uten Logo) under Fjern: en rød firkant betyr bokstavene i den, ikke hele objektet SlimSAM finner. Logo = hele merket.
+    const strokes = new Map<Mark, Mask>()
+    if (text) {
+      const rgba = rgbaOf(src)
+      for (const m of marks) {
+        if (m.type !== 'box' || m.keep) continue
+        const t = textStrokes(rgba, W, H, { x0: m.x0 * W, y0: m.y0 * H, x1: m.x1 * W, y1: m.y1 * H })
+        if (t) strokes.set(m, t)
+      }
+    }
+    let red = pendingMask(marks.filter((m) => !strokes.has(m)), W, H)
+    for (const t of strokes.values()) red = red ? maxMask(red, t) : t
     let green: Mask | null = null
     const phase = (busy: Phase) => tok === this.token && this.set({ busy })
     const pct = (n: number) => tok === this.token && this.set({ pct: n })
     const negatives = marks.flatMap((m) => (m.keep && m.type === 'point' ? [{ x: m.x, y: m.y }] : []))
     for (const m of marks) {
+      if (strokes.has(m)) continue
       if (m.type === 'box' && m.km) {
         if (m.keep) applyKeyMask((green ??= new Uint8ClampedArray(W * H)), W, m.km, false)
         continue
@@ -527,9 +539,16 @@ export class IsolateController {
 
   // ---------- Merk i bildet ----------
 
+  /** «Merk i bildet» av/på: av fjerner merkene (Angre tar dem tilbake). */
   startMarking(): void {
     const s = this.state.get()
-    if (s.busy || s.mode === 'point') return
+    if (s.busy) return
+    if (s.mode === 'point') {
+      if (s.marks.length) this.snap()
+      this.pend = null
+      this.redraw({ mode: null, marks: [], error: null })
+      return
+    }
     this.redraw({ mode: 'point', marks: [], error: null, note: null, editing: false })
   }
 
@@ -839,17 +858,18 @@ export class IsolateController {
         g.drawImage(t, 0, 0)
         g.globalAlpha = 1
       }
-    } else if (!res) {
-      g.drawImage(src, 0, 0)
     } else {
-      g.drawImage(res.canvas, 0, 0)
-      if (s.cmp > 0) {
+      g.drawImage(res ? res.canvas : src, 0, 0)
+      // «Før»: originalen (bildet etter beskjæring), også når bare pikslene er endret (fyll, farge, uskarp) uten maske
+      const before = this.base && this.base.width === W && this.base.height === H ? this.base : src
+      if (s.cmp > 0 && (res || before !== src)) {
         const x = Math.round((cw * s.cmp) / 100)
         g.save()
         g.beginPath()
         g.rect(0, 0, x, ch)
         g.clip()
-        g.drawImage(src, -ox, -oy)
+        g.clearRect(0, 0, x, ch)
+        g.drawImage(before, -ox, -oy)
         g.restore()
         g.fillStyle = '#ffffff'
         g.fillRect(Math.max(0, x - Math.max(1, cw / 500)), 0, Math.max(2, cw / 250), ch)
