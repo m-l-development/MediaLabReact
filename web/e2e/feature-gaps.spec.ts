@@ -25,6 +25,17 @@ const print = (page: Page, sel: string) => page.locator(sel).first().evaluate((c
 const pixel = (page: Page, sel: string, fx: number, fy: number) => page.locator(sel).first().evaluate((c: HTMLCanvasElement, [x, y]) => [...c.getContext('2d')!.getImageData(Math.floor(c.width * x), Math.floor(c.height * y), 1, 1).data].slice(0, 3), [fx, fy] as [number, number])
 const settle = (page: Page) => page.waitForTimeout(300)
 
+/** Fontpopupen: velg en effekt (Effekter) eller form (Stil) for tekstlaget, og lukk popupen. */
+async function popPick(page: Page, tab: 'Effekter' | 'Stil', name: string) {
+  const P = page.getByRole('dialog', { name: 'Velg font' })
+  if (!(await P.count())) await page.locator('[data-fontpop] .fp-trigger').first().click()
+  await P.getByRole('tab', { name: tab, exact: true }).click()
+  const re = new RegExp('^' + name + '$')
+  if (tab === 'Stil') await P.locator('.fp-shapes button', { hasText: re }).click()
+  else await P.locator('.fp-fx:not(.fp-presets-grid):not(.fp-shapes) > button').filter({ has: page.locator('small', { hasText: re }) }).click()
+  await page.keyboard.press('Escape')
+}
+
 test('Photo Design: kontur, skygge og understrek på tekst, speil og tomme kanter på bilde, koblede farger', async ({ page }) => {
   const errors = errorsOf(page)
   const C = '[data-pd-wrap] canvas'
@@ -34,14 +45,17 @@ test('Photo Design: kontur, skygge og understrek på tekst, speil og tomme kante
   await page.getByRole('button', { name: 'Tekst', exact: true }).first().click()
   await expect(page.locator('[data-pd-selbox]')).toBeVisible()
   let p = await print(page, C)
-  for (const [name, v] of [['Kontur', '8'], ['Skygge', '20']] as const) {
-    const sl = page.getByRole('slider', { name, exact: true }).first()
-    await sl.fill(v)
-    await settle(page)
-    const q = await print(page, C)
-    expect(q, name).not.toBe(p)
-    p = q
-  }
+  // kontur er en effekt i fontpopupen; lagets skygge er en glidebryter som før
+  await popPick(page, 'Effekter', 'Kontur')
+  await settle(page)
+  let q = await print(page, C)
+  expect(q, 'Kontur').not.toBe(p)
+  p = q
+  await page.getByRole('slider', { name: 'Skygge', exact: true }).first().fill('20')
+  await settle(page)
+  q = await print(page, C)
+  expect(q, 'Skygge').not.toBe(p)
+  p = q
   await page.getByRole('switch', { name: 'Understrek' }).or(page.getByRole('button', { name: 'Understrek', exact: true })).first().click()
   await settle(page)
   expect(await print(page, C), 'Understrek').not.toBe(p)

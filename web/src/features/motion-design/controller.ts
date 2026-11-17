@@ -1,3 +1,7 @@
+import type { FontEntry } from '../../components/fontpicker/FontPicker.jsx'
+import type { TextStyle } from '../../components/fontpicker/TextStyle.jsx'
+import { legacyTextStyle } from '../../components/fontpicker/styled-layer'
+import { setMdPreview, setMdResolve } from './engine/render'
 import { cleanTheme, paletteOfTheme, type ThemeValue } from '../../shared/templates/theme'
 import type { ToolId } from '../../domain/tool'
 import { loadFonts } from '../../shared/fonts/loader'
@@ -316,6 +320,8 @@ export class MotionController {
 
   constructor(deps: MDeps) {
     this.d = deps
+    // Bildefyll (fontpopupen): bildene er medier i prosjektet
+    setMdResolve((r) => this.urls[r] ?? null)
     this.now = deps.now ?? Date.now
     const st = deps.storage
     // «Tell ned fra» er åpen som standard: nedtellingens lengde skal synes med en gang (TB-EB63E9)
@@ -2328,6 +2334,67 @@ export class MotionController {
     else this.flash('Filen kunne ikke brukes.')
   }
 
+/** Stilen fontpopupen viser for teksten (eldre tekst: tekstens egne verdier). */
+  textStyleOf(x: TextItem): TextStyle {
+    if (x.textStyle) return x.textStyle
+    let effect: Partial<TextStyle['effect']> | null = null
+    if (x.grad) effect = { type: 'gradient', color: x.color, color2: x.color2 || '#f5b82c', p: { angle: 180 } }
+    else if (x.stroke > 0) effect = { type: 'outline', color: x.strokeColor || '#000000', p: { width: Math.max(1, Math.min(100, Math.round(80 * x.stroke))) } }
+    return legacyTextStyle({ align: x.align, valign: x.valign ?? 'middle', lh: x.lh, ls: x.track, weight: x.weight, italic: x.italic, effect })
+  }
+
+  /** Fontpopupen: ny stil (lagres uendret). Eldre tekst: kontur og fargeovergang ligger nå i stilen. */
+  setTextStyle(id: string, ts: TextStyle): void {
+    const x = this.s.proj?.texts.find((q) => q.id === id)
+    if (!x) return
+    this.patch('text', id, { textStyle: ts, ...(x.textStyle ? {} : { stroke: 0, grad: false }) }, 'ts:' + id)
+  }
+
+  /** Stilen fontpopupen viser for undertekstene (eldre prosjekter: midtstilt, linjeavstand og tykkelse som før). */
+  subTextStyle(): TextStyle | null {
+    const st = this.s.proj?.subStyle
+    if (!st) return null
+    return st.textStyle ?? legacyTextStyle({ align: 'center', valign: 'middle', lh: 1.22, ls: 0, weight: st.weight, italic: false })
+  }
+
+  /** Font valgt i fontpopupen. */
+  setTextFont(id: string, p: { font: string; stretch?: number }): void {
+    this.patch('text', id, { font: p.font })
+  }
+
+  /** Forhåndsvisning i fontpopupen: fonten vises midlertidig på lerretet (null = valgt font igjen). Lagres aldri. */
+  previewFont(id: string, font: FontEntry | null): void {
+    setMdPreview(font ? { id, font } : null)
+    this.act = performance.now()
+  }
+
+  /** Adressen til et medie i prosjektet (Bildefyll). */
+  mediaUrl(id: string): string | null {
+    return this.urls[id] ?? null
+  }
+
+  /** Første bilde i prosjektet til «Bruk bildet i designet» (Bildefyll). */
+  designImage(): string | null {
+    return this.s.proj?.media.find((m) => m.kind === 'image')?.id ?? null
+  }
+
+  /** Bilde til Bildefyll (lastet opp i popupen): lagres i prosjektets medier som andre bilder, gir medie-id-en. */
+  async storeFillImage(b: Blob): Promise<string | null> {
+    const p0 = this.s.proj
+    if (!p0) return null
+    try {
+      const f = b instanceof File ? b : new File([b], 'bildefyll.png', { type: b.type || 'image/png' })
+      const id = await this.d.files.add(p0, f, f.name)
+      const m = await this.mediaFor(id, f, 'image', f.name)
+      if (!m) return null
+      this.applyMedia([m], 'lib')
+      return m.id
+    } catch {
+      this.flash('Filen kunne ikke lagres i prosjektmappen.')
+      return null
+    }
+  }
+
   private async mediaFor(id: string, f: Blob, k: Media['kind'], name: string): Promise<Media | null> {
     const exists = this.s.proj?.media.find((x) => x.id === id)
     if (exists) return exists
@@ -2999,6 +3066,9 @@ export class MotionController {
     this.setProj((p) => ({ ...p, [K]: (p[K] as Item[]).map((x) => {
       if (x.id !== id) return x
       const n: AnyRec = { ...x, ...obj }
+      // tekst med fontpopupens stil: ankeret (plassering i bildet) og plasseringen i tekstboksen følges at
+      const ts = kind === 'text' ? (x as unknown as TextItem).textStyle : null
+      if (ts && (obj.align || obj.valign) && !obj.textStyle) n.textStyle = { ...ts, ...(obj.align ? { alignH: obj.align } : {}), ...(obj.valign ? { alignV: obj.valign } : {}) }
       // ny fart: keyframes skaleres, så de treffer det samme innholdet (klippet blir kortere eller lengre)
       const os = (x as unknown as AnyRec).speed
       const kf = (x as { kf?: Keys }).kf
@@ -3419,7 +3489,9 @@ export class MotionController {
   }
 
   addText(o: Partial<TextItem>): void {
-    const x = text({ ...o, start: this.t, dur: o.dur ?? 4 })
+    const x0 = text({ ...o, start: this.t, dur: o.dur ?? 4 })
+    // nye tekster bruker fontpopupens stil (tegnes med <StyledText>) med samme oppsett som forvalget
+    const x: TextItem = { ...x0, textStyle: this.textStyleOf(x0), stroke: 0, grad: false }
     this.setProj((p) => ({ ...p, texts: [...p.texts, x] }))
     this.set({ sel: { type: 'text', id: x.id } })
   }

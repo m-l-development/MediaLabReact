@@ -11,7 +11,8 @@ async function newThumbText(page: Page) {
   await page.getByRole('button', { name: /Ny mal/ }).click()
   await page.getByRole('dialog', { name: 'Ny mal' }).locator('[data-layout="blank"]').click()
   await dock(page, 'add')
-  await page.getByRole('button', { name: 'Tekst', exact: true }).first().click()
+  // en strek (Lengde har flere enheter; tekststørrelsen er nå i fontpopupens verktøylinje, i px)
+  await page.getByRole('button', { name: 'Strek', exact: true }).first().click()
   await expect(page.locator('[data-ts-sel]')).toBeVisible()
   await dock(page, 'edit')
 }

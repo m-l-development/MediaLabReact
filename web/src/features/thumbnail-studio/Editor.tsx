@@ -416,8 +416,9 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
   const inner = useRef<HTMLDivElement>(null)
   const pendingScroll = useRef<{ fx: number; fy: number } | null>(null)
   const d = S.doc
+  const preview = S.fontPreview
 
-  // Tegn lerretet når dokumentet, et bilde eller fontene endres.
+  // Tegn lerretet når dokumentet, et bilde, fontene eller et tekstbilde (fontpopupens stil) endres.
   useEffect(() => {
     if (!d) return
     let raf = 0
@@ -426,20 +427,22 @@ function CanvasPanel({ c, S, tx, images, renderer, pickFile }: EditorProps) {
       raf = requestAnimationFrame(() => {
         const cv = canvas.current
         const g = cv?.getContext('2d')
-        if (cv && g) renderer.render(g, d, { s: cv.width / W, edit: true, placeholder: (role) => tx(role === 'person' ? 'Legg til person' : 'Legg til bilde') })
+        if (cv && g) renderer.render(g, d, { s: cv.width / W, edit: true, preview, placeholder: (role) => tx(role === 'person' ? 'Legg til person' : 'Legg til bilde') })
       })
     }
     draw()
     const off = images.onLoad(draw)
+    const offStyled = renderer.onStyled(draw)
     let live = true
     void document.fonts?.ready.then(() => live && draw())
     void ensureFonts(d).then(() => live && draw())
     return () => {
       live = false
       off()
+      offStyled()
       cancelAnimationFrame(raf)
     }
-  }, [d, images, renderer, tx])
+  }, [d, images, renderer, tx, preview])
 
   // Behold midtpunktet når det zoomes.
   useEffect(() => {

@@ -1,18 +1,18 @@
 import { gbox, type LayerPatch, type ThumbController } from './controller'
 import type { AdvAdj } from '../../shared/image/AdvAdjust'
-import { countImgs, H, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
+import { countImgs, W, type Doc, type ImageLayer, type Layer, type TextLayer } from './engine/model'
 import { fitSize } from './engine/render'
 import { bakeList } from './engine/text-list'
-import { hasSnitt } from '../../shared/fonts/catalog'
 import { cleanFilters, FILTERS, filterDef, newFilter, type FilterId, type ImgFilter } from './engine/filters'
 import type { Phrase, Vars } from './texts'
 import type { QrSpec } from '../../shared/qr/qr'
+import { normalizeStyle } from '../../components/fontpicker/TextStyle.jsx'
 
 /** Beskrivelse av én kontroll i egenskapspanelet (samme rekkefølge og valg som dagens app). */
 export interface Unit { u: string; k: number; d?: number; t?: Phrase }
 export type Ctrl =
-  /** Det felles fontbiblioteket (shared/fonts/FontPicker); top = grunnoppsettets fonter øverst. */
-  | { k: 'font'; label: Phrase; val: string; top: readonly string[]; set: (v: string) => void }
+  /** Fontpopupen (components/fontpicker) for tekstlaget `id`. */
+  | { k: 'fontpop'; label: Phrase; id: string }
   | { k: 'h'; label: Phrase }
   | { k: 'slider'; label: Phrase; val: number; min: number; max: number; step: number; set: (v: number) => void; units: Unit[]; key: string; lim: [number, number] }
   | { k: 'color'; label: Phrase; val: string; set: (v: string) => void }
@@ -155,54 +155,40 @@ export function ctrlsFor(c: ThumbController, l: Layer): Ctrl[] {
   const set = (p: LayerPatch) => c.setL(l.id, p)
   const C: Ctrl[] = []
   if (l.type === 'text') {
-    const ws = c.weights(l.font)
-    const pf = c.profile().fonts
     const fs = fitSize(l)
+    // største størrelse: fontpopupens (textStyle.size) når den er valgt der, ellers lagets
+    const max = (l.textStyle ? normalizeStyle(l.textStyle).size : null) || l.size
     C.push(
       { k: 'area', label: 'Tekst', val: bakeList(String(l.text || ''), l.list), rows: 4, ph: 'Skriv tekst', set: (v) => set({ text: v, list: '' }), list: l },
-      { k: 'font', label: 'Font', val: l.font, top: pf, set: (v) => {
-        const w2 = c.weights(v)
-        // kursiv bare når den nye fonten har ekte kursiv (aldri kunstig skråstilt)
-        set({ font: v, weight: w2.includes(l.weight) ? l.weight : (w2[Math.min(3, w2.length - 1)] ?? 400), ...(l.italic && !hasSnitt(v, 'i') ? { italic: false } : {}) })
-      } },
-      { k: 'select', label: 'Tykkelse', val: String(l.weight), set: (v) => set({ weight: +v }), opts: ws.map((w) => ({ v: String(w), label: String(w), ...(WEIGHT_NAMES[w] ? { phrase: WEIGHT_NAMES[w] } : {}) })) },
-      SL(l.fit ? 'Maks størrelse' : 'Størrelse', l.size, 8, 1000, 1, (v) => set({ size: v }), 'px', { key: 'ts.textSize', lim: [4, 3000], units: [{ u: 'px', k: 1 }, { u: '%', k: 100 / H, d: 1, t: 'av bildehøyden' }, { u: 'pt', k: 0.75 }] }),
+      // fontpopupen: font, verktøylinjen (fet, kursiv, understrek, gjennomstreking, størrelse, linje- og bokstavavstand),
+      // fanene Font, Stil (plassering, retning, roter, speilvend, former, ordsky) og Effekter
+      { k: 'fontpop', label: 'Font', id: l.id },
     )
-    if (l.fit && fs < l.size - 0.5) {
+    if (l.fit && fs < max - 0.5) {
       C.push(NT('Vises i {n} px fordi teksten må passe i boksen. Gjør boksen større eller slå av «Tilpass til boksen» for større tekst.', { n: Math.round(fs) }),
         BT([{ label: 'Gjør boksen større', on: () => {
-          const k = Math.min(4, l.size / Math.max(1, fs))
+          const k = Math.min(4, max / Math.max(1, fs))
           set({ w: Math.round(l.w * k), h: Math.round(l.h * k) })
         } }]))
     }
     C.push(
       CK('Tilpass til boksen', l.fit, (v) => set({ fit: v })),
       CO('Farge', l.color, (v) => set({ color: v })),
-      SG('Justering', l.align, [['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']], (v) => set({ align: v })),
-      SG('Loddrett', l.valign, [['top', 'Topp'], ['middle', 'Midt'], ['bottom', 'Bunn']], (v) => set({ valign: v })),
-      SL('Linjeavstand', Math.round(l.lh * 100), 70, 180, 1, (v) => set({ lh: v / 100 }), '%'),
-      SL('Bokstavavstand', Math.round(l.ls * 100), -5, 50, 1, (v) => set({ ls: v / 100 }), ''),
       CK('Store bokstaver', l.upper, (v) => set({ upper: v })),
       CK('Strek under', l.bar, (v) => set({ bar: v })),
     )
     if (l.bar) C.push(...barCtrls(l, set, c))
-    // malenes tekstegenskaper (fase 3): i Avansert modus, og alltid der laget allerede bruker dem
-    if (c.s.adv || l.italic) {
-      if (hasSnitt(l.font, 'i') || l.italic) C.push(CK('Kursiv', !!l.italic, (v) => set({ italic: v })))
-    }
     if (c.s.adv || (l.stretch && l.stretch !== 100)) C.push(SL('Bredde', Math.round(l.stretch ?? 100), 50, 150, 1, (v) => set({ stretch: v }), '%'))
-    if (c.s.adv || (l.stroke ?? 0) > 0) {
-      C.push(SL('Kontur', l.stroke ?? 0, 0, 40, 1, (v) => set({ stroke: v }), 'px'))
-      if ((l.stroke ?? 0) > 0) C.push(CO('Konturfarge', l.strokeColor ?? '#000000', (v) => set({ strokeColor: v })))
-    }
-    // bilde i bokstavene: der malen har plass til det, og for all tekst i Avansert modus
-    if (c.s.adv || 'fillSrc' in l) {
+    // bilde i bokstavene fra Dine medier (fontpopupens Bildefyll); der malen har plass til det, og for Bildefyll
+    const st = l.textStyle ? normalizeStyle(l.textStyle) : null
+    const fill = st ? (st.effect.type === 'imagefill' ? st.effect.image || null : undefined) : 'fillSrc' in l ? l.fillSrc ?? null : undefined
+    if (fill !== undefined) {
       C.push(HD('Bilde i teksten'))
-      if (!l.fillSrc) C.push(NT('Bildet fyller bokstavene og kommer med i eksporten.'))
+      if (!fill) C.push(NT('Bildet fyller bokstavene og kommer med i eksporten.'))
       C.push(BT([
-        { label: l.fillSrc ? 'Bytt bilde' : 'Velg bilde', on: () => c.openPicker('file', { mode: 'textfill', id: l.id }) },
+        { label: fill ? 'Bytt bilde' : 'Velg bilde', on: () => c.openPicker('file', { mode: 'textfill', id: l.id }) },
         { label: 'Fra Dine medier …', on: () => c.openPicker('media', { mode: 'textfill', id: l.id }) },
-        ...(l.fillSrc ? [{ label: 'Fjern bildet' as Phrase, kind: 'd' as const, on: () => set({ fillSrc: null }) }] : []),
+        ...(fill ? [{ label: 'Fjern bildet' as Phrase, kind: 'd' as const, on: () => c.setTextFill(l.id, null) }] : []),
       ]))
     }
   } else if (l.type === 'image') {

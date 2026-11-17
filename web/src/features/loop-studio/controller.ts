@@ -1,3 +1,7 @@
+import { appStyled, bakeStyled, loopStyled, setLoopPreview } from './engine/styled'
+import type { FontEntry } from '../../components/fontpicker/FontPicker.jsx'
+import { legacyTextStyle } from '../../components/fontpicker/styled-layer'
+import type { TextStyle } from '../../components/fontpicker/TextStyle.jsx'
 /**
  * Editoren i Loop Studio, portert fra media-lab/src/pages/studio-editor/logic.js (samme funksjoner, samme oppførsel).
  * Kontrolleren holder tilstanden (`state`, oppdateres synkront som i dagens app) og gir visningen alle verdier og
@@ -37,6 +41,8 @@ import { buildQrUrl } from '../../shared/qr/qr'
 const VH = typeof CSS !== "undefined" && CSS.supports?.("height", "100dvh") ? "dvh" : "vh"
 
 const R = __ukeloopRendererFactory()
+// overskrift og kicker med fontpopupens stil (tekstbilder fra den felles tegnemotoren)
+R.setStyled(appStyled)
 
 /* ---------- typer ---------- */
 export type InputEv = { target: { value: string } }
@@ -301,6 +307,8 @@ export class LoopController {
   private volLive: number | null = null
   private volT: ReturnType<typeof setTimeout> | undefined
   private fontTick = 0
+  /** Fonten som forhåndsvises i fontpopupen (lagres aldri). */
+  private prevFont: string | null = null
   private lastVg: string | null = null
   private cboxCache: { w: number; h: number; dx: number; dy: number; pw: number; ph: number } | null = null
   private layout: { cards: HTMLElement[]; all: Slide[] } | null = null
@@ -1387,6 +1395,8 @@ export class LoopController {
       const tick = () => { this.fontTick++ }
       document.fonts.addEventListener('loadingdone', tick)
       this.listeners.push(() => document.fonts.removeEventListener('loadingdone', tick))
+      // tekstbilder (fontpopupens stil) som blir ferdige: tegnes på nytt
+      this.listeners.push(loopStyled.onLoad(tick))
     } catch {
       // ingen fontlasting
     }
@@ -1586,7 +1596,7 @@ export class LoopController {
         panels: cleanPanels(c.panels) ?? (Array.isArray(c.panels) ? [] : null), panelsRotate: !!c.panelsRotate, panelBg: isHex(c.panelBg) ? c.panelBg : null, ink: isHex(c.ink) ? c.ink : null, fxPal: Array.isArray(c.fxPal) && c.fxPal.length === 2 && c.fxPal.every(isHex) ? c.fxPal : null,
         tintColor: isHex(c.tintColor) ? c.tintColor : null, tintAmt: c.tintAmt, tintBlend: c.tintBlend,
         transFx: c.transFx, textFx: c.textFx, overlayFx: c.overlayFx, fxAmount: c.fxAmount, ovSpeed: c.ovSpeed, ovAlpha: c.ovAlpha, ovColor: isHex(c.ovColor) ? c.ovColor : null, fxSpeed: c.fxSpeed,
-        kenBurns: c.kenBurns, sweep: c.sweep, font: c.font, titleScale: c.titleScale, textScale: c.textScale,
+        kenBurns: c.kenBurns, sweep: c.sweep, font: this.prevFont ?? c.font, titleScale: c.titleScale, textScale: c.textScale, ts: c.ts ?? null,
         beat: bt ? bt.p : null, kickerLine: c.kickerLine === false ? false : c.kickerLine === 'both' || c.kickerLine === 'mid' ? c.kickerLine : true, overlaySync: c.overlaySync !== false,
         beatFx: (c.beatExtras ?? []).filter((k) => k === 'step' || k === 'vig'), beatReframe: c.beatReframe !== false, beatPolish: c.beatPolish !== false, beatLevel: c.beatLevel || 1,
         beatEvery: (c.beatEvery ?? 0) >= 4 ? c.beatEvery : 8, beatStyle: bt ? this.beatStyle() : null, energyAdaptive: c.energyAdaptive !== false,
@@ -1968,6 +1978,32 @@ export class LoopController {
     const s = asRec(this.state.cfg).beatStyle, b = this.state.beatInfo
     return s === 'calm' || s === 'groove' ? s : (b && 'style' in b && b.style) || 'groove'
   }
+/** Stilen fontpopupen viser for overskriften eller kickeren (uten egen stil: slik de tegnes i dag). */
+  textStyleOf(role: 'title' | 'kicker'): TextStyle {
+    const own = this.state.cfg.ts?.[role]
+    if (own) return own
+    return role === 'title'
+      ? legacyTextStyle({ align: 'left', valign: 'top', lh: 0.92, ls: -0.03, weight: 700 })
+      : legacyTextStyle({ align: 'left', valign: 'middle', lh: 1, ls: 0.3, weight: 600 })
+  }
+
+  /** Fontpopupen: ny stil for overskriften eller kickeren (lagres uendret). */
+  setTextStyle(role: 'title' | 'kicker', ts: TextStyle) {
+    this.setCfg('ts', { ...(this.state.cfg.ts ?? {}), [role]: ts })
+  }
+
+  /** Forhåndsvisning i fontpopupen: fonten vises midlertidig (null = valgt font igjen). Lagres aldri. */
+  previewFont(f: FontEntry | null) {
+    const name = f ? f.navn : null
+    if (name === this.prevFont) return
+    this.prevFont = name
+    setLoopPreview(f)
+    if (name && name !== 'Helvetica') ['400', '600', '700'].forEach((w) => void loadFont(name, w))
+    this.p = null
+    this.pk = null
+    this.fontTick++
+  }
+
   setFont(f: string) {
     this.setCfg('font', f)
     // fonter fra biblioteket: stilarket hentes først (loadFont); Helvetica er systemfont
@@ -3523,7 +3559,9 @@ export class LoopController {
       }
       const fam0 = this.state.cfg.font || 'Archivo', fam = /^[A-Za-z][A-Za-z0-9 ]{1,39}$/.test(fam0) ? fam0 : 'Archivo', { W, H } = this.dims()
       const font = fam === 'Helvetica' ? '' : await embeddedFontCSS(fam === 'Archivo' ? FONT_CSS : (fontByName(fam)?.css ?? '/fonts/' + fam.toLowerCase().replace(/ /g, '-') + '.css'))
-      const html = buildPlayerHTML({ W, H, data, media: { images, video }, audio, title: this.state.cfg.header || 'Ukeprogram' }, font, this.deps.lang() === 'en' ? 'en' : 'no')
+      // overskrift/kicker med fontpopupens stil: spilleren har ikke React, så tekstbildene ligger ferdige i filen
+      const sty = data.cfg.ts ? await bakeStyled(R, data, W, H, this.media) : null
+      const html = buildPlayerHTML({ W, H, data, media: { images, video }, audio, title: this.state.cfg.header || 'Ukeprogram', ...(sty ? { sty } : {}) }, font, this.deps.lang() === 'en' ? 'en' : 'no')
       this.download(new Blob([html], { type: 'text/html' }), this.fileName() + '.html')
     } finally {
       this.setState({ busy: '' })
@@ -3687,6 +3725,8 @@ export class LoopController {
           if (Math.abs(sv.currentTime - st) > 0.01) await new Promise<void>((r) => { const done = () => { sv.removeEventListener('seeked', done); r() }; sv.addEventListener('seeked', done); setTimeout(done, 1500); sv.currentTime = st })
         }
         R.drawFrame(ctx, W, H, base, media, t)
+        // overskrift/kicker med fontpopupens stil: bilder som manglet lages, og bildet tegnes på nytt
+        while (await loopStyled.flush()) R.drawFrame(ctx, W, H, base, media, t)
         const fr = new VideoFrame(cv, { timestamp: Math.round(t * 1e6), duration: Math.round(1e6 / fps) })
         ve.encode(fr, { keyFrame: f % (fps * 2) === 0 })
         fr.close()
@@ -4688,7 +4728,7 @@ export class LoopController {
       bpmMinus: () => { if (bt) setBpm(Math.round(bt.bpm) - 1) }, bpmPlus: () => { if (bt) setBpm(Math.round(bt.bpm) + 1) },
       bpmHalf: () => { if (bt) setBpm(bt.bpm / 2) }, bpmDouble: () => { if (bt) setBpm(bt.bpm * 2) }, bpmAuto: () => this.setCfg('bpm', null),
       beatNudge: c.beatNudge || 0, beatNudgeLabel: ((c.beatNudge ?? 0) > 0 ? '+' : '') + (c.beatNudge || 0) + ' ms', onBeatNudge: (e: InputEv) => this.setCfg('beatNudge', Number(e.target.value)),
-      fontOpts: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'].map((fo) => ({ value: fo, label: fo })), fontVal: c.font || 'Archivo', onFont: (e: InputEv) => this.setFont(e.target.value), fontTop: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'], onFontName: (f: string) => this.setFont(f),
+      fontOpts: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'].map((fo) => ({ value: fo, label: fo })), fontVal: c.font || 'Archivo', onFont: (e: InputEv) => this.setFont(e.target.value), fontTop: ['Archivo', 'Montserrat', 'Oswald', 'Playfair Display', 'Helvetica'], onFontName: (f: string) => this.setFont(f), fontPop: { font: c.font || 'Archivo', title: this.textStyleOf('title'), kicker: this.textStyleOf('kicker'), onTitle: (ts: TextStyle) => this.setTextStyle('title', ts), onKicker: (ts: TextStyle) => this.setTextStyle('kicker', ts), onPreview: (f: FontEntry | null) => this.previewFont(f) },
       titleScalePct: Math.round((c.titleScale || 1) * 100), onTitleScale: (e: InputEv) => this.setCfg('titleScale', Number(e.target.value) / 100),
       textScalePct: Math.round((c.textScale || 1) * 100), onTextScale: (e: InputEv) => this.setCfg('textScale', Number(e.target.value) / 100),
       titleSz: this.numF('loop.titleScale', c.titleScale || 1, this.SCALE_U, (v) => this.setCfg('titleScale', Math.round(v * 100) / 100), [0.5, 3]),

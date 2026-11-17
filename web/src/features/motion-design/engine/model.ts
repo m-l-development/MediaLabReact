@@ -1,3 +1,4 @@
+import { cleanTextStyle } from '../../../components/fontpicker/images'
 import { refTemplates } from './templates2'
 import { refTemplates13 } from './templates3'
 import { themeContent } from './theme'
@@ -204,6 +205,11 @@ export interface TextItem {
   /** Fontskifte: teksten bytter mellom disse fontene (hver fontRate s) og ender på `font`. */
   fonts?: string[]
   fontRate?: number
+  /**
+   * Fontpopupens stil (components/fontpicker/TextStyle.jsx), lagret uendret. Teksten tegnes da med <StyledText>;
+   * animasjonene (også bokstav for bokstav) beholdes. Mangler = eldre tekst, tegnet som før.
+   */
+  textStyle?: import('../../../components/fontpicker/TextStyle.jsx').TextStyle | null
   /** Glød i tekstens farge (0 = av; 0,2–1 = mykt lys rundt bokstavene). */
   glow?: number
   /** Opptelling: teller fra cdFrom til cdTo (heltall) i løpet av cdDur sekunder; «{n}» i teksten byttes med tallet. */
@@ -231,6 +237,8 @@ export interface SubStyle {
   font: string
   weight: number
   upper: boolean
+  /** Fontpopupens stil for alle undertekstene (uendret); mangler = tegnet som før. */
+  textStyle?: import('../../../components/fontpicker/TextStyle.jsx').TextStyle | null
 }
 
 export interface Music {
@@ -592,6 +600,9 @@ function textExtra(x: Record<string, unknown>): Partial<TextItem> {
     const f = x.fonts.filter((v): v is string => typeof v === 'string' && v.length > 0 && v.length < 60).slice(0, 12)
     if (f.length) { o.fonts = f; o.fontRate = num(x.fontRate, 0.3, 0.05, 5) }
   }
+  // fontpopupens stil (uendret); Bildefyll-bildet er en medie-id i prosjektet
+  const ts = cleanTextStyle(x.textStyle, (img) => (/^[\w:.-]{1,120}$/.test(img) ? img : null))
+  if (ts) o.textStyle = ts
   return o
 }
 
@@ -667,7 +678,7 @@ export function normalize(input: unknown): Project {
     lanes: { text: Math.round(num(lz.text, 1, 1, 50)), ov: Math.round(num(lz.ov, 1, 1, 50)), music: Math.round(num(lz.music, 1, 1, 50)) },
     mix: { video: num(mx.video, 1, 0, 1), ov: num(mx.ov, 1, 0, 1), music: num(mx.music, 1, 0, 1), duck: !!mx.duck, duckAmt: num(mx.duckAmt, 0.6, 0.1, 0.95) },
     texts, subs,
-    subStyle: { mode: oneOf(ss.mode, ['line', 'words'] as const, 'line'), hl: col(ss.hl, '#f5b82c'), size: num(ss.size, 46, 12, 200), color: col(ss.color, '#ffffff'), bgOn: ss.bgOn !== false, bg: col(ss.bg, '#000000'), bgA: num(ss.bgA, 0.6, 0, 1), pos: oneOf(ss.pos, ['bottom', 'center', 'top'] as const, 'bottom'), font: fontOf(ss.font), weight: num(ss.weight, 600, 100, 900), upper: !!ss.upper },
+    subStyle: { mode: oneOf(ss.mode, ['line', 'words'] as const, 'line'), hl: col(ss.hl, '#f5b82c'), size: num(ss.size, 46, 12, 200), color: col(ss.color, '#ffffff'), bgOn: ss.bgOn !== false, bg: col(ss.bg, '#000000'), bgA: num(ss.bgA, 0.6, 0, 1), pos: oneOf(ss.pos, ['bottom', 'center', 'top'] as const, 'bottom'), font: fontOf(ss.font), weight: num(ss.weight, 600, 100, 900), upper: !!ss.upper, ...(cleanTextStyle(ss.textStyle, (img) => (/^[\w:.-]{1,120}$/.test(img) ? img : null)) ? { textStyle: cleanTextStyle(ss.textStyle, (img) => (/^[\w:.-]{1,120}$/.test(img) ? img : null)) } : {}) },
     music: musicList,
     ...(typeof p.dur === 'number' && p.dur > 0 ? { dur: num(p.dur, 60, 0.5, 86400) } : {}),
     ...(p.res === '720' || p.res === '1080' || p.res === '4k' ? { res: p.res } : {}),

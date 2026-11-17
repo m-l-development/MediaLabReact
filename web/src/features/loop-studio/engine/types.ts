@@ -172,6 +172,8 @@ export interface Cfg {
   duotone?: boolean
   kickerStyle?: string | null
   kickerLine?: boolean | string
+  /** Fontpopupens stil for overskriften og kickeren (uendret); mangler = tegnet som før. */
+  ts?: { title?: import('../../../components/fontpicker/TextStyle.jsx').TextStyle | null; kicker?: import('../../../components/fontpicker/TextStyle.jsx').TextStyle | null } | null
   palette?: Hex[] | null
   panels?: Panel[] | null
   panelsRotate?: boolean

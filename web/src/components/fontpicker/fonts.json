@@ -1,0 +1,5753 @@
+{
+  "versjon": 1,
+  "kategorier": [
+    "Titler",
+    "Bred og kvadratisk",
+    "Brødtekst",
+    "Logo",
+    "Elegant",
+    "Sitat",
+    "Håndskrift",
+    "Retro",
+    "Effekt",
+    "Moro",
+    "Teknisk",
+    "Skilt"
+  ],
+  "fonter": [
+    {
+      "id": "inter",
+      "navn": "Inter",
+      "familie": "'Inter', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/inter.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "inter sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "inter-tight",
+      "navn": "Inter Tight",
+      "familie": "'Inter Tight', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Titler",
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/inter-tight.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "inter tight sans-serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "roboto",
+      "navn": "Roboto",
+      "familie": "'Roboto', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/roboto.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "roboto sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "open-sans",
+      "navn": "Open Sans",
+      "familie": "'Open Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/open-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-800",
+      "lisens": "OFL-1.1",
+      "sok": "open sans sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "montserrat",
+      "navn": "Montserrat",
+      "familie": "'Montserrat', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo",
+        "Skilt"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/montserrat.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "montserrat sans-serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "poppins",
+      "navn": "Poppins",
+      "familie": "'Poppins', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/poppins.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "poppins sans-serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "lato",
+      "navn": "Lato",
+      "familie": "'Lato', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/lato.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "lato sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "work-sans",
+      "navn": "Work Sans",
+      "familie": "'Work Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/work-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "work sans sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "dm-sans",
+      "navn": "DM Sans",
+      "familie": "'DM Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/dm-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "dm sans sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "manrope",
+      "navn": "Manrope",
+      "familie": "'Manrope', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/manrope.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "200-800",
+      "lisens": "OFL-1.1",
+      "sok": "manrope sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "hanken-grotesk",
+      "navn": "Hanken Grotesk",
+      "familie": "'Hanken Grotesk', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/hanken-grotesk.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "hanken grotesk sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "josefin-sans",
+      "navn": "Josefin Sans",
+      "familie": "'Josefin Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Logo",
+        "Elegant"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/josefin-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-700",
+      "lisens": "OFL-1.1",
+      "sok": "josefin sans sans-serif logo merkevare brand elegant invitasjon bryllup luksus fin",
+      "harAeOeAa": true
+    },
+    {
+      "id": "archivo",
+      "navn": "Archivo",
+      "familie": "'Archivo', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/archivo.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "archivo sans-serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "archivo-expanded",
+      "navn": "Archivo",
+      "familie": "'Archivo', system-ui, sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Titler",
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/archivo.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "archivo sans-serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong bred bredt wide extended expanded kvadratisk firkantet square archivo expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "62% 125%"
+    },
+    {
+      "id": "archivo-narrow",
+      "navn": "Archivo Narrow",
+      "familie": "'Archivo Narrow', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/archivo-narrow.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "archivo narrow sans-serif brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "raleway",
+      "navn": "Raleway",
+      "familie": "'Raleway', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/raleway.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "raleway sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "overpass",
+      "navn": "Overpass",
+      "familie": "'Overpass', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/overpass.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "overpass sans-serif brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "barlow",
+      "navn": "Barlow",
+      "familie": "'Barlow', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/barlow.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "barlow sans-serif brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "public-sans",
+      "navn": "Public Sans",
+      "familie": "'Public Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/public-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "public sans sans-serif brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "atkinson-hyperlegible",
+      "navn": "Atkinson Hyperlegible",
+      "familie": "'Atkinson Hyperlegible', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/atkinson-hyperlegible.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "atkinson hyperlegible sans-serif brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "source-sans-3",
+      "navn": "Source Sans 3",
+      "familie": "'Source Sans 3', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/source-sans-3.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "source sans 3 sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "roboto-condensed",
+      "navn": "Roboto Condensed",
+      "familie": "'Roboto Condensed', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/roboto-condensed.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "roboto condensed sans-serif brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "space-grotesk",
+      "navn": "Space Grotesk",
+      "familie": "'Space Grotesk', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/space-grotesk.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "space grotesk moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bricolage-grotesque",
+      "navn": "Bricolage Grotesque",
+      "familie": "'Bricolage Grotesque', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/bricolage-grotesque.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "200-800",
+      "lisens": "OFL-1.1",
+      "sok": "bricolage grotesque moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "syne",
+      "navn": "Syne",
+      "familie": "'Syne', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/syne.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-800",
+      "lisens": "OFL-1.1",
+      "sok": "syne moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "plus-jakarta-sans",
+      "navn": "Plus Jakarta Sans",
+      "familie": "'Plus Jakarta Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/plus-jakarta-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-800",
+      "lisens": "OFL-1.1",
+      "sok": "plus jakarta sans moderne / grotesk brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "figtree",
+      "navn": "Figtree",
+      "familie": "'Figtree', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/figtree.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-900",
+      "lisens": "OFL-1.1",
+      "sok": "figtree moderne / grotesk brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "outfit",
+      "navn": "Outfit",
+      "familie": "'Outfit', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/outfit.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "outfit moderne / grotesk brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "sora",
+      "navn": "Sora",
+      "familie": "'Sora', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/sora.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-800",
+      "lisens": "OFL-1.1",
+      "sok": "sora moderne / grotesk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "urbanist",
+      "navn": "Urbanist",
+      "familie": "'Urbanist', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/urbanist.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "urbanist moderne / grotesk brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "lexend",
+      "navn": "Lexend",
+      "familie": "'Lexend', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/lexend.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "lexend moderne / grotesk brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "onest",
+      "navn": "Onest",
+      "familie": "'Onest', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/onest.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "onest moderne / grotesk brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "geist",
+      "navn": "Geist",
+      "familie": "'Geist', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst",
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/geist.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "geist moderne / grotesk brødtekst tekst lesbar undertekst video ui body logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "schibsted-grotesk",
+      "navn": "Schibsted Grotesk",
+      "familie": "'Schibsted Grotesk', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/schibsted-grotesk.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "schibsted grotesk moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "familjen-grotesk",
+      "navn": "Familjen Grotesk",
+      "familie": "'Familjen Grotesk', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/familjen-grotesk.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "familjen grotesk moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "instrument-sans",
+      "navn": "Instrument Sans",
+      "familie": "'Instrument Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/instrument-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "instrument sans moderne / grotesk brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "gabarito",
+      "navn": "Gabarito",
+      "familie": "'Gabarito', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/gabarito.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "gabarito moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rethink-sans",
+      "navn": "Rethink Sans",
+      "familie": "'Rethink Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rethink-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-800",
+      "lisens": "OFL-1.1",
+      "sok": "rethink sans moderne / grotesk brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    },
+    {
+      "id": "funnel-display",
+      "navn": "Funnel Display",
+      "familie": "'Funnel Display', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/funnel-display.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-800",
+      "lisens": "OFL-1.1",
+      "sok": "funnel display moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "red-hat-display",
+      "navn": "Red Hat Display",
+      "familie": "'Red Hat Display', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/red-hat-display.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-900",
+      "lisens": "OFL-1.1",
+      "sok": "red hat display moderne / grotesk brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "exo-2",
+      "navn": "Exo 2",
+      "familie": "'Exo 2', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/exo-2.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "exo 2 teknisk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "kanit",
+      "navn": "Kanit",
+      "familie": "'Kanit', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/kanit.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "kanit moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bebas-neue",
+      "navn": "Bebas Neue",
+      "familie": "'Bebas Neue', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/bebas-neue.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bebas neue display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "anton",
+      "navn": "Anton",
+      "familie": "'Anton', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/anton.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "anton display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "oswald",
+      "navn": "Oswald",
+      "familie": "'Oswald', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/oswald.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "200-700",
+      "lisens": "OFL-1.1",
+      "sok": "oswald display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "archivo-black",
+      "navn": "Archivo Black",
+      "familie": "'Archivo Black', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/archivo-black.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "archivo black display tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "league-gothic",
+      "navn": "League Gothic",
+      "familie": "'League Gothic', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/league-gothic.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "league gothic display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "six-caps",
+      "navn": "Six Caps",
+      "familie": "'Six Caps', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/six-caps.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "six caps display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "big-shoulders-display",
+      "navn": "Big Shoulders Display",
+      "familie": "'Big Shoulders Display', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/big-shoulders-display.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "big shoulders display display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "unbounded",
+      "navn": "Unbounded",
+      "familie": "'Unbounded', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/unbounded.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "unbounded display tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "lilita-one",
+      "navn": "Lilita One",
+      "familie": "'Lilita One', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/lilita-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "lilita one display tittel titler overskrift thumbnail youtube stor fet headline moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bagel-fat-one",
+      "navn": "Bagel Fat One",
+      "familie": "'Bagel Fat One', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/bagel-fat-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bagel fat one display tittel titler overskrift thumbnail youtube stor fet headline moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "shrikhand",
+      "navn": "Shrikhand",
+      "familie": "'Shrikhand', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/shrikhand.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "shrikhand display tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bangers",
+      "navn": "Bangers",
+      "familie": "'Bangers', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bangers.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bangers display tittel titler overskrift thumbnail youtube stor fet headline moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "barlow-condensed",
+      "navn": "Barlow Condensed",
+      "familie": "'Barlow Condensed', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Brødtekst",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/barlow-condensed.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "barlow condensed display brødtekst tekst lesbar undertekst video ui body skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "league-spartan",
+      "navn": "League Spartan",
+      "familie": "'League Spartan', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Logo"
+      ],
+      "anbefalt": true,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/league-spartan.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "league spartan display tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "alfa-slab-one",
+      "navn": "Alfa Slab One",
+      "familie": "'Alfa Slab One', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/alfa-slab-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "alfa slab one display tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "dela-gothic-one",
+      "navn": "Dela Gothic One",
+      "familie": "'Dela Gothic One', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/dela-gothic-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "dela gothic one display tittel titler overskrift thumbnail youtube stor fet headline",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tilt-warp",
+      "navn": "Tilt Warp",
+      "familie": "'Tilt Warp', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tilt-warp.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "tilt warp display tittel titler overskrift thumbnail youtube stor fet headline moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "climate-crisis",
+      "navn": "Climate Crisis",
+      "familie": "'Climate Crisis', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/climate-crisis.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "climate crisis display tittel titler overskrift thumbnail youtube stor fet headline",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fjalla-one",
+      "navn": "Fjalla One",
+      "familie": "'Fjalla One', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/fjalla-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "fjalla one display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "antonio",
+      "navn": "Antonio",
+      "familie": "'Antonio', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/antonio.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-700",
+      "lisens": "OFL-1.1",
+      "sok": "antonio display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "staatliches",
+      "navn": "Staatliches",
+      "familie": "'Staatliches', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Retro",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/staatliches.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "staatliches display tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "ultra",
+      "navn": "Ultra",
+      "familie": "'Ultra', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/ultra.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "Apache-2.0",
+      "sok": "ultra display tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "nunito",
+      "navn": "Nunito",
+      "familie": "'Nunito', system-ui, sans-serif",
+      "stil": "Rund / vennlig",
+      "kategorier": [
+        "Brødtekst",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/nunito.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "nunito rund / vennlig brødtekst tekst lesbar undertekst video ui body moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "comfortaa",
+      "navn": "Comfortaa",
+      "familie": "'Comfortaa', system-ui, sans-serif",
+      "stil": "Rund / vennlig",
+      "kategorier": [
+        "Logo",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/comfortaa.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "comfortaa rund / vennlig logo merkevare brand moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "quicksand",
+      "navn": "Quicksand",
+      "familie": "'Quicksand', system-ui, sans-serif",
+      "stil": "Rund / vennlig",
+      "kategorier": [
+        "Brødtekst",
+        "Logo",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/quicksand.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "quicksand rund / vennlig brødtekst tekst lesbar undertekst video ui body logo merkevare brand moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fredoka",
+      "navn": "Fredoka",
+      "familie": "'Fredoka', system-ui, sans-serif",
+      "stil": "Rund / vennlig",
+      "kategorier": [
+        "Logo",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/fredoka.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "fredoka rund / vennlig logo merkevare brand moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fredoka-expanded",
+      "navn": "Fredoka",
+      "familie": "'Fredoka', system-ui, sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Logo",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/fredoka.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "fredoka rund / vennlig logo merkevare brand moro barn fest gøy lek tegneserie bred bredt wide extended expanded kvadratisk firkantet square fredoka expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "75% 125%"
+    },
+    {
+      "id": "playfair-display",
+      "navn": "Playfair Display",
+      "familie": "'Playfair Display', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/playfair-display.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "playfair display serif tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "dm-serif-display",
+      "navn": "DM Serif Display",
+      "familie": "'DM Serif Display', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": true,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/dm-serif-display.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "dm serif display serif tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cormorant-garamond",
+      "navn": "Cormorant Garamond",
+      "familie": "'Cormorant Garamond', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/cormorant-garamond.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "cormorant garamond serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bodoni-moda",
+      "navn": "Bodoni Moda",
+      "familie": "'Bodoni Moda', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/bodoni-moda.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "bodoni moda serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "gloock",
+      "navn": "Gloock",
+      "familie": "'Gloock', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/gloock.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "gloock serif tittel titler overskrift thumbnail youtube stor fet headline sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "instrument-serif",
+      "navn": "Instrument Serif",
+      "familie": "'Instrument Serif', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/instrument-serif.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": true,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "instrument serif serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fraunces",
+      "navn": "Fraunces",
+      "familie": "'Fraunces', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Sitat",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/fraunces.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "fraunces serif tittel titler overskrift thumbnail youtube stor fet headline sitat bibelvers vers bibel quote retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "young-serif",
+      "navn": "Young Serif",
+      "familie": "'Young Serif', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Sitat",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/young-serif.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "young serif serif sitat bibelvers vers bibel quote retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "yeseva-one",
+      "navn": "Yeseva One",
+      "familie": "'Yeseva One', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/yeseva-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "yeseva one serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rozha-one",
+      "navn": "Rozha One",
+      "familie": "'Rozha One', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/rozha-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rozha one serif tittel titler overskrift thumbnail youtube stor fet headline sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "merriweather",
+      "navn": "Merriweather",
+      "familie": "'Merriweather', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/merriweather.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-900",
+      "lisens": "OFL-1.1",
+      "sok": "merriweather serif brødtekst tekst lesbar undertekst video ui body sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "lora",
+      "navn": "Lora",
+      "familie": "'Lora', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/lora.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "lora serif brødtekst tekst lesbar undertekst video ui body sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "libre-baskerville",
+      "navn": "Libre Baskerville",
+      "familie": "'Libre Baskerville', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/libre-baskerville.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "libre baskerville serif brødtekst tekst lesbar undertekst video ui body sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "crimson-pro",
+      "navn": "Crimson Pro",
+      "familie": "'Crimson Pro', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/crimson-pro.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "crimson pro serif brødtekst tekst lesbar undertekst video ui body sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "abril-fatface",
+      "navn": "Abril Fatface",
+      "familie": "'Abril Fatface', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Elegant"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/abril-fatface.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "abril fatface serif tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cinzel",
+      "navn": "Cinzel",
+      "familie": "'Cinzel', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Logo",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/cinzel.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "cinzel serif logo merkevare brand elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cinzel-decorative",
+      "navn": "Cinzel Decorative",
+      "familie": "'Cinzel Decorative', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/cinzel-decorative.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "cinzel decorative serif elegant invitasjon bryllup luksus fin",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tenor-sans",
+      "navn": "Tenor Sans",
+      "familie": "'Tenor Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Logo",
+        "Elegant"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tenor-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "tenor sans sans-serif logo merkevare brand elegant invitasjon bryllup luksus fin",
+      "harAeOeAa": true
+    },
+    {
+      "id": "marcellus",
+      "navn": "Marcellus",
+      "familie": "'Marcellus', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/marcellus.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "marcellus serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "caveat",
+      "navn": "Caveat",
+      "familie": "'Caveat', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Brødtekst",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/caveat.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "caveat håndskrift brødtekst tekst lesbar undertekst video ui body håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "kaushan-script",
+      "navn": "Kaushan Script",
+      "familie": "'Kaushan Script', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Titler",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/kaushan-script.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "kaushan script håndskrift tittel titler overskrift thumbnail youtube stor fet headline håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "permanent-marker",
+      "navn": "Permanent Marker",
+      "familie": "'Permanent Marker', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Titler",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/permanent-marker.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "Apache-2.0",
+      "sok": "permanent marker håndskrift tittel titler overskrift thumbnail youtube stor fet headline håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "pinyon-script",
+      "navn": "Pinyon Script",
+      "familie": "'Pinyon Script', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/pinyon-script.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "pinyon script håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur",
+      "harAeOeAa": true
+    },
+    {
+      "id": "mrs-saint-delafield",
+      "navn": "Mrs Saint Delafield",
+      "familie": "'Mrs Saint Delafield', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/mrs-saint-delafield.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "mrs saint delafield håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur",
+      "harAeOeAa": true
+    },
+    {
+      "id": "pacifico",
+      "navn": "Pacifico",
+      "familie": "'Pacifico', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Logo",
+        "Håndskrift",
+        "Retro",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/pacifico.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "pacifico håndskrift logo merkevare brand håndskrift skrift script kalligrafi pensel signatur retro vintage gammel 70 80 neon western moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "dancing-script",
+      "navn": "Dancing Script",
+      "familie": "'Dancing Script', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/dancing-script.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "dancing script håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "great-vibes",
+      "navn": "Great Vibes",
+      "familie": "'Great Vibes', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/great-vibes.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "great vibes håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur",
+      "harAeOeAa": true
+    },
+    {
+      "id": "satisfy",
+      "navn": "Satisfy",
+      "familie": "'Satisfy', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/satisfy.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "Apache-2.0",
+      "sok": "satisfy håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "sacramento",
+      "navn": "Sacramento",
+      "familie": "'Sacramento', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/sacramento.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "sacramento håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur",
+      "harAeOeAa": true
+    },
+    {
+      "id": "unifrakturmaguntia",
+      "navn": "UnifrakturMaguntia",
+      "familie": "'UnifrakturMaguntia', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Sitat",
+        "Retro",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/unifrakturmaguntia.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "unifrakturmaguntia dekorativ sitat bibelvers vers bibel quote retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-dirt",
+      "navn": "Rubik Dirt",
+      "familie": "'Rubik Dirt', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Titler",
+        "Retro",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-dirt.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik dirt dekorativ tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "lobster",
+      "navn": "Lobster",
+      "familie": "'Lobster', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/lobster.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "lobster dekorativ retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bungee",
+      "navn": "Bungee",
+      "familie": "'Bungee', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bungee.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bungee dekorativ tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "press-start-2p",
+      "navn": "Press Start 2P",
+      "familie": "'Press Start 2P', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/press-start-2p.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "press start 2p dekorativ retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "creepster",
+      "navn": "Creepster",
+      "familie": "'Creepster', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/creepster.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "creepster dekorativ effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "saira-stencil-one",
+      "navn": "Saira Stencil One",
+      "familie": "'Saira Stencil One', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Effekt",
+        "Teknisk",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/saira-stencil-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "saira stencil one dekorativ effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "stardos-stencil",
+      "navn": "Stardos Stencil",
+      "familie": "'Stardos Stencil', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/stardos-stencil.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "stardos stencil dekorativ retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rye",
+      "navn": "Rye",
+      "familie": "'Rye', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rye.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rye dekorativ retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "graduate",
+      "navn": "Graduate",
+      "familie": "'Graduate', sans-serif",
+      "stil": "Dekorativ",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/graduate.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "graduate dekorativ retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "monoton",
+      "navn": "Monoton",
+      "familie": "'Monoton', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Titler",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/monoton.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "monoton retro tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "righteous",
+      "navn": "Righteous",
+      "familie": "'Righteous', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Logo",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/righteous.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "righteous retro logo merkevare brand retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "neonderthaw",
+      "navn": "Neonderthaw",
+      "familie": "'Neonderthaw', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Elegant",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/neonderthaw.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "neonderthaw retro elegant invitasjon bryllup luksus fin retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "train-one",
+      "navn": "Train One",
+      "familie": "'Train One', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/train-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "train one retro retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rampart-one",
+      "navn": "Rampart One",
+      "familie": "'Rampart One', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rampart-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rampart one retro retro vintage gammel 70 80 neon western moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "faster-one",
+      "navn": "Faster One",
+      "familie": "'Faster One', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/faster-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "faster one retro retro vintage gammel 70 80 neon western teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "codystar",
+      "navn": "Codystar",
+      "familie": "'Codystar', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/codystar.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "codystar retro retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "zen-tokyo-zoo",
+      "navn": "Zen Tokyo Zoo",
+      "familie": "'Zen Tokyo Zoo', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/zen-tokyo-zoo.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "zen tokyo zoo retro retro vintage gammel 70 80 neon western moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "kumar-one-outline",
+      "navn": "Kumar One Outline",
+      "familie": "'Kumar One Outline', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/kumar-one-outline.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "kumar one outline retro retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "londrina-outline",
+      "navn": "Londrina Outline",
+      "familie": "'Londrina Outline', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/londrina-outline.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "londrina outline retro retro vintage gammel 70 80 neon western moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "londrina-shadow",
+      "navn": "Londrina Shadow",
+      "familie": "'Londrina Shadow', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/londrina-shadow.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "londrina shadow retro retro vintage gammel 70 80 neon western moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fascinate-inline",
+      "navn": "Fascinate Inline",
+      "familie": "'Fascinate Inline', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/fascinate-inline.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "fascinate inline retro retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "vast-shadow",
+      "navn": "Vast Shadow",
+      "familie": "'Vast Shadow', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/vast-shadow.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "vast shadow retro retro vintage gammel 70 80 neon western skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "monofett",
+      "navn": "Monofett",
+      "familie": "'Monofett', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/monofett.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "monofett retro retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "ewert",
+      "navn": "Ewert",
+      "familie": "'Ewert', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/ewert.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "ewert retro retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "moirai-one",
+      "navn": "Moirai One",
+      "familie": "'Moirai One', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Logo",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/moirai-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "moirai one effekt tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tilt-prism",
+      "navn": "Tilt Prism",
+      "familie": "'Tilt Prism', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tilt-prism.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "tilt prism effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tilt-neon",
+      "navn": "Tilt Neon",
+      "familie": "'Tilt Neon', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Retro",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tilt-neon.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "tilt neon effekt tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-80s-fade",
+      "navn": "Rubik 80s Fade",
+      "familie": "'Rubik 80s Fade', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Retro",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-80s-fade.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik 80s fade effekt tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-vinyl",
+      "navn": "Rubik Vinyl",
+      "familie": "'Rubik Vinyl', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-vinyl.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik vinyl effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-marker-hatch",
+      "navn": "Rubik Marker Hatch",
+      "familie": "'Rubik Marker Hatch', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-marker-hatch.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik marker hatch effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-maze",
+      "navn": "Rubik Maze",
+      "familie": "'Rubik Maze', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-maze.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik maze effekt effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-glitch",
+      "navn": "Rubik Glitch",
+      "familie": "'Rubik Glitch', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-glitch.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik glitch effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "rubik-iso",
+      "navn": "Rubik Iso",
+      "familie": "'Rubik Iso', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/rubik-iso.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "rubik iso effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tourney",
+      "navn": "Tourney",
+      "familie": "'Tourney', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tourney.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "tourney effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tourney-expanded",
+      "navn": "Tourney",
+      "familie": "'Tourney', sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Titler",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tourney.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "tourney effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono bred bredt wide extended expanded kvadratisk firkantet square tourney expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "75% 125%"
+    },
+    {
+      "id": "foldit",
+      "navn": "Foldit",
+      "familie": "'Foldit', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/foldit.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "foldit effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "workbench",
+      "navn": "Workbench",
+      "familie": "'Workbench', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/workbench.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "workbench effekt retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "sixtyfour",
+      "navn": "Sixtyfour",
+      "familie": "'Sixtyfour', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Retro",
+        "Effekt",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/sixtyfour.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "sixtyfour effekt retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "danfo",
+      "navn": "Danfo",
+      "familie": "'Danfo', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Logo",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/danfo.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "danfo effekt tittel titler overskrift thumbnail youtube stor fet headline logo merkevare brand effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bungee-hairline",
+      "navn": "Bungee Hairline",
+      "familie": "'Bungee Hairline', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bungee-hairline.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bungee hairline effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bungee-inline",
+      "navn": "Bungee Inline",
+      "familie": "'Bungee Inline', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bungee-inline.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bungee inline effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bungee-outline",
+      "navn": "Bungee Outline",
+      "familie": "'Bungee Outline', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bungee-outline.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bungee outline effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bungee-shade",
+      "navn": "Bungee Shade",
+      "familie": "'Bungee Shade', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Retro",
+        "Effekt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bungee-shade.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bungee shade effekt tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western effekt dekorativ tema spesiell",
+      "harAeOeAa": true
+    },
+    {
+      "id": "nabla",
+      "navn": "Nabla",
+      "familie": "'Nabla', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/nabla.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "nabla effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "honk",
+      "navn": "Honk",
+      "familie": "'Honk', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/honk.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "honk effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bungee-spice",
+      "navn": "Bungee Spice",
+      "familie": "'Bungee Spice', sans-serif",
+      "stil": "Effekt",
+      "kategorier": [
+        "Titler",
+        "Effekt",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bungee-spice.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bungee spice effekt tittel titler overskrift thumbnail youtube stor fet headline effekt dekorativ tema spesiell moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "orbitron",
+      "navn": "Orbitron",
+      "familie": "'Orbitron', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/orbitron.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "orbitron teknisk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "audiowide",
+      "navn": "Audiowide",
+      "familie": "'Audiowide', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/audiowide.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "audiowide teknisk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "michroma",
+      "navn": "Michroma",
+      "familie": "'Michroma', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/michroma.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "michroma teknisk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "russo-one",
+      "navn": "Russo One",
+      "familie": "'Russo One', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/russo-one.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "russo one teknisk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "teko",
+      "navn": "Teko",
+      "familie": "'Teko', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Titler",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/teko.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "teko teknisk tittel titler overskrift thumbnail youtube stor fet headline teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "zen-dots",
+      "navn": "Zen Dots",
+      "familie": "'Zen Dots', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/zen-dots.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "zen dots teknisk teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "major-mono-display",
+      "navn": "Major Mono Display",
+      "familie": "'Major Mono Display', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Titler",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/major-mono-display.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "major mono display teknisk tittel titler overskrift thumbnail youtube stor fet headline teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "syncopate",
+      "navn": "Syncopate",
+      "familie": "'Syncopate', system-ui, sans-serif",
+      "stil": "Teknisk",
+      "kategorier": [
+        "Logo",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/syncopate.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "Apache-2.0",
+      "sok": "syncopate teknisk logo merkevare brand teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "jetbrains-mono",
+      "navn": "JetBrains Mono",
+      "familie": "'JetBrains Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Brødtekst",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/jetbrains-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-800",
+      "lisens": "OFL-1.1",
+      "sok": "jetbrains mono monospace brødtekst tekst lesbar undertekst video ui body teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "space-mono",
+      "navn": "Space Mono",
+      "familie": "'Space Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Titler",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/space-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "space mono monospace tittel titler overskrift thumbnail youtube stor fet headline teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "courier-prime",
+      "navn": "Courier Prime",
+      "familie": "'Courier Prime', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Brødtekst",
+        "Retro",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": true,
+      "status": "klar",
+      "css": "fonts/courier-prime.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "courier prime monospace brødtekst tekst lesbar undertekst video ui body retro vintage gammel 70 80 neon western teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fira-code",
+      "navn": "Fira Code",
+      "familie": "'Fira Code', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/fira-code.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "fira code monospace teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "ibm-plex-mono",
+      "navn": "IBM Plex Mono",
+      "familie": "'IBM Plex Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Brødtekst",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/ibm-plex-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "ibm plex mono monospace brødtekst tekst lesbar undertekst video ui body teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "clarity-city",
+      "navn": "Clarity City",
+      "familie": "'Clarity City', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/clarity-city.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "clarity city sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "national-park",
+      "navn": "National Park",
+      "familie": "'National Park', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo",
+        "Moro",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/national-park.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "200-800",
+      "lisens": "OFL-1.1",
+      "sok": "national park sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand moro barn fest gøy lek tegneserie skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "amarna",
+      "navn": "Amarna",
+      "familie": "'Amarna', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/amarna.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-700",
+      "lisens": "OFL-1.1",
+      "sok": "amarna sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "murecho",
+      "navn": "Murecho",
+      "familie": "'Murecho', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/murecho.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "murecho sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "zalando-sans",
+      "navn": "Zalando Sans",
+      "familie": "'Zalando Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/zalando-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "zalando sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "zalando-sans-expanded",
+      "navn": "Zalando Sans",
+      "familie": "'Zalando Sans', system-ui, sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/zalando-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "zalando sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand bred bredt wide extended expanded kvadratisk firkantet square zalando sans expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "75% 125%"
+    },
+    {
+      "id": "uncut-sans",
+      "navn": "Uncut Sans",
+      "familie": "'Uncut Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/uncut-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "uncut sans sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "dejavu-sans",
+      "navn": "DejaVu Sans",
+      "familie": "'DejaVu Sans', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Titler",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/dejavu-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "Bitstream-Vera",
+      "sok": "dejavu sans monospace tittel titler overskrift thumbnail youtube stor fet headline teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "saira",
+      "navn": "Saira",
+      "familie": "'Saira', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/saira.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "saira sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "saira-expanded",
+      "navn": "Saira",
+      "familie": "'Saira', system-ui, sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/saira.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "saira sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand bred bredt wide extended expanded kvadratisk firkantet square saira expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "50% 125%"
+    },
+    {
+      "id": "vend-sans",
+      "navn": "Vend Sans",
+      "familie": "'Vend Sans', system-ui, sans-serif",
+      "stil": "Rund / vennlig",
+      "kategorier": [
+        "Logo",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/vend-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "vend sans rund / vennlig logo merkevare brand moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "kulim-park",
+      "navn": "Kulim Park",
+      "familie": "'Kulim Park', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/kulim-park.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "kulim park sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "alegreya-sans",
+      "navn": "Alegreya Sans",
+      "familie": "'Alegreya Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/alegreya-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "alegreya sans sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "aileron",
+      "navn": "Aileron",
+      "familie": "'Aileron', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/aileron.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "CC0-1.0",
+      "sok": "aileron sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "metropolis",
+      "navn": "Metropolis",
+      "familie": "'Metropolis', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/metropolis.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "Unlicense",
+      "sok": "metropolis sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cooper-hewitt",
+      "navn": "Cooper Hewitt",
+      "familie": "'Cooper Hewitt', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/cooper-hewitt.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "cooper hewitt sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "host-grotesk",
+      "navn": "Host Grotesk",
+      "familie": "'Host Grotesk', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/host-grotesk.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-800",
+      "lisens": "OFL-1.1",
+      "sok": "host grotesk moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cal-sans",
+      "navn": "Cal Sans",
+      "familie": "'Cal Sans', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/cal-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "cal sans display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bagnard-sans",
+      "navn": "Bagnard Sans",
+      "familie": "'Bagnard Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bagnard-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bagnard sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": false
+    },
+    {
+      "id": "junction",
+      "navn": "Junction",
+      "familie": "'Junction', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/junction.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "junction sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "mona-sans",
+      "navn": "Mona Sans",
+      "familie": "'Mona Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/mona-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "mona sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "mona-sans-expanded",
+      "navn": "Mona Sans",
+      "familie": "'Mona Sans', system-ui, sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/mona-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "mona sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand bred bredt wide extended expanded kvadratisk firkantet square mona sans expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "75% 125%"
+    },
+    {
+      "id": "hubot-sans",
+      "navn": "Hubot Sans",
+      "familie": "'Hubot Sans', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/hubot-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "hubot sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "hubot-sans-expanded",
+      "navn": "Hubot Sans",
+      "familie": "'Hubot Sans', system-ui, sans-serif",
+      "stil": "Bred – Expanded 125 %",
+      "kategorier": [
+        "Bred og kvadratisk",
+        "Titler",
+        "Brødtekst",
+        "Logo",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/hubot-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "200-900",
+      "lisens": "OFL-1.1",
+      "sok": "hubot sans moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand sitat bibelvers vers bibel quote bred bredt wide extended expanded kvadratisk firkantet square hubot sans expanded (bredde 125)",
+      "harAeOeAa": true,
+      "bredde": 125,
+      "bredder": "75% 125%"
+    },
+    {
+      "id": "pretendard",
+      "navn": "Pretendard",
+      "familie": "'Pretendard', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/pretendard.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "pretendard moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "radio-canada",
+      "navn": "Radio Canada",
+      "familie": "'Radio Canada', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/radio-canada.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "radio canada sans-serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "ostrich-sans",
+      "navn": "Ostrich Sans",
+      "familie": "'Ostrich Sans', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/ostrich-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "ostrich sans display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": false
+    },
+    {
+      "id": "tasa-orbiter",
+      "navn": "TASA Orbiter",
+      "familie": "'TASA Orbiter', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tasa-orbiter.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-800",
+      "lisens": "OFL-1.1",
+      "sok": "tasa orbiter sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "hedvig-letters-sans",
+      "navn": "Hedvig Letters Sans",
+      "familie": "'Hedvig Letters Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/hedvig-letters-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "hedvig letters sans sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "petrona",
+      "navn": "Petrona",
+      "familie": "'Petrona', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Elegant",
+        "Sitat",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/petrona.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "petrona serif brødtekst tekst lesbar undertekst video ui body elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "zilla-slab",
+      "navn": "Zilla Slab",
+      "familie": "'Zilla Slab', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/zilla-slab.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "zilla slab serif tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "tasa-explorer",
+      "navn": "TASA Explorer",
+      "familie": "'TASA Explorer', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/tasa-explorer.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-800",
+      "lisens": "OFL-1.1",
+      "sok": "tasa explorer sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "apfel-grotezk",
+      "navn": "Apfel Grotezk",
+      "familie": "'Apfel Grotezk', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/apfel-grotezk.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "apfel grotezk moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "inclusive-sans",
+      "navn": "Inclusive Sans",
+      "familie": "'Inclusive Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/inclusive-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "inclusive sans sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "jost",
+      "navn": "Jost",
+      "familie": "'Jost', system-ui, sans-serif",
+      "stil": "Moderne / grotesk",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/jost.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "jost moderne / grotesk tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "playfair",
+      "navn": "Playfair",
+      "familie": "'Playfair', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/playfair.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-900",
+      "lisens": "OFL-1.1",
+      "sok": "playfair serif tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "labrada",
+      "navn": "Labrada",
+      "familie": "'Labrada', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/labrada.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "labrada serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "baskervville",
+      "navn": "Baskervville",
+      "familie": "'Baskervville', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/baskervville.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "baskervville serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "spectral",
+      "navn": "Spectral",
+      "familie": "'Spectral', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/spectral.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "spectral serif brødtekst tekst lesbar undertekst video ui body elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "faustina",
+      "navn": "Faustina",
+      "familie": "'Faustina', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/faustina.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-800",
+      "lisens": "OFL-1.1",
+      "sok": "faustina serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "redaction",
+      "navn": "Redaction",
+      "familie": "'Redaction', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/redaction.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "redaction serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "fanwood-text",
+      "navn": "Fanwood Text",
+      "familie": "'Fanwood Text', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/fanwood-text.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": true,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "fanwood text serif brødtekst tekst lesbar undertekst video ui body elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "piazzolla",
+      "navn": "Piazzolla",
+      "familie": "'Piazzolla', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/piazzolla.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "piazzolla serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "funnel-sans",
+      "navn": "Funnel Sans",
+      "familie": "'Funnel Sans', system-ui, sans-serif",
+      "stil": "Sans-serif",
+      "kategorier": [
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/funnel-sans.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-800",
+      "lisens": "OFL-1.1",
+      "sok": "funnel sans sans-serif brødtekst tekst lesbar undertekst video ui body logo merkevare brand",
+      "harAeOeAa": true
+    },
+    {
+      "id": "prociono",
+      "navn": "Prociono",
+      "familie": "'Prociono', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/prociono.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "prociono serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "sorts-mill-goudy",
+      "navn": "Sorts Mill Goudy",
+      "familie": "'Sorts Mill Goudy', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/sorts-mill-goudy.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": true,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "sorts mill goudy serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "museomoderno",
+      "navn": "MuseoModerno",
+      "familie": "'MuseoModerno', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/museomoderno.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "museomoderno display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "alegreya",
+      "navn": "Alegreya",
+      "familie": "'Alegreya', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/alegreya.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "alegreya serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "hedvig-letters-serif",
+      "navn": "Hedvig Letters Serif",
+      "familie": "'Hedvig Letters Serif', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/hedvig-letters-serif.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "400-400",
+      "lisens": "OFL-1.1",
+      "sok": "hedvig letters serif serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "andada-pro",
+      "navn": "Andada Pro",
+      "familie": "'Andada Pro', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/andada-pro.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-800",
+      "lisens": "OFL-1.1",
+      "sok": "andada pro serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "besley",
+      "navn": "Besley",
+      "familie": "'Besley', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/besley.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-900",
+      "lisens": "OFL-1.1",
+      "sok": "besley serif tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "linden-hill",
+      "navn": "Linden Hill",
+      "familie": "'Linden Hill', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/linden-hill.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": true,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "linden hill serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "maname",
+      "navn": "Maname",
+      "familie": "'Maname', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/maname.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "maname serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "libre-caslon-condensed",
+      "navn": "Libre Caslon Condensed",
+      "familie": "'Libre Caslon Condensed', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Titler",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/libre-caslon-condensed.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-700",
+      "lisens": "OFL-1.1",
+      "sok": "libre caslon condensed serif tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bagnard",
+      "navn": "Bagnard",
+      "familie": "'Bagnard', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bagnard.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bagnard serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": false
+    },
+    {
+      "id": "eb-garamond",
+      "navn": "EB Garamond",
+      "familie": "'EB Garamond', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/eb-garamond.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "400-800",
+      "lisens": "OFL-1.1",
+      "sok": "eb garamond serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "goudy-bookletter-1911",
+      "navn": "Goudy Bookletter 1911",
+      "familie": "'Goudy Bookletter 1911', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/goudy-bookletter-1911.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "goudy bookletter 1911 serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bitter",
+      "navn": "Bitter",
+      "familie": "'Bitter', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Brødtekst",
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bitter.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "bitter serif brødtekst tekst lesbar undertekst video ui body elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "geom",
+      "navn": "Geom",
+      "familie": "'Geom', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/geom.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-900",
+      "lisens": "OFL-1.1",
+      "sok": "geom display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "bluu-next",
+      "navn": "Bluu Next",
+      "familie": "'Bluu Next', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/bluu-next.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "bluu next display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cambo",
+      "navn": "Cambo",
+      "familie": "'Cambo', Georgia, serif",
+      "stil": "Serif",
+      "kategorier": [
+        "Elegant",
+        "Sitat"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/cambo.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "cambo serif elegant invitasjon bryllup luksus fin sitat bibelvers vers bibel quote",
+      "harAeOeAa": true
+    },
+    {
+      "id": "intel-one-mono",
+      "navn": "Intel One Mono",
+      "familie": "'Intel One Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/intel-one-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "300-700",
+      "lisens": "OFL-1.1",
+      "sok": "intel one mono monospace teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "league-script",
+      "navn": "League Script",
+      "familie": "'League Script', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/league-script.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "league script håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "cutive-mono",
+      "navn": "Cutive Mono",
+      "familie": "'Cutive Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Retro",
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/cutive-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "cutive mono monospace tittel titler overskrift thumbnail youtube stor fet headline brødtekst tekst lesbar undertekst video ui body retro vintage gammel 70 80 neon western teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "syne-tactile",
+      "navn": "Syne Tactile",
+      "familie": "'Syne Tactile', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/syne-tactile.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "syne tactile håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur",
+      "harAeOeAa": true
+    },
+    {
+      "id": "texturina",
+      "navn": "Texturina",
+      "familie": "'Texturina', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Elegant",
+        "Håndskrift"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/texturina.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "texturina håndskrift elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur",
+      "harAeOeAa": true
+    },
+    {
+      "id": "caramel",
+      "navn": "Caramel",
+      "familie": "'Caramel', sans-serif",
+      "stil": "Retro",
+      "kategorier": [
+        "Titler",
+        "Retro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/caramel.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "caramel retro tittel titler overskrift thumbnail youtube stor fet headline retro vintage gammel 70 80 neon western",
+      "harAeOeAa": true
+    },
+    {
+      "id": "sansita-swashed",
+      "navn": "Sansita Swashed",
+      "familie": "'Sansita Swashed', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Titler",
+        "Elegant",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/sansita-swashed.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": true,
+      "vekter": "300-900",
+      "lisens": "OFL-1.1",
+      "sok": "sansita swashed håndskrift tittel titler overskrift thumbnail youtube stor fet headline elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "borel",
+      "navn": "Borel",
+      "familie": "'Borel', cursive",
+      "stil": "Håndskrift",
+      "kategorier": [
+        "Brødtekst",
+        "Elegant",
+        "Håndskrift",
+        "Moro"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/borel.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "borel håndskrift brødtekst tekst lesbar undertekst video ui body elegant invitasjon bryllup luksus fin håndskrift skrift script kalligrafi pensel signatur moro barn fest gøy lek tegneserie",
+      "harAeOeAa": true
+    },
+    {
+      "id": "geist-mono",
+      "navn": "Geist Mono",
+      "familie": "'Geist Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/geist-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": true,
+      "vekter": "100-900",
+      "lisens": "OFL-1.1",
+      "sok": "geist mono monospace teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "chunk-five",
+      "navn": "ChunkFive",
+      "familie": "'ChunkFive', Impact, sans-serif",
+      "stil": "Display",
+      "kategorier": [
+        "Titler",
+        "Skilt"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/chunk-five.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "chunkfive display tittel titler overskrift thumbnail youtube stor fet headline skilt plakat poster sjablong",
+      "harAeOeAa": true
+    },
+    {
+      "id": "syne-mono",
+      "navn": "Syne Mono",
+      "familie": "'Syne Mono', ui-monospace, monospace",
+      "stil": "Monospace",
+      "kategorier": [
+        "Teknisk"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "css": "fonts/syne-mono.css",
+      "stiler": {
+        "regular": true,
+        "bold": false,
+        "italic": false,
+        "boldItalic": false
+      },
+      "variabel": false,
+      "lisens": "OFL-1.1",
+      "sok": "syne mono monospace teknisk gaming futuristisk kode mono",
+      "harAeOeAa": true
+    },
+    {
+      "id": "helvetica",
+      "navn": "Helvetica",
+      "familie": "Helvetica, Arial, sans-serif",
+      "stil": "Systemfont",
+      "kategorier": [
+        "Titler",
+        "Brødtekst",
+        "Logo"
+      ],
+      "anbefalt": false,
+      "iMalene": false,
+      "status": "klar",
+      "stiler": {
+        "regular": true,
+        "bold": true,
+        "italic": true,
+        "boldItalic": true
+      },
+      "variabel": false,
+      "lisens": "System",
+      "sok": "helvetica arial system sans-serif brødtekst tekst lesbar undertekst video ui body",
+      "harAeOeAa": true
+    }
+  ]
+}

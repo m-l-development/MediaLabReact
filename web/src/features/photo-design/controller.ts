@@ -8,8 +8,13 @@ import { ZipWriter } from '../../shared/lib/zip'
 import { bounds, changeFormat, snapAt, snapPrep, type Bounds, type FormatBase, type Snap } from './engine/layout'
 import {
   ADJ, bleedLayers, clamp, dims, FORMATS, glowLayer, imageLayer, LOOKS, SHAPES, shapeLayer, targetSlot, textLayer, uid,
-  type Adj, type CurveKey, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type Vig,
+  type Adj, type CurveKey, type Format, type FxLayer, type ImageLayer, type PdDoc, type PdLayer, type Scheme, type TextLayer, type Vig,
 } from './engine/model'
+import type { FontEntry } from '../../components/fontpicker/FontPicker.jsx'
+import { normalizeStyle, type TextStyle } from '../../components/fontpicker/TextStyle.jsx'
+import { cssAngle, legacyTextStyle, outlineWidth } from '../../components/fontpicker/styled-layer'
+import { imageRefOf } from '../../components/fontpicker/images'
+import { pdStyledReady } from './engine/render'
 import { autoTone, cleanDev, decodeMask, DEV, encodeMask, hdrMerge, LOC, type Dev, type DevKey, type Histogram, type LocalAdj } from './engine/develop'
 import { blurArea } from '../isolate-subject/engine/blur'
 import { defaultGrow } from '../isolate-subject/engine/inpaint'
@@ -105,6 +110,8 @@ export interface PState {
   fillBusy: { phase: 'model' | 'run'; pct: number } | null
   /** Effekten som forhåndsvises (tegnes øverst, er ikke i prosjektet før «Legg til effekt»). */
   fxPick: FxLayer | null
+  /** Fonten som forhåndsvises på lerretet mens musen holdes over den i fontpopupen (lagres aldri). */
+  fontPreview: { id: string; font: FontEntry } | null
   fxQ: string
   fxN: number
   fxPal: number
@@ -227,7 +234,7 @@ export class PhotoController {
       projCat: ((v) => (v == null || v === '*' ? null : v))(st.get('photodesign.projcat')),
       cats: Array.isArray(cats) && cats.length ? cats.filter((x): x is string => typeof x === 'string').slice(0, 20) : defaultCats(this.d.legacyDefaults),
       newCol: st.get('photodesign.newcol') || null, dragOver: false, brushXY: null, narrow: false, hist: 0, marq: null, shapesOpen: false, logoOpen: false,
-      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, pano: null, fillBusy: null, ctx: null,
+      adv: FX.isAdvanced(), fxCat: 'all', fxOpen: false, fxPick: null, fontPreview: null, fxQ: '', fxN: 24, fxPal: 0, fxStr: 1, fxCk: null, picker: null, maskEdit: null, pano: null, fillBusy: null, ctx: null,
       scheme: loadScheme(st), tplSchemes: loadTplSchemes(st), libCat: LIB_CATS[0], lib: null, bx: null, bfmt: 'jpg', tver: 0,
     })
   }
@@ -336,6 +343,15 @@ export class PhotoController {
   private async loadMedia(doc: PdDoc, masks: Record<string, string>) {
     for (const L of [...doc.layers, ...(doc.back?.layers ?? [])]) {
       // bilde i teksten (fase 4)
+      const tref = L.type === 'text' ? imageRefOf(L.textStyle) : null
+      if (tref && !this.M.media.has(tref)) {
+        try {
+          const b = await this.d.openMedia(tref)
+          if (b) this.M.media.set(tref, await loadImg(b))
+        } catch {
+          // mangler bildet: Bildefyll vises grått
+        }
+      }
       if (L.type === 'text' && L.fillSrc && !this.M.media.has(L.fillSrc)) {
         try {
           const b = await this.d.openMedia(L.fillSrc)
@@ -835,6 +851,63 @@ export class PhotoController {
     return this.future.length > 0
   }
 
+/** Stilen fontpopupen viser for tekstlaget (eldre lag: lagets egne verdier). */
+  textStyleOf(L: TextLayer): TextStyle {
+    if (L.textStyle) return L.textStyle
+    let effect: Partial<TextStyle['effect']> | null = null
+    const p = L.paint?.find((x) => x.k === 'lin' || x.k === 'rad' || x.k === 'con')
+    const st = p && 'st' in p ? p.st : null
+    if (L.fillSrc) effect = { type: 'imagefill', image: L.fillSrc }
+    else if (st?.length) effect = { type: 'gradient', color: st[0]?.[1] ?? L.color, color2: st[st.length - 1]?.[1] ?? L.color, p: { angle: p?.k === 'lin' ? cssAngle(p.x1, p.y1, p.x2, p.y2) : 180 } }
+    else if ((L.grunge ?? 0) > 0) effect = { type: 'grunge', color: '#000000', p: { wear: Math.round((L.grunge ?? 0) * 100) } }
+    else if ((L.strokeW ?? 0) > 0) effect = { type: 'outline', color: L.strokeC || '#000000', p: { width: outlineWidth(L.strokeW * 2, L.size) } }
+    else if (L.shadows?.[0]) effect = { type: 'glow', color: L.shadows[0].c }
+    const ts = legacyTextStyle({ align: L.align, valign: 'middle', lh: L.lh, ls: (L.ls || 0) / Math.max(1, L.size), weight: L.weight, italic: L.italic, effect })
+    if (L.arc) ts.shape = { ...ts.shape, type: 'arc', amount: Math.sign(L.arc) * Math.max(10, Math.min(100, Math.round((100 * 600) / Math.abs(L.arc)))) }
+    return ts
+  }
+
+  /** Fontpopupen: ny stil (lagres uendret). Eldre lag: verdiene som nå ligger i stilen, tas bort fra laget. */
+  setTextStyle(id: string, ts: TextStyle): void {
+    this.patchL(id, (L) => {
+      if (L.type !== 'text') return {}
+      const clear: Partial<TextLayer> = L.textStyle ? {} : { strokeW: 0, paint: null, fillSrc: null, grunge: 0, arc: 0, ...(L.shadows?.length ? { shadows: null } : {}) }
+      return { ...clear, textStyle: ts } as Partial<PdLayer>
+    }, 'ts:' + id)
+  }
+
+  /** Designets bilde til «Bruk bildet i designet» (Bildefyll): bakgrunnsbildet/første bilde i dokumentet. */
+  designImage(): string | null {
+    const d = this.s.doc
+    const im = d?.layers.find((l) => l.type === 'image' && !!l.src && !l.hidden)
+    return im?.type === 'image' ? im.src : null
+  }
+
+  /** Font valgt i fontpopupen (navn og bredde). */
+  setTextFont(id: string, p: { font: string; stretch?: number }): void {
+    this.patchL(id, p as Partial<PdLayer>)
+  }
+
+  /** Forhåndsvisning i fontpopupen (null = valgt font igjen). Lagres aldri. */
+  previewFont(id: string, font: FontEntry | null): void {
+    const cur = this.s.fontPreview
+    if (!font ? !cur : cur?.id === id && cur.font.id === font.id) return
+    this.set({ fontPreview: font ? { id, font } : null })
+  }
+
+  /** Bilde til Bildefyll (lastet opp i popupen): lagres i Dine medier som de andre bildene, gir nøkkelen. */
+  async storeFillImage(b: Blob): Promise<string | null> {
+    try {
+      const E = await loadImg(b)
+      const key = await this.d.putImage(b, (b as File).name || 'bildefyll')
+      this.M.media.set(key, E)
+      return key
+    } catch {
+      this.flash('Bildet kunne ikke leses.')
+      return null
+    }
+  }
+
   selL(): PdLayer | null {
     const d = this.s.doc
     return (d && d.layers.find((L) => L.id === this.s.sel)) || null
@@ -851,7 +924,10 @@ export class PhotoController {
     const d = this.s.doc
     if (!d) return
     const m = Math.min(d.w, d.h)
-    this.addLayer(textLayer({ x: d.w / 2, y: d.h / 2, size: Math.round(m * 0.08), color: this.s.newCol || (d.bg && /^#(f|e|d)/i.test(d.bg) ? '#111111' : '#ffffff') }))
+    const tl = textLayer({ x: d.w / 2, y: d.h / 2, size: Math.round(m * 0.08), color: this.s.newCol || (d.bg && /^#(f|e|d)/i.test(d.bg) ? '#111111' : '#ffffff') })
+    // nye tekstlag bruker fontpopupens stil (tegnes med <StyledText>) med samme oppsett som før
+    if (tl.type === 'text') tl.textStyle = this.textStyleOf(tl)
+    this.addLayer(tl)
   }
 
   addShape(kind: string): void {
@@ -1057,7 +1133,8 @@ export class PhotoController {
     const rep = replace ? doc.layers.find((q) => q.id === replace) : undefined
     // bilde i teksten (fase 4): bildet fyller bokstavene i tekstlaget
     if (rep?.type === 'text') {
-      this.patchL(rep.id, { fillSrc: key })
+      if (rep.textStyle) this.setTextStyle(rep.id, { ...normalizeStyle(rep.textStyle), effect: { ...normalizeStyle(rep.textStyle).effect, type: 'imagefill', image: key } })
+      else this.patchL(rep.id, { fillSrc: key })
       return
     }
     const ph = targetSlot(doc, { replace: rep, at: !!at, hit: at ? hit(doc, at[0], at[1]) : null, sel: this.selL(), ...(opt.logo ? { logo: true } : {}) })
@@ -2769,6 +2846,7 @@ export class PhotoController {
     const c = mk(d.w * s, d.h * s)
     const g = c.getContext('2d')
     if (!g) return null
+    await pdStyledReady(d, s, this.M)
     render(g, d, s, this.M, { full: true, noPh: true, transparent: x.fmt === 'png' && x.t })
     // mellomlagrene i full oppløsning trengs ikke lenger (iOS: grensen for samlet lerretsminne)
     releaseLarge(this.M.media)
@@ -2792,6 +2870,7 @@ export class PhotoController {
     const d = this.s.doc
     if (!d) return null
     await docFonts(d) // PDF-en tegner med fontene, ikke reservefonten
+    await pdStyledReady(d, 1, this.M)
     return printPDF(this.sidesOf(d), d, this.M, { bleed: !!d.bleed })
   }
 

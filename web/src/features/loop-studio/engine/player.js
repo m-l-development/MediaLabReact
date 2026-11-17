@@ -3,6 +3,24 @@
 // Ikke skriv om: eksporterte spillere og gamle prosjekter må se helt like ut.
 export function __ukeloopRendererFactory() {
   var FONT = 'Archivo, "Helvetica Neue", Helvetica, Arial, sans-serif', STRETCH = 'semi-expanded', TS = 1, XS = 1, SG = 0;
+  /* Tillegg (fontpopupen i Loop Studio): overskrift og kicker med egen stil (cfg.ts.title / cfg.ts.kicker) tegnes som
+     ferdige tekstbilder fra STY (appen: <StyledText>; spilleren: bildene som ligger i filen). Uten stil: som før. */
+  var STY = null;
+  function styKey(q) { return JSON.stringify([q.role, q.text, Math.round(q.w), Math.round(q.h), Math.round(q.size * 100) / 100, q.color, q.font]); }
+  function styImg(E, role, text, w, h, size, color) {
+    if (!STY || !E.cfg.ts || !E.cfg.ts[role]) return null;
+    var q = { role: role, text: text, w: w / E.u, h: h / E.u, size: size / E.u, color: color, font: E.cfg.font || 'Archivo', ts: E.cfg.ts[role], k: E.u };
+    q.key = styKey(q);
+    return STY(q) || { empty: true };
+  }
+  /* del av tekstbildet (referanseenheter, relativt til tekstboksen) tegnet med boksens øvre venstre hjørne i (x, y) */
+  function styDraw(ctx, E, im, x, y, r) {
+    if (!im || im.empty || !im.img) return;
+    var u = E.u, k = im.k, r0 = r || { x: im.bx, y: im.by, w: im.bw, h: im.bh };
+    var x0 = Math.max(r0.x, im.bx), y0 = Math.max(r0.y, im.by), x1 = Math.min(r0.x + r0.w, im.bx + im.bw), y1 = Math.min(r0.y + r0.h, im.by + im.bh);
+    if (x1 <= x0 || y1 <= y0) return;
+    ctx.drawImage(im.img, (x0 - im.bx) * k, (y0 - im.by) * k, (x1 - x0) * k, (y1 - y0) * k, x + x0 * u, y + y0 * u, (x1 - x0) * u, (y1 - y0) * u);
+  }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function quart(p) { return 1 - Math.pow(1 - p, 4); }
   function soft(p) { return -(Math.cos(Math.PI * p) - 1) / 2; }
@@ -248,7 +266,15 @@ export function __ukeloopRendererFactory() {
       var cx = kl ? x + 48 * u * XS + 18 * u : x;
       var bx = (E.kst !== undefined ? E.kst : E.cfg.kickerStyle) === 'box', kd = E.kdate; E.kdate = null;
       if (label && bx && kd) label = label + ' ' + kd;
-      if (label && bx) { setFont(ctx, 24 * u * XS * k0, 700, 0.22); var lb = ctx.measureText(up(label)).width, bp = 14 * u * XS * k0, bh = 44 * u * XS * k0;
+      var ksz = 24 * u * XS * k0, kim = label ? styImg(E, 'kicker', up(label), 1600 * u, ksz * 2, ksz, bx ? '#0b0b0b' : TC(E, fl[0], ac)) : null;
+      if (label && bx && kim) { var lb = kim.empty ? 0 : (kim.cx + kim.cw) * u, bp = 14 * u * XS * k0, bh = 44 * u * XS * k0;
+        ctx.fillStyle = TC(E, fl[0], ac); ctx.fillRect(cx, cy - bh / 2, (lb + bp * 2) * clamp(p * 1.4, 0, 1), bh); styDraw(ctx, E, kim, cx + bp, cy - ksz);
+        recT(E, fl[0], cx, top, lb + bp * 2, h); cx += lb + bp * 2 + 18 * u; }
+      else if (label && kim) { styDraw(ctx, E, kim, cx, cy - ksz); var lwS = kim.empty ? 0 : (kim.cx + kim.cw) * u;
+        recT(E, fl[0], cx, top, lwS, h); cx += lwS + 18 * u;
+        if (km && (pill || extra)) { ctx.globalAlpha = E.A * 0.85; ctx.fillStyle = ac; ctx.fillRect(cx, cy - 1 * u, 48 * u * XS * p, 2 * u); ctx.globalAlpha = E.A; cx += 48 * u * XS + 8 * u; }
+      }
+      else if (label && bx) { setFont(ctx, 24 * u * XS * k0, 700, 0.22); var lb = ctx.measureText(up(label)).width, bp = 14 * u * XS * k0, bh = 44 * u * XS * k0;
         ctx.fillStyle = TC(E, fl[0], ac); ctx.fillRect(cx, cy - bh / 2, (lb + bp * 2) * clamp(p * 1.4, 0, 1), bh); ctx.fillStyle = '#0b0b0b'; ctx.fillText(up(label), cx + bp, cy + 1 * u);
         recT(E, fl[0], cx, top, lb + bp * 2, h); cx += lb + bp * 2 + 18 * u; }
       else if (label) { setFont(ctx, 24 * u * XS * k0, 600, 0.3); ctx.fillStyle = TC(E, fl[0], ac); ctx.fillText(up(label), cx, cy); var lw0 = ctx.measureText(up(label)).width;
@@ -282,6 +308,14 @@ export function __ukeloopRendererFactory() {
     setFont(ctx, size, 700, -0.03);
     lines.forEach(function (ln) { var lw = ln[ln.length - 1]; if (lw) mw = Math.max(mw, lw.x + ctx.measureText(lw.w).width); });
     recT(E, 'title', x, ty, mw, blockH);
+    var tim = styImg(E, 'title', lines.map(function (ln) { return ln.map(function (w) { return w.w; }).join(' '); }).join('\n'), maxW, blockH, size, TC(E, 'title', '#fff'));
+    if (tim) {
+      MV(ctx, E, 'title', function () { if (tim.empty) return; (tim.words || []).forEach(function (wd, wi) {
+        var p = ramp(lt, -0.1 + wi * (SG || 0.13), 1.05 + wi * (SG || 0.13), quart);
+        reveal(ctx, E, x + wd.x * u, ty + wd.y * u, wd.h * u, p, function () { ctx.globalAlpha = E.A; styDraw(ctx, E, tim, x, ty, wd); });
+      }); });
+      return;
+    }
     MV(ctx, E, 'title', function () { lines.forEach(function (ln, li) {
       var ly = ty + li * (lh + pad);
       ln.forEach(function (w) {
@@ -349,7 +383,11 @@ export function __ukeloopRendererFactory() {
     var y = top + KH + 22 * u;
     setFont(ctx, hs, 700, -0.035); var hmw = 0; hl.forEach(function (l) { hmw = Math.max(hmw, ctx.measureText(l).width); });
     recT(E, 'headline', x, y, hmw, hl.length * hlh);
-    MV(ctx, E, 'headline', function () { hl.forEach(function (l, i) {
+    var him = styImg(E, 'title', hl.join('\n'), maxW, hl.length * hlh, hs, TC(E, 'headline', '#fff'));
+    if (him) MV(ctx, E, 'headline', function () { if (him.empty) return; (him.lines || []).forEach(function (bd, i) {
+      reveal(ctx, E, x, y + bd.y * u, bd.h * u, ramp(lt, -0.1 + i * (SG || 0.08), 1.15 + i * (SG || 0.08), quart), function () { ctx.globalAlpha = E.A; styDraw(ctx, E, him, x, y, bd); });
+    }); });
+    else MV(ctx, E, 'headline', function () { hl.forEach(function (l, i) {
       reveal(ctx, E, x, y + i * hlh, hlh, ramp(lt, -0.1 + i * (SG || 0.08), 1.15 + i * (SG || 0.08), quart), function () {
         setFont(ctx, hs, 700, -0.035); ctx.globalAlpha = E.A; ctx.fillStyle = TC(E, 'headline', '#fff'); ctx.fillText(l, x, y + i * hlh + hs * 0.82);
       });
@@ -397,7 +435,11 @@ export function __ukeloopRendererFactory() {
     var lh = size * 0.94, top = E.PT ? E.H * 0.36 : 410 * u;
     var omw = 0; lines.forEach(function (l) { omw = Math.max(omw, ctx.measureText(l).width); });
     recT(E, 'title', x, top, omw, lines.length * lh);
-    MV(ctx, E, 'title', function () { lines.forEach(function (l, i) {
+    var t2 = styImg(E, 'title', lines.join('\n'), E.COL, lines.length * lh, size, TC(E, 'title', '#fff'));
+    if (t2) MV(ctx, E, 'title', function () { if (t2.empty) return; (t2.lines || []).forEach(function (bd, i) {
+      reveal(ctx, E, x, top + bd.y * u, bd.h * u, ramp(lt, -0.1 + i * (SG || 0.1), 1.2 + i * (SG || 0.1), quart), function () { ctx.globalAlpha = E.A; styDraw(ctx, E, t2, x, top, bd); });
+    }); });
+    else MV(ctx, E, 'title', function () { lines.forEach(function (l, i) {
       reveal(ctx, E, x, top + i * lh, lh, ramp(lt, -0.1 + i * (SG || 0.1), 1.2 + i * (SG || 0.1), quart), function () {
         setFont(ctx, size, 700, -0.025); ctx.globalAlpha = E.A; ctx.fillStyle = TC(E, 'title', '#fff'); ctx.fillText(l, x, top + i * lh + size * 0.8);
       });
@@ -887,7 +929,7 @@ export function __ukeloopRendererFactory() {
     if (E.media) { E.media.lastLogoRect = logoRect; E.media.lastRects = rects; }
     return loc;
   }
-  return { drawFrame: drawFrame, locate: locate };
+  return { drawFrame: drawFrame, locate: locate, setStyled: function (f) { STY = f; }, styKey: styKey };
 }
 
 /* sample-accurate soundtrack that follows the loop clock */
@@ -932,6 +974,7 @@ export function __ukeloopAudioCtl(ctx, out) {
 
 export function __ukeloopPlayerBoot(P, R) {
   var c = document.getElementById('c'); c.width = P.W; c.height = P.H;
+  if (P.sty && R.setStyled) R.setStyled(function (q) { var o = P.sty[q.key]; if (!o) return null; if (!o.img) { o.img = new Image(); o.img.src = o.src; } return o; });
   var ctx = c.getContext('2d'), media = { images: {}, video: null };
   try { var fm = (P.data.cfg && P.data.cfg.font) || 'Archivo'; ['400', '500', '600', '700'].forEach(function (w) { document.fonts.load(w + ' 40px "' + fm + '"').catch(function () {}); }); } catch (e) {}
   for (var k in P.media.images) { var im = new Image(); im.src = P.media.images[k]; media.images[k] = im; }

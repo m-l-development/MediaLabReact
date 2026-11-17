@@ -1,14 +1,14 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.selL(), c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { FontPicker } from '../../shared/fonts/FontPicker'
-import { hasSnitt, weightsOf } from '../../shared/fonts/catalog'
+import AppFontPicker from '../../components/fontpicker/AppFontPicker'
+import { normalizeStyle } from '../../components/fontpicker/TextStyle.jsx'
 import { PATTERNS, patternPaint } from './engine/patterns'
 import { QrFields } from '../../shared/qr/QrFields'
 import type { PointerEvent as RPE } from 'react'
 import * as FX from '../../shared/fx/fx'
 import { PAL, type PhotoController, type PState } from './controller'
 import { Range } from './Ui'
-import { ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FONTS, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
+import { ADJ, BLEED, BLEND_HELP, BLENDS, CROP_SHAPES, dims, FORMATS, fromCMYK, LOOKS, mmOf, SHAPES, toCMYK, type Adj, type CurveKey, type ImageLayer, type PdLayer } from './engine/model'
 import { NumField } from '../../shared/ui/NumField'
 import { BgColor } from '../../shared/ui/BgColor'
 import { CurveGradient } from '../../shared/fill/CurveGradient'
@@ -203,9 +203,9 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
   const isImg = L.type === 'image'
   const has = isImg && !!L.src
   const tab = isImg ? S.tab : 'layer'
-  const m = Math.min(d.w, d.h)
   const layerRanges = [
-    ...(L.type === 'text' ? [rg('Størrelse', 'size', 6, Math.round(m * 0.4), 1, px, 96), rg('Linjeavstand', 'lh', 0.7, 2.2, 0.01, (v) => v.toFixed(2), 1.1), rg('Bokstavavstand', 'ls', -10, 60, 0.5, px, 0), rg('Kontur', 'strokeW', 0, 40, 0.5, px, 0), rg('Skygge', 'shadow', 0, 100, 1, (v) => String(Math.round(v)), 0)] : []),
+    // størrelse, linje- og bokstavavstand og kontur er i fontpopupen; lagets skygge er her som før
+    ...(L.type === 'text' ? [rg('Skygge', 'shadow', 0, 100, 1, (v) => String(Math.round(v)), 0)] : []),
     ...(L.type === 'glow' ? [rg('Mykhet', 'soft', 0, 1, 0.01, pc, 0.6)] : []),
     ...(L.type === 'shape' ? [rg('Hjørneradius', 'radius', 0, Math.round(Math.min(L.w, L.h) / 2), 1, px, 0), rg('Kontur', 'strokeW', 0, 60, 0.5, px, 0), ...(L.fill2 ? [rg('Vinkel på toning', 'gAng', 0, 360, 1, deg, 90)] : [])] : []),
     rg('Gjennomsiktighet', 'op', 0, 1, 0.01, pc, 1), rg('Rotasjon', 'rot', -180, 180, 1, deg, 0),
@@ -277,28 +277,16 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
                 <span>{tx('Tekst')}</span>
                 <textarea rows={3} data-pd-text="1" value={L.text} onChange={(e) => P({ text: e.target.value.slice(0, 2000) }, 'text')} />
               </label>
-              <div className={s.fontRow}>
-                <span>{tx('Skrift')}</span>
-                <span>{tx('Tykkelse')}</span>
-                {/* felles fontbibliotek; appens egne fonter øverst */}
-                <FontPicker value={L.font} label={tx('Skrift')} top={FONTS} onChange={(f) => {
-                  // ny font uten samme vekt: nærmeste vekt fonten har (ingen kunstig fet)
-                  const ws = weightsOf(f)
-                  P(ws && !ws.includes(L.weight) ? { font: f, weight: ws.reduce((a, b) => (Math.abs(b - L.weight) < Math.abs(a - L.weight) ? b : a)) } : { font: f })
-                }} />
-                <select value={String(L.weight)} aria-label={tx('Tykkelse')} onChange={(e) => P({ weight: +e.target.value })}>
-                  {/* bare vektene fonten har (fonter utenfor biblioteket: som før); vekten laget har, vises alltid */}
-                  {([[100, 'Tynn'], [200, 'Ekstra lett'], [300, 'Lett'], [400, 'Normal'], [500, 'Medium'], [600, 'Halvfet'], [700, 'Fet'], [800, 'Ekstra fet'], [900, 'Svart']] as const)
-                    .filter(([v]) => { const ws = weightsOf(L.font); return v === L.weight || (ws ? ws.includes(v) : v >= 400) })
-                    .map(([v, l]) => <option key={v} value={String(v)}>{tx(l)}</option>)}
-                </select>
-              </div>
-              <div className={s.seg}>
-                {([['left', 'Venstre'], ['center', 'Midt'], ['right', 'Høyre']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={L.align === k} onClick={() => P({ align: k })}>{tx(l)}</button>)}
+              {/* fontpopupen (components/fontpicker): font, verktøylinjen (fet, kursiv, understrek, størrelse, linje- og
+                  bokstavavstand), plassering, retning, roter, speilvend, former, ordsky og effekter – samme popup som overalt */}
+              <div data-fontpop="">
+                <AppFontPicker font={L.font} stretch={L.stretch} onFont={(p) => c.setTextFont(L.id, p)} onPreview={(f) => c.previewFont(L.id, f)}
+                  text={L.text} textStyle={c.textStyleOf(L)} onTextStyleChange={(ts) => c.setTextStyle(L.id, ts)} color={L.color}
+                  onColor={(v) => P({ color: v })} backgroundRef={c.designImage()} resolveImage={(r) => c.M.media.get(r)?.url || null}
+                  storeImage={(b) => c.storeFillImage(b)} baseSize={L.size} label="Font" />
               </div>
               <ColorPick val={L.color} label={tx('Tekstfarge')} cmyk={S.adv} set={(v) => c.setCol(L, 'color', v, 'tcolor')} />
               <Toggle label={tx('Store bokstaver')} on={L.upper} onClick={() => P({ upper: !L.upper })} />
-              <label className={s.colorRow}><span>{tx('Konturfarge')}</span><input type="color" value={hex(L.strokeC)} onChange={(e) => P({ strokeC: e.target.value }, 'tsc')} /></label>
               <Toggle label={tx('Understrek')} on={!!L.bar} onClick={() => P({ bar: !L.bar, barColor: L.barColor || L.color, barH: L.barH ?? Math.max(2, Math.round(L.size * 0.07)), barW: L.barW ?? 1, barGap: L.barGap ?? 1 })} />
               {L.bar && (
                 <>
@@ -822,17 +810,9 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
   const out: React.ReactNode[] = []
   if (L.type === 'text') {
     const sz = L.size
-    if ((adv && hasSnitt(L.font, 'i')) || keep('it', !!L.italic)) out.push(<Toggle key="it" label={tx('Kursiv')} on={!!L.italic} onClick={() => P({ italic: !L.italic })} />)
     if (adv || keep('st', !!L.stretch && L.stretch !== 100)) out.push(<Range key="st" label={tx('Fontbredde')} min={50} max={150} step={1} val={L.stretch ?? 100} show={`${Math.round(L.stretch ?? 100)} %`} on={(x) => P({ stretch: x }, 'stretch')} def={100} reset={() => P({ stretch: 100 })} />)
-    if (adv || keep('gl', shadowsOn)) {
-      out.push(<Toggle key="gl" label={tx('Glød')} on={shadowsOn} onClick={() => P({ shadows: shadowsOn ? null : [{ x: 0, y: 0, b: Math.round(sz * 0.4), c: L.color }] })} />)
-      const sh = L.shadows?.[0]
-      if (sh) {
-        out.push(<label key="glc" className={s.colorRow}><span>{tx('Glødfarge')}</span><input type="color" value={hex(sh.c)} onChange={(e) => P({ shadows: [{ ...sh, c: e.target.value }, ...(L.shadows ?? []).slice(1)] }, 'glc')} /></label>)
-        out.push(<Range key="glb" label={tx('Glødstyrke')} min={0} max={Math.max(40, Math.round(sz * 2))} step={1} val={sh.b} show={px(sh.b)} on={(x) => P({ shadows: [{ ...sh, b: x }, ...(L.shadows ?? []).slice(1)] }, 'glb')} def={Math.round(sz * 0.4)} reset={() => P({ shadows: [{ ...sh, b: Math.round(sz * 0.4) }] })} />)
-      }
-    }
-    if (adv || keep('hl', !!L.hl)) {
+    // eldre tekstlag (uten fontpopupens stil): bakgrunnsboks og blokkjustering som før; ellers popupens effekt «Boks»
+    if (!L.textStyle && (adv || keep('hl', !!L.hl))) {
       out.push(<Toggle key="hl" label={tx('Bakgrunnsboks')} on={!!L.hl} onClick={() => P({ hl: L.hl ? null : { c: '#f5b82c', px: Math.round(sz * 0.25), py: Math.round(sz * 0.08), r: 0 } })} />)
       if (L.hl) {
         const hl = L.hl
@@ -841,9 +821,7 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
         out.push(<Range key="hlr" label={tx('Hjørneradius')} min={0} max={Math.max(10, Math.round(sz / 2))} step={1} val={hl.r} show={px(hl.r)} on={(x) => P({ hl: { ...hl, r: x } }, 'hlr')} def={0} reset={() => P({ hl: { ...hl, r: 0 } })} />)
       }
     }
-    if (adv || L.justify || L.jw != null) out.push(<Toggle key="ju" label={tx('Blokkjuster')} on={!!L.justify} onClick={() => P({ justify: !L.justify, align: 'left' })} />)
-    if (adv || keep('gr', (L.grunge ?? 0) > 0)) out.push(<Range key="gr" label={tx('Slitt tekst')} min={0} max={1} step={0.01} val={L.grunge ?? 0} show={`${Math.round((L.grunge ?? 0) * 100)} %`} on={(x) => P({ grunge: x }, 'grunge')} def={0} reset={() => P({ grunge: 0 })} />)
-    if (adv || keep('arc', !!L.arc)) out.push(<Range key="arc" label={tx('Tekst på sirkelbane')} min={-3000} max={3000} step={10} val={L.arc ?? 0} show={L.arc ? px(L.arc) : tx('Rett')} on={(x) => P({ arc: Math.abs(x) < 20 ? 0 : x }, 'arc')} def={0} reset={() => P({ arc: 0 })} />)
+    if (!L.textStyle && (adv || L.justify || L.jw != null)) out.push(<Toggle key="ju" label={tx('Blokkjuster')} on={!!L.justify} onClick={() => P({ justify: !L.justify, align: 'left' })} />)
     if (adv) {
       out.push(
         <div key="vt" className={s.row3}>
@@ -853,12 +831,14 @@ function Extras({ L, S, tx, P, pickFile }: { L: PdLayer; S: PState; tx: Tx; P: (
         </div>,
       )
     }
-    if (adv || 'fillSrc' in L) {
+    const tst = L.textStyle ? normalizeStyle(L.textStyle) : null
+    const tfill = tst ? (tst.effect.type === 'imagefill' ? tst.effect.image || null : undefined) : 'fillSrc' in L ? L.fillSrc ?? null : undefined
+    if (adv || tfill !== undefined) {
       out.push(
         <div key="fi" className={s.row3} data-pd-textfill="">
           <span className={s.dimSm}>{tx('Bilde i teksten')}</span>
-          <button type="button" className={s.smallBtn} onClick={() => pickFile(L.id)}>{tx(L.fillSrc ? 'Bytt bilde' : 'Velg bilde')}</button>
-          {L.fillSrc && <button type="button" className={s.smallBtn} onClick={() => P({ fillSrc: null })}>{tx('Fjern bildet')}</button>}
+          <button type="button" className={s.smallBtn} onClick={() => pickFile(L.id)}>{tx(tfill ? 'Bytt bilde' : 'Velg bilde')}</button>
+          {tfill && <button type="button" className={s.smallBtn} onClick={() => P(tst ? { textStyle: { ...tst, effect: { ...tst.effect, image: '' } } } : { fillSrc: null })}>{tx('Fjern bildet')}</button>}
         </div>,
       )
     }
