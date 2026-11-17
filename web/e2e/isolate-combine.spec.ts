@@ -255,3 +255,28 @@ test('«Merk i bildet» kan slås av igjen: merkene forsvinner, Tilbake henter d
   await page.getByRole('button', { name: 'Tilbake', exact: true }).click()
   await expect(card).toHaveAttribute('aria-pressed', 'true')
 })
+
+test('Behold logo i et foto med mørk kant: bare den merkede logoen beholdes, ikke alt som er lyst', async ({ page }, info) => {
+  await page.route(/huggingface\.co|hf\.co/, (r) => r.abort())
+  // mørk kant (fargenøkkelen ville sett «ensfarget bakgrunn»), «person» med fotofarger i midten, gul logo øverst til høyre
+  const photo = png(W, H, (x, y) => {
+    if (x >= 230 && x < 280 && y >= 20 && y < 60) return (y >> 2) % 2 ? [250, 200, 20, 255] : [10, 10, 14, 255]
+    if (x >= 110 && x < 190 && y >= 50 && y < 190) return [150 + ((x * 7 + y * 13) % 90), 110 + ((x * 3 + y * 5) % 70), 90 + ((x * 11) % 60), 255]
+    return [10, 10, 14, 255]
+  })
+  await page.goto('/app/isolate-subject')
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: /Slipp et bilde her/ }).click()
+  await (await chooser).setFiles({ name: 'foto-logo.png', mimeType: 'image/png', buffer: photo })
+  await page.getByRole('button', { name: 'Hopp over' }).click()
+  await pick(page, 'logo')
+  await page.locator('[data-run]').click()
+  await expect(page.locator('aside [role="alert"]')).toContainText('Dra en firkant rundt logoen')
+  await expect(page.locator('[data-mark-open]')).toHaveAttribute('aria-pressed', 'true')
+  await dragBox(page, 222, 12, 288, 68)
+  await run(page)
+  const px = await exported(page, info.outputPath('logo-alene.png'), [[255, 26], [150, 120], [20, 180]])
+  expect(px[0]?.[3], 'logoen beholdes').toBe(255)
+  expect(px[1]?.[3], 'personen er ikke med').toBe(0)
+  expect(px[2]?.[3], 'bakgrunnen er ikke med').toBe(0)
+})

@@ -420,11 +420,14 @@ export class IsolateController {
       const textish = (t: Target) => t === 'logo' || t === 'text'
       if (want.has('logo') || want.has('text')) {
         L = colorKey(rgbaOf(src), W, H)
-        // som før: «Behold logo/tekst» uten ensfarget bakgrunn bruker AI-modellen
-        if (!L && s.keepSet.some(textish)) {
-          L = F ?? (await model('fine'))
-          note = 'isolate.note.notPlain'
+        // Fargenøkkelen gjelder bare en grafikk på ensfarget bakgrunn (en logofil). I et foto med mørk kant ville den tatt
+        // med alt som er lyst (personen, instrumenter): da gjelder bare det brukeren har merket i bildet.
+        if (L) {
+          let n = 0
+          for (let i = 0; i < L.length; i++) if ((L[i] as number) > 127) n++
+          if (n > 0.5 * W * H || !isGraphic(rgbaOf(src), L)) L = null
         }
+        if (L && s.keepSet.some(textish) && s.marks.some((m) => m.keep)) L = null
       }
       if (stale()) return
       // Fjerne logo/tekst automatisk bare når fargenøkkelen fant en grafikk: ikke når brukeren har merket den selv, ikke
@@ -458,6 +461,11 @@ export class IsolateController {
         if (bg) bg = subtractMask(bg, mk.green)
       }
       const logoMissing = s.removeSet.some(textish) && !L && !mk.red
+      // «Behold logo/tekst» i et foto uten merke: be brukeren merke logoen (grønt) i stedet for å beholde feil ting
+      if (s.keepSet.some(textish) && !L && !mk.green) {
+        this.redraw({ busy: null, mode: 'point', tab: 'keep', markKeep: true, error: 'isolate.run.markKeep' })
+        return
+      }
       if (!hasContent(keep) && !hasContent(remove) && !hasContent(bg)) {
         if (logoMissing) this.redraw({ busy: null, mode: 'point', tab: 'remove', markKeep: false, error: 'isolate.run.markIt' })
         else this.set({ busy: null, error: 'isolate.error.nothingFound' })
