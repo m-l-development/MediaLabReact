@@ -340,8 +340,13 @@ export async function prepareFont(s: StyledSpec): Promise<void> {
 }
 
 /** Tegner <StyledText> som bilde i oppløsningen `scale` (bildepiksler per lagpiksel). */
+/** Trinnet tegningen er i (vises i feilmeldingen hvis en tegning henger). */
+let stage = ''
+
 export async function rasterStyled(s: StyledSpec, scale: number, want: { glyphs?: boolean } = {}): Promise<StyledImage> {
+  stage = 'font'
   await prepareFont(s)
+  stage = 'layout'
   let { mx, my } = margins(s)
   // hold bildet innenfor nettleserens grense: mindre marg først, deretter lavere oppløsning
   const area = () => (s.width + 2 * mx) * (s.height + 2 * my) * scale * scale
@@ -362,12 +367,17 @@ export async function rasterStyled(s: StyledSpec, scale: number, want: { glyphs?
   const root = createRoot(inner)
   try {
     const size = fitIn(s, root, inner)
+    stage = 'settle'
     await settle(inner)
     const content = contentOf(inner)
     const glyphs = want.glyphs ? glyphsOf(inner) : null
+    stage = 'fontcss'
     const fontEmbedCSS = await fontCss(s.font, s.text)
+    stage = 'svg'
     const url = await toSvg(outer, { width: W2, height: H2, fontEmbedCSS, cacheBust: false, skipAutoScale: true, pixelRatio: 1 })
+    stage = 'image'
     const img = await loadImg(fixSvg(url))
+    stage = 'paint'
     const c = document.createElement('canvas')
     c.width = Math.max(1, Math.round(W2 * k))
     c.height = Math.max(1, Math.round(H2 * k))
@@ -500,7 +510,8 @@ export class StyledCache {
     if (hit) return Promise.resolve(hit)
     let p = this.inflight.get(key)
     if (!p) {
-      const run = () => rasterStyled(s, scale, { glyphs })
+      // aldri vente for alltid: en hengende tegning ville stoppet køen for alle tekstlagene
+      const run = () => Promise.race([rasterStyled(s, scale, { glyphs }), new Promise<never>((_, no) => setTimeout(() => no(new Error('tekstbildet hang (' + stage + ')')), 20000))])
       p = this.chain.then(run, run)
       this.chain = p.catch(() => null)
       this.inflight.set(key, p)

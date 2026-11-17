@@ -56,7 +56,8 @@ async function changes(page: Page, act: () => Promise<unknown>, what: string): P
   const before = await settled(page, CV)
   await act()
   const after = await settled(page, CV, before)
-  expect(await diff(page, before, after), `${what} endret ikke lerretet`).toBeGreaterThan(0.00005)
+  // terskel 12 per kanal: svake effekter (skygge av tynne bokstaver i WebKit på Windows) skal også telle
+  expect(await diff(page, before, after, 12), `${what} endret ikke lerretet`).toBeGreaterThan(0.00005)
   return after
 }
 
