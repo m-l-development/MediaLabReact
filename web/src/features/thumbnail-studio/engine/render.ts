@@ -10,13 +10,23 @@ import type { ImageCache, LoadedImage } from './images'
 import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
 import { activeFilters, blurScale, drawOverlays, loadGrain, pixelFilter, REF_W } from './filters'
+import { normalizeStyle } from '../../../components/fontpicker/TextStyle.jsx'
+import type { FontEntry } from '../../../components/fontpicker/FontPicker.jsx'
+import { lastStyled, styledLayers, thumbSpec } from './styled'
 
 /**
  * Tegning av et dokument på et lerret (samme resultat som dagens app). `s` = skala fra 1920 × 1080,
  * `edit` = vis plassholdere for tomme bildefelt, `transparent` = uten bakgrunn og vignett.
  */
 type G = CanvasRenderingContext2D
-export interface RenderOptions { s?: number; edit?: boolean; transparent?: boolean; placeholder?: (role: string | null) => string }
+export interface RenderOptions {
+  s?: number
+  edit?: boolean
+  transparent?: boolean
+  placeholder?: (role: string | null) => string
+  /** Fonten som forhåndsvises i fontpopupen for laget `id` (bare i visningen, lagres aldri). */
+  preview?: { id: string; font: FontEntry } | null
+}
 
 function canvas(w: number, h: number): HTMLCanvasElement {
   const c = document.createElement('canvas')
@@ -400,14 +410,16 @@ const mc = (): G => (measureCtx ??= ctx(canvas(4, 4)))
 export function fitSize(l: Layer | null | undefined): number {
   if (!l || l.type !== 'text') return 0
   if (!String(l.text || '').trim()) return l.size
+  // tekst med fontpopupens stil: størrelsen <StyledText> fikk (måles i den ekte tegningen)
+  if (l.textStyle) return lastStyled(l.id)?.size ?? (normalizeStyle(l.textStyle).size || l.size)
   return tfit(mc(), l).size
 }
 
 /** Understrekens plassering i bildet (for «Koble fra teksten»). */
 export function barBox(l: Layer | null | undefined): { x: number; y: number; w: number; h: number; rot: number } | null {
   if (!l || l.type !== 'text' || !l.bar) return null
-  const r = tfit(mc(), l)
-  const b = barRect(l, r, textTop(l, r))
+  const b = l.textStyle ? styledBar(l) : barRect(l, tfit(mc(), l), textTop(l, tfit(mc(), l)))
+  if (!b) return null
   const a = ((l.rot || 0) * Math.PI) / 180
   const cx = b.x + b.w / 2 - l.w / 2
   const cy = b.y + b.h / 2 - l.h / 2
@@ -416,15 +428,74 @@ export function barBox(l: Layer | null | undefined): { x: number; y: number; w: 
   return { x: Math.round(wx - b.w / 2), y: Math.round(wy - b.h / 2), w: Math.round(b.w), h: Math.max(1, Math.round(b.h)), rot: l.rot || 0 }
 }
 
+/** Strek under tekst med fontpopupens stil: under selve teksten slik <StyledText> plasserte den. */
+function styledBar(l: TextLayer): { x: number; y: number; w: number; h: number } | null {
+  const st = lastStyled(l.id)
+  const c = st?.img.content
+  if (!st || !c) return null
+  const kx = st.img.bw > 0 ? l.w / st.img.bw : 1
+  const ky = st.img.bh > 0 ? l.h / st.img.bh : 1
+  const bw = c.w * kx * Math.max(0.05, Math.min(3, l.barW == null ? 1 : +l.barW))
+  const a = normalizeStyle(l.textStyle ?? {}).alignH
+  const cx = c.x * kx
+  const bx = a === 'center' ? cx + (c.w * kx - bw) / 2 : a === 'right' ? cx + c.w * kx - bw : cx
+  return { x: bx, y: (c.y + c.h) * ky + st.size * 0.12 * Math.max(0, l.barGap == null ? 1 : +l.barGap), w: bw, h: l.barH }
+}
+
 /** Tegner bakgrunn, vignett og lag. */
 export class Renderer {
   private blurCache: { key: string; c: HTMLCanvasElement | null } = { key: '', c: null }
 
   private images: ImageCache
 
+  /** Paletten (malprofilens farger) – den samme som fontpopupen viser; brukt av ordskyen. */
+  palette: () => string[] = () => []
+
   constructor(images: ImageCache) {
     this.images = images
   }
+
+  /** Varsler når et tekstbilde (fontpopupens stil) er ferdig, så lerretet kan tegnes på nytt. */
+  onStyled(f: () => void): () => void {
+    return styledLayers.onLoad(f)
+  }
+
+  private styledSpec(l: TextLayer, preview: FontEntry | null) {
+    const sy = l.sy && l.sy > 0 && l.sy !== 1 ? l.sy : 1
+    return thumbSpec({ ...l, h: l.h / sy }, { preview, resolve: (r) => this.images.url(r) || null, palette: this.palette() })
+  }
+
+  /** Tekst med fontpopupens stil: bildet av <StyledText> i lagets boks, med lagets skygger og strek under. */
+  private drawStyledText(g: G, l: TextLayer, s: number, o: RenderOptions) {
+    if (!String(l.text || '').trim()) return
+    const spec = this.styledSpec(l, o.preview?.id === l.id ? o.preview.font : null)
+    const isPrev = o.preview?.id === l.id
+    const sy = l.sy && l.sy > 0 && l.sy !== 1 ? l.sy : 1
+    const hh = l.h / sy
+    g.save()
+    if (sy !== 1) g.scale(1, sy)
+    castShadows(g, l.shadows, false, () => styledLayers.draw(g, l.id, spec, s, l.w, hh, isPrev))
+    g.save()
+    shadow(g, l, s)
+    const img = styledLayers.draw(g, l.id, spec, s, l.w, hh, isPrev)
+    g.restore()
+    g.restore()
+    if (!img) return
+    if (l.bar) {
+      const b = styledBar(l)
+      if (b) {
+        g.fillStyle = l.barColor
+        g.fillRect(b.x, b.y, b.w, b.h)
+      }
+    }
+  }
+
+  /** Venter til alle tekstbildene i dokumentet er ferdige i oppløsningen `s` (før eksport og skisser). */
+  async styledReady(doc: Doc, s: number): Promise<void> {
+    const items = doc.layers.flatMap((l) => (l.type === 'text' && l.textStyle && !l.hidden && String(l.text || '').trim() ? [{ id: l.id, spec: this.styledSpec(l, null) }] : []))
+    await styledLayers.ready(items, s)
+  }
+
 
   private drawBg(g: G, b: Background, o: RenderOptions) {
     g.fillStyle = '#000000'
@@ -648,7 +719,8 @@ export class Renderer {
       if (l.blend && BLENDS.has(l.blend)) g.globalCompositeOperation = l.blend as GlobalCompositeOperation
       clipPoly(g, l)
       if ((l.blur ?? 0) > 0 && l.type !== 'image') g.filter = `blur(${((l.blur ?? 0) * s).toFixed(2)}px)`
-      if (l.type === 'text') drawText(g, l, s, l.fillSrc ? (this.images.get(l.fillSrc)?.img ?? null) : null)
+      if (l.type === 'text' && l.textStyle) this.drawStyledText(g, l, s, o)
+      else if (l.type === 'text') drawText(g, l, s, l.fillSrc ? (this.images.get(l.fillSrc)?.img ?? null) : null)
       else if (l.type === 'image') this.drawImage(g, l, o, s)
       else if (l.type === 'shape') this.drawShape(g, l, s, !!o.edit)
       else this.drawGlow(g, l)
@@ -662,6 +734,7 @@ export class Renderer {
   async toCanvas(doc: Doc, scale: number, opt: { transparent?: boolean } = {}): Promise<HTMLCanvasElement> {
     await ensureFonts(doc)
     await this.images.loadAll(doc)
+    await this.styledReady(doc, scale)
     const c = canvas(Math.round(W * scale), Math.round(H * scale))
     this.render(ctx(c), doc, { s: scale, edit: false, transparent: !!opt.transparent })
     return c
@@ -677,6 +750,7 @@ export class Renderer {
     await ensureFonts(doc)
     await this.images.loadAll(doc)
     const s = w / W
+    await this.styledReady(doc, s)
     const c = canvas(Math.round(W * s), Math.round(H * s))
     this.render(ctx(c), doc, { s, edit, ...(placeholder ? { placeholder } : {}) })
     return c.toDataURL('image/jpeg', 0.82)
@@ -690,6 +764,7 @@ export class Renderer {
     await ensureFonts(doc)
     await this.images.loadAll(doc)
     const s = w / W
+    await this.styledReady(doc, s)
     const c = canvas(Math.round(W * s), Math.round(H * s))
     this.render(ctx(c), doc, { s, edit, ...(placeholder ? { placeholder } : {}) })
     const b = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.82))

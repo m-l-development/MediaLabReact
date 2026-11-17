@@ -4,6 +4,7 @@ import { cleanPaint } from './paint'
 import { cleanQr } from '../../../shared/qr/qr'
 import { ASSETS, emptyDoc, L, MAX_IMG, MAX_SLOTS, MAX_TPL, refsOf, uid, type Doc, type Layer, type LayerType } from './model'
 import type { AdvAdj, AdvKey } from '../../../shared/image/AdvAdjust'
+import { cleanTextStyle, imageRefOf } from '../../../components/fontpicker/images'
 
 /** Kategori (felles for menigheten når ConnectHub er tilgjengelig): navn, standardoppsett og grunnoppsett. */
 export interface Category {
@@ -143,6 +144,9 @@ function cleanExtra(n: Layer, l: Record<string, unknown>, local: LocalMap) {
     const p = cleanPaint(l.paint)
     if (p?.length) n.paint = p
     if ('fillSrc' in l) n.fillSrc = l.fillSrc == null ? null : cleanSrc(l.fillSrc, local)
+    // fontpopupens stil (uendret); Bildefyll-bildet som de andre bildekildene
+    const ts = cleanTextStyle(l.textStyle, (img) => cleanSrc(img, local))
+    if (ts) n.textStyle = ts
   }
   if (n.type === 'image' || n.type === 'shape') {
     const r = nums(l.radii, [8], 0, 20000)
@@ -236,6 +240,8 @@ function mapDocSrcs(doc: Doc, f: (src: string) => string): Doc {
       l.src = m(l.src)
       l.orig = m(l.orig)
     }
+    const ref = l.type === 'text' ? imageRefOf(l.textStyle) : null
+    if (ref && l.type === 'text' && l.textStyle) l.textStyle = { ...l.textStyle, effect: { ...l.textStyle.effect, image: f(ref) } }
   }
   d.bg.src = m(d.bg.src)
   if (d.bg.orig) d.bg.orig = m(d.bg.orig)

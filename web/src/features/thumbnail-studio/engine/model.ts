@@ -12,6 +12,8 @@ import type { AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { ImgFilter } from './filters'
 import type { Paint } from './paint'
 import type { QrSpec } from '../../../shared/qr/qr'
+import type { TextStyle } from '../../../components/fontpicker/TextStyle.jsx'
+import { imageRefOf } from '../../../components/fontpicker/images'
 export const W = 1920
 export const H = 1080
 export const MAX_IMG = 5
@@ -112,6 +114,12 @@ export interface TextLayer extends LayerBase {
    * (vises med malingen/fargen til et bilde er valgt); mangler = vanlig tekst.
    */
   fillSrc?: string | null
+  /**
+   * Fontpopupens stil (fontpicker/TextStyle.jsx): plassering, linje-/bokstavavstand, fet/kursiv/understrek, former,
+   * effekter, ordsky, roter og speilvend – lagret uendret slik popupen gir det. Laget tegnes da med <StyledText>.
+   * Mangler = eldre tekstlag, tegnet som før (verdiene kopieres inn når laget redigeres i popupen første gang).
+   */
+  textStyle?: TextStyle | null
 }
 
 export interface ImageLayer extends LayerBase, Outline {
@@ -254,6 +262,10 @@ export function srcsOf(doc: Doc): string[] {
   for (const l of doc.layers) {
     if (l.type === 'image' && l.src) s.push(l.src)
     if (l.type === 'text' && l.fillSrc) s.push(l.fillSrc)
+    if (l.type === 'text') {
+      const r = imageRefOf(l.textStyle)
+      if (r) s.push(r)
+    }
   }
   if (doc.bg.src) s.push(doc.bg.src)
   return s
@@ -270,7 +282,10 @@ export function refsOf(doc: Pick<Doc, 'layers'> & { bg?: Partial<Background> }):
       add(l.src)
       add(l.orig)
     }
-    if (l.type === 'text') add(l.fillSrc)
+    if (l.type === 'text') {
+      add(l.fillSrc)
+      add(imageRefOf(l.textStyle))
+    }
   }
   add(doc.bg?.src)
   add(doc.bg?.orig)

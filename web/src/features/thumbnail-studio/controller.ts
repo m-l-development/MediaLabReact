@@ -1,5 +1,5 @@
 import { createStore, type Store } from '../../shared/lib/store'
-import { weightsOf } from '../../shared/fonts/catalog'
+import { hasSnitt, weightsOf } from '../../shared/fonts/catalog'
 import { snapActive } from '../../shared/lib/snap'
 import { idle } from '../../shared/lib/idle'
 import type { SharedSetup } from '../../services/shared-setup'
@@ -12,6 +12,9 @@ import { LAYOUT_CAT, LAYOUT_LIST, LIBRARY, type LibItem } from './engine/library
 import { LIB_CATS, loadLibrary, type LibTemplate } from './engine/templates'
 import { clone, countImgs, FONTS, H, imgLimit, L, MAX_IMG, MAX_TPL, uid, W, type Background, type Doc, type ImageLayer, type Layer, type ShapeLayer, type Vignette } from './engine/model'
 import { barBox, ensureFonts, hit, type Renderer } from './engine/render'
+import { legacyClear, thumbTextStyle } from './engine/styled'
+import type { FontEntry } from '../../components/fontpicker/FontPicker.jsx'
+import { normalizeStyle, type TextStyle } from '../../components/fontpicker/TextStyle.jsx'
 import type { Phrase, Vars } from './texts'
 import { newQr, updateQr, type QrSpec } from '../../shared/qr/qr'
 
@@ -140,6 +143,8 @@ export interface State {
   picker: Picker
   /** Øker når et bilde er lastet (miniatyrer i panelet tegnes på nytt). */
   tick: number
+  /** Fonten som forhåndsvises på lerretet mens musen holdes over den i fontpopupen (lagres aldri). */
+  fontPreview: { id: string; font: FontEntry } | null
 }
 
 export interface Deps {
@@ -300,6 +305,7 @@ export class ThumbController {
   private bm: Record<string, Layer> = {}
   private pendFile: Blob | null = null
   private offImg: (() => void) | null = null
+  private offStyled: (() => void) | null = null
   private stopShared: (() => void) | null = null
   private now: () => number
   private quiet = false
@@ -330,13 +336,19 @@ export class ThumbController {
       libOpen: false, busyImg: false, zoom: 1, cropId: null, cropBox: { cL: 0, cT: 0, cR: 0, cB: 0 }, narrow: false,
       autoSave: st.get(AUTO_KEY) === '1', adv: st.get(ADV_KEY) === '1', autoAt: '', newOpen: false, newMode: 'new', newPal: 'default', newCustom: null, libCat: LIB_CATS[0], lib: null, palOpen: false, previews: {},
       ctx: null, viewMenu: false, layoutMode: lm === 'custom' && !custom ? 'std' : (lm ?? 'std'), customLayout: custom, lcOpen: false,
-      lcDraft: null, colTab: {}, addColor: null, dropOn: null, backupBusy: false, sharedReady: false, sharedExists: false, picker: null, tick: 0,
+      lcDraft: null, colTab: {}, addColor: null, dropOn: null, backupBusy: false, sharedReady: false, sharedExists: false, picker: null, tick: 0, fontPreview: null,
     })
     let bt: ReturnType<typeof setTimeout> | undefined
     this.offImg = deps.images.onLoad(() => {
       clearTimeout(bt)
       bt = setTimeout(() => this.alive && this.set((s) => ({ tick: s.tick + 1 })), 80)
     })
+    // tekst med fontpopupens stil: panelet (størrelsen «Tilpass til boksen» gir) oppdateres når bildet er ferdig
+    deps.renderer.palette = () => this.profile().colors
+    this.offStyled = deps.renderer.onStyled?.(() => {
+      clearTimeout(bt)
+      bt = setTimeout(() => this.alive && this.set((s) => ({ tick: s.tick + 1 })), 80)
+    }) ?? null
   }
 
   get s(): State {
@@ -361,6 +373,7 @@ export class ThumbController {
     clearTimeout(this.autoTimer)
     clearTimeout(this.sharedTimer)
     this.offImg?.()
+    this.offStyled?.()
     this.stopShared?.()
   }
 
@@ -1366,6 +1379,76 @@ export class ThumbController {
     })
   }
 
+  /** Fontpopupen: ny stil for tekstlaget (lagres uendret). Eldre lag får verdiene sine flyttet inn i stilen første gang. */
+  setTextStyle(id: string, ts: TextStyle): void {
+    const l = this.layer(id)
+    if (!l || l.type !== 'text') return
+    this.setL(id, { ...legacyClear(l), textStyle: ts }, 'ts:' + id)
+  }
+
+  /** Stilen popupen viser for laget (eldre lag: lagets egne verdier). */
+  textStyleOf(id: string): TextStyle | null {
+    const l = this.layer(id)
+    return l && l.type === 'text' ? thumbTextStyle(l) : null
+  }
+
+  /**
+   * Bilde i bokstavene (Dine medier, fil): tekst med fontpopupens stil får det som Bildefyll i stilen; eldre tekstlag
+   * (malens bildefelt i teksten) som før. `null` fjerner bildet.
+   */
+  setTextFill(id: string, src: string | null): void {
+    const l = this.layer(id)
+    if (!l || l.type !== 'text') return
+    if (!l.textStyle) {
+      this.setL(id, { fillSrc: src })
+      return
+    }
+    const st = normalizeStyle(l.textStyle)
+    this.setTextStyle(id, { ...l.textStyle, effect: { ...st.effect, ...(src ? { type: 'imagefill' } : {}), image: src ?? '' } } as TextStyle)
+  }
+
+  /** Font valgt i fontpopupen (navn og bredde). Eldre tekstlag: tykkelse og kursiv tilpasses fonten som før. */
+  setTextFont(id: string, p: { font: string; stretch?: number }): void {
+    const l = this.layer(id)
+    if (!l || l.type !== 'text') return
+    const patch: LayerPatch = { ...p }
+    if (!l.textStyle) {
+      const w2 = this.weights(p.font)
+      patch.weight = w2.includes(l.weight) ? l.weight : (w2[Math.min(3, w2.length - 1)] ?? 400)
+      if (l.italic && !hasSnitt(p.font, 'i')) patch.italic = false
+    }
+    this.setL(id, patch)
+  }
+
+  /** Designets bilde til «Bruk bildet i designet» (Bildefyll): bakgrunnsbildet, ellers det første bildet i malen. */
+  designImage(): string | null {
+    const d = this.s.doc
+    if (!d) return null
+    if (d.bg.type === 'image' && d.bg.src) return d.bg.src
+    const im = d.layers.find((l) => l.type === 'image' && l.src && !l.hidden)
+    return im?.type === 'image' ? im.src : null
+  }
+
+  /** Forhåndsvisning i fontpopupen: fonten vises midlertidig på lerretet (null = valgt font igjen). Lagres aldri. */
+  previewFont(id: string, font: FontEntry | null): void {
+    const cur = this.s.fontPreview
+    if (!font ? !cur : cur?.id === id && cur.font.id === font.id) return
+    this.set({ fontPreview: font ? { id, font } : null })
+  }
+
+  /** Bilde til Bildefyll (lastet opp i popupen): lagres i Dine medier som de andre bildene, gir referansen. */
+  async storeFillImage(b: Blob): Promise<string | null> {
+    try {
+      if (typeof createImageBitmap === 'function') (await createImageBitmap(b)).close()
+      const src = await this.d.putImage(b, (b as File).name || 'bildefyll')
+      await this.d.images.load(src)
+      return src
+    } catch {
+      this.flash('Klarte ikke å lese bildet. Prøv JPG eller PNG.')
+      return null
+    }
+  }
+
   setL(id: string, patch: LayerPatch, key?: string): void {
     this.edit((d) => {
       const l = d.layers.find((x) => x.id === id)
@@ -1452,7 +1535,9 @@ export class ThumbController {
   }
 
   addText(): string {
-    const l = L('text', { text: 'Ny tekst', x: 660, y: 460, w: 600, h: 160 })
+    const l0 = L('text', { text: 'Ny tekst', x: 660, y: 460, w: 600, h: 160 })
+    // nye tekstlag bruker fontpopupens stil (tegnes med <StyledText>) med samme oppsett som før
+    const l = { ...l0, textStyle: thumbTextStyle(l0) }
     this.addLayer(l)
     return l.id
   }
@@ -1752,6 +1837,9 @@ export class ThumbController {
         l.h = Math.round(nh)
         if (l.type === 'text') {
           l.size = Math.max(6, Math.round(l.size * k))
+          // fontpopupens størrelse (når den er valgt der) skaleres likt
+          const ts = l.textStyle ? normalizeStyle(l.textStyle) : null
+          if (l.textStyle && ts?.size) l.textStyle = { ...l.textStyle, size: Math.max(6, Math.round(ts.size * k)) }
           l.barH = Math.max(1, r(l.barH * k))
         }
         if (l.type === 'image') {
@@ -2068,7 +2156,7 @@ export class ThumbController {
       const h = Math.round(ih * k)
       this.addLayer(L('image', { src, x: Math.round(960 - w / 2), y: Math.round(540 - h / 2), w, h, fit: t.logo ? 'contain' : 'cover' }))
     } else if (t.mode === 'replace') this.setL(t.id, { src, orig: null })
-    else if (t.mode === 'textfill') this.setL(t.id, { fillSrc: src })
+    else if (t.mode === 'textfill') this.setTextFill(t.id, src)
     else this.setBg({ src, orig: null, type: 'image' })
   }
 
@@ -2088,7 +2176,10 @@ export class ThumbController {
     if (t.mode === 'replace' || t.mode === 'textfill') {
       const l = probe.layers.find((x) => x.id === t.id)
       if (l?.type === 'image') l.src = null
-      if (l?.type === 'text') l.fillSrc = null
+      if (l?.type === 'text') {
+        l.fillSrc = null
+        if (l.textStyle?.effect) l.textStyle = { ...l.textStyle, effect: { ...l.textStyle.effect, image: '' } }
+      }
     }
     if (t.mode === 'bg') probe.bg.src = null
     if (countImgs(probe) >= imgLimit(probe)) {

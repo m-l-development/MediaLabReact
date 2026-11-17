@@ -1,7 +1,6 @@
 'use no memo'
 // Komponentene leser fra kontrolleren (c.s …); kompilatorens mellomlagring ville gitt utdaterte verdier.
-import { FontPicker } from '../../shared/fonts/FontPicker'
-import { FONTS } from './engine/model'
+import AppFontPicker from '../../components/fontpicker/AppFontPicker'
 import { useEffect, useRef, useState } from 'react'
 import type { MotionController } from './controller'
 import { clamp, type CurveCh, type Grade, type Pt } from './engine/model'
@@ -272,13 +271,30 @@ export function FieldView({ f, c, tx }: { f: Field & { open?: boolean }; c: Moti
       )
     case 'qr':
       return <QrFields value={f.val} onChange={f.on} />
-    case 'font':
+    case 'fontpop': {
+      if (f.id === '__subs') {
+        const st = c.s.proj?.subStyle
+        if (!st) return null
+        return (
+          <div className={s.lbl} data-fontpop="">
+            <AppFontPicker font={st.font} onFont={(p) => c.patchSubStyle({ font: p.font })} onPreview={(ft) => c.previewFont('__subs', ft)}
+              text={c.s.proj?.subs[0]?.text ?? ''} textStyle={c.subTextStyle()} onTextStyleChange={(ts) => c.patchSubStyle({ textStyle: ts })} color={st.color}
+              onColor={(v) => c.patchSubStyle({ color: v })} backgroundRef={c.designImage()} resolveImage={(r) => c.mediaUrl(r)}
+              storeImage={(b) => c.storeFillImage(b)} baseSize={st.size} label="Font" />
+          </div>
+        )
+      }
+      const x = c.s.proj?.texts.find((q) => q.id === f.id)
+      if (!x) return null
       return (
-        <div className={s.lbl}>
-          <span className={s.b}>{tx(f.label)}</span>
-          <FontPicker value={f.val} label={tx(f.label)} top={FONTS} onChange={f.on} />
+        <div className={s.lbl} data-fontpop="">
+          <AppFontPicker font={x.font} onFont={(p) => c.setTextFont(x.id, p)} onPreview={(ft) => c.previewFont(x.id, ft)}
+            text={x.text} textStyle={c.textStyleOf(x)} onTextStyleChange={(ts) => c.setTextStyle(x.id, ts)} color={x.color}
+            onColor={(v) => c.patch('text', x.id, { color: v })} backgroundRef={c.designImage()} resolveImage={(r) => c.mediaUrl(r)}
+            storeImage={(b) => c.storeFillImage(b)} baseSize={x.size} label="Font" />
         </div>
       )
+    }
     case 'select':
       return (
         <label className={s.lbl}>

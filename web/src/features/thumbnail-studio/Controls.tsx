@@ -4,7 +4,7 @@ import { useRef, useState, type KeyboardEvent } from 'react'
 import { useLang } from '../../shared/i18n/i18n'
 import { BgColor } from '../../shared/ui/BgColor'
 import { AdvAdjust } from '../../shared/image/AdvAdjust'
-import { FontPicker } from '../../shared/fonts/FontPicker'
+import AppFontPicker from '../../components/fontpicker/AppFontPicker'
 import { QrFields } from '../../shared/qr/QrFields'
 import { PicThumb } from '../../shared/ui/PicThumb'
 import type { Pic } from '../../shared/lib/blob-image'
@@ -62,13 +62,8 @@ export function Controls({ ctrls, c, tx, profileColors, imageUrl, imagePic }: { 
             )
           case 'area':
             return <TextArea key={`${i}:${x.label}`} ctrl={x} c={c} tx={tx} />
-          case 'font':
-            return (
-              <div key={i} className={s.ctrl}>
-                <span className={s.ctrlLabel}>{tx(x.label)}</span>
-                <FontPicker value={x.val} onChange={x.set} label={tx(x.label)} top={x.top} />
-              </div>
-            )
+          case 'fontpop':
+            return <ThumbFont key={i} c={c} id={x.id} label={tx(x.label)} palette={profileColors} imageUrl={imageUrl} />
           case 'select':
             return (
               <label key={i} className={s.ctrl}>
@@ -295,6 +290,36 @@ function ImageCtrl({ ctrl, c, tx, url, pic }: { ctrl: Extract<Ctrl, { k: 'img' }
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Fontpopupen for et tekstlag (components/fontpicker, samme popup i alle verktøyene). Endringer går rett til laget og
+ * vises på lerretet med en gang; fonten som holdes over, vises midlertidig (lagres aldri).
+ */
+function ThumbFont({ c, id, label, palette, imageUrl }: { c: ThumbController; id: string; label: string; palette: string[]; imageUrl: (src: string | null) => string }) {
+  const l = c.layer(id)
+  if (!l || l.type !== 'text') return null
+  return (
+    <div className={s.ctrl} data-fontpop="">
+      <AppFontPicker
+        font={l.font}
+        stretch={l.stretch}
+        onFont={(p) => c.setTextFont(id, p)}
+        onPreview={(f) => c.previewFont(id, f)}
+        text={bakeList(String(l.text || ''), l.list)}
+        textStyle={c.textStyleOf(id)}
+        onTextStyleChange={(ts) => c.setTextStyle(id, ts)}
+        color={l.color}
+        onColor={(col) => c.setL(id, { color: col })}
+        palette={palette}
+        backgroundRef={c.designImage()}
+        resolveImage={(r) => imageUrl(r) || null}
+        storeImage={(b) => c.storeFillImage(b)}
+        baseSize={l.size}
+        label={label}
+      />
     </div>
   )
 }

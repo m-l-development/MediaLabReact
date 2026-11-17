@@ -7,7 +7,35 @@ Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer o
 **Siste kjente produksjonscommit:** `e3083b0` (merge av `4daa74f`: Panorama, objektivkorreksjon og Motion-oppgave 7 er alle i produksjon; Release verify grønn 2026-11-16). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
-**Ukommittert arbeid:** ingen. **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
+**Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
+
+### PÅGÅENDE (2026-11-17): fontpopupen overalt + profesjonelt tekstsystem – IKKE i produksjon ennå
+Oppdrag fra eier (godkjent, arbeid selvstendig, commit/push/merge/deploy når release-gate er grønn):
+A) Fontpopupen (eierens filer, kopiert UENDRET til `web/src/components/fontpicker/`: FontPicker.jsx/.css, TextStyle.jsx)
+   i ALLE fire editorene, tekst tegnet med `<StyledText>` i visning og eksport, `textStyle` per tekstlag.
+B) (ny melding) Gjennomgående tekstsystem: bilde-i-tekst med dra/zoom og spøkelsesforhåndsvisning, dobbeltklikk for
+   direkte redigering på lerretet i alle editorer, profesjonelt tekstpanel som viser formateringen slik den blir,
+   felles modell/komponenter, synk panel↔lerret, angre/gjør om, lagring, maler, eksport, PC og mobil.
+**Felles kode (ferdig, gjenbrukes – ikke bygg på nytt):** `components/fontpicker/`: `AppFontPicker.tsx` (popupen slik
+alle bruker den), `app-fonts.ts` + `fonts.json` (231 fonter, generert av `web/tools/fontpopup-fonts.mjs` fra
+`shared/fonts/catalog.json`; navn = @font-face, stiler kontrollert mot stilarkene), `styled-raster.tsx` (StyledText →
+bilde via html-to-image 1.11.13 MIT, SVG foreignObject; `StyledCache`, `StyledLayers` med `draw/get/ready/flush`,
+«Tilpass til boksen» målt i ekte tegning, bokstavposisjoner; WebKit-rettelse `fixSvg` fjerner `stroke-color`/`mask`),
+`glyph-sprites.ts` (bokstav-/ordbiter for animasjoner), `styled-layer.ts` (spec, konvertering av eldre lag),
+`images.ts` (Bildefyll-referanser, `cleanTextStyle`), `app-fontpicker.css` (slår av backdrop-filter o.l. på foreldre
+mens popupen er åpen). Vite: fontpicker/*.jsx utenfor React Compiler; oxlint ignorerer dem.
+**Status A:** Thumbnail ✅, Photo ✅, Motion ✅ (tekster + undertekster; animasjoner bokstav for bokstav via biter; MP4
+venter per bilde med `mdStyledFlush`), **Loop ❌ gjenstår**: `player.js` («portert uendret») tegner overskrift/kicker
+med fillText og bygges inn som kildetekst i eksportert HTML-spiller → plan: `cfg` får `ts.title`/`ts.kicker`;
+tekstbilder lages på forhånd (TS) og legges i spillerdataene (P) som data-URL + ordbokser; player.js får en liten krok
+som tegner bildet (ord for ord-avsløring med ordbitene) når det finnes, ellers som før. Gamle loop-er uendret.
+Eldre lag uten `textStyle` tegnes som før; nye lag og lag redigert i popupen får `textStyle` (verdiene kopieres inn).
+**Tester:** `e2e/fontpopup-thumbnail.spec.ts` (hele popupen: verktøylinje, alle faner/former/effekter/ordsky),
+`e2e/fontpopup-contract.spec.ts` (Thumbnail+Photo: øverst, forhåndsvisning, lagring, Bildefyll, eksport = lerret),
+`e2e/fontpopup-motion.spec.ts` (chrome-kanal; animasjoner + MP4 = lerret). Grønne i Chromium; WebKit (`-c
+playwright.iphone.config.ts`): thumbnail-spesifikasjonen grønn for lagring/eksport, funksjonstesten må kjøres på nytt.
+WebKit på Windows tegner VARIABLE fonter i grunnvekten (også i dagens app) – ikke en feil hos oss; tester bruker Anton.
+**Ukommittert/lokalt:** alt over er lokalt (se `git status`); eierens tre filer holdes utenfor.
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.
 

@@ -6,6 +6,8 @@ import type { Paint } from '../../thumbnail-studio/engine/paint'
 import type { Shadow } from '../../../shared/render/outline'
 import type { QrSpec } from '../../../shared/qr/qr'
 import { stretchFamily, stretchReady } from '../../../shared/fonts/loader'
+import type { TextStyle } from '../../../components/fontpicker/TextStyle.jsx'
+import { normalizeStyle, SHAPES as TS_SHAPES, wOf } from '../../../components/fontpicker/TextStyle.jsx'
 export type { Paint, Shadow }
 
 /**
@@ -176,6 +178,11 @@ export interface TextLayer extends Base {
   jw?: number
   /** Grunnlinjen til første linje målt fra toppen av tekstboksen (px, før strekk). Mangler = linjene midtstilles som før. */
   bl?: number
+  /**
+   * Fontpopupens stil (components/fontpicker/TextStyle.jsx), lagret uendret. Laget tegnes da med <StyledText>.
+   * Mangler = eldre tekstlag, tegnet som før.
+   */
+  textStyle?: TextStyle | null
 }
 
 export interface ShapeLayer extends Base {
@@ -278,7 +285,10 @@ export function pdFont(L: TextLayer, size = L.size): string {
 }
 
 /** Tekstboksens størrelse (bredeste linje × antall linjer), med strekk (tsx/tsy). */
-export function textBox(L: TextLayer): { w: number; h: number; lines: string[] } {
+export function textBox(L0: TextLayer): { w: number; h: number; lines: string[] } {
+  // fontpopupens stil: boksen måles med stilens størrelse, tykkelse, kursiv, linje- og bokstavavstand
+  const st = L0.textStyle ? normalizeStyle(L0.textStyle) : null
+  const L: TextLayer = st ? { ...L0, size: st.size || L0.size, weight: wOf(st), italic: st.italic, lh: st.lineHeight, ls: (st.tracking / 1000) * (st.size || L0.size), strokeW: 0 } : L0
   if (!MC) MC = document.createElement('canvas').getContext('2d')
   const g = MC
   const lines = String(L.upper ? L.text.toUpperCase() : L.text).split('\n')
@@ -296,7 +306,15 @@ export function textBox(L: TextLayer): { w: number; h: number; lines: string[] }
     // uten lerret (tester): anslag ut fra antall tegn
     for (const s of lines) w = Math.max(w, (s || ' ').length * (L.size * 0.56 + (L.ls || 0)))
   }
-  return { w: Math.max(L.size * 0.4, w + (L.strokeW || 0)) * (L.tsx || 1), h: lines.length * L.size * (L.lh || 1.1) * (L.tsy || 1), lines }
+  let bw = Math.max(L.size * 0.4, w + (L.strokeW || 0))
+  let bh = lines.length * L.size * (L.lh || 1.1)
+  if (st) {
+    // litt luft (ingen ombrekking), og plass til former som trenger høyde (bue, sirkel, spiral, ordsky, mønster)
+    bw = Math.ceil(bw + L.size * 0.1)
+    const kind = TS_SHAPES.find((x) => x.type === st.shape.type)?.kind
+    if (kind && kind !== 'css') bh = Math.max(bh, bw * 0.55)
+  }
+  return { w: bw * (L.tsx || 1), h: bh * (L.tsy || 1), lines }
 }
 
 export function dims(L: PdLayer): { w: number; h: number } {

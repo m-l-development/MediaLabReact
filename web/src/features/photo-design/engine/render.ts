@@ -10,6 +10,10 @@ import { curveFn } from '../../../shared/fill/curve'
 import { draw as drawFx } from '../../../shared/fx/fx'
 import { CROP_SHAPES, ADJ, BLEED, BLEED_MM, clamp, dims, mmOf, pdFont, textBox, type Adj, type PdDoc, type PdLayer, type ShapeLayer, type Side, type TextLayer } from './model'
 import { applyDev, cleanDev, histogram, type Dev, type Histogram } from './develop'
+import { StyledLayers } from '../../../components/fontpicker/styled-raster'
+import { styledSpec } from '../../../components/fontpicker/styled-layer'
+import { DEFAULT_PALETTE } from '../../../components/fontpicker/app-fonts'
+import type { FontEntry } from '../../../components/fontpicker/FontPicker.jsx'
 
 type G = CanvasRenderingContext2D
 
@@ -541,6 +545,8 @@ export interface RenderOptions {
   ox?: number
   oy?: number
   t?: number
+  /** Fonten som forhåndsvises i fontpopupen for laget `id` (bare i visningen, lagres aldri). */
+  fontPreview?: { id: string; font: FontEntry } | null
 }
 
 function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: number }) {
@@ -685,7 +691,8 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
     g.beginPath()
     g.arc(0, 0, gw, 0, Math.PI * 2)
     g.fill()
-  } else drawPdText(g, L, M)
+  } else if (L.textStyle) drawStyledPd(g, L, M, o)
+  else drawPdText(g, L, M)
   g.restore()
 }
 
@@ -937,6 +944,51 @@ function drawVig(g: G, doc: PdDoc, bl: number) {
   g.fillStyle = rg
   g.fillRect(-bl, -bl, W + 2 * bl, H + 2 * bl)
   g.restore()
+}
+
+/** Tekstlagene med fontpopupens stil (felles tegnemotor: components/fontpicker/styled-raster). */
+export const pdStyled = new StyledLayers()
+
+function pdSpec(L: TextLayer, M: Media, preview: FontEntry | null) {
+  const b = textBox(L)
+  return styledSpec({
+    text: L.text, font: L.font, stretch: L.stretch, size: L.size, color: L.color, textStyle: L.textStyle,
+    width: b.w / (L.tsx || 1), height: b.h / (L.tsy || 1), upper: L.upper, palette: DEFAULT_PALETTE, preview,
+    resolveImage: (r) => M.media.get(r)?.url || null,
+  })
+}
+
+/** Tekst med fontpopupens stil: bildet av <StyledText> i lagets boks (midtstilt i laget), med lagets skygge. */
+function drawStyledPd(g: G, L: TextLayer, M: Media, o: RenderOptions) {
+  if (!String(L.text || '').trim()) return
+  const isPrev = o.fontPreview?.id === L.id
+  const spec = pdSpec(L, M, isPrev ? o.fontPreview!.font : null)
+  g.scale(L.tsx || 1, L.tsy || 1)
+  const m = g.getTransform()
+  const s = Math.max(Math.hypot(m.a, m.b), Math.hypot(m.c, m.d))
+  if (L.shadow > 0) {
+    g.shadowColor = 'rgba(0,0,0,0.55)'
+    g.shadowBlur = (L.shadow / 100) * L.size * 0.6 * s
+    g.shadowOffsetY = (L.shadow / 100) * L.size * 0.08 * s
+  }
+  g.translate(-spec.width / 2, -spec.height / 2)
+  const img = pdStyled.draw(g, L.id, spec, s, spec.width, spec.height, isPrev)
+  // understrek: under selve teksten slik <StyledText> plasserte den
+  const c = img?.content
+  if (L.bar && c) {
+    g.shadowColor = 'transparent'
+    const bw = c.w * Math.max(0.05, L.barW ?? 1)
+    const a = spec.style.alignH
+    const bx = a === 'center' ? c.x + (c.w - bw) / 2 : a === 'right' ? c.x + c.w - bw : c.x
+    g.fillStyle = L.barColor || L.color
+    g.fillRect(bx, c.y + c.h + img.size * 0.12 * (L.barGap ?? 1), bw, L.barH ?? Math.max(2, Math.round(L.size * 0.07)))
+  }
+}
+
+/** Venter til tekstbildene (fontpopupens stil) er ferdige for eksport i skala `scale` (begge sider). */
+export async function pdStyledReady(d: PdDoc, scale: number, M: Media): Promise<void> {
+  const texts = [...d.layers, ...(d.back?.layers ?? [])].filter((l): l is TextLayer => l.type === 'text' && !!l.textStyle && !l.hidden && !!String(l.text || '').trim())
+  await Promise.all(texts.map((L) => pdStyled.ready([{ id: L.id, spec: pdSpec(L, M, null) }], scale * Math.max(L.tsx || 1, L.tsy || 1))))
 }
 
 /** Laster fontene tekstlagene bruker (begge sider). Fonter fra biblioteket hentes ved bruk, så tegning og eksport venter på dem. */

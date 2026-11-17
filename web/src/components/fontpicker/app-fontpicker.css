@@ -1,0 +1,15 @@
+/*
+ * Fontpopupen i appen (FontPicker.css er uendret).
+ *
+ * Popupen er position: fixed. Et forelderelement med backdrop-filter, filter, contain eller will-change blir da
+ * referanseboksen: popupen havnet feil, ble kuttet av panelets overflow, og panelet rullet bort innholdet når
+ * søkefeltet fikk fokus. Mens popupen er åpen, slås disse egenskapene av på foreldrene (panelets uskarpe bakgrunn
+ * er borte bare så lenge popupen er åpen).
+ */
+*:has(.fp-pop) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  contain: none !important;
+  will-change: auto !important;
+}

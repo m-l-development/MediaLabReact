@@ -19,7 +19,7 @@ import { PAL, type Interaction, type PhotoController, type PState, type Pt } fro
 import { isEdited } from './engine/batch'
 import { BLEED, dims, LOOKS, SHAPES, type PdDoc, type PdLayer } from './engine/model'
 import { applyScheme, liveScheme } from './engine/palette'
-import { docFonts, hit, render, shapePath } from './engine/render'
+import { docFonts, hit, pdStyled, render, shapePath } from './engine/render'
 import { Props } from './Props'
 import { Range } from './Ui'
 import type { Phrase, Tx } from './texts'
@@ -954,7 +954,7 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
       const g = cv.getContext('2d')
       try {
         const pick = c.s.fxPick // effektvelgerens forhåndsvisning (ikke i prosjektet)
-        if (g) render(g, pick ? { ...doc, layers: [...doc.layers, pick] } : doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde') })
+        if (g) render(g, pick ? { ...doc, layers: [...doc.layers, pick] } : doc, k, c.M, { preview: 2000, phText: tx('Dra inn et bilde'), fontPreview: c.s.fontPreview })
       } catch (e) {
         console.warn(e)
       }
@@ -972,12 +972,18 @@ function Stage({ c, S, tx, pickFile }: EditorProps) {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => draw(applyScheme(d, scheme)))
     })
+    // tekst med fontpopupens stil: tegnes på nytt når tekstbildet er ferdig
+    const offStyled = pdStyled.onLoad(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => draw())
+    })
     return () => {
       live = false
       off()
+      offStyled()
       cancelAnimationFrame(raf)
     }
-  }, [c, d, sc, hist, tx])
+  }, [c, d, sc, hist, tx, S.fontPreview])
 
   const pt = (e: { clientX: number; clientY: number }): Pt => {
     const r = (wrap.current as HTMLDivElement).getBoundingClientRect()

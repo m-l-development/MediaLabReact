@@ -1,3 +1,9 @@
+import { drawStyled, StyledLayers, type StyledImage, type StyledSpec } from '../../../components/fontpicker/styled-raster'
+import { styledSpec } from '../../../components/fontpicker/styled-layer'
+import { drawSprites, spritesOf, wordsOf, type Sprite } from '../../../components/fontpicker/glyph-sprites'
+import { DEFAULT_PALETTE } from '../../../components/fontpicker/app-fonts'
+import { normalizeStyle, SHAPES as TS_SHAPES } from '../../../components/fontpicker/TextStyle.jsx'
+import type { FontEntry } from '../../../components/fontpicker/FontPicker.jsx'
 /**
  * Motion design – tegning av ett bilde på et lerret. Typet port av motion-engine.js (rendering), med samme utseende:
  * overganger (36), tekstanimasjoner (17), looks, kurver, grønnskjerm, undertekster og logo.
@@ -1165,12 +1171,29 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   const lines = wrap(ctx, s, x.maxW * W)
   const lh = px * x.lh
   const ws = lines.map((l) => ctx.measureText(l).width)
-  const bw = Math.max(...ws, 1)
-  const bh = lines.length * lh
+  let bw = Math.max(...ws, 1)
+  let bh = lines.length * lh
   const ax = x.x * W
   const ay = x.y * H
-  const left = x.align === 'left' ? ax : x.align === 'right' ? ax - bw : ax - bw / 2
-  const top = x.valign === 'top' ? ay : x.valign === 'bottom' ? ay - bh : ay - bh / 2
+  let left = x.align === 'left' ? ax : x.align === 'right' ? ax - bw : ax - bw / 2
+  let top = x.valign === 'top' ? ay : x.valign === 'bottom' ? ay - bh : ay - bh / 2
+  // fontpopupens stil: teksten er <StyledText> i en boks (Bredde × tekstens høyde, mer for former som trenger plass)
+  let spec: StyledSpec | null = null
+  if (x.textStyle) {
+    const ts = normalizeStyle(x.textStyle)
+    const kind = TS_SHAPES.find((q) => q.type === ts.shape.type)?.kind
+    const sz = (ts.size || x.size) * U
+    bw = Math.max(px, x.maxW * W)
+    bh = Math.max(lines.length * sz * ts.lineHeight * 1.15, kind && kind !== 'css' ? bw * 0.55 : 0)
+    spec = styledSpec({
+      text: s, font: x.font, size: px, color: x.color, textStyle: { ...x.textStyle, size: ts.size ? ts.size * U : null },
+      width: bw, height: bh, palette: DEFAULT_PALETTE, preview: mdPreview?.id === x.id ? mdPreview.font : null, resolveImage: mdResolve,
+    })
+    bw = spec.width
+    bh = spec.height
+    left = x.align === 'left' ? ax : x.align === 'right' ? ax - bw : ax - bw / 2
+    top = x.valign === 'top' ? ay : x.valign === 'bottom' ? ay - bh : ay - bh / 2
+  }
   const pad = x.box !== 'none' ? px * 0.38 : px * 0.08
   if (rects) rects[x.id] = { x: left - pad, y: top - pad, w: bw + pad * 2, h: bh + pad * 2 }
   let a = kOut * x.opacity
@@ -1231,6 +1254,11 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
     ctx.fillStyle = x.bg
     rr(ctx, left - pad, top - pad * 0.7, bw + pad * 2, bh + pad * 1.4, px * 0.12)
     ctx.fill()
+  }
+  if (spec) {
+    drawStyledMd(ctx, x, spec, { an, a, lt, dur, kIn, px, left, top, bw, bh, ax, ay, W, t, pad })
+    ctx.restore()
+    return
   }
   ctx.textBaseline = 'middle'
   ctx.textAlign = 'left'
@@ -1404,7 +1432,316 @@ function drawText(ctx: Ctx2D, W: number, H: number, x: TextItem, lt: number, U: 
   ctx.restore()
 }
 
+/** Tekstlagene med fontpopupens stil (felles tegnemotor: components/fontpicker/styled-raster). */
+export const mdStyled = new StyledLayers(400)
+let mdPreview: { id: string; font: FontEntry } | null = null
+let mdResolve: (ref: string) => string | null = () => null
+/** Fonten som forhåndsvises i fontpopupen (bare i visningen; eksporten setter null). */
+export function setMdPreview(p: { id: string; font: FontEntry } | null): void {
+  mdPreview = p
+}
+/** Adressen til Bildefyll-bilder (prosjektets medier). */
+export function setMdResolve(f: (ref: string) => string | null): void {
+  mdResolve = f
+}
+
+/** Animasjoner som flytter tekstbiter (bokstaver/ord) hver for seg: tegnes med bokstavbiter av tekstbildet. */
+const MD_TOKEN = new Set(['type', 'words', 'letters', 'wave', 'bounce', 'scatter', 'ldrop', 'orbit', 'spread', 'roll'])
+const tints = new WeakMap<HTMLCanvasElement, Map<string, HTMLCanvasElement>>()
+/** Tekstbildet i én farge (glitch-kopiene). */
+function tinted(img: HTMLCanvasElement, color: string): HTMLCanvasElement {
+  let m = tints.get(img)
+  if (!m) tints.set(img, (m = new Map()))
+  let c = m.get(color)
+  if (!c) {
+    c = document.createElement('canvas')
+    c.width = img.width
+    c.height = img.height
+    const g = c.getContext('2d')
+    if (g) {
+      g.drawImage(img, 0, 0)
+      g.globalCompositeOperation = 'source-in'
+      g.fillStyle = color
+      g.fillRect(0, 0, c.width, c.height)
+    }
+    m.set(color, c)
+  }
+  return c
+}
+
+interface MdO { an: string; a: number; lt: number; dur: number; kIn: number; px: number; left: number; top: number; bw: number; bh: number; ax: number; ay: number; W: number; t: number; pad: number }
+
+/**
+ * Tekst med fontpopupens stil i Motion. Transformasjonene for animasjonen (ton, stig, sprett, skyv, zoom, vend, avdekk,
+ * pensel, rulletekst …) er allerede satt; her tegnes bildet av <StyledText>. Animasjoner bokstav for bokstav / ord for
+ * ord bruker bokstavbiter av det samme bildet med de samme bevegelsene som før.
+ */
+function drawStyledMd(ctx: Ctx2D, x: TextItem, spec: StyledSpec, o: MdO): void {
+  const g = ctx as CanvasRenderingContext2D
+  if (x.glow) {
+    ctx.shadowColor = x.color
+    ctx.shadowBlur = o.px * 0.35 * x.glow
+    ctx.shadowOffsetY = 0
+  } else if (x.shadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'
+    ctx.shadowBlur = o.px * 0.28
+    ctx.shadowOffsetY = o.px * 0.06
+  }
+  if (o.an === 'roll') {
+    rollStyled(g, x, spec, o)
+    return
+  }
+  const needG = MD_TOKEN.has(o.an)
+  const im = mdStyled.get(x.id, spec, 1, needG)
+  if (!im) return
+  // linjebakgrunn («Linjer»): bak hver tekstlinje
+  if (x.box === 'line' && im.content) {
+    ctx.save()
+    ctx.shadowColor = 'transparent'
+    ctx.fillStyle = x.bg
+    const sp = needG ? spritesOf(im) : []
+    const bands = new Map<number, [number, number, number, number]>()
+    for (const q of sp) {
+      const b = bands.get(q.line) ?? [Infinity, Infinity, -Infinity, -Infinity]
+      bands.set(q.line, [Math.min(b[0], q.cx), Math.min(b[1], q.cy), Math.max(b[2], q.cx), Math.max(b[3], q.cy)])
+    }
+    if (!bands.size) {
+      const c = im.content
+      rr(ctx, o.left + c.x - o.pad * 0.6, o.top + c.y, c.w + o.pad * 1.2, c.h, o.px * 0.08)
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+  if (o.an === 'orbit') {
+    const R = (x.orbitR ?? 0.3) * o.W
+    let ang = -Math.PI / 2 + o.lt * (x.orbitV ?? 0.12) * Math.PI * 2
+    for (const q of spritesOf(im)) {
+      const w = q.w
+      const am = ang + w / 2 / R
+      ctx.save()
+      ctx.translate(o.ax + Math.cos(am) * R, o.ay + Math.sin(am) * R)
+      ctx.rotate(am + Math.PI / 2)
+      ctx.translate(-q.cx, -q.cy)
+      drawSprites(g, im, [q])
+      ctx.restore()
+      ang += w / R
+    }
+    return
+  }
+  ctx.translate(o.left, o.top)
+  if (!needG) {
+    if (o.an === 'glitch' && o.lt < Math.min(1.2, o.dur * 0.5)) {
+      const gs = Math.floor((o.t || o.lt) * 24)
+      const j = (rnd(gs) - 0.5) * o.px * 0.25
+      const a0 = ctx.globalAlpha
+      ctx.save()
+      ctx.globalAlpha = a0 * 0.8
+      for (const [col, dx] of [['#ff2a6d', j - o.px * 0.05], ['#05d9e8', -j + o.px * 0.05]] as const) {
+        ctx.drawImage(tinted(im.img, col), im.box.x + dx, im.box.y, im.box.w, im.box.h)
+      }
+      ctx.restore()
+      ctx.translate((rnd(gs + 3) - 0.5) * o.px * 0.1, 0)
+    }
+    drawStyled(ctx, im, spec.width, spec.height)
+    return
+  }
+  const sp = spritesOf(im)
+  if (o.an === 'type') {
+    // skrivemaskin: bokstavene kommer én og én
+    const n = Math.floor(sp.length * clamp(o.lt / Math.max(0.5, Math.min(o.dur * 0.6, sp.length * 0.06)), 0, 1))
+    drawSprites(g, im, sp.slice(0, n))
+    return
+  }
+  if (o.an === 'spread') {
+    // trekk sammen: ekstra bokstavavstand som minker (som letterSpacing før)
+    const e = easeOut(o.kIn)
+    const extra = (1 - e) * 0.6 * o.px
+    const byLine = new Map<number, Sprite[]>()
+    for (const q of sp) byLine.set(q.line, [...(byLine.get(q.line) ?? []), q])
+    for (const l of byLine.values()) {
+      l.forEach((q, i) => {
+        ctx.save()
+        ctx.translate((i - (l.length - 1) / 2) * extra, 0)
+        drawSprites(g, im, [q])
+        ctx.restore()
+      })
+    }
+    return
+  }
+  const toks: Sprite[][] = o.an === 'words' ? wordsOf(sp) : sp.map((q) => [q])
+  const nTok = toks.length
+  const spread = Math.min(o.dur * 0.55, nTok * (o.an === 'words' ? 0.16 : 0.045))
+  const a = o.a
+  let ti = 0
+  for (const tk of toks) {
+    const cx = (Math.min(...tk.map((q) => q.x)) + Math.max(...tk.map((q) => q.x + q.w))) / 2
+    const ly = tk[0]?.cy ?? 0
+    const dl = nTok > 1 ? (ti / (nTok - 1)) * spread : 0
+    const kk = clamp((o.lt - dl) / 0.35, 0, 1)
+    const ee = easeOut(kk)
+    ti++
+    ctx.save()
+    if (o.an === 'wave') {
+      ctx.globalAlpha = a * Math.min(1, o.kIn * 2)
+      ctx.translate(0, Math.sin(o.lt * 5 - ti * 0.45) * o.px * 0.12)
+    } else if (o.an === 'bounce') {
+      ctx.globalAlpha = a * clamp(kk * 3, 0, 1)
+      ctx.translate(0, -(1 - easeBack(kk)) * o.px * 0.9)
+    } else if (o.an === 'scatter') {
+      const r1 = rnd(ti * 7.13 + 1), r2 = rnd(ti * 3.71 + 2), r3 = rnd(ti * 5.31 + 3)
+      const q = 1 - easeOut(kk)
+      ctx.globalAlpha = a * clamp(kk * 2, 0, 1)
+      ctx.translate((r1 - 0.5) * o.px * 6 * q, (r2 - 0.5) * o.px * 4 * q)
+      ctx.translate(cx, ly)
+      ctx.rotate((r3 - 0.5) * 2.4 * q)
+      ctx.translate(-cx, -ly)
+    } else if (o.an === 'ldrop') {
+      const jit = (rnd(ti * 9.7) - 0.5) * 0.25
+      const k2 = clamp((o.lt - dl * 0.8 - jit * 0.3) / 0.3, 0, 1)
+      ctx.globalAlpha = a * clamp(k2 * 3, 0, 1)
+      ctx.translate(0, -(1 - easeBack(k2)) * o.px * 1.3 + (rnd(ti * 4.1) - 0.5) * o.px * 0.12 * (1 - k2))
+    } else if (o.an === 'letters') {
+      ctx.globalAlpha = a * kk
+      const ls = 0.3 + 0.7 * easeBack(kk)
+      ctx.translate(cx, ly)
+      ctx.scale(ls, ls)
+      ctx.translate(-cx, -ly)
+    } else {
+      ctx.globalAlpha = a * ee
+      ctx.translate(0, (1 - ee) * o.px * 0.45)
+    }
+    drawSprites(g, im, tk)
+    ctx.restore()
+  }
+}
+
+/**
+ * Tallrull med fontpopupens stil: hvert siffer ruller fra rollFrom (eller en hel runde) til målet. Sifrene som vises i
+ * et gitt øyeblikk, tegnes som to tekstbilder (sifrene nå og sifrene én over) og flyttes per siffer, klippet til linjen.
+ */
+function rollStyled(g: CanvasRenderingContext2D, x: TextItem, spec: StyledSpec, o: MdO): void {
+  const target = spec.text
+  const from = x.rollFrom ?? ''
+  const n = target.length
+  const rd = Math.max(0.3, Math.min(1.6, o.dur * 0.5))
+  const A: string[] = []
+  const B: string[] = []
+  const fr: number[] = []
+  for (let j = 0; j < n; j++) {
+    const ch = target[j] ?? ''
+    const d = ch.charCodeAt(0) - 48
+    if (d >= 0 && d <= 9) {
+      const fc = from.length - n + j >= 0 ? from.charCodeAt(from.length - n + j) - 48 : -1
+      const f0 = fc >= 0 && fc <= 9 ? fc : 0
+      const steps = (x.rollFrom !== undefined ? (d - f0 + 10) % 10 : 10 + d) + 10 * (x.rollSpin ?? 0)
+      const order = x.rollLtr ? j : n - 1 - j
+      const kk = clamp((o.lt - order * (x.rollStag ?? 0.12)) / rd, 0, 1)
+      const pos = x.rollSpin ? Math.min(steps + 0.12, easeBack(kk) * steps) : easeOut(kk) * steps
+      const b0 = Math.min(Math.floor(pos), steps)
+      A.push(String((f0 + b0) % 10))
+      B.push(b0 + 1 > steps ? ' ' : String((f0 + b0 + 1) % 10))
+      fr.push(b0 + 1 > steps ? 0 : pos - b0)
+    } else {
+      A.push(ch)
+      B.push(ch)
+      fr.push(0)
+    }
+  }
+  const ia = mdStyled.get(x.id + ':a', { ...spec, text: A.join('') }, 1, true)
+  const ib = fr.some((f) => f > 0) ? mdStyled.get(x.id + ':b', { ...spec, text: B.join('') }, 1, true) : null
+  if (!ia) return
+  const sa = spritesOf(ia)
+  const sb = ib ? spritesOf(ib) : []
+  const lh = o.px * normalizeStyle(spec.style).lineHeight
+  g.translate(o.left, o.top)
+  const c = ia.content
+  g.save()
+  if (c) {
+    g.beginPath()
+    g.rect(ia.box.x, c.y - lh * 0.05, ia.box.w, c.h + lh * 0.1)
+    g.clip()
+  }
+  // bitene følger tegnene (mellomrom har ingen bit)
+  let k = 0
+  for (let j = 0; j < n; j++) {
+    if (!(A[j] ?? '').trim()) continue
+    const qa = sa[k]
+    const qb = sb[k]
+    k++
+    const f = fr[j] ?? 0
+    if (qa) {
+      g.save()
+      g.translate(0, -f * lh)
+      drawSprites(g, ia, [qa])
+      g.restore()
+    }
+    if (ib && qb && f > 0) {
+      g.save()
+      g.translate(0, (1 - f) * lh)
+      drawSprites(g, ib, [qb])
+      g.restore()
+    }
+  }
+  g.restore()
+}
+
+/** Venter på tekstbildene til ett bilde i videoen; true = noe manglet (tegn bildet på nytt). */
+export function mdStyledFlush(): Promise<boolean> {
+  return mdStyled.flush()
+}
+
+export type { StyledImage }
+
+/**
+ * Underteksten med fontpopupens stil: <StyledText> i en boks på 86 % av bredden. «Ord for ord»: ordet som uthes, tegnes
+ * fra et tekstbilde i uthevingsfargen (bokstavbiter av samme oppsett).
+ */
+function drawSubStyled(ctx: Ctx2D, W: number, H: number, st: SubStyle, sub: Sub, U: number, t: number): void {
+  const ts = normalizeStyle(st.textStyle ?? {})
+  const px = (ts.size || st.size) * U
+  setFont(ctx, { font: st.font, weight: st.weight, track: 0 }, px)
+  const s = st.upper ? sub.text.toLocaleUpperCase('nb') : sub.text
+  const lines = wrap(ctx, s, W * 0.86)
+  const bw = W * 0.86
+  const bh = Math.max(px * 1.4, lines.length * px * ts.lineHeight * 1.3)
+  const cy = st.pos === 'top' ? H * 0.1 + bh / 2 : st.pos === 'center' ? H * 0.5 : H * 0.9 - bh / 2
+  const prev = mdPreview?.id === '__subs' ? mdPreview.font : null
+  const spec = styledSpec({ text: s, font: st.font, size: px, color: st.color, textStyle: { ...st.textStyle, size: ts.size ? ts.size * U : null }, width: bw, height: bh, palette: DEFAULT_PALETTE, preview: prev, resolveImage: mdResolve })
+  const words = st.mode === 'words'
+  const id = 'sub:' + sub.start
+  const im = mdStyled.get(id, spec, 1, words)
+  if (!im) return
+  const g = ctx as CanvasRenderingContext2D
+  ctx.save()
+  ctx.translate(W / 2 - spec.width / 2, cy - spec.height / 2)
+  const c = im.content
+  if (st.bgOn && c) {
+    ctx.fillStyle = hexA(st.bg, st.bgA)
+    rr(ctx, c.x - px * 0.4, c.y, c.w + px * 0.8, c.h, px * 0.14)
+    ctx.fill()
+  } else if (!st.bgOn) {
+    ctx.shadowColor = 'rgba(0,0,0,0.7)'
+    ctx.shadowBlur = px * 0.3
+    ctx.shadowOffsetY = px * 0.05
+  }
+  drawStyled(ctx, im, spec.width, spec.height)
+  ctx.shadowColor = 'transparent'
+  if (words) {
+    const nW = s.split(/\s+/).filter(Boolean).length
+    const hlIdx = nW ? Math.min(nW - 1, Math.floor(clamp((t - sub.start) / Math.max(0.2, sub.end - sub.start), 0, 0.9999) * nW)) : -1
+    const ih = mdStyled.get(id + ':hl', { ...spec, color: st.hl || '#f5b82c' }, 1, true)
+    const ws = ih ? wordsOf(spritesOf(ih)) : []
+    const w = ws[hlIdx]
+    if (ih && w) drawSprites(g, ih, w)
+  }
+  ctx.restore()
+}
+
 function drawSub(ctx: Ctx2D, W: number, H: number, st: SubStyle, sub: Sub, U: number, t: number): void {
+  if (st.textStyle) {
+    drawSubStyled(ctx, W, H, st, sub, U, t)
+    return
+  }
   const px = st.size * U
   setFont(ctx, { font: st.font, weight: st.weight, track: 0 }, px)
   const s = st.upper ? sub.text.toLocaleUpperCase('nb') : sub.text

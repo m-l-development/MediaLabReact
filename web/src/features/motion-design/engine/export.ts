@@ -5,7 +5,7 @@
  */
 import { renderAudio, type GetBlob } from './audio'
 import { fmtEta, layout, ovDur, srcTime, totalDur, type Project } from './model'
-import { drawFrame, type Ctx2D, type MediaEls } from './render'
+import { drawFrame, mdStyledFlush, setMdPreview, type Ctx2D, type MediaEls } from './render'
 
 const MUXER_URL = '/vendor/mp4-muxer-5.1.3/mp4-muxer.js'
 /** Samme hash som i media-lab/build/vendor-lock.json. */
@@ -139,6 +139,12 @@ async function exportRealtime(p: Project, o: ExportOpts): Promise<ExportResult> 
   })
   const L = layout(p)
   const vids = o.M.vids
+  // sanntidsopptak kan ikke vente per bilde: tekstbildene (fontpopupens stil) lages først for hele lengden
+  setMdPreview(null)
+  for (let tw = from; tw < to; tw += 1 / fps) {
+    drawFrame(ctx, W, H, p, o.M, tw, null)
+    await mdStyledFlush()
+  }
   drawFrame(ctx, W, H, p, o.M, from, null)
   rec.start(500)
   src?.start(0, from)
@@ -207,6 +213,7 @@ export async function canEncode(W: number, H: number, fps: number): Promise<bool
 }
 
 export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult> {
+  setMdPreview(null) // forhåndsvist font i popupen kommer aldri med i eksporten
   if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') return exportRealtime(p, o)
   const W = o.w
   const H = o.h
@@ -317,6 +324,8 @@ export async function exportMp4(p: Project, o: ExportOpts): Promise<ExportResult
         if (Math.abs(ovv.currentTime - ot) > 0.45 / fps) await seek(ovv, ot)
       }
       drawFrame(ctx, W, H, p, o.M, t, null)
+      // tekst med fontpopupens stil: bilder som manglet (ny tekst, nedtelling, tallrull) lages, og bildet tegnes på nytt
+      while (await mdStyledFlush()) drawFrame(ctx, W, H, p, o.M, t, null)
       const fr = new VideoFrame(cv, { timestamp: Math.round((f / fps) * 1e6), duration: Math.round(1e6 / fps) })
       venc.encode(fr, { keyFrame: f % (fps * 2) === 0 })
       fr.close()
