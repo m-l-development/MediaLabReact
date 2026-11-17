@@ -454,6 +454,7 @@ function WorkStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: stri
   }
 
   return (
+    <>
     <div className={styles.stage}>
       <div className={styles.checker}>
         <canvas
@@ -488,7 +489,6 @@ function WorkStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: stri
           }}
         />
       </div>
-      {!s.mode && !s.busy && <div className={styles.hint}>{t('isolate.hint')}</div>}
       {s.busy && (
         <div className={styles.busy} role="status">
           <span>{busyLabel}</span>
@@ -499,6 +499,9 @@ function WorkStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: stri
         </div>
       )}
     </div>
+    {/* hintet står under bildet, ikke oppå det */}
+    {!s.mode && !s.busy && <p className={styles.hint}>{t('isolate.hint')}</p>}
+    </>
   )
 }
 
