@@ -1871,12 +1871,45 @@ export class LoopController {
       zo.addEventListener('wheel', (ev) => {
         if (this.state.fs) return
         const r = zo.getBoundingClientRect()
-        // felles regel for arbeidsflater (shared/lib/workspace-nav): loddrett rulling og knip zoomer rundt pekeren,
-        // sidelengs rulling / Shift + hjul flytter sideveis når det er zoomet inn
+        // felles regel for arbeidsflater (shared/lib/workspace-nav): Shift + hjul (og knip på styreflaten) zoomer rundt
+        // pekeren; vanlig rulling flytter når det er zoomet inn, ellers ruller siden som vanlig
         const act = wheelAction(ev, zo.clientHeight)
         if (act.kind === 'zoom') { ev.preventDefault(); const Z = this.state.zoom || { z: 1 }; this.setZoom(Z.z * act.f, ev.clientX - r.left, ev.clientY - r.top) }
         else if (act.kind === 'pan' && this.state.zoom) { ev.preventDefault(); this.panZoom(act.dx, act.dy) }
       }, { passive: false })
+      // berøring: knip med to fingre zoomer rundt punktet mellom fingrene; én finger redigerer som før. Når den andre
+      // fingeren kommer, avbrytes det den første fingeren holdt på med (ingen flytting av et element under knipet).
+      const tp = new Map<number, { x: number; y: number }>()
+      let pz: { d0: number; z0: number } | null = null
+      const two = () => [...tp.values()] as [{ x: number; y: number }, { x: number; y: number }]
+      zo.addEventListener('pointerdown', (ev) => {
+        if (ev.pointerType !== 'touch' || this.state.fs) return
+        tp.set(ev.pointerId, { x: ev.clientX, y: ev.clientY })
+        if (tp.size !== 2 || pz) return
+        const first = [...tp.keys()][0] as number
+        window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: first, pointerType: 'touch', bubbles: true }))
+        const [a, b] = two()
+        pz = { d0: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)), z0: (this.state.zoom || { z: 1 }).z }
+        ev.stopPropagation()
+        ev.preventDefault()
+      }, true)
+      zo.addEventListener('pointermove', (ev) => {
+        if (!tp.has(ev.pointerId)) return
+        tp.set(ev.pointerId, { x: ev.clientX, y: ev.clientY })
+        if (!pz || tp.size < 2) return
+        ev.stopPropagation()
+        ev.preventDefault()
+        const [a, b] = two()
+        const r = zo.getBoundingClientRect()
+        this.setZoom(pz.z0 * (Math.hypot(b.x - a.x, b.y - a.y) / pz.d0), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top)
+      }, true)
+      const end = (ev: PointerEvent) => {
+        if (!tp.delete(ev.pointerId)) return
+        if (pz) ev.stopPropagation()
+        if (tp.size < 2) pz = null
+      }
+      zo.addEventListener('pointerup', end, true)
+      zo.addEventListener('pointercancel', end, true)
     }
     if (!this.roOn && window.ResizeObserver) {
       this.roOn = true

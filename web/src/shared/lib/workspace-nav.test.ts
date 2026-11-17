@@ -3,23 +3,26 @@ import { anchorScroll, isNotchedWheel, isTypingTarget, pinchView, wheelAction, Z
 
 const ev = (more: Partial<WheelLike>): WheelLike => ({ deltaX: 0, deltaY: 0, deltaMode: 0, ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...more })
 
-describe('wheelAction: loddrett rulling over en arbeidsflate zoomer', () => {
-  it('musehjul med hakk (Windows 100/120 px, Firefox linjer) zoomer ett fast trinn per hakk', () => {
-    expect(wheelAction(ev({ deltaY: -120 }), 800)).toEqual({ kind: 'zoom', f: ZOOM_STEP })
-    expect(wheelAction(ev({ deltaY: 100 }), 800)).toEqual({ kind: 'zoom', f: 1 / ZOOM_STEP })
-    expect(wheelAction(ev({ deltaY: -3, deltaMode: 1 }), 800)).toEqual({ kind: 'zoom', f: ZOOM_STEP })
+describe('wheelAction: Shift + hjul zoomer rundt pekeren; uten Shift zoomer hjulet aldri', () => {
+  it('Shift + musehjul med hakk (Windows 100/120 px, Firefox linjer) zoomer ett fast trinn per hakk', () => {
+    expect(wheelAction(ev({ shiftKey: true, deltaY: -120 }), 800)).toEqual({ kind: 'zoom', f: ZOOM_STEP })
+    expect(wheelAction(ev({ shiftKey: true, deltaY: 100 }), 800)).toEqual({ kind: 'zoom', f: 1 / ZOOM_STEP })
+    expect(wheelAction(ev({ shiftKey: true, deltaY: -3, deltaMode: 1 }), 800)).toEqual({ kind: 'zoom', f: ZOOM_STEP })
+  })
+  it('Shift + hjul som nettleseren gjør om til sidelengs rulling (deltaX) zoomer også', () => {
+    expect(wheelAction(ev({ shiftKey: true, deltaX: -120 }), 800)).toEqual({ kind: 'zoom', f: ZOOM_STEP })
+    expect(wheelAction(ev({ shiftKey: true, deltaX: 120 }), 800)).toEqual({ kind: 'zoom', f: 1 / ZOOM_STEP })
   })
   it('et stort sprang gir høyst 3 trinn', () => {
-    expect(wheelAction(ev({ deltaY: -1200 }), 800)).toEqual({ kind: 'zoom', f: Math.pow(ZOOM_STEP, 3) })
+    expect(wheelAction(ev({ shiftKey: true, deltaY: -1200 }), 800)).toEqual({ kind: 'zoom', f: Math.pow(ZOOM_STEP, 3) })
   })
-  it('styreflate, to fingre loddrett: jevn zoom som følger bevegelsen – flytter ikke opp og ned', () => {
-    const a = wheelAction(ev({ deltaY: -7.25, deltaX: 0.5 }), 800)
-    expect(a.kind).toBe('zoom')
-    if (a.kind === 'zoom') expect(a.f).toBeCloseTo(Math.exp(0.0725), 6)
-    const b = wheelAction(ev({ deltaY: 4 }), 800)
-    if (b.kind === 'zoom') expect(b.f).toBeLessThan(1)
+  it('vanlig hjul og styreflate uten Shift ruller (loddrett og sidelengs) og zoomer ikke', () => {
+    expect(wheelAction(ev({ deltaY: -120 }), 800)).toEqual({ kind: 'pan', dx: 0, dy: -120 })
+    expect(wheelAction(ev({ deltaY: -7.25, deltaX: 0.5 }), 800)).toEqual({ kind: 'pan', dx: 0.5, dy: -7.25 })
+    expect(wheelAction(ev({ deltaX: 30.5, deltaY: 4 }), 800)).toEqual({ kind: 'pan', dx: 30.5, dy: 4 })
+    expect(wheelAction(ev({}), 800)).toEqual({ kind: 'none' })
   })
-  it('knip (ctrlKey + små verdier) zoomer jevnt og begrenset per hendelse', () => {
+  it('knip (ctrlKey + små verdier) zoomer jevnt og begrenset per hendelse (ellers zoomer nettleseren hele siden)', () => {
     const a = wheelAction(ev({ ctrlKey: true, deltaY: -5 }), 800)
     if (a.kind === 'zoom') expect(a.f).toBeCloseTo(Math.exp(0.05), 6)
     const big = wheelAction(ev({ ctrlKey: true, deltaY: -500.5 }), 800)
@@ -32,14 +35,7 @@ describe('wheelAction: loddrett rulling over en arbeidsflate zoomer', () => {
   })
 })
 
-describe('wheelAction: sideveis og Alt', () => {
-  it('tydelig sidelengs rulling på styreflaten flytter sideveis (ikke zoom)', () => {
-    expect(wheelAction(ev({ deltaX: 30.5, deltaY: 4 }), 800)).toEqual({ kind: 'pan', dx: 30.5, dy: 0 })
-  })
-  it('Shift + hjul flytter sideveis', () => {
-    expect(wheelAction(ev({ shiftKey: true, deltaY: 120 }), 800)).toEqual({ kind: 'pan', dx: 120, dy: 0 })
-    expect(wheelAction(ev({ shiftKey: true, deltaX: 120 }), 800)).toEqual({ kind: 'pan', dx: 120, dy: 0 })
-  })
+describe('wheelAction: Alt', () => {
   it('Alt + hjul er ledig for verktøyet (penselstørrelse)', () => {
     expect(wheelAction(ev({ altKey: true, deltaY: -120 }), 800).kind).toBe('alt')
   })

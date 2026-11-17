@@ -2,11 +2,12 @@
  * Felles navigering på arbeidsflater (lerret, maskeredigering, slide-forhåndsvisning): én forutsigbar tolkning av hjul og
  * styreflate i alle verktøyene. Gjelder bare over selve arbeidsflaten – paneler, lister, menyer og sider ruller som vanlig.
  *
- * - Vertikal rulling zoomer rundt punktet under pekeren (rulling flytter aldri flaten opp og ned):
- *   musehjul med hakk = faste trinn på 1,25× (samme som −/+), styreflate = jevn zoom som følger bevegelsen.
- * - Knip på styreflaten (hjul med ctrlKey) og Ctrl/⌘ + hjul zoomer jevnt / i trinn.
- * - Tydelig sidelengs rulling (styreflate) og Shift + hjul flytter flaten sideveis.
+ * - Shift + hjul zoomer rundt punktet under pekeren: musehjul med hakk = faste trinn på 1,25× (samme som −/+),
+ *   styreflate = jevn zoom som følger bevegelsen. Uten Shift zoomer hjulet aldri (vanlig redigering forstyrres ikke).
+ * - Knip på styreflaten (hjul med ctrlKey) og Ctrl/⌘ + hjul zoomer også (ellers ville nettleseren zoomet hele siden).
+ * - Vanlig rulling (loddrett og sidelengs) ruller flaten som en vanlig side.
  * - Alt + hjul er ledig for verktøyet (f.eks. penselstørrelse).
+ * På berøringsskjerm: knip med to fingre zoomer rundt punktet mellom fingrene; én finger redigerer som vanlig.
  * Panorering i alle retninger: mellomrom + dra eller dra med midtknappen (ikke hjulet).
  */
 export type WheelAction = { kind: 'zoom'; f: number } | { kind: 'pan'; dx: number; dy: number } | { kind: 'alt'; f: number } | { kind: 'none' }
@@ -27,7 +28,9 @@ const LINE = 16
 /** Hjul fra en mus med hakk (ikke en styreflate eller en mus med jevn rulling). */
 export function isNotchedWheel(e: WheelLike): boolean {
   if (e.deltaMode !== 0) return true
-  return e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 50
+  // Shift + hjul kommer ofte som sidelengs rulling (deltaX) fra nettleseren
+  const d = e.deltaY || e.deltaX
+  return (e.deltaX === 0 || e.deltaY === 0) && Number.isInteger(d) && Math.abs(d) >= 50
 }
 
 export function wheelAction(e: WheelLike, pageHeight: number): WheelAction {
@@ -35,18 +38,18 @@ export function wheelAction(e: WheelLike, pageHeight: number): WheelAction {
   const dx = e.deltaX * unit
   const dy = e.deltaY * unit
   if (e.altKey) return { kind: 'alt', f: Math.exp(-Math.max(-200, Math.min(200, dy || dx)) * 0.002) }
-  // Shift + hjul: sideveis (nettlesere sender det som deltaY eller deltaX)
-  if (e.shiftKey && !e.ctrlKey && !e.metaKey) return { kind: 'pan', dx: dx || dy, dy: 0 }
-  // tydelig sidelengs bevegelse på styreflaten: flytt sideveis, ikke zoom
-  if (!e.ctrlKey && !e.metaKey && Math.abs(dx) > Math.abs(dy) * 1.5) return { kind: 'pan', dx, dy: 0 }
-  if (dy === 0) return { kind: 'none' }
+  // uten Shift (og uten knip/Ctrl/⌘): vanlig rulling, aldri zoom
+  if (!e.shiftKey && !e.ctrlKey && !e.metaKey) return dx === 0 && dy === 0 ? { kind: 'none' } : { kind: 'pan', dx, dy }
+  // Shift + hjul (nettlesere sender det som deltaY eller deltaX), knip på styreflaten eller Ctrl/⌘ + hjul: zoom
+  const d = dy || dx
+  if (d === 0) return { kind: 'none' }
   if (isNotchedWheel(e)) {
     // ett trinn per hakk (Windows: 100–120 px per hakk); store sprang begrenses til 3 trinn
-    const steps = Math.max(1, Math.min(3, Math.round(Math.abs(dy) / 100)))
-    return { kind: 'zoom', f: Math.pow(ZOOM_STEP, -Math.sign(dy) * steps) }
+    const steps = Math.max(1, Math.min(3, Math.round(Math.abs(d) / 100)))
+    return { kind: 'zoom', f: Math.pow(ZOOM_STEP, -Math.sign(d) * steps) }
   }
-  // styreflate (to fingre loddrett eller knip): jevn zoom, begrenset per hendelse
-  return { kind: 'zoom', f: Math.exp(-Math.max(-60, Math.min(60, dy)) * 0.01) }
+  // styreflate (knip eller Shift + to fingre): jevn zoom, begrenset per hendelse
+  return { kind: 'zoom', f: Math.exp(-Math.max(-60, Math.min(60, d)) * 0.01) }
 }
 
 /** To fingre (berøring): ny skala og forskyvning slik at punktet mellom fingrene følger fingrene. */

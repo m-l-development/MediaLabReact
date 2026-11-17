@@ -100,8 +100,11 @@ test('Mockups: hjulet zoomer visningen rundt pekeren, 0 tilpasser; galleriets ko
   const wrap = page.locator('[data-mk-wrap]')
   const b = await box(wrap)
   await page.mouse.move(b.x + b.width * 0.3, b.y + b.height * 0.4)
+  // zoom ved pekeren: Shift + hjul
+  await page.keyboard.down('Shift')
   await page.mouse.wheel(0, -120)
   await page.mouse.wheel(0, -120)
+  await page.keyboard.up('Shift')
   await expect.poll(async () => (await box(wrap)).width).toBeGreaterThan(b.width * 1.4)
   await page.keyboard.press('0')
   await expect.poll(async () => Math.round((await box(wrap)).width)).toBe(Math.round(b.width))
