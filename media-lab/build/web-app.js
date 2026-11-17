@@ -17,7 +17,12 @@ export function plan(env = process.env) {
     return { error: 'Fant ikke ../web/package.json. Den nye appen (/app/) kan ikke bygges. På Vercel: slå på «Include files outside the root directory» for prosjektet.' };
   }
   const steps = [];
-  if (!fs.existsSync(path.join(WEB, 'node_modules', 'vite'))) steps.push({ cmd: 'npm', args: ['ci', '--no-audit', '--no-fund'], cwd: WEB });
+  // installer når en avhengighet mangler (Vercel kan ha node_modules fra et eldre bygg i hurtigbufferen – en ny pakke
+  // i web/package.json kom da aldri med, og bygget feilet)
+  const pkg = JSON.parse(fs.readFileSync(path.join(WEB, 'package.json'), 'utf8'))
+  const deps = Object.keys({ ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) })
+  const missing = deps.some((d) => !fs.existsSync(path.join(WEB, 'node_modules', d, 'package.json')))
+  if (missing) steps.push({ cmd: 'npm', args: ['ci', '--no-audit', '--no-fund'], cwd: WEB });
   steps.push({ cmd: 'npx', args: ['vite', 'build', '--outDir', OUT, '--emptyOutDir'], cwd: WEB });
   return { steps, env: { ...env, ML_TEST_NO_BACKEND: '' } };
 }
