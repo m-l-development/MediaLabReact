@@ -63,6 +63,7 @@ test('maskeredigering: verktøyene endrer den faktiske masken, og eksporten føl
   await (await chooser).setFiles({ name: 'kvadrat.png', mimeType: 'image/png', buffer: IMG })
   await page.getByRole('button', { name: 'Hopp over' }).click()
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled()
 
   // utgangspunkt: kvadratet beholdes, bakgrunnen fjernes
@@ -190,6 +191,7 @@ test('visningsbakgrunnen i maskeredigeringen endrer ikke masken, fargene eller e
   await (await chooser).setFiles({ name: 'kvadrat.png', mimeType: 'image/png', buffer: IMG })
   await page.getByRole('button', { name: 'Hopp over' }).click()
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled()
   const grid: [number, number][] = []
   for (let y = 10; y < H; y += 40) for (let x = 10; x < W; x += 40) grid.push([x, y])

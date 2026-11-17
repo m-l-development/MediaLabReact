@@ -578,3 +578,63 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
+
+/* to faner øverst i panelet: «Hva skal beholdes» / «Hva skal fjernes» */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin-top: 10px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.tabs button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.tabs button[aria-selected='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* flervalg: valgte kort får et hakemerke; kort som er valgt i den andre fanen, er merket med fanens farge */
+.kind {
+  position: relative;
+}
+
+.kind[aria-pressed='true']::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kind[data-other] {
+  border-style: dashed;
+}
+
+.kind[data-other='remove'] span {
+  color: #ff7a7a;
+}
+
+.kind[data-other='keep'] span {
+  color: #4fdc8f;
+}
+:root[data-theme='light'] .kind[data-other='remove'] span {
+  color: #b3261e;
+}
+
+:root[data-theme='light'] .kind[data-other='keep'] span {
+  color: #1a7f45;
+}

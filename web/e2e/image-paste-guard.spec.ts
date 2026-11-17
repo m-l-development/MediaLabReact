@@ -87,6 +87,7 @@ test('Isolate: hinteksten er bare grensesnitt – eksporten har motivets piksler
   // Hintet ligger over bildet nederst på midten; det er et eget element, ikke en del av lerretet.
   expect(await hint.evaluate((el) => el.tagName !== 'CANVAS' && !el.closest('canvas'))).toBe(true)
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   await expect(hint).toHaveCount(0)
   const file = info.outputPath('logo.png')
   await download(page, file)
@@ -104,6 +105,7 @@ test('Isolate: innliming i felt og dialoger erstatter ikke bildet; avbrutt ersta
   page.on('pageerror', (e) => errors.push(e.message))
   await isolateWithLogo(page)
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   await expect(meta(page)).toBeVisible()
   const before = info.outputPath('foer.png')
   await download(page, before)
@@ -157,6 +159,7 @@ test('Isolate: innliming i felt og dialoger erstatter ikke bildet; avbrutt ersta
 test('Isolate: «Nytt bilde» (eksplisitt valg) tømmer og lar deg velge et nytt bilde uten spørsmål, som før', async ({ page }) => {
   await isolateWithLogo(page)
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   await expect(meta(page)).toBeVisible()
   const dialogs: string[] = []
   page.on('dialog', (d) => {
@@ -176,6 +179,7 @@ test('Isolate: «Nytt bilde» (eksplisitt valg) tømmer og lar deg velge et nytt
 test('Isolate → «Bruk i Thumbnail Studio»: Thumbnail får de eksporterte pikslene (samme PNG som nedlastingen)', async ({ page }, info) => {
   await isolateWithLogo(page)
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   const file = info.outputPath('eksport.png')
   await download(page, file)
   await page.getByRole('button', { name: 'Bruk i Thumbnail Studio' }).click()

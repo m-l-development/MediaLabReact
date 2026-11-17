@@ -25,6 +25,8 @@ async function openDirect(page: Page) {
   // rett til «Finjuster masken», uten å velge Person/Objekt/Logo/Tekst
   await page.locator('[data-mask-open]').click()
   await expect(page.locator('[data-mask-canvas]')).toBeVisible()
+  // det som fjernes her, skal bli gjennomsiktig (standard ved hele bildet er «Fyll med omgivelser»)
+  await page.locator('[data-fill-mode="edit"]').getByRole('button', { name: 'Gjennomsiktig', exact: true }).click()
 }
 
 type View = { s: number; ox: number; oy: number; left: number; top: number }

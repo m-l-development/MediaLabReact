@@ -25,6 +25,7 @@ async function run(page: Page, kind: 'Objekt' | 'Person') {
   await page.getByRole('button', { name: 'Hopp over' }).click()
   const t0 = Date.now()
   await page.getByRole('button', { name: new RegExp('^' + kind) }).click()
+  await page.locator('[data-run]').click()
   // ferdig når resultatet kan lastes ned (statusen kan komme litt etter klikket)
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled({ timeout: 180_000 })
   return Date.now() - t0

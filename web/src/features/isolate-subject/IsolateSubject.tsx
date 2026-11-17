@@ -12,12 +12,12 @@ import { Button } from '../../shared/ui/Button'
 import { NumField } from '../../shared/ui/NumField'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { MaskEditor } from '../../shared/mask/MaskEditor'
-import { COLORS, IsolateController, type Aspect, type CropRect, type ImagePoint, type Kind } from './controller'
+import { COLORS, IsolateController, type Aspect, type CropRect, type FillMode, type ImagePoint, type Target, type UiState } from './controller'
 import { aiCapable } from './engine/fill'
 import styles from './IsolateSubject.module.css'
 import { copyImage } from '../../shared/lib/clipboard'
 
-const KINDS: readonly Kind[] = ['person', 'object', 'logo', 'text']
+const TARGETS: readonly Target[] = ['person', 'object', 'logo', 'text', 'background']
 const ASPECTS: readonly { value: Aspect; label: string | MessageKey }[] = [
   { value: 'free', label: 'isolate.crop.free' }, { value: 'orig', label: 'isolate.crop.original' },
   { value: 1, label: '1:1' }, { value: 4 / 5, label: '4:5' }, { value: 16 / 9, label: '16:9' }, { value: 9 / 16, label: '9:16' },
@@ -190,14 +190,23 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
           <aside className={styles.panel}>
             <p className={styles.meta}>{s.name} · {s.dims}</p>
 
-            <h2 className={styles.step}>{t('isolate.step1')}</h2>
-            <div className={styles.kinds}>
-              {KINDS.map((k) => (
-                <button key={k} type="button" className={styles.kind} aria-pressed={s.mode === k} disabled={!!s.busy} onClick={() => ctl.choose(k)}>
-                  <strong>{t(`isolate.kind.${k}`)}</strong>
-                  <span>{t(`isolate.kind.${k}.desc`)}</span>
-                </button>
+            {/* to faner: hva som skal beholdes og hva som skal fjernes; flervalg i begge, ett valg står bare i én fane */}
+            <div className={styles.tabs} role="tablist" aria-label={t('isolate.step1')}>
+              {(['keep', 'remove'] as const).map((k) => (
+                <button key={k} type="button" role="tab" aria-selected={s.tab === k} data-tab={k} onClick={() => ctl.setTab(k)}>{t(`isolate.tab.${k}`)}</button>
               ))}
+            </div>
+            <div className={styles.kinds} role="tabpanel" data-panel={s.tab}>
+              {TARGETS.map((k) => {
+                const on = (s.tab === 'keep' ? s.keepSet : s.removeSet).includes(k)
+                const other = (s.tab === 'keep' ? s.removeSet : s.keepSet).includes(k)
+                return (
+                  <button key={k} type="button" className={`${styles.kind} ${k === 'background' ? styles.kindWide : ''}`} aria-pressed={on} data-target={k} data-other={other ? (s.tab === 'keep' ? 'remove' : 'keep') : undefined} disabled={!!s.busy} onClick={() => ctl.toggle(k)}>
+                    <strong>{t(`isolate.kind.${k}`)}</strong>
+                    <span>{other ? t(s.tab === 'keep' ? 'isolate.tag.inRemove' : 'isolate.tag.inKeep') : t(`isolate.kind.${k}.desc`)}</span>
+                  </button>
+                )
+              })}
               <button type="button" className={`${styles.kind} ${styles.kindWide}`} aria-pressed={s.mode === 'point'} disabled={!!s.busy} onClick={() => ctl.startMarking()}>
                 <strong>{t('isolate.mark')}</strong>
                 <span>{t('isolate.mark.desc')}</span>
@@ -214,24 +223,25 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
                   <button type="button" aria-pressed={!s.markKeep} onClick={() => ctl.setMarkKeep(false)}><i style={{ background: '#ff5a5a' }} />{t('isolate.mark.remove')}</button>
                   <button type="button" aria-pressed={s.markKeep} onClick={() => ctl.setMarkKeep(true)}><i style={{ background: '#3ddc84' }} />{t('isolate.mark.keep')}</button>
                 </div>
-                <p className={styles.help}>{t('isolate.mark.help')}</p>
-                <p className={styles.sub}>{t('isolate.mark.after')}</p>
-                {/* tre separate valg: fyll (AI, standard), uskarp (eget verktøy) og gjennomsiktig */}
-                <div className={styles.segmented} role="group" data-fill-mode="">
-                  <button type="button" aria-pressed={s.fillMode === 'fill'} onClick={() => ctl.setOption({ fillMode: 'fill' })}>{t('isolate.fill.fill')}</button>
-                  <button type="button" aria-pressed={s.fillMode === 'blur'} onClick={() => ctl.setOption({ fillMode: 'blur' })}>{t('isolate.fill.blur')}</button>
-                  <button type="button" aria-pressed={s.fillMode === 'clear'} onClick={() => ctl.setOption({ fillMode: 'clear' })}>{t('isolate.fill.clear')}</button>
-                </div>
-                <p className={styles.help}>{t(s.fillMode === 'fill' && !aiCapable() ? 'isolate.fill.help.fillLite' : `isolate.fill.help.${s.fillMode}`)}</p>
+                <p className={styles.help}>{t(s.markKeep ? 'isolate.mark.helpKeep' : 'isolate.mark.help')}</p>
                 <div className={styles.row}>
                   <Button size="small" variant="ghost" disabled={!s.marks.length || !!s.busy} onClick={() => ctl.clearMarks()}>{t('isolate.mark.clear')}</Button>
-                  <Button size="small" variant="primary" disabled={!ctl.canApply()} onClick={() => void ctl.apply()} data-mark-apply="">{t(s.fillMode === 'blur' ? 'isolate.fill.blurApply' : 'isolate.mark.remove')}</Button>
                 </div>
               </div>
             )}
+            {(s.tab === 'remove' || s.removeSet.length > 0 || s.marks.some((m) => !m.keep)) && (
+              <div className={styles.markBox}>
+                <p className={styles.sub}>{t('isolate.mark.after')}</p>
+                <FillChoice name="mark" value={s.fillMode} modes={['fill', 'blur', 'clear', 'color']} color={s.fillColor} onMode={(m) => ctl.setOption({ fillMode: m })} onColor={(c) => ctl.setFillColor(c)} />
+              </div>
+            )}
+            {(s.keepSet.length > 0 || s.removeSet.length > 0 || s.marks.length > 0) && <RunSummary s={s} />}
+            <Button variant="primary" block disabled={!ctl.canRun()} onClick={() => void ctl.run()} data-run="">{t(s.busy ? 'isolate.run.busy' : 'isolate.run')}</Button>
+            {s.busy && <p className={styles.sub} role="status" data-run-status="">{busyLabel}</p>}
             {s.pending && (
               <div className={styles.markBox} data-effect={s.pending}>
                 <p className={styles.help}>{t(`isolate.fill.result.${s.pending}`)}</p>
+                {s.pending === 'color' && <Swatches value={s.fillColor} onPick={(c) => ctl.setFillColor(c)} />}
                 <div className={styles.sliders}>
                   {s.pending === 'blur' && (
                     <div className={styles.sliderRow}>
@@ -240,9 +250,9 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
                     </div>
                   )}
                   <div className={styles.sliderRow}>
-                    <span className={styles.sliderHead}><span>{t('isolate.fill.edge')}</span><NumField value={s.edge} min={0} max={40} step={1} label={t('isolate.fill.edge')} onCommit={(v) => ctl.adjustEffect({ edge: v }, s.pending === 'blur')} /></span>
-                    {/* fyll lages på nytt først når brukeren slipper (AI tar tid), uskarp straks */}
-                    <input type="range" min={0} max={40} step={1} value={s.edge} aria-label={t('isolate.fill.edge')} disabled={!!s.busy} onChange={(e) => ctl.adjustEffect({ edge: Number(e.target.value) }, s.pending === 'blur')} />
+                    <span className={styles.sliderHead}><span>{t('isolate.fill.edge')}</span><NumField value={s.edge} min={0} max={40} step={1} label={t('isolate.fill.edge')} onCommit={(v) => ctl.adjustEffect({ edge: v }, s.pending !== 'fill')} /></span>
+                    {/* fyll lages på nytt først når brukeren slipper (AI tar tid), uskarp og farge straks */}
+                    <input type="range" min={0} max={40} step={1} value={s.edge} aria-label={t('isolate.fill.edge')} disabled={!!s.busy} onChange={(e) => ctl.adjustEffect({ edge: Number(e.target.value) }, s.pending !== 'fill')} />
                   </div>
                 </div>
                 <div className={styles.row}>
@@ -252,9 +262,8 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
                 </div>
               </div>
             )}
-            {(s.note || (s.mode && s.mode !== 'point')) && (
-              <p className={styles.note}>{s.note ? t(s.note) : s.mode && s.mode !== 'point' ? t(`isolate.kind.${s.mode}.note`) : ''}</p>
-            )}
+            {s.mode && s.mode !== 'point' && <p className={styles.note}>{t(`isolate.kind.${s.mode}.note`)}</p>}
+            {s.note && <p className={styles.note} role="status" data-run-note="">{t(s.note)}</p>}
             {s.error && <p className={styles.error} role="alert">{t(s.error)}</p>}
 
             <h2 className={styles.step}>{t('isolate.step2')}</h2>
@@ -262,16 +271,7 @@ export default function IsolateSubject({ query, registerLifecycle }: ToolProps) 
               <button type="button" aria-pressed={s.bgType === 'none'} onClick={() => ctl.setOption({ bgType: 'none' })}>{t('isolate.bg.none')}</button>
               <button type="button" aria-pressed={s.bgType === 'color'} onClick={() => ctl.setOption({ bgType: 'color' })}>{t('isolate.bg.color')}</button>
             </div>
-            {s.bgType === 'color' && (
-              <div className={styles.swatches}>
-                {COLORS.map((c) => (
-                  <button key={c.hex} type="button" className={styles.swatch} style={{ background: c.hex }} aria-pressed={s.bg === c.hex} title={t(c.label)} aria-label={t(c.label)} onClick={() => ctl.setOption({ bg: c.hex })} />
-                ))}
-                <label className={styles.swatch} data-custom="true" aria-pressed={!COLORS.some((c) => c.hex === s.bg)} title={t('isolate.bg.custom')}>
-                  <input type="color" value={s.bg} aria-label={t('isolate.bg.custom')} onChange={(e) => ctl.setOption({ bg: e.target.value })} />
-                </label>
-              </div>
-            )}
+            {s.bgType === 'color' && <Swatches value={s.bg} onPick={(bg) => ctl.setOption({ bg })} />}
             <p className={styles.sub}>{s.bgType === 'none' ? t('isolate.bg.noneNote') : t('isolate.bg.colorNote')}</p>
 
             <h2 className={styles.step}>{t('isolate.step3')}</h2>
@@ -404,6 +404,11 @@ function EditStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: stri
     <div className={styles.editStage} data-isolate-edit="">
       <MaskEditor key={`${target.image.width}x${target.image.height}-${s.historySize}`} image={target.image} mask={target.mask} onChange={() => ctl.maskChanged()} selectObject={(x, y) => ctl.selectObject(x, y)} />
       {s.busy && <div className={styles.busy} role="status"><span>{busyLabel}</span>{s.busy === 'model' && <div className={styles.bar}><div style={{ width: `${s.pct}%` }} /></div>}</div>}
+      {/* det som fjernes i redigeringen: fyll med omgivelser (standard), gjennomsiktig eller farge – brukes ved «Ferdig» */}
+      <div className={styles.markBox} data-edit-fill="">
+        <p className={styles.sub}>{t('isolate.edit.after')}</p>
+        <FillChoice name="edit" value={s.editFill} modes={['fill', 'clear', 'color']} color={s.fillColor} onMode={(m) => ctl.setOption({ editFill: m === 'blur' ? 'fill' : m })} onColor={(c) => ctl.setFillColor(c)} />
+      </div>
       <div className={styles.row}>
         <Button size="small" variant="primary" data-mask-done="" onClick={() => ctl.endEdit()}>{t('mask.done')}</Button>
       </div>
@@ -494,5 +499,54 @@ function WorkStage({ ctl, busyLabel }: { ctl: IsolateController; busyLabel: stri
         </div>
       )}
     </div>
+  )
+}
+
+/** Fargene (samme som under «Bakgrunn») og egen farge. */
+function Swatches({ value, onPick }: { value: string; onPick: (hex: string) => void }) {
+  const t = useT()
+  return (
+    <div className={styles.swatches}>
+      {COLORS.map((c) => (
+        <button key={c.hex} type="button" className={styles.swatch} style={{ background: c.hex }} aria-pressed={value === c.hex} title={t(c.label)} aria-label={t(c.label)} onClick={() => onPick(c.hex)} />
+      ))}
+      <label className={styles.swatch} data-custom="true" aria-pressed={!COLORS.some((c) => c.hex === value)} title={t('isolate.bg.custom')}>
+        <input type="color" value={value} aria-label={t('isolate.bg.custom')} onChange={(e) => onPick(e.target.value)} />
+      </label>
+    </div>
+  )
+}
+
+/** Hva som skjer med det som fjernes: fyll med omgivelser (AI), uskarpt, gjennomsiktig eller farge. */
+function FillChoice({ name, value, modes, color, onMode, onColor }: { name: string; value: FillMode; modes: readonly FillMode[]; color: string; onMode: (m: FillMode) => void; onColor: (hex: string) => void }) {
+  const t = useT()
+  return (
+    <>
+      <div className={styles.segmented} role="group" data-fill-mode={name}>
+        {modes.map((m) => (
+          <button key={m} type="button" aria-pressed={value === m} onClick={() => onMode(m)}>{t(`isolate.fill.${m}`)}</button>
+        ))}
+      </div>
+      {value === 'color' && <Swatches value={color} onPick={onColor} />}
+      <p className={styles.help}>{t(value === 'fill' && !aiCapable() ? 'isolate.fill.help.fillLite' : `isolate.fill.help.${value}`)}</p>
+    </>
+  )
+}
+
+/** Kort oppsummering av hva «Gjennomfør isolering» gjør med valgene. */
+function RunSummary({ s }: { s: UiState }) {
+  const t = useT()
+  const list = (ts: readonly Target[]) => ts.map((k) => t(`isolate.kind.${k}`).toLowerCase()).join(', ')
+  const green = s.marks.some((m) => m.keep)
+  const red = s.marks.some((m) => !m.keep)
+  const kept = [list(s.keepSet), green ? t('isolate.sum.marked') : ''].filter(Boolean).join(', ')
+  const removed = [list(s.removeSet), red ? t('isolate.sum.marked') : ''].filter(Boolean).join(', ')
+  const isolating = s.keepSet.length > 0 || (green && !removed)
+  return (
+    <p className={styles.sub} data-run-summary="">
+      {t('isolate.sum.keep', { list: kept || t('isolate.sum.rest') })}
+      {removed && <><br />{t('isolate.sum.remove', { list: removed, how: t(`isolate.fill.${s.fillMode}`).toLowerCase() })}</>}
+      {isolating && !s.keepSet.includes('background') && <><br />{t('isolate.sum.isolate')}</>}
+    </p>
   )
 }

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { blurArea } from './blur'
+import { blurArea, colorArea } from './blur'
 import { inpaint } from './inpaint'
 import { lamaCrop, lamaFill, SIZE } from './lama'
 import { keyRegion } from './keybox'
 import { hitMark, pendingMask, type Mark } from './marks'
-import { colorKey, cropBox, hasContent, isDegenerate, maxMask, refineMask, subtractMask } from './mask'
+import { colorKey, cropBox, hasContent, isDegenerate, isGraphic, maxMask, refineMask, subtractMask } from './mask'
 
 /** Lager et RGBA-bilde W×H fylt med `bg`, med et rektangel i `fg`. */
 function image(W: number, H: number, bg: number[], fg?: { color: number[]; x0: number; y0: number; x1: number; y1: number }) {
@@ -226,5 +226,30 @@ describe('AI-modellen bare der minnet holder', () => {
     expect(aiCapable({ userAgent: chrome, deviceMemory: 8 })).toBe(true)
     expect(aiCapable({ userAgent: chrome, deviceMemory: 2 })).toBe(false)
     expect(aiCapable({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0' })).toBe(true)
+  })
+})
+
+describe('fjerning: grafikk og farge', () => {
+  const N = 400
+  const all = new Uint8ClampedArray(N).fill(255)
+  it('logo med få flate farger er grafikk, fotofarger er ikke', () => {
+    const logo = new Uint8ClampedArray(N * 4)
+    for (let i = 0; i < N; i++) logo.set(i % 3 ? [220, 30, 30, 255] : [20, 20, 20, 255], i * 4)
+    expect(isGraphic(logo, all)).toBe(true)
+    const photo = new Uint8ClampedArray(N * 4)
+    for (let i = 0; i < N; i++) photo.set([(i * 37) % 256, (i * 91) % 256, (i * 53) % 256, 255], i * 4)
+    expect(isGraphic(photo, all)).toBe(false)
+    expect(isGraphic(logo, new Uint8ClampedArray(N))).toBe(false)
+  })
+  it('Farge fyller bare det merkede, utvidet med kanten', () => {
+    const W = 20, H = 20
+    const rgba = new Uint8ClampedArray(W * H * 4).fill(255)
+    const m = new Uint8ClampedArray(W * H)
+    for (let y = 8; y < 12; y++) for (let x = 8; x < 12; x++) m[y * W + x] = 255
+    expect(colorArea(rgba, W, H, m, '#102030', 2)).toBe(true)
+    expect([...rgba.slice((10 * W + 10) * 4, (10 * W + 10) * 4 + 4)]).toEqual([16, 32, 48, 255])
+    expect(rgba[(10 * W + 6) * 4]).toBe(16)
+    expect(rgba[(10 * W + 2) * 4]).toBe(255)
+    expect(colorArea(rgba, W, H, new Uint8ClampedArray(W * H), '#000000')).toBe(false)
   })
 })

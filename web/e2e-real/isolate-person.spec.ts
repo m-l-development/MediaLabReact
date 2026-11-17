@@ -46,6 +46,7 @@ test(`${kind}: smale detaljer beholdes, bakgrunnen fjernes (ekte modell, ekte bi
     for (const l of ['Myke kanter', 'Stram inn kantene']) await page.getByLabel(l).fill('0')
   }
   await page.getByRole('button', { name: new RegExp(`^${kind}`) }).click()
+  await page.locator('[data-run]').click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled({ timeout: 240_000 })
   const dl = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Last ned PNG' }).click()

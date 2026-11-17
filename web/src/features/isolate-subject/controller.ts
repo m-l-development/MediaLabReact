@@ -1,16 +1,20 @@
 import type { MessageKey } from '../../shared/i18n/messages'
 import { createStore, type Store } from '../../shared/lib/store'
-import { blurArea } from './engine/blur'
+import { blurArea, colorArea } from './engine/blur'
 import { FillRunner } from './engine/fill'
 import { defaultGrow } from './engine/inpaint'
 import { pendingMask, applyKeyMask, hitMark, type Mark } from './engine/marks'
-import { colorKey, cropBox, hasContent, maxMask, refineMask, subtractMask, type Mask } from './engine/mask'
+import { colorKey, cropBox, hasContent, invertMask, isGraphic, maxMask, refineMask, subtractMask, type Mask } from './engine/mask'
 import { ACCEPT, cloneCanvas, crop, keyBox, loadToCanvas, makeCanvas, maskCanvas, MAX_BYTES, putRgba, rgbaOf, toBlob } from './engine/raster'
 import { AiSegmenter } from './engine/segment-client'
-import { StallError, type Phase } from './engine/segmenter'
+import { StallError, type ModelKey, type Phase } from './engine/segmenter'
 
 export type Kind = 'person' | 'object' | 'logo' | 'text'
+/** Valgene i fanene «Hva skal beholdes» og «Hva skal fjernes» (typene + bakgrunnen). */
+export type Target = Kind | 'background'
 export type Mode = Kind | 'point' | null
+/** Hva som skjer med det som fjernes: fyll med omgivelsene (AI), gjør uskarpt, gjennomsiktig eller en farge. */
+export type FillMode = 'fill' | 'blur' | 'clear' | 'color'
 export type Aspect = 'free' | 'orig' | number
 export interface CropRect { x: number; y: number; w: number; h: number }
 
@@ -22,14 +26,23 @@ export interface UiState {
   soft: number
   tight: number
   cropToSubject: boolean
-  /** Hva «Fjern» gjør med det merkede: fyll med omgivelsene (AI), gjør uskarpt, eller gjennomsiktig. */
-  fillMode: 'fill' | 'blur' | 'clear'
+  /** Hva «Fjern» gjør med det merkede: fyll med omgivelsene (AI), gjør uskarpt, gjennomsiktig eller farge. */
+  fillMode: FillMode
+  /** Det samme i «Finjuster masken» (det som fjernes med pensel, former og «Velg objekt»). */
+  editFill: Exclude<FillMode, 'blur'>
+  /** Fargen for «Farge». */
+  fillColor: string
+  /** Fanen som vises: «Hva skal beholdes» eller «Hva skal fjernes» (bestemmer også fargen på merker i bildet). */
+  tab: 'keep' | 'remove'
+  /** Valgt under «Hva skal beholdes» / «Hva skal fjernes». Et valg står bare i én av dem. */
+  keepSet: Target[]
+  removeSet: Target[]
   /** Styrken på uskarpheten (1–100). */
   blur: number
   /** Hvor mange piksler det merkede utvides (kanter og skygger rundt objektet). */
   edge: number
   /** Resultatet av «Fyll med omgivelser» eller «Gjør uskarp» vises, og kan justeres, brukes eller avbrytes. */
-  pending: 'fill' | 'blur' | null
+  pending: 'fill' | 'blur' | 'color' | null
   /** Antall steg «Gjør om» kan ta. */
   redoSize: number
   bgType: 'none' | 'color'
@@ -67,8 +80,8 @@ export const COLORS: readonly { hex: string; label: MessageKey }[] = [
 const FULL: CropRect = { x: 0, y: 0, w: 1, h: 1 }
 
 const initial = (): UiState => ({
-  phase: 'empty', mode: null, busy: null, pct: 0, soft: 0, tight: 0, cropToSubject: false, fillMode: 'fill', blur: 50, edge: 4, pending: null, redoSize: 0, bgType: 'none',
-  bg: '#ffffff', cmp: 0, error: null, note: null, name: '', dims: '', ready: false, marks: [], markKeep: false,
+  phase: 'empty', mode: null, busy: null, pct: 0, soft: 0, tight: 0, cropToSubject: false, fillMode: 'fill', editFill: 'fill', fillColor: '#ffffff', tab: 'keep', keepSet: [], removeSet: [], blur: 50, edge: 4, pending: null, redoSize: 0, bgType: 'none',
+  bg: '#ffffff', cmp: 0, error: null, note: null, name: '', dims: '', ready: false, marks: [], markKeep: true,
   historySize: 0, done: false, adv: false, crop: FULL, aspect: 'free', frame: 0, editing: false,
 })
 
@@ -102,6 +115,10 @@ export class IsolateController {
   private future: Snapshot[] = []
   /** Bildet før «Fyll med omgivelser»/«Gjør uskarp» og det merkede (så resultatet kan justeres og lages på nytt). */
   private effect: { before: HTMLCanvasElement; mask: Mask } | null = null
+  /** Bildet og masken før siste «Gjennomfør isolering»: et nytt forsøk med andre valg starter herfra (ikke oppå forrige). */
+  private lastRun: { src: HTMLCanvasElement; alpha: Mask | null } | null = null
+  /** Masken da «Finjuster masken» ble åpnet (det som fjernes i redigeringen, finnes ved å sammenligne). */
+  private editStart: Mask | null = null
   private filler = new FillRunner()
   private seed = 0
   private token = 0
@@ -151,6 +168,7 @@ export class IsolateController {
     this.history = []
     this.future = []
     this.effect = null
+    this.lastRun = null
     this.segmenter.forgetImage()
     const clean = name.replace(/\.[^.]+$/, '').replace(/[^\wæøåÆØÅ .-]+/g, '').trim().slice(0, 60) || 'bilde'
     this.set({ ...initial(), phase: 'crop', name: clean, dims: `${canvas.width} × ${canvas.height}`, frame: this.state.get().frame + 1 })
@@ -230,6 +248,7 @@ export class IsolateController {
     this.history = []
     this.future = []
     this.effect = null
+    this.lastRun = null
     this.segmenter.forgetImage()
     this.redraw({ phase: 'work', mode: null, marks: [], busy: null, error: null, note: null, dims: `${src.width} × ${src.height}`, cmp: 0, ready: false, done: false, historySize: 0, redoSize: 0, editing: false, pending: null, edge: defaultGrow(src.width, src.height) })
   }
@@ -262,6 +281,7 @@ export class IsolateController {
     this.history = []
     this.future = []
     this.effect = null
+    this.lastRun = null
     this.redraw({ phase: 'crop', mode: null, marks: [], ready: false, historySize: 0, error: null, note: null, editing: false })
   }
 
@@ -280,19 +300,21 @@ export class IsolateController {
     this.history = [...this.history, c].slice(-20)
     this.future = []
     this.effect = null
+    this.lastRun = null
     this.set({ historySize: this.history.length, redoSize: 0, pending: null })
   }
 
   private back(h: Snapshot) {
     this.token++
     this.effect = null
+    this.lastRun = null
     if (h.src !== this.src) {
       this.src = h.src
       this.segmenter.forgetImage()
     }
     this.alpha = h.alpha
     this.pend = h.pend
-    this.redraw({ historySize: this.history.length, redoSize: this.future.length, marks: h.marks, mode: h.mode, ready: h.ready, note: h.note, markKeep: h.markKeep, error: null, cmp: 0, editing: false, pending: null })
+    this.redraw({ historySize: this.history.length, redoSize: this.future.length, marks: h.marks, mode: h.mode, ready: h.ready, note: h.note, error: null, cmp: 0, editing: false, pending: null })
   }
 
   undo(): void {
@@ -323,6 +345,7 @@ export class IsolateController {
     if (!this.canRestore()) return
     this.snap()
     this.token++
+    this.lastRun = null
     if (this.base && this.src !== this.base) {
       this.src = this.base
       this.segmenter.forgetImage()
@@ -332,31 +355,169 @@ export class IsolateController {
     this.redraw({ mode: null, marks: [], ready: false, note: null, error: null, cmp: 0, busy: null, editing: false })
   }
 
-  // ---------- Hva skal beholdes ----------
+  // ---------- Hva skal beholdes / hva skal fjernes ----------
 
-  private setAlpha(a: Mask, note: MessageKey | null) {
-    this.alpha = a
-    this.redraw({ busy: null, ready: true, error: null, note })
+  /** Bytter fane. Merker i bildet får fanens farge (grønn = behold, rød = fjern). */
+  setTab(tab: 'keep' | 'remove'): void {
+    this.set({ tab, markKeep: tab === 'keep' })
   }
 
-  choose(kind: Kind): void {
+  /** Velger eller fjerner et valg i fanen som vises. Står valget i den andre fanen, flyttes det hit (siste valg gjelder). */
+  toggle(t: Target): void {
     const s = this.state.get()
-    if (!this.src || s.busy) return
-    this.snap()
-    this.pend = null
+    if (s.busy) return
+    const keep = s.tab === 'keep'
+    const mine = keep ? s.keepSet : s.removeSet
+    const other = keep ? s.removeSet : s.keepSet
+    const on = mine.includes(t)
+    const nextMine = on ? mine.filter((x) => x !== t) : [...mine, t]
+    const nextOther = other.filter((x) => x !== t)
+    const note: MessageKey | null = !on && other.includes(t) ? (keep ? 'isolate.run.movedKeep' : 'isolate.run.movedRemove') : null
+    this.set(keep ? { keepSet: nextMine, removeSet: nextOther, note, error: null } : { removeSet: nextMine, keepSet: nextOther, note, error: null })
+  }
+
+  canRun(): boolean {
+    const s = this.state.get()
+    return !!this.src && !s.busy && !s.editing && (s.keepSet.length > 0 || s.removeSet.length > 0 || s.marks.length > 0)
+  }
+
+  /**
+   * «Gjennomfør isolering»: alle valgene i én operasjon, med de eksisterende modellene og «Fyll med omgivelser».
+   * - Er noe valgt under «Behold», blir alt annet gjennomsiktig. Er bare «Fjern» brukt, eller er Bakgrunn valgt under
+   *   «Behold», beholdes alt som ikke er valgt under «Fjern».
+   * - Fjern går foran Behold der de overlapper (en logo på en bakgrunn som beholdes, fjernes).
+   * - Grønne merker beskytter det de treffer. Er ingenting annet valgt, isolerer de det merkede.
+   * - Det som fjernes (typer og røde merker) får valgt metode: fyll med omgivelser, uskarpt, gjennomsiktig eller farge.
+   *   Bakgrunnen blir gjennomsiktig (eller fargen under «Bakgrunn»).
+   * - Objekt er motivet modellen finner, minus personen når Person også er valgt.
+   * - Logo og tekst finnes automatisk når bakgrunnen er ensfarget; ellers merkes de i bildet.
+   * Et nytt forsøk rett etter starter fra bildet før forrige forsøk, så valgene kan endres uten å begynne på nytt.
+   */
+  async run(): Promise<void> {
+    if (!this.canRun() || !this.src) return
+    const s = this.state.get()
+    const base = this.lastRun ?? { src: this.src, alpha: this.alpha }
+    const src = base.src
+    const W = src.width
+    const H = src.height
     const tok = ++this.token
-    this.alpha = null
-    this.redraw({ mode: kind, marks: [], ready: false, error: null, note: null, cmp: 0, editing: false })
-    if (kind === 'logo' || kind === 'text') {
-      const a = colorKey(rgbaOf(this.src), this.src.width, this.src.height)
-      if (a) {
-        this.setAlpha(a, null)
+    const stale = () => tok !== this.token || !this.alive
+    const want = new Set<Target>([...s.keepSet, ...s.removeSet])
+    // Bakgrunn under «Behold»: resten av bildet beholdes (ingen isolering), bare det under «Fjern» fjernes
+    const keepAll = s.keepSet.includes('background')
+    if (keepAll && !s.removeSet.includes('background')) want.delete('background')
+    this.set({ busy: 'run', pct: 0, error: null, note: null })
+    try {
+      const model = async (key: ModelKey): Promise<Mask | null> => {
+        if (stale()) return null
+        this.set({ busy: this.segmenter.isModelLoaded(key) ? 'run' : 'model', pct: 0 })
+        return this.segmenter.removeBackground(key, src, (b) => !stale() && this.set({ busy: b }), (p) => !stale() && this.set({ pct: p }))
+      }
+      let note: MessageKey | null = null
+      const P = want.has('person') ? await model('fast') : null
+      const F = want.has('object') || want.has('background') ? await model('fine') : null
+      let L: Mask | null = null
+      const textish = (t: Target) => t === 'logo' || t === 'text'
+      if (want.has('logo') || want.has('text')) {
+        L = colorKey(rgbaOf(src), W, H)
+        // som før: «Behold logo/tekst» uten ensfarget bakgrunn bruker AI-modellen
+        if (!L && s.keepSet.some(textish)) {
+          L = F ?? (await model('fine'))
+          note = 'isolate.note.notPlain'
+        }
+      }
+      if (stale()) return
+      // Fjerne logo/tekst automatisk bare når fargenøkkelen fant en grafikk: ikke når brukeren har merket den selv, ikke
+      // når «logoen» dekker over halve bildet, er personen/motivet eller har fotofarger (et foto med mørke kanter)
+      if (L && s.removeSet.some(textish)) {
+        const fg = P && F ? maxMask(P, F) : (P ?? F)
+        let n = 0
+        let over = 0
+        for (let i = 0; i < L.length; i++) {
+          if ((L[i] as number) < 128) continue
+          n++
+          if (fg && (fg[i] as number) > 127) over++
+        }
+        if (s.marks.some((m) => !m.keep) || n > 0.5 * W * H || over > 0.3 * n || !isGraphic(rgbaOf(src), L)) L = null
+      }
+      const parts: Record<Target, Mask | null> = { person: P, object: F && P ? subtractMask(F, P) : F, logo: L, text: L, background: null }
+      if (want.has('background') && F) parts.background = invertMask([P, L].reduce<Mask>((a, m) => (m ? maxMask(a, m) : a), F))
+      const union = (ts: readonly Target[]) => ts.reduce<Mask | null>((a, t) => {
+        const m = parts[t]
+        return m ? (a ? maxMask(a, m) : m) : a
+      }, null)
+      let keep = keepAll ? null : union(s.keepSet)
+      let remove = union(s.removeSet.filter((t) => t !== 'background'))
+      let bg = s.removeSet.includes('background') ? parts.background : null
+      const mk = await this.markMasks(src, s.marks, tok)
+      if (!mk || stale()) return
+      if (mk.red) remove = remove ? maxMask(remove, mk.red) : mk.red
+      if (mk.green) {
+        if (keep || (!remove && !bg && !keepAll)) keep = keep ? maxMask(keep, mk.green) : mk.green
+        if (remove) remove = subtractMask(remove, mk.green)
+        if (bg) bg = subtractMask(bg, mk.green)
+      }
+      const logoMissing = s.removeSet.some(textish) && !L && !mk.red
+      if (!hasContent(keep) && !hasContent(remove) && !hasContent(bg)) {
+        if (logoMissing) this.redraw({ busy: null, mode: 'point', tab: 'remove', markKeep: false, error: 'isolate.run.markIt' })
+        else this.set({ busy: null, error: 'isolate.error.nothingFound' })
         return
       }
-      void this.runModel('fine', tok, 'isolate.note.notPlain')
-      return
+      if (logoMissing) note = 'isolate.run.markIt'
+      let alpha = keep ? subtractMask(base.alpha, invertMask(keep)) : base.alpha
+      if (bg) alpha = subtractMask(alpha, bg)
+      const fm = s.fillMode
+      let fx: Mask | null = null
+      if (remove && fm === 'clear') alpha = subtractMask(alpha, remove)
+      else if (remove) {
+        // bare det som fortsatt vises, trenger fyll (resten er gjennomsiktig uansett)
+        const vis = alpha ? subtractMask(remove, invertMask(alpha)) : remove
+        if (hasContent(vis)) fx = vis
+      }
+      this.snap()
+      if (src !== this.src) {
+        this.src = src
+        this.segmenter.forgetImage()
+      }
+      this.alpha = alpha
+      this.pend = null
+      this.lastRun = base
+      const only = s.keepSet.length === 1 && !s.removeSet.length ? s.keepSet[0] : undefined
+      const mode: Mode = only && only !== 'background' ? only : null
+      if (fx && fm !== 'clear') {
+        this.effect = { before: src, mask: fx }
+        this.set({ mode, marks: [] })
+        await this.renderEffect(fm, tok)
+        if (!stale() && !this.state.get().error) this.set({ note: this.state.get().note ?? note ?? 'isolate.run.done' })
+        return
+      }
+      this.redraw({ busy: null, pct: 0, ready: true, marks: [], mode, error: null, note: note ?? 'isolate.run.done' })
+    } catch (e) {
+      if (!stale()) this.set({ busy: null, pct: 0, error: this.offlineOr('isolate.error.model', e) })
     }
-    void this.runModel(kind === 'person' ? 'fast' : 'fine', tok, null)
+  }
+
+  /** Maskene fra «Merk i bildet»: rødt (fjern) og grønt (behold). null = avbrutt. */
+  private async markMasks(src: HTMLCanvasElement, marks: readonly Mark[], tok: number): Promise<{ red: Mask | null; green: Mask | null } | null> {
+    const W = src.width
+    const H = src.height
+    let red = pendingMask(marks, W, H)
+    let green: Mask | null = null
+    const phase = (busy: Phase) => tok === this.token && this.set({ busy })
+    const pct = (n: number) => tok === this.token && this.set({ pct: n })
+    const negatives = marks.flatMap((m) => (m.keep && m.type === 'point' ? [{ x: m.x, y: m.y }] : []))
+    for (const m of marks) {
+      if (m.type === 'box' && m.km) {
+        if (m.keep) applyKeyMask((green ??= new Uint8ClampedArray(W * H)), W, m.km, false)
+        continue
+      }
+      const k = await this.segmenter.samMask(src, m.type === 'box' ? { box: m } : { points: [{ x: m.x, y: m.y, label: 1 }] }, m.keep ? [] : negatives, phase, pct)
+      if (tok !== this.token || !this.alive) return null
+      if (!k) continue
+      if (m.keep) green = green ? maxMask(green, k) : k
+      else red = red ? maxMask(red, k) : k
+    }
+    return { red: hasContent(red) ? red : null, green }
   }
 
   private offlineOr(key: MessageKey, e?: unknown): MessageKey {
@@ -364,29 +525,17 @@ export class IsolateController {
     return e instanceof StallError ? 'isolate.error.stalled' : key
   }
 
-  private async runModel(key: 'fine' | 'fast', tok: number, note: MessageKey | null) {
-    const src = this.src
-    if (!src) return
-    this.set({ busy: this.segmenter.isModelLoaded(key) ? 'run' : 'model', pct: 0 })
-    try {
-      const a = await this.segmenter.removeBackground(key, src, (busy) => tok === this.token && this.set({ busy }), (pct) => tok === this.token && this.set({ pct }))
-      if (tok !== this.token || !this.alive) return
-      this.setAlpha(a, note)
-    } catch (e) {
-      if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.model', e) })
-    }
-  }
-
   // ---------- Merk i bildet ----------
 
   startMarking(): void {
     const s = this.state.get()
     if (s.busy || s.mode === 'point') return
-    this.redraw({ mode: 'point', marks: [], markKeep: false, error: null, note: null, editing: false })
+    this.redraw({ mode: 'point', marks: [], error: null, note: null, editing: false })
   }
 
+  /** Fjern/Behold i «Merk i bildet» er det samme som fanene. */
   setMarkKeep(keep: boolean): void {
-    this.set({ markKeep: keep })
+    this.setTab(keep ? 'keep' : 'remove')
   }
 
   /** Avsluttet trykk eller firkant i bildet. `rightButton` gir motsatt farge. */
@@ -394,7 +543,8 @@ export class IsolateController {
     const src = this.src
     const s = this.state.get()
     if (!src || s.busy) return
-    const keep = rightButton ? !(s.mode === 'point' && s.markKeep) : s.mode === 'point' && s.markKeep
+    // fargen følger fanen: grønn under «Hva skal beholdes», rød under «Hva skal fjernes»
+    const keep = rightButton ? !s.markKeep : s.markKeep
     const x0 = Math.min(start.x, end.x)
     const x1 = Math.max(start.x, end.x)
     const y0 = Math.min(start.y, end.y)
@@ -424,7 +574,7 @@ export class IsolateController {
     const marks = [...(into ? s.marks : []), m]
     this.snap()
     this.pend = pendingMask(marks, src.width, src.height)
-    this.redraw({ mode: 'point', marks, markKeep: into ? s.markKeep : false, error: null, note: into ? s.note : null })
+    this.redraw({ mode: 'point', marks, error: null, note: into ? s.note : null })
   }
 
   clearMarks(): void {
@@ -435,80 +585,27 @@ export class IsolateController {
     this.redraw({ marks: [], error: null })
   }
 
-  canApply(): boolean {
-    const s = this.state.get()
-    return !!this.src && !s.busy && s.mode === 'point' && s.marks.some((m) => !m.keep)
-  }
-
-  /** «Fjern»: fjerner det som er merket rødt – gjennomsiktig, eller fylt med omgivelsene. */
-  async apply(): Promise<void> {
-    if (!this.canApply()) return
-    this.snap()
-    const tok = ++this.token
-    const marks = this.state.get().marks
-    const src = this.src
-    if (!src) return
-    try {
-      let r: Mask | null = this.pend ? new Uint8ClampedArray(this.pend) : null
-      const aiRed = marks.filter((m) => !m.keep && !(m.type === 'box' && m.km))
-      const aiGreen = marks.filter((m): m is Extract<Mark, { type: 'box' }> => m.keep && m.type === 'box' && !m.km)
-      if (aiRed.length || (r && aiGreen.length)) {
-        const phase = (busy: Phase) => tok === this.token && this.set({ busy })
-        const pct = (n: number) => tok === this.token && this.set({ pct: n })
-        const negatives = marks.filter((m) => m.keep && m.type === 'point').map((m) => ({ x: (m as { x: number }).x, y: (m as { y: number }).y }))
-        for (const m of aiRed) {
-          const k = await this.segmenter.samMask(src, m.type === 'box' ? { box: m } : { points: [{ x: m.x, y: m.y, label: 1 }] }, negatives, phase, pct)
-          if (tok !== this.token || !this.alive) return
-          if (k) r = r ? maxMask(r, k) : k
-        }
-        for (const m of aiGreen) {
-          if (!r) break
-          const k = await this.segmenter.samMask(src, { box: m }, [], phase, pct)
-          if (tok !== this.token || !this.alive) return
-          if (k) r = subtractMask(r, k)
-        }
-        if (r) for (const m of marks) if (m.type === 'box' && m.km && m.keep) applyKeyMask(r, src.width, m.km, true)
-      }
-      if (!hasContent(r)) {
-        this.set({ busy: null, error: 'isolate.error.nothingFound' })
-        return
-      }
-      const fm = this.state.get().fillMode
-      if (fm !== 'clear') {
-        // originalen ligger i historikken (Angre/Avbryt) og i `effect` (justering, nytt forsøk)
-        this.effect = { before: src, mask: r }
-        this.pend = null
-        await this.renderEffect(fm, tok)
-        return
-      }
-      this.alpha = subtractMask(this.alpha, r)
-      this.pend = null
-      this.redraw({ busy: null, ready: true, marks: [], error: null, note: null })
-    } catch (e) {
-      if (tok === this.token && this.alive) this.set({ busy: null, error: this.offlineOr('isolate.error.notFound', e) })
-    }
-  }
-
   // ---------- Fyll med omgivelser / gjør uskarp ----------
 
   /**
    * Lager resultatet fra bildet før endringen (aldri fra et tidligere resultat): «Fyll med omgivelser» med AI i egen
    * tråd (engine/fill.ts), «Gjør uskarp» direkte. Resultatet er et nytt lerret; originalen endres aldri.
    */
-  private async renderEffect(kind: 'fill' | 'blur', tok: number): Promise<void> {
+  private async renderEffect(kind: 'fill' | 'blur' | 'color', tok: number): Promise<void> {
     const e = this.effect
     if (!e) return
     const s = this.state.get()
     const W = e.before.width
     const H = e.before.height
     const out = cloneCanvas(e.before)
-    if (kind === 'blur') {
+    if (kind !== 'fill') {
       const rgba = rgbaOf(out)
-      blurArea(rgba, W, H, e.mask, s.blur, s.edge)
+      if (kind === 'blur') blurArea(rgba, W, H, e.mask, s.blur, s.edge)
+      else colorArea(rgba, W, H, e.mask, s.fillColor, s.edge)
       putRgba(out, rgba)
       this.src = out
       this.segmenter.forgetImage()
-      this.redraw({ busy: null, pct: 0, ready: true, marks: [], error: null, note: null, pending: 'blur' })
+      this.redraw({ busy: null, pct: 0, ready: true, marks: [], error: null, note: null, pending: kind })
       return
     }
     this.set({ busy: 'fill', pct: 0, error: null })
@@ -538,6 +635,7 @@ export class IsolateController {
   /** «Bruk»: beholder resultatet (originalen ligger fortsatt i historikken, så Angre virker). */
   acceptEffect(): void {
     this.effect = null
+    this.lastRun = null
     this.set({ pending: null })
   }
 
@@ -563,10 +661,15 @@ export class IsolateController {
     if (!src || s.busy || s.editing) return
     this.snap()
     this.token++
+    this.lastRun = null
+    // det som fjernes i redigeringen, finnes ved å sammenligne med masken nå. Er bakgrunnen allerede fjernet, er
+    // «Gjennomsiktig» forhåndsvalgt (rydde kantene); ellers «Fyll med omgivelser» (fjerne noe fra bildet).
+    this.editStart = this.alpha
+    const cut = !!this.alpha && this.alpha.some((v) => v < 128)
     this.alpha = this.alpha ? new Uint8ClampedArray(this.alpha) : new Uint8ClampedArray(src.width * src.height).fill(255)
     this.pend = null
     this.refined = null
-    this.redraw({ editing: true, mode: s.mode === 'point' ? null : s.mode, marks: [], ready: true, error: null, cmp: 0 })
+    this.redraw({ editFill: cut ? 'clear' : 'fill', editing: true, mode: s.mode === 'point' ? null : s.mode, marks: [], ready: true, error: null, cmp: 0 })
   }
 
   /** Masken som redigeres (endres direkte av redigeringen) og bildet. */
@@ -580,8 +683,32 @@ export class IsolateController {
     if (!this.state.get().ready) this.set({ ready: true })
   }
 
+  /**
+   * «Ferdig»: det som ble fjernet i redigeringen, får valgt metode. «Gjennomsiktig» lar masken stå. «Fyll med
+   * omgivelser» og «Farge» gjør området synlig igjen og fyller det (forhåndsvisning med Bruk, Lag på nytt, Avbryt og
+   * kant, som under «Merk i bildet»). «Avbryt» gir redigeringen med området gjennomsiktig.
+   */
   endEdit(): void {
+    const s = this.state.get()
+    const src = this.src
+    const start = this.editStart
+    this.editStart = null
     this.refined = null
+    const a = this.alpha
+    if (s.editFill !== 'clear' && src && a && !s.busy) {
+      const gone = new Uint8ClampedArray(a.length)
+      for (let i = 0; i < a.length; i++) gone[i] = Math.max(0, (start ? (start[i] as number) : 255) - (a[i] as number))
+      if (hasContent(gone)) {
+        this.redraw({ editing: false })
+        this.snap()
+        const back = new Uint8ClampedArray(a)
+        for (let i = 0; i < a.length; i++) if (gone[i]) back[i] = start ? (start[i] as number) : 255
+        this.alpha = back
+        this.effect = { before: src, mask: gone }
+        void this.renderEffect(s.editFill, ++this.token)
+        return
+      }
+    }
     this.redraw({ editing: false })
   }
 
@@ -602,8 +729,15 @@ export class IsolateController {
 
   // ---------- Finjustering, bakgrunn, visning ----------
 
-  setOption(patch: Partial<Pick<UiState, 'soft' | 'tight' | 'cropToSubject' | 'fillMode' | 'bgType' | 'bg' | 'cmp' | 'adv' | 'done'>>): void {
+  setOption(patch: Partial<Pick<UiState, 'soft' | 'tight' | 'cropToSubject' | 'fillMode' | 'editFill' | 'bgType' | 'bg' | 'cmp' | 'adv' | 'done'>>): void {
     this.redraw(patch)
+  }
+
+  /** Fargen for «Farge». Vises et fargeresultat, lages det på nytt med den nye fargen. */
+  setFillColor(fillColor: string): void {
+    const s = this.state.get()
+    this.set({ fillColor })
+    if (this.effect && s.pending === 'color' && !s.busy) void this.renderEffect('color', ++this.token)
   }
 
   private refinedMask() {
@@ -772,6 +906,7 @@ export class IsolateController {
     this.history = []
     this.future = []
     this.effect = null
+    this.lastRun = null
     this.pend = null
     this.alpha = null
     this.out = null
@@ -789,6 +924,7 @@ export class IsolateController {
     this.history = []
     this.future = []
     this.effect = null
+    this.lastRun = null
     this.segmenter.forgetImage()
     this.set({ ...initial(), frame: this.state.get().frame + 1 })
   }
@@ -812,5 +948,6 @@ export class IsolateController {
     this.history = []
     this.future = []
     this.effect = null
+    this.lastRun = null
   }
 }

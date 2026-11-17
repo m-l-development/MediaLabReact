@@ -69,3 +69,29 @@ export function blurArea(rgba: Uint8ClampedArray, W: number, H: number, remove: 
   }
   return true
 }
+
+/**
+ * «Farge»: fyller det merkede med én farge (#rrggbb), utvidet med `grow` piksler og med 1 px myk kant.
+ * Samme maskeregler som «Gjør uskarp». Endrer `rgba` på stedet. Returnerer false hvis masken er tom.
+ */
+export function colorArea(rgba: Uint8ClampedArray, W: number, H: number, remove: Mask, hex: string, grow = 0): boolean {
+  const seed = new Uint8Array(W * H)
+  let any = false
+  for (let i = 0; i < seed.length; i++) {
+    if ((remove[i] ?? 0) > 20) {
+      seed[i] = 1
+      any = true
+    }
+  }
+  if (!any) return false
+  const v = parseInt(hex.replace('#', ''), 16) || 0
+  const col = [(v >> 16) & 255, (v >> 8) & 255, v & 255]
+  const d = distance(seed, W, H)
+  for (let i = 0; i < seed.length; i++) {
+    const di = (d[i] as number) - grow
+    const t = di <= 0 ? 1 : di >= 1 ? 0 : 1 - di
+    if (!t) continue
+    for (let c = 0; c < 3; c++) rgba[i * 4 + c] = Math.round((rgba[i * 4 + c] as number) * (1 - t) + (col[c] as number) * t)
+  }
+  return true
+}

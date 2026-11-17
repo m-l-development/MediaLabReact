@@ -151,3 +151,22 @@ export function cropBox(box: [number, number, number, number], W: number, H: num
   const y = Math.max(0, y0 - pad)
   return { x, y, w: Math.min(W, x1 + pad + 1) - x, h: Math.min(H, y1 + pad + 1) - y }
 }
+
+/**
+ * Er det maskerte en grafikk (logo/tekst: få flate farger) og ikke et foto? Minst 80 % av pikslene i masken skal ha en
+ * av de 16 vanligste fargene (4 bit per kanal). Brukes før «Fjern logo/tekst» fjerner det fargenøkkelen fant.
+ */
+export function isGraphic(rgba: Uint8ClampedArray, mask: Mask): boolean {
+  const counts = new Map<number, number>()
+  let n = 0
+  for (let i = 0; i < mask.length; i++) {
+    if ((mask[i] as number) < 128) continue
+    const p = i * 4
+    const k = (((rgba[p] as number) >> 4) << 8) | (((rgba[p + 1] as number) >> 4) << 4) | ((rgba[p + 2] as number) >> 4)
+    counts.set(k, (counts.get(k) ?? 0) + 1)
+    n++
+  }
+  if (!n) return false
+  const top = [...counts.values()].sort((a, b) => b - a).slice(0, 16).reduce((a, b) => a + b, 0)
+  return top >= 0.8 * n
+}

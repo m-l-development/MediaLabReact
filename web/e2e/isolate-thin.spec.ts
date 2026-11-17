@@ -56,6 +56,7 @@ test('tynn ledning: beholdes av etterbehandlingen, «Følg kantene» tar den ute
   await (await chooser).setFiles({ name: 'ledning.png', mimeType: 'image/png', buffer: IMG })
   await page.getByRole('button', { name: 'Hopp over' }).click()
   await page.getByRole('button', { name: /^Logo/ }).click()
+  await page.locator('[data-run]').click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled()
   let a = await exported(page, info.outputPath('0.png'), [[450, 300], [750, 300], [750, 301], [750, 298], [950, 300]])
   expect(a, 'motiv og ledning beholdes, bakgrunnen ved ledningen fjernes').toEqual([255, 255, 255, 0, 0])
