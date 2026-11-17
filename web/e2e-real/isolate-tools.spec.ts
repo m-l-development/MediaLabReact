@@ -29,6 +29,7 @@ test('Person + «Velg objekt» og pensel: hele personene og detaljene beholdes, 
   await (await chooser).setFiles({ name: 'fredag.jpg', mimeType: 'image/jpeg', buffer: PHOTO })
   await page.getByRole('button', { name: 'Hopp over' }).click()
   await page.getByRole('button', { name: /^Person/ }).click()
+  await page.locator('[data-run]').click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled({ timeout: 240_000 })
 
   await page.locator('[data-mask-open]').click()

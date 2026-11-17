@@ -22,6 +22,8 @@ import { mediaIdOf, MdRepo } from './repo'
 import { tr, useTx, type Phrase, type Vars } from './texts'
 import { grantLegacyFolders, importLegacyMotion } from './transfer'
 import s from './MotionDesign.module.css'
+import { useIsolatePopup } from '../isolate-subject/useIsolatePopup'
+import { popupOpen } from '../../shared/lib/popup'
 
 function download(b: Blob, name: string) {
   const a = document.createElement('a')
@@ -55,6 +57,12 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
   const modeRef = useRef<FileMode>('lib')
   const pendingAsset = useRef<string | null>(null)
   const [canFolders] = useState(foldersSupported)
+  // «Isoler motiv …»: popupen med hele Isolate Subject (kontrolleren når den gjennom en ref)
+  const iso = useIsolatePopup()
+  const isoOpen = useRef(iso.open)
+  useEffect(() => {
+    isoOpen.current = iso.open
+  }, [iso.open])
 
   const [parts] = useState(() => {
     const repo = new MdRepo(projects)
@@ -63,6 +71,7 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
     const c = new MotionController({
       repo,
       files,
+      isolate: (blob, name, apply) => isoOpen.current(blob, name, apply),
       storage: { get: (k) => userStore.get(k), set: (k, v) => void userStore.set(k, v) },
       confirm: (p, v) => window.confirm(say(p, v)),
       t: say,
@@ -150,7 +159,8 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
 
   // Tastatur, aktivitet (for tegnefrekvens) og ulagrede endringer
   useEffect(() => {
-    const key = (e: KeyboardEvent) => c.onKey(e)
+    // ikke mens «Isoler motiv»-popupen er åpen over editoren (Delete skulle ellers slette klippet bak)
+    const key = (e: KeyboardEvent) => { if (!popupOpen()) c.onKey(e) }
     const poke = () => c.poke()
     const hide = () => {
       if (c.dirty && c.s.autosave) void c.saveNow()
@@ -181,6 +191,7 @@ export default function MotionDesign({ query, registerLifecycle }: ToolProps) {
   return (
     <div className={s.tool} data-md-view={S.ready ? S.view : 'loading'}>
       {!S.ready && <div className={s.loading}>{tx('LASTER …')}</div>}
+      {iso.popup}
       {S.ready && S.view !== 'edit' && (
         <Home c={c} S={S} tx={tx} folders={canFolders} onOpenFile={() => projInput.current?.click()}
           onGrantWaiting={() => {

@@ -14,6 +14,8 @@ import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
 import { formatKeys } from '../../shared/ui/shortcuts'
 import { MoreButton } from '../../shared/ui/MoreButton'
 import { useStageNav } from '../../shared/lib/useStageNav'
+import { popupOpen } from '../../shared/lib/popup'
+import { useIsolatePopup } from '../isolate-subject/useIsolatePopup'
 import { AssetPicker } from '../media-library/AssetPicker'
 import { CloudPicker } from '../cloud-picker/CloudPicker'
 import type { MockupCategory, MockupEntry } from './engine/catalog'
@@ -183,6 +185,9 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
     return () => clearTimeout(id)
   }, [toast])
 
+  const iso = useIsolatePopup()
+  const isolate = design ? () => iso.open(design.blob, design.name, (png, name) => applyDesign(png, name, null)) : undefined
+
   function applyDesign(blob: Blob, name: string, assetId: AssetId | null) {
     void readDesign(blob, name, assetId).then((r) => {
       if (!r.ok) return setToast(t(r.error))
@@ -211,6 +216,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
   // Lim inn bilde som design
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
+      if (popupOpen()) return
       const file = pastedImage(e)
       if (file) {
         e.preventDefault()
@@ -302,6 +308,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           onOpen={open}
           onUpload={() => fileInput.current?.click()}
           onPick={() => setPicking(true)}
+          onIsolate={isolate}
           onClearDesign={removeDesign}
           onAddOwn={() => ownInput.current?.click()}
           onToast={setToast}
@@ -320,6 +327,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
           onOpen={open}
           onUpload={() => fileInput.current?.click()}
           onPick={() => setPicking(true)}
+          onIsolate={isolate}
           onToast={setToast}
           onDesignAsset={(assetId) => setDesign((d) => (d ? { ...d, assetId } : d))}
           dragOver={dragOver}
@@ -336,6 +344,7 @@ export default function Mockups({ query, registerLifecycle }: ToolProps) {
         />
       )}
 
+      {iso.popup}
       {toast && <div className={styles.toast} role="status">{toast}</div>}
       {pickingLogo && (
         <CloudPicker title="cloud.pickLogo" start="ressurser" onClose={() => setPickingLogo(false)}
@@ -358,12 +367,13 @@ interface GalleryProps {
   onOpen: (id: string) => void
   onUpload: () => void
   onPick: () => void
+  onIsolate?: (() => void) | undefined
   onClearDesign: () => void
   onAddOwn: () => void
   onToast: (s: string) => void
 }
 
-function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, settingsOf, onOpen, onUpload, onPick, onClearDesign, onAddOwn, onToast }: GalleryProps) {
+function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, settingsOf, onOpen, onUpload, onPick, onIsolate, onClearDesign, onAddOwn, onToast }: GalleryProps) {
   const [cardMenu, setCardMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null)
   const t = useT()
   const count = (c: 'all' | MockupCategory) => (c === 'all' ? allEntries.length : allEntries.filter((m) => m.cat === c).length)
@@ -374,6 +384,7 @@ function Gallery({ entries, allEntries, loading, cat, setCat, lib, design, setti
       <div className={styles.row}>
         <Button variant="primary" onClick={onUpload}>{design ? t('mockups.replace') : t('mockups.upload')}</Button>
         <Button variant="ghost" onClick={onPick}>{t('mockups.fromMedia')}</Button>
+        {onIsolate && <Button variant="ghost" onClick={onIsolate} data-isolate-open="">{t('isolate.embed.open')}</Button>}
         {design && (
           <span className={styles.designChip}>
             <span className={styles.designThumb} style={{ backgroundImage: `url("${design.url}")` }} />
@@ -471,6 +482,7 @@ interface EditorProps {
   onOpen: (id: string | null) => void
   onUpload: () => void
   onPick: () => void
+  onIsolate?: (() => void) | undefined
   onToast: (s: string) => void
   onDesignAsset: (id: AssetId) => void
   dragOver: boolean
@@ -488,7 +500,7 @@ interface EditorProps {
   onGesture: (on: boolean) => void
 }
 
-function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove, onClearDesign, canUndo, onUndo, canRedo, onRedo, onGesture }: EditorProps) {
+function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, onUpload, onPick, onIsolate, onToast, onDesignAsset, dragOver, logo, onLogoUpload, onLogoCloud, onLogoRemove, onClearDesign, canUndo, onUndo, canRedo, onRedo, onGesture }: EditorProps) {
   const t = useT()
   const { router } = useServices()
   const { assets } = useWorkspace()
@@ -526,6 +538,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
   // Tastatur: piltaster bytter bilde, Esc lukker hjørnejustering eller går til galleriet.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (popupOpen()) return
       const el = e.target as HTMLElement | null
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (el as HTMLInputElement).type !== 'range') return
       // angre: Ctrl/Cmd + Z (ikke mens man skriver i et felt)
@@ -1060,6 +1073,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
           <div className={styles.row}>
             <Button size="small" onClick={onUpload}>{design ? t('mockups.replace') : t('mockups.upload')}</Button>
             <Button size="small" variant="ghost" onClick={onPick}>{t('mockups.fromMedia')}</Button>
+            {onIsolate && <Button size="small" variant="ghost" onClick={onIsolate} data-isolate-open="">{t('isolate.embed.open')}</Button>}
           </div>
 
           <h2 className={styles.section}>{t('mockups.section.logo')}</h2>

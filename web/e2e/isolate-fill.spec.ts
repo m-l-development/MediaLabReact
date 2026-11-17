@@ -54,8 +54,9 @@ async function markText(page: Page, mode: 'Fyll med omgivelser' | 'Gjør uskarp'
   await page.getByRole('button', { name: /Slipp et bilde her/ }).click()
   await (await chooser).setFiles({ name: 'tekst.png', mimeType: 'image/png', buffer: png(W, H, (x, y) => (inText(x, y) ? [250, 210, 20, 255] : [stripe(x), stripe(x), stripe(x), 255])) })
   await page.getByRole('button', { name: 'Hopp over' }).click()
+  await page.locator('[data-tab="remove"]').click()
   await page.getByRole('button', { name: /^Merk i bildet/ }).click()
-  await page.locator('[data-fill-mode]').getByRole('button', { name: mode, exact: true }).click()
+  await page.locator('[data-fill-mode="mark"]').getByRole('button', { name: mode, exact: true }).click()
   const canvas = page.locator('main canvas').first()
   await canvas.scrollIntoViewIfNeeded()
   const box = await canvas.boundingBox()
@@ -65,7 +66,7 @@ async function markText(page: Page, mode: 'Fyll med omgivelser' | 'Gjør uskarp'
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5, { steps: 5 })
   await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.6, { steps: 5 })
   await page.mouse.up()
-  await page.locator('[data-mark-apply]').click()
+  await page.locator('[data-run]').click()
 }
 
 test('Fyll med omgivelser: teksten er borte og stripene fortsetter; Bruk, Angre og Gjør om', async ({ page }, info) => {

@@ -4,7 +4,7 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `bc85eb7` (merge av `3607771`: tekstredigering i alle editorene; Release verify grønn 2026-11-17). Kontroller før
+**Siste kjente produksjonscommit:** `b9d94cb` (merge av `f8b78f7`: zoom bare med Shift + hjul / knip; Release verify grønn 2026-11-17). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
 **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
@@ -41,6 +41,9 @@ WebKit på Windows tegner VARIABLE fonter i grunnvekten (også i dagens app) –
 lagrer; Loop har sin egen fra før – nå Enter = linjeskift i felt med flere linjer, Ctrl/⌘+Enter lagrer, panelet oppdateres
 mens man skriver). Motion: dobbeltklikk på tekst = redigering (flytt/skaler via «Transformer» i lagmenyen). Test:
 `e2e/text-edit.spec.ts` (PC+mobil, begge retninger, linjeskift, lagring). Bilde-i-tekst er IKKE endret (venter på eier).
+**FERDIG (2026-11-17, i produksjon b9d94cb):** zoom – felles regel `shared/lib/workspace-nav.wheelAction`: Shift + hjul
+(og Ctrl/⌘ + hjul / knip på styreflaten) zoomer ved pekeren, vanlig hjul ruller; knip med to fingre (useStageNav, Loop,
+Motions tidslinje). Motion: Shift + hjul zoomer tidslinjen. Test: `e2e/zoom-gestures.spec.ts`, `e2e/workspace-nav.spec.ts`.
 Vercel: `media-lab/build/web-app.js` kjører nå npm ci når en avhengighet mangler (hurtigbufferen manglet html-to-image).
 - Eierens lokale filer holdes ALLTID utenfor: `web/e2e-dev/mockups-cloud-logo-dev.spec.ts`,
   `web/e2e/feature-gaps-2.spec.ts`, `web/e2e/site-pages.spec.ts`.

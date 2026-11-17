@@ -242,6 +242,7 @@ export function Props({ c, S, tx, pickFile }: { c: PhotoController; S: PState; t
             <>
               <div className={s.row2}>
                 <button type="button" className={s.smallBtn} onClick={() => pickFile(L.id)}>{tx('Bytt bilde')}</button>
+                {L.src && c.canIsolate && <button type="button" className={s.smallBtn} data-isolate-open="" onClick={() => void c.isolateLayer(L.id)}>{tx('Isoler motiv …')}</button>}
                 <button type="button" className={S.tool === 'crop' ? s.smallBtnOn : s.smallBtn} onClick={() => c.ui({ tool: S.tool === 'crop' ? 'move' : 'crop' })}>{tx(S.tool === 'crop' ? 'Ferdig' : 'Beskjær')}</button>
                 <button type="button" className={s.smallBtn} onClick={() => P({ x: d.w / 2, y: d.h / 2, w: d.w, h: d.h, rot: 0 })}>{tx('Fyll lerretet')}</button>
                 <button type="button" className={s.smallBtn} onClick={() => P({ flipX: !L.flipX })}>{tx('Speil')}</button>

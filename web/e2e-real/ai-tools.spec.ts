@@ -30,6 +30,7 @@ async function openMark(page: Page) {
   await page.getByRole('button', { name: /Slipp et bilde her/ }).click()
   await (await chooser).setFiles({ name: 'mobil.jpg', mimeType: 'image/jpeg', buffer: PHOTO })
   await page.getByRole('button', { name: 'Hopp over' }).click()
+  await page.locator('[data-tab="remove"]').click()
   await page.getByRole('button', { name: /^Merk i bildet/ }).click()
 }
 async function clickAt(page: Page, [x, y]: [number, number]) {
@@ -37,7 +38,7 @@ async function clickAt(page: Page, [x, y]: [number, number]) {
   if (!box) throw new Error('fant ikke lerretet')
   await page.mouse.click(box.x + box.width * x, box.y + box.height * y)
 }
-const removeBtn = (page: Page) => page.getByRole('button', { name: 'Fjern', exact: true }).last()
+const removeBtn = (page: Page) => page.locator('[data-run]')
 async function applyAndDownload(page: Page, file: string) {
   await removeBtn(page).click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled({ timeout: 240_000 })

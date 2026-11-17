@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { popupOpen } from './popup'
 import { anchorScroll, isTypingTarget, wheelAction } from './workspace-nav'
 
 /**
@@ -222,6 +223,7 @@ export function useStageNav(o: {
       view.current.st = st.scrollTop
     }
     const key = (e: KeyboardEvent) => {
+      if (popupOpen(st)) return
       if (e.type === 'keydown' && latest.current.enabled !== false && !isTypingTarget(e.target) && !document.querySelector('[data-ctx-menu]')) {
         const inside = st.contains(document.activeElement) || over.current
         if (inside && e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'Digit2') {

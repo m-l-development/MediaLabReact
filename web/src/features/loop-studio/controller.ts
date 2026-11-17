@@ -37,6 +37,7 @@ type DragEv = { dataTransfer: DataTransfer | null; clientX: number; currentTarge
 import type { DiskEntry, LoopMediaStore, LoopRepo, WorkData } from './store'
 import { loadMuxer, loadQr, loadTesseract, type QrFactory } from './engine/vendor'
 import { buildQrUrl } from '../../shared/qr/qr'
+import { popupOpen } from '../../shared/lib/popup'
 
 /** Synlig høyde på mobil (iPhone: 100vh er høyere enn det som synes når Safaris linjer vises): dvh der det støttes. */
 const VH = typeof CSS !== "undefined" && CSS.supports?.("height", "100dvh") ? "dvh" : "vh"
@@ -151,6 +152,8 @@ type Upd = Partial<State> | null | ((s: State) => Partial<State> | null)
 
 /** Det kontrolleren trenger fra appen. */
 export interface LoopDeps {
+  /** «Isoler motiv …»: hele Isolate Subject i en popup med bildet; `apply` får PNG-en ved «Ferdig – sett inn». */
+  isolate?(blob: Blob, name: string, apply: (png: Blob, name: string) => void): void
   /** Oversetter en norsk tekst (samme tekster som dagens app). */
   t: (s: string) => string
   lang: () => 'no' | 'en'
@@ -391,7 +394,9 @@ export class LoopController {
 
   private on<K extends keyof WindowEventMap>(t: Window, type: K, fn: (e: WindowEventMap[K]) => void, opt?: boolean | AddEventListenerOptions): void
   private on<K extends keyof DocumentEventMap>(t: Document, type: K, fn: (e: DocumentEventMap[K]) => void, opt?: boolean | AddEventListenerOptions): void
-  private on(t: Window | Document, type: string, fn: (e: Event) => void, opt?: boolean | AddEventListenerOptions) {
+  private on(t: Window | Document, type: string, fn0: (e: Event) => void, opt?: boolean | AddEventListenerOptions) {
+    // mens «Isoler motiv»-popupen er åpen over editoren, reagerer ikke Loop på taster og innliming (shared/lib/popup)
+    const fn = type === 'keydown' || type === 'keyup' || type === 'paste' ? (e: Event) => { if (!popupOpen()) fn0(e) } : fn0
     t.addEventListener(type, fn, opt)
     this.listeners.push(() => t.removeEventListener(type, fn, opt))
   }
@@ -1561,6 +1566,20 @@ export class LoopController {
     this.p = null
     return (this.r = { all, active: all.filter((s) => !s.hidden) })
   }
+  /** «Isoler motiv …» på et bilde (bakgrunnen eller bilde-i-bilde nr. `pip`): resultatet erstatter bildet. */
+  async isolateImg(pip: number | null = null): Promise<void> {
+    const sid = this.state.selected
+    const sl = this.state.slides.find((x) => x.id === sid)
+    const ref = pip == null ? this.bgOf(sl) : sl?.pips?.[pip]?.src
+    if (!sid || !ref || !this.deps.isolate) return
+    const blob = await this.blobOf(ref)
+    if (!blob) return
+    this.deps.isolate(blob, pip == null ? 'bakgrunn' : 'bilde', (png, name) => {
+      const f = new File([png], name, { type: 'image/png' })
+      void (pip == null ? this.applyBg(f) : this.applyPip(f, { id: sid, i: pip }))
+    })
+  }
+
   bgOf(x: Slide | null | undefined): string | null {
     return !x ? null : this.portrait() ? x.bgPort || x.bg || null : x.bg || null
   }
@@ -2589,6 +2608,10 @@ export class LoopController {
     if (f) { f = await this.cropImage(f, { aspect: this.portrait() ? '9:16' : '16:9', title: 'Beskjær bakgrunnsbildet' }); if (!f) return }
     if (f) { f = await this.shrinkImg(f, 5120); if (!f) return }
     if (!f) return
+    await this.applyBg(f)
+  }
+  /** Nytt bakgrunnsbilde på valgt slide (etter beskjæring, eller fra «Isoler motiv …»). */
+  async applyBg(f: File): Promise<void> {
     const sid = this.state.selected
     if (!sid) return
     const id = await this.storeImage(f)
@@ -2880,7 +2903,10 @@ export class LoopController {
     if (!f) return
     f = await this.shrinkImg(f, 3000)
     if (!f) return
-    const tg = this.pipTarget || { id: this.state.selected, i: null }
+    await this.applyPip(f, this.pipTarget || { id: this.state.selected, i: null })
+  }
+  /** Bilde-i-bilde: nytt eller byttet bilde (etter beskjæring, eller fra «Isoler motiv …»). */
+  async applyPip(f: File, tg: { id: string | null; i: number | null }): Promise<void> {
     const tid = tg.id
     if (!tid) return
     // sliden kan ha forsvunnet mens bildet ble valgt og beskåret (angre, nytt program): si fra i stedet for å forkaste stille
@@ -4398,6 +4424,7 @@ export class LoopController {
       f, on, hasQr: !!qr, qrImgCss: qr ? cssUrl(qr.img) : 'none',
       hasBg, noBg: !hasBg, selBgCss: hasBg ? cssUrl(S.urls[this.bgOf(sel) ?? ''] ?? this.bgOf(sel)) : 'none',
       pickImg: () => this.fileImg.current?.click(),
+      isoBg: hasBg && this.deps.isolate ? () => void this.isolateImg(null) : null,
       pickSharedImg: () => { void this.deps.pickLibrary().then((file) => { if (file) void this.onImgFile({ target: { files: [file], value: '' } }) }) },
       ...(() => {
         const o = orig, hv = !!o?.vid, snd = !o || o.vidSound !== false, mus = !!o?.vidMusic
@@ -4900,6 +4927,7 @@ export class LoopController {
             { label: 'Skygge', ...chip(p.shadow !== false), onClick: () => updP(i, { shadow: p.shadow === false }) },
             { label: 'Midtstill', ...chip(false), onClick: () => updP(i, { x: 0.5, y: 0.5 }) },
             { label: 'Bytt bilde', ...chip(false), onClick: () => this.addPipFor(sl.id, i) },
+            ...(this.deps.isolate ? [{ label: 'Isoler motiv …', ...chip(false), onClick: () => void this.isolateImg(i) }] : []),
             { label: 'Fjern', ...chip(false), onClick: () => this.removePip(sl.id, i) },
           ],
         }

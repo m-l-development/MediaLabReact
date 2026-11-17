@@ -173,6 +173,8 @@ export interface Deps {
   cutout(src: string, kind: 'person' | 'object', onProgress: (phase: 'model' | 'run', pct: number) => void): Promise<string>
   /** Henter et bilde fra en annen kilde (f.eks. menighetens filer, ch:) inn i Dine medier (m:), så AI-utklipp og finjustering virker. */
   toLocal?(src: string): Promise<string | null>
+  /** «Isoler motiv …»: hele Isolate Subject i en popup med bildet; `apply` får PNG-en ved «Ferdig – sett inn». */
+  isolate?(src: string, apply: (png: Blob, name: string) => void): void
   /** Menighetens felles kategorier (null uten ConnectHub). */
   shared: SharedSetup<{ cats: unknown[] }> | null
   /** Deler et lokalt bilde i Fellesmappe. → `ch:<id>`. */
@@ -2201,6 +2203,15 @@ export class ThumbController {
     if (!this.alive) return
     this.set({ busyImg: false })
     this.placeSrc(src, t)
+  }
+
+  /** «Isoler motiv …» på et bilde (lag eller bakgrunn): resultatet erstatter bildet (Angre tar det tilbake). */
+  isolateSrc(src: string, t: AddTarget): void {
+    this.d.isolate?.(src, (png) => void this.addFile(png, t))
+  }
+
+  get canIsolate(): boolean {
+    return !!this.d.isolate
   }
 
   async runAI(id: string, kind: 'person' | 'object'): Promise<void> {

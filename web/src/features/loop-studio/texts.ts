@@ -131,6 +131,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Bytt': 'Replace',
   'Bytt bilde': 'Replace image',
   'Bytt bilde…': 'Replace image…',
+  'Isoler motiv …': 'Isolate subject …',
   'Bytt fast bilde': 'Change saved image',
   'Bytt logo': 'Replace logo',
   'Bytt logo…': 'Replace logo…',

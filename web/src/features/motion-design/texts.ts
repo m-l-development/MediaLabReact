@@ -312,6 +312,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Bunn': 'Bottom',
   'Bytt mappe …': 'Change folder …',
   'Bytt media': 'Replace media',
+  'Isoler motiv …': 'Isolate subject …',
   'Bølge': 'Wave',
   'Dag:tim:min:sek (00:00:00:10)': 'Day:hr:min:sec (00:00:00:10)',
   'Dager': 'Days',

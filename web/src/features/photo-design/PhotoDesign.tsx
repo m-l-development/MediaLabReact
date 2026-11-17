@@ -30,6 +30,8 @@ import { useLang, useT } from '../../shared/i18n/i18n'
 import { toolTitleKey } from '../../shared/i18n/messages'
 import s from './PhotoDesign.module.css'
 import { copyImage } from '../../shared/lib/clipboard'
+import { popupOpen } from '../../shared/lib/popup'
+import { useIsolatePopup } from '../isolate-subject/useIsolatePopup'
 
 const M_ID = (src: string) => src.slice(2) as AssetId
 
@@ -62,6 +64,12 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   const restoreInput = useRef<HTMLInputElement>(null)
   const replaceRef = useRef<string | undefined>(undefined)
 
+  // «Isoler motiv …»: popupen med hele Isolate Subject (kontrolleren når den gjennom en ref)
+  const iso = useIsolatePopup()
+  const isoOpen = useRef(iso.open)
+  useEffect(() => {
+    isoOpen.current = iso.open
+  }, [iso.open])
   const [parts] = useState(() => {
     const repo = new PdRepo(projects)
     const cutout = new PhotoCutout()
@@ -73,6 +81,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       legacyDefaults: legacyDefaults(st.status === 'ready' ? st.me : null),
       repo,
       openMedia: (src) => (src.startsWith('m:') ? assets.open(M_ID(src)).catch(() => null) : Promise.resolve(null)),
+      isolate: (blob, name, apply) => isoOpen.current(blob, name, apply),
       async putImage(blob, name) {
         const a = await assets.register(blob, { name })
         return `m:${a.id}`
@@ -198,6 +207,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
   // Tastatur og innliming
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (popupOpen()) return
       // maskedialogen («Finjuster masken») og menyer har egne taster: dokumentet bak skal ikke angre/slette samtidig
       if (c.s.view !== 'edit' || c.s.picker || c.s.maskEdit || document.querySelector('[data-ctx-menu]')) return
       const t = e.target as HTMLElement | null
@@ -299,6 +309,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
       }
     }
     const paste = (e: ClipboardEvent) => {
+      if (popupOpen()) return
       const file = pastedImage(e)
       if (file) {
         e.preventDefault()
@@ -402,6 +413,7 @@ export default function PhotoDesign({ query, registerLifecycle }: ToolProps) {
         const at = pt(e)
         f.forEach((x, i) => void c.addBlob(x, x.name, i === 0 ? at : null))
       }}>
+      {iso.popup}
       {!S.ready && <div className={s.loading}>{tx('LASTER …')}</div>}
       {S.ready && S.view === 'home' && (
         <Home c={c} S={S} tx={tx}

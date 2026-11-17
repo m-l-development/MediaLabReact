@@ -30,6 +30,7 @@ import H from './Home.module.css'
 import { applyLight } from './light-theme'
 import LS from './LoopStudio.module.css'
 import L from './Page.module.css'
+import { useIsolatePopup } from '../isolate-subject/useIsolatePopup'
 
 function download(b: Blob, name: string) {
   const a = document.createElement('a')
@@ -79,6 +80,12 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
     clearTimeout(toastT.current)
     toastT.current = setTimeout(() => setToast(null), 4200)
   }
+  // «Isoler motiv …»: popupen med hele Isolate Subject (kontrolleren når den gjennom en ref)
+  const iso = useIsolatePopup()
+  const isoOpen = useRef(iso.open)
+  useEffect(() => {
+    isoOpen.current = iso.open
+  }, [iso.open])
   const [picker, setPicker] = useState<null | { kind: 'cloud'; start: CloudArea; logo: boolean; done: (p: CloudPick | null) => void } | { kind: 'media'; done: (f: File | null) => void }>(null)
 
   // Oppstart: prosjektene i minnet og looper fra forrige versjon av Loop Studio (kopi, dagens data endres aldri)
@@ -202,6 +209,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
             },
             cloud,
             pickLibrary: () => new Promise((res) => setPicker({ kind: 'media', done: res })),
+            isolate: (blob, name, apply) => isoOpen.current(blob, name, apply),
             toast: showToast,
             alert: (m) => window.alert(m),
             confirm: (m) => window.confirm(m),
@@ -211,6 +219,7 @@ export default function LoopStudio({ query, registerLifecycle }: ToolProps) {
           homeHref={hrefFor({ name: 'tool', tool: 'loop-studio', query: {} })}
         />
       )}
+      {iso.popup}
       {picker?.kind === 'cloud' && (
         <CloudPicker title={picker.logo ? 'cloud.pickLogo' : 'cloud.pickImage'} start={picker.start} onClose={() => { picker.done(null); setPicker(null) }} onPick={(p) => { picker.done(p); setPicker(null) }} />
       )}

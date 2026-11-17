@@ -16,6 +16,7 @@ async function run(page: Page, file: string, mime: string, kind: string, out: st
   await (await chooser).setFiles({ name: file, mimeType: mime, buffer: fs.readFileSync(path.join(DIR, file)) })
   await page.getByRole('button', { name: 'Hopp over' }).click()
   await page.getByRole('button', { name: new RegExp(`^${kind}`) }).click()
+  await page.locator('[data-run]').click()
   await expect(page.getByRole('button', { name: 'Last ned PNG' })).toBeEnabled({ timeout: 240_000 })
   const dl = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Last ned PNG' }).click()

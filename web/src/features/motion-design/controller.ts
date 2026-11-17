@@ -126,6 +126,8 @@ export interface MState {
 export interface MDeps {
   repo: MdRepo
   files: MotionFiles
+  /** «Isoler motiv …»: hele Isolate Subject i en popup med bildet; `apply` får PNG-en ved «Ferdig – sett inn». */
+  isolate?(blob: Blob, name: string, apply: (png: Blob, name: string) => void): void
   storage: { get(k: string): string | null; set(k: string, v: string): void }
   confirm(p: Phrase, v?: Vars): boolean
   /** Oversetter en tekst (også meldinger fra motoren). */
@@ -2389,6 +2391,22 @@ export class MotionController {
   }
 
   /** Adressen til et medie i prosjektet (Bildefyll). */
+  get canIsolate(): boolean {
+    return !!this.d.isolate
+  }
+
+  /** «Isoler motiv …» på et bildeklipp eller bildeoverlegg: resultatet erstatter bildet (som «Bytt media»). */
+  async isolateItem(id: string, media: string): Promise<void> {
+    if (!this.d.isolate) return
+    const blob = await this.d.files.open(media)
+    if (!blob) return
+    const name = (this.s.proj?.media.find((m) => m.id === media)?.name ?? 'bilde').replace(/\.[^.]+$/, '')
+    this.d.isolate(blob, name, (png, nm) => {
+      this.set({ replaceFor: id })
+      void this.addFiles([new File([png], nm, { type: 'image/png' })], 'replace')
+    })
+  }
+
   mediaUrl(id: string): string | null {
     return this.urls[id] ?? null
   }
