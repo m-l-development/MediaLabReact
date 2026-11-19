@@ -156,9 +156,16 @@ export default function FontPicker({
     left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
     let top = r.bottom + 6;
     let height = window.innerHeight - top - margin;
-    if (height < 460) { // too little room below: lift the panel so it stays at least 460 px tall
-      height = Math.min(460, window.innerHeight - margin * 2);
-      top = window.innerHeight - height - margin;
+    if (height < 460) {
+      if (r.left - width - 8 >= margin) {
+        // room beside the field (PC): full height to its left, so the text box above stays visible
+        left = r.left - width - 8;
+        top = margin;
+        height = window.innerHeight - margin * 2;
+      } else { // too little room below: lift the panel so it stays at least 460 px tall
+        height = Math.min(460, window.innerHeight - margin * 2);
+        top = window.innerHeight - height - margin;
+      }
     }
     setPos({ left, top, width, height });
   }, []);

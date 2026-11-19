@@ -37,6 +37,34 @@ export interface AppFontPickerProps {
 
 export default function AppFontPicker(p: AppFontPickerProps) {
   const latest = useRef(p)
+  // popupen er ett rulleområde (app-fontpicker.css): den åpnes alltid med verktøylinjen, fanene, søket og filtrene
+  // synlige øverst, også når den valgte fonten ligger langt nede i listen (den ruller seg ellers ned til fonten)
+  const wrap = useRef<HTMLDivElement>(null)
+  // rett etter åpningen flytter innholdet seg (til toppen) under en musepeker som står stille: fonten som havner under
+  // den, skal ikke forhåndsvises på lerretet (de første 400 ms etter åpningen)
+  const openedAt = useRef(0)
+  useEffect(() => {
+    const el = wrap.current
+    if (!el) return
+    let had = false
+    const mo = new MutationObserver(() => {
+      const pop = el.querySelector<HTMLElement>('.fp-pop')
+      if (pop && !had) {
+        openedAt.current = performance.now()
+        // valgt font rulles inn av popupen selv (etter at den er vist, senere på tregere enheter): tilbake til toppen
+        // noen ganger det første halve sekundet, men aldri etter at brukeren selv har rullet, trykket eller brukt tastene
+        let mine = true
+        const stop = () => { mine = false }
+        for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const) pop.addEventListener(ev, stop, { once: true, passive: true })
+        const top = () => { if (mine && pop.isConnected) pop.scrollTop = 0 }
+        requestAnimationFrame(() => requestAnimationFrame(top))
+        for (const ms of [120, 300, 500]) setTimeout(top, ms)
+      }
+      had = !!pop
+    })
+    mo.observe(el, { childList: true, subtree: true })
+    return () => mo.disconnect()
+  }, [])
   useEffect(() => {
     latest.current = p
   })
@@ -69,13 +97,13 @@ export default function AppFontPicker(p: AppFontPickerProps) {
   }
   return (
     // Esc i popupen lukker bare popupen (ikke også markeringen i editoren)
-    <div style={{ display: 'contents' }} data-keep-color="" onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
+    <div ref={wrap} style={{ display: 'contents' }} data-keep-color="" onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
     <FontPicker
       fonts={FONT_LIST}
       categories={FONT_CATEGORIES}
       value={fontValue(p.font, p.stretch)}
       onChange={(f) => p.onFont(fontPatch(f, p.stretch))}
-      onPreview={(f) => p.onPreview?.(f)}
+      onPreview={(f) => { if (!f || !openedAt.current || performance.now() - openedAt.current > 400) p.onPreview?.(f) }}
       previewText={p.text}
       base={FONT_BASE}
       label={p.label ?? 'Font'}

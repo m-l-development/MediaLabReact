@@ -144,6 +144,8 @@ for (const E of EDITORS) {
     await open()
     const base0 = await settled(page, E.canvas)
     await P.getByPlaceholder(/Søk/).fill('pacifico')
+    // musen står ellers allerede der (raden ligger der Anton lå): flytt den bort først, så hover gir en ny hendelse
+    await page.mouse.move(1, 1)
     await P.locator('.fp-row', { hasText: 'Pacifico' }).first().hover()
     const hov = await settled(page, E.canvas, base0)
     expect(await diffScaled(page, base0, hov, 480, 30)).toBeGreaterThan(0.0005)
@@ -151,6 +153,8 @@ for (const E of EDITORS) {
     const back = await settled(page, E.canvas, hov)
     expect(await diffScaled(page, base0, back, 480, 30)).toBeLessThan(0.0005)
     await expect(page.locator('[data-fontpop] .fp-trigger')).toContainText('Anton')
+    // musen bort fra der popupen åpnes (ellers forhåndsvises fonten som havner under den)
+    await page.mouse.move(1, 1)
 
     // verktøylinjen, Stil og Effekter virker på lerretet
     await open()

@@ -19,3 +19,58 @@
 .fp > .fp-label {
   color: var(--color-text, #8d8d88);
 }
+
+/* Fontlisten (TB: «Archivo» var nesten alt som syntes). Over listen ligger ~330 px med verktøylinje, faner, søk og
+   filtre, så i en popup på 460 px fikk listen bare et par rader. Popupen åpnes fortsatt rett under feltet (teksten over
+   skal synes), men er nå ett rulleområde: verktøylinjen ruller bort, kategoriene står fast øverst, «Vis min tekst» og
+   antallet fast nederst, og listen får resten av høyden. Ingen rulleområder inni hverandre. */
+.fp-pop:has(> .fp-list) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fp-pop > * {
+  flex-shrink: 0;
+}
+
+.fp-pop > .fp-list {
+  flex: 0 0 auto;
+  overflow: visible;
+  min-height: 0;
+}
+
+/* kategoriene på én rad som rulles sidelengs (før: opptil fire rader), fast øverst mens listen rulles */
+.fp-pop > .fp-cats {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-top: 8px;
+  background: var(--fp-bg);
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+
+.fp-pop > .fp-cats button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.fp-pop > .fp-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  background: var(--fp-bg);
+}
+
+/* de andre fanene (Stil, Effekter) ruller som før inne i sitt eget felt */
+.fp-pop > .fp-pane {
+  flex: 1 1 auto;
+}
+
+/* piltastene ruller den valgte fonten inn i synsfeltet: ikke bak kategoriene eller bunnlinjen */
+.fp-pop > .fp-list > * {
+  scroll-margin: 64px 0 56px;
+}
