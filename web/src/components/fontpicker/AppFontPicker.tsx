@@ -35,36 +35,36 @@ export interface AppFontPickerProps {
   label?: string | undefined
 }
 
+/** PC: popupen flyttes ved å dra i fanelinjen (ikke i knappene). Flyttingen er en forskyvning (CSS translate). */
+function dragPop(e: React.PointerEvent) {
+  const t = e.target as HTMLElement
+  const head = t.closest('.fp-pop > .fp-head')
+  if (e.pointerType !== 'mouse' || e.button !== 0 || !head || t.closest('button, input, [role="tab"]')) return
+  const pop = head.parentElement as HTMLElement
+  const [x0, y0] = (pop.style.translate || '0px 0px').split(' ').map((v) => parseFloat(v) || 0)
+  const sx = e.clientX
+  const sy = e.clientY
+  e.preventDefault()
+  const move = (ev: PointerEvent) => {
+    const r = pop.getBoundingClientRect()
+    const cur = (pop.style.translate || '0px 0px').split(' ').map((v) => parseFloat(v) || 0)
+    // hold fanelinjen innenfor vinduet
+    let dx = (x0 ?? 0) + ev.clientX - sx
+    let dy = (y0 ?? 0) + ev.clientY - sy
+    dx = Math.min(Math.max(dx, (cur[0] ?? 0) - r.left), (cur[0] ?? 0) + innerWidth - r.right)
+    dy = Math.min(Math.max(dy, (cur[1] ?? 0) - r.top), (cur[1] ?? 0) + innerHeight - r.top - 60)
+    pop.style.translate = `${dx}px ${dy}px`
+  }
+  const up = () => {
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', up)
+  }
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', up)
+}
+
 export default function AppFontPicker(p: AppFontPickerProps) {
   const latest = useRef(p)
-  // popupen er ett rulleområde (app-fontpicker.css): den åpnes alltid med verktøylinjen, fanene, søket og filtrene
-  // synlige øverst, også når den valgte fonten ligger langt nede i listen (den ruller seg ellers ned til fonten)
-  const wrap = useRef<HTMLDivElement>(null)
-  // rett etter åpningen flytter innholdet seg (til toppen) under en musepeker som står stille: fonten som havner under
-  // den, skal ikke forhåndsvises på lerretet (de første 400 ms etter åpningen)
-  const openedAt = useRef(0)
-  useEffect(() => {
-    const el = wrap.current
-    if (!el) return
-    let had = false
-    const mo = new MutationObserver(() => {
-      const pop = el.querySelector<HTMLElement>('.fp-pop')
-      if (pop && !had) {
-        openedAt.current = performance.now()
-        // valgt font rulles inn av popupen selv (etter at den er vist, senere på tregere enheter): tilbake til toppen
-        // noen ganger det første halve sekundet, men aldri etter at brukeren selv har rullet, trykket eller brukt tastene
-        let mine = true
-        const stop = () => { mine = false }
-        for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const) pop.addEventListener(ev, stop, { once: true, passive: true })
-        const top = () => { if (mine && pop.isConnected) pop.scrollTop = 0 }
-        requestAnimationFrame(() => requestAnimationFrame(top))
-        for (const ms of [120, 300, 500]) setTimeout(top, ms)
-      }
-      had = !!pop
-    })
-    mo.observe(el, { childList: true, subtree: true })
-    return () => mo.disconnect()
-  }, [])
   useEffect(() => {
     latest.current = p
   })
@@ -97,13 +97,13 @@ export default function AppFontPicker(p: AppFontPickerProps) {
   }
   return (
     // Esc i popupen lukker bare popupen (ikke også markeringen i editoren)
-    <div ref={wrap} style={{ display: 'contents' }} data-keep-color="" onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
+    <div style={{ display: 'contents' }} data-keep-color="" onPointerDown={dragPop} onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
     <FontPicker
       fonts={FONT_LIST}
       categories={FONT_CATEGORIES}
       value={fontValue(p.font, p.stretch)}
       onChange={(f) => p.onFont(fontPatch(f, p.stretch))}
-      onPreview={(f) => { if (!f || !openedAt.current || performance.now() - openedAt.current > 400) p.onPreview?.(f) }}
+      onPreview={(f) => p.onPreview?.(f)}
       previewText={p.text}
       base={FONT_BASE}
       label={p.label ?? 'Font'}
