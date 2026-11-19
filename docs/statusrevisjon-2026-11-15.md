@@ -4,7 +4,7 @@
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `697dee1` (merge av `c8167bc`: «Logo»/«Tekst» i foto beholder bare det merkede; før det `80b8154`: større bildeknapper i Thumbnail; før det `83c36e9`: Isolate Subject med faner Behold/Fjern, flervalg, «Gjennomfør isolering», Fyll/Gjennomsiktig/Farge også i Finjuster masken, skarpt fyll for tekst, før/etter-glideren, «Merk i bildet» av/på, og popupen «Isoler motiv …» i Thumbnail, Photo, Motion, Loop og Mockups; Release verify grønn 2026-11-17). Kontroller før
+**Siste kjente produksjonscommit:** `25cb89a` (merge av `ef3f2ae`: fontpopupen viser tre fonter, flyttbar på PC; før det `697dee1`: «Logo»/«Tekst» i foto beholder bare det merkede; før det `80b8154`: større bildeknapper i Thumbnail; før det `83c36e9`: Isolate Subject med faner Behold/Fjern, flervalg, «Gjennomfør isolering», Fyll/Gjennomsiktig/Farge også i Finjuster masken, skarpt fyll for tekst, før/etter-glideren, «Merk i bildet» av/på, og popupen «Isoler motiv …» i Thumbnail, Photo, Motion, Loop og Mockups; Release verify grønn 2026-11-17). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
 **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
