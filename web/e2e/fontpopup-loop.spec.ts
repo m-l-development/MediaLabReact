@@ -42,6 +42,8 @@ test('fontpopupen i Loop: overskrift og kicker hver for seg, forhåndsvisning, l
 
   // kicker: egen stil (overskriften uendret)
   await page.locator('[data-fontpop="kicker"] .fp-trigger').click()
+  // musen ut av popupen (den åpnes over feltet): ellers forhåndsvises fonten den krysser på vei til fanen
+  await page.mouse.move(1, 1)
   await P.getByRole('tab', { name: 'Effekter', exact: true }).click()
   await P.locator('.fp-fx:not(.fp-presets-grid) > button').filter({ has: page.locator('small', { hasText: /^Boks$/ }) }).click()
   const t2 = await settled(page, CV, t1)

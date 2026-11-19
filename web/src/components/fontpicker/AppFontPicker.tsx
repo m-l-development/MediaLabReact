@@ -35,6 +35,34 @@ export interface AppFontPickerProps {
   label?: string | undefined
 }
 
+/** PC: popupen flyttes ved å dra i fanelinjen (ikke i knappene). Flyttingen er en forskyvning (CSS translate). */
+function dragPop(e: React.PointerEvent) {
+  const t = e.target as HTMLElement
+  const head = t.closest('.fp-pop > .fp-head')
+  if (e.pointerType !== 'mouse' || e.button !== 0 || !head || t.closest('button, input, [role="tab"]')) return
+  const pop = head.parentElement as HTMLElement
+  const [x0, y0] = (pop.style.translate || '0px 0px').split(' ').map((v) => parseFloat(v) || 0)
+  const sx = e.clientX
+  const sy = e.clientY
+  e.preventDefault()
+  const move = (ev: PointerEvent) => {
+    const r = pop.getBoundingClientRect()
+    const cur = (pop.style.translate || '0px 0px').split(' ').map((v) => parseFloat(v) || 0)
+    // hold fanelinjen innenfor vinduet
+    let dx = (x0 ?? 0) + ev.clientX - sx
+    let dy = (y0 ?? 0) + ev.clientY - sy
+    dx = Math.min(Math.max(dx, (cur[0] ?? 0) - r.left), (cur[0] ?? 0) + innerWidth - r.right)
+    dy = Math.min(Math.max(dy, (cur[1] ?? 0) - r.top), (cur[1] ?? 0) + innerHeight - r.top - 60)
+    pop.style.translate = `${dx}px ${dy}px`
+  }
+  const up = () => {
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', up)
+  }
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', up)
+}
+
 export default function AppFontPicker(p: AppFontPickerProps) {
   const latest = useRef(p)
   useEffect(() => {
@@ -69,7 +97,7 @@ export default function AppFontPicker(p: AppFontPickerProps) {
   }
   return (
     // Esc i popupen lukker bare popupen (ikke også markeringen i editoren)
-    <div style={{ display: 'contents' }} data-keep-color="" onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
+    <div style={{ display: 'contents' }} data-keep-color="" onPointerDown={dragPop} onKeyDown={(e) => { if (e.key === 'Escape' && (e.target as HTMLElement).closest?.('.fp-pop')) e.stopPropagation() }}>
     <FontPicker
       fonts={FONT_LIST}
       categories={FONT_CATEGORIES}

@@ -19,3 +19,44 @@
 .fp > .fp-label {
   color: var(--color-text, #8d8d88);
 }
+
+/* Fontlisten (før ~12 px, bare «Archivo» synlig): verktøylinjen, fanene, søket og filtrene står fast øverst, og listen
+   viser alltid tre fonter om gangen (egen rulling). Popupen er så høy som innholdet; kategoriene på én rad. */
+.fp-pop {
+  height: auto !important;
+  max-height: calc(100dvh - 24px);
+}
+
+.fp-pop > * {
+  flex-shrink: 0;
+}
+
+.fp-pop > .fp-list {
+  flex: 0 1 auto;
+  height: calc(3 * var(--fp-row-h, 65px) + 12px);
+  min-height: calc(var(--fp-row-h, 65px) + 12px);
+}
+
+.fp-pop > .fp-pane {
+  flex: 0 1 auto;
+  height: calc(3 * var(--fp-row-h, 65px) + 12px + 90px);
+}
+
+.fp-pop > .fp-cats {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+
+.fp-pop > .fp-cats button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* PC: popupen kan flyttes ved å dra i fanelinjen */
+@media (pointer: fine) {
+  .fp-pop > .fp-head {
+    cursor: move;
+  }
+}

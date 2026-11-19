@@ -155,10 +155,13 @@ export default function FontPicker({
     let left = r.right - width; // aligned to the field's right edge (the panel sits on the right)
     left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
     let top = r.bottom + 6;
-    let height = window.innerHeight - top - margin;
-    if (height < 460) { // too little room below: lift the panel so it stays at least 460 px tall
-      height = Math.min(460, window.innerHeight - margin * 2);
-      top = window.innerHeight - height - margin;
+    // the popup is as tall as its content (three fonts in the list, app-fontpicker.css)
+    const height = Math.min(600, window.innerHeight - margin * 2);
+    if (top + height > window.innerHeight - margin) {
+      if (r.left - width - 8 >= margin) { // PC: beside the field, so the text box above stays visible
+        left = r.left - width - 8;
+        top = Math.max(margin, Math.min(r.top - 160, window.innerHeight - height - margin));
+      } else top = margin; // phone: at the top of the screen, over the canvas (the panel stays visible)
     }
     setPos({ left, top, width, height });
   }, []);
