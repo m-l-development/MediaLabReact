@@ -1,7 +1,7 @@
 /* Serveradapter for Supabase (REST via fetch). ENESTE serverfil som kjenner Supabase sine endepunkter.
    Ved bytte av leverandør: ny adapter med samme metoder (se docs/architecture-and-portability.md).
    Den hemmelige nøkkelen brukes bare her og sendes bare til leverandøren. */
-const BUCKET = 'ch-files';
+const BUCKET = 'ch-files', INBOX = 'ch-inbox';
 export function supabaseServer(cfg, fetchFn = fetch) {
   const asServer = { apikey: cfg.secretKey, authorization: 'Bearer ' + cfg.secretKey };
   const asUser = token => ({ apikey: cfg.publishableKey, authorization: 'Bearer ' + token });
@@ -65,6 +65,34 @@ export function supabaseServer(cfg, fetchFn = fetch) {
       if (!r.ok) { const e = new Error('backend ' + r.status); e.status = r.status; throw e; }
       return new Uint8Array(await r.arrayBuffer());
     },
+    /* Innloggingskonto for en Menighetsbruker: intern nøkkel (aldri e-post), bekreftet med en gang, passord hashes av
+       leverandøren. Gir kontoens id. */
+    async createAuthUser(email, password) {
+      const u = await call('/auth/v1/admin/users', { method: 'POST', headers: asServer, body: { email, password, email_confirm: true } });
+      if (!u || !u.id) throw Object.assign(new Error('create_user'), { status: 502 });
+      return u.id;
+    },
+    /* Endrer en innloggingskonto (passord, sperring med ban_duration). */
+    updateAuthUser: (id, attrs) => call('/auth/v1/admin/users/' + encodeURIComponent(id), { method: 'PUT', headers: asServer, body: attrs }),
+    /* Innlogging med passord for en Menighetsbruker (nøkkelen slås opp på serveren). Gir leverandørens økt. */
+    passwordGrant: (email, password) => call('/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: cfg.publishableKey }, body: { email, password } }),
+    /* Innboksen (Menighetsbruker): egen privat bøtte med flere filtyper; samme bruk som over. */
+    inboxSignUpload: async key => {
+      const r = await call('/storage/v1/object/upload/sign/' + INBOX + '/' + key, { method: 'POST', headers: asServer, body: {} });
+      if (!r || typeof r.url !== 'string') throw Object.assign(new Error('backend sign'), { status: 502 });
+      return cfg.url + '/storage/v1' + r.url;
+    },
+    async inboxGet(key) {
+      const r = await fetchFn(cfg.url + '/storage/v1/object/' + INBOX + '/' + key, { signal: AbortSignal.timeout(45000), headers: asServer });
+      if (!r.ok) { const e = new Error('backend ' + r.status); e.status = r.status; throw e; }
+      return new Uint8Array(await r.arrayBuffer());
+    },
+    async inboxSign(keys, expiresIn) {
+      const r = await call('/storage/v1/object/sign/' + INBOX, { method: 'POST', headers: asServer, body: { expiresIn, paths: keys } });
+      const out = {}; for (const x of r || []) if (x && x.path && x.signedURL && !x.error) out[x.path] = cfg.url + '/storage/v1' + x.signedURL;
+      return out;
+    },
+    inboxDelete: keys => call('/storage/v1/object/' + INBOX, { method: 'DELETE', headers: asServer, body: { prefixes: keys } }),
     _call: call, _asServer: asServer, _asUser: asUser,
   };
 }

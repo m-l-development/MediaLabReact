@@ -8,6 +8,9 @@ export const routes = {
   /* Slett egen konto: private filer, ConnectHub-brukeren og innloggingskontoen. Krever bekreftelse «SLETT». */
   async 'privacy.delete_me'(ctx) {
     if (ctx.body.confirm !== 'SLETT') return fail('confirm_required');
+    /* Menighetsbrukeren eies av menigheten: bare Admin kan deaktivere den. */
+    const parish = await ctx.backend.rpcAsUser(ctx.token, 'parish_self', {}).catch(() => null);
+    if (parish && typeof parish === 'object' && !Array.isArray(parish) && parish.church_id) return fail('forbidden', 403);
     const keys = await ctx.backend.rpcAsUser(ctx.token, 'prepare_account_deletion', {});
     for (const part of chunks(keys || [], 100)) await ctx.backend.storageDelete(part);
     await ctx.backend.rpcAsServer('delete_account', { p_issuer: ctx.claims.iss, p_subject: ctx.claims.sub });

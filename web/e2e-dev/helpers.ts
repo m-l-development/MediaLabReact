@@ -122,7 +122,10 @@ export async function signInAs(page: Page, email: string, password: string) {
   await page.goto('/app/')
   const other = page.getByRole('button', { name: 'Bruk en annen konto' })
   const field = page.getByLabel('E-post')
-  await expect(field.or(other).first()).toBeVisible({ timeout: 30_000 })
+  const personal = page.locator('[data-ch-kind="personal"]')
+  await expect(field.or(other).or(personal).first()).toBeVisible({ timeout: 30_000 })
+  // enheten brukte sist Menighetsbrukeren: velg «Personlig bruker» først
+  if (!(await field.isVisible()) && (await personal.isVisible())) await personal.click()
   if (!(await field.isVisible())) await other.click()
   await field.fill(email)
   await page.getByLabel('Passord', { exact: true }).fill(password)
@@ -133,7 +136,8 @@ export async function signInAs(page: Page, email: string, password: string) {
 export async function signOut(page: Page) {
   await page.getByRole('button', { name: 'Konto' }).click()
   await page.getByRole('button', { name: 'Logg ut', exact: true }).click()
-  await expect(page.getByLabel('E-post').or(page.getByRole('button', { name: 'Bruk en annen konto' })).first()).toBeVisible({ timeout: 30_000 })
+  // innloggingen: e-postfeltet, «Bruk en annen konto», eller valget Personlig bruker / Menighetsbruker (felleskonto på enheten)
+  await expect(page.getByLabel('E-post').or(page.getByRole('button', { name: 'Bruk en annen konto' })).or(page.locator('[data-ch-kind]')).first()).toBeVisible({ timeout: 30_000 })
 }
 
 /** RPC som innlogget bruker; kaster ikke ved feil, gir status og feilkode. */

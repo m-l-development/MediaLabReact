@@ -27,6 +27,17 @@ export const auth = {
   async session() { if (!hasBackend()) return null; watch(); const s = await A.getSession(); writeCookie(s); return s; },
   signIn: (email, pw) => A.signIn(String(email || '').trim(), String(pw || '')),
   async signOut() { clearMe(); const r = await A.signOut(); writeCookie(null); return r; },
+  /* Menighetsbruker: brukernavn + passord. Serveren slår opp kontoen (den interne nøkkelen når aldri nettleseren) og gir en
+     vanlig økt, som tas i bruk her (cookien skrives av session()). */
+  async signInParish(username, password) {
+    if (!hasBackend()) return { ok: false, error: 'ukjent' };
+    let r, j = null;
+    try { r = await fetch('/api/ch?a=parish.login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: String(username || '').trim().toLowerCase(), password: String(password || '') }) }); j = await r.json().catch(() => null); }
+    catch (e) { return { ok: false, error: 'network' }; }
+    if (!r.ok || !j || !j.ok || !j.session) return { ok: false, error: (j && j.error) || 'ukjent' };
+    watch();
+    return A.setSession(j.session);
+  },
   /* Svarer alltid «ok» utad, så det ikke avsløres om e-posten finnes. ConnectHub sender e-posten selv (lenke som virker i
      alle nettlesere) når e-postsystemet er satt opp på serveren; ellers – eller hvis serveren ikke svarer – brukes
      leverandørens e-post som før. Serveren har grenser per IP og e-post (da sendes ingenting, men svaret er det samme). */

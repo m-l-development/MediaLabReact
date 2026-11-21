@@ -9,6 +9,7 @@ export type Route =
   | { name: 'hub' }
   | { name: 'library' }
   | { name: 'admin' }
+  | { name: 'inbox' }
   | { name: 'tool'; tool: ToolId; query: Readonly<Record<string, string>> }
   | { name: 'not-found'; path: string }
 
@@ -17,6 +18,8 @@ export const DEFAULT_BASE = '/app/'
 export const LIBRARY_PATH = 'medier'
 /** ConnectHub Admin; seksjonene står i #-delen som i dagens admin (#/brukere/<id>). */
 export const ADMIN_PATH = 'admin'
+/** Menighetens innboks (Menighetsbrukeren) og «Send til menighet». */
+export const INBOX_PATH = 'innboks'
 
 function normalizeBase(base: string): string {
   return `/${base.replace(/^\/+|\/+$/g, '')}/`.replace(/^\/\/$/, '/')
@@ -30,6 +33,7 @@ export function parseLocation(pathname: string, search: string, base = DEFAULT_B
   if (rest === '') return { name: 'hub' }
   if (rest === LIBRARY_PATH) return { name: 'library' }
   if (rest === ADMIN_PATH) return { name: 'admin' }
+  if (rest === INBOX_PATH) return { name: 'inbox' }
   if (isToolId(rest)) {
     const query: Record<string, string> = {}
     for (const [k, v] of new URLSearchParams(search)) query[k] = v
@@ -47,6 +51,8 @@ export function hrefFor(route: Route, base = DEFAULT_BASE): string {
       return `${b}${LIBRARY_PATH}`
     case 'admin':
       return `${b}${ADMIN_PATH}`
+    case 'inbox':
+      return `${b}${INBOX_PATH}`
     case 'tool': {
       const qs = new URLSearchParams(route.query).toString()
       return `${b}${route.tool}${qs ? `?${qs}` : ''}`

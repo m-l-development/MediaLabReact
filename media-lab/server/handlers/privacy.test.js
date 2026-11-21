@@ -30,13 +30,19 @@ test('privacy.delete_me: krever bekreftelse, sjekker i databasen først, sletter
   assert.equal((await call('privacy.delete_me', {}, b)).body.error, 'confirm_required'); assert.equal(b.log.length, 0);
   const r = await call('privacy.delete_me', { confirm: 'SLETT' }, b);
   assert.equal(r.status, 200);
-  assert.deepEqual(b.log, ['prepare_account_deletion', 'del:k1,k2', 'server:delete_account:', 'auth:sub-x']);
+  assert.deepEqual(b.log, ['parish_self', 'prepare_account_deletion', 'del:k1,k2', 'server:delete_account:', 'auth:sub-x']);
+});
+
+test('privacy.delete_me: Menighetsbrukeren (felleskonto) kan ikke slette seg selv – bare Admin deaktiverer', async () => {
+  const b = fake({ parish_self: () => ({ id: 'p1', church_id: 'c1', status: 'active' }) });
+  assert.equal((await call('privacy.delete_me', { confirm: 'SLETT' }, b)).status, 403);
+  assert.deepEqual(b.log, ['parish_self']);
 });
 
 test('privacy.delete_me: avslag i databasen (f.eks. eneste Developer) stopper alt', async () => {
   const b = fake({ prepare_account_deletion: () => { throw Object.assign(new Error(), { code: '22023' }); } });
   assert.equal((await call('privacy.delete_me', { confirm: 'SLETT' }, b)).status, 400);
-  assert.deepEqual(b.log, ['prepare_account_deletion']);
+  assert.deepEqual(b.log, ['parish_self', 'prepare_account_deletion']);
 });
 
 test('church.export: legger til signerte lenker bare for filer databasen gir nøkler til', async () => {

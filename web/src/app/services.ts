@@ -15,6 +15,7 @@ import { createAdminService, type AdminService } from '../services/admin'
 import { createMailService, type MailService } from '../services/mail'
 import { createCollabService, type CollabService } from '../services/collab'
 import { createLoopDiskService, type LoopDiskService } from '../services/loop-disk'
+import { createParishService, type ParishService } from '../services/parish'
 import type { Router } from './router'
 import { presentTestRole } from './test-role'
 
@@ -46,6 +47,8 @@ export interface Services {
   admin: AdminService
   /** Samarbeidsgrupper, abonnement og menighetens livsløp. */
   collab: CollabService
+  /** Menighetsbruker (felleskonto) og menighetens innboks. Valgfri, så testoppsett uten den virker som før. */
+  parish?: ParishService
   router: Router
 }
 
@@ -59,7 +62,7 @@ export function createServices(router: Router): Services {
     dev: import.meta.env.DEV,
     present: (me) => presentTestRole(me),
   })
-  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), loopDisk: createLoopDiskService(data), feedback: createFeedbackService(data), shares: createSharesService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), mail: createMailService(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), router }
+  return { auth, community: createCommunityService(data), files: createFilesService(data, () => auth.accessToken()), churchSettings: createChurchSettings(data), loopDisk: createLoopDiskService(data), feedback: createFeedbackService(data), shares: createSharesService(data), account: createAccountService({ auth: authAdapter, data, token: () => auth.accessToken() }), requests: createRequestService(), requestInbox: createRequestInbox(data, () => auth.accessToken()), mail: createMailService(data, () => auth.accessToken()), admin: createAdminService(data, () => auth.accessToken()), collab: createCollabService(data, () => auth.accessToken()), parish: createParishService(data, () => auth.accessToken()), router }
 }
 
 export const ServicesContext = createContext<Services | null>(null)

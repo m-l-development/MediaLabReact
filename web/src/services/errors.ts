@@ -30,6 +30,8 @@ const SQL_STATE: Record<string, string> = {
   CH021: 'staff_use_request',
   CH030: 'too_large',
   CH031: 'logo_too_large',
+  CH040: 'parish_exists',
+  CH041: 'username_taken',
   // som media-lab/src/services/errors.js
   '22023': 'invalid',
   '23514': 'invalid',

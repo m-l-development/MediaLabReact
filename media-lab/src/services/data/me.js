@@ -7,6 +7,9 @@ export async function whoami() {
   return r || null;
 }
 
+/* Menighetsbrukerens egen status (også når tilgangen er sperret, f.eks. passordet må byttes). null = ikke Menighetsbruker. */
+export async function parishSelf() { return (await withTimeout(data().rpc('parish_self'), 20000)) || null; }
+
 export const hasRole = (me, role, churchId) => !!me && (me.roles || []).some(r => r.role === role && (churchId == null || r.church_id === churchId));
 /* Roller med MFA-krav (Developer og Moderator). */
 export const isStaff = me => hasRole(me, 'developer') || hasRole(me, 'moderator');

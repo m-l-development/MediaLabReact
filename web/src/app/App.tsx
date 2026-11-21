@@ -20,6 +20,7 @@ import styles from './App.module.css'
 import { toolById, type ToolLifecycle } from './tools'
 import { WorkspaceProvider } from './workspace'
 import { MediaLibrary } from '../features/media-library/MediaLibrary'
+import { InboxPage } from '../features/parish/InboxPage'
 
 /** ConnectHub Admin lastes som egen del (bare for dem som åpner den). */
 const AdminRoute = lazy(() => import('../features/admin/AdminRoute'))
@@ -64,7 +65,7 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
 
   useEffect(() => {
     const title = route.name === 'tool' ? `${t(toolTitleKey(route.tool))} · ${t('app.name')}`
-      : route.name === 'library' ? `${t('media.title')} · ${t('app.name')}` : route.name === 'admin' ? 'ConnectHub Admin' : t('app.name')
+      : route.name === 'library' ? `${t('media.title')} · ${t('app.name')}` : route.name === 'admin' ? 'ConnectHub Admin' : route.name === 'inbox' ? `${t('inbox.title')} · ${t('app.name')}` : t('app.name')
     document.title = title
   }, [route, t])
 
@@ -73,6 +74,7 @@ function Routes({ me }: { me: Parameters<typeof Hub>[0]['me'] }) {
       <ErrorBoundary resetKey={hrefFor(route)} fallback={RouteErrorFallback}>
         {route.name === 'hub' && <Hub me={me} />}
         {route.name === 'library' && <MediaLibrary />}
+        {route.name === 'inbox' && <InboxPage me={me} />}
         {route.name === 'admin' && me && (
           <Suspense fallback={<Spinner label={t('app.loading')} />}>
             <AdminRoute me={me} testRole={ready?.testRole ?? null} />

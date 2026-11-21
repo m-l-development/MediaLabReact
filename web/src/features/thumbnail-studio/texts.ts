@@ -273,6 +273,7 @@ export const EN = {
   'Kolonne': 'Column',
   'kopi': 'copy',
   'Kopier': 'Copy',
+  'Send til menighet': 'Send to church',
   'Kutt bort deler av bildet, for eksempel alt under livet, eller tomme kanter etter at bakgrunnen er fjernet. Du kan også dobbeltklikke på bildet.': 'Cut away parts of the image, for example below the waist or empty edges after the background is removed. You can also double-click the image.',
   'Kvadratisk cover med låttittel og artist': 'Square cover with song title and artist',
   'Kveldsbibelskole': 'Evening Bible School',

@@ -150,6 +150,8 @@ const RUNS = [
   { name: 'okt', email: 'ch-test-user@example.com', role: 'user', specs: ['session-dev'] },
   // to kontoer samtidig (Admin og Bruker i samme menighet): felles grunnoppsett, rollebytter og to brukere på samme PC
   { name: 'tilgang', email: 'ch-test-dev@example.com', email2: 'ch-test-admin@example.com', role: 'access', specs: ['church-access-dev'] },
+  // Menighetsbruker: Admin oppretter felleskontoen, Bruker sender filer; dev-nøkkelen bare til denne testen (passordets alder, opprydding)
+  { name: 'menighet', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['parish-dev'], env: { ML_DEV_SERVICE_KEY: KEY }, resetAnonLimits: true },
   { name: 'par', email: 'ch-test-admin@example.com', email2: 'ch-test-user@example.com', role: 'pair', specs: ['shared-setup-dev', 'test-role-dev', 'local-data-dev', 'loop-sharing-dev', 'loop-disk-dev', 'loop-base-load-dev'] },
   // prøvekjøring av produksjonstesten (e2e-prod) mot connecthub-dev: Bruker, Admin og stabsøkt i Admin-kontoens menighet.
   // Bare med --only=prodtest (ikke i standardløpet).
@@ -198,6 +200,11 @@ try {
     const id2 = run.email2 ? userId(run.email2) : null
     const pw2 = id2 ? await newPassword(id2) : ''
     if (run.role === 'staff' || run.role === 'access') say(`${run.name}: ${await dropFactors(id)} MFA-faktor(er) fjernet før testen`)
+    if (run.resetAnonLimits) {
+      // bare dev: gjentatte kjøringer fra samme maskin skal ikke stoppe på grensen for innlogging med brukernavn (20 per time per IP)
+      const r = await fetch(`${SUPA}/rest/v1/anon_rate_limits?hits=gte.0`, { method: 'DELETE', headers: { ...H, Prefer: 'return=minimal' } })
+      say(`${run.name}: tellerne for anonyme forsøk i dev nullstilt (${r.status})`)
+    }
     // ML_DEV_SPECS=a,b kjører bare disse testene i løpet (f.eks. for gjentatte kjøringer)
     const READ_ONLY = ['integration-dev', 'admin-dev', 'access-dev', 'server-dev', 'member-limit-dev', 'photo-dev', 'site-crawl-dev']
     const specs = process.env.ML_DEV_SPECS ? process.env.ML_DEV_SPECS.split(',') : REMOTE ? run.specs.filter((x) => READ_ONLY.includes(x)) : run.specs

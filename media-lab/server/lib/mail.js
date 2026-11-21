@@ -62,6 +62,8 @@ export async function sendTemplated(ctx, { kind, key, to, link, vars, related = 
   const m = mailer(ctx);
   if (!m) return { sent: false, error: 'mail_not_configured' };
   if (!singleRecipient(to)) return { sent: false, error: 'invalid_recipient' };
+  /* Menighetsbrukerens interne innloggingsnøkkel (.invalid) er ingen e-postadresse og får aldri e-post. */
+  if (/@menighetsbruker\.invalid$/i.test(String(to).trim())) return { sent: false, error: 'invalid_recipient' };
   if (optional && (await ctx.backend.rpcAsServer('mail_optional_allowed', { p_email: to }).catch(() => false)) !== true) {
     await ctx.backend.rpcAsServer('register_mail', { p_kind: kind, p_template: key, p_to: to, p_related: related, p_actor: actor, p_status: 'skipped', p_error: 'opted_out' }).catch(() => {});
     return { sent: false, error: 'opted_out' };

@@ -11,6 +11,7 @@ import { toolTitleKey, type MessageKey } from '../../shared/i18n/messages'
 import type { ToolId } from '../../domain/tool'
 import { subscribeSettled } from '../../shared/lib/store'
 import { useAssetUrl } from '../../shared/media/useAssetUrl'
+import { SendToChurch, type SendFile } from '../parish/SendToChurch'
 import { Button } from '../../shared/ui/Button'
 import { Icon } from '../../shared/ui/Icon'
 import { ContextMenu, type MenuItem } from '../../shared/ui/ContextMenu'
@@ -33,6 +34,8 @@ export function MediaLibrary() {
   const [text, setText] = useState('')
   const [items, setItems] = useState<Asset[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  // «Send til menighet» for ett kort (Menighetsbruker-innboksen)
+  const [sendIt, setSendIt] = useState<Asset | null>(null)
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState(0)
@@ -195,20 +198,23 @@ export function MediaLibrary() {
                 void router.navigate({ name: 'tool', tool, query: { asset: a.id } })
               }}
               onRemove={() => void remove(a)}
+              onSend={() => setSendIt(a)}
             />
           ))}
         </ul>
       )}
     </section>
+    {sendIt && <SendToChurch files={async () => [Object.assign(await assets.open(sendIt.id), { name: sendIt.name }) as SendFile]} onClose={() => setSendIt(null)} />}
     </div>
   )
 }
 
-function AssetCard({ asset, targets, onOpenIn, onRemove }: {
+function AssetCard({ asset, targets, onOpenIn, onRemove, onSend }: {
   asset: Asset
   targets: readonly ToolId[]
   onOpenIn: (tool: ToolId) => void
   onRemove: () => void
+  onSend?: () => void
 }) {
   const t = useT()
   const { assets } = useWorkspace()
@@ -224,6 +230,7 @@ function AssetCard({ asset, targets, onOpenIn, onRemove }: {
       a.download = asset.name
       a.click()
     } },
+    ...(onSend ? [{ label: t('send.menu'), onSelect: onSend }] : []),
     { label: t('media.delete') + ' …', keys: 'Delete', separator: true, onSelect: onRemove },
   ]
   return (

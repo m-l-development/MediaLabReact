@@ -147,6 +147,9 @@ export function Hub({ me }: { me: Me | null }) {
           {member && <a className={styles.folderLink} href="/fellesmappe" style={{ '--folder-color': '#e0a43a' } as CSSProperties}>
             <Icon name="folder" size={18} /> {t('nav.sharedFolder')}
           </a>}
+          {member && <Link to={{ name: 'inbox' }} className={styles.folderLink} style={{ '--folder-color': '#9b8cff' } as CSSProperties} data-ch-inbox-link="">
+            <Icon name="folder" size={18} /> {me?.parish ? t('inbox.title') : t('send.title')}
+          </Link>}
           {member && collab && (
             <a className={styles.folderLink} href="/samarbeidsmappe" style={{ '--folder-color': '#3fb8a8' } as CSSProperties}>
               <Icon name="collab" size={18} /> {t('nav.collabFolder')}

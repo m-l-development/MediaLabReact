@@ -28,6 +28,10 @@ const ERR: Record<string, string> = {
   link_exists: 'Det finnes allerede en aktiv kobling mellom disse menighetene. Avslutt den før du gjenåpner en eldre kobling.',
   group_min_members: 'En samarbeidsgruppe må ha minst to menigheter. Avslutt gruppen i stedet.',
   group_full: 'En samarbeidsgruppe kan ha høyst 20 menigheter.',
+  parish_exists: 'Menigheten har allerede en Menighetsbruker. Det kan bare være én per menighet.',
+  username_taken: 'Brukernavnet er allerede i bruk. Velg et annet.',
+  weak_password: 'Passordet må ha minst 10 tegn med både bokstaver og tall.',
+  password_too_long: 'Passordet kan ha høyst 72 tegn.',
   group_member_exists: 'Menigheten er allerede med i gruppen.',
   // den nye appens navn på samme databasekoder (services/errors.ts: CH009, CH010)
   group_already_member: 'Menigheten er allerede med i gruppen.',

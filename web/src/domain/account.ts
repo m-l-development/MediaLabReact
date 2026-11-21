@@ -15,6 +15,8 @@ export interface Me {
   roles: { role: Role | string; church_id: ChurchId | null }[]
   /** legacy_defaults: menigheten fantes før Livets Ord-standardene ble avgrenset (docs/ny-menighet-standardinnhold.md). */
   churches: { id: ChurchId; name: string; logo_file_id: string | null; legacy_defaults?: boolean }[]
+  /** Menighetsbruker (fast felleskonto for menighetens PC): brukernavn, menighet og når passordet må byttes. */
+  parish?: { username: string; church_id: ChurchId; pw_due_at: string | null }
 }
 
 const optText = optional(nullable(string))
@@ -29,6 +31,7 @@ const me = object({
   mfa: optional(boolean),
   roles: array(object({ role: string, church_id: optText })),
   churches: array(object({ id: string, name: string, logo_file_id: optText, legacy_defaults: optional(boolean) })),
+  parish: optional(nullable(object({ username: string, church_id: string, pw_due_at: optText }))),
 })
 
 export function parseMe(input: unknown): Validation<Me | null> {
@@ -49,6 +52,7 @@ export function parseMe(input: unknown): Validation<Me | null> {
       mfa: v.mfa ?? false,
       roles: v.roles.map((x) => ({ role: x.role, church_id: (x.church_id ?? null) as ChurchId | null })),
       churches: v.churches.map((c) => ({ id: c.id as ChurchId, name: c.name, logo_file_id: c.logo_file_id ?? null, ...(typeof c.legacy_defaults === 'boolean' ? { legacy_defaults: c.legacy_defaults } : {}) })),
+      ...(v.parish ? { parish: { username: v.parish.username, church_id: v.parish.church_id as ChurchId, pw_due_at: v.parish.pw_due_at ?? null } } : {}),
     },
   }
 }
@@ -70,3 +74,10 @@ export function initials(m: Me): string {
   const parts = displayName(m).split(/[\s@.]+/).filter(Boolean)
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?'
 }
+
+/** Menighetsbrukeren (felleskonto) – eies av menigheten; bare Admin endrer passord eller sletter. */
+export const isParish = (m: Me | null): boolean => !!m?.parish
+/** Navnet som vises for kontoen (Menighetsbrukeren har en intern innloggingsnøkkel, aldri e-post). */
+export const accountLabel = (m: Me): string => (m.parish ? m.parish.username : m.email)
+/** Intern innloggingsnøkkel for Menighetsbrukeren (vises aldri). */
+export const isInternalKey = (email: string | null | undefined): boolean => /@menighetsbruker\.invalid$/i.test(email ?? '')
