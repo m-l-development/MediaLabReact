@@ -1,13 +1,37 @@
 # Statusrevisjon MediaLab – 2026-11-15
 
-## FORTSETTELSE – les dette først (oppdatert 2026-11-16)
+## FORTSETTELSE – les dette først (oppdatert 2026-11-21)
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `25cb89a` (merge av `ef3f2ae`: fontpopupen viser tre fonter, flyttbar på PC; før det `697dee1`: «Logo»/«Tekst» i foto beholder bare det merkede; før det `80b8154`: større bildeknapper i Thumbnail; før det `83c36e9`: Isolate Subject med faner Behold/Fjern, flervalg, «Gjennomfør isolering», Fyll/Gjennomsiktig/Farge også i Finjuster masken, skarpt fyll for tekst, før/etter-glideren, «Merk i bildet» av/på, og popupen «Isoler motiv …» i Thumbnail, Photo, Motion, Loop og Mockups; Release verify grønn 2026-11-17). Kontroller før
+**Siste kjente produksjonscommit:** `daa9b48` (merge av `df309b3`: Menighetsbruker, se under; Release verify grønn 2026-11-21; før det `25cb89a`: merge av `ef3f2ae`: fontpopupen viser tre fonter, flyttbar på PC; før det `697dee1`: «Logo»/«Tekst» i foto beholder bare det merkede; før det `80b8154`: større bildeknapper i Thumbnail; før det `83c36e9`: Isolate Subject med faner Behold/Fjern, flervalg, «Gjennomfør isolering», Fyll/Gjennomsiktig/Farge også i Finjuster masken, skarpt fyll for tekst, før/etter-glideren, «Merk i bildet» av/på, og popupen «Isoler motiv …» i Thumbnail, Photo, Motion, Loop og Mockups; Release verify grønn 2026-11-17). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
 **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
+
+### FERDIG (2026-11-21, i produksjon daa9b48): Menighetsbruker
+Felles konto per menighet med innboks (eierens oppdrag 2026-11-21, godkjent helt til produksjon). Beskrivelse: `docs/menighetsbruker.md`.
+- **Database:** `20261121100000_parish_accounts` og `20261121100100_supabase_parish_auth` er kjørt i produksjonen 2026-11-21.
+  - Fulgte den manuelle veien: forhåndskontroll → `db push` → etterkontroll (alle ok, 52 migreringer).
+  - Ingen eksisterende rader endret (radantallene er like før og etter).
+  - Øyeblikksbilde av de erstattede definisjonene (`app.current_user_id`, `public.whoami`), utløserne og radantallene ligger i `F:\ML-backup\2026-11-21\`.
+  - Tilbakeføring: `supabase/checks/rollback_20261121100000.sql` (tabellene beholdes).
+- **Testet:**
+  - RLS: 1207 (PGlite og dev). Server: 206. Web: 771.
+  - CI: checks grønn; e2e 445 bestått og 1 ustabil.
+  - Ende til ende mot dev, både lokalt og på Vercel Dev.
+  - Produksjonen, uten innlogging: `/login` OK på PC og mobil (`web/e2e-dev/prod-login-smoke.mjs`); ukjent `parish.login` gir 400; beskyttede ruter gir 401.
+- **IKKE VERIFISERT i produksjonen:**
+  - Innlogget flyt (opprette, logge inn, passordbytte, filoverføring). Den krever en konto i produksjonen: enten oppretter eieren menighetsbrukeren selv, eller det lages testressurser etter `docs/produksjonstest.md`.
+  - Det årlige passordbyttet kan ikke utløses i produksjonen før det har gått 12 måneder; det er testet på dev.
+  - Ekte iPhone.
+- **Begrensninger:**
+  - Kontoen teller i medlemsgrensen.
+  - Kvoten kontrolleres ikke på nytt ved registrering.
+  - `church.purge` sletter ikke `ch-inbox`-filer.
+  - Medlemskapet kan fjernes i Brukere-listen.
+  - Ny passordhash hos leverandøren sperrer kontoen; Admin setter da nytt passord.
+  - Video tillates bare i innboksen.
 
 ### FERDIG (2026-11-17, i produksjon a0a7567): fontpopupen overalt. NESTE: tekstredigering (se under)
 Oppdrag fra eier (godkjent, arbeid selvstendig, commit/push/merge/deploy når release-gate er grønn):
