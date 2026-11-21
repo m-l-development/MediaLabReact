@@ -2032,6 +2032,8 @@ button:disabled {
 .modalFoot,
 .modalFootRight {
   display: flex;
+  /* knappene brytes til ny linje på smale skjermer i stedet for å havne utenfor (f.eks. eksporten på mobil) */
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
 }
