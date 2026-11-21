@@ -10,6 +10,7 @@ import { routes as fileRoutes } from './files.js';
 import { routes as privacyRoutes } from './privacy.js';
 import { routes as mailRoutes } from './mail.js';
 import { routes as requestRoutes } from './requests.js';
+import { routes as parishRoutes } from './parish.js';
 import { mailer, sendTemplated, inviteLink } from '../lib/mail.js';
 
 const enc = new TextEncoder();
@@ -85,6 +86,7 @@ const routes = {
   ...privacyRoutes,
   ...mailRoutes,
   ...requestRoutes,
+  ...parishRoutes,
 };
 
 export async function handle(request, env, deps = {}) {

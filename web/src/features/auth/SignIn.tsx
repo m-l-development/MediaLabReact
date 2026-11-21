@@ -8,6 +8,10 @@ import { Field } from '../../shared/ui/Field'
 import { RequestPanel } from './RequestPanel'
 import styles from './SignIn.module.css'
 
+/** Felleskontoen lagres i kontovelgeren som «menighet:<brukernavn>» (aldri passord). */
+const PARISH = 'menighet:'
+const isParishEntry = (a: { email: string } | undefined): boolean => !!a && a.email.startsWith(PARISH)
+
 type SignInState = Extract<AuthState, { status: 'signed-out' | 'mfa-verify' | 'mfa-setup' }>
 
 interface SignInProps {
@@ -29,6 +33,9 @@ export function SignIn({ state, auth }: SignInProps) {
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'login' | 'forgot' | 'forgot-sent'>('login')
   const [accounts, setAccounts] = useState<SavedAccount[]>(() => savedAccounts())
+  // Menighetsbruker (felleskonto på menighetens PC): brukernavn i stedet for e-post. Sist brukte konto på enheten avgjør valget.
+  const [kind, setKind] = useState<'personal' | 'parish'>(() => (isParishEntry(savedAccounts()[0]) ? 'parish' : 'personal'))
+  const [username, setUsername] = useState(() => { const a = savedAccounts()[0]; return a && isParishEntry(a) ? a.email.slice(PARISH.length) : '' })
   const [sel, setSel] = useState<string | null>(null)
   const [remember, setRemember] = useState(false)
   // huskes gjennom MFA-steget; kontoen lagres først når innloggingen er fullført
@@ -45,6 +52,12 @@ export function SignIn({ state, auth }: SignInProps) {
   }
   const afterSignIn = () => {
     const s = auth.state.get()
+    if (s.status === 'ready' && s.me?.parish) {
+      // felleskontoen huskes alltid på enheten (eget innloggingsvalg for menigheten); bare brukernavn og menighetens navn
+      const church = s.me.churches.find((c) => c.id === s.me?.parish?.church_id)?.name ?? s.me.parish.username
+      rememberAccount({ email: PARISH + s.me.parish.username, name: church })
+      return
+    }
     if (s.status === 'ready' && s.me && rememberRef.current) {
       rememberAccount({ email: s.me.email, name: s.me.full_name })
       rememberRef.current = false
@@ -56,6 +69,15 @@ export function SignIn({ state, auth }: SignInProps) {
     rememberRef.current = remember || !!sel // valgt fra lista: hold den oppdatert
     void run(async () => {
       await auth.signIn(email, password)
+      setPassword('')
+      afterSignIn()
+    })
+  }
+
+  function onParish(e: FormEvent) {
+    e.preventDefault()
+    void run(async () => {
+      await auth.signInParish(username, password)
       setPassword('')
       afterSignIn()
     })
@@ -79,6 +101,15 @@ export function SignIn({ state, auth }: SignInProps) {
   }
 
   const pick = (a: SavedAccount) => {
+    if (isParishEntry(a)) {
+      setKind('parish')
+      setSel(a.email)
+      setUsername(a.email.slice(PARISH.length))
+      setPassword('')
+      setTimeout(() => document.querySelector<HTMLInputElement>('input[autocomplete=current-password]')?.focus(), 30)
+      return
+    }
+    setKind('personal')
     setSel(a.email)
     setEmail(a.email)
     setPassword('')
@@ -99,7 +130,7 @@ export function SignIn({ state, auth }: SignInProps) {
 
         {state.status === 'signed-out' && mode === 'login' && (
           <>
-            <form onSubmit={onSignIn} className={styles.form}>
+            <form onSubmit={kind === 'parish' ? onParish : onSignIn} className={styles.form}>
               <h1 id="signin-title">{t('auth.title')}</h1>
               <p className={styles.lead}>{t('auth.subtitle')}</p>
               {accounts.length > 0 && (
@@ -111,6 +142,7 @@ export function SignIn({ state, auth }: SignInProps) {
                         <button type="button" role="radio" aria-checked={sel === a.email} title={a.email} className={styles.chip} data-ch-account-chip={a.email} onClick={() => pick(a)}>
                           <span className={styles.chipInit} aria-hidden="true">{a.initials}</span>
                           <span className={styles.chipName}>{a.name}</span>
+                          {isParishEntry(a) && <span className={styles.chipBadge} data-ch-parish-badge="">{t('auth.kind.parish')} · {t('parish.badge')}</span>}
                         </button>
                         <button type="button" className={styles.chipX} aria-label={`${t('auth.acc.remove')}: ${a.name}`} title={t('auth.acc.remove')} onClick={() => remove(a)}>×</button>
                       </span>
@@ -118,12 +150,30 @@ export function SignIn({ state, auth }: SignInProps) {
                   </div>
                   {sel && (
                     <p className={styles.lead} data-ch-selected="">
-                      {t('auth.acc.as')} <b>{selName}</b> – {sel}.{' '}
+                      {t('auth.acc.as')} <b>{selName}</b> – {isParishEntry({ email: sel }) ? `${t('auth.kind.parish')} (${sel.slice(PARISH.length)})` : sel}.{' '}
                       <button type="button" className={styles.link} onClick={() => { setSel(null); setEmail('') }}>{t('auth.acc.other')}</button>
                     </p>
                   )}
                 </div>
               )}
+              <div className={styles.kinds} role="radiogroup" aria-label={t('auth.title')} data-ch-login-kind="">
+                {(['personal', 'parish'] as const).map((k) => (
+                  <button key={k} type="button" role="radio" aria-checked={kind === k} data-ch-kind={k} onClick={() => { setKind(k); setSel(null) }}>
+                    {t(k === 'personal' ? 'auth.kind.personal' : 'auth.kind.parish')}
+                  </button>
+                ))}
+              </div>
+              {kind === 'parish' ? (
+                <>
+                  <p className={styles.lead} data-ch-parish-lead="">{t('parish.login.lead')}</p>
+                  <Field label={t('parish.login.username')} autoComplete="username" autoCapitalize="none" spellCheck={false} required value={username} data-ch-parish-username=""
+                    onChange={(e) => { setUsername(e.target.value); setSel(null) }} />
+                  <Field label={t('auth.password')} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  {error && <p className={styles.error} role="alert">{t(error)}</p>}
+                  <Button type="submit" variant="primary" block disabled={busy}>{busy ? t('auth.signingIn') : t('parish.login.submit')}</Button>
+                  <p className={styles.small}>{t('parish.login.forgot')}</p>
+                </>
+              ) : (<>
               <Field label={t('auth.email')} type="email" autoComplete="username" required value={email}
                 onChange={(e) => { const v = e.target.value; setEmail(v); if (sel && v.trim().toLowerCase() !== sel) setSel(null) }} />
               <Field label={t('auth.password')} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -135,8 +185,9 @@ export function SignIn({ state, auth }: SignInProps) {
               {error && <p className={styles.error} role="alert">{t(error)}</p>}
               <Button type="submit" variant="primary" block disabled={busy}>{busy ? t('auth.signingIn') : t('auth.signIn')}</Button>
               <button type="button" className={styles.link} onClick={() => setMode('forgot')}>{t('auth.forgot')}</button>
+              </>)}
             </form>
-            <RequestPanel />
+            {kind === 'personal' && <RequestPanel />}
           </>
         )}
 

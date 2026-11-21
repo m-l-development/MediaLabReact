@@ -33,6 +33,8 @@ export interface AuthAdapter {
   mfaVerify(factorId: string, code: string): Promise<AuthResult>
   /** Nytt passord for innlogget bruker (leverandøren krever fersk innlogging, og aal2 når kontoen har MFA). */
   setPassword(password: string): Promise<AuthResult>
+  /** Tar i bruk en økt laget av serveren (Menighetsbrukerens innlogging med brukernavn). */
+  setSession?(tokens: { access_token: string; refresh_token: string }): Promise<AuthResult>
   /** Logger ut alle andre økter enn denne. */
   signOutOthers(): Promise<AuthResult>
   /** Leverandørens e-post med tilbakestillingslenke (reserve når ConnectHub ikke sender selv). */
@@ -69,5 +71,9 @@ export type AuthState =
   | { status: 'mfa-verify'; factorId: string; error?: MessageKey }
   | { status: 'mfa-setup'; enrollment?: { factorId: string; qr: string; secret: string }; error?: MessageKey }
   | { status: 'not-linked' }
+  /** Menighetsbrukeren: passordet er eldre enn 12 måneder – må byttes før appen åpnes (popupen kan ikke hoppes over). */
+  | { status: 'parish-password'; churchName: string; username: string; error?: string }
+  /** Menighetsbrukeren er deaktivert eller sperret (Admin må aktivere eller sette nytt passord). */
+  | { status: 'parish-blocked'; churchName: string }
   | { status: 'offline' }
   | { status: 'ready'; me: Me | null; realMe?: Me | null; testRole?: string | null }

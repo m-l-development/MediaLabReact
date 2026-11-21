@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendTargets } from '../../app/send-targets'
 import { useServices } from '../../app/services'
+import { SendToChurch } from '../parish/SendToChurch'
 import type { ToolProps } from '../../app/tools'
 import { useWorkspace } from '../../app/workspace-factory'
 import type { AssetId } from '../../domain/ids'
@@ -426,6 +427,9 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
     }
   }
 
+  // «Send til menighet»: plakaten lages med valgt oppløsning/format og sendes til menighetens innboks
+  const [sendChurch, setSendChurch] = useState(false)
+
   async function doExport() {
     c.setExpBusy(true)
     try {
@@ -467,7 +471,9 @@ export default function ThumbnailStudio({ query, registerLifecycle }: ToolProps)
       {S.ready && S.view === 'edit' && S.doc && <Editor c={c} S={S} tx={tx} images={images} renderer={renderer} pickFile={pickFile} />}
 
       {S.newOpen && <NewDialog c={c} S={S} tx={tx} />}
-      {S.exp && <ExportDialog c={c} S={S} tx={tx} onDownload={() => void doExport()} onCopy={() => void copyExport()} onSaveMedia={(to) => void saveExportToMedia(to)} sendTo={sendTo} />}
+      {S.exp && <ExportDialog c={c} S={S} tx={tx} onDownload={() => void doExport()} onCopy={() => void copyExport()} onSaveMedia={(to) => void saveExportToMedia(to)} sendTo={sendTo}
+        onSendChurch={services.parish ? () => { setSendChurch(true); c.closeExport() } : undefined} />}
+      {sendChurch && <SendToChurch files={async () => [Object.assign(await c.exportBlob(), { name: c.exportName() })]} onClose={() => setSendChurch(false)} />}
       {S.save && <SaveDialog c={c} S={S} tx={tx} />}
       {S.cropId && <CropDialog c={c} S={S} tx={tx} images={images} />}
       {S.sendFor && <SendDialog c={c} S={S} tx={tx} />}

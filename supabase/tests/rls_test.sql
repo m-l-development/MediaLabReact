@@ -2308,6 +2308,138 @@ select ch_test.err('Standarder: feltet kan ikke endres fra klienten (heller ikke
 set local role postgres;
 select ch_test.cnt('Standarder: nye menigheter får false som standard', $q$select 1 from public.churches where id = 'c0c0c0c0-0000-4000-8000-0000000000c1' and legacy_defaults = false$q$, 1);
 
+-- ---------- Menighetsbruker og innboks ----------
+set local role postgres;
+insert into public.churches (id, name) values ('a1a1a1a1-0000-4000-8000-0000000000f1', 'Testmenighet C'), ('a2a2a2a2-0000-4000-8000-0000000000f2', 'Testmenighet D');
+insert into public.app_users (id, email, full_name, status) values
+  ('00000000-0000-4000-8000-0000000000c1', 'adminc@test.invalid', 'Admin C', 'active'),
+  ('00000000-0000-4000-8000-0000000000c2', 'senderc@test.invalid', 'Sender C', 'active'),
+  ('00000000-0000-4000-8000-0000000000d1', 'medlemd@test.invalid', 'Medlem D', 'active');
+insert into public.user_identities (provider, subject, user_id) values
+  ('https://test.invalid/auth/v1', 'sub-c1', '00000000-0000-4000-8000-0000000000c1'),
+  ('https://test.invalid/auth/v1', 'sub-c2', '00000000-0000-4000-8000-0000000000c2'),
+  ('https://test.invalid/auth/v1', 'sub-d1', '00000000-0000-4000-8000-0000000000d1');
+insert into public.memberships (user_id, church_id) values
+  ('00000000-0000-4000-8000-0000000000c1', 'a1a1a1a1-0000-4000-8000-0000000000f1'), ('00000000-0000-4000-8000-0000000000c2', 'a1a1a1a1-0000-4000-8000-0000000000f1'), ('00000000-0000-4000-8000-0000000000d1', 'a2a2a2a2-0000-4000-8000-0000000000f2');
+insert into public.user_roles (user_id, role, church_id) values ('00000000-0000-4000-8000-0000000000c1', 'church_admin', 'a1a1a1a1-0000-4000-8000-0000000000f1');
+create temp table tids (id uuid);
+grant select on tids to authenticated;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c2","aal":"aal1"}';
+select ch_test.err('Menighetsbruker: vanlig bruker kan ikke opprette', $q$select public.parish_prepare('a1a1a1a1-0000-4000-8000-0000000000f1', 'kontor-a')$q$, '42501');
+select ch_test.err('Menighetsbruker: vanlig bruker kan ikke se den', $q$select public.parish_account_get('a1a1a1a1-0000-4000-8000-0000000000f1')$q$, '42501');
+select ch_test.err('Menighetsbruker: vanlig bruker kan ikke administrere', $q$select public.parish_manage('a1a1a1a1-0000-4000-8000-0000000000f1', 'disable')$q$, '42501');
+select ch_test.err('Menighetsbruker: tabellen kan ikke leses direkte', $q$select id from public.parish_accounts$q$, '42501');
+select ch_test.err('Innboks: tabellen kan ikke leses direkte', $q$select id from public.parish_inbox$q$, '42501');
+select ch_test.err('Menighetsbruker: oppslag av brukernavn er bare for serveren', $q$select public.parish_login_lookup('kontor-a')$q$, '42501');
+select ch_test.err('Menighetsbruker: aktivering er bare for serveren', $q$select public.parish_activate(gen_random_uuid(), 'x', 'y')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c1","aal":"aal1"}';
+select ch_test.err('Menighetsbruker: Admin A kan ikke opprette i menighet B', $q$select public.parish_prepare('a2a2a2a2-0000-4000-8000-0000000000f2', 'kontor-b')$q$, '42501');
+select ch_test.err('Menighetsbruker: ugyldig brukernavn avvises', $q$select public.parish_prepare('a1a1a1a1-0000-4000-8000-0000000000f1', 'Æ x')$q$, '22023');
+select ch_test.ok('Menighetsbruker: Admin A reserverer brukernavn', $q$select public.parish_prepare('a1a1a1a1-0000-4000-8000-0000000000f1', 'Kontor-A')$q$);
+select ch_test.cnt('Menighetsbruker: påbegynt vises ikke som opprettet', $q$select 1 where public.parish_account_get('a1a1a1a1-0000-4000-8000-0000000000f1') is not null$q$, 0);
+set local role postgres;
+select ch_test.cnt('Menighetsbruker: intern nøkkel i .invalid og brukernavn i små bokstaver', $q$select 1 from public.parish_accounts where username = 'kontor-a' and login_email like 'p-%@menighetsbruker.invalid'$q$, 1);
+-- På Supabase: en ekte innloggingsrad med den interne nøkkelen (som serveren lager via Auth-API-et); rulles tilbake.
+do $x$ begin
+  if to_regclass('auth.users') is not null then
+    insert into auth.users (id, email, encrypted_password) select '0a0a0a0a-0000-4000-8000-0000000000aa', login_email, 'rls-test-hash' from public.parish_accounts where username = 'kontor-a';
+  end if;
+end $x$;
+select ch_test.ok('Menighetsbruker: serveren aktiverer', $q$select public.parish_activate((select id from public.parish_accounts where username = 'kontor-a'), 'https://test.invalid/auth/v1', '0a0a0a0a-0000-4000-8000-0000000000aa')$q$);
+select ch_test.cnt('Menighetsbruker: knyttet til riktig menighet (medlemskap)', $q$select 1 from public.memberships m join public.parish_accounts p on p.user_id = m.user_id where p.username = 'kontor-a' and m.church_id = 'a1a1a1a1-0000-4000-8000-0000000000f1' and m.status = 'active'$q$, 1);
+select ch_test.err('Menighetsbruker: kan ikke få roller', $q$insert into public.user_roles (user_id, role, church_id) select user_id, 'church_admin', church_id from public.parish_accounts where username = 'kontor-a'$q$, '42501');
+select ch_test.err('Menighetsbruker: kan ikke bli medlem i en annen menighet', $q$insert into public.memberships (user_id, church_id) select user_id, 'a2a2a2a2-0000-4000-8000-0000000000f2' from public.parish_accounts where username = 'kontor-a'$q$, '42501');
+insert into public.parish_accounts (church_id, username, login_email, status) values ('a2a2a2a2-0000-4000-8000-0000000000f2', 'kontor-b', 'p-00000000-0000-4000-8000-0000000000bb@menighetsbruker.invalid', 'pending');
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c1","aal":"aal1"}';
+select ch_test.cnt('Menighetsbruker: Admin A ser den (uten intern nøkkel)', $q$select 1 where public.parish_account_get('a1a1a1a1-0000-4000-8000-0000000000f1') ->> 'username' = 'kontor-a' and public.parish_account_get('a1a1a1a1-0000-4000-8000-0000000000f1') ->> 'login_email' is null$q$, 1);
+select ch_test.err('Menighetsbruker: nummer to i samme menighet avvises', $q$select public.parish_prepare('a1a1a1a1-0000-4000-8000-0000000000f1', 'kontor-a2')$q$, 'CH040');
+select ch_test.err('Menighetsbruker: brukernavnet må være unikt i systemet', $q$select public.parish_manage('a1a1a1a1-0000-4000-8000-0000000000f1', 'rename', 'KONTOR-B')$q$, 'CH041');
+select ch_test.ok('Menighetsbruker: Admin kan endre brukernavn', $q$select public.parish_manage('a1a1a1a1-0000-4000-8000-0000000000f1', 'rename', 'kontor-a1')$q$);
+select ch_test.err('Menighetsbruker: Admin A kan ikke administrere B', $q$select public.parish_manage('a2a2a2a2-0000-4000-8000-0000000000f2', 'disable')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1"}';
+select ch_test.cnt('Menighetsbruker: innlogget som vanlig bruker i menigheten', $q$select 1 where (public.whoami() -> 'churches' -> 0 ->> 'id') = 'a1a1a1a1-0000-4000-8000-0000000000f1' and jsonb_array_length(public.whoami() -> 'roles') = 0$q$, 1);
+select ch_test.cnt('Menighetsbruker: egen status, ikke forfalt', $q$select 1 where public.parish_self() ->> 'pw_due' = 'false' and public.parish_self() ->> 'church_name' = 'Testmenighet C'$q$, 1);
+select ch_test.err('Menighetsbruker: kan ikke administrere seg selv', $q$select public.parish_manage('a1a1a1a1-0000-4000-8000-0000000000f1', 'disable')$q$, '42501');
+set local role postgres;
+update public.parish_accounts set pw_changed_at = now() - interval '12 months 1 day' where username = 'kontor-a1';
+set local role authenticated;
+select ch_test.cnt('Passord: etter 12 måneder er all tilgang sperret (whoami)', $q$select 1 where public.whoami() is null$q$, 1);
+select ch_test.err('Passord: etter 12 måneder ingen tilgang til menighetens filer', $q$select public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')$q$, '42501');
+select ch_test.cnt('Passord: egen status viser at passordet må byttes', $q$select 1 where public.parish_self() ->> 'pw_due' = 'true'$q$, 1);
+set local role postgres;
+select ch_test.ok('Passord: serveren registrerer nytt passord', $q$select public.parish_pw_record((select id from public.parish_accounts where username = 'kontor-a1'), 'self')$q$);
+select ch_test.cnt('Passord: ny 12-månedersperiode fra endringen', $q$select 1 from public.parish_accounts where username = 'kontor-a1' and pw_changed_at > now() - interval '1 minute'$q$, 1);
+set local role authenticated;
+select ch_test.cnt('Passord: tilgang igjen etter bytte', $q$select 1 where public.whoami() is not null$q$, 1);
+-- Bare på Supabase (auth.users/auth.sessions finnes); i PGlite gir kontrollene «ok» uten å teste noe.
+set local role postgres;
+do $x$ begin if to_regclass('auth.users') is not null then update auth.users set encrypted_password = 'endret-utenom-connecthub' where id = '0a0a0a0a-0000-4000-8000-0000000000aa'; end if; end $x$;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1"}';
+select ch_test.cnt('Supabase: passord endret direkte hos leverandøren (utenom ConnectHub) sperrer kontoen', $q$select 1 where public.whoami() is null or to_regclass('auth.users') is null$q$, 1);
+set local role postgres;
+do $x$ begin if to_regclass('auth.users') is not null then update auth.users set encrypted_password = 'rls-test-hash' where id = '0a0a0a0a-0000-4000-8000-0000000000aa'; end if; end $x$;
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1","session_id":"0b0b0b0b-0000-4000-8000-0000000000bb"}';
+select ch_test.cnt('Supabase: økt som ikke finnes (logget ut) gir ingen tilgang', $q$select 1 where public.whoami() is null or to_regclass('auth.sessions') is null$q$, 1);
+set local role postgres;
+do $x$ begin if to_regclass('auth.sessions') is not null then insert into auth.sessions (id, user_id) values ('0b0b0b0b-0000-4000-8000-0000000000bb', '0a0a0a0a-0000-4000-8000-0000000000aa'); end if; end $x$;
+set local role authenticated;
+select ch_test.cnt('Supabase: aktiv økt gir tilgang', $q$select 1 where public.whoami() is not null$q$, 1);
+set local role postgres;
+select ch_test.ok('Supabase: Admin logger ut alle økter', $q$select public.parish_revoke((select id from public.parish_accounts where username = 'kontor-a1'), null)$q$);
+set local role authenticated;
+select ch_test.cnt('Supabase: utlogging stopper tilgangen med en gang (også med gyldig token)', $q$select 1 where public.whoami() is null or to_regclass('auth.sessions') is null$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1"}';
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c1","aal":"aal1"}';
+select ch_test.ok('Menighetsbruker: Admin deaktiverer', $q$select public.parish_manage('a1a1a1a1-0000-4000-8000-0000000000f1', 'disable')$q$);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1"}';
+select ch_test.cnt('Menighetsbruker: deaktivert gir ingen tilgang', $q$select 1 where public.whoami() is null$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c2","aal":"aal1"}';
+select ch_test.cnt('Innboks: deaktivert Menighetsbruker er ikke et mål', $q$select jsonb_array_elements(public.parish_targets())$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c1","aal":"aal1"}';
+select ch_test.ok('Menighetsbruker: Admin aktiverer igjen', $q$select public.parish_manage('a1a1a1a1-0000-4000-8000-0000000000f1', 'enable')$q$);
+-- sending
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c2","aal":"aal1"}';
+select ch_test.cnt('Innboks: medlem ser menigheten som mål', $q$select 1 from jsonb_array_elements(public.parish_targets()) x where x ->> 'church_id' = 'a1a1a1a1-0000-4000-8000-0000000000f1'$q$, 1);
+select ch_test.ok('Innboks: medlem kan sende til egen menighet', $q$select public.inbox_can_send('a1a1a1a1-0000-4000-8000-0000000000f1', 1000)$q$);
+select ch_test.err('Innboks: over 30 MB avvises', $q$select public.inbox_can_send('a1a1a1a1-0000-4000-8000-0000000000f1', 31457281)$q$, 'CH030');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-d1","aal":"aal1"}';
+select ch_test.err('Innboks: medlem i B kan ikke sende til A', $q$select public.inbox_can_send('a1a1a1a1-0000-4000-8000-0000000000f1', 1000)$q$, '42501');
+select ch_test.cnt('Innboks: medlem i B ser ikke A som mål', $q$select 1 from jsonb_array_elements(public.parish_targets()) x where x ->> 'church_id' = 'a1a1a1a1-0000-4000-8000-0000000000f1'$q$, 0);
+set local role postgres;
+select ch_test.err('Innboks: B kan ikke starte sending til A (server)', $q$select public.inbox_begin('https://test.invalid/auth/v1', 'sub-d1', 'a1a1a1a1-0000-4000-8000-0000000000f1', 'p/a1a1a1a1-0000-4000-8000-0000000000f1/x.png', 'x.png', 'image/png', 10)$q$, '42501');
+select ch_test.err('Innboks: lagringssted må være menighetens', $q$select public.inbox_begin('https://test.invalid/auth/v1', 'sub-c2', 'a1a1a1a1-0000-4000-8000-0000000000f1', 'p/a2a2a2a2-0000-4000-8000-0000000000f2/x.png', 'x.png', 'image/png', 10)$q$, '22023');
+create temp table tinbox (id uuid);
+select ch_test.ok('Innboks: serveren starter sending fra medlem', $q$insert into tinbox select public.inbox_begin('https://test.invalid/auth/v1', 'sub-c2', 'a1a1a1a1-0000-4000-8000-0000000000f1', 'p/a1a1a1a1-0000-4000-8000-0000000000f1/plakat.png', 'plakat.png', 'image/png', 10)$q$);
+select ch_test.err('Innboks: andre kan ikke ta en påbegynt sending', $q$select public.inbox_take((select id from tinbox), 'https://test.invalid/auth/v1', 'sub-d1')$q$, '42501');
+select ch_test.ok('Innboks: avsenderen tar sendingen', $q$select public.inbox_take((select id from tinbox), 'https://test.invalid/auth/v1', 'sub-c2')$q$);
+select ch_test.err('Innboks: en sending kan bare tas én gang', $q$select public.inbox_take((select id from tinbox), 'https://test.invalid/auth/v1', 'sub-c2')$q$, '42501');
+select ch_test.ok('Innboks: serveren registrerer filen', $q$select public.inbox_register((select id from tinbox), 'plakat.png', 'image/png', 'image', 10)$q$);
+insert into tids select id from public.parish_inbox;
+select ch_test.cnt('Innboks: Menighetsbrukeren får varsel', $q$select 1 from public.notifications n join public.parish_accounts p on p.user_id = n.user_id where p.username = 'kontor-a1' and n.title = 'Ny fil i innboksen'$q$, 1);
+set local role authenticated;
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1"}';
+select ch_test.cnt('Innboks: Menighetsbrukeren ser filen med avsender', $q$select 1 from jsonb_array_elements(public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')) x where x ->> 'name' = 'plakat.png' and x ->> 'from_name' = 'Sender C' and x ? 'created_at'$q$, 1);
+select ch_test.cnt('Innboks: Menighetsbrukeren får nøkkel til åpning', $q$select jsonb_array_elements(public.inbox_keys(array(select (x ->> 'id')::uuid from jsonb_array_elements(public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')) x)))$q$, 1);
+select ch_test.err('Innboks: Menighetsbrukeren i A ser ikke innboksen til B', $q$select public.inbox_list('a2a2a2a2-0000-4000-8000-0000000000f2')$q$, '42501');
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c1","aal":"aal1"}';
+select ch_test.cnt('Innboks: Admin i A ser innboksen', $q$select jsonb_array_elements(public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1'))$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-c2","aal":"aal1"}';
+select ch_test.err('Innboks: vanlig medlem kan ikke lese innboksen', $q$select public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')$q$, '42501');
+select ch_test.cnt('Innboks: vanlig medlem får ingen nøkler', $q$select jsonb_array_elements(public.inbox_keys(array(select id from tids)))$q$, 0);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"sub-d1","aal":"aal1"}';
+select ch_test.err('Innboks: annen menighet kan ikke lese A', $q$select public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')$q$, '42501');
+select ch_test.cnt('Innboks: annen menighet får ingen nøkler til A sine filer', $q$select jsonb_array_elements(public.inbox_keys(array(select id from tids)))$q$, 0);
+select ch_test.cnt('Innboks: annen menighet kan ikke slette A sine filer', $q$select unnest(public.inbox_delete(array(select id from tids)))$q$, 0);
+select ch_test.cnt('Innboks: annen menighet kan ikke flytte A sine filer', $q$select 1 where public.inbox_set_status(array(select id from tids), 'archived') = 0$q$, 1);
+set local request.jwt.claims to '{"iss":"https://test.invalid/auth/v1","sub":"0a0a0a0a-0000-4000-8000-0000000000aa","aal":"aal1"}';
+select ch_test.cnt('Innboks: organisere (Tidligere mottatt)', $q$select 1 where public.inbox_set_status(array(select (x ->> 'id')::uuid from jsonb_array_elements(public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')) x), 'archived') = 1$q$, 1);
+select ch_test.cnt('Innboks: slette gir nøkkelen til serveren', $q$select unnest(public.inbox_delete(array(select (x ->> 'id')::uuid from jsonb_array_elements(public.inbox_list('a1a1a1a1-0000-4000-8000-0000000000f1')) x)))$q$, 1);
+set local role postgres;
+
 -- ---------- Logging ----------
 select ch_test.atleast('Logg: rolletildeling er loggført med utfører', $q$select 1 from public.audit_logs where action = 'user_roles.insert' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);
 select ch_test.atleast('Logg: tilbakekalling er loggført', $q$select 1 from public.audit_logs where action = 'user_roles.update' and actor_user_id = '00000000-0000-4000-8000-000000000001'$q$, 1);

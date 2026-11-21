@@ -112,6 +112,27 @@ describe('innlogging', () => {
     await vi.waitFor(() => expect(f.reload).toHaveBeenCalled())
   })
 
+  it('økt avvist av serveren (logget ut et annet sted, av Admin eller ved passordbytte): tilbake til innloggingen', async () => {
+    const f = fakes({ session })
+    f.data.rpc = vi.fn(async () => {
+      // leverandørens klient fjerner den avviste økten selv
+      await f.auth.signOut()
+      throw Object.assign(new Error('forbidden'), { code: 'forbidden' })
+    }) as DataAdapter['rpc']
+    const s = createAuthService({ ...f, dev: false })
+    await s.start()
+    expect(s.state.get()).toEqual({ status: 'signed-out' })
+    expect(f.writeCookie).toHaveBeenLastCalledWith(null)
+  })
+
+  it('nettfeil ved whoami (økten finnes fortsatt) gir «kunne ikke kontakte»', async () => {
+    const f = fakes({ session })
+    f.data.rpc = vi.fn(async () => { throw Object.assign(new Error('network'), { code: 'network' }) }) as DataAdapter['rpc']
+    const s = createAuthService({ ...f, dev: false })
+    await s.start()
+    expect(s.state.get()).toEqual({ status: 'offline' })
+  })
+
   it('nettfeil ved oppstart gir egen visning', async () => {
     const f = fakes()
     f.auth.getSession = vi.fn(() => Promise.reject(new Error('nett')))

@@ -108,6 +108,14 @@ export function createSupabaseAuthAdapter(client: SupabaseClient): AuthAdapter {
         return toFailure(e)
       }
     },
+    async setSession(tokens) {
+      try {
+        const { error } = await a.setSession(tokens)
+        return done(error)
+      } catch (e) {
+        return toFailure(e)
+      }
+    },
     async signOutOthers() {
       try {
         const { error } = await a.signOut({ scope: 'others' })

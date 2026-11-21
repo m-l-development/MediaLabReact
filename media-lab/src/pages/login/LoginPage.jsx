@@ -1,6 +1,6 @@
 import React from 'react';
 import { auth, safeNext, passwordProblem, passwordChecks } from '../../services/auth.js';
-import { whoami, isStaff } from '../../services/data/me.js';
+import { whoami, isStaff, parishSelf } from '../../services/data/me.js';
 import { writeMe } from '../../services/me-cache.js';
 import { acceptInvitation } from '../../services/admin.js';
 import RequestPanel from './RequestPanel.jsx';
@@ -25,6 +25,7 @@ const ERR = {
   wrong_email: 'Invitasjonen gjelder en annen e-postadresse enn den du er logget inn med. Logg ut og åpne lenken fra e-posten på nytt.',
   email_not_confirmed: 'E-postadressen din er ikke bekreftet. Åpne lenken fra e-posten på nytt.',
   user_disabled: 'Kontoen er deaktivert. Kontakt administrator.',
+  account_disabled: 'Menighetsbrukeren er deaktivert. Kontakt menighetens administrator.',
   admin_exists: 'Menigheten har allerede en administrator. Kontakt den som inviterte deg.',
   staff_use_request: 'Som Developer eller Moderator får du Admin-tilgang i en menighet bare ved å be om midlertidig Admin-tilgang. Invitasjonen gir ingen Admin-rolle.',
   already_member_elsewhere: 'Du er allerede medlem av en annen menighet. En bruker kan bare være medlem av én menighet om gangen. Kontakt den som inviterte deg.',
@@ -56,10 +57,14 @@ const readInvite = () => { try { return sessionStorage.getItem(INVITE_KEY); } ca
 const dropInvite = () => { try { sessionStorage.removeItem(INVITE_KEY); } catch (e) {} };
 const cleanUrl = q => history.replaceState(null, '', location.pathname + (q.get('next') ? '?next=' + encodeURIComponent(q.get('next')) : ''));
 const msg = e => T(ERR[e] || 'Noe gikk galt. Prøv igjen.');
+/* Menighetsbrukeren (felleskonto) huskes i kontovelgeren som «menighet:<brukernavn>» (aldri passord). */
+const PARISH = 'menighet:';
+const isParishEntry = a => !!a && String(a.email || '').startsWith(PARISH);
+const kindBtn = on => ({ flex: 1, height: '38px', border: 0, borderRadius: '999px', cursor: 'pointer', font: 'inherit', fontSize: '13px', fontWeight: 700, background: on ? '#f3f1ec' : 'transparent', color: on ? '#000' : '#e9e7e2' });
 
 const S = {
   page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', fontFamily: 'Archivo, "Helvetica Neue", Helvetica, Arial, sans-serif', background: 'radial-gradient(1200px 600px at 50% -10%, #1b1b1b, #000 60%)' },
-  card: { width: 'min(420px, 100%)', display: 'flex', flexDirection: 'column', gap: '14px', padding: '28px 24px', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '20px', background: 'rgba(12,12,12,0.85)' },
+  card: { width: 'min(420px, 100%)', minWidth: 0, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px', padding: '28px 24px', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '20px', background: 'rgba(12,12,12,0.85)' },
   brand: { fontSize: '12px', fontWeight: 700, letterSpacing: '0.3em', color: '#9d998f', textTransform: 'uppercase' },
   h: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '0.02em' },
   p: { margin: 0, fontSize: '13.5px', lineHeight: 1.55, color: '#b3afa6' },
@@ -112,6 +117,9 @@ export default function LoginPage() {
   const [accounts, setAccounts] = React.useState(() => savedAccounts());
   const [sel, setSel] = React.useState(null);
   const [remember, setRemember] = React.useState(false);
+  /* Personlig bruker eller Menighetsbruker (sist brukte konto på enheten avgjør valget). */
+  const [kind, setKind] = React.useState(() => (isParishEntry(savedAccounts()[0]) ? 'parish' : 'personal'));
+  const [username, setUsername] = React.useState(() => { const a = savedAccounts()[0]; return isParishEntry(a) ? a.email.slice(PARISH.length) : ''; });
   const rememberRef = React.useRef(false);     // 'recovery' | 'invite' | 'magiclink' – hvilken lenke som er åpnet
   /* Tilbakestillingslenken holdes bare i minnet til brukeren trykker «Fortsett» (adressen renskes med en gang). Da kan
      ikke e-postskannere som åpner siden, bruke opp lenken, og den havner aldri i historikk, logg eller lagring. */
@@ -140,7 +148,13 @@ export default function LoginPage() {
     const st = await auth.mfaStatus().catch(() => null);
     if (st && st.next === 'aal2' && st.current !== 'aal2' && st.factors.length) { setMfa(st); setMode('mfa'); return; }
     let me = null; try { me = await whoami(); } catch (e) { setErr('Kunne ikke kontakte ConnectHub. Prøv igjen.'); setMode('login'); return; }
-    if (!me) { setMode('notlinked'); return; }
+    if (!me) {
+      /* Menighetsbrukeren uten tilgang (passordet må byttes, eller sperret): appen viser den obligatoriske popupen eller beskjeden. */
+      const p = await parishSelf().catch(() => null);
+      if (p) { rememberAccount({ email: PARISH + p.username, name: p.church_name }); go(); return; }
+      setMode('notlinked'); return;
+    }
+    if (me.parish) { const c = (me.churches || []).find(x => x.id === me.parish.church_id); rememberAccount({ email: PARISH + me.parish.username, name: (c && c.name) || me.parish.username }); }
     writeMe(await auth.session().catch(() => null), me);   /* første side etter innlogging vises straks */
     if (rememberRef.current) { rememberAccount({ email: me.email, name: me.full_name }); rememberRef.current = false; }
     if (isStaff(me) && st && !st.factors.length) { setMode('enroll'); return; }
@@ -179,6 +193,11 @@ export default function LoginPage() {
   const onLogin = run(async () => {
     rememberRef.current = remember || !!sel;   // valgt fra lista: hold den oppdatert
     const r = await auth.signIn(email, pw); setPw('');
+    if (!r.ok) { setErr(msg(r.error)); return; }
+    await auth.session(); await proceed();
+  });
+  const onParish = run(async () => {
+    const r = await auth.signInParish(username, pw); setPw('');
     if (!r.ok) { setErr(msg(r.error)); return; }
     await auth.session(); await proceed();
   });
@@ -237,34 +256,46 @@ export default function LoginPage() {
   });
   const cancelRecovery = run(async () => { linkRef.current = null; setRecovery(false); setPw(''); setPw2(''); await auth.signOut().catch(() => null); setMode('login'); });
   const onLogout = run(async () => { await auth.signOut(); setMode('login'); });
-  const pickAccount = a => { setSel(a.email); setEmail(a.email); setPw(''); setErr(null); setTimeout(() => { const i = document.querySelector('input[autocomplete=current-password]'); if (i) i.focus(); }, 30); };
+  const pickAccount = a => { if (isParishEntry(a)) { setKind('parish'); setUsername(a.email.slice(PARISH.length)); } else setKind('personal'); setSel(a.email); setEmail(a.email); setPw(''); setErr(null); setTimeout(() => { const i = document.querySelector('input[autocomplete=current-password]'); if (i) i.focus(); }, 30); };
   const removeAccount = a => { if (!confirm(T('Fjerne kontoen fra denne enheten?') + '\n\n' + a.name + ' – ' + a.email + '\n' + T('Kontoen slettes ikke. Bare snarveien på denne enheten fjernes.'))) return;
     forgetAccount(a.email); setAccounts(savedAccounts()); if (sel === a.email) { setSel(null); setEmail(''); } };
 
   let body = null;
   if (mode === 'loading') body = <p style={S.p}>{T('Laster …')}</p>;
-  if (mode === 'login') body = <form onSubmit={onLogin} style={{ display: 'contents' }}>
+  if (mode === 'login') body = <form onSubmit={kind === 'parish' ? onParish : onLogin} style={{ display: 'contents' }}>
     <h1 style={S.h}>{T('Logg inn')}</h1>
     {accounts.length > 0 && <div data-ch-accounts style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <span style={S.label}>{T('Kontoer på denne enheten')}</span>
       <div role="radiogroup" aria-label={T('Velg konto')} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {accounts.map(a => { const on = sel === a.email; return <span key={a.email} style={{ position: 'relative', display: 'inline-flex' }}>
+        {accounts.map(a => { const on = sel === a.email; return <span key={a.email} style={{ position: 'relative', display: 'inline-flex', maxWidth: '100%', minWidth: 0 }}>
           <button type="button" role="radio" aria-checked={on} title={a.email} data-ch-account-chip={a.email} onClick={() => pickAccount(a)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '100%', padding: '6px 30px 6px 6px', borderRadius: '999px', cursor: 'pointer', font: 'inherit', fontSize: '13px', fontWeight: 600,
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '100%', minWidth: 0, padding: '6px 30px 6px 6px', borderRadius: '999px', cursor: 'pointer', font: 'inherit', fontSize: '13px', fontWeight: 600,
               border: on ? '2px solid #f3f1ec' : '1px solid #2b2b2b', background: on ? 'rgba(243,241,236,0.14)' : '#0e0e0e', color: '#f3f1ec' }}>
             <span aria-hidden="true" style={{ width: '28px', height: '28px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: on ? '#f3f1ec' : '#2b2b2b', color: on ? '#000' : '#f3f1ec', fontSize: '11px', fontWeight: 800 }}>{a.initials}</span>
-            <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span></button>
+            <span style={{ minWidth: 0, maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+            {isParishEntry(a) && <span data-ch-parish-badge style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', padding: '1px 6px', borderRadius: '999px', background: '#f3f1ec', color: '#000', fontSize: '10.5px', fontWeight: 800, whiteSpace: 'nowrap' }}>{T('Menighetsbruker · Felleskonto')}</span>}</button>
           <button type="button" aria-label={T('Fjern fra denne enheten') + ': ' + a.name} title={T('Fjern fra denne enheten')} onClick={() => removeAccount(a)}
             style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '24px', border: 0, borderRadius: '999px', background: 'transparent', color: '#9d998f', cursor: 'pointer', fontSize: '15px', lineHeight: 1 }}>×</button>
         </span>; })}
       </div>
-      {sel && <p style={S.p} data-ch-selected>{T('Logger inn som')} <b>{(accounts.find(a => a.email === sel) || {}).name}</b> – {sel}. <button type="button" style={{ ...S.link, display: 'inline' }} onClick={() => { setSel(null); setEmail(''); }}>{T('Bruk en annen konto')}</button></p>}
+      {sel && <p style={S.p} data-ch-selected>{T('Logger inn som')} <b>{(accounts.find(a => a.email === sel) || {}).name}</b> – {isParishEntry({ email: sel }) ? T('Menighetsbruker') + ' (' + sel.slice(PARISH.length) + ')' : sel}. <button type="button" style={{ ...S.link, display: 'inline' }} onClick={() => { setSel(null); setEmail(''); }}>{T('Bruk en annen konto')}</button></p>}
     </div>}
+    <div role="radiogroup" aria-label={T('Logg inn')} data-ch-login-kind style={{ display: 'flex', gap: '4px', padding: '4px', border: '1px solid #2b2b2b', borderRadius: '999px' }}>
+      {['personal', 'parish'].map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} data-ch-kind={k} style={kindBtn(kind === k)} onClick={() => { setKind(k); setSel(null); setErr(null); }}>{T(k === 'personal' ? 'Personlig bruker' : 'Menighetsbruker')}</button>)}
+    </div>
+    {kind === 'parish' ? <>
+      <p style={S.p} data-ch-parish-lead>{T('Felleskonto for menighetens faste PC. Logg inn med brukernavnet og passordet fra menighetens administrator.')}</p>
+      <Field label="Brukernavn" autoComplete="username" autoCapitalize="none" spellCheck={false} required value={username} data-ch-parish-username onChange={e => { setUsername(e.target.value); setSel(null); }} />
+      <PwField label="Passord" autoComplete="current-password" required value={pw} onChange={e => setPw(e.target.value)} />
+      <button type="submit" style={S.primary} disabled={busy}>{T(busy ? 'Logger inn …' : 'Logg inn som menighetsbruker')}</button>
+      <p style={{ ...S.p, fontSize: '12.5px' }}>{T('Glemt passordet? Kontakt menighetens administrator – bare administrator kan sette nytt passord.')}</p>
+    </> : <>
     <Field label="E-post" type="email" autoComplete="username" required value={email} onChange={e => { const v = e.target.value; setEmail(v); if (sel && v.trim().toLowerCase() !== sel) setSel(null); }} />
     <PwField label="Passord" autoComplete="current-password" required value={pw} onChange={e => setPw(e.target.value)} />
     {!sel && <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12.5px', color: '#b3afa6', cursor: 'pointer' }}><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} data-ch-remember /> {T('Husk denne kontoen på denne enheten')}</label>}
     <button type="submit" style={S.primary} disabled={busy}>{T(busy ? 'Logger inn …' : 'Logg inn')}</button>
     <button type="button" style={S.link} onClick={() => { setErr(null); setMode('forgot'); }}>{T('Glemt passordet?')}</button>
+    </>}
   </form>;
   if (mode === 'mfa') body = <form onSubmit={onMfa} style={{ display: 'contents' }}>
     <h1 style={S.h}>{T('Totrinnsbekreftelse')}</h1>
@@ -353,7 +384,7 @@ export default function LoginPage() {
       {err && <p role="alert" style={S.err}>{T(err)}</p>}
       {info && <p role="status" style={S.ok}>{info}</p>}
       {body}
-      {mode === 'login' && <RequestPanel S={S} T={T} Field={Field} />}
+      {mode === 'login' && kind === 'personal' && <RequestPanel S={S} T={T} Field={Field} />}
     </div>
   </main>;
 }

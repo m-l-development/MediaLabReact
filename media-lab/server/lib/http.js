@@ -49,6 +49,8 @@ export function dbError(e) {
   if (code === 'CH020') return { status: 409, error: 'request_handled' };            // forespørselen om Admin-tilgang er allerede behandlet
   if (code === 'CH021') return { status: 403, error: 'staff_use_request' };          // Developer/Moderator får Admin-tilgang bare via forespørsel
   if (code === 'CH030') return { status: 413, error: 'too_large' };                  // fil over 30 MB (databasens grense)
+  if (code === 'CH040') return { status: 409, error: 'parish_exists' };                  // menigheten har allerede en Menighetsbruker
+  if (code === 'CH041') return { status: 409, error: 'username_taken' };                 // brukernavnet er i bruk
   if (code === 'CH031') return { status: 413, error: 'logo_too_large' };             // logo over 10 MB
   if (code === '22023' || code === '23514' || code === '22P02') return { status: 400, error: 'invalid' };
   return { status: 502, error: 'backend_error' };

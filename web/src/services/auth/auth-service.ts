@@ -2,7 +2,7 @@ import { isStaff, parseMe, type Me } from '../../domain/account'
 import { createStore, type Store } from '../../shared/lib/store'
 import type { MessageKey } from '../../shared/i18n/messages'
 import { ServiceError, withTimeout } from '../errors'
-import { callAnonymous } from '../../infrastructure/api/server'
+import { callAnonymous, callServer } from '../../infrastructure/api/server'
 import { clearMe, readMe, sameMe, writeMe } from './me-cache'
 import type { AuthAdapter, AuthState, DataAdapter, Session } from './types'
 
@@ -20,6 +20,13 @@ export interface AuthServiceDeps {
   /** «Glemt passord» via ConnectHub-serveren (auth.recover); fallback = bruk leverandørens e-post. */
   recover?: (email: string) => Promise<{ fallback: boolean }>
   origin?: string
+  /** Menighetsbrukeren (serverens parish.login/parish.rotate); kan byttes ut i tester. */
+  parish?: {
+    login(username: string, password: string): Promise<{ access_token: string; refresh_token: string }>
+    rotate(token: string, password: string): Promise<{ access_token: string; refresh_token: string } | null>
+  }
+  /** Hvor ofte en innlogget Menighetsbruker kontrolleres på nytt (passordets alder, deaktivering, utlogging). */
+  parishRecheckMs?: number
   /** Testrolle (PLT-16): hvordan grensesnittet skal se brukeren. Uten denne er visningen den ekte brukeren. */
   present?: (me: Me) => { me: Me; testRole: string | null }
 }
@@ -31,6 +38,10 @@ export interface AuthService {
   verifyMfa(code: string): Promise<void>
   startMfaSetup(): Promise<void>
   signOut(): Promise<void>
+  /** Menighetsbruker: innlogging med brukernavn og passord (ingen e-post). */
+  signInParish(username: string, password: string): Promise<void>
+  /** Det årlige passordbyttet (popupen). Gir en feilkode, eller null når passordet er byttet. */
+  rotateParishPassword(password: string): Promise<string | null>
   /** Gjeldende tilgangstoken (for kall til /api/ch). */
   accessToken(): Promise<string | null>
   /**
@@ -43,6 +54,11 @@ export interface AuthService {
 
 /** Dagens offentlige innloggingsside, der lenkene i e-postene lander (uendret til publiseringstrinnet er godkjent). */
 export const RECOVERY_PATH = '/login.dc.html'
+
+const defaultParish = {
+  login: async (username: string, password: string) => (await callAnonymous<{ session: { access_token: string; refresh_token: string } }>('parish.login', { username, password })).session,
+  rotate: async (token: string, password: string) => (await callServer<{ session?: { access_token: string; refresh_token: string } | null }>(token, 'parish.rotate', { password })).session ?? null,
+}
 
 const defaultRecover = async (email: string) => ({ fallback: !!(await callAnonymous<{ fallback?: boolean }>('auth.recover', { email }, fetch, 15000)).fallback })
 
@@ -57,6 +73,7 @@ export function browserCookieWriter(session: Session | null): void {
 const AUTH_ERRORS: Record<string, MessageKey> = {
   invalid_credentials: 'auth.error.invalid',
   over_request_rate_limit: 'auth.error.rateLimited',
+  account_disabled: 'parish.login.disabled',
   network: 'auth.error.network',
   timeout: 'auth.error.network',
   mfa_verification_failed: 'auth.mfa.wrong',
@@ -78,8 +95,39 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
   const ready = (me: Me) => {
     const v = deps.present ? deps.present(me) : { me, testRole: null }
     state.set({ status: 'ready', me: v.me, realMe: me, testRole: v.testRole })
+    watchParish(me)
   }
   let watching = false
+  let parishTimer: ReturnType<typeof setInterval> | null = null
+  const parishApi = deps.parish ?? defaultParish
+
+  /** Menighetsbrukeren uten tilgang: passordet må byttes (popup) eller kontoen er sperret. null = ikke Menighetsbruker. */
+  async function parishState(): Promise<AuthState | null> {
+    if (!data) return null
+    const p = await withTimeout(data.rpc<{ church_name: string; username: string; status: string; user_status: string; pw_due: boolean; auth_ok: boolean; session_ok?: boolean } | null>('parish_self'), timeoutMs).catch(() => null)
+    if (!p) return null
+    if (p.status !== 'active' || p.user_status !== 'active') return { status: 'parish-blocked', churchName: p.church_name }
+    // økten er logget ut (Admin logget ut alle innlogginger eller endret passordet): tilbake til innloggingen
+    if (p.session_ok === false) {
+      if (auth) await auth.signOut().catch(() => undefined)
+      writeCookie(null)
+      return { status: 'signed-out', error: 'parish.loggedOut' }
+    }
+    if (p.auth_ok && p.pw_due) return { status: 'parish-password', churchName: p.church_name, username: p.username }
+    return { status: 'parish-blocked', churchName: p.church_name }
+  }
+
+  /** En Menighetsbruker står innlogget lenge på samme PC: kontroller jevnlig (og når fanen blir synlig) at tilgangen
+   *  fortsatt gjelder. Er passordet blitt 12 måneder gammelt, vises popupen; er kontoen deaktivert/utlogget, sperres appen. */
+  function watchParish(me: Me) {
+    if (!me.parish || parishTimer || typeof window === 'undefined') return
+    const check = () => {
+      if (state.get().status !== 'ready') return
+      whoami().then((fresh) => { if (!fresh) void proceed() }, () => undefined)
+    }
+    parishTimer = setInterval(check, deps.parishRecheckMs ?? 15 * 60_000)
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check() })
+  }
 
   async function whoami(): Promise<Me | null> {
     if (!data) return null
@@ -114,13 +162,22 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
     let me: Me | null
     try {
       me = await whoami()
-    } catch {
+    } catch (e) {
+      // Økten er avvist av serveren (logget ut på en annen enhet, av Admin eller ved passordbytte – leverandørens klient
+      // fjerner den da selv): tilbake til innloggingen. Bare nettfeil gir «kunne ikke kontakte».
+      const gone = !(await auth.getSession().catch(() => null)) || (e instanceof ServiceError && (e.code === 'unauthorized' || e.code === 'forbidden'))
+      if (gone) {
+        clearMe()
+        writeCookie(null)
+        state.set({ status: 'signed-out' })
+        return
+      }
       state.set({ status: 'offline' })
       return
     }
     if (!me) {
       clearMe()
-      state.set({ status: 'not-linked' })
+      state.set((await parishState()) ?? { status: 'not-linked' })
       return
     }
     writeMe(await session().catch(() => null), me)
@@ -159,7 +216,7 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
           (fresh) => {
             if (!fresh) {
               clearMe()
-              state.set({ status: 'not-linked' })
+              void proceed()
               return
             }
             writeMe(s, fresh)
@@ -182,6 +239,38 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
         return
       }
       await proceed()
+    },
+
+    async signInParish(username, password) {
+      if (!auth?.setSession) return
+      let tokens: { access_token: string; refresh_token: string }
+      try {
+        tokens = await parishApi.login(username.trim().toLowerCase(), password)
+      } catch (e) {
+        state.set({ status: 'signed-out', error: authErrorKey(e instanceof ServiceError ? e.code : 'unknown') })
+        return
+      }
+      const r = await auth.setSession(tokens)
+      if (!r.ok) {
+        state.set({ status: 'signed-out', error: authErrorKey(r.error) })
+        return
+      }
+      await proceed()
+    },
+
+    async rotateParishPassword(password) {
+      const token = (await session().catch(() => null))?.accessToken ?? null
+      if (!token) return 'unauthorized'
+      let tokens: { access_token: string; refresh_token: string } | null
+      try {
+        tokens = await parishApi.rotate(token, password)
+      } catch (e) {
+        return e instanceof ServiceError ? e.code : 'unknown'
+      }
+      // leverandøren logger ut alle økter ved passordbytte; serveren ga en ny økt med det nye passordet
+      if (tokens && auth?.setSession) await auth.setSession(tokens)
+      await proceed()
+      return null
     },
 
     async verifyMfa(code) {
@@ -213,6 +302,8 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
 
     async signOut() {
       clearMe()
+      if (parishTimer) clearInterval(parishTimer)
+      parishTimer = null
       if (auth) await auth.signOut()
       writeCookie(null)
       state.set({ status: 'signed-out' })

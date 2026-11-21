@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Me } from '../domain/account'
+import { ParishPassword } from '../features/auth/ParishPassword'
 import { SignIn } from '../features/auth/SignIn'
 import { useT } from '../shared/i18n/i18n'
 import { useStore } from '../shared/lib/store'
@@ -27,6 +28,14 @@ export function AuthGate({ children }: { children: (me: Me | null) => ReactNode 
     case 'not-linked':
       return (
         <Message title={t('auth.notLinked.title')} body={t('auth.notLinked.body')}>
+          <Button onClick={() => void auth.signOut()}>{t('auth.signOut')}</Button>
+        </Message>
+      )
+    case 'parish-password':
+      return <ParishPassword auth={auth} churchName={state.churchName} username={state.username} />
+    case 'parish-blocked':
+      return (
+        <Message title={t('parish.blocked.title')} body={t('parish.blocked.body')}>
           <Button onClick={() => void auth.signOut()}>{t('auth.signOut')}</Button>
         </Message>
       )

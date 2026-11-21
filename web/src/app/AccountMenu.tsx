@@ -87,7 +87,7 @@ export function AccountMenu({ me, realMe, testRole, testAllowed, onSignOut, open
 
   let body: ReactNode
   if (view === 'notifications') body = <Notifications list={list} refresh={refresh} back={back()} close={() => setOpen(false)} />
-  else if (view === 'account') body = <Security back={back()} go={setView} />
+  else if (view === 'account') body = <Security back={back()} go={setView} parish={!!realMe.parish} />
   else if (view === 'password' || view === 'password-done') body = <Password realMe={realMe} done={view === 'password-done'} back={back('account')} go={setView} />
   else if (view === 'wipe' && onSignOut) body = <WipeLocalData userId={me.id} onCancel={() => setView('account')} onSignOut={onSignOut} />
   else if (view === 'delete' && onSignOut) body = <DeleteAccount realMe={realMe} onCancel={() => setView('account')} onSignOut={onSignOut} />
@@ -99,8 +99,14 @@ export function AccountMenu({ me, realMe, testRole, testAllowed, onSignOut, open
     body = (
       <>
         <strong className={s.name}>{displayName(me)}</strong>
-        <span className={s.mail}>{me.email}</span>
-        <span className={s.info}>{roles}{churches ? ' · ' + churches : ''}</span>
+        {realMe.parish ? (
+          <span className={s.info} data-ch-parish-who=""><b>{t('parish.badge')}</b> · {t('parish.who', { church: churches })} · {realMe.parish.username}</span>
+        ) : (
+          <>
+            <span className={s.mail}>{me.email}</span>
+            <span className={s.info}>{roles}{churches ? ' · ' + churches : ''}</span>
+          </>
+        )}
         {testAllowed && <TestRoleBox realMe={realMe} testRole={testRole} />}
         <Nav label={t('acc.notifications')} extra={unread ? <span className={s.count}>{unread > 9 ? '9+' : unread}</span> : null} onClick={() => { setView('notifications'); void refresh() }} />
         {staff && <EmailPrefsBlock realMe={realMe} />}
@@ -282,7 +288,7 @@ function EmailPrefsBlock({ realMe }: { realMe: Me }) {
   )
 }
 
-function Security({ back, go }: { back: ReactNode; go: (v: View) => void }) {
+function Security({ back, go, parish = false }: { back: ReactNode; go: (v: View) => void; parish?: boolean }) {
   const t = useT()
   const { account } = useServices()
   const [busy, setBusy] = useState(false)
@@ -291,7 +297,8 @@ function Security({ back, go }: { back: ReactNode; go: (v: View) => void }) {
     <>
       {back}
       <span className={s.head}>{t('acc.security')}</span>
-      <button type="button" className={`${s.btn} ${s.light}`} data-ch-pwchange="" onClick={() => go('password')}>{t('acc.pw.title')}</button>
+      {/* Menighetsbrukeren: passordet byttes bare i den årlige popupen eller av Admin; kontoen slettes bare av Admin (deaktiveres). */}
+      {!parish && <button type="button" className={`${s.btn} ${s.light}`} data-ch-pwchange="" onClick={() => go('password')}>{t('acc.pw.title')}</button>}
       <button type="button" className={`${s.btn} ${s.light}`} data-ch-export="" disabled={busy}
         onClick={async () => {
           setBusy(true)
@@ -309,11 +316,11 @@ function Security({ back, go }: { back: ReactNode; go: (v: View) => void }) {
       <p className={`${s.note} ${s.small}`}>{t('acc.exportHint')}</p>
       <button type="button" className={`${s.btn} ${s.light}`} data-ch-wipe="" onClick={() => go('wipe')}>{t('local.wipe')}</button>
       <p className={`${s.note} ${s.small}`}>{t('local.wipeHint')}</p>
-      <div className={s.zone}>
+      {!parish && <div className={s.zone}>
         <span className={s.zoneHead}>{t('acc.danger')}</span>
         <p className={`${s.note} ${s.small}`}>{t('acc.del.irreversible')}</p>
         <button type="button" className={`${s.btn} ${s.dangerLine}`} data-ch-delete="" onClick={() => go('delete')}>{t('acc.del.open')}</button>
-      </div>
+      </div>}
     </>
   )
 }

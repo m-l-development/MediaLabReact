@@ -1,13 +1,14 @@
 import { Fragment, useCallback, useEffect, useEffectEvent, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useServices } from '../../app/services'
 import { testRoleAllowed } from '../../app/test-role'
-import { hasRole, isStaff, type Me } from '../../domain/account'
+import { hasRole, isStaff, type Me, isInternalKey } from '../../domain/account'
 import { BUILD } from '../../infrastructure/build'
 import { backend } from '../../infrastructure/config'
 import type { AuditRow, Invitation } from '../../services/admin'
 import { activeMembers, type Group } from '../../services/collab'
 import { useLang } from '../../shared/i18n/i18n'
 import { NAV, brandOf, isSection, sectionsFor, type Kind } from './access'
+import { ParishAccounts } from './ParishAccount'
 import { PendingAccessNotice } from './ChurchAccess'
 import { ChurchLogo, Head } from './common'
 import { MemberUsageNote } from './MemberLimit'
@@ -347,6 +348,7 @@ function UsersView({ selected }: { selected?: string | undefined }) {
   return (
     <>
       <Head title="Brukere" sub={staff ? 'Alle brukere i ConnectHub.' : 'Medlemmer i menighetene du administrerer.'} />
+      <ParishAccounts />
       <div className="ch-row">
         <Search value={q} onChange={setQ} placeholder="Søk på navn, e-post eller telefon …" />
         <Select label="Status" value={st} onChange={setSt} options={[['all', 'Alle statuser'], ['active', 'Aktive'], ['disabled', 'Deaktiverte']]} />
@@ -357,7 +359,7 @@ function UsersView({ selected }: { selected?: string | undefined }) {
       <List cols="minmax(220px,2fr) minmax(140px,1.2fr) minmax(140px,1.5fr) auto" head={['Person', 'Roller', 'Menigheter', 'Status']}
         empty="Ingen brukere passer med søket." onRow={(r) => go('brukere', r.key)}
         rows={list.map((u) => ({ key: u.id, cells: [
-          <div key="p" className="ch-who"><Avatar name={u.full_name || u.email} /><div><b>{u.full_name || u.email}</b><span>{u.email}</span></div></div>,
+          <div key="p" className="ch-who"><Avatar name={u.full_name || u.email} /><div><b>{u.full_name || u.email}</b><span>{isInternalKey(u.email) ? t('Menighetsbruker (felleskonto) – logger inn med brukernavn') : u.email}</span></div></div>,
           <div key="r" className="ch-row">{rolesOf(u.id).length ? rolesOf(u.id).map((r) => <RoleBadge key={r.id} r={r.role} />) : <span className="ch-muted">{t('Bruker')}</span>}</div>,
           <span key="m" className="ch-muted">{memsOf(u.id).map((m) => churchName(m.church_id) + (m.status !== 'active' ? ' (' + t('deaktivert') + ')' : '')).join(', ') || t('Ingen aktiv menighet')}</span>,
           <div key="s" className="ch-end"><StatusBadge s={u.status} /></div>] }))} />
@@ -400,10 +402,10 @@ function UserDetail({ id, onClose }: { id: string; onClose: () => void }) {
     else void run(() => admin.setUserName(u.id, prof.first.trim(), prof.last.trim()), 'Navnet er lagret.')()
   }
   return (
-    <Drawer title={nm} sub={u.email} onClose={onClose}>
+    <Drawer title={nm} sub={isInternalKey(u.email) ? t('Menighetsbruker (felleskonto)') : u.email} onClose={onClose}>
       <Card title="Oversikt">
         <dl className="ch-kv" data-ch-usersummary="">
-          <dt>{t('Bruker')}</dt><dd><b>{nm}</b> <span className="ch-muted">{u.email}</span>{self && <> · {t('Deg')}</>}</dd>
+          <dt>{t('Bruker')}</dt><dd><b>{nm}</b> <span className="ch-muted">{isInternalKey(u.email) ? t('Menighetsbruker (felleskonto)') : u.email}</span>{self && <> · {t('Deg')}</>}</dd>
           <dt>{t('Konto')}</dt><dd><StatusBadge s={u.status} /></dd>
           <dt>{t('Rolle')}</dt><dd>{roleSummary(roles, churchName, t)}</dd>
           <dt>{t('Menighet')}</dt><dd>{active.length
