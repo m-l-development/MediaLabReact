@@ -74,6 +74,14 @@ export function supabaseServer(cfg, fetchFn = fetch) {
     },
     /* Endrer en innloggingskonto (passord, sperring med ban_duration). */
     updateAuthUser: (id, attrs) => call('/auth/v1/admin/users/' + encodeURIComponent(id), { method: 'PUT', headers: asServer, body: attrs }),
+    /* Fjerner alle totrinnsfaktorer på en innloggingskonto (Menighetsbrukeren skal ikke kunne låses med en faktor noen
+       har lagt til). Gir antallet som ble fjernet. */
+    async clearFactors(id) {
+      const u = await call('/auth/v1/admin/users/' + encodeURIComponent(id), { headers: asServer });
+      const list = (u && u.factors) || [];
+      for (const f of list) await call('/auth/v1/admin/users/' + encodeURIComponent(id) + '/factors/' + encodeURIComponent(f.id), { method: 'DELETE', headers: asServer });
+      return list.length;
+    },
     /* Innlogging med passord for en Menighetsbruker (nøkkelen slås opp på serveren). Gir leverandørens økt. */
     passwordGrant: (email, password) => call('/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: cfg.publishableKey }, body: { email, password } }),
     /* Innboksen (Menighetsbruker): egen privat bøtte med flere filtyper; samme bruk som over. */

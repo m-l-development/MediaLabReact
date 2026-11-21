@@ -56,10 +56,13 @@ export const routes = {
     if (action === 'password') {
       try { await ctx.backend.updateAuthUser(r.subject, { password: b.password }); }
       catch (e) { const x = authError(e); if (x) return x; throw e; }
+      const sub = r.subject;
       r = await ctx.backend.rpcAsServer('parish_pw_record', { p_id: r.id, p_by: 'admin' });
       await ctx.backend.rpcAsServer('parish_revoke', { p_id: r.id, p_keep: null });
+      await ctx.backend.clearFactors(sub);   // en totrinnsfaktor lagt til utenom ConnectHub skal ikke kunne låse kontoen
     } else if (action === 'revoke') {
       await ctx.backend.rpcAsServer('parish_revoke', { p_id: r.id, p_keep: null });
+      await ctx.backend.clearFactors(r.subject);
     } else if (action === 'disable') {
       await ctx.backend.updateAuthUser(r.subject, { ban_duration: BAN_FOREVER });
       await ctx.backend.rpcAsServer('parish_revoke', { p_id: r.id, p_keep: null });

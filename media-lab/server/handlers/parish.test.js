@@ -63,7 +63,7 @@ function fake(over = {}) {
     async rpcAsUser(t, fn, a) { log.push(['user', fn, a]); return over[fn] ? over[fn](a) : { id: PID, subject: 'auth-1' }; },
     async rpcAsServer(fn, a) { log.push(['server', fn, a]); return over[fn] ? over[fn](a) : { id: PID }; },
     createAuthUser: async (e, pw) => { log.push(['createAuthUser', e]); if (over.createAuthUser) return over.createAuthUser(e, pw); return 'auth-1'; },
-    updateAuthUser: rec('updateAuthUser'), deleteAuthUser: rec('deleteAuthUser'), passwordGrant: rec('passwordGrant'),
+    updateAuthUser: rec('updateAuthUser'), deleteAuthUser: rec('deleteAuthUser'), passwordGrant: rec('passwordGrant'), clearFactors: rec('clearFactors'),
     inboxSignUpload: async k => { log.push(['signUpload', k]); return 'https://opplasting/' + k; },
     inboxGet: async k => { log.push(['get', k]); return over.bytes || PNG; },
     inboxDelete: rec('inboxDelete'), inboxSign: async keys => Object.fromEntries(keys.map(k => [k, 'https://signert/' + k])) };
@@ -107,9 +107,17 @@ test('Admin setter nytt passord: ny periode registreres og øktene logges ut', a
   const r = await call('parish.manage', { church: CH, action: 'password', password: 'NyttPassord9' }, be);
   assert.equal(r.status, 200);
   const steps = be.log.map(x => (x[0] === 'user' || x[0] === 'server') ? x[1] : x[0]);
-  assert.deepEqual(steps, ['parish_manage', 'updateAuthUser', 'parish_pw_record', 'parish_revoke', 'parish_account_get']);
+  assert.deepEqual(steps, ['parish_manage', 'updateAuthUser', 'parish_pw_record', 'parish_revoke', 'clearFactors', 'parish_account_get']);
+  assert.equal(be.log.find(x => x[0] === 'clearFactors')[1], 'auth-1', 'totrinnsfaktorer fjernes (kontoen kan ikke låses med en faktor)');
   assert.equal(be.log[1][2].password, 'NyttPassord9');
   assert.equal(be.log[3][2].p_keep, null);
+});
+
+test('Admin logger ut alle innlogginger: øktene slettes og totrinnsfaktorer fjernes', async () => {
+  const be = fake();
+  assert.equal((await call('parish.manage', { church: CH, action: 'revoke' }, be)).status, 200);
+  assert.equal(be.log.find(x => x[1] === 'parish_revoke')[2].p_keep, null);
+  assert.equal(be.log.find(x => x[0] === 'clearFactors')[1], 'auth-1');
 });
 
 test('Admin deaktiverer: sperres hos leverandøren og alle økter logges ut; aktivering opphever sperren', async () => {

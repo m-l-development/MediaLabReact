@@ -53,6 +53,8 @@ async function parishLogin(page: Page, username: string, password: string) {
   await expect(kind).toBeVisible({ timeout: 30_000 })
   await kind.click()
   await page.locator('[data-ch-parish-username]').fill(username)
+  // /login stopper en fjerde videresending innen 15 s (vern mot rundgang); testen logger inn raskere enn et menneske
+  await page.evaluate(() => { try { sessionStorage.removeItem('ch.loop') } catch { /* ingen lagring */ } })
   await page.getByLabel('Passord', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Logg inn som menighetsbruker' }).click()
 }
