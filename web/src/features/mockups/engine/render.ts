@@ -1,4 +1,5 @@
 import { detectScreen, edgeMatte, occlusionMask, refineQuad, type Pixels } from './detect'
+import { freeCanvas } from '../../../shared/lib/free-canvas'
 import { aspectOf, clamp, growQuad, homography, insetQuad, project, type Inset, type Point, type Quad } from './geometry'
 
 /** Innstillinger per mockup (samme felt og standardverdier som i dag, lagres under `mockups.settings`). */
@@ -184,6 +185,7 @@ function texture(design: Img | null, aspect: number, tw: number, st: MockupSetti
     sg.imageSmoothingQuality = 'high'
     sg.drawImage(design, 0, 0, src.width, src.height)
     warp(g, src, (st.dq as Quad).map(([u, v]) => [u * tw, v * th] as Point) as Quad, 20)
+    freeCanvas(src)
   } else if (design) {
     const { w: dw, h: dh } = size(design)
     // rotasjon og speiling i samme tegning (ingen mellomlagring): «Fyll»/«Vis hele» regnes ut fra rammen rundt det
@@ -278,6 +280,7 @@ function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, o
       const id = g.createImageData(bw, bh)
       for (let p = 0; p < a.length; p++) id.data[p * 4 + 3] = a[p]!
       g.putImageData(id, bx, by)
+      freeCanvas(bc)
     }
   } else {
     const q = growQuad(qn.map((p) => [p[0] * W, p[1] * H] as Point), 1.006)
@@ -303,7 +306,12 @@ function screenMask(mk: MockupInfo, base: Img, qn: Quad, W: number, H: number, o
   g.globalCompositeOperation = 'source-over'
   if (maskCache.size > 40) {
     const first = maskCache.keys().next().value
-    if (first) maskCache.delete(first)
+    // masken som kastes ut, frigjøres straks (dra i hjørnene = ny maske per bilde; Safari gir dem ellers først tilbake
+    // ved søppeltømming)
+    if (first) {
+      freeCanvas(maskCache.get(first)?.c)
+      maskCache.delete(first)
+    }
   }
   const res = { c: out, surf }
   maskCache.set(key, res)
@@ -365,6 +373,7 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
         ctx2d(sm).drawImage(base, 0, 0, sm.width, sm.height)
         bg.imageSmoothingEnabled = true
         bg.drawImage(sm, 0, 0, W, H)
+        freeCanvas(sm)
         gloss = 0
         shade *= 0.5
       } else bg.drawImage(base, 0, 0, W, H)
@@ -395,6 +404,7 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
         D[i + 2] = clamp((D[i + 2] ?? 0) * f + add, 0, 255)
       }
       lg.putImageData(Ly, x0, y0)
+      freeCanvas(bc)
     }
   }
   if (sf) {
@@ -414,7 +424,11 @@ export function render(g: CanvasRenderingContext2D, W: number, H: number, base: 
       for (let c = 0; c < 3; c++) D[i + c] = clamp((D[i + c] ?? 0) + (B[i + c] ?? 0) - (sf.d[i + c] ?? 0), 0, 255)
     }
     lg.putImageData(Ly, sf.bx, sf.by)
+    freeCanvas(bc)
   }
   g.drawImage(layer, 0, 0)
   g.restore()
+  // tekstur og lag lages ved hver tegning (også mens man drar): frigjøres straks
+  freeCanvas(layer)
+  freeCanvas(tex)
 }

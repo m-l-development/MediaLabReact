@@ -1,4 +1,6 @@
 import { blobBitmap, closePic, type Pic } from '../../../shared/lib/blob-image'
+import { freeCanvas } from '../../../shared/lib/free-canvas'
+import { releaseAdjusted } from '../../photo-design/engine/render'
 import { ASSETS, srcsOf, type Doc } from './model'
 
 /** Henter en kilde (`m:`, `ch:`, `db:` …) som Blob. `null` = finnes ikke eller ingen tilgang. */
@@ -121,15 +123,22 @@ export class ImageCache {
       g.fillStyle = color
       g.fillRect(0, 0, c.width, c.height)
     }
-    if (this.tints.size > 40) this.tints.clear()
+    if (this.tints.size > 40) this.clearTints()
     this.tints.set(key, c)
     return c
+  }
+
+  /** Fargede kopier i bildets fulle størrelse: frigjøres straks (ikke først ved søppeltømming i Safari). */
+  private clearTints(): void {
+    for (const c of this.tints.values()) freeCanvas(c)
+    this.tints.clear()
   }
 
   /** Glemmer en kilde (f.eks. etter gjenoppretting) så den lastes på nytt neste gang. */
   forget(src: string): void {
     const e = this.entries.get(src)
     if (e?.own) URL.revokeObjectURL(e.own)
+    releaseAdjusted(e?.img)
     closePic(e?.img)
     this.entries.delete(src)
   }
@@ -137,10 +146,12 @@ export class ImageCache {
   dispose(): void {
     for (const e of this.entries.values()) {
       if (e.own) URL.revokeObjectURL(e.own)
+      // justerte kopier (Avansert modus) frigjøres sammen med bildet når editoren lukkes
+      releaseAdjusted(e.img)
       closePic(e.img)
     }
     this.entries.clear()
-    this.tints.clear()
+    this.clearTints()
     this.listeners.clear()
   }
 }

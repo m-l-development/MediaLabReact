@@ -18,6 +18,7 @@ import { toSvg } from 'html-to-image'
 import { LAYER_FX, StyledText, type TextStyle } from './TextStyle.jsx'
 import { loadFont, type FontEntry } from './FontPicker.jsx'
 import { FONT_BASE } from './app-fonts'
+import { freeCanvas } from '../../shared/lib/free-canvas'
 
 export interface StyledSpec {
   text: string
@@ -399,6 +400,9 @@ export async function rasterStyled(s: StyledSpec, scale: number, want: { glyphs?
       paint()
       t = trim(c)
     }
+    // arbeidslerretet (hele boksen, opptil 14 MP) er kopiert til det beskårne bildet: frigjøres straks i stedet for ved
+    // søppeltømming (Safari)
+    freeCanvas(c)
     const empty = document.createElement('canvas')
     empty.width = empty.height = 1
     const r = t ?? { c: empty, x: 0, y: 0 }

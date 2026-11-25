@@ -26,6 +26,7 @@ import { LIB_CATS, loadLibrary, type LibPhoto } from './engine/templates'
 import { baseOf, cover, docFonts, dropCaches, histOf, hit, loadImg, mk, printPDF, releaseLarge, render, toLocal, type Media, type MediaEntry, type MaskCanvas } from './engine/render'
 import type { PdEntry, PdRepo, PdStored } from './repo'
 import type { PanoRecipe } from './engine/model'
+import { freeCanvas } from '../../shared/lib/free-canvas'
 import type { Phrase, Vars } from './texts'
 
 export type Pt = [number, number]
@@ -793,8 +794,22 @@ export class PhotoController {
     this.ht = t
     if (!this.s.doc) return
     this.past.push(this.snap())
-    if (this.past.length > 60) this.past.shift()
+    const dropped = this.past.length > 60 ? [this.past.shift() as Snapshot] : []
+    dropped.push(...this.future)
     this.future = []
+    this.freeDropped(dropped)
+  }
+
+  /**
+   * Masker (lerreter i bildets størrelse, ett nytt per penselstrøk) i angresteg som faller ut av historikken, frigjøres
+   * straks når ingen annen tilstand bruker dem – Safari gir dem ellers først tilbake ved søppeltømming.
+   */
+  private freeDropped(snaps: Snapshot[]): void {
+    if (!snaps.length) return
+    const keep = new Set<HTMLCanvasElement>()
+    for (const m of this.M.masks.values()) keep.add(m.c)
+    for (const s of [...this.past, ...this.future]) for (const m of s.masks.values()) keep.add(m.c)
+    for (const s of snaps) for (const m of s.masks.values()) if (!keep.has(m.c)) freeCanvas(m.c)
   }
 
   setDoc(fn: (d: PdDoc) => PdDoc, key?: string | false): void {

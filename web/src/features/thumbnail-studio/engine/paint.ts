@@ -8,6 +8,7 @@
  * `fillPaint` tegner malingen på lerretet.
  */
 import { grainImage } from './filters'
+import { freeCanvas } from '../../../shared/lib/free-canvas'
 
 /** Fargestopp: posisjon (0–1 langs gradienten) og farge (CSS-farge). */
 export type Stop = [number, string]
@@ -166,6 +167,8 @@ export function fillPaint(g: Ctx, paints: readonly Paint[] | null | undefined, w
     const { tile: _t, ...one } = p
     fillOne(tg, one as Paint, tw, th)
     const pat = g.createPattern(t as CanvasImageSource, 'repeat')
+    // mønsteret har sin egen kopi: rutelerretet (opptil 4096²) frigjøres straks
+    freeCanvas(t)
     if (!pat) continue
     pat.setTransform(new DOMMatrix().translate(ox, oy).scale(tw / cw, th / chh))
     g.save()

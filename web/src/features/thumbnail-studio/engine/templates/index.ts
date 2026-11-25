@@ -1,7 +1,8 @@
 import type { Doc } from '../model'
 
 /**
- * Ferdige maler fra designsamlingen «Thumbnail-maler for videoer» (del 1–3, 151 maler; docs/maler-og-fonter.md, fase 3).
+ * Ferdige maler fra designsamlingen «Thumbnail-maler for videoer» (del 1–3, 151 maler; docs/maler-og-fonter.md, fase 3)
+ * og de 20 julemalene (kategori «Jul», tools/maler/jul-maler.mjs → convert-thumbs.mjs --src=jul --merge).
  * Generert av web/tools/maler/convert-thumbs.mjs fra originalene (tools/maler/thumbnail-originaler.html) – ikke rediger
  * thumbs.json for hånd. Alt er vanlige lag (tekst, bilde, form), så malene kan endres som andre maler.
  */
@@ -17,10 +18,10 @@ export interface LibTemplate {
 }
 
 /** Kategoriene i materialets rekkefølge. */
-export const LIB_CATS = ['Generell video', 'Bibelvideo', 'Direktesending', 'Promo', 'Trailer', 'Teaser'] as const
+export const LIB_CATS = ['Generell video', 'Bibelvideo', 'Direktesending', 'Promo', 'Trailer', 'Teaser', 'Jul'] as const
 
 /** Alle kategoriene i det samlede malbiblioteket (designsamlingen + de ferdige oppsettene), uten duplikater. */
-export const READY_CATS = ['Generell video', 'Tale og gudstjeneste', 'Bibelvideo', 'Direktesending', 'Intervju og panel', 'Podkast', 'Arrangement', 'Promo', 'Musikk', 'Korte videoer', 'Trailer', 'Teaser'] as const
+export const READY_CATS = ['Jul', 'Generell video', 'Tale og gudstjeneste', 'Bibelvideo', 'Direktesending', 'Intervju og panel', 'Podkast', 'Arrangement', 'Promo', 'Musikk', 'Korte videoer', 'Trailer', 'Teaser'] as const
 
 let lib: Promise<LibTemplate[]> | null = null
 /** Malene lastes først når de trengs (egen fil, ca. 100 kB komprimert). */

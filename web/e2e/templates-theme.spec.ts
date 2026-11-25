@@ -48,7 +48,7 @@ test('Thumbnail: alle maler, søk, sortering, fargetema og egne farger på en fe
   await page.getByRole('button', { name: /Ny mal/ }).click()
   const dlg = page.getByRole('dialog', { name: 'Ny mal' })
   const lib = dlg.locator('[data-tpl-lib]')
-  await libraryWorks(lib, 'GEN-01', 178)
+  await libraryWorks(lib, 'GEN-01', 198)
   await pickerOptions(page, dlg)
   await page.locator('[data-theme-opt="wbl"]').click()
   await expect(dlg.locator('[data-theme-name]')).toHaveText('Hvit og blå')

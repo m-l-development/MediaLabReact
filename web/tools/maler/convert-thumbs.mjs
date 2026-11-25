@@ -21,6 +21,10 @@ const catalog = JSON.parse(fs.readFileSync(path.join(WEB, '../docs/maler-katalog
 const fonts = JSON.parse(fs.readFileSync(path.join(WEB, 'src/shared/fonts/catalog.json'), 'utf8'))
 const fields = JSON.parse(fs.readFileSync(path.join(HERE, 'bildefelt.json'), 'utf8'))
 const only = process.argv.slice(2).filter((a) => !a.startsWith('-'))
+// --src=jul: leser tools/maler/jul-originaler.html (julemalene, jul-maler.mjs) i stedet for originalmaterialet.
+// --merge: malene som konverteres, flettes inn i thumbs.json (samme kode erstattes); de andre malene står urørt.
+const SRC = (process.argv.find((a) => a.startsWith('--src=')) ?? '--src=thumbnail').slice(6)
+const MERGE = process.argv.includes('--merge')
 
 /** Bildefiltrene i spesifikasjonens «Overlay» (delen «Foto: F07 Uskarp 8px + F04 Fargelag #E0601E, color 60 %»). */
 function specFilters(overlay) {
@@ -72,7 +76,7 @@ page.on('console', (m) => {
 })
 // Vite kan laste siden på nytt rett etter start (avhengigheter optimaliseres): vent til den står stille
 for (let i = 0; ; i++) {
-  await page.goto(`${BASE}/app/tools/maler/thumbnail-originaler.html`, { waitUntil: 'networkidle' })
+  await page.goto(`${BASE}/app/tools/maler/${SRC}-originaler.html`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(1500)
   if (await page.evaluate(() => document.readyState === 'complete' && !!document.querySelector('.tpl')).catch(() => false)) break
   if (i > 4) throw new Error('originalene kunne ikke lastes')
@@ -128,7 +132,13 @@ for (const code of codes) {
   out.push({ id: meta?.id ?? code.toLowerCase(), code, part: meta?.part ?? 0, cat: meta?.cat ?? '', name: meta?.name ?? code, desc: meta?.desc ?? '', doc })
 }
 await browser.close()
-if (!only.length) {
+if (MERGE) {
+  const have = JSON.parse(fs.readFileSync(OUT, 'utf8'))
+  const codes = new Set(out.map((t) => t.code))
+  const all = [...have.filter((t) => !codes.has(t.code)), ...out]
+  fs.writeFileSync(OUT, JSON.stringify(all) + '\n')
+  console.log(`${out.length} maler flettet inn → ${all.length} i ${path.relative(WEB, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB)`)
+} else if (!only.length) {
   fs.mkdirSync(path.dirname(OUT), { recursive: true })
   fs.writeFileSync(OUT, JSON.stringify(out) + '\n')
   console.log(`${out.length} maler → ${path.relative(WEB, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB)`)
