@@ -8,10 +8,11 @@ import { LIB_CATS, loadLibrary } from '.'
 const cat = (katalog as { thumbs: { code: string; cat: string; name: string; spec: Record<string, string> }[] }).thumbs
 
 describe('ferdige Thumbnail-maler fra designsamlingen (fase 3)', () => {
-  it('alle 151 maler, med kode, navn og kategori fra materialet', async () => {
+  it('alle 171 maler (151 fra materialet + 20 julemaler), med kode, navn og kategori fra katalogen', async () => {
     const lib = await loadLibrary()
-    expect(lib).toHaveLength(151)
-    expect(new Set(lib.map((t) => t.code)).size).toBe(151)
+    expect(lib).toHaveLength(171)
+    expect(new Set(lib.map((t) => t.code)).size).toBe(171)
+    expect(lib.filter((t) => t.cat === 'Jul')).toHaveLength(20)
     for (const t of lib) {
       const m = cat.find((x) => x.code === t.code)
       expect(m, t.code).toBeTruthy()
@@ -65,5 +66,26 @@ describe('ferdige Thumbnail-maler fra designsamlingen (fase 3)', () => {
     expect(srcsOf(d)).toEqual(['m:11111111-1111-1111-1111-111111111111'])
     expect(refsOf(d)).toEqual(['m:11111111-1111-1111-1111-111111111111'])
     expect(countImgs(d)).toBe(1)
+  })
+})
+
+describe('julemalene (kategori «Jul»)', () => {
+  it('20 maler, norske tekster, all tekst innenfor det synlige området, rotert høyst litt', async () => {
+    const jul = (await loadLibrary()).filter((t) => t.cat === 'Jul')
+    expect(jul.map((t) => t.code)).toEqual(Array.from({ length: 20 }, (_, i) => `JUL-${String(i + 1).padStart(2, '0')}`))
+    for (const t of jul) {
+      const texts = t.doc.layers.filter((l) => l.type === 'text')
+      expect(texts.length, t.code).toBeGreaterThanOrEqual(2)
+      for (const l of texts) {
+        // rotert tekst (billetten, pillene) kan stikke litt utenfor boksen; ellers helt innenfor 1920 × 1080
+        const m = Math.abs(l.rot || 0) > 1 ? 120 : 2
+        expect(l.x, `${t.code}: ${l.text}`).toBeGreaterThanOrEqual(-m)
+        expect(l.y, `${t.code}: ${l.text}`).toBeGreaterThanOrEqual(-m)
+        expect(l.x + l.w, `${t.code}: ${l.text}`).toBeLessThanOrEqual(1920 + m)
+        expect(l.y + l.h, `${t.code}: ${l.text}`).toBeLessThanOrEqual(1080 + m)
+      }
+      // ingen tomme tekstlag eller engelske plassholdere
+      for (const l of texts) expect(String(l.text).trim(), t.code).not.toMatch(/^$|lorem|ipsum|your text|title here/i)
+    }
   })
 })

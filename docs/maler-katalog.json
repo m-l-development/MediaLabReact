@@ -4019,6 +4019,326 @@
     "Effekter": "Tynn signaturlinje 1px · korn multiply 20 %",
     "Roller": "Bakgrunn #F4EEE2 · Tekst #1D1D1B · Støtte #8A6B3F"
    }
+  },
+  {
+   "id": "jul-01",
+   "code": "JUL-01",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Første søndag i advent",
+   "desc": "Adventskrans med det første lyset tent, lilla og gull",
+   "spec": {
+    "Stil": "Klassisk høytid",
+    "Fonter": "Cinzel 600 · Cormorant Garamond 600 (104px) · Montserrat 500",
+    "Farger": "#24102f bakgrunn · #e9c98b gull · #f6eedd tekst",
+    "Bilde": "Ingen (illustrert adventskrans)",
+    "Overlay": "Ingen",
+    "Effekter": "Varmt lys fra lyset, tynne gullstreker"
+   }
+  },
+  {
+   "id": "jul-02",
+   "code": "JUL-02",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julekonsert",
+   "desc": "Elegant konsertplakat med varme lyskuler, noter og konsertfoto",
+   "spec": {
+    "Stil": "Filmatisk / elegant",
+    "Fonter": "Great Vibes (86px) · Bodoni Moda 800 (128px) · Montserrat 500",
+    "Farger": "#0b0f1c bakgrunn · #e8c27a gull · #ffffff tekst",
+    "Bilde": "Konsertfoto (kor, orkester eller instrument), høyre side, tones mot venstre",
+    "Overlay": "Foto: F04 Fargelag #1a2a52, soft-light 35 %",
+    "Effekter": "Uskarpe lyskuler, noter i gull"
+   }
+  },
+  {
+   "id": "jul-03",
+   "code": "JUL-03",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julekor 2026",
+   "desc": "Helflatefoto av koret med varmt lys og stor tittel",
+   "spec": {
+    "Stil": "Fotografisk / varm",
+    "Fonter": "DM Serif Display (190px) · Archivo 800 · Montserrat 600",
+    "Farger": "#140c08 · #ffcf86 · #ffffff",
+    "Bilde": "Korfoto, hele flaten",
+    "Overlay": "Foto: F04 Fargelag #c86a1e, soft-light 30 %",
+    "Effekter": "Mørk toning nederst, varme lyskuler øverst"
+   }
+  },
+  {
+   "id": "jul-04",
+   "code": "JUL-04",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Familiegudstjeneste",
+   "desc": "Leken og familievennlig, rundt familiefoto og julepynt",
+   "spec": {
+    "Stil": "Leken / familie",
+    "Fonter": "Fredoka 700 (104px) · Nunito 800 · Nunito 700",
+    "Farger": "#fff4e6 bakgrunn · #c8102e rød · #0f5a3c grønn · #f2b632 gull",
+    "Bilde": "Familiefoto, rund ramme",
+    "Overlay": "Foto: ingen",
+    "Effekter": "Julekuler, stjerner og stiplet bue"
+   }
+  },
+  {
+   "id": "jul-05",
+   "code": "JUL-05",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julegudstjeneste",
+   "desc": "Illustrert stjernenatt over Betlehem med stall og krybbe",
+   "spec": {
+    "Stil": "Illustrativ / klassisk",
+    "Fonter": "Cinzel 600 (92px) · Cormorant Garamond 500 · Cinzel 600",
+    "Farger": "#081430 → #1d3466 himmel · #f6d27a stjerne · #f4efe2 tekst",
+    "Bilde": "Ingen (illustrasjon)",
+    "Overlay": "Ingen",
+    "Effekter": "Betlehemsstjernen med stråler, stjernehimmel, by og stall i silhuett"
+   }
+  },
+  {
+   "id": "jul-06",
+   "code": "JUL-06",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Vi synger julen inn",
+   "desc": "Minimalistisk og elegant med notelinjer og et levende lys",
+   "spec": {
+    "Stil": "Minimal / elegant",
+    "Fonter": "Playfair Display 700 og kursiv 400 (110px) · Montserrat 600",
+    "Farger": "#f6f1e7 bakgrunn · #1f3b2d grønn · #b08a3e gull",
+    "Bilde": "Ingen (illustrasjon)",
+    "Overlay": "Ingen",
+    "Effekter": "Fem notelinjer med noter, lys med flamme og glød"
+   }
+  },
+  {
+   "id": "jul-07",
+   "code": "JUL-07",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Juleavslutning",
+   "desc": "Moderne og hyggelig med granbar, lysslynge og pynt",
+   "spec": {
+    "Stil": "Moderne / varm",
+    "Fonter": "Bricolage Grotesque 800 (150px) · Bricolage Grotesque 500 · 600",
+    "Farger": "#0f2a1e bakgrunn · #f5e6c8 tekst · #e04a3a rød · #f3c35a lys",
+    "Bilde": "Ingen (illustrasjon)",
+    "Overlay": "Ingen",
+    "Effekter": "Lysslynge øverst, granbar i hjørnene, julekuler"
+   }
+  },
+  {
+   "id": "jul-08",
+   "code": "JUL-08",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julemarked i kirken",
+   "desc": "Innbydende julemarked med boder, lys og snø i skumringen",
+   "spec": {
+    "Stil": "Illustrativ / varm",
+    "Fonter": "Young Serif (120px) · Nunito 800 · Nunito 700",
+    "Farger": "#1d2a4a → #6b4a6e skumring · #f6ead6 tekst · #b8312a rød · #ffd27a lys",
+    "Bilde": "Ingen (illustrasjon)",
+    "Overlay": "Ingen",
+    "Effekter": "Markedsboder med stripete tak og lysslynger, snøfall"
+   }
+  },
+  {
+   "id": "jul-09",
+   "code": "JUL-09",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julefortellingen",
+   "desc": "Maria, Josef og Jesusbarnet i krybben, i lyset fra stjernen",
+   "spec": {
+    "Stil": "Dramatisk / klassisk",
+    "Fonter": "Cormorant Garamond 600 (112px) · Cormorant Garamond kursiv 500 · Cinzel 600",
+    "Farger": "#120b06 bakgrunn · #ffcf7a lys · #f5ead3 tekst",
+    "Bilde": "Ingen (illustrasjon i silhuett)",
+    "Overlay": "Ingen",
+    "Effekter": "Lys fra krybben, buet stall, stjerne med stråle"
+   }
+  },
+  {
+   "id": "jul-10",
+   "code": "JUL-10",
+   "part": 4,
+   "cat": "Jul",
+   "name": "God jul fra menigheten",
+   "desc": "Julehilsen med vinterlandskap og plass til menighetens navn",
+   "spec": {
+    "Stil": "Klassisk-moderne / vinter",
+    "Fonter": "Great Vibes (190px) · Cormorant Garamond 600 · Montserrat 600",
+    "Farger": "#0e2240 → #4a6e9a himmel · #ffffff snø · #f1d48a gull",
+    "Bilde": "Ingen (illustrasjon)",
+    "Overlay": "Ingen",
+    "Effekter": "Snødekte åser, graner i silhuett, snøfall, månelys"
+   }
+  },
+  {
+   "id": "jul-11",
+   "code": "JUL-11",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Advent – sveitsisk",
+   "desc": "Bygger på GEN-10 Sveitsisk: fire adventsruter, ett lys til hver søndag",
+   "spec": {
+    "Stil": "Minimal (julevariant av GEN-10 Sveitsisk)",
+    "Fonter": "JetBrains Mono 500 (22px) · Archivo 700 (138px)",
+    "Farger": "#f5f4f0 bakgrunn · #111111 tekst · #b3261e rød",
+    "Bilde": "Bilde øverst til høyre (granbar, lys eller kirkerommet)",
+    "Overlay": "Foto: ingen",
+    "Effekter": "Strek under toppteksten, fire ruter (én fylt per søndag)"
+   }
+  },
+  {
+   "id": "jul-12",
+   "code": "JUL-12",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julekonsert – retro",
+   "desc": "Bygger på pro-24 Gospelkonsert: lyskjegle, «Jul» med retroskygge",
+   "spec": {
+    "Stil": "Retro / konsert (julevariant av pro-24)",
+    "Fonter": "Hanken Grotesk 600 · Shrikhand (220px) · Archivo 900 utvidet",
+    "Farger": "#0d1f1a bakgrunn · #f5e3c0 tekst · #c8322b rød · #e9b949 gull",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen",
+    "Effekter": "Lyskjegle ovenfra, rødt og gyllent lys, korn 30 %"
+   }
+  },
+  {
+   "id": "jul-13",
+   "code": "JUL-13",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julegudstjeneste – pergament",
+   "desc": "Bygger på bib-24 Pergament: juleevangeliet med fraktur-initial",
+   "spec": {
+    "Stil": "Klassisk (julevariant av bib-24)",
+    "Fonter": "Cormorant Garamond 600 (112px) · UnifrakturMaguntia (150px) · Cormorant Garamond 400/kursiv",
+    "Farger": "#efe3c8 pergament · #1f4a32 grønn · #7a2b1c rød · #2c2116 tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen",
+    "Effekter": "Dobbel ramme, kristtornkvist i hjørnene, mørkere kanter"
+   }
+  },
+  {
+   "id": "jul-14",
+   "code": "JUL-14",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julekor – scenelys",
+   "desc": "Bygger på live-11 Scenelys: koret i varmt lys, publikum i silhuett",
+   "spec": {
+    "Stil": "Moderne / konsert (julevariant av live-11)",
+    "Fonter": "Hanken Grotesk 600 · Archivo 900 utvidet (124px)",
+    "Farger": "#0a0705 bakgrunn · #ffcf70 lys · #ffffff tekst · #c8322b rød",
+    "Bilde": "Fire sangere, utklipt (PNG)",
+    "Overlay": "Person: ingen",
+    "Effekter": "Lysrampe øverst, publikum med hender i silhuett, stjerne"
+   }
+  },
+  {
+   "id": "jul-15",
+   "code": "JUL-15",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Familiejul – sirkel",
+   "desc": "Bygger på pro-04 Sol og sirkel: familiegudstjeneste i rødt og grønt",
+   "spec": {
+    "Stil": "Leken / familie (julevariant av pro-04)",
+    "Fonter": "Unbounded 900 (150px) · Unbounded 700",
+    "Farger": "#f8ecd8 bakgrunn · #c8102e rød · #14452f grønn",
+    "Bilde": "Familie eller barn, rund ramme",
+    "Overlay": "Foto: ingen",
+    "Effekter": "Stjerner rundt sirkelen, omrisset årstall"
+   }
+  },
+  {
+   "id": "jul-16",
+   "code": "JUL-16",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julebord – billett",
+   "desc": "Bygger på pro-11 Billett: adgangskort til menighetens julebord",
+   "spec": {
+    "Stil": "Leken / retro (julevariant av pro-11)",
+    "Fonter": "Space Mono 400 · Archivo 900 bred og smal (140px) · Hanken Grotesk 600",
+    "Farger": "#123b2a bakgrunn · #f3e9d6 billett · #b3261e rød · #1a1a1a tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen",
+    "Effekter": "Billett rotert −3°, stiplet perforering, korn 40 %"
+   }
+  },
+  {
+   "id": "jul-17",
+   "code": "JUL-17",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julehilsen – magasin",
+   "desc": "Bygger på GEN-19 Magasinforside: julenummer med pastorens julehilsen",
+   "spec": {
+    "Stil": "Redaksjonell (julevariant av GEN-19)",
+    "Fonter": "Bodoni Moda 900 (200px) · Archivo 800 smal · Archivo 400 · JetBrains Mono 500",
+    "Farger": "#efe8dc bakgrunn · #b3261e rød · #1f4a32 grønn · #111111 tekst",
+    "Bilde": "Person (pastor eller leder), utklipt (PNG)",
+    "Overlay": "Person: ingen",
+    "Effekter": "Strekkode, korn 25 % multiply, granbar ved mastheaden"
+   }
+  },
+  {
+   "id": "jul-18",
+   "code": "JUL-18",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Gudstjenester i julen",
+   "desc": "Bygger på live-14 Kalenderblokk: julens gudstjenester på ett ark",
+   "spec": {
+    "Stil": "Moderne / ren (julevariant av live-14)",
+    "Fonter": "Hanken Grotesk 800 · Archivo 800 (300px) · Instrument Serif (128px) · Hanken Grotesk 400/700",
+    "Farger": "#ece7de bakgrunn · #b3261e rød · #1f4a32 grønn · #111111 tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen",
+    "Effekter": "Kalenderark med skygge og hull, kvist på arket"
+   }
+  },
+  {
+   "id": "jul-19",
+   "code": "JUL-19",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Julemarked – frostet glass",
+   "desc": "Bygger på GEN-16 Frostet glass: julemarked i rødt, grønt og gull",
+   "spec": {
+    "Stil": "Moderne UI (julevariant av GEN-16)",
+    "Fonter": "Bricolage Grotesque 800 (124px) · 600 · 400",
+    "Farger": "#0f1a14 bakgrunn · #c8322b · #2f8a5a · #e9b949 · #ffffff tekst",
+    "Bilde": "Ingen",
+    "Overlay": "Ingen",
+    "Effekter": "Uskarpe fargeflekker, frostet glasskort, snø"
+   }
+  },
+  {
+   "id": "jul-20",
+   "code": "JUL-20",
+   "part": 4,
+   "cat": "Jul",
+   "name": "Snart er det jul",
+   "desc": "Bygger på GEN-01 Markert ord: juleannonse med rød markør",
+   "spec": {
+    "Stil": "Moderne YouTube (julevariant av GEN-01)",
+    "Fonter": "Archivo 600 (72px) · Archivo 900, stretch 78 % (150px) · Archivo 500",
+    "Farger": "#f1f0ec bakgrunn · #141414 tekst · #c8322b markør · #1f4a32 grønn",
+    "Bilde": "Person, utklipt (PNG), 520×660, bue-topp",
+    "Overlay": "Person: ingen",
+    "Effekter": "Rutenett 64px, 6 % svart · markør rotert −2°, ujevne hjørner · stjerner"
+   }
   }
  ]
 }
