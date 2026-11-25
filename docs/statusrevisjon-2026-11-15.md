@@ -1,13 +1,23 @@
 # Statusrevisjon MediaLab – 2026-11-15
 
-## FORTSETTELSE – les dette først (oppdatert 2026-11-21)
+## FORTSETTELSE – les dette først (oppdatert 2026-11-25)
 
 Permanent fortsettelsesnotat. Oppdateres ved hver avslutning/avbrudd. Detaljer og målinger står i seksjonene under.
 
-**Siste kjente produksjonscommit:** `daa9b48` (merge av `df309b3`: Menighetsbruker, se under; Release verify grønn 2026-11-21; før det `25cb89a`: merge av `ef3f2ae`: fontpopupen viser tre fonter, flyttbar på PC; før det `697dee1`: «Logo»/«Tekst» i foto beholder bare det merkede; før det `80b8154`: større bildeknapper i Thumbnail; før det `83c36e9`: Isolate Subject med faner Behold/Fjern, flervalg, «Gjennomfør isolering», Fyll/Gjennomsiktig/Farge også i Finjuster masken, skarpt fyll for tekst, før/etter-glideren, «Merk i bildet» av/på, og popupen «Isoler motiv …» i Thumbnail, Photo, Motion, Loop og Mockups; Release verify grønn 2026-11-17). Kontroller før
+**Siste kjente produksjonscommit:** `8dc4f29` (merge av `7fcc410`: minnerettelser for Safari og 20 julemaler, se under; Release verify grønn 2026-11-25; før det `daa9b48`: Menighetsbruker; før det `25cb89a`: merge av `ef3f2ae`: fontpopupen viser tre fonter, flyttbar på PC; før det `697dee1`: «Logo»/«Tekst» i foto beholder bare det merkede; før det `80b8154`: større bildeknapper i Thumbnail; før det `83c36e9`: Isolate Subject med faner Behold/Fjern, flervalg, «Gjennomfør isolering», Fyll/Gjennomsiktig/Farge også i Finjuster masken, skarpt fyll for tekst, før/etter-glideren, «Merk i bildet» av/på, og popupen «Isoler motiv …» i Thumbnail, Photo, Motion, Loop og Mockups; Release verify grønn 2026-11-17). Kontroller før
 videre arbeid: `git fetch` + `curl https://media-lab-react-vyef.vercel.app/app/version.json`.
 
 **Punkt 1–7 er gjennomført** (se statusen under hvert punkt; ekte iPhone og eiers visuelle godkjenning gjenstår).
+
+### FERDIG (2026-11-25, i produksjon 8dc4f29): minne i Safari/WebKit og 20 julemaler
+- **Minne (rotårsak):** midlertidige lerreter som ble laget ved hver tegning, ble aldri frigjort. Safari gir lerretsminne (på Mac: GPU-minne) først tilbake ved søppeltømming, så det hopet seg opp mens man dro og redigerte.
+  - Rettet med felles `shared/lib/free-canvas.ts` i: Safaris filtererstatning (`canvas-filter.ts`), Thumbnail-motoren, Photo (justerings- og maskeresultater, tekst, masker som faller ut av angrehistorikken), Mockups (tekstur, lag, maskebuffer, eksport), tekstbilder fra fontpopupen og miniatyrer.
+  - Målt med `web/e2e-mem/thumbnail-session.spec.ts` og `apps-session.spec.ts`. I WebKit gikk lerretsminne som venter på søppeltømming ned: Thumbnail 160–195 → 70–94 MB, Mockups 324–342 → 168–201 MB, og Motion/Loop sluttet å stige.
+  - Chromium: 0–4 MB både før og etter (problemet gjelder WebKit).
+  - IKKE VERIFISERT på ekte Mac/iPhone. Isolate-steget i målingen stopper ved «Merk i bildet» uten AI-nedlasting.
+- **Julemaler:** 20 maler i kategorien «Jul» (JUL-01–20). Kilde: `web/tools/maler/jul-maler.mjs`; konvertering: `npx tsx tools/maler/convert-thumbs.mjs --src=jul --merge`.
+  - De 151 eksisterende malene er uendret.
+  - Tester: `e2e/thumbnail-jul.spec.ts` og `templates.test.ts`.
 
 ### FERDIG (2026-11-21, i produksjon daa9b48): Menighetsbruker
 Felles konto per menighet med innboks (eierens oppdrag 2026-11-21, godkjent helt til produksjon). Beskrivelse: `docs/menighetsbruker.md`.
