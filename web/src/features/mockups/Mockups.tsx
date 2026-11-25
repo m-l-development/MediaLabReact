@@ -26,6 +26,7 @@ import { DEFAULT_SETTINGS, detect, render, validQuad, warp, type MockupSettings 
 import styles from './Mockups.module.css'
 import { useMockupLibrary } from './useMockupLibrary'
 import { copyImage } from '../../shared/lib/clipboard'
+import { freeCanvas } from '../../shared/lib/free-canvas'
 
 const CATS: readonly ('all' | MockupCategory)[] = ['all', 'phone', 'laptop', 'screen', 'print', 'other', 'collab']
 /** Små linjeikoner for retning (samme strekstil som ikonene ellers i appen). */
@@ -632,7 +633,8 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     render(g, W, H, image, design?.img ?? null, mockup, st, { N: 28 })
     // logoen tegnes til slutt, i full oppløsning (SVG gjengis først her); håndtak og markering er aldri med
     if (logo && lp) await drawLogo(g, W, H, logo, lp)
-    return new Promise((res) => c.toBlob(res, fmt === 'jpg' ? 'image/jpeg' : 'image/png', 0.92))
+    // eksportlerretet (bildets fulle størrelse) frigjøres når bildet er kodet
+    return new Promise((res) => c.toBlob((b) => { freeCanvas(c); res(b) }, fmt === 'jpg' ? 'image/jpeg' : 'image/png', 0.92))
   }
 
   const fileName = `mockup-${mockup.id}.${fmt === 'jpg' ? 'jpg' : 'png'}`
@@ -953,6 +955,7 @@ function Editor({ mockup, list, image, design, settings: st, onPatch, onOpen, on
     g.globalAlpha = 0.5
     warp(g, bc, projectQuad(H, iq).map(([x, y]) => [x * W, y * Hh]) as Quad, 18)
     g.restore()
+    freeCanvas(bc)
     // innenfor objektet vises den vanlige mockupen (klippet og med masker) – ikke dobbelt
     g.save()
     g.globalCompositeOperation = 'destination-out'

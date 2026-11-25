@@ -14,7 +14,7 @@ type FileSpec = { name: string; mimeType: string; buffer: Buffer }
  * MEM_DROP=1). Derfor leveres filen her inne på siden: knappen klikkes som vanlig, og filfeltets click() får filen i
  * stedet for å åpne velgeren. MEM_CDP_FILES=1 = den gamle måten (Playwrights filvelger).
  */
-async function pick(page: Page, trigger: import('@playwright/test').Locator, file: FileSpec) {
+export async function pick(page: Page, trigger: import('@playwright/test').Locator, file: FileSpec) {
   if (process.env.MEM_CDP_FILES) {
     const ch = page.waitForEvent('filechooser')
     await trigger.click()

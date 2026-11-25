@@ -1,10 +1,12 @@
 import type { Asset } from '../../domain/asset'
 import type { MediaProbe } from '../../services/assets/types'
+import { freeCanvas } from '../../shared/lib/free-canvas'
 
 const THUMB_SIZE = 320
 
 function canvasBlob(canvas: HTMLCanvasElement, type = 'image/webp', quality = 0.82): Promise<Blob | undefined> {
-  return new Promise((resolve) => canvas.toBlob((b) => resolve(b ?? undefined), type, quality))
+  // miniatyrlerretet frigjøres når bildet er kodet (Safari gir det ellers først tilbake ved søppeltømming)
+  return new Promise((resolve) => canvas.toBlob((b) => { freeCanvas(canvas); resolve(b ?? undefined) }, type, quality))
 }
 
 function drawThumb(source: CanvasImageSource, w: number, h: number): Promise<Blob | undefined> {

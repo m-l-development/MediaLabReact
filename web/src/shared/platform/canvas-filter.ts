@@ -8,6 +8,8 @@
  * tekst) med filter tegnes uten filter, som før.
  */
 
+import { freeCanvas } from '../lib/free-canvas'
+
 export interface FilterOp { fn: string; v: number }
 
 /** «blur(2px) grayscale(1) brightness(120%)» → operasjoner (ukjente/ugyldige hoppes over). */
@@ -168,6 +170,9 @@ export function installCanvasFilter(): boolean {
       draw.call(this, tmp, x0, y0)
       this.restore()
       store.set(this, f)
+      // hjelpelerretet lages ved hver filtrerte tegning (hvert bilde mens man drar): frigjøres straks, ellers hoper de
+      // seg opp i Safari til søppeltømmingen (målt i e2e-mem/thumbnail-session.spec.ts)
+      freeCanvas(tmp)
     }
   }
   return true

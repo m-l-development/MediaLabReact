@@ -1,4 +1,5 @@
 import { blobBitmap } from '../../../shared/lib/blob-image'
+import { freeCanvas } from '../../../shared/lib/free-canvas'
 import { drawFill, fillOn } from '../../../shared/fill/fill'
 import { loadFonts, loadStretch } from '../../../shared/fonts/loader'
 import { fractalNoise, noiseTexture } from '../../../shared/lib/noise-texture'
@@ -162,6 +163,7 @@ function blurInto(src: HTMLCanvasElement, r: number): HTMLCanvasElement {
   ctx(s).drawImage(src, 0, 0, s.width, s.height)
   g.imageSmoothingQuality = 'high'
   g.drawImage(s, 0, 0, W, H)
+  free(s)
   return o
 }
 
@@ -222,16 +224,7 @@ export function baseOf(E: MediaEntry, maxD: number): HTMLCanvasElement {
   return c
 }
 
-/**
- * Frigjør et lerret straks (bredde/høyde 0). Safari/iOS teller lerretsminne til lerretet er ryddet bort, og over grensen
- * for samlet lerretsminne blir nye lerreter tomme («hvitt bilde»); en nullstilt størrelse frigjør minnet med en gang.
- */
-function free(c: HTMLCanvasElement | undefined): void {
-  if (c && c.width * c.height > 1) {
-    c.width = 0
-    c.height = 0
-  }
-}
+const free = freeCanvas
 
 /** Store mellomlagre (over `px` piksler) frigjøres – brukes etter eksport i full oppløsning; de lages på nytt ved behov. */
 export function releaseLarge(media: Map<string, MediaEntry>, px = 2048 * 2048): void {
@@ -276,6 +269,7 @@ function adjusted(E: MediaEntry, a: Adj, maxD: number): HTMLCanvasElement {
   }
   const src = a.blur > 0 ? blurInto(b, (a.blur / 100) * 0.025 * Math.max(W, H)) : b
   g.drawImage(src, 0, 0)
+  if (src !== b) free(src)
   const id = g.getImageData(0, 0, W, H)
   const d = id.data
   const [R, Gc, B] = luts(a)
@@ -326,6 +320,9 @@ function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undef
   const ak = `a${maxD}|${JSON.stringify(a)}${dev ? `|d${JSON.stringify(dev)}` : ""}`
   const key = `${ak}|${mask ? mask.v : 0}`
   if (E.pk === key && E.p) return E.p
+  // forrige resultat frigjøres når det erstattes (penselstrøk i masken, dra i en glider = nytt lerret i bildets
+  // størrelse per endring; Safari gir dem ellers først tilbake ved søppeltømming). Kallerne tegner resultatet straks.
+  const oldP = E.p, oldA = E.a
   let out: HTMLCanvasElement
   if (E.ak === ak && E.a) out = E.a
   else {
@@ -350,10 +347,19 @@ function processed(E: MediaEntry, adj: Adj | undefined, mask: MaskCanvas | undef
   }
   E.pk = key
   E.p = out
+  if (oldP && oldP !== out && oldP !== E.a) free(oldP)
+  if (oldA && oldA !== E.a && oldA !== oldP && oldA !== out) free(oldA)
   return out
 }
 
 const foreign = new WeakMap<object, MediaEntry>()
+
+/** Frigjør de justerte kopiene av et bilde fra et annet verktøy (når bildet ikke brukes lenger, f.eks. editoren lukkes). */
+export function releaseAdjusted(img: object | null | undefined): void {
+  if (!img) return
+  dropCaches(foreign.get(img))
+  foreign.delete(img)
+}
 
 /**
  * Justert kopi av et bilde for andre verktøy (Thumbnail Studio, Loop Studio): de samme justeringene og RGB-kurvene som i
@@ -624,6 +630,7 @@ function drawLayer(g: G, L: PdLayer, M: Media, o: RenderOptions & { scale: numbe
         tg.fillStyle = L.tint
         tg.fillRect(0, 0, tw, th)
         g.drawImage(tc, -w / 2, -h / 2, w, h)
+        free(tc)
       } else g.drawImage(P, r.sx * k, r.sy * k, r.sw * k, r.sh * k, -w / 2, -h / 2, w, h)
     }
   } else if (L.type === 'fx') {
@@ -903,6 +910,7 @@ function drawPdText(g: G, L: TextLayer, M: Media) {
       fg.setTransform(1, 0, 0, 1, 0, 0)
       fg.globalCompositeOperation = 'source-in'
       fg.drawImage(pc, 0, 0)
+      free(pc)
     }
     tg.setTransform(1, 0, 0, 1, 0, 0)
     tg.drawImage(fc, 0, 0)
@@ -918,6 +926,9 @@ function drawPdText(g: G, L: TextLayer, M: Media) {
       }
     }
     g.drawImage(t, -b.w / 2 - Mg, -b.h / 2 - Mg, W, H)
+    // tekstens hjelpelerreter lages ved hver tegning: frigjøres straks (Safari)
+    free(t)
+    free(fc)
   }
   if (L.bar) {
     const bw = b.w * clamp(L.barW == null ? 1 : +L.barW, 0.05, 3)

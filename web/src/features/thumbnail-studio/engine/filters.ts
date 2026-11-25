@@ -1,4 +1,5 @@
 import { fractalNoise, noiseTexture } from '../../../shared/lib/noise-texture'
+import { freeCanvas } from '../../../shared/lib/free-canvas'
 /**
  * Bildefiltre F01–F13 for bildelag (Thumbnail-maler del 3, «Bildeoverlays og filtre»; docs/maler-og-fonter.md, fase 2).
  * Et bildelag kan ha en liste med filtre i rekkefølge (øverste lag sist). Hvert filter kan slås av og på, justeres og
@@ -267,6 +268,7 @@ export function drawOverlays(g: Ctx, fs: readonly ImgFilter[], w: number, h: num
           tg.restore()
         }
         const pat = g.createPattern(t as CanvasImageSource, 'repeat')
+        freeCanvas(t)
         if (pat) fill(pat, 'multiply')
         break
       }

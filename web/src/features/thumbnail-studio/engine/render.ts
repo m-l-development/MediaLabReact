@@ -6,6 +6,7 @@ import { castShadows, cornersPath } from '../../../shared/render/outline'
 import { adjustImage } from '../../photo-design/engine/render'
 import { advActive, type AdvAdj } from '../../../shared/image/AdvAdjust'
 import type { Pic } from '../../../shared/lib/blob-image'
+import { freeCanvas } from '../../../shared/lib/free-canvas'
 import type { ImageCache, LoadedImage } from './images'
 import { H, W, type Background, type Doc, type GlowLayer, type ImageLayer, type Layer, type ShapeLayer, type TextLayer, type Vignette } from './model'
 import { BULLETS, listItem } from './text-list'
@@ -182,6 +183,7 @@ function blurred(im: HTMLCanvasElement, amt: number): HTMLCanvasElement {
   ctx(c2).drawImage(c, 0, 0, c2.width, c2.height)
   g.clearRect(0, 0, c.width, c.height)
   g.drawImage(c2, 0, 0, c.width, c.height)
+  freeCanvas(c2)
   return c
 }
 
@@ -381,6 +383,9 @@ function drawText(g: G, l: TextLayer, s: number, img: Pic | null = null) {
     shadow(g, l, s)
     g.drawImage(t, -M, -M, l.w + 2 * M, l.h + 2 * M)
     g.restore()
+    // midlertidige lerreter per tegning: frigjøres straks (Safari gir dem ellers først tilbake ved søppeltømming)
+    freeCanvas(t)
+    freeCanvas(pc)
   } else {
     g.save()
     shadow(g, l, s)
@@ -516,7 +521,9 @@ export class Renderer {
           if (this.blurCache.key !== key) {
             const tmp = canvas(W, H)
             drawFit(ctx(tmp), e.img, W, H, 'cover', b.zoom, b.px, b.py)
+            freeCanvas(this.blurCache.c)
             this.blurCache = { key, c: blurred(tmp, b.blur) }
+            freeCanvas(tmp)
           }
           if (this.blurCache.c) g.drawImage(this.blurCache.c, 0, 0, W, H)
         } else drawFit(g, e.img, W, H, 'cover', b.zoom, b.px, b.py)
@@ -742,7 +749,8 @@ export class Renderer {
 
   async exportBlob(doc: Doc, scale: number, type: string, opt: { transparent?: boolean } = {}): Promise<Blob | null> {
     const c = await this.toCanvas(doc, scale, opt)
-    return new Promise((res) => c.toBlob(res, type, 0.95))
+    // eksportlerretet (4K: 33 MB) frigjøres når bildet er kodet
+    return new Promise((res) => c.toBlob((b) => { freeCanvas(c); res(b) }, type, 0.95))
   }
 
   /** Liten JPEG-skisse (data-URL) for mallister og «Ny mal». */
@@ -753,7 +761,9 @@ export class Renderer {
     await this.styledReady(doc, s)
     const c = canvas(Math.round(W * s), Math.round(H * s))
     this.render(ctx(c), doc, { s, edit, ...(placeholder ? { placeholder } : {}) })
-    return c.toDataURL('image/jpeg', 0.82)
+    const url = c.toDataURL('image/jpeg', 0.82)
+    freeCanvas(c)
+    return url
   }
 
   /**
@@ -768,7 +778,9 @@ export class Renderer {
     const c = canvas(Math.round(W * s), Math.round(H * s))
     this.render(ctx(c), doc, { s, edit, ...(placeholder ? { placeholder } : {}) })
     const b = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.82))
-    return b ? URL.createObjectURL(b) : c.toDataURL('image/jpeg', 0.82)
+    const url = b ? URL.createObjectURL(b) : c.toDataURL('image/jpeg', 0.82)
+    freeCanvas(c)
+    return url
   }
 
   /** Gjennomsiktige kanter i bildet som beskjæring (andel av bredde/høyde), eller null. */
@@ -780,9 +792,11 @@ export class Renderer {
     const k = Math.min(1, 500 / Math.max(nw, nh))
     const w = Math.max(1, Math.round(nw * k))
     const h = Math.max(1, Math.round(nh * k))
-    const g = ctx(canvas(w, h))
+    const ac = canvas(w, h)
+    const g = ctx(ac)
     g.drawImage(e.img, 0, 0, w, h)
     const d = g.getImageData(0, 0, w, h).data
+    freeCanvas(ac)
     let x0 = w
     let y0 = h
     let x1 = -1
@@ -881,6 +895,8 @@ function drawPic(g: G, im: CanvasImageSource & { width: number; height: number }
   if (lb) g.filter = lb
   g.drawImage(comp, 0, 0, l.w, l.h)
   if (lb) g.filter = 'none'
+  freeCanvas(comp)
+  freeCanvas(alpha)
 }
 
 export function imgFilter(l: { bri?: number; con?: number; sat?: number }): string {
